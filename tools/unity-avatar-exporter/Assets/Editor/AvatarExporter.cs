@@ -190,9 +190,13 @@ class AvatarExporter : MonoBehaviour {
             try {
                 string[] lines = File.ReadAllLines(exportFstPath);
                 foreach (string line in lines) {
-                    if (line.StartsWith("name")) {
-                        projectName = line.Substring(line.IndexOf("=") + 2);
-                        break;
+                    int separatorIndex = line.IndexOf("=");
+                    if (separatorIndex >= 0) {
+                        string key = line.Substring(0, separatorIndex).Trim();
+                        if (key == "name") {
+                            projectName = line.Substring(separatorIndex + 1).Trim();
+                            break;
+                        }
                     }
                 }
             } catch {
@@ -201,17 +205,7 @@ class AvatarExporter : MonoBehaviour {
                 return;
             }
             
-            // delete existing fst file since we will write a new file
-            // TODO: updating fst should only rewrite joint mappings and joint rotation offsets to existing file
-            try {
-                File.Delete(exportFstPath);
-            } catch {
-                EditorUtility.DisplayDialog("Error", "Failed to overwrite existing file " + exportFstPath + 
-                                            ". Please check the file and try again.", "Ok");
-                return;
-            }
-            
-            string exportModelPath = Path.GetDirectoryName(exportFstPath) + "/" + assetName + ".fbx";
+            string exportModelPath = Path.GetDirectoryName(exportFstPath) + "\\" + assetName + ".fbx";
             if (File.Exists(exportModelPath)) { 
                 // if the fbx in Unity Assets is newer than the fbx in the target export
                 // folder or vice-versa then ask to replace the older fbx with the newer fbx
@@ -234,13 +228,8 @@ class AvatarExporter : MonoBehaviour {
                     if (option == 2) { // Cancel
                         return;
                     } else if (option == 0) { // Yes - copy model to Unity project
-                        // delete existing fbx and associated meta file in Unity Assets
-                        File.Delete(assetPath);
-                        File.Delete(assetPath + ".meta");
-                        AssetDatabase.Refresh();
-                        
-                        // copy the fbx from the project folder to Unity Assets and import it
-                        File.Copy(exportModelPath, assetPath);
+                        // copy the fbx from the project folder to Unity Assets, overwriting the existing fbx, and re-import it
+                        File.Copy(exportModelPath, assetPath, true);
                         AssetDatabase.ImportAsset(assetPath);
                         
                         // set model to Humanoid animation type and force another refresh on it to process Humanoid
@@ -265,24 +254,25 @@ class AvatarExporter : MonoBehaviour {
                 copyModelToExport = option == 0; // Yes
             }  
 
-            // delete any existing fbx if we agreed to overwrite it, and copy asset fbx over
+            // copy asset fbx over deleting any existing fbx if we agreed to overwrite it
             if (copyModelToExport) {
-                if (File.Exists(exportModelPath)) {
-                    try {
-                        File.Delete(exportModelPath);
-                    } catch {
-                        EditorUtility.DisplayDialog("Error", "Failed to overwrite existing file " + exportModelPath + 
-                                                    ". Please check the file and try again.", "Ok");
-                        return;
-                    }
-                }
                 try {
-                    File.Copy(assetPath, exportModelPath);
+                    File.Copy(assetPath, exportModelPath, true);
                 } catch {
                     EditorUtility.DisplayDialog("Error", "Failed to copy existing file " + assetPath + " to " + exportModelPath + 
                                                 ". Please check the location and try again.", "Ok");
                     return;
                 }
+            }
+            
+            // delete existing fst file since we will write a new file
+            // TODO: updating fst should only rewrite joint mappings and joint rotation offsets to existing file
+            try {
+                File.Delete(exportFstPath);
+            } catch {
+                EditorUtility.DisplayDialog("Error", "Failed to overwrite existing file " + exportFstPath + 
+                                            ". Please check the file and try again.", "Ok");
+                return;
             }
 
             // write out a new fst file in place of the old file
@@ -326,9 +316,6 @@ class AvatarExporter : MonoBehaviour {
         
         // instantiate a game object of the user avatar to save out bone parents then destroy it
         UnityEngine.Object avatarResource = AssetDatabase.LoadAssetAtPath(assetPath, typeof(UnityEngine.Object));
-        if (!avatarResource) {
-            return false;
-        }
         GameObject assetGameObject = (GameObject)Instantiate(avatarResource);
         SetParentNames(assetGameObject.transform, userParentNames);
         DestroyImmediate(assetGameObject);
