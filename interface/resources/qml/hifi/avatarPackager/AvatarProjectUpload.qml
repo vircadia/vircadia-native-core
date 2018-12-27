@@ -72,7 +72,7 @@ Item {
                 }
             ]
 
-            LoadingCircle {
+            AnimatedImage {
                 id: uploadSpinner
 
                 visible: true
@@ -81,6 +81,12 @@ Item {
                     horizontalCenter: parent.horizontalCenter
                     verticalCenter: parent.verticalCenter
                 }
+
+                width: 164
+                height: 164
+
+                source: "../../../icons/loader-snake-256.gif"
+                playing: true
             }
 
             HiFiGlyphs {
@@ -94,23 +100,22 @@ Item {
                 }
 
                 size: 164
-                text: "w"
+                text: "+"
                 color: "#EA4C5F"
             }
 
-            HiFiGlyphs {
+            Image {
                 id: successIcon
 
                 visible: false
 
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    verticalCenter: parent.verticalCenter
-                }
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.horizontalCenter: parent.horizontalCenter
 
-                size: 164
-                text: "\ue01a"
-                color: "#1FC6A6"
+                width: 148
+                height: 148
+
+                source: "../../../icons/checkmark-stroke.svg"
             }
         }
         Item {

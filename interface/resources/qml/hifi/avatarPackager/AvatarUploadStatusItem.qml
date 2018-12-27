@@ -42,7 +42,7 @@ Item {
         width: 48
         height: parent.height
 
-        AnimatedImage {
+        LoadingCircle {
             id: runningImage
 
             visible: false
@@ -52,22 +52,19 @@ Item {
 
             width: 32
             height: 32
-
-            source: "../../../icons/loader-snake-64-w.gif"
-            playing: false
         }
-        HiFiGlyphs {
+        Image {
             id: successGlyph
 
             visible: false
 
-            width: implicitWidth
             anchors.verticalCenter: parent.verticalCenter
             anchors.horizontalCenter: parent.horizontalCenter
 
-            size: 48
-            text: "\ue01a"
-            color: "#1FC6A6"
+            width: 30
+            height: 30
+
+            source: "../../../icons/checkmark-stroke.svg"
         }
         HiFiGlyphs {
             id: failGlyph

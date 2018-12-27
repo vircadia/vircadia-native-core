@@ -86,6 +86,7 @@ Windows.ScrollingWindow {
 
             function openProject(path) {
                 AvatarPackagerCore.openAvatarProject(path);
+                avatarProject.reset();
                 avatarPackager.state = "project";
             }
 

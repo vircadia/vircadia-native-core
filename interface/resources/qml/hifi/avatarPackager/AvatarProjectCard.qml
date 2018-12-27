@@ -78,9 +78,7 @@ Item {
             id: mouseArea
             anchors.fill: parent
             hoverEnabled: true
-            onClicked: {
-                open();
-            }
+            onClicked: open()
         }
     }
 }
