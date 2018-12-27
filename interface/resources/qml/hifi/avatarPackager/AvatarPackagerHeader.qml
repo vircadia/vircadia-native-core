@@ -13,6 +13,7 @@ Rectangle {
     property alias title: title.text
     property alias faqEnabled: faq.visible
     property alias backButtonEnabled: back.visible
+    property bool canRename: false;
     signal backButtonClicked
 
     RalewaySemiBold {

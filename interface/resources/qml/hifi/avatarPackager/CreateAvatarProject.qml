@@ -22,9 +22,10 @@ Item {
             height: 30
             width: 133
             text: qsTr("Create")
+            enabled: false
             onClicked: {
                 if (!AvatarPackagerCore.createAvatarProject(projectLocation.text, name.text, avatarModel.text, textureFolder.text)) {
-                    Window.alert('Failed to create project')
+                    Window.alert('Failed to create project');
                     return;
                 }
                 avatarPackager.state = AvatarPackagerState.project;
@@ -37,21 +38,39 @@ Item {
     height: parent.height
     width: parent.width
 
+    function clearInputs() {
+        name.text = projectLocation.text = avatarModel.text = textureFolder.text = "";
+    }
 
-    property var errorMessages: QtObject {
-        readonly property string fileExists: "A folder with that name already exists at that location. Please choose a different project name or location."
+    function checkErrors() {
+        let newErrorMessageText = "";
+
+        let projectName = name.text;
+        let projectFolder = projectLocation.text;
+
+        let hasProjectNameError = projectName !== "" && projectFolder !== "" && !AvatarPackagerCore.isValidNewProjectName(projectFolder, projectName);
+
+        if (hasProjectNameError) {
+            newErrorMessageText =  "A folder with that name already exists at that location. Please choose a different project name or location.";
+        }
+
+        name.error = projectLocation.error = hasProjectNameError;
+        errorMessage.text = newErrorMessageText;
+        createButton.enabled = newErrorMessageText === "" && requiredFieldsFilledIn();
+    }
+
+    function requiredFieldsFilledIn() {
+        return name.text !== "" && projectLocation.text !== "" && avatarModel.text !== "";
     }
 
     RalewayRegular {
         id: errorMessage
         visible: text !== ""
         text: ""
-        color: "#EA4C5F";
+        color: "#EA4C5F"
         wrapMode: Text.WordWrap
         size: 20
         anchors {
-            top: createAvatarColumns.bottom
-            bottom: parent.bottom
             left: parent.left
             right: parent.right
         }
@@ -59,6 +78,7 @@ Item {
 
     Column {
         id: createAvatarColumns
+        anchors.top: errorMessage.visible ? errorMessage.bottom : parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: 10
@@ -71,6 +91,7 @@ Item {
             id: name
             label: "Name"
             colorScheme: root.colorScheme
+            onTextChanged: checkErrors()
         }
 
         ProjectInputControl {
@@ -81,9 +102,7 @@ Item {
             browseFolder: true
             browseDir: text !== "" ? fileDialogHelper.pathToUrl(text) : createAvatarColumns.defaultFileBrowserPath
             browseTitle: "Project Location"
-            onTextChanged: {
-                //TODO: valid folder? Does project with name exist here already?
-            }
+            onTextChanged: checkErrors()
         }
 
         ProjectInputControl {
@@ -95,25 +114,18 @@ Item {
             browseDir: text !== "" ? fileDialogHelper.pathToUrl(text) : createAvatarColumns.defaultFileBrowserPath
             browseFilter: "Avatar Model File (*.fbx)"
             browseTitle: "Open Avatar Model (.fbx)"
-            onTextChanged: {
-                if (avatarModel.text !== "") {
-                    textureFolder.browseDir = fileDialogHelper.pathToUrl(avatarModel.text.split('/')[0]);
-                }
-            }
+            onTextChanged: checkErrors()
         }
 
         ProjectInputControl {
             id: textureFolder
-            label: "Specify Texture Folder"
+            label: "Specify Texture Folder <i> - optional</i>"
             colorScheme: root.colorScheme
             browseEnabled: true
             browseFolder: true
             browseDir: text !== "" ? fileDialogHelper.pathToUrl(text) : createAvatarColumns.defaultFileBrowserPath
             browseTitle: "Texture Folder"
-            onTextChanged: {
-                //TODO: valid folder?
-
-            }
+            onTextChanged: checkErrors()
         }
     }
 

@@ -15,13 +15,11 @@
 
 #include <QFile>
 #include <QFileInfo>
-#include <QDebug>
 #include <QQmlEngine>
 #include <QTimer>
 
 #include "FBXSerializer.h"
 #include <ui/TabletScriptingInterface.h>
-#include <graphics/TextureMap.h>
 #include "scripting/HMDScriptingInterface.h"
 
 AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
@@ -38,7 +36,7 @@ AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
 }
 
 AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder) {
-    if (!isValidNewProjectName(avatarProjectName)) {
+    if (!isValidNewProjectName(projectsFolder, avatarProjectName)) {
         return nullptr;
     }
     QDir projectDir(projectsFolder + "/" + avatarProjectName);
@@ -135,8 +133,11 @@ QStringList AvatarProject::getScriptPaths(const QDir& scriptsDir) {
     return result;
 }
 
-bool AvatarProject::isValidNewProjectName(const QString& projectName) {
-    QDir dir(getDefaultProjectsPath() + "/" + projectName);
+bool AvatarProject::isValidNewProjectName(const QString& projectPath, const QString& projectName) {
+    if (projectPath.trimmed().isEmpty() || projectName.trimmed().isEmpty()) {
+        return false;
+    }
+    QDir dir(projectPath + "/" + projectName);
     return !dir.exists();
 }
 

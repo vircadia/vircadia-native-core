@@ -17,12 +17,9 @@
 #include "ProjectFile.h"
 #include "FST.h"
 
-#include <QDir>
 #include <QObject>
 #include <QDir>
-#include <QFileInfo>
 #include <QVariantHash>
-#include <QUuid>
 #include <QStandardPaths>
 
 class AvatarProject : public QObject {
@@ -41,6 +38,11 @@ public:
     Q_INVOKABLE void openInInventory();
     Q_INVOKABLE QStringList getProjectFiles() const;
 
+    Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
+    Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
+    Q_INVOKABLE QString getFSTPath() const { return _fst->getPath(); }
+    Q_INVOKABLE QString getFBXPath() const { return _fst->getModelPath(); }
+
     /**
      * returns the AvatarProject or a nullptr on failure.
      */
@@ -50,7 +52,7 @@ public:
                                               const QString& avatarModelPath,
                                               const QString& textureFolder);
 
-    static bool isValidNewProjectName(const QString& projectName);
+    static bool isValidNewProjectName(const QString& projectPath, const QString& projectName);
 
     static QString getDefaultProjectsPath() {
         return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/High Fidelity Projects";
@@ -65,11 +67,6 @@ private:
     AvatarProject(FST* fst);
 
     ~AvatarProject() { _fst->deleteLater(); }
-
-    Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
-    Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
-    Q_INVOKABLE QString getFSTPath() const { return _fst->getPath(); }
-    Q_INVOKABLE QString getFBXPath() const { return _fst->getModelPath(); }
 
     FST* getFST() { return _fst; }
 

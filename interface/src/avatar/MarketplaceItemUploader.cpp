@@ -15,8 +15,8 @@
 #include <DependencyManager.h>
 
 #include <QBuffer>
-#include <quazip5\quazip.h>
-#include <quazip5\quazipfile.h>
+#include <quazip5/quazip.h>
+#include <quazip5/quazipfile.h>
 
 #include <qtimer.h>
 #include <QFile>

@@ -33,7 +33,7 @@ Windows.ScrollingWindow {
             id: modalOverlay
             anchors.fill: parent
             z: 20
-            color: "#aa031b33"
+            color: "#a15d5d5d"
             visible: false
 
             // This mouse area captures the cursor events while the modalOverlay is active
@@ -70,7 +70,7 @@ Windows.ScrollingWindow {
                 },
                 State {
                     name: AvatarPackagerState.project
-                    PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                    PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name; canRename: true }
                     PropertyChanges { target: avatarProject; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; content: avatarProject.footer }
                 },
@@ -136,6 +136,7 @@ Windows.ScrollingWindow {
                             text: qsTr("New Project")
                             colorScheme: root.colorScheme
                             onClicked: {
+                                createAvatarProject.clearInputs();
                                 avatarPackager.state = AvatarPackagerState.createProject;
                             }
                         }
@@ -173,7 +174,10 @@ Windows.ScrollingWindow {
                             }
                         }
                     }
+
+
                     Flow {
+                        visible: AvatarPackagerCore.recentProjects.length === 0
                         anchors {
                             fill: parent
                             topMargin: 18
@@ -189,6 +193,27 @@ Windows.ScrollingWindow {
                             size: 20
                             color: "white"
                             text: qsTr("To learn more about using this tool, visit our docs")
+                        }
+
+
+                    }
+
+                    Column {
+                        visible: AvatarPackagerCore.recentProjects.length > 0
+                        anchors {
+                            fill: parent
+                            topMargin: 18
+                            leftMargin: 16
+                            rightMargin: 16
+                        }
+                        spacing: 10
+
+                        Repeater {
+                            model: AvatarPackagerCore.recentProjects
+                            AvatarProjectCard {
+                                title: modelData.name
+                                path: modelData.path
+                            }
                         }
                     }
                 }

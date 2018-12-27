@@ -22,6 +22,7 @@ Column {
     property string browseTitle: "Open file"
     property string browseDir: ""
     property alias text: input.text
+    property alias error: input.error
 
     property int colorScheme
 

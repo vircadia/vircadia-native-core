@@ -31,6 +31,8 @@ AvatarPackager::AvatarPackager() {
         qRegisterMetaType<AvatarProject*>();
     });
 
+    recentProjectsFromVariantList(_recentProjectsSetting.get());
+
     QDir defaultProjectsDir(AvatarProject::getDefaultProjectsPath());
     defaultProjectsDir.mkpath(".");
 }
@@ -50,10 +52,36 @@ AvatarProject* AvatarPackager::openAvatarProject(const QString& avatarProjectFST
         _currentAvatarProject->deleteLater();
     }
     _currentAvatarProject = AvatarProject::openAvatarProject(avatarProjectFSTPath);
+    if (_currentAvatarProject) {
+        addRecentProject(avatarProjectFSTPath, _currentAvatarProject->getProjectName());
+    }
     qDebug() << "_currentAvatarProject has" << (QQmlEngine::objectOwnership(_currentAvatarProject) == QQmlEngine::CppOwnership ? "CPP" : "JS") << "OWNERSHIP";
     QQmlEngine::setObjectOwnership(_currentAvatarProject, QQmlEngine::CppOwnership);
     emit avatarProjectChanged();
     return _currentAvatarProject;
+}
+
+void AvatarPackager::addRecentProject(QString fstPath, QString projectName) {
+    const int MAX_RECENT_PROJECTS = 5;
+    auto removeProjects = QVector<RecentAvatarProject>();
+    for (auto project : _recentProjects) {
+        if (project.getProjectFSTPath() == fstPath) {
+            removeProjects.append(project);
+        }
+    }
+    for (const auto removeProject : removeProjects) {
+        _recentProjects.removeOne(removeProject);
+    }
+
+    RecentAvatarProject newRecentProject = RecentAvatarProject(projectName, fstPath);
+    _recentProjects.prepend(newRecentProject);
+
+    while (_recentProjects.size() > MAX_RECENT_PROJECTS) {
+        _recentProjects.pop_back();
+    }
+
+    _recentProjectsSetting.set(recentProjectsToVariantList());
+    emit recentProjectsChanged();
 }
 
 AvatarProject* AvatarPackager::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder) {
@@ -61,6 +89,9 @@ AvatarProject* AvatarPackager::createAvatarProject(const QString& projectsFolder
         _currentAvatarProject->deleteLater();
     }
     _currentAvatarProject = AvatarProject::createAvatarProject(projectsFolder, avatarProjectName, avatarModelPath, textureFolder);
+    if (_currentAvatarProject) {
+        addRecentProject(_currentAvatarProject->getFSTPath(), _currentAvatarProject->getProjectName());
+    }
     qDebug() << "_currentAvatarProject has" << (QQmlEngine::objectOwnership(_currentAvatarProject) == QQmlEngine::CppOwnership ? "CPP" : "JS") << "OWNERSHIP";
     QQmlEngine::setObjectOwnership(_currentAvatarProject, QQmlEngine::CppOwnership);
     emit avatarProjectChanged();
