@@ -74,6 +74,12 @@ FST* FST::createFSTFromModel(QString fstPath, QString modelFilePath, const hfm::
 
     mapping.insert(JOINT_FIELD, joints);
 
+    QVariantHash jointIndices;
+    for (int i = 0; i < hfmModel.joints.size(); i++) {
+        jointIndices.insert(hfmModel.joints.at(i).name, QString::number(i));
+    }
+    mapping.insert(JOINT_INDEX_FIELD, jointIndices);
+
     mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
     mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
     mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");

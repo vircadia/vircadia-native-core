@@ -24,7 +24,7 @@
 
 class AvatarProject : public QObject {
     Q_OBJECT
-    Q_PROPERTY(FST* fst READ getFST)
+    Q_PROPERTY(FST* fst READ getFST CONSTANT)
 
     Q_PROPERTY(QStringList projectFiles READ getProjectFiles NOTIFY projectFilesChanged)
 

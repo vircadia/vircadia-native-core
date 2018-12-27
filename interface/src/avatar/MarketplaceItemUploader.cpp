@@ -33,7 +33,7 @@ MarketplaceItemUploader::MarketplaceItemUploader(QString title,
                                                  QUuid marketplaceID,
                                                  QStringList filePaths) :
     _title(title),
-    _description(description), _rootFilename(rootFilename), _filePaths(filePaths), _marketplaceID(marketplaceID) {
+    _description(description), _rootFilename(rootFilename), _marketplaceID(marketplaceID), _filePaths(filePaths) {
     qWarning() << "File paths: " << _filePaths.join(", ");
     //_marketplaceID = QUuid::fromString(QLatin1String("{50dbd62f-cb6b-4be4-afb8-1ef8bd2dffa8}"));
 }

@@ -23,9 +23,8 @@
 
 class RecentAvatarProject {
 public:
-    RecentAvatarProject() {
-        
-    }
+    RecentAvatarProject() = default;
+    
 
     RecentAvatarProject(QString projectName, QString projectFSTPath) {
         _projectName = projectName;
@@ -35,6 +34,8 @@ public:
         _projectName = other._projectName;
         _projectFSTPath = other._projectFSTPath;
     }
+
+    ~RecentAvatarProject() = default;
 
     QString getProjectName() const { return _projectName; }
 
@@ -49,15 +50,6 @@ private:
     QString _projectFSTPath;
 
 };
-
-inline QDebug operator<<(QDebug debug, const RecentAvatarProject& recentAvatarProject) {
-    debug << "[recentAvatarProject:" << recentAvatarProject.getProjectFSTPath() << "]";
-    return debug;
-}
-
-Q_DECLARE_METATYPE(RecentAvatarProject);
-
-Q_DECLARE_METATYPE(QVector<RecentAvatarProject>);
 
 class AvatarPackager : public QObject, public Dependency {
     Q_OBJECT

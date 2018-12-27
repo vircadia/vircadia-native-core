@@ -84,6 +84,11 @@ Windows.ScrollingWindow {
 
             property alias showModalOverlay: modalOverlay.visible
 
+            function openProject(path) {
+                AvatarPackagerCore.openAvatarProject(path);
+                avatarPackager.state = "project";
+            }
+
             AvatarPackagerHeader {
                 id: avatarPackagerHeader
                 onBackButtonClicked: {
@@ -175,7 +180,6 @@ Windows.ScrollingWindow {
                         }
                     }
 
-
                     Flow {
                         visible: AvatarPackagerCore.recentProjects.length === 0
                         anchors {
@@ -194,8 +198,6 @@ Windows.ScrollingWindow {
                             color: "white"
                             text: qsTr("To learn more about using this tool, visit our docs")
                         }
-
-
                     }
 
                     Column {
@@ -213,6 +215,7 @@ Windows.ScrollingWindow {
                             AvatarProjectCard {
                                 title: modelData.name
                                 path: modelData.path
+                                onOpen: avatarPackager.openProject(modelData.path)
                             }
                         }
                     }

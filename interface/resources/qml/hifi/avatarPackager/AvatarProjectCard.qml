@@ -20,6 +20,8 @@ Item {
     property color hoverBackgroundColor: "#E3E3E3"
     property color pressedBackgroundColor: "#6A6A6A"
 
+    signal open;
+
     state: mouseArea.pressed ? "pressed" : (mouseArea.containsMouse ? "hover" : "normal")
     states: [
         State {
@@ -77,8 +79,7 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
-                AvatarPackagerCore.openAvatarProject(path.text);
-                avatarPackager.state = "project";
+                open();
             }
         }
     }
