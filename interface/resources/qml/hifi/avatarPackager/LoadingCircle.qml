@@ -3,18 +3,14 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 
-Image {
+AnimatedImage {
     id: root
 
     width: 128
     height: 128
 
-    source: "../../../images/loader-snake-128.png"
+    property bool white: false
 
-    RotationAnimation on rotation {
-        duration: 2000
-        loops: Animation.Infinite
-        from: 0
-        to: 360
-    }
+    source: white ? "../../../icons/loader-snake-256-wf.gif" : "../../../icons/loader-snake-256.gif"
+    playing: true
 }

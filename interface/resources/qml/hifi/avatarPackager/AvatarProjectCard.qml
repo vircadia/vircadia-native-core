@@ -78,6 +78,7 @@ Item {
             hoverEnabled: true
             onClicked: {
                 AvatarPackagerCore.openAvatarProject(path.text);
+                avatarProject.reset();
                 avatarPackager.state = "project";
             }
         }

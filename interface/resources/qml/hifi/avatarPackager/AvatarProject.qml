@@ -25,6 +25,8 @@ Item {
     anchors.fill: parent
     anchors.margins: 10
 
+    function reset() { hasSuccessfullyUploaded = false }
+
     property var footer: Item {
         anchors.fill: parent
 
@@ -41,10 +43,10 @@ Item {
 
                 visible: !AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
                 enabled: Account.loggedIn
-                //width: parent.width
-                //anchors.bottom: parent.bottom
+
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: parent.right
+
                 text: qsTr("Upload")
                 color: hifi.buttons.blue
                 colorScheme: root.colorScheme
@@ -130,6 +132,8 @@ Item {
 
                 width: 28
                 height: 28
+
+                white: true
             }
             RalewayRegular {
                 id: stepText
