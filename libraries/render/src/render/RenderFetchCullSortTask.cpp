@@ -70,5 +70,13 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const auto overlayTransparents = task.addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
-    output = Output(BucketList{ opaques, transparents, lights, metas, overlayOpaques, overlayTransparents, background }, spatialSelection);
+    // split up the overlays into 3D front, hud
+    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, ItemKey::Layer::LAYER_1);
+    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, ItemKey::Layer::LAYER_1);
+
+
+    output = Output(BucketList{ opaques, transparents, lights, metas, overlayOpaques, overlayTransparents,
+                    filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0), filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0),
+                    filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(1), filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(1),
+                    background }, spatialSelection);
 }
