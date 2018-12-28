@@ -11,27 +11,13 @@
 
 #include "FBXSerializer.h"
 
-#include <iostream>
 #include <QBuffer>
-#include <QDataStream>
-#include <QIODevice>
-#include <QStringList>
-#include <QTextStream>
-#include <QtDebug>
-#include <QtEndian>
-#include <QFileInfo>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <FaceshiftConstants.h>
-#include <GeometryUtil.h>
-#include <GLMHelpers.h>
-#include <NumericalConstants.h>
-#include <OctalCode.h>
-#include <gpu/Format.h>
-#include <LogHandler.h>
 
 #include <hfm/ModelFormatLogging.h>
 
@@ -1640,14 +1626,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 }
             }
         }
-        buildModelMesh(extracted.mesh, url);
 
         hfmModel.meshes.append(extracted.mesh);
         int meshIndex = hfmModel.meshes.size() - 1;
-        if (extracted.mesh._mesh) {
-            extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex).toStdString();
-            extracted.mesh._mesh->modelName = modelIDsToNames.value(modelID).toStdString();
-        }
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
@@ -1712,22 +1693,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             if (modelIDsToNames.contains(modelID)) {
                 const QString& modelName = modelIDsToNames.value(modelID);
                 hfmModel.meshIndicesToModelNames.insert(meshIndex, modelName);
-            }
-        }
-    }
-    {
-        int i = 0;
-        for (const auto& mesh : hfmModel.meshes) {
-            auto name = hfmModel.getModelNameOfMesh(i++);
-            if (!name.isEmpty()) {
-                if (mesh._mesh) {
-                    mesh._mesh->modelName = name.toStdString();
-                    if (!mesh._mesh->displayName.size()) {
-                        mesh._mesh->displayName = QString("#%1").arg(name).toStdString();
-                    }
-                } else {
-                    qDebug() << "modelName but no mesh._mesh" << name;
-                }
             }
         }
     }

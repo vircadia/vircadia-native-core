@@ -543,7 +543,7 @@ void LightClusteringPass::configure(const Config& config) {
     _freeze = config.freeze;
 }
 
-void LightClusteringPass::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
+void LightClusteringPass::run(const render::RenderContextPointer& renderContext, const Input& inputs, Output& output) {
     auto args = renderContext->args;
     
     auto deferredTransform = inputs.get0();
@@ -638,10 +638,9 @@ void DebugLightClusters::run(const render::RenderContextPointer& renderContext, 
     }
 
     auto deferredTransform = inputs.get0();
-    auto deferredFramebuffer = inputs.get1();
-    auto lightingModel = inputs.get2();
-    auto linearDepthTarget = inputs.get3();
-    auto lightClusters = inputs.get4();
+    auto lightingModel = inputs.get1();
+    auto linearDepthTarget = inputs.get2();
+    auto lightClusters = inputs.get3();
 
     auto args = renderContext->args;
 

@@ -17,7 +17,6 @@
 #include "Engine.h"
 
 namespace baker {
-
     class Baker {
     public:
         Baker(const hfm::Model::Pointer& hfmModel);

@@ -303,8 +303,6 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
 }
 
 void AmbientOcclusionEffect::configure(const Config& config) {
-    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.isEnabled());
-
     bool shouldUpdateBlurs = false;
     bool shouldUpdateTechnique = false;
 
@@ -591,14 +589,21 @@ void AmbientOcclusionEffect::updateJitterSamples() {
     }
 }
 
-void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
     RenderArgs* args = renderContext->args;
 
-    const auto& frameTransform = inputs.get0();
-    const auto& linearDepthFramebuffer = inputs.get2();
+    const auto& lightingModel = input.get0();
+
+    if (!lightingModel->isAmbientOcclusionEnabled()) {
+        output.edit0().reset();
+        return;
+    }
+
+    const auto& frameTransform = input.get1();
+    const auto& linearDepthFramebuffer = input.get3();
     
     const int resolutionLevel = _aoParametersBuffer->getResolutionLevel();
     const auto depthResolutionLevel = getDepthResolutionLevel();
@@ -631,8 +636,8 @@ void AmbientOcclusionEffect::run(const render::RenderContextPointer& renderConte
     auto occlusionFBO = _framebuffer->getOcclusionFramebuffer();
     auto occlusionBlurredFBO = _framebuffer->getOcclusionBlurredFramebuffer();
     
-    outputs.edit0() = _framebuffer;
-    outputs.edit1() = _aoParametersBuffer;
+    output.edit0() = _framebuffer;
+    output.edit1() = _aoParametersBuffer;
 
     auto occlusionPipeline = getOcclusionPipeline();
     auto bilateralBlurPipeline = getBilateralBlurPipeline();
