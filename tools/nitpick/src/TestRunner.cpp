@@ -485,9 +485,7 @@ void TestRunner::runInterfaceWithTestScript() {
         " --url " + url +
         " --no-updater" +
         " --no-login-suggestion"
-        " --testScript " + deleteScript + " quitWhenFinished" +
-        " --testResultsLocation " + _snapshotFolder;
-
+        " --testScript " + deleteScript + " quitWhenFinished";
 
     system(commandLine.toStdString().c_str());
 
@@ -503,10 +501,6 @@ void TestRunner::runInterfaceWithTestScript() {
     _interfaceWorker->setCommandLine(commandLine);
     emit startInterface();
 #elif defined Q_OS_MAC
-    // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process
-    // has started.
-    // Before starting interface, start a process that will resize interface 10s after it opens
-    // This is performed by creating a bash script that runs to processes
     QFile script;
     script.setFileName(_workingFolder + "/runInterfaceTests.sh");
     if (!script.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -516,7 +510,20 @@ void TestRunner::runInterfaceWithTestScript() {
     }
     
     script.write("#!/bin/sh\n\n");
-
+    
+    // First, run script to delete any entities in test area
+    commandLine =
+    "open -W \"" +_installationFolder + "/interface.app\" --args" +
+    " --url " + url +
+    " --no-updater" +
+    " --no-login-suggestion"
+    " --testScript " + deleteScript + " quitWhenFinished\n";
+    
+    script.write(commandLine.toStdString().c_str());
+    
+    // On The Mac, we need to resize Interface.  The Interface window opens a few seconds after the process
+    // has started.
+    // Before starting interface, start a process that will resize interface 10s after it opens
     commandLine = _workingFolder +"/waitForStart.sh interface && sleep 10 && " + _workingFolder +"/setInterfaceSizeAndPosition.sh &\n";
     script.write(commandLine.toStdString().c_str());
 
@@ -527,7 +534,7 @@ void TestRunner::runInterfaceWithTestScript() {
         " --no-login-suggestion"
         " --testScript " + testScript + " quitWhenFinished" +
         " --testResultsLocation " + _snapshotFolder +
-        " && " + _workingFolder +"/waitForFinish.sh interface";
+        " && " + _workingFolder +"/waitForFinish.sh interface\n";
 
     script.write(commandLine.toStdString().c_str());
 
