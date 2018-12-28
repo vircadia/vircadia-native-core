@@ -2436,19 +2436,19 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_TRIGGERABLE, Grab, grab, Triggerable, triggerable);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE, Grab, grab, Equippable, equippable);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
-            EquippableLeftPosition, equippableLeftPosition);
+                                  EquippableLeftPosition, equippableLeftPosition);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
-            EquippableLeftRotation, equippableLeftRotation);
+                                  EquippableLeftRotation, equippableLeftRotation);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
-            EquippableRightPosition, equippableRightPosition);
+                                  EquippableRightPosition, equippableRightPosition);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
-            EquippableRightRotation, equippableRightRotation);
+                                  EquippableRightRotation, equippableRightRotation);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_URL, Grab, grab,
-            EquippableIndicatorURL, equippableIndicatorURL);
+                                  EquippableIndicatorURL, equippableIndicatorURL);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE, Grab, grab,
-            EquippableIndicatorScale, equippableIndicatorScale);
+                                  EquippableIndicatorScale, equippableIndicatorScale);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET, Grab, grab,
-            EquippableIndicatorOffset, equippableIndicatorOffset);
+                                  EquippableIndicatorOffset, equippableIndicatorOffset);
 
         ADD_PROPERTY_TO_MAP(PROP_IMAGE_URL, ImageURL, imageURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_EMISSIVE, Emissive, emissive, bool);

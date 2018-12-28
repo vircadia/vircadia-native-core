@@ -1193,12 +1193,6 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
         _entityTree->withReadLock([&] {
             _entityTree->evalEntitiesInSphereWithType(center, radius, type, PickFilter(searchFilter), result);
         });
-
-        foreach(EntityItemPointer entity, entities) {
-            if (entity->getType() == type) {
-                result << entity->getEntityItemID().toString();
-            }
-        }
     }
     return result;
 }
@@ -1210,24 +1204,6 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entity
             unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
             _entityTree->evalEntitiesInSphereWithName(center, radius, entityName, caseSensitiveSearch, PickFilter(searchFilter), result);
         });
-
-        if (caseSensitiveSearch) {
-            foreach(EntityItemPointer entity, entities) {
-                if (entity->getName() == entityName) {
-                    result << entity->getEntityItemID();
-                }
-            }
-
-        } else {
-            QString entityNameLowerCase = entityName.toLower();
-
-            foreach(EntityItemPointer entity, entities) {
-                QString entityItemLowerCase = entity->getName().toLower();
-                if (entityItemLowerCase == entityNameLowerCase) {
-                    result << entity->getEntityItemID();
-                }
-            }
-        }
     }
     return result;
 }
@@ -1253,13 +1229,6 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(cons
     }
 
     return evalRayIntersectionWorker(ray, Octree::Lock, PickFilter(searchFilter), entitiesToInclude, entitiesToDiscard);
-}
-
-RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionVector(const PickRay& ray, PickFilter searchFilter,
-        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
-    PROFILE_RANGE(script_entities, __FUNCTION__);
-
-    return evalRayIntersectionWorker(ray, Octree::Lock, searchFilter, entityIdsToInclude, entityIdsToDiscard);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionVector(const PickRay& ray, PickFilter searchFilter,
