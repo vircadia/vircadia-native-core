@@ -13,6 +13,8 @@
 #ifndef hifi_MarketplaceItemUploader_h
 #define hifi_MarketplaceItemUploader_h
 
+#include "ProjectFile.h"
+
 #include <QObject>
 #include <QUuid>
 
@@ -50,7 +52,7 @@ public:
                             QString description,
                             QString rootFilename,
                             QUuid marketplaceID,
-                            QStringList filePaths);
+                            QList<ProjectFilePath> filePaths);
 
     Q_INVOKABLE void send();
 
@@ -91,13 +93,15 @@ private:
     QString _description;
     QString _rootFilename;
     QUuid _marketplaceID;
+    int _categoryID;
     int _itemVersion;
 
     QString _responseData;
 
     int _numRequestsForInventory{ 0 };
 
-    QStringList _filePaths;
+    QString _rootFilePath;
+    QList<ProjectFilePath> _filePaths;
     QByteArray _fileData;
 };
 

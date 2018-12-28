@@ -127,9 +127,12 @@ Windows.ScrollingWindow {
             property alias showModalOverlay: modalOverlay.visible
 
             function openProject(path) {
-                AvatarPackagerCore.openAvatarProject(path);
-                avatarProject.reset();
-                avatarPackager.state = "project";
+                let project = AvatarPackagerCore.openAvatarProject(path);
+                if (project) {
+                    avatarProject.reset();
+                    avatarPackager.state = "project";
+                }
+                return project;
             }
 
             AvatarPackagerHeader {
@@ -213,9 +216,8 @@ Windows.ScrollingWindow {
 
                                 browser.selectedFile.connect(function(fileUrl) {
                                     let fstFilePath = fileDialogHelper.urlToPath(fileUrl);
-                                    let currentAvatarProject = AvatarPackagerCore.openAvatarProject(fstFilePath);
+                                    let currentAvatarProject = avatarPackager.openProject(fstFilePath);
                                     if (currentAvatarProject) {
-                                        avatarPackager.state = AvatarPackagerState.project;
                                         avatarPackager.showModalOverlay = false;
                                     }
                                 });

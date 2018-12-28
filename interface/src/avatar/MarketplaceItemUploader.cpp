@@ -31,18 +31,15 @@ MarketplaceItemUploader::MarketplaceItemUploader(QString title,
                                                  QString description,
                                                  QString rootFilename,
                                                  QUuid marketplaceID,
-                                                 QStringList filePaths) :
+                                                 QList<ProjectFilePath> filePaths) :
     _title(title),
     _description(description), _rootFilename(rootFilename), _marketplaceID(marketplaceID), _filePaths(filePaths) {
-    qWarning() << "File paths: " << _filePaths.join(", ");
-    //_marketplaceID = QUuid::fromString(QLatin1String("{50dbd62f-cb6b-4be4-afb8-1ef8bd2dffa8}"));
 }
 
 void MarketplaceItemUploader::setState(State newState) {
     Q_ASSERT(_state != State::Complete);
     Q_ASSERT(_error == Error::None);
     Q_ASSERT(newState != _state);
-    qDebug() << "Setting uploader state to: " << newState;
 
     _state = newState;
     emit stateChanged(newState);
@@ -113,13 +110,12 @@ void MarketplaceItemUploader::doGetCategories() {
             };
 
             bool success;
-            int id;
-            std::tie(success, id) = extractCategoryID();
-            qDebug() << "Done " << success << id;
+            std::tie(success, _categoryID) = extractCategoryID();
             if (!success) {
                 qWarning() << "Failed to find marketplace category id";
                 setError(Error::Unknown);
             } else {
+                qDebug() << "Marketplace Avatar category ID is" << _categoryID;
                 doUploadAvatar();
             }
         } else {
@@ -133,24 +129,26 @@ void MarketplaceItemUploader::doUploadAvatar() {
     //buffer.open(QIODevice::WriteOnly);
     QuaZip zip{ &buffer };
     if (!zip.open(QuaZip::Mode::mdAdd)) {
-        qWarning() << "Failed to open zip!!";
+        qWarning() << "Failed to open zip";
+        setError(Error::Unknown);
+        return;
     }
 
     for (auto& filePath : _filePaths) {
-        qWarning() << "Zipping: " << filePath;
-        QFileInfo fileInfo{ filePath };
+        qWarning() << "Zipping: " << filePath.absolutePath << filePath.relativePath;
+        QFileInfo fileInfo{ filePath.absolutePath };
 
         QuaZipFile zipFile{ &zip };
-        if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(fileInfo.fileName()))) {
+        if (!zipFile.open(QIODevice::WriteOnly, QuaZipNewInfo(filePath.relativePath))) {
             qWarning() << "Could not open zip file:" << zipFile.getZipError();
             setError(Error::Unknown);
             return;
         }
-        QFile file{ filePath };
+        QFile file{ filePath.absolutePath };
         if (file.open(QIODevice::ReadOnly)) {
             zipFile.write(file.readAll());
         } else {
-            qWarning() << "Failed to open: " << filePath;
+            qWarning() << "Failed to open: " << filePath.absolutePath;
         }
         file.close();
         zipFile.close();
@@ -175,28 +173,26 @@ void MarketplaceItemUploader::doUploadAvatar() {
     }
     auto accountManager = DependencyManager::get<AccountManager>();
     auto request = accountManager->createRequest(path, AccountManagerAuth::Required);
-    qWarning() << "Request url is: " << request.url();
-
-    QJsonObject root{ { "marketplace_item",
-                        QJsonObject{ { "title", _title },
-                                     { "description", _description },
-                                     { "root_file_key", _rootFilename },
-                                     { "category_ids", QJsonArray({ 5 }) },
-                                     { "license", 0 },
-                                     { "files", QString::fromLatin1(_fileData.toBase64()) } } } };
     request.setHeader(QNetworkRequest::KnownHeaders::ContentTypeHeader, "application/json");
-    QJsonDocument doc{ root };
 
-    qWarning() << "data: " << doc.toJson();
+    // TODO(huffman) add JSON escaping
+    auto escapeJson = [](QString str) -> QString { return str; };
 
-    _fileData.toBase64();
+    QString jsonString = "{\"marketplace_item\":{";
+    jsonString += "\"title\":\"" + escapeJson(_title) + "\"";
+    jsonString += ",\"description\":\"" + escapeJson(_description) + "\"";
+    jsonString += ",\"root_file_key\":\"" + escapeJson(_rootFilename) + "\"";
+    jsonString += ",\"category_ids\":[" + QStringLiteral("%1").arg(_categoryID) + "]";
+    jsonString += ",\"license\":0";
+    jsonString += ",\"files\":\"" + QString::fromLatin1(_fileData.toBase64()) + "\"}}";
+
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkReply* reply{ nullptr };
     if (creating) {
-        reply = networkAccessManager.post(request, doc.toJson());
+        reply = networkAccessManager.post(request, jsonString.toUtf8());
     } else {
-        reply = networkAccessManager.put(request, doc.toJson());
+        reply = networkAccessManager.put(request, jsonString.toUtf8());
     }
 
     connect(reply, &QNetworkReply::uploadProgress, this, [this](float bytesSent, float bytesTotal) {
@@ -210,11 +206,9 @@ void MarketplaceItemUploader::doUploadAvatar() {
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         _responseData = reply->readAll();
-        qWarning() << "Finished request " << _responseData;
 
         auto error = reply->error();
         if (error == QNetworkReply::NoError) {
-
             auto doc = QJsonDocument::fromJson(_responseData.toLatin1());
             auto status = doc.object()["status"].toString();
             if (status == "success") {
@@ -223,9 +217,11 @@ void MarketplaceItemUploader::doUploadAvatar() {
                 setState(State::WaitingForInventory);
                 doWaitForInventory();
             } else {
+                qWarning() << "Got error response while uploading avatar: " << _responseData;
                 setError(Error::Unknown);
             }
         } else {
+            qWarning() << "Got error while uploading avatar: " << reply->error() << reply->errorString() << _responseData;
             setError(Error::Unknown);
         }
     });
@@ -265,7 +261,7 @@ void MarketplaceItemUploader::doWaitForInventory() {
                 }
                 auto data = root["data"];
                 if (!data.isObject()) {
-                    return false; 
+                    return false;
                 }
                 auto assets = data.toObject()["assets"];
                 if (!assets.isArray()) {

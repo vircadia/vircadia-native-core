@@ -162,10 +162,9 @@ void AvatarProject::appendDirectory(QString prefix, QDir dir) {
     constexpr auto flags = QDir::Dirs | QDir::Files | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Hidden;
     for (auto& entry : dir.entryInfoList({}, flags)) {
         if (entry.isFile()) {
-            //_projectFiles.append(prefix + "/" + entry.fileName());
-            _projectFiles.append({ entry.absoluteFilePath(), prefix + "/" + entry.fileName() });
+            _projectFiles.append({ entry.absoluteFilePath(), prefix + entry.fileName() });
         } else if (entry.isDir()) {
-            appendDirectory(prefix + dir.dirName() + "/", entry.absoluteFilePath());
+            appendDirectory(prefix + entry.fileName() + "/", entry.absoluteFilePath());
         }
     }
 }
@@ -188,12 +187,8 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     if (updateExisting) {
         itemID = _fst->getMarketplaceID();
     }
-    QStringList projectFilePaths;
-    for (auto& path : _projectFiles) {
-        projectFilePaths.append(path.absolutePath); 
-    }
-    auto uploader = new MarketplaceItemUploader(getProjectName(), "Empty description", QFileInfo(getFSTPath()).fileName(), itemID,
-                                       projectFilePaths);
+    auto uploader = new MarketplaceItemUploader(getProjectName(), "Empty description", QFileInfo(getFSTPath()).fileName(),
+                                                itemID, _projectFiles);
     connect(uploader, &MarketplaceItemUploader::completed, this, [this, uploader]() {
         if (uploader->getError() == MarketplaceItemUploader::Error::None) {
             _fst->setMarketplaceID(uploader->getMarketplaceID());

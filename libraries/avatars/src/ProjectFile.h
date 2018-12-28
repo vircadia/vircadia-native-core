@@ -1,6 +1,8 @@
 #ifndef hifi_AvatarProjectFile_h
 #define hifi_AvatarProjectFile_h
 
+#include <QObject>
+
 class ProjectFilePath {
     Q_GADGET;
 public:
