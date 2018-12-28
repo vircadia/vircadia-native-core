@@ -9,14 +9,19 @@ docker run \
    --rm \
     --security-opt seccomp:unconfined \
    -v "${WORKSPACE}":/home/jenkins/hifi \
-   -e "RELEASE_NUMBER=${RELEASE_NUMBER}" \
-   -e "RELEASE_TYPE=${RELEASE_TYPE}" \
-   -e "ANDROID_BUILD_TARGET=assembleDebug" \
-   -e "CMAKE_BACKTRACE_URL=${CMAKE_BACKTRACE_URL}" \
-   -e "CMAKE_BACKTRACE_TOKEN=${CMAKE_BACKTRACE_TOKEN}" \
-   -e "CMAKE_BACKTRACE_SYMBOLS_TOKEN=${CMAKE_BACKTRACE_SYMBOLS_TOKEN}" \
-   -e "GA_TRACKING_ID=${GA_TRACKING_ID}" \
-   -e "GIT_PR_COMMIT=${GIT_PR_COMMIT}" \
-   -e "VERSION_CODE=${VERSION_CODE}" \
+   -e RELEASE_NUMBER \
+   -e RELEASE_TYPE \
+   -e ANDROID_BUILD_TARGET \
+   -e ANDROID_BUILD_DIR \
+   -e CMAKE_BACKTRACE_URL \
+   -e CMAKE_BACKTRACE_TOKEN \
+   -e CMAKE_BACKTRACE_SYMBOLS_TOKEN \
+   -e GA_TRACKING_ID \
+   -e OAUTH_CLIENT_SECRET \
+   -e OAUTH_CLIENT_ID \
+   -e OAUTH_REDIRECT_URI \
+   -e VERSION_CODE \
    "${DOCKER_IMAGE_NAME}" \
    sh -c "./build_android.sh"
+
+
