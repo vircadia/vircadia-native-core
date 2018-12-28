@@ -25,6 +25,10 @@ public slots:
     * @returns {string} "WINDOWS", "MACOS" or "UNKNOWN"
     */
     QString getOperatingSystemType();
+
+    /**jsdoc
+    * Returns the CPU brand
+    */
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h
