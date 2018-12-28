@@ -99,7 +99,6 @@ private:
     ComponentMode _bloomMode { COMPONENT_MODE_INHERIT };
 
     indexed_container::Index _sunIndex { LightStage::INVALID_INDEX };
-    indexed_container::Index _shadowIndex { LightStage::INVALID_INDEX };
     indexed_container::Index _ambientIndex { LightStage::INVALID_INDEX };
 
     BackgroundStagePointer _backgroundStage;
