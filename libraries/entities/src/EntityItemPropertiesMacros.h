@@ -411,10 +411,28 @@ inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
-        _propertyStringsToEnums[#n] = P;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#n] = propertyInfo; \
+    }
+
+#define ADD_PROPERTY_TO_MAP_WITH_RANGE(P, N, n, T, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#n] = propertyInfo; \
+    }
 
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
-        _propertyStringsToEnums[#g "." #n] = P;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+    }
+
+#define ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(P, G, g, N, n, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+    }
 
 #define DEFINE_CORE(N, n, T, V) \
     public: \

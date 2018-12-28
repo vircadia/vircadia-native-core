@@ -1693,7 +1693,8 @@ float EntityItem::getVolumeEstimate() const {
 void EntityItem::setRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         withWriteLock([&] {
-            _registrationPoint = glm::clamp(value, 0.0f, 1.0f);
+            _registrationPoint = glm::clamp(value, glm::vec3(ENTITY_ITEM_MIN_REGISTRATION_POINT), 
+                                                   glm::vec3(ENTITY_ITEM_MAX_REGISTRATION_POINT));
         });
         dimensionsChanged(); // Registration Point affects the bounding box
         markDirtyFlags(Simulation::DIRTY_SHAPE);
@@ -1858,7 +1859,7 @@ void EntityItem::setVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_damping != clampedDamping) {
             _damping = clampedDamping;
@@ -1913,7 +1914,7 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setAngularDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_angularDamping != clampedDamping) {
             _angularDamping = clampedDamping;

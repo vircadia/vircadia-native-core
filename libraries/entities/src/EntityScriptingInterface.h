@@ -513,6 +513,32 @@ public slots:
             const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue(),
             bool visibleOnly = false, bool collidableOnly = false) const;
 
+    /// Same as above but with QVectors
+    RayToEntityIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly);
+
+    /**jsdoc
+     * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
+     * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable} 
+     * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
+     * This is a synonym for {@link Entities.findRayIntersection|findRayIntersection}.
+     * @function Entities.findRayIntersectionBlocking
+     * @param {PickRay} pickRay - The PickRay to use for finding entities.
+     * @param {boolean} [precisionPicking=false] - If <code>true</code> and the intersected entity is a <code>Model</code>
+     *     entity, the result's <code>extraInfo</code> property includes more information than it otherwise would.
+     * @param {Uuid[]} [entitiesToInclude=[]] - If not empty then the search is restricted to these entities.
+     * @param {Uuid[]} [entitiesToDiscard=[]] - Entities to ignore during the search.
+     * @deprecated This function is deprecated and will soon be removed. Use 
+     *    {@link Entities.findRayIntersection|findRayIntersection} instead; it blocks and performs the same function.
+     */
+    /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
+    /// order to return an accurate result
+    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, 
+        const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
+
+>>>>>>> property range audit - add range info via macros accessible via API, tweak min/max/steps in entityProperties
+
     /**jsdoc
      * Reloads an entity's server entity script such that the latest version re-downloaded.
      * @function Entities.reloadServerScripts
@@ -1591,6 +1617,16 @@ public slots:
      *     and its value matches the entity's static certificate JSON; otherwise <code>false</code>.
      */
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
+
+    /**jsdoc
+     * Get information about entity properties including a minimum to maximum range for numerical properties 
+     * as well as property enum value.
+     * @function Entities.getPropertyInfo
+     * @param {string} property - The property name to get the information for.
+     * @returns {Entities.EntityPropertyInfo} The information data including propertyEnum, minimum, and maximum
+     * if the property can be found, otherwise an empty object.
+     */
+    Q_INVOKABLE const EntityPropertyInfo getPropertyInfo(const QScriptValue& property) const;
 
 signals:
     /**jsdoc

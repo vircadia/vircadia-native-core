@@ -453,7 +453,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
         spinSpread: 0,
         rotateWithEntity: false,
         polarStart: 0,
-        polarFinish: 0,
+        polarFinish: Math.PI,
         azimuthStart: -Math.PI,
         azimuthFinish: Math.PI
     },
@@ -2478,6 +2478,15 @@ var PropertiesTool = function (opts) {
                 type: 'tooltipsReply',
                 tooltips: Script.require('./assets/data/createAppTooltips.json'),
                 hmdActive: HMD.active,
+            });
+        } else if (data.type === "propertyRangeRequest") {
+            var propertyRanges = {};
+            data.properties.forEach(function (property) {
+                propertyRanges[property] = Entities.getPropertyInfo(property);
+            });
+            emitScriptEvent({
+                type: 'propertyRangeReply',
+                propertyRanges: propertyRanges,
             });
         }
     };

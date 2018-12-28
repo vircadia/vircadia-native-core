@@ -1089,6 +1089,9 @@ QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float
         _entityTree->withReadLock([&] {
             result = _entityTree->evalClosestEntity(center, radius, PickFilter(searchFilter));
         });
+        if (closestEntity) {
+            result = closestEntity->getEntityItemID();
+        }
     }
     return result;
 }
@@ -1111,6 +1114,10 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
         _entityTree->withReadLock([&] {
             _entityTree->evalEntitiesInSphere(center, radius, PickFilter(searchFilter), result);
         });
+
+        foreach (EntityItemPointer entity, entities) {
+            result << entity->getEntityItemID();
+        }
     }
     return result;
 }
@@ -1125,6 +1132,10 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
             AABox box(corner, dimensions);
             _entityTree->evalEntitiesInBox(box, PickFilter(searchFilter), result);
         });
+
+        foreach (EntityItemPointer entity, entities) {
+            result << entity->getEntityItemID();
+        }
     }
     return result;
 }
@@ -1163,6 +1174,10 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
             _entityTree->withReadLock([&] {
                 _entityTree->evalEntitiesInFrustum(viewFrustum, PickFilter(searchFilter), result);
             });
+
+            foreach(EntityItemPointer entity, entities) {
+                result << entity->getEntityItemID();
+            }
         }
     }
 
@@ -1178,6 +1193,12 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
         _entityTree->withReadLock([&] {
             _entityTree->evalEntitiesInSphereWithType(center, radius, type, PickFilter(searchFilter), result);
         });
+
+        foreach(EntityItemPointer entity, entities) {
+            if (entity->getType() == type) {
+                result << entity->getEntityItemID().toString();
+            }
+        }
     }
     return result;
 }
@@ -1189,6 +1210,24 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entity
             unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
             _entityTree->evalEntitiesInSphereWithName(center, radius, entityName, caseSensitiveSearch, PickFilter(searchFilter), result);
         });
+
+        if (caseSensitiveSearch) {
+            foreach(EntityItemPointer entity, entities) {
+                if (entity->getName() == entityName) {
+                    result << entity->getEntityItemID();
+                }
+            }
+
+        } else {
+            QString entityNameLowerCase = entityName.toLower();
+
+            foreach(EntityItemPointer entity, entities) {
+                QString entityItemLowerCase = entity->getName().toLower();
+                if (entityItemLowerCase == entityNameLowerCase) {
+                    result << entity->getEntityItemID();
+                }
+            }
+        }
     }
     return result;
 }
@@ -1214,6 +1253,13 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(cons
     }
 
     return evalRayIntersectionWorker(ray, Octree::Lock, PickFilter(searchFilter), entitiesToInclude, entitiesToDiscard);
+}
+
+RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionVector(const PickRay& ray, PickFilter searchFilter,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
+    return evalRayIntersectionWorker(ray, Octree::Lock, searchFilter, entityIdsToInclude, entityIdsToDiscard);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionVector(const PickRay& ray, PickFilter searchFilter,
@@ -2267,4 +2313,11 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
         });
     }
     return result;
+}
+
+const EntityPropertyInfo EntityScriptingInterface::getPropertyInfo(const QScriptValue& property) const {
+    const QString name = property.toString();
+    EntityPropertyInfo propertyInfo;
+    EntityItemProperties::getPropertyInfo(name, propertyInfo);
+    return propertyInfo;
 }
