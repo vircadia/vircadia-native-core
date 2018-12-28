@@ -275,9 +275,10 @@ void MarketplaceItemUploader::doWaitForInventory() {
                     }
                     if (id == _marketplaceID) {
                         auto version = assetObject["version"];
-                        if (version.isDouble()) {
+                        auto valid = assetObject["valid"];
+                        if (version.isDouble() && valid.isBool()) {
                             int versionInt = version.toDouble();
-                            if (versionInt >= _itemVersion) {
+                            if ((int)version.toDouble() >= _itemVersion && valid.toBool()) {
                                 return true;
                             }
                         }
