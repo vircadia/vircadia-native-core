@@ -47,8 +47,6 @@ Item {
     Item {
         id: uploadStatus
 
-        visible: !!root.uploader
-
         anchors.fill: parent
 
         Item {
@@ -60,14 +58,14 @@ Item {
             states: [
                 State {
                     name: "success"
-                    when: !!root.uploader && root.uploader.state >= 4 && root.uploader.error === 0
+                    when: root.uploader.state >= 4 && root.uploader.error === 0
                     PropertyChanges { target: uploadSpinner; visible: false }
                     PropertyChanges { target: errorIcon; visible: false }
                     PropertyChanges { target: successIcon; visible: true }
                 },
                 State {
                     name: "error"
-                    when: !!root.uploader && root.uploader.finished && root.uploader.error !== 0
+                    when: root.uploader.finished && root.uploader.error !== 0
                     PropertyChanges { target: uploadSpinner; visible: false }
                     PropertyChanges { target: errorIcon; visible: true }
                     PropertyChanges { target: successIcon; visible: false }
@@ -198,21 +196,4 @@ Item {
             }
         }
     }
-
-    Column {
-        id: debugInfo
-
-        visible: false
-
-        Text {
-            text: "Uploading"
-            color: "white"
-
-        }
-        Text {
-            text: "State: " + (!!root.uploader ? root.uploader.state : " NONE")
-            color: "white"
-        }
-    }
-
 }

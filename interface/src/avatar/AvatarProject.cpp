@@ -187,7 +187,7 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     if (updateExisting) {
         itemID = _fst->getMarketplaceID();
     }
-    auto uploader = new MarketplaceItemUploader(getProjectName(), "Empty description", QFileInfo(getFSTPath()).fileName(),
+    auto uploader = new MarketplaceItemUploader(getProjectName(), "", QFileInfo(getFSTPath()).fileName(),
                                                 itemID, _projectFiles);
     connect(uploader, &MarketplaceItemUploader::completed, this, [this, uploader]() {
         if (uploader->getError() == MarketplaceItemUploader::Error::None) {

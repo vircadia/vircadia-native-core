@@ -4,7 +4,7 @@ import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
 Rectangle {
-    id: avatarPackagerHeader
+    id: root 
 
     width: parent.width
     height: 74
@@ -12,13 +12,14 @@ Rectangle {
 
     property alias title: title.text
     property alias faqEnabled: faq.visible
-    property alias backButtonEnabled: back.visible
+    property bool backButtonVisible: true // If false, is not visible and does not take up space
+    property bool backButtonEnabled: true // If false, is not visible but does not affect space
     property bool canRename: false;
     signal backButtonClicked
 
     RalewaySemiBold {
         id: back
-        visible: true
+        visible: backButtonEnabled && backButtonVisible
         size: 28
         anchors.top: parent.top
         anchors.bottom: parent.bottom
@@ -29,7 +30,7 @@ Rectangle {
         color: "white"
         MouseArea {
             anchors.fill: parent
-            onClicked: avatarPackagerHeader.backButtonClicked()
+            onClicked: root.backButtonClicked()
             hoverEnabled: true
             onEntered: { state = "hovering" }
             onExited: { state = "" }
@@ -50,8 +51,8 @@ Rectangle {
         size: 28
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.left: back.visible ? back.right : parent.left
-        anchors.leftMargin: back.visible ? 11 : 21
+        anchors.left: root.backButtonVisible ? back.right : parent.left
+        anchors.leftMargin: root.backButtonVisible ? 11 : 21
         anchors.verticalCenter: title.verticalCenter
         text: qsTr("Avatar Packager")
         color: "white"

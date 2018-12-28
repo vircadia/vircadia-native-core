@@ -102,7 +102,7 @@ Windows.ScrollingWindow {
             states: [
                 State {
                     name: AvatarPackagerState.main
-                    PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); faqEnabled: true; backButtonEnabled: false }
+                    PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); faqEnabled: true; backButtonVisible: false }
                     PropertyChanges { target: avatarPackagerMain; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; content: avatarPackagerMain.footer }
                 },
@@ -120,7 +120,7 @@ Windows.ScrollingWindow {
                 },
                 State {
                     name: "project-upload"
-                    PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                    PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name; backButtonEnabled: false }
                     PropertyChanges { target: avatarUploader; visible: true }
                     PropertyChanges { target: avatarPackagerFooter; visible: false }
                 }
