@@ -45,6 +45,8 @@ Windows.ScrollingWindow {
                 anchors.leftMargin: 29
                 anchors.rightMargin: 29
 
+                clip: true
+
                 ListView {
                     anchors.fill: parent
                     model: AvatarPackagerCore.currentAvatarProject === null ? [] : AvatarPackagerCore.currentAvatarProject.projectFiles

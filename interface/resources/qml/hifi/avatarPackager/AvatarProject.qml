@@ -229,7 +229,7 @@ Item {
                 name: "upload-success"
                 PropertyChanges {
                     target: infoMessage
-                    text: "Your avatar has been uploaded to our servers. You can modify the project files and update it again to make changes on the uploaded avatar."
+                    text: "Your avatar has been successfully uploaded to our servers. Make changes to your avatar by editing and uploading the project files."
                 }
             },
             State {

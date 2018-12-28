@@ -17,7 +17,7 @@ Item {
 
     Timer {
         id: backToProjectTimer
-        interval: 5000
+        interval: 2000
         running: false
         repeat: false
         onTriggered: {
@@ -37,7 +37,9 @@ Item {
         if (visible) {
             root.uploader.stateChanged.connect(stateChangedCallback);
             root.uploader.finishedChanged.connect(function() {
-                backToProjectTimer.start();
+                if (root.uploader.error === 0) {
+                    backToProjectTimer.start();
+                }
             });
         }
     }
@@ -53,7 +55,7 @@ Item {
             id: statusItem
 
             width: parent.width
-            height: 192
+            height: 256
 
             states: [
                 State {
@@ -69,6 +71,8 @@ Item {
                     PropertyChanges { target: uploadSpinner; visible: false }
                     PropertyChanges { target: errorIcon; visible: true }
                     PropertyChanges { target: successIcon; visible: false }
+                    PropertyChanges { target: errorFooter; visible: true }
+                    PropertyChanges { target: errorMessage; visible: true }
                 }
             ]
 
@@ -99,7 +103,7 @@ Item {
                     verticalCenter: parent.verticalCenter
                 }
 
-                size: 164
+                size: 315
                 text: "+"
                 color: "#EA4C5F"
             }
@@ -151,19 +155,47 @@ Item {
         }
 
         RalewayRegular {
-            visible: root.uploader.error
+            id: errorMessage
+
+            visible: false
 
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: errorFooter.top
             anchors.leftMargin: 16
             anchors.rightMargin: 16
-            anchors.bottomMargin: 16
+            anchors.bottomMargin: 32
 
             size: 28
             wrapMode: Text.Wrap
             color: "white"
             text: "We couldn't upload your avatar at this time. Please try again later."
+        }
+        AvatarPackagerFooter {
+            id: errorFooter
+
+            anchors.bottom: parent.bottom
+            visible: false
+
+            content: Item {
+                anchors.fill: parent
+                anchors.rightMargin: 17
+                HifiControls.Button {
+                    id: backButton
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+
+                    text: qsTr("Back")
+                    color: hifi.buttons.blue
+                    colorScheme: root.colorScheme
+                    width: 133
+                    height: 40
+                    onClicked: function() {
+                        avatarPackager.state = "project"
+                    }
+                }
+            }
         }
     }
 
