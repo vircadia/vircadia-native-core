@@ -28,10 +28,10 @@ class AvatarProject : public QObject {
 
     Q_PROPERTY(QStringList projectFiles READ getProjectFiles NOTIFY projectFilesChanged)
 
-    Q_PROPERTY(QString projectFolderPath READ getProjectPath)
-    Q_PROPERTY(QString projectFSTPath READ getFSTPath)
-    Q_PROPERTY(QString projectFBXPath READ getFBXPath)
-    Q_PROPERTY(QString name READ getProjectName NOTIFY nameChanged)
+    Q_PROPERTY(QString projectFolderPath READ getProjectPath CONSTANT)
+    Q_PROPERTY(QString projectFSTPath READ getFSTPath CONSTANT)
+    Q_PROPERTY(QString projectFBXPath READ getFBXPath CONSTANT)
+    Q_PROPERTY(QString name READ getProjectName WRITE setProjectName NOTIFY nameChanged)
 
 public:
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
@@ -39,6 +39,13 @@ public:
     Q_INVOKABLE QStringList getProjectFiles() const;
 
     Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }
+    Q_INVOKABLE void setProjectName(const QString& newProjectName) {
+        if (newProjectName.trimmed().length() > 0) {
+            _fst->setName(newProjectName);
+            _fst->write();
+            emit nameChanged();
+        }
+    }
     Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
     Q_INVOKABLE QString getFSTPath() const { return _fst->getPath(); }
     Q_INVOKABLE QString getFBXPath() const { return _fst->getModelPath(); }

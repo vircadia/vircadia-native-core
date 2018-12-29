@@ -119,7 +119,7 @@ Item {
 
         ProjectInputControl {
             id: textureFolder
-            label: "Specify Texture Folder <i> - optional</i>"
+            label: "Specify Texture Folder - <i>Optional</i>"
             colorScheme: root.colorScheme
             browseEnabled: true
             browseFolder: true
@@ -128,5 +128,4 @@ Item {
             onTextChanged: checkErrors()
         }
     }
-
 }

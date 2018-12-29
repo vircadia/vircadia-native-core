@@ -53,11 +53,14 @@ Item {
 
         RalewayBold {
             id: title
+            elide: "ElideRight"
             anchors {
                 top: parent.top
                 topMargin: 13
                 left: parent.left
                 leftMargin: 16
+                right: parent.right
+                rightMargin: 16
             }
             text: "<title missing>"
             size: 16
@@ -69,7 +72,11 @@ Item {
                 top: title.bottom
                 left: parent.left
                 leftMargin: 32
+                right: background.right
+                rightMargin: 16
             }
+            elide: "ElideLeft"
+            horizontalAlignment: Text.AlignRight
             text: "<path missing>"
             size: 20
         }

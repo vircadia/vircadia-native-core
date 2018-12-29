@@ -57,7 +57,7 @@ Column {
             colorScheme: root.colorScheme
             onClicked: {
                 avatarPackager.showModalOverlay = true;
-                let browser = desktop.fileDialog({
+                let browser = avatarPackager.desktopObject.fileDialog({
                      selectDirectory: browseFolder,
                      dir: browseDir,
                      filter: browseFilter,

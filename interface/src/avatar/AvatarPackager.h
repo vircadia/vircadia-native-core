@@ -35,11 +35,13 @@ public:
         _projectFSTPath = other._projectFSTPath;
     }
 
-    ~RecentAvatarProject() = default;
-
     QString getProjectName() const { return _projectName; }
 
     QString getProjectFSTPath() const { return _projectFSTPath; }
+
+    QString getProjectPath() const {
+        return QFileInfo(_projectFSTPath).absoluteDir().absolutePath();
+    }
 
     bool operator==(const RecentAvatarProject& other) const {
         return _projectName == other._projectName && _projectFSTPath == other._projectFSTPath;
@@ -72,31 +74,18 @@ signals:
 private:
     Q_INVOKABLE AvatarProject* getAvatarProject() const { return _currentAvatarProject; };
     Q_INVOKABLE QString getAvatarProjectsPath() const { return AvatarProject::getDefaultProjectsPath(); }
-    Q_INVOKABLE QVariantList getRecentProjects() { return recentProjectsToVariantList(); }
+    Q_INVOKABLE QVariantList getRecentProjects() { return recentProjectsToVariantList(true); }
 
-    void addRecentProject(QString fstPath, QString projectName);
+    void setAvatarProject(AvatarProject* avatarProject);
+
+    void addCurrentProjectToRecentProjects();
 
     AvatarProject* _currentAvatarProject{ nullptr };
     QVector<RecentAvatarProject> _recentProjects;
-    QVariantList recentProjectsToVariantList() {
-        QVariantList result;
-        for (const auto& project : _recentProjects) {
-            QVariantMap projectVariant;
-            projectVariant.insert("name", project.getProjectName());
-            projectVariant.insert("path", project.getProjectFSTPath());
-            result.append(projectVariant);
-        }
-        
-        return result;
-    }
 
-    void recentProjectsFromVariantList(QVariantList projectsVariant) {
-        _recentProjects.clear();
-        for (const auto& projectVariant : projectsVariant) {
-            auto map = projectVariant.toMap();
-            _recentProjects.append(RecentAvatarProject(map.value("name").toString(), map.value("path").toString()));
-        }
-    }
+    QVariantList recentProjectsToVariantList(bool includeProjectPaths);
+
+    void recentProjectsFromVariantList(QVariantList projectsVariant);
 
 
     Setting::Handle<QVariantList> _recentProjectsSetting{ "io.highfidelity.avatarPackager.recentProjects", QVariantList() };

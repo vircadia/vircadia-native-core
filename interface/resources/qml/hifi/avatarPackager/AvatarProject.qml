@@ -178,7 +178,7 @@ Item {
             }
         });
         root.uploader.send();
-        avatarPackager.state = "project-upload";
+        avatarPackager.state = AvatarPackagerState.projectUpload;
     }
 
     function showConfirmUploadPopup() {

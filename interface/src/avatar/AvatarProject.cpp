@@ -81,18 +81,18 @@ AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder,
         }
     };
 
-    foreach(const HFMMaterial mat, hfmModel->materials) {
-        addTextureToList(mat.normalTexture);
-        addTextureToList(mat.albedoTexture);
-        addTextureToList(mat.opacityTexture);
-        addTextureToList(mat.glossTexture);
-        addTextureToList(mat.roughnessTexture);
-        addTextureToList(mat.specularTexture);
-        addTextureToList(mat.metallicTexture);
-        addTextureToList(mat.emissiveTexture);
-        addTextureToList(mat.occlusionTexture);
-        addTextureToList(mat.scatteringTexture);
-        addTextureToList(mat.lightmapTexture);
+    foreach(const HFMMaterial material, hfmModel->materials) {
+        addTextureToList(material.normalTexture);
+        addTextureToList(material.albedoTexture);
+        addTextureToList(material.opacityTexture);
+        addTextureToList(material.glossTexture);
+        addTextureToList(material.roughnessTexture);
+        addTextureToList(material.specularTexture);
+        addTextureToList(material.metallicTexture);
+        addTextureToList(material.emissiveTexture);
+        addTextureToList(material.occlusionTexture);
+        addTextureToList(material.scatteringTexture);
+        addTextureToList(material.lightmapTexture);
     }
 
     QDir textureDir(textureFolder.isEmpty() ? fbxInfo.absoluteDir() : textureFolder);
@@ -152,7 +152,6 @@ AvatarProject::AvatarProject(FST* fst) {
     _fst->setScriptPaths(getScriptPaths(QDir(_directory.path() + "/scripts")));
     _fst->write();
 
-    //_projectFiles = _directory.entryList();
     refreshProjectFiles();
 
     _projectPath = fileInfo.absoluteDir().absolutePath();

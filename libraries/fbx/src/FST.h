@@ -26,9 +26,9 @@ class FST : public QObject {
     Q_PROPERTY(QUuid marketplaceID READ getMarketplaceID)
     Q_PROPERTY(bool hasMarketplaceID READ getHasMarketplaceID NOTIFY marketplaceIDChanged)
 public:
-    FST(const QString& fstPath, QVariantHash data);
+    FST(QString fstPath, QVariantHash data);
 
-    static FST* createFSTFromModel(QString fstPath, QString modelFilePath, const hfm::Model& hfmModel);
+    static FST* createFSTFromModel(const QString& fstPath, const QString& modelFilePath, const hfm::Model& hfmModel);
 
     QString absoluteModelPath() const;
 

@@ -15,7 +15,7 @@
 #include <QFileInfo>
 #include <hfm/HFM.h>
 
-FST::FST(const QString& fstPath, QVariantHash data) : _fstPath(fstPath) {
+FST::FST(QString fstPath, QVariantHash data) : _fstPath(std::move(fstPath)) {
 
     auto setValueFromFSTData = [&data] (const QString& propertyID, auto &targetProperty) mutable {
         if (data.contains(propertyID)) {
@@ -38,7 +38,7 @@ FST::FST(const QString& fstPath, QVariantHash data) : _fstPath(fstPath) {
     _other = data;
 }
 
-FST* FST::createFSTFromModel(QString fstPath, QString modelFilePath, const hfm::Model& hfmModel) {
+FST* FST::createFSTFromModel(const QString& fstPath, const QString& modelFilePath, const hfm::Model& hfmModel) {
     QVariantHash mapping;
 
     // mixamo files - in the event that a mixamo file was edited by some other tool, it's likely the applicationName will

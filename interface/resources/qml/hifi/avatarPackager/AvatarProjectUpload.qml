@@ -21,8 +21,8 @@ Item {
         running: false
         repeat: false
         onTriggered: {
-            if (avatarPackager.state =="project-upload") {
-                avatarPackager.state = "project"
+            if (avatarPackager.state === AvatarPackagerState.projectUpload) {
+                avatarPackager.state = AvatarPackagerState.project;
             }
         }
     }
@@ -130,7 +130,7 @@ Item {
             AvatarUploadStatusItem {
                 id: statusCategories
                 uploader: root.uploader
-                text: "Retreiving categories"
+                text: "Retrieving categories"
 
                 uploaderState: 1
             }
@@ -189,8 +189,8 @@ Item {
                     colorScheme: root.colorScheme
                     width: 133
                     height: 40
-                    onClicked: function() {
-                        avatarPackager.state = "project"
+                    onClicked: {
+                        avatarPackager.state = AvatarPackagerState.project;
                     }
                 }
             }
