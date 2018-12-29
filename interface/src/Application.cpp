@@ -6691,6 +6691,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     _overlayConductor.centerUI();
+    getActiveDisplayPlugin()->resetSensors();
     getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
