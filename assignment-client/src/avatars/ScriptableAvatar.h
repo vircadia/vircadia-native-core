@@ -153,6 +153,27 @@ public:
      */
     Q_INVOKABLE AnimationDetails getAnimationDetails();
 
+    /**jsdoc
+    * Get the names of all the joints in the current avatar.
+    * @function MyAvatar.getJointNames
+    * @returns {string[]} The joint names.
+    * @example <caption>Report the names of all the joints in your current avatar.</caption>
+    * print(JSON.stringify(MyAvatar.getJointNames()));
+    */
+    Q_INVOKABLE virtual QStringList getJointNames() const override;
+
+    /**jsdoc
+    * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by
+    * {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
+    * @function MyAvatar.getJointIndex
+    * @param {string} name - The name of the joint.
+    * @returns {number} The index of the joint.
+    * @example <caption>Report the index of your avatar's left arm joint.</caption>
+    * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm"));
+    */
+    /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
+
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
@@ -167,12 +188,23 @@ public:
 public slots:
     void update(float deltatime);
 
+    /**jsdoc
+    * @function MyAvatar.setJointMappingsFromNetworkReply
+    */
+    void setJointMappingsFromNetworkReply();
+
 private:
     AnimationPointer _animation;
     AnimationDetails _animationDetails;
     QStringList _maskedJoints;
     AnimationPointer _bind; // a sleazy way to get the skeleton, given the various library/cmake dependencies
     std::shared_ptr<AnimSkeleton> _animSkeleton;
+    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _fstJointNames; ///< in order of depth-first traversal
+    QUrl _skeletonFBXURL;
+
+    /// Loads the joint indices, names from the FST file (if any)
+    void updateJointMappings();
 };
 
 #endif // hifi_ScriptableAvatar_h

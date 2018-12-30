@@ -56,6 +56,7 @@
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
 #include "gpu/Context.h"
+#include "LoginStateManager.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -70,11 +71,10 @@
 #include "ui/overlays/Overlays.h"
 
 #include "workload/GameWorkload.h"
+#include "graphics/GraphicsEngine.h"
 
-#include <procedural/ProceduralSkybox.h>
 #include <graphics/Skybox.h>
 #include <ModelScriptingInterface.h>
-#include "FrameTimingsScriptingInterface.h"
 
 #include "Sound.h"
 
@@ -98,6 +98,7 @@ static const UINT UWM_SHOW_APPLICATION =
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 static const QString SCRIPTS_SWITCH = "scripts";
+static const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "no-login-suggestion";
 
 class Application;
 #if defined(qApp)
@@ -119,7 +120,7 @@ class Application : public QApplication,
 public:
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
-    virtual void requestReset() override { resetSensors(true); }
+    virtual void requestReset() override { resetSensors(false); }
     virtual void showDisplayPluginsTools(bool show) override;
     virtual GLWidget* getPrimaryWidget() override;
     virtual MainWindow* getPrimaryWindow() override;
@@ -153,7 +154,6 @@ public:
     void updateSecondaryCameraViewFrustum();
 
     void updateCamera(RenderArgs& renderArgs, float deltaTime);
-    void paintGL();
     void resizeGL();
 
     bool event(QEvent* event) override;
@@ -203,8 +203,8 @@ public:
 
     Overlays& getOverlays() { return _overlays; }
 
-    size_t getRenderFrameCount() const { return _renderFrameCount; }
-    float getRenderLoopRate() const { return _renderLoopCounter.rate(); }
+    size_t getRenderFrameCount() const { return _graphicsEngine.getRenderFrameCount(); }
+    float getRenderLoopRate() const { return _graphicsEngine.getRenderLoopRate(); }
     float getNumCollisionObjects() const;
     float getTargetRenderFrameRate() const; // frames/second
 
@@ -234,7 +234,7 @@ public:
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
-     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
+    Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -275,10 +275,10 @@ public:
     void setMaxOctreePacketsPerSecond(int maxOctreePPS);
     int getMaxOctreePacketsPerSecond() const;
 
-    render::ScenePointer getMain3DScene() override { return _main3DScene; }
-    const render::ScenePointer& getMain3DScene() const { return _main3DScene; }
-    render::EnginePointer getRenderEngine() override { return _renderEngine; }
-    gpu::ContextPointer getGPUContext() const { return _gpuContext; }
+    render::ScenePointer getMain3DScene() override { return _graphicsEngine.getRenderScene(); }
+    render::EnginePointer getRenderEngine() override { return  _graphicsEngine.getRenderEngine(); }
+    gpu::ContextPointer getGPUContext() const { return _graphicsEngine.getGPUContext(); }
+
 
     const GameWorkload& getGameWorkload() const { return _gameWorkload; }
 
@@ -322,6 +322,10 @@ public:
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
+    bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
+    void createLoginDialogOverlay();
+    void updateLoginDialogOverlayPosition();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -340,7 +344,8 @@ signals:
 
     void interstitialModeChanged(bool isInInterstitialMode);
 
-    void loginDialogPoppedUp();
+    void loginDialogFocusEnabled();
+    void loginDialogFocusDisabled();
 
     void miniTabletEnabledChanged(bool enabled);
 
@@ -363,6 +368,8 @@ public slots:
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
+
+    void showLoginScreen();
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
@@ -442,7 +449,10 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    std::map<QString, QString> prepareServerlessDomainContents(QUrl domainURL);
+
+    void loadServerlessDomain(QUrl domainURL);
+    void loadErrorDomain(QUrl domainURL);
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
@@ -507,15 +517,18 @@ private slots:
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
 
+    void onDismissedLoginDialog();
+
     void setShowTrackedObjects(bool value);
 
 private:
     void init();
+    void pauseUntilLoginDetermined();
+    void resumeAfterLoginDialogActionTaken();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
 
-    bool shouldPaint() const;
     void idle();
     void update(float deltaTime);
 
@@ -534,8 +547,6 @@ private:
     void checkSkeleton() const;
 
     void initializeAcceptedFiles();
-
-    void runRenderFrame(RenderArgs* renderArgs/*, Camera& whichCamera, bool selfAvatarOnly = false*/);
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
@@ -586,18 +597,12 @@ private:
 
     bool _activatingDisplayPlugin { false };
 
-    uint32_t _renderFrameCount { 0 };
-
     // Frame Rate Measurement
-    RateCounter<500> _renderLoopCounter;
     RateCounter<500> _gameLoopCounter;
-
-    FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     QTimer _minimizedWindowTimer;
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
-    QElapsedTimer _lastTimeRendered;
 
     int _minimumGPUTextureMemSizeStabilityCount { 30 };
 
@@ -633,6 +638,7 @@ private:
     Setting::Handle<float> _fieldOfView;
     Setting::Handle<float> _hmdTabletScale;
     Setting::Handle<float> _desktopTabletScale;
+    Setting::Handle<bool> _firstRun;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _preferStylusOverLaserSetting;
@@ -660,6 +666,7 @@ private:
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
+    QDir _defaultScriptsLocation;
 
     FileLogger* _logger;
 
@@ -680,32 +687,21 @@ private:
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+    bool _interstitialModeEnabled{ false };
+
+    bool _loginDialogPoppedUp = false;
+    bool _developerMenuVisible{ false };
+    QString _previousAvatarSkeletonModel;
+    float _previousAvatarTargetScale;
+    CameraMode _previousCameraMode;
+    OverlayID _loginDialogOverlayID;
+    LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;
 
-    render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
-    render::EnginePointer _renderEngine{ new render::RenderEngine() };
-    gpu::ContextPointer _gpuContext; // initialized during window creation
-
     GameWorkload _gameWorkload;
 
-    mutable QMutex _renderArgsMutex{ QMutex::Recursive };
-    struct AppRenderArgs {
-        render::Args _renderArgs;
-        glm::mat4 _eyeToWorld;
-        glm::mat4 _view;
-        glm::mat4 _eyeOffsets[2];
-        glm::mat4 _eyeProjections[2];
-        glm::mat4 _headPose;
-        glm::mat4 _sensorToWorld;
-        float _sensorToWorldScale { 1.0f };
-        bool _isStereo{ false };
-    };
-    AppRenderArgs _appRenderArgs;
-
-
-    using RenderArgsEditor = std::function <void (AppRenderArgs&)>;
-    void editRenderArgs(RenderArgsEditor editor);
+    GraphicsEngine _graphicsEngine;
     void updateRenderArgs(float deltaTime);
 
 
@@ -751,8 +747,6 @@ private:
 
     bool _keyboardDeviceHasFocus { true };
 
-    QString _returnFromFullScreenMirrorTo;
-
     ConnectionMonitor _connectionMonitor;
 
     QTimer _addAssetToWorldResizeTimer;
@@ -786,16 +780,13 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
-    QObject* _renderEventHandler{ nullptr };
-
-    friend class RenderEventHandler;
 
     std::atomic<bool> _pendingIdleEvent { true };
-    std::atomic<bool> _pendingRenderEvent { true };
 
     bool quitWhenFinished { false };
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
 };
 #endif // hifi_Application_h

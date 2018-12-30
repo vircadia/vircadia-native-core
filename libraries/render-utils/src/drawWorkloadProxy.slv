@@ -62,7 +62,5 @@ void main(void) {
 
     varColor = vec4(REGION_COLOR[region].xyz, proxy.sphere.w);
 
-    if (region == 4) {
-        gl_Position = vec4(0.0);
-    }
+    gl_Position = mix(gl_Position, vec4(0.0), float(region == 4));
 }

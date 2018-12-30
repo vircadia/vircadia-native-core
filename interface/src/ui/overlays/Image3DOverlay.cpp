@@ -82,18 +82,21 @@ void Image3DOverlay::render(RenderArgs* args) {
     float imageHeight = _texture->getHeight();
 
     QRect fromImage;
-    if (_fromImage.isNull()) {
+    if (_fromImage.width() <= 0) {
         fromImage.setX(0);
-        fromImage.setY(0);
         fromImage.setWidth(imageWidth);
-        fromImage.setHeight(imageHeight);
     } else {
         float scaleX = imageWidth / _texture->getOriginalWidth();
-        float scaleY = imageHeight / _texture->getOriginalHeight();
-
         fromImage.setX(scaleX * _fromImage.x());
-        fromImage.setY(scaleY * _fromImage.y());
         fromImage.setWidth(scaleX * _fromImage.width());
+    }
+
+    if (_fromImage.height() <= 0) {
+        fromImage.setY(0);
+        fromImage.setHeight(imageHeight);
+    } else {
+        float scaleY = imageHeight / _texture->getOriginalHeight();
+        fromImage.setY(scaleY * _fromImage.y());
         fromImage.setHeight(scaleY * _fromImage.height());
     }
 
@@ -219,7 +222,7 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
@@ -246,9 +249,6 @@ QVariant Image3DOverlay::getProperty(const QString& property) {
     }
     if (property == "subImage") {
         return _fromImage;
-    }
-    if (property == "offsetPosition") {
-        return vec3toVariant(getOffsetPosition());
     }
     if (property == "emissive") {
         return _emissive;

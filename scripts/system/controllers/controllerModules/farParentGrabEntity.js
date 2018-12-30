@@ -47,6 +47,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     function FarParentGrabEntity(hand) {
         this.hand = hand;
+        this.grabbing = false;
         this.targetEntityID = null;
         this.targetObject = null;
         this.previouslyUnhooked = {};
@@ -61,6 +62,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMinY = MARGIN;
         this.reticleMaxY = 0;
         this.lastUnexpectedChildrenCheckTime = 0;
+        this.endedGrab = 0;
+        this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -144,7 +147,12 @@ Script.include("/~/system/libraries/controllers.js");
             // compute the mass for the purpose of energy and how quickly to move object
             this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
 
-            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            // Debounce haptic pules. Can occur as near grab controller module vacillates between being ready or not due to
+            // changing positions and floating point rounding.
+            if (Date.now() - this.endedGrab > this.MIN_HAPTIC_PULSE_INTERVAL) {
+                Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            }
+
             unhighlightTargetEntity(this.targetEntityID);
             var message = {
                 hand: this.hand,
@@ -256,7 +264,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.endFarParentGrab = function (controllerData) {
-            this.hapticTargetID = null;
+            this.endedGrab = Date.now();
             // var endProps = controllerData.nearbyEntityPropertiesByID[this.targetEntityID];
             var endProps = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             if (this.thisFarGrabJointIsParent(endProps)) {
@@ -410,11 +418,6 @@ Script.include("/~/system/libraries/controllers.js");
             if (targetEntity) {
                 var gtProps = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
                 if (entityIsGrabbable(gtProps)) {
-                    // give haptic feedback
-                    if (gtProps.id !== this.hapticTargetID) {
-                        Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-                        this.hapticTargetID = gtProps.id;
-                    }
                     // if we've attempted to grab a child, roll up to the root of the tree
                     var groupRootProps = findGroupParent(controllerData, gtProps);
                     if (entityIsGrabbable(groupRootProps)) {
@@ -453,8 +456,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE ||
-                this.notPointingAtEntity(controllerData) || this.targetIsNull()) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarParentGrab(controllerData);
                 Selection.removeFromSelectedItemsList(DISPATCHER_HOVERING_LIST, "entity", this.highlightedEntity);
                 this.highlightedEntity = null;
@@ -470,10 +472,12 @@ Script.include("/~/system/libraries/controllers.js");
                 this.hand === RIGHT_HAND ? "RightScaleAvatar" : "LeftScaleAvatar",
                 this.hand === RIGHT_HAND ? "RightFarTriggerEntity" : "LeftFarTriggerEntity",
                 this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity",
-                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay",
-                this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight"
+                this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity"
             ];
+            if (!this.grabbing) {
+                nearGrabNames.push(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
+                nearGrabNames.push(this.hand === RIGHT_HAND ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            }
 
             var nearGrabReadiness = [];
             for (var i = 0; i < nearGrabNames.length; i++) {
@@ -483,11 +487,10 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             if (this.targetEntityID) {
-                // if we are doing a distance grab and the object or tablet gets close enough to the controller,
+                // if we are doing a distance grab and the object gets close enough to the controller,
                 // stop the far-grab so the near-grab or equip can take over.
                 for (var k = 0; k < nearGrabReadiness.length; k++) {
-                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.targetEntityID ||
-                                                        HMD.tabletID && nearGrabReadiness[k].targets[0] === HMD.tabletID)) {
+                    if (nearGrabReadiness[k].active && (nearGrabReadiness[k].targets[0] === this.targetEntityID)) {
                         this.endFarParentGrab(controllerData);
                         return makeRunningValues(false, [], []);
                     }

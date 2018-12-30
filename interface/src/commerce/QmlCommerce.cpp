@@ -38,6 +38,7 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferAssetToNodeResult, this, &QmlCommerce::transferAssetToNodeResult);
     connect(ledger.data(), &Ledger::transferAssetToUsernameResult, this, &QmlCommerce::transferAssetToUsernameResult);
+    connect(ledger.data(), &Ledger::authorizeAssetTransferResult, this, &QmlCommerce::authorizeAssetTransferResult);
     connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
     connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
 
@@ -244,6 +245,21 @@ void QmlCommerce::transferAssetToUsername(const QString& username,
     }
     QString key = keys[0];
     ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
+}
+
+void QmlCommerce::authorizeAssetTransfer(const QString& couponID,
+    const QString& certificateID,
+    const int& amount,
+    const QString& optionalMessage) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
+        return emit authorizeAssetTransferResult(result);
+    }
+    QString key = keys[0];
+    ledger->authorizeAssetTransfer(key, couponID, certificateID, amount, optionalMessage);
 }
 
 void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {

@@ -25,6 +25,7 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableMaterialEntityItem.h"
+#include "RenderableImageEntityItem.h"
 
 
 using namespace render;
@@ -39,7 +40,7 @@ enum class RenderItemStatusIcon {
     SIMULATION_OWNER = 3,
     HAS_ACTIONS = 4,
     OTHER_SIMULATION_OWNER = 5,
-    CLIENT_ONLY = 6,
+    ENTITY_HOST_TYPE = 6,
     NONE = 255
 };
 
@@ -115,17 +116,20 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
     });
 
     statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
-        if (entity->getClientOnly()) {
+        if (entity->isAvatarEntity()) {
             if (entity->getOwningAvatarID() == myNodeID) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                    (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
             } else {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                    (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
             }
+        } else if (entity->isLocalEntity()) {
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
+                (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+            (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
     });
 }
 
@@ -214,20 +218,37 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
     using Type = EntityTypes::EntityType_t;
     auto type = entity->getType();
     switch (type) {
-        case Type::Light:
-            result = make_renderer<LightEntityRenderer>(entity);
-            break;
 
-        case Type::Line:
-            result = make_renderer<LineEntityRenderer>(entity);
+        case Type::Shape:
+        case Type::Box:
+        case Type::Sphere:
+            result = make_renderer<ShapeEntityRenderer>(entity);
             break;
 
         case Type::Model:
             result = make_renderer<ModelEntityRenderer>(entity);
             break;
 
+        case Type::Text:
+            result = make_renderer<TextEntityRenderer>(entity);
+            break;
+
+        case Type::Image:
+            result = make_renderer<ImageEntityRenderer>(entity);
+            break;
+
+        case Type::Web:
+            if (!nsightActive()) {
+                result = make_renderer<WebEntityRenderer>(entity);
+            }
+            break;
+
         case Type::ParticleEffect:
             result = make_renderer<ParticleEffectEntityRenderer>(entity);
+            break;
+
+        case Type::Line:
+            result = make_renderer<LineEntityRenderer>(entity);
             break;
 
         case Type::PolyLine:
@@ -238,20 +259,8 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
             result = make_renderer<PolyVoxEntityRenderer>(entity);
             break;
 
-        case Type::Shape:
-        case Type::Box:
-        case Type::Sphere:
-            result = make_renderer<ShapeEntityRenderer>(entity);
-            break;
-
-        case Type::Text:
-            result = make_renderer<TextEntityRenderer>(entity);
-            break;
-
-        case Type::Web:
-            if (!nsightActive()) {
-                result = make_renderer<WebEntityRenderer>(entity);
-            }
+        case Type::Light:
+            result = make_renderer<LightEntityRenderer>(entity);
             break;
 
         case Type::Zone:

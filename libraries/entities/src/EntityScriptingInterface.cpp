@@ -114,6 +114,8 @@ bool EntityScriptingInterface::canReplaceContent() {
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     if (_entityTree) {
+        disconnect(_entityTree.get(), &EntityTree::addingEntityPointer, this, &EntityScriptingInterface::onAddingEntity);
+        disconnect(_entityTree.get(), &EntityTree::deletingEntityPointer, this, &EntityScriptingInterface::onDeletingEntity);
         disconnect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         disconnect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
         disconnect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
@@ -122,6 +124,8 @@ void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
     _entityTree = elementTree;
 
     if (_entityTree) {
+        connect(_entityTree.get(), &EntityTree::addingEntityPointer, this, &EntityScriptingInterface::onAddingEntity, Qt::DirectConnection);
+        connect(_entityTree.get(), &EntityTree::deletingEntityPointer, this, &EntityScriptingInterface::onDeletingEntity, Qt::DirectConnection);
         connect(_entityTree.get(), &EntityTree::addingEntity, this, &EntityScriptingInterface::addingEntity);
         connect(_entityTree.get(), &EntityTree::deletingEntity, this, &EntityScriptingInterface::deletingEntity);
         connect(_entityTree.get(), &EntityTree::clearingEntities, this, &EntityScriptingInterface::clearingEntities);
@@ -470,7 +474,7 @@ void synchronizeEditedGrabProperties(EntityItemProperties& properties, const QSt
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, bool clientOnly) {
+QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     _activityTracking.addedEntityCount++;
@@ -479,12 +483,18 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     const auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
-    if (clientOnly) {
-        propertiesWithSimID.setClientOnly(clientOnly);
+    propertiesWithSimID.setEntityHostTypeFromString(entityHostTypeString);
+    if (propertiesWithSimID.getEntityHostType() == entity::HostType::AVATAR) {
         propertiesWithSimID.setOwningAvatarID(sessionID);
+    } else if (propertiesWithSimID.getEntityHostType() == entity::HostType::LOCAL) {
+        // For now, local entities are always collisionless
+        // TODO: create a separate, local physics simulation that just handles local entities (and MyAvatar?)
+        propertiesWithSimID.setCollisionless(true);
     }
 
     propertiesWithSimID.setLastEditedBy(sessionID);
+
+    propertiesWithSimID.setActionData(QByteArray());
 
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
@@ -568,8 +578,11 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     bool cloneAvatarEntity = properties.getCloneAvatarEntity();
     properties.convertToCloneProperties(entityIDToClone);
 
-    if (cloneAvatarEntity) {
-        return addEntity(properties, true);
+    if (properties.getEntityHostType() == entity::HostType::LOCAL) {
+        // Local entities are only cloned locally
+        return addEntity(properties, "local");
+    } else if (cloneAvatarEntity) {
+        return addEntity(properties, "avatar");
     } else {
         // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
         // from the server-created entity, don't change this unless you know what you are doing
@@ -681,6 +694,14 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ClientOnly);
         } else if (extendedPropertyString == "owningAvatarID") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::OwningAvatarID);
+        } else if (extendedPropertyString == "avatarEntity") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::AvatarEntity);
+        } else if (extendedPropertyString == "localEntity") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::LocalEntity);
+        } else if (extendedPropertyString == "faceCamera") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::FaceCamera);
+        } else if (extendedPropertyString == "isFacingAvatar") {
+            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::IsFacingAvatar);
         }
     };
 
@@ -784,7 +805,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != sessionID) {
+        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != sessionID) {
             // don't edit other avatar's avatarEntities
             properties = EntityItemProperties();
             return;
@@ -827,8 +848,14 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
 
         // set these to make EntityItemProperties::getScalesWithParent() work correctly
-        properties.setClientOnly(entity->getClientOnly());
+        entity::HostType entityHostType = entity->getEntityHostType();
+        properties.setEntityHostType(entityHostType);
+        if (entityHostType == entity::HostType::LOCAL) {
+            properties.setCollisionless(true);
+        }
         properties.setOwningAvatarID(entity->getOwningAvatarID());
+
+        properties.setActionData(entity->getDynamicData());
 
         // make sure the properties has a type, so that the encode can know which properties to include
         properties.setType(entity->getType());
@@ -952,7 +979,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
-                if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+                if (entity->isAvatarEntity() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
                     shouldSendDeleteToServer = false;
                     return;
@@ -962,11 +989,11 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     shouldSendDeleteToServer = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
-                    if (entity->getClientOnly() || _entityTree->isServerlessMode()) {
+                    if (entity->isAvatarEntity() || _entityTree->isServerlessMode()) {
                         shouldSendDeleteToServer = false;
                         _entityTree->deleteEntity(entityID);
 
-                        if (entity->getClientOnly() && getEntityPacketSender()->getMyAvatar()) {
+                        if (entity->isAvatarEntity() && getEntityPacketSender()->getMyAvatar()) {
                             getEntityPacketSender()->getMyAvatar()->clearAvatarEntity(entityID, false);
                         }
                     }
@@ -1041,7 +1068,17 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
     }
 }
 
+void EntityScriptingInterface::onAddingEntity(EntityItem* entity) {
+    if (entity->isWearable()) {
+        emit addingWearable(entity->getEntityItemID());
+    }
+}
 
+void EntityScriptingInterface::onDeletingEntity(EntityItem* entity) {
+    if (entity->isWearable()) {
+        emit deletingWearable(entity->getEntityItemID());
+    }
+}
 
 QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float radius) const {
     PROFILE_RANGE(script_entities, __FUNCTION__);
@@ -1633,14 +1670,14 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
             return;
         }
 
-        if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
+        if (entity->isAvatarEntity() && entity->getOwningAvatarID() != myNodeID) {
             return;
         }
 
         doTransmit = actor(simulation, entity);
         _entityTree->entityChanged(entity);
         if (doTransmit) {
-            properties.setClientOnly(entity->getClientOnly());
+            properties.setEntityHostType(entity->getEntityHostType());
             properties.setOwningAvatarID(entity->getOwningAvatarID());
         }
     });
@@ -1798,6 +1835,15 @@ glm::vec3 EntityScriptingInterface::localCoordsToVoxelCoords(const QUuid& entity
         return polyVoxEntity->localCoordsToVoxelCoords(localCoords);
     } else {
         return glm::vec3(0.0f);
+    }
+}
+
+int EntityScriptingInterface::getJointParent(const QUuid& entityID, int index) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        return modelEntity->getJointParent(index);
+    } else {
+        return -1;
     }
 }
 

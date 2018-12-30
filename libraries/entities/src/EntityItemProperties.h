@@ -48,6 +48,7 @@
 #include "ZoneEntityItem.h"
 
 #include "MaterialMappingMode.h"
+#include "BillboardMode.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -68,18 +69,19 @@ using u8vec3Color = glm::u8vec3;
 class EntityItemProperties {
     // TODO: consider removing these friend relationship and use public methods
     friend class EntityItem;
-    friend class ModelEntityItem;
     friend class BoxEntityItem;
     friend class SphereEntityItem;
-    friend class LightEntityItem;
-    friend class TextEntityItem;
-    friend class ParticleEffectEntityItem;
-    friend class ZoneEntityItem;
-    friend class WebEntityItem;
-    friend class LineEntityItem;
-    friend class PolyVoxEntityItem;
-    friend class PolyLineEntityItem;
     friend class ShapeEntityItem;
+    friend class ModelEntityItem;
+    friend class TextEntityItem;
+    friend class ImageEntityItem;
+    friend class WebEntityItem;
+    friend class ParticleEffectEntityItem;
+    friend class LineEntityItem;
+    friend class PolyLineEntityItem;
+    friend class PolyVoxEntityItem;
+    friend class LightEntityItem;
+    friend class ZoneEntityItem;
     friend class MaterialEntityItem;
 public:
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
@@ -213,7 +215,7 @@ public:
     DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY_REF(PROP_HREF, Href, href, QString, "");
     DEFINE_PROPERTY_REF(PROP_DESCRIPTION, Description, description, QString, "");
-    DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
+    DEFINE_PROPERTY_REF_ENUM(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode, BillboardMode::NONE);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
     DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
@@ -241,6 +243,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, glm::vec2, glm::vec2(1.0f));
     DEFINE_PROPERTY_REF(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float, 0);
     DEFINE_PROPERTY_REF(PROP_MATERIAL_DATA, MaterialData, materialData, QString, "");
+    DEFINE_PROPERTY_REF(PROP_MATERIAL_REPEAT, MaterialRepeat, materialRepeat, bool, true);
 
     DEFINE_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool, ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA);
 
@@ -249,6 +252,11 @@ public:
     DEFINE_PROPERTY(PROP_SPIN_START, SpinStart, spinStart, float, particle::DEFAULT_SPIN_START);
     DEFINE_PROPERTY(PROP_SPIN_FINISH, SpinFinish, spinFinish, float, particle::DEFAULT_SPIN_FINISH);
     DEFINE_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, bool, particle::DEFAULT_ROTATE_WITH_ENTITY);
+
+    DEFINE_PROPERTY_REF(PROP_IMAGE_URL, ImageURL, imageURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_EMISSIVE, Emissive, emissive, bool, false);
+    DEFINE_PROPERTY_REF(PROP_KEEP_ASPECT_RATIO, KeepAspectRatio, keepAspectRatio, bool, true);
+    DEFINE_PROPERTY_REF(PROP_SUB_IMAGE, SubImage, subImage, QRect, QRect());
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
@@ -279,7 +287,7 @@ public:
     DEFINE_PROPERTY(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool, ZoneEntityItem::DEFAULT_GHOSTING_ALLOWED);
     DEFINE_PROPERTY(PROP_FILTER_URL, FilterURL, filterURL, QString, ZoneEntityItem::DEFAULT_FILTER_URL);
 
-    DEFINE_PROPERTY(PROP_CLIENT_ONLY, ClientOnly, clientOnly, bool, false);
+    DEFINE_PROPERTY_REF_ENUM(PROP_ENTITY_HOST_TYPE, EntityHostType, entityHostType, entity::HostType, entity::HostType::DOMAIN);
     DEFINE_PROPERTY_REF(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid, UNKNOWN_ENTITY_ID);
 
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
@@ -298,7 +306,6 @@ public:
 
     DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
-    static QString getComponentModeString(uint32_t mode);
     static QString getComponentModeAsString(uint32_t mode);
 
     std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
@@ -589,7 +596,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, GhostingAllowed, ghostingAllowed, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, FilterURL, filterURL, "");
 
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, ClientOnly, clientOnly, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, EntityHostTypeAsString, entityHostType, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, OwningAvatarID, owningAvatarID, "");
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, LastEditedBy, lastEditedBy, "");

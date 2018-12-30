@@ -525,6 +525,9 @@ void OpenGLDisplayPlugin::updateFrameData() {
         if (_newFrameQueue.size() > 1) {
             _droppedFrameRate.increment(_newFrameQueue.size() - 1);
         }
+
+        _gpuContext->processProgramsToSync();
+
         while (!_newFrameQueue.empty()) {
             _currentFrame = _newFrameQueue.front();
             _newFrameQueue.pop();
@@ -534,18 +537,26 @@ void OpenGLDisplayPlugin::updateFrameData() {
 }
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
-    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (_hudPipeline && hudTexture) {
+    auto hudPipeline = _hudPipeline;
+    auto hudMirrorPipeline = _mirrorHUDPipeline;
+    auto hudStereo = isStereo();
+    auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
+    std::array<glm::ivec4, 2> hudEyeViewports;
+    for_each_eye([&](Eye eye) {
+        hudEyeViewports[eye] = eyeViewport(eye);
+    });
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+        if (hudPipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(mirror ? _mirrorHUDPipeline : _hudPipeline);
+            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
             batch.setResourceTexture(0, hudTexture);
-            if (isStereo()) {
+            if (hudStereo) {
                 for_each_eye([&](Eye eye) {
-                    batch.setViewportTransform(eyeViewport(eye));
+                    batch.setViewportTransform(hudEyeViewports[eye]);
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
                 });
             } else {
-                batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+                batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }
@@ -637,6 +648,7 @@ void OpenGLDisplayPlugin::present() {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
+
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
         updateFrameData();
@@ -828,7 +840,6 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
     f(batch);
     _gpuContext->executeBatch(batch);
 }
-
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }

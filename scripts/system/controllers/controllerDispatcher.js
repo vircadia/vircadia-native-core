@@ -12,7 +12,7 @@
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
    PointerManager, getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
-   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE
+   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE, Keyboard
 */
 
 controllerDispatcherPlugins = {};
@@ -128,9 +128,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         this.dataGatherers.rightControllerLocation = function () {
             return getControllerWorldLocation(Controller.Standard.RightHand, true);
         };
-
-        Selection.enableListHighlight(DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE);
-        Selection.enableListToScene(DISPATCHER_HOVERING_LIST);
 
         this.updateTimings = function () {
             _this.intervalCount++;
@@ -427,9 +424,19 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
         };
 
+        this.leftBlacklistTabletIDs = [];
+        this.rightBlacklistTabletIDs = [];
+
+        this.setLeftBlacklist = function () {
+            Pointers.setIgnoreItems(_this.leftPointer, _this.blacklist.concat(_this.leftBlacklistTabletIDs));
+        };
+        this.setRightBlacklist = function () {
+            Pointers.setIgnoreItems(_this.rightPointer, _this.blacklist.concat(_this.rightBlacklistTabletIDs));
+        };
+
         this.setBlacklist = function() {
-            Pointers.setIgnoreItems(_this.leftPointer, this.blacklist);
-            Pointers.setIgnoreItems(_this.rightPointer, this.blacklist);
+            _this.setLeftBlacklist();
+            _this.setRightBlacklist();
         };
 
         var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
@@ -456,6 +463,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
+        Keyboard.setLeftHandLaser(this.leftPointer);
         this.rightPointer = this.pointerManager.createPointer(false, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
@@ -466,6 +474,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
+        Keyboard.setRightHandLaser(this.rightPointer);
         this.leftHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_HUD,
@@ -493,7 +502,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
             enabled: true
         });
-        this.handleHandMessage = function(channel, data, sender) {
+        this.handleMessage = function (channel, data, sender) {
             var message;
             if (sender === MyAvatar.sessionUUID) {
                 try {
@@ -514,6 +523,18 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                                 _this.setBlacklist();
                             }
                         }
+
+                        if (action === "tablet") {
+                            var tabletIDs = message.blacklist
+                                ? [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, HMD.homeButtonHighlightID] : [];
+                            if (message.hand === LEFT_HAND) {
+                                _this.leftBlacklistTabletIDs = tabletIDs;
+                                _this.setLeftBlacklist();
+                            } else {
+                                _this.rightBlacklistTabletIDs = tabletIDs;
+                                _this.setRightBlacklist();
+                            }
+                        }
                     }
                 } catch (e) {
                     print("WARNING: handControllerGrab.js -- error parsing message: " + data);
@@ -525,7 +546,6 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             Controller.disableMapping(MAPPING_NAME);
             _this.pointerManager.removePointers();
             Pointers.removePointer(this.mouseRayPick);
-            Selection.disableListHighlight(DISPATCHER_HOVERING_LIST);
         };
     }
 
@@ -554,7 +574,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     var controllerDispatcher = new ControllerDispatcher();
     Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
-    Messages.messageReceived.connect(controllerDispatcher.handleHandMessage);
+    Messages.messageReceived.connect(controllerDispatcher.handleMessage);
+
     Script.scriptEnding.connect(controllerDispatcher.cleanup);
     Script.setTimeout(controllerDispatcher.update, BASIC_TIMER_INTERVAL_MS);
 }());

@@ -74,6 +74,9 @@ public:
 #endif
         return hashCode;
     }
+
+    static void prepareToExit() { manager()._exiting = true; }
+
 private:
     static DependencyManager& manager();
 
@@ -84,6 +87,8 @@ private:
 
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
+
+    bool _exiting { false };
 };
 
 template <typename T>
@@ -95,7 +100,15 @@ QSharedPointer<T> DependencyManager::get() {
         instance = qSharedPointerCast<T>(manager().safeGet(hashCode));
 
 #ifndef QT_NO_DEBUG
+        // debug builds...
         if (instance.isNull()) {
+            qWarning() << "DependencyManager::get(): No instance available for" << typeid(T).name();
+        }
+#else
+        // for non-debug builds, don't print "No instance available" during shutdown, because
+        // the act of printing this often causes crashes (because the LogHandler has-been/is-being
+        // deleted).
+        if (!manager()._exiting && instance.isNull()) {
             qWarning() << "DependencyManager::get(): No instance available for" << typeid(T).name();
         }
 #endif

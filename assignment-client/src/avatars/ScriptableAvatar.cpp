@@ -19,14 +19,17 @@
 #include <AnimUtil.h>
 #include <ClientTraitsHandler.h>
 #include <GLMHelpers.h>
+#include <ResourceRequestObserver.h>
+#include <AvatarLogging.h>
+
 
 ScriptableAvatar::ScriptableAvatar() {
-    _clientTraitsHandler = std::unique_ptr<ClientTraitsHandler>(new ClientTraitsHandler(this));
+    _clientTraitsHandler.reset(new ClientTraitsHandler(this));
 }
 
 QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     _globalPosition = getWorldPosition();
-    return AvatarData::toByteArrayStateful(dataDetail);
+    return AvatarData::toByteArrayStateful(dataDetail, dropFaceTracking);
 }
 
 
@@ -62,11 +65,28 @@ AnimationDetails ScriptableAvatar::getAnimationDetails() {
     return _animationDetails;
 }
 
+int ScriptableAvatar::getJointIndex(const QString& name) const {
+    // Faux joints:
+    int result = AvatarData::getJointIndex(name);
+    if (result != -1) {
+        return result;
+    }
+    QReadLocker readLock(&_jointDataLock);
+    return _fstJointIndices.value(name) - 1;
+}
+
+QStringList ScriptableAvatar::getJointNames() const {
+    QReadLocker readLock(&_jointDataLock);
+    return _fstJointNames;
+    return QStringList();
+}
+
 void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _bind.reset();
     _animSkeleton.reset();
 
     AvatarData::setSkeletonModelURL(skeletonModelURL);
+    updateJointMappings();
 }
 
 static AnimPose composeAnimPose(const HFMJoint& joint, const glm::quat rotation, const glm::vec3 translation) {
@@ -77,10 +97,6 @@ static AnimPose composeAnimPose(const HFMJoint& joint, const glm::quat rotation,
 }
 
 void ScriptableAvatar::update(float deltatime) {
-    if (_bind.isNull() && !_skeletonFBXURL.isEmpty()) { // AvatarData will parse the .fst, but not get the .fbx skeleton.
-        _bind = DependencyManager::get<AnimationCache>()->getAnimation(_skeletonFBXURL);
-    }
-
     // Run animation
     if (_animation && _animation->isLoaded() && _animation->getFrames().size() > 0 && !_bind.isNull() && _bind->isLoaded()) {
         if (!_animSkeleton) {
@@ -144,6 +160,82 @@ void ScriptableAvatar::update(float deltatime) {
     }
 
     _clientTraitsHandler->sendChangedTraitsToMixer();
+}
+
+void ScriptableAvatar::updateJointMappings() {
+    {
+        QWriteLocker writeLock(&_jointDataLock);
+        _fstJointIndices.clear();
+        _fstJointNames.clear();
+        _jointData.clear();
+    }
+
+    if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
+        ////
+        // TODO: Should we rely upon HTTPResourceRequest for ResourceRequestObserver instead?
+        // HTTPResourceRequest::doSend() covers all of the following and
+        // then some. It doesn't cover the connect() call, so we may
+        // want to add a HTTPResourceRequest::doSend() method that does
+        // connects.
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkRequest networkRequest = QNetworkRequest(_skeletonModelURL);
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+        DependencyManager::get<ResourceRequestObserver>()->update(
+            _skeletonModelURL, -1, "AvatarData::updateJointMappings");
+        QNetworkReply* networkReply = networkAccessManager.get(networkRequest);
+        //
+        ////
+        connect(networkReply, &QNetworkReply::finished, this, &ScriptableAvatar::setJointMappingsFromNetworkReply);
+    }
+}
+
+void ScriptableAvatar::setJointMappingsFromNetworkReply() {
+    QNetworkReply* networkReply = static_cast<QNetworkReply*>(sender());
+    // before we process this update, make sure that the skeleton model URL hasn't changed
+    // since we made the FST request
+    if (networkReply->url() != _skeletonModelURL) {
+        qCDebug(avatars) << "Refusing to set joint mappings for FST URL that does not match the current URL";
+        networkReply->deleteLater();
+        return;
+    }
+    {
+        QWriteLocker writeLock(&_jointDataLock);
+        QByteArray line;
+        while (!(line = networkReply->readLine()).isEmpty()) {
+            line = line.trimmed();
+            if (line.startsWith("filename")) {
+                int filenameIndex = line.indexOf('=') + 1;
+                if (filenameIndex > 0) {
+                    _skeletonFBXURL = _skeletonModelURL.resolved(QString(line.mid(filenameIndex).trimmed()));
+                }
+            }
+            if (!line.startsWith("jointIndex")) {
+                continue;
+            }
+            int jointNameIndex = line.indexOf('=') + 1;
+            if (jointNameIndex == 0) {
+                continue;
+            }
+            int secondSeparatorIndex = line.indexOf('=', jointNameIndex);
+            if (secondSeparatorIndex == -1) {
+                continue;
+            }
+            QString jointName = line.mid(jointNameIndex, secondSeparatorIndex - jointNameIndex).trimmed();
+            bool ok;
+            int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
+            if (ok) {
+                while (_fstJointNames.size() < jointIndex + 1) {
+                    _fstJointNames.append(QString());
+                }
+                _fstJointNames[jointIndex] = jointName;
+            }
+        }
+        for (int i = 0; i < _fstJointNames.size(); i++) {
+            _fstJointIndices.insert(_fstJointNames.at(i), i + 1);
+        }
+    }
+    networkReply->deleteLater();
 }
 
 void ScriptableAvatar::setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement) {

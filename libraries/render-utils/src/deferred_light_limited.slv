@@ -37,9 +37,7 @@ void main(void) {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
 #else
-        if (cam_isStereo()) {
-            projected.x = 0.5 * (projected.x + cam_getStereoSide());
-        }
+        projected.x = mix(projected.x, 0.5 * (projected.x + cam_getStereoSide()), float(cam_isStereo()));
 #endif
 #endif
         _texCoord01 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
@@ -66,9 +64,7 @@ void main(void) {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_SPLIT_SCREEN
 #else
-        if (cam_isStereo()) {
-            _texCoord01.x = 0.5 * (_texCoord01.x + cam_getStereoSide());
-        }
+        _texCoord01.x = mix(_texCoord01.x, 0.5 * (_texCoord01.x + cam_getStereoSide()), float(cam_isStereo()));
 #endif
 #endif
 

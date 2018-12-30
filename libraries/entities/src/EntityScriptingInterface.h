@@ -234,12 +234,28 @@ public slots:
     Q_INVOKABLE bool canReplaceContent();
 
     /**jsdoc
+     * <p>How an entity is sent over the wire.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+      *     <tr><td><code>domain</code></td><td>Domain entities are sent over the entity server to everyone else</td></tr>
+      *     <tr><td><code>avatar</code></td><td>Avatar entities are sent over the avatar entity and are associated with one avatar</td></tr>
+      *     <tr><td><code>local</code></td><td>Local entities are not sent over the wire and will only render for you, locally</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {string} EntityHostType
+     */
+
+    /**jsdoc
      * Add a new entity with specified properties.
      * @function Entities.addEntity
      * @param {Entities.EntityProperties} properties - The properties of the entity to create.
-     * @param {boolean} [clientOnly=false] - If <code>true</code>, or if <code>clientOnly</code> is set <code>true</code> in 
-     *     the properties, the entity is created as an avatar entity; otherwise it is created on the server. An avatar entity 
+     * @param {EntityHostType} [entityHostType="domain"] - If <code>"avatar"</code> the entity is created as an avatar entity.  An avatar entity
      *     follows you to each domain you visit, rendering at the same world coordinates unless it's parented to your avatar.
+     *     If <code>"local"</code>, the entity is created as a local entity, which will only render for you and isn't sent over the wire.
+     *     Otherwise it is created as a normal entity and sent over the entity server.
      * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
      * @example <caption>Create a box entity in front of your avatar.</caption>
      * var entityID = Entities.addEntity({
@@ -250,7 +266,19 @@ public slots:
      * });
      * print("Entity created: " + entityID);
      */
-    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool clientOnly = false);
+    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString);
+
+    /**jsdoc
+     * Add a new entity with specified properties.
+     * @function Entities.addEntity
+     * @param {Entities.EntityProperties} properties - The properties of the entity to create.
+     * @param {boolean} [avatarEntity=false] - Whether to create an avatar entity or a domain entity
+     * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
+     */
+    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool avatarEntity = false) {
+        QString entityHostType = avatarEntity ? "avatar" : "domain";
+        return addEntity(properties, entityHostType);
+    }
 
     /// temporary method until addEntity can be used from QJSEngine
     /// Deliberately not adding jsdoc, only used internally.
@@ -896,8 +924,7 @@ public slots:
     Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
 
     /**jsdoc
-     * Dumps debug information about all entities in Interface's local in-memory tree of entities it knows about &mdash; domain
-     * and client-only &mdash; to the program log.
+     * Dumps debug information about all entities in Interface's local in-memory tree of entities it knows about to the program log.
      * @function Entities.dumpTree
      */
     Q_INVOKABLE void dumpTree() const;
@@ -980,7 +1007,16 @@ public slots:
      */
     // FIXME move to a renderable entity interface
     Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
-
+    
+    /**jsdoc
+     * Get the index of the parent joint.
+     * @function Entities.getJointParent
+     * @param {Uuid} entityID - The ID of the entity.
+     * @param {number} index - The integer index of the joint.
+     * @returns {number} The index of the parent joint.
+     */
+    Q_INVOKABLE int getJointParent(const QUuid& entityID, int index);
+    
     /**jsdoc
      * Get the translation of a joint in a {@link Entities.EntityType|Model} entity relative to the entity's position and 
      * orientation.
@@ -1870,7 +1906,7 @@ signals:
     /**jsdoc
      * Triggered when an entity is added to Interface's local in-memory tree of entities it knows about. This may occur when 
      * entities are loaded upon visiting a domain, when the user rotates their view so that more entities become visible, and 
-     * when a domain or client-only entity is added (e.g., by {@Entities.addEntity|addEntity}).
+     * when any type of entity is added (e.g., by {@Entities.addEntity|addEntity}).
      * @function Entities.addingEntity
      * @param {Uuid} entityID - The ID of the entity added.
      * @returns {Signal}
@@ -1880,6 +1916,31 @@ signals:
      * });
      */
     void addingEntity(const EntityItemID& entityID);
+
+    /**jsdoc
+    * Triggered when an 'wearable' entity is deleted.
+    * @function Entities.deletingWearable
+    * @param {Uuid} entityID - The ID of the 'wearable' entity deleted.
+    * @returns {Signal}
+    * @example <caption>Report when an 'wearable' entity is deleted.</caption>
+    * Entities.deletingWearable.connect(function (entityID) {
+    *     print("Deleted wearable: " + entityID);
+    * });
+    */
+    void deletingWearable(const EntityItemID& entityID);
+
+    /**jsdoc
+    * Triggered when an 'wearable' entity is added to Interface's local in-memory tree of entities it knows about. This may occur when
+    * 'wearable' entities are added to avatar
+    * @function Entities.addingWearable
+    * @param {Uuid} entityID - The ID of the 'wearable' entity added.
+    * @returns {Signal}
+    * @example <caption>Report when an 'wearable' entity is added.</caption>
+    * Entities.addingWearable.connect(function (entityID) {
+    *     print("Added wearable: " + entityID);
+    * });
+    */
+    void addingWearable(const EntityItemID& entityID);
 
     /**jsdoc
      * Triggered when you disconnect from a domain, at which time Interface's local in-memory tree of entities it knows about
@@ -1911,6 +1972,8 @@ protected:
 
 private slots:
     void handleEntityScriptCallMethodPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);
+    void onAddingEntity(EntityItem* entity);
+    void onDeletingEntity(EntityItem* entity);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulationPointer, EntityItemPointer)> actor);

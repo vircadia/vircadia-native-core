@@ -49,6 +49,7 @@
 #include "avatar/AvatarManager.h"
 #include "AudioClient.h"
 #include "LODManager.h"
+#include "ui/LoginDialog.h"
 #include "ui/OctreeStatsProvider.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/AvatarInputs.h"
@@ -190,7 +191,7 @@ void Web3DOverlay::buildWebSurface() {
         } else {
             _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
             connect(_webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
-                setupQmlSurface(_url == TabletScriptingInterface::QML);
+                setupQmlSurface(_url == TabletScriptingInterface::QML, _url == OVERLAY_LOGIN_DIALOG.toString());
             });
             _webSurface->load(_url);
             _cachedWebSurface = false;
@@ -221,7 +222,7 @@ bool Web3DOverlay::isWebContent() const {
     return false;
 }
 
-void Web3DOverlay::setupQmlSurface(bool isTablet) {
+void Web3DOverlay::setupQmlSurface(bool isTablet, bool isLoginDialog) {
     _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
@@ -232,6 +233,12 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
     _webSurface->getSurfaceContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _webSurface->getSurfaceContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
+    if (isTablet || isLoginDialog) {
+        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
+        _webSurface->getSurfaceContext()->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
+    }
     if (isTablet) {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         auto flags = tabletScriptingInterface->getFlags();
@@ -239,7 +246,6 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
         _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
 
-        _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
 
@@ -261,8 +267,6 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
         _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-        _webSurface->getSurfaceContext()->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
         _webSurface->getSurfaceContext()->setContextProperty("Workload", qApp->getGameWorkload()._engine->getConfiguration().get());
@@ -274,7 +278,6 @@ void Web3DOverlay::setupQmlSurface(bool isTablet) {
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
         // Override min fps for tablet UI, for silky smooth scrolling
         setMaxFPS(90);
@@ -542,7 +545,7 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
  *
  * @property {string} name="" - A friendly name for the overlay.
- * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and 
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
  *     <code>start</code>.
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
@@ -552,7 +555,7 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
@@ -567,7 +570,7 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {string} url - The URL of the Web page to display.
  * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
  * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
- * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms: 
+ * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms:
  *     <code>scale</code>, <code>size</code>.
  * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
  * @property {boolean} showKeyboardFocusHighlight=true - If <code>true</code>, the Web overlay is highlighted when it has

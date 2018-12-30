@@ -83,34 +83,6 @@ void RenderableModelEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     }
 }
 
-QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures) {
-    // If textures are unset, revert to original textures
-    if (textures.isEmpty()) {
-        return defaultTextures;
-    }
-
-    // Legacy: a ,\n-delimited list of filename:"texturepath"
-    if (*textures.cbegin() != '{') {
-        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
-    }
-
-    QJsonParseError error;
-    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
-    // If textures are invalid, revert to original textures
-    if (error.error != QJsonParseError::NoError) {
-        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << textures;
-        return defaultTextures;
-    }
-
-    QVariantMap texturesMap = texturesJson.toVariant().toMap();
-    // If textures are unset, revert to original textures
-    if (texturesMap.isEmpty()) {
-        return defaultTextures;
-    }
-
-    return texturesJson.toVariant().toMap();
-}
-
 void RenderableModelEntityItem::doInitialModelSimulation() {
     DETAILED_PROFILE_RANGE(simulation_physics, __FUNCTION__);
     ModelPointer model = getModel();
@@ -421,7 +393,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 uint32_t numIndices = (uint32_t)meshPart.triangleIndices.size();
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % TRIANGLE_STRIDE == 0);
-                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                 for (uint32_t j = 0; j < numIndices; j += TRIANGLE_STRIDE) {
                     glm::vec3 p0 = mesh.vertices[meshPart.triangleIndices[j]];
@@ -442,7 +414,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                 numIndices = (uint32_t)meshPart.quadIndices.size();
                 // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                 //assert(numIndices % QUAD_STRIDE == 0);
-                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                numIndices -= numIndices % QUAD_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                 for (uint32_t j = 0; j < numIndices; j += QUAD_STRIDE) {
                     glm::vec3 p0 = mesh.vertices[meshPart.quadIndices[j]];
@@ -595,7 +567,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     if (partItr->_topology == graphics::Mesh::TRIANGLES) {
                         // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                         //assert(numIndices % TRIANGLE_STRIDE == 0);
-                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                         auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
                         auto indexEnd = indexItr + numIndices;
@@ -652,7 +624,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
                     if (partItr->_topology == graphics::Mesh::TRIANGLES) {
                         // TODO: assert rather than workaround after we start sanitizing HFMMesh higher up
                         //assert(numIndices% TRIANGLE_STRIDE == 0);
-                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXReader
+                        numIndices -= numIndices % TRIANGLE_STRIDE; // WORKAROUND lack of sanity checking in FBXSerializer
 
                         auto indexItr = indices.cbegin<const gpu::BufferView::Index>() + partItr->_startIndex;
                         auto indexEnd = indexItr + numIndices;
@@ -771,6 +743,14 @@ bool RenderableModelEntityItem::shouldBePhysical() const {
     } else {
         return ModelEntityItem::shouldBePhysical();
     }
+}
+
+int RenderableModelEntityItem::getJointParent(int index) const {
+    auto model = getModel();
+    if (model) {
+        return model->getRig().getJointParentIndex(index);
+    }
+    return -1;
 }
 
 glm::quat RenderableModelEntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {

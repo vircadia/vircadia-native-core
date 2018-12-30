@@ -117,7 +117,7 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Mirror";
     const QString Help = "Help...";
-    const QString HomeLocation = "Home";
+    const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
@@ -213,7 +213,6 @@ namespace MenuOption {
     const QString TurnWithHead = "Turn using Head";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
-    const QString Use3DKeyboard = "Use 3D Keyboard";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";

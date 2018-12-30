@@ -146,7 +146,7 @@ public:
             Concept(name, config),
             _data(Data(std::forward<A>(args)...)),
             _input(input),
-            _output(Output()) {
+            _output(Output(), name + ".o") {
             applyConfiguration();
         }
 
@@ -164,7 +164,7 @@ public:
 
         void run(const ContextPointer& jobContext) override {
             jobContext->jobConfig = std::static_pointer_cast<Config>(Concept::_config);
-            if (jobContext->jobConfig->alwaysEnabled || jobContext->jobConfig->isEnabled()) {
+            if (jobContext->jobConfig->isEnabled()) {
                 jobRun(_data, jobContext, _input.get<I>(), _output.edit<O>());
             }
             jobContext->jobConfig.reset();
@@ -340,7 +340,7 @@ public:
 
         void run(const ContextPointer& jobContext) override {
             auto config = std::static_pointer_cast<C>(Concept::_config);
-            if (config->alwaysEnabled || config->enabled) {
+            if (config->isEnabled()) {
                 for (auto job : TaskConcept::_jobs) {
                     job.run(jobContext);
                     if (jobContext->taskFlow.doAbortTask()) {
@@ -419,6 +419,7 @@ protected:
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6 > using VaryingSet7 = task::VaryingSet7<T0, T1, T2, T3, T4, T5, T6>; \
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7 > using VaryingSet8 = task::VaryingSet8<T0, T1, T2, T3, T4, T5, T6, T7>; \
     template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8 > using VaryingSet9 = task::VaryingSet9<T0, T1, T2, T3, T4, T5, T6, T7, T8>; \
+    template < typename T0, typename T1, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8, typename T9 > using VaryingSet10 = task::VaryingSet10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>; \
     template < class T, int NUM > using VaryingArray = task::VaryingArray<T, NUM>;
 
 

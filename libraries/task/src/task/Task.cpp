@@ -29,5 +29,3 @@ void TaskFlow::abortTask() {
 bool TaskFlow::doAbortTask() const {
     return _doAbortTask;
 }
-
-

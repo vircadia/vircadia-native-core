@@ -20,6 +20,7 @@
 #include <Profile.h>
 
 #include "AnimationLogging.h"
+#include <FBXSerializer.h>
 
 int animationPointerMetaTypeId = qRegisterMetaType<AnimationPointer>();
 
@@ -71,7 +72,7 @@ void AnimationReader::run() {
             // Parse the FBX directly from the QNetworkReply
             HFMModel::Pointer hfmModel;
             if (_url.path().toLower().endsWith(".fbx")) {
-                hfmModel.reset(readFBX(_data, QVariantHash(), _url.path()));
+                hfmModel = FBXSerializer().read(_data, QVariantHash(), _url.path());
             } else {
                 QString errorStr("usupported format");
                 emit onError(299, errorStr);

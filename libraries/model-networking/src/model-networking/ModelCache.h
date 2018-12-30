@@ -18,8 +18,9 @@
 #include <graphics/Material.h>
 #include <graphics/Asset.h>
 
-#include "FBXReader.h"
+#include "FBXSerializer.h"
 #include "TextureCache.h"
+#include "ModelLoader.h"
 
 // Alias instead of derive to avoid copying
 
@@ -158,6 +159,7 @@ protected:
 private:
     ModelCache();
     virtual ~ModelCache() = default;
+    ModelLoader _modelLoader;
 };
 
 class NetworkMaterial : public graphics::Material {

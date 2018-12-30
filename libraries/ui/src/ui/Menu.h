@@ -29,6 +29,9 @@ public:
     QList<QAction*> actions();
     MenuWrapper* addMenu(const QString& menuName);
     void setEnabled(bool enabled = true);
+
+    bool isVisible();
+    void setVisible(bool visible = true);
     QAction* addSeparator();
     void addAction(QAction* action);
 
@@ -146,6 +149,11 @@ protected:
     int findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem);
     int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
 
+    // There is a design flaw here -- _actionHash is system-wide and hashes the names of menu-items to their
+    // QActions.  The path (parent submenu name etc) isn't included in the hash key.  This generally works,
+    // but we add "Home" twice -- once for "go home" and once for "set startup location to home".  Anytime
+    // a user bookmarks a place and gives it a name like an existing menu-item, something will go wrong.
+    // TODO: change the js api to require the full path when referring to a specific menu item.
     QHash<QString, QAction*> _actionHash;
 
     bool isValidGrouping(const QString& grouping) const { return grouping == "Advanced" || grouping == "Developer"; }

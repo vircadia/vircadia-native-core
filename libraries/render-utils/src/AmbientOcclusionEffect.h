@@ -17,6 +17,7 @@
 
 #include "render/DrawTask.h"
 
+#include "LightingModel.h"
 #include "DeferredFrameTransform.h"
 #include "DeferredFramebuffer.h"
 #include "SurfaceGeometryPass.h"
@@ -78,7 +79,6 @@ using AmbientOcclusionFramebufferPointer = std::shared_ptr<AmbientOcclusionFrame
 
 class AmbientOcclusionEffectConfig : public render::GPUJobConfig::Persistent {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
     Q_PROPERTY(bool horizonBased MEMBER horizonBased NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
@@ -153,15 +153,15 @@ signals:
 
 class AmbientOcclusionEffect {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
-    using Outputs = render::VaryingSet2<AmbientOcclusionFramebufferPointer, gpu::BufferView>;
+    using Input = render::VaryingSet4<LightingModelPointer, DeferredFrameTransformPointer, DeferredFramebufferPointer, LinearDepthFramebufferPointer>;
+    using Output = render::VaryingSet2<AmbientOcclusionFramebufferPointer, gpu::BufferView>;
     using Config = AmbientOcclusionEffectConfig;
-    using JobModel = render::Job::ModelIO<AmbientOcclusionEffect, Inputs, Outputs, Config>;
+    using JobModel = render::Job::ModelIO<AmbientOcclusionEffect, Input, Output, Config>;
 
     AmbientOcclusionEffect();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class AOParameters : public AmbientOcclusionParams {

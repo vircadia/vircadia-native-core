@@ -1270,11 +1270,6 @@ public slots:
     void sendIdentityPacket();
 
     /**jsdoc
-     * @function MyAvatar.setJointMappingsFromNetworkReply
-     */
-    void setJointMappingsFromNetworkReply();
-
-    /**jsdoc
      * @function MyAvatar.setSessionUUID
      * @param {Uuid} sessionUUID
      */
@@ -1376,22 +1371,15 @@ protected:
     mutable HeadData* _headData { nullptr };
 
     QUrl _skeletonModelURL;
-    QUrl _skeletonFBXURL;
     QVector<AttachmentData> _attachmentData;
     QVector<AttachmentData> _oldAttachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
     bool _lookAtSnappingEnabled { true };
 
-    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
-    QStringList _fstJointNames; ///< in order of depth-first traversal
-
     quint64 _errorLogExpiry; ///< time in future when to log an error
 
     QWeakPointer<Node> _owningAvatarMixer;
-
-    /// Loads the joint indices, names from the FST file (if any)
-    virtual void updateJointMappings();
 
     glm::vec3 _targetVelocity;
 
@@ -1490,17 +1478,14 @@ protected:
     bool _isClientAvatar { false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
-    std::unique_ptr<ClientTraitsHandler> _clientTraitsHandler;
+    std::unique_ptr<ClientTraitsHandler, LaterDeleter> _clientTraitsHandler;
 
     template <typename T, typename F>
     T readLockWithNamedJointIndex(const QString& name, const T& defaultValue, F f) const {
         int index = getFauxJointIndex(name);
         QReadLocker readLock(&_jointDataLock);
-        if (index == -1) {
-            index = _fstJointIndices.value(name) - 1;
-        }
 
-        // The first conditional is superfluous, but illsutrative
+        // The first conditional is superfluous, but illustrative
         if (index == -1 || index < _jointData.size()) {
             return defaultValue;
         }
@@ -1517,9 +1502,6 @@ protected:
     void writeLockWithNamedJointIndex(const QString& name, F f) {
         int index = getFauxJointIndex(name);
         QWriteLocker writeLock(&_jointDataLock);
-        if (index == -1) {
-            index = _fstJointIndices.value(name) - 1;
-        }
         if (index == -1) {
             return;
         }

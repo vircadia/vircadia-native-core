@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import QtWebEngine 1.5;
-import Qt.labs.settings 1.0
+import Qt.labs.settings 1.0 as QtSettings
 
 import QtQuick.Controls 2.3
 
@@ -70,11 +70,11 @@ OriginalDesktop.Desktop {
         anchors.horizontalCenter: settings.constrainToolbarToCenterX ? desktop.horizontalCenter : undefined;
         // Literal 50 is overwritten by settings from previous session, and sysToolbar.x comes from settings when not constrained.
         x: sysToolbar.x
-        buttonModel: tablet.buttons;
-        shown: tablet.toolbarMode;
+        buttonModel: tablet ? tablet.buttons : null;
+        shown: tablet ? tablet.toolbarMode : false;
     }
 
-    Settings {
+    QtSettings.Settings {
         id: settings;
         category: "toolbar";
         property bool constrainToolbarToCenterX: true;
