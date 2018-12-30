@@ -7,6 +7,8 @@
 //
 #include "PlatformInfoScriptingInterface.h"
 
+# include <thread>
+
 #ifdef Q_OS_WIN
 #include <Windows.h>
 #endif
@@ -34,6 +36,7 @@ QString PlatformInfoScriptingInterface::getCPUBrand() {
     // Get the information associated with each extended ID.
     __cpuid(CPUInfo, 0x80000000);
     nExIds = CPUInfo[0];
+
     for (i = 0x80000000; i <= nExIds; ++i) {
        __cpuid(CPUInfo, i);
         // Interpret CPU brand string
@@ -51,16 +54,18 @@ QString PlatformInfoScriptingInterface::getCPUBrand() {
     return "NOT IMPLEMENTED";
 #endif
 }
-    ////MEMORYSTATUSEX statex;
-    ////statex.dwLength = sizeof (statex);
-    ////GlobalMemoryStatusEx(&statex);
-    ////cout << "Total System Memory: " << (statex.ullTotalPhys / 1024) / 1024 << "MB" << endl;
 
-int PlatformInfoScriptingInterface::getNumCores() {
+unsigned int PlatformInfoScriptingInterface::getNumLogicalCores() {
+
+    return std::thread::hardware_concurrency();
+}
+
+int PlatformInfoScriptingInterface::getTotalSystemMemoryMB() {
 #ifdef Q_OS_WIN
-    SYSTEM_INFO sysInfo;
-    GetSystemInfo(&sysInfo);
-    return sysInfo.dwNumberOfProcessors;
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof (statex);
+    GlobalMemoryStatusEx(&statex);
+    return statex.ullTotalPhys / 1024 / 1024;
 #else
     return -1;
 #endif

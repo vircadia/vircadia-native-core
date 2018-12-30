@@ -34,11 +34,18 @@ public slots:
     QString getCPUBrand();
 
     /**jsdoc
-    * Returns the number of CPU cores
-    *function PlatformInfo.getNumCores()
-    * @returns {int} number of CPU cores
+    * Returns the number of logical CPU cores
+    *function PlatformInfo.getNumLogicalCores()
+    * @returns {int} number of logical CPU cores
     */
-    int getNumCores();
+    unsigned int getNumLogicalCores();
+
+    /**jsdoc
+    * Returns the total system memory in megabyte
+    *function PlatformInfo.getTotalSystemMemory()
+    * @returns {int} size of memory in megabytes
+    */
+    int getTotalSystemMemoryMB();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h
