@@ -20,6 +20,7 @@
 
 class AvatarManager;
 class AvatarMotionState;
+class DetailedMotionState;
 
 class OtherAvatar : public Avatar {
 public:
@@ -45,14 +46,20 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
+    void addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
+    const std::vector<DetailedMotionState*>& getDetailedMotionStates();
+    void resetDetailedMotionStates();
+
     friend AvatarManager;
 
 protected:
     std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
     OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
     AvatarMotionState* _motionState { nullptr };
+    std::vector<DetailedMotionState*> _detailedMotionStates;
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };
+    std::mutex _mStateLock;
 };
 
 using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;

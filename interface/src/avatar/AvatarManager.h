@@ -29,6 +29,7 @@
 #include <EntitySimulation.h> // for SetOfEntities
 
 #include "AvatarMotionState.h"
+#include "DetailedMotionState.h"
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
 

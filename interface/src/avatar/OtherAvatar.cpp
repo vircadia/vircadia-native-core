@@ -10,6 +10,7 @@
 #include "Application.h"
 
 #include "AvatarMotionState.h"
+#include "DetailedMotionState.h"
 
 static glm::u8vec3 getLoadingOrbColor(Avatar::LoadingStatus loadingStatus) {
 
@@ -107,8 +108,45 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+        for (auto mState : _detailedMotionStates) {
+            if (mState) {
+                mState->addDirtyFlags(Simulation::DIRTY_POSITION);
+            }
+        }
     }
     return bytesRead;
+}
+
+void OtherAvatar::addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
+    std::lock_guard<std::mutex> lock(_mStateLock);
+    if (jointIndex > -1 && jointIndex < _multiSphereShapes.size()) {
+        auto& data = _multiSphereShapes[jointIndex].getSpheresData();
+        std::vector<btVector3> positions;
+        std::vector<btScalar> radiuses;
+        for (auto& sphere : data) {
+            positions.push_back(glmToBullet(sphere._position));
+            radiuses.push_back(sphere._radius);
+        }
+        btCollisionShape* shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
+        if (shape) {
+            DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
+            motionState->setMass(computeMass());
+            assert(_detailedMotionStates.size() == jointIndex);
+            _detailedMotionStates.push_back(motionState);
+        } else {
+            _detailedMotionStates.push_back(nullptr);
+        }
+    }
+}
+const std::vector<DetailedMotionState*>& OtherAvatar::getDetailedMotionStates() {
+    std::lock_guard<std::mutex> lock(_mStateLock);
+    return _detailedMotionStates; 
+}
+void OtherAvatar::resetDetailedMotionStates() {
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        _detailedMotionStates[i] = nullptr;
+    }
+    _detailedMotionStates.clear();
 }
 
 void OtherAvatar::setWorkloadRegion(uint8_t region) {

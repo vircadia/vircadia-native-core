@@ -292,7 +292,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         if (!isReadyToComputeShape()) {
             return false;
         }
-        const btCollisionShape* newShape = computeNewShape();
+        const btCollisionShape* newShape = _type != MOTIONSTATE_TYPE_DETAILED ? computeNewShape() : nullptr;
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag

@@ -29,6 +29,7 @@
 #include <ThreadSafeValueCache.h>
 
 #include "MetaModelPayload.h"
+#include "MultiSphereShape.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -507,6 +508,8 @@ protected:
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
+    void computeMultiSphereShapes();
+    const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
 
     SkeletonModelPointer _skeletonModel;
 
@@ -628,6 +631,7 @@ protected:
 
     static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
+    std::vector<MultiSphereShape> _multiSphereShapes;
 };
 
 #endif // hifi_Avatar_h

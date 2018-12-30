@@ -296,7 +296,9 @@ void Avatar::setTargetScale(float targetScale) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
         _isAnimatingScale = true;
-
+        for (auto& sphere : _multiSphereShapes) {
+            sphere.setScale(_targetScale);
+        }
         emit targetScaleChanged(targetScale);
     }
 }
@@ -1540,11 +1542,39 @@ void Avatar::setModelURLFinished(bool success) {
 // rig is ready
 void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
+    computeMultiSphereShapes();
 }
 
 // rig has been reset.
 void Avatar::rigReset() {
     clearUnscaledEyeHeightCache();
+}
+
+void Avatar::computeMultiSphereShapes() {
+    const Rig& rig = getSkeletonModel()->getRig();
+    auto scale = extractScale(rig.getGeometryToRigTransform());
+    const HFMModel& geometry = getSkeletonModel()->getHFMModel();
+    int jointCount = rig.getJointStateCount();
+    _multiSphereShapes.clear();
+    _multiSphereShapes.reserve(jointCount);
+    for (int i = 0; i < jointCount; i++) {
+        const HFMJointShapeInfo& shapeInfo = geometry.joints[i].shapeInfo;
+        std::vector<btVector3> btPoints;
+        int lineCount = (int)shapeInfo.debugLines.size();
+        btPoints.reserve(lineCount);
+        for (size_t j = 0; j < lineCount; j++) {
+            const glm::vec3 &point = shapeInfo.debugLines[j];
+            auto rigPoint = scale * point;
+            btVector3 btPoint = glmToBullet(rigPoint);
+            btPoints.push_back(btPoint);
+        }
+        auto jointName = rig.nameOfJoint(i).toUpper();
+        MultiSphereShape multiSphereShape;
+        if (multiSphereShape.computeMultiSphereShape(jointName, btPoints, getSensorToWorldScale())) {
+            multiSphereShape.calculateDebugLines();
+        }
+        _multiSphereShapes.push_back(multiSphereShape);
+    }
 }
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
