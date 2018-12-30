@@ -7,6 +7,10 @@
 //
 #include "PlatformInfoScriptingInterface.h"
 
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#endif
+
 PlatformInfoScriptingInterface* PlatformInfoScriptingInterface::getInstance() {
     static PlatformInfoScriptingInterface sharedInstance;
     return &sharedInstance;
@@ -23,6 +27,7 @@ QString PlatformInfoScriptingInterface::getOperatingSystemType() {
 }
 
 QString PlatformInfoScriptingInterface::getCPUBrand() {
+#ifdef Q_OS_WIN
     int CPUInfo[4] = { -1 };
     unsigned   nExIds, i = 0;
     char CPUBrandString[0x40];
@@ -42,16 +47,21 @@ QString PlatformInfoScriptingInterface::getCPUBrand() {
     }
 
     return CPUBrandString;
-    //////string includes manufacturer, model and clockspeed
-    ////cout << "CPU Type: " << CPUBrandString << endl;
-
-
-    ////SYSTEM_INFO sysInfo;
-    ////GetSystemInfo(&sysInfo);
-    ////cout << "Number of Cores: " << sysInfo.dwNumberOfProcessors << endl;
-
+#else
+    return "NOT IMPLEMENTED";
+#endif
+}
     ////MEMORYSTATUSEX statex;
     ////statex.dwLength = sizeof (statex);
     ////GlobalMemoryStatusEx(&statex);
     ////cout << "Total System Memory: " << (statex.ullTotalPhys / 1024) / 1024 << "MB" << endl;
+
+int PlatformInfoScriptingInterface::getNumCores() {
+#ifdef Q_OS_WIN
+    SYSTEM_INFO sysInfo;
+    GetSystemInfo(&sysInfo);
+    return sysInfo.dwNumberOfProcessors;
+#else
+    return -1;
+#endif
 }

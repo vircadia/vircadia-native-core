@@ -32,6 +32,13 @@ public slots:
     * @returns {string} brand of CPU
     */
     QString getCPUBrand();
+
+    /**jsdoc
+    * Returns the number of CPU cores
+    *function PlatformInfo.getNumCores()
+    * @returns {int} number of CPU cores
+    */
+    int getNumCores();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h
