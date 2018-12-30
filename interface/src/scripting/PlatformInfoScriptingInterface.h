@@ -28,7 +28,10 @@ public slots:
 
     /**jsdoc
     * Returns the CPU brand
+    *function PlatformInfo.getCPUBrand()
+    * @returns {string} brand of CPU
     */
+    QString getCPUBrand();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h
