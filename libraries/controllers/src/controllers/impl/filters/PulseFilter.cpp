@@ -15,21 +15,21 @@ using namespace controller;
 
 const float PulseFilter::DEFAULT_LAST_EMIT_TIME = -::std::numeric_limits<float>::max();
 
-float PulseFilter::apply(float value) const {
+AxisValue PulseFilter::apply(AxisValue value) const {
     float result = 0.0f;
 
-    if (0.0f != value) {
+    if (0.0f != value.value) {
         float now = secTimestampNow();
         float delta = now - _lastEmitTime;
         if (delta >= _interval) {
             _lastEmitTime = now;
-            result = value;
+            result = value.value;
         }
     } else if (_resetOnZero) {
         _lastEmitTime = DEFAULT_LAST_EMIT_TIME;
     }
 
-    return result;
+    return { result, value.timestamp };
 }
 
 bool PulseFilter::parseParameters(const QJsonValue& parameters) {

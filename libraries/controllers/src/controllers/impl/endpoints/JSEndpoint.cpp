@@ -30,18 +30,18 @@ QString formatException(const QJSValue& exception) {
     return result;
 }
 
-float JSEndpoint::peek() const {
+AxisValue JSEndpoint::peek() const {
     QJSValue result = _callable.call();
     if (result.isError()) {
         qCDebug(controllers).noquote() << formatException(result);
-        return 0.0f;
+        return AxisValue();
     } else {
-        return (float)result.toNumber();
+        return AxisValue((float)result.toNumber(), 0);
     }
 }
 
-void JSEndpoint::apply(float newValue, const Pointer& source) {
-    QJSValue result = _callable.call(QJSValueList({ QJSValue(newValue) }));
+void JSEndpoint::apply(AxisValue newValue, const Pointer& source) {
+    QJSValue result = _callable.call(QJSValueList({ QJSValue(newValue.value) }));
     if (result.isError()) {
         qCDebug(controllers).noquote() << formatException(result);
     }

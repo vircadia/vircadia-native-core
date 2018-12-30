@@ -121,7 +121,7 @@ namespace controller {
         void unloadMappings(const QStringList& jsonFiles);
         void unloadMapping(const QString& jsonFile);
 
-        float getValue(const Input& input) const;
+        AxisValue getValue(const Input& input) const;
         Pose getPose(const Input& input) const;
 
         // perform an action when the UserInputMapper mutex is acquired.
@@ -147,9 +147,9 @@ namespace controller {
         std::vector<float> _actionScales = std::vector<float>(toInt(Action::NUM_ACTIONS), 1.0f);
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
-        std::vector<float> _lastStandardStates = std::vector<float>();
+        std::vector<AxisValue> _lastStandardStates = std::vector<AxisValue>();
 
-        static float getValue(const EndpointPointer& endpoint, bool peek = false);
+        static AxisValue getValue(const EndpointPointer& endpoint, bool peek = false);
         static Pose getPose(const EndpointPointer& endpoint, bool peek = false);
 
         friend class RouteBuilderProxy;

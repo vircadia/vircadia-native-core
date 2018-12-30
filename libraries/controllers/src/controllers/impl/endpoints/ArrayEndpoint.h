@@ -21,9 +21,9 @@ public:
     using Pointer = std::shared_ptr<ArrayEndpoint>;
     ArrayEndpoint() : Endpoint(Input::INVALID_INPUT) { }
 
-    virtual float peek() const override { return 0.0f; }
+    virtual AxisValue peek() const override { return AxisValue(); }
 
-    virtual void apply(float value, const Endpoint::Pointer& source) override {
+    virtual void apply(AxisValue value, const Endpoint::Pointer& source) override {
         for (auto& child : _children) {
             if (child->writeable()) {
                 child->apply(value, source);

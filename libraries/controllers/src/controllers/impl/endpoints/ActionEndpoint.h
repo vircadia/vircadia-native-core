@@ -23,8 +23,8 @@ class ActionEndpoint : public Endpoint {
 public:
     ActionEndpoint(const Input& id = Input::INVALID_INPUT) : Endpoint(id) { }
 
-    virtual float peek() const override { return _currentValue; }
-    virtual void apply(float newValue, const Pointer& source) override;
+    virtual AxisValue peek() const override { return _currentValue; }
+    virtual void apply(AxisValue newValue, const Pointer& source) override;
 
     virtual Pose peekPose() const override { return _currentPose; }
     virtual void apply(const Pose& value, const Pointer& source) override;
@@ -32,7 +32,7 @@ public:
     virtual void reset() override;
 
 private:
-    float _currentValue{ 0.0f };
+    AxisValue _currentValue { 0.0f, 0 };
     Pose _currentPose{};
 };
 

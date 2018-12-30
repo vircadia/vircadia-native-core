@@ -68,26 +68,25 @@ namespace controller {
         return Input::NamedPair(makeInput(pose), name);
     }
 
-    float InputDevice::getValue(ChannelType channelType, uint16_t channel) const {
+    AxisValue InputDevice::getValue(ChannelType channelType, uint16_t channel) const {
         switch (channelType) {
             case ChannelType::AXIS:
-                return getAxis(channel).value;
+                return getAxis(channel);
 
             case ChannelType::BUTTON:
-                return getButton(channel);
+                return { getButton(channel), 0 };
 
             case ChannelType::POSE:
-                return getPose(channel).valid ? 1.0f : 0.0f;
+                return { getPose(channel).valid ? 1.0f : 0.0f, 0 };
 
             default:
                 break;
         }
 
-        return 0.0f;
+        return { 0.0f, 0 };
     }
 
-
-    float InputDevice::getValue(const Input& input) const {
+    AxisValue InputDevice::getValue(const Input& input) const {
         return getValue(input.getType(), input.channel);
     }
 

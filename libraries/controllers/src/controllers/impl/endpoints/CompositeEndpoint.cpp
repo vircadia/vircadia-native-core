@@ -24,18 +24,18 @@ bool CompositeEndpoint::readable() const {
     return first->readable() && second->readable();
 }
 
-float CompositeEndpoint::peek() const {
-    float result = first->peek() * -1.0f + second->peek();
+AxisValue CompositeEndpoint::peek() const {
+    auto result = AxisValue(first->peek().value * -1.0f + second->peek().value, 0);
     return result;
 }
 
 // Fetching via value() must trigger any side effects of value() on the children
-float CompositeEndpoint::value() {
-    float result = first->value() * -1.0f + second->value();
+AxisValue CompositeEndpoint::value() {
+    auto result = AxisValue(first->value().value * -1.0f + second->value().value, 0);
     return result;
 }
 
-void CompositeEndpoint::apply(float newValue, const Pointer& source) {
+void CompositeEndpoint::apply(AxisValue newValue, const Pointer& source) {
     // Composites are read only
 }
 

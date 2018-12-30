@@ -19,7 +19,7 @@ class DeadZoneFilter : public Filter {
 public:
     DeadZoneFilter(float min = 0.0) : _min(min) {};
 
-    virtual float apply(float value) const override;
+    virtual AxisValue apply(AxisValue value) const override;
 
     virtual Pose apply(Pose value) const override { return value; }
 

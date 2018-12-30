@@ -34,9 +34,9 @@ QString formatException(const QScriptValue& exception) {
     return result;
 }
 
-float ScriptEndpoint::peek() const {
+AxisValue ScriptEndpoint::peek() const {
     const_cast<ScriptEndpoint*>(this)->updateValue();
-    return _lastValueRead;
+    return AxisValue(_lastValueRead, 0);
 }
 
 void ScriptEndpoint::updateValue() {
@@ -58,15 +58,15 @@ void ScriptEndpoint::updateValue() {
     }
 }
 
-void ScriptEndpoint::apply(float value, const Pointer& source) {
+void ScriptEndpoint::apply(AxisValue value, const Pointer& source) {
     if (value == _lastValueWritten) {
         return;
     }
-    internalApply(value, source->getInput().getID());
+    _lastValueWritten = value;
+    internalApply(value.value, source->getInput().getID());
 }
 
 void ScriptEndpoint::internalApply(float value, int sourceID) {
-    _lastValueWritten = value;
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
             Q_ARG(float, value),

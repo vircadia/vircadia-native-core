@@ -21,6 +21,13 @@
 const char* KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 bool KeyboardMouseDevice::_enableTouch = true;
 
+void KeyboardMouseDevice::updateDeltaAxisValue(int channel, float value) {
+    // Use timestamps for delta values so that consecutive identical values can be output.
+    if (value != 0.0f || _inputDevice->_axisStateMap[channel].value != 0) {
+        _inputDevice->_axisStateMap[channel] = { value, usecTimestampNow() };
+    }
+}
+
 void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->withLock([&, this]() {
@@ -31,11 +38,11 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputC
         _inputDevice->_axisStateMap[MOUSE_AXIS_Y].value = _lastCursor.y();
 
         QPoint currentMove = _lastCursor - _previousCursor;
-        _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS].value = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-        _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG].value = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_X_POS, currentMove.x() > 0 ? currentMove.x() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_X_NEG, currentMove.x() < 0 ? -currentMove.x() : 0.0f);
         // Y mouse is inverted positive is pointing up the screen
-        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS].value = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
-        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG].value = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_Y_POS, currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+        updateDeltaAxisValue(MOUSE_AXIS_Y_NEG, currentMove.y() > 0 ? currentMove.y() : 0.0f);
         _previousCursor = _lastCursor;
     });
 

@@ -112,8 +112,8 @@ public:
     AxisValue getAxis(int channel) const;
     Pose getPose(int channel) const;
 
-    float getValue(const Input& input) const;
-    float getValue(ChannelType channelType, uint16_t channel) const;
+    AxisValue getValue(const Input& input) const;
+    AxisValue getValue(ChannelType channelType, uint16_t channel) const;
     Pose getPoseValue(uint16_t channel) const;
 
     const QString& getName() const { return _name; }

@@ -130,6 +130,9 @@ protected:
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 
     static bool _enableTouch;
+
+private:
+    void updateDeltaAxisValue(int channel, float value);
 };
 
 #endif // hifi_KeyboardMouseDevice_h

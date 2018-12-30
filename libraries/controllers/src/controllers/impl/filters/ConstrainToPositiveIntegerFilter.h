@@ -19,8 +19,8 @@ class ConstrainToPositiveIntegerFilter : public Filter {
 public:
     ConstrainToPositiveIntegerFilter() = default;
 
-    virtual float apply(float value) const override {
-        return (value <= 0.0f) ? 0.0f : 1.0f;
+    virtual AxisValue apply(AxisValue value) const override {
+        return { (value.value <= 0.0f) ? 0.0f : 1.0f, value.timestamp };
     }
 
     virtual Pose apply(Pose value) const override { return value; }

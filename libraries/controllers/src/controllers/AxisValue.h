@@ -24,6 +24,9 @@ namespace controller {
 
         AxisValue() {}
         AxisValue(const float value, const quint64 timestamp);
+
+        bool operator ==(const AxisValue& right) const;
+        bool operator !=(const AxisValue& right) const { return !(*this == right); }
     };
 
 }
