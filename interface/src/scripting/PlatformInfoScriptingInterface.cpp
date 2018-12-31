@@ -12,6 +12,8 @@
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
+#elif defined Q_OS_MAC
+#include <sstream>
 #endif
 
 PlatformInfoScriptingInterface* PlatformInfoScriptingInterface::getInstance() {
@@ -51,8 +53,17 @@ QString PlatformInfoScriptingInterface::getCPUBrand() {
     }
 
     return CPUBrandString;
-#else
-    return "NOT IMPLEMENTED";
+#elif defined Q_OS_MAC
+    FILE* stream = popen("sysctl -n machdep.cpu.brand_string", "r");
+    
+    std::ostringstream hostStream;
+    while (!feof(stream) && !ferror(stream)) {
+        char buf[128];
+        int bytesRead = fread(buf, 1, 128, stream);
+        hostStream.write(buf, bytesRead);
+    }
+    
+    return QString::fromStdString(hostStream.str());
 #endif
 }
 
