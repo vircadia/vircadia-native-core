@@ -78,8 +78,19 @@ int PlatformInfoScriptingInterface::getTotalSystemMemoryMB() {
     statex.dwLength = sizeof (statex);
     GlobalMemoryStatusEx(&statex);
     return statex.ullTotalPhys / 1024 / 1024;
-#else
-    return -1;
+#elif defined Q_OS_MAC
+    FILE* stream = popen("sysctl -a | grep hw.memsize", "r");
+    
+    std::ostringstream hostStream;
+    while (!feof(stream) && !ferror(stream)) {
+        char buf[128];
+        int bytesRead = fread(buf, 1, 128, stream);
+        hostStream.write(buf, bytesRead);
+    }
+    
+    QString result = QString::fromStdString(hostStream.str());
+    QStringList parts = result.split(' ');
+    return (int)(parts[1].toDouble() / 1024 / 1024);
 #endif
 }
 
