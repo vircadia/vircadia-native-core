@@ -1565,35 +1565,61 @@ ScriptAvatarData* MyAvatar::getTargetAvatar() const {
     }
 }
 
-void MyAvatar::updateLookAtTargetAvatar() {
-    //
-    //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
-    //  And set the correctedLookAt for all (nearby) avatars that are looking at me.
-    _lookAtTargetAvatar.reset();
-    _targetAvatarPosition = glm::vec3(0.0f);
+static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myPosition, const glm::vec3& otherForward, const glm::vec3& otherPosition) {
+    const float DISTANCE_FACTOR = 3.14f;
+    const float MY_ANGLE_FACTOR = 1.0f;
+    const float OTHER_ANGLE_FACTOR = 1.0f;
+    const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;  // meters
 
-    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
-    glm::vec3 cameraPosition = qApp->getCamera().getPosition();
+    glm::vec3 d = otherPosition - myPosition;
+    float distance = glm::length(d);
+    glm::vec3 dUnit = d / distance;
+    float myAngle = acosf(glm::dot(myForward, dUnit));
+    float otherAngle = acosf(glm::dot(otherForward, -dUnit));
 
-    float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
-    const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
-    const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
+    if (distance > GREATEST_LOOKING_AT_DISTANCE) {
+        return FLT_MAX;
+    } else {
+        return DISTANCE_FACTOR * distance + MY_ANGLE_FACTOR * myAngle + OTHER_ANGLE_FACTOR * otherAngle;
+    }
+}
 
-    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
+void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
+    glm::vec3 myForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
+    glm::vec3 myPosition = qApp->getCamera().getPosition();
+    float bestCost = FLT_MAX;
+    std::shared_ptr<Avatar> bestAvatar;
 
-    foreach (const AvatarSharedPointer& avatarPointer, hash) {
-        auto avatar = static_pointer_cast<Avatar>(avatarPointer);
-        bool isCurrentTarget = avatar->getIsLookAtTarget();
-        float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
-        avatar->setIsLookAtTarget(false);
-        if (!avatar->isMyAvatar() && avatar->isInitialized() &&
-            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getModelScale())) {
-            float radius = glm::length(avatar->getHead()->getEyePosition() - avatar->getHead()->getRightEyePosition());
-            float angleTo = coneSphereAngle(getHead()->getEyePosition(), lookForward, avatar->getHead()->getEyePosition(), radius);
-            if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
-                _lookAtTargetAvatar = avatarPointer;
-                _targetAvatarPosition = avatarPointer->getWorldPosition();
+    foreach (const AvatarSharedPointer& avatarData, hash) {
+        std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if (!avatar->isMyAvatar() && avatar->isInitialized()) {
+            glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
+            glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
+            float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition);
+            if (_lookAtTargetAvatar.lock().get() == avatar.get()) {
+                const float COST_HYSTERESIS = 0.1f;
+                cost += COST_HYSTERESIS;
             }
+
+            if (cost < bestCost) {
+                bestCost = cost;
+                bestAvatar = avatar;
+            }
+        }
+    }
+
+    if (bestAvatar) {
+        _lookAtTargetAvatar = bestAvatar;
+        _targetAvatarPosition = bestAvatar->getWorldPosition();
+    } else {
+        _lookAtTargetAvatar.reset();
+    }
+}
+
+void MyAvatar::snapOtherAvatarLookAtTargetsToMe(const AvatarHash& hash) {
+    foreach (const AvatarSharedPointer& avatarData, hash) {
+        std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if (!avatar->isMyAvatar() && avatar->isInitialized()) {
             if (_lookAtSnappingEnabled && avatar->getLookAtSnappingEnabled() && isLookingAtMe(avatar)) {
 
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
@@ -1648,10 +1674,19 @@ void MyAvatar::updateLookAtTargetAvatar() {
             avatar->getHead()->clearCorrectedLookAtPosition();
         }
     }
-    auto avatarPointer = _lookAtTargetAvatar.lock();
-    if (avatarPointer) {
-        static_pointer_cast<Avatar>(avatarPointer)->setIsLookAtTarget(true);
-    }
+}
+
+void MyAvatar::updateLookAtTargetAvatar() {
+
+    // The AvatarManager is a mutable class shared by many threads.  We make a thread-safe deep copy of it,
+    // to avoid having to hold a lock while we iterate over all the avatars within.
+    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
+
+    // determine what the best look at target for my avatar should be.
+    computeMyLookAtTarget(hash);
+
+    // snap look at position for avatars that are looking at me.
+    snapOtherAvatarLookAtTargetsToMe(hash);
 }
 
 void MyAvatar::clearLookAtTargetAvatar() {
