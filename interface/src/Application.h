@@ -120,7 +120,7 @@ class Application : public QApplication,
 public:
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
-    virtual void requestReset() override { resetSensors(true); }
+    virtual void requestReset() override { resetSensors(false); }
     virtual void showDisplayPluginsTools(bool show) override;
     virtual GLWidget* getPrimaryWidget() override;
     virtual MainWindow* getPrimaryWindow() override;
@@ -459,6 +459,8 @@ public slots:
 
     void changeViewAsNeeded(float boomLength);
 
+    QString Application::getGraphicsCardType();
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -787,6 +789,5 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
-
 };
 #endif // hifi_Application_h
