@@ -6,6 +6,7 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 import functools
+import zipfile
 
 print = functools.partial(print, flush=True)
 
@@ -163,6 +164,31 @@ def copyAndroidLibs(packagePath, appPath):
                         print("Copying {}".format(lib))
                         shutil.copy(sourceFile, destFile)
 
+    gvrLibFolder = os.path.join(packagePath, 'gvr/gvr-android-sdk-1.101.0/libraries')
+    audioSoOut = os.path.join(gvrLibFolder, 'libgvr_audio.so')
+    if not os.path.isfile(audioSoOut):
+        audioAar = os.path.join(gvrLibFolder, 'sdk-audio-1.101.0.aar')
+        with zipfile.ZipFile(audioAar) as z:
+            with z.open('jni/arm64-v8a/libgvr_audio.so') as f:
+                with open(audioSoOut, 'wb') as of:
+                    shutil.copyfileobj(f, of)
+
+    audioSoOut2 = os.path.join(jniPath, 'libgvr_audio.so')
+    if not os.path.isfile(audioSoOut2):
+        shutil.copy(audioSoOut, audioSoOut2)
+
+    baseSoOut = os.path.join(gvrLibFolder, 'libgvr.so')
+    if not os.path.isfile(baseSoOut):
+        baseAar = os.path.join(gvrLibFolder, 'sdk-base-1.101.0.aar')
+        with zipfile.ZipFile(baseAar) as z:
+            with z.open('jni/arm64-v8a/libgvr.so') as f:
+                with open(baseSoOut, 'wb') as of:
+                    shutil.copyfileobj(f, of)
+
+    baseSoOut2 = os.path.join(jniPath, 'libgvr.so')
+    if not os.path.isfile(baseSoOut2):
+        shutil.copy(baseSoOut, baseSoOut2)
+
 class QtPackager:
     def __init__(self, appPath, qtRootPath):
         self.appPath = appPath
@@ -170,6 +196,7 @@ class QtPackager:
         self.jniPath = os.path.join(self.appPath, 'src/main/jniLibs/arm64-v8a')
         self.assetPath = os.path.join(self.appPath, 'src/main/assets')
         self.qtAssetPath = os.path.join(self.assetPath, '--Added-by-androiddeployqt--')
+        self.qtAssetCacheList = os.path.join(self.qtAssetPath, 'qt_cache_pregenerated_file_list')
         # Jars go into the qt library
         self.jarPath = os.path.realpath(os.path.join(self.appPath, '../../libraries/qt/libs'))
         self.xmlFile = os.path.join(self.appPath, 'src/main/res/values/libs.xml')
@@ -277,10 +304,43 @@ class QtPackager:
         tree = ET.ElementTree(libsXmlRoot)
         tree.write(self.xmlFile, 'UTF-8', True)
 
+    def generateAssetsFileList(self):
+        print("Implement asset file list")
+        # outputFilename = os.path.join(self.qtAssetPath, "qt_cache_pregenerated_file_list")
+        # fileList = hifi_utils.recursiveFileList(self.qtAssetPath)
+        # fileMap = {}
+        # for fileName in fileList:
+        #     relativeFileName = os.path.relpath(fileName, self.assetPath)
+        #     dirName, localFileName = os.path.split(relativeFileName)
+        #     if not dirName in fileMap:
+        #         fileMap[dirName] = []
+        #     fileMap[dirName].append(localFileName)
+
+        # for dirName in fileMap:
+        #     for localFileName in fileMap[dirName]:
+        #         ????
+
+        #
+        # Gradle version
+        #
+        # DataOutputStream fos = new DataOutputStream(new FileOutputStream(outputFile));
+        # for (Map.Entry<String, List<String>> e: directoryContents.entrySet()) {
+        #     def entryList = e.getValue()
+        #     fos.writeInt(e.key.length()*2); // 2 bytes per char
+        #     fos.writeChars(e.key);
+        #     fos.writeInt(entryList.size());
+        #     for (String entry: entryList) {
+        #         fos.writeInt(entry.length()*2);
+        #         fos.writeChars(entry);
+        #     }
+        # }
+
     def bundle(self):
-        if not os.path.isfile(self.xmlFile) or True:
+        if not os.path.isfile(self.xmlFile):
             self.copyQtDeps()
             self.scanQmlImports()
             self.processFiles()
+        # if not os.path.isfile(self.qtAssetCacheList):
+        #     self.generateAssetsFileList()
 
 

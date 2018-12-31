@@ -97,16 +97,12 @@ def downloadFile(url, hash=None, hasher=hashlib.sha512(), retries=3):
         else:
             tempFileName, headers = urllib.request.urlretrieve(url)
 
-        # for some reason the hash we get back from the downloaded file is sometimes wrong if we check it right away
-        # but if we examine the file later, it is correct.  
-        time.sleep(3)
         downloadHash = hashFile(tempFileName, hasher)
         # Verify the hash
         if hash is not None and hash != downloadHash:
             print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
             os.remove(tempFileName)
             continue
-
         return tempFileName
 
     raise RuntimeError("Downloaded file hash {} does not match expected hash {} for\n{}".format(downloadHash, hash, url))
