@@ -8931,6 +8931,10 @@ void Application::copyToClipboard(const QString& text) {
     QApplication::clipboard()->setText(text);
 }
 
+QString Application::getGraphicsCardType() {
+    return GPUIdent::getInstance()->getName();
+}
+
 #if defined(Q_OS_ANDROID)
 void Application::beforeEnterBackground() {
     auto nodeList = DependencyManager::get<NodeList>();

@@ -6,8 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "PlatformInfoScriptingInterface.h"
+#include "Application.h"
 
-# include <thread>
+#include <thread>
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
@@ -69,4 +70,8 @@ int PlatformInfoScriptingInterface::getTotalSystemMemoryMB() {
 #else
     return -1;
 #endif
+}
+
+QString PlatformInfoScriptingInterface::getGraphicsCardType() {
+    return qApp->getGraphicsCardType();
 }

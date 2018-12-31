@@ -459,6 +459,8 @@ public slots:
 
     void changeViewAsNeeded(float boomLength);
 
+    QString Application::getGraphicsCardType();
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -787,6 +789,5 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
-
 };
 #endif // hifi_Application_h

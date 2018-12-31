@@ -46,6 +46,13 @@ public slots:
     * @returns {int} size of memory in megabytes
     */
     int getTotalSystemMemoryMB();
+
+    /**jsdoc
+    * Returns the graphics card type
+    * @function Test.getGraphicsCardType
+    * @returns {string} graphics card type
+    */
+    QString getGraphicsCardType();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h
