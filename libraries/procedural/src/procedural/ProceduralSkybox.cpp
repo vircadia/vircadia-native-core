@@ -35,7 +35,6 @@ bool ProceduralSkybox::empty() {
 void ProceduralSkybox::clear() {
     // Parse and prepare a procedural with no shaders to release textures
     parse(QString());
-    _procedural.isReady();
 
     Skybox::clear();
 }
