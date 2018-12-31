@@ -132,10 +132,10 @@ void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
     auto currentMove = event->angleDelta() / 120.0f;
 
     // ####### TODO: Use AxisValue timestamps?
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()].value = (currentMove.x() > 0 ? currentMove.x() : 0, 0);
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()].value = (currentMove.x() < 0 ? -currentMove.x() : 0, 0);
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()].value = (currentMove.y() > 0 ? currentMove.y() : 0);
-    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()].value = (currentMove.y() < 0 ? -currentMove.y() : 0);
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()].value = currentMove.x() > 0 ? currentMove.x() : 0;
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()].value = currentMove.x() < 0 ? -currentMove.x() : 0;
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()].value = currentMove.y() > 0 ? currentMove.y() : 0;
+    _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_NEG).getChannel()].value = currentMove.y() < 0 ? -currentMove.y() : 0;
 }
 
 glm::vec2 evalAverageTouchPoints(const QList<QTouchEvent::TouchPoint>& points) {
