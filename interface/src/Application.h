@@ -459,7 +459,7 @@ public slots:
 
     void changeViewAsNeeded(float boomLength);
 
-    QString Application::getGraphicsCardType();
+    QString getGraphicsCardType();
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
