@@ -95,5 +95,27 @@ int PlatformInfoScriptingInterface::getTotalSystemMemoryMB() {
 }
 
 QString PlatformInfoScriptingInterface::getGraphicsCardType() {
+#ifdef Q_OS_WIN
     return qApp->getGraphicsCardType();
+#elif defined Q_OS_MAC
+    FILE* stream = popen("system_profiler SPDisplaysDataType | grep Chipset", "r");
+    
+    std::ostringstream hostStream;
+    while (!feof(stream) && !ferror(stream)) {
+        char buf[128];
+        int bytesRead = fread(buf, 1, 128, stream);
+        hostStream.write(buf, bytesRead);
+    }
+    
+    QString result = QString::fromStdString(hostStream.str());
+    QStringList parts = result.split('\n');
+    for (int i = 0; i < parts.size(); ++i) {
+        if (parts[i].toLower().contains("radeon") || parts[i].toLower().contains("nvidia")) {
+            return parts[i];
+        }
+    }
+
+    return "UNKNOWN";
+#endif
+    
 }
