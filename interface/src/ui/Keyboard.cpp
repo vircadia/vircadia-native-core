@@ -781,7 +781,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             { "isSolid", true },
             { "visible", false },
             { "grabbable", true },
-            { "ignoreRayIntersection", false },
+            { "ignorePickIntersection", false },
             { "dimensions", anchorObject["dimensions"].toVariant() },
             { "position", anchorObject["position"].toVariant() },
             { "orientation", anchorObject["rotation"].toVariant() }

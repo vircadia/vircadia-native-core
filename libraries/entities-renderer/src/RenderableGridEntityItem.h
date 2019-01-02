@@ -6,23 +6,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_RenderableImageEntityItem_h
-#define hifi_RenderableImageEntityItem_h
+#ifndef hifi_RenderableGridEntityItem_h
+#define hifi_RenderableGridEntityItem_h
 
 #include "RenderableEntityItem.h"
 
-#include <ImageEntityItem.h>
+#include <GridEntityItem.h>
 
-namespace render { namespace entities {
+namespace render { namespace entities { 
 
-class ImageEntityRenderer : public TypedEntityRenderer<ImageEntityItem> {
-    using Parent = TypedEntityRenderer<ImageEntityItem>;
-    using Pointer = std::shared_ptr<ImageEntityRenderer>;
+class GridEntityRenderer : public TypedEntityRenderer<GridEntityItem> {
+    using Parent = TypedEntityRenderer<GridEntityItem>;
+    using Pointer = std::shared_ptr<GridEntityRenderer>;
 public:
-    ImageEntityRenderer(const EntityItemPointer& entity);
-    ~ImageEntityRenderer();
+    GridEntityRenderer(const EntityItemPointer& entity);
+    ~GridEntityRenderer();
 
 protected:
+    Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;
@@ -33,22 +34,18 @@ private:
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
-    QString _imageURL;
-    NetworkTexturePointer _texture;
-    bool _textureIsLoaded { false };
-
-    bool _emissive;
-    bool _keepAspectRatio;
-    BillboardMode _billboardMode;
-    QRect _subImage;
-
     glm::u8vec3 _color;
     float _alpha;
+
+    bool _followCamera;
+    uint32_t _majorGridEvery;
+    float _minorGridEvery;
 
     glm::vec3 _dimensions;
 
     int _geometryId { 0 };
+
 };
 
-} }
-#endif // hifi_RenderableImageEntityItem_h
+} } 
+#endif // hifi_RenderableGridEntityItem_h

@@ -276,6 +276,7 @@ void AssignmentClientMonitor::checkSpares() {
 
     // Spawn or kill children, as needed.  If --min or --max weren't specified, allow the child count
     // to drift up or down as far as needed.
+
     if (spareCount < 1 || totalCount < _minAssignmentClientForks) {
         if (!_maxAssignmentClientForks || totalCount < _maxAssignmentClientForks) {
             spawnChildClient();
@@ -307,7 +308,7 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
     AssignmentClientChildData* childData = nullptr;
 
     if (!matchingNode) {
-        // The parent only expects to be talking with prorams running on this same machine.
+        // The parent only expects to be talking with programs running on this same machine.
         if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                 senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
 
@@ -316,9 +317,9 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
                 matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode(senderID, NodeType::Unassigned,
                                                                                           senderSockAddr, senderSockAddr);
 
-                auto childData = std::unique_ptr<AssignmentClientChildData>
+                auto newChildData = std::unique_ptr<AssignmentClientChildData>
                     { new AssignmentClientChildData(Assignment::Type::AllTypes) };
-                matchingNode->setLinkedData(std::move(childData));
+                matchingNode->setLinkedData(std::move(newChildData));
             } else {
                 // tell unknown assignment-client child to exit.
                 qDebug() << "Asking unknown child at" << senderSockAddr << "to exit.";
@@ -329,9 +330,8 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
                 return;
             }
         }
-    } else {
-        childData = dynamic_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
     }
+    childData = dynamic_cast<AssignmentClientChildData*>(matchingNode->getLinkedData());
 
     if (childData) {
         // update our records about how to reach this child
