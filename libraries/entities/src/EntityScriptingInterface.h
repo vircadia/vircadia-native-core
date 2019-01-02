@@ -427,7 +427,7 @@ public slots:
      * @function Entities.findEntitiesInBox
      * @param {Vec3} corner - The corner of the search AA box with minimum co-ordinate values.
      * @param {Vec3} dimensions - The dimensions of the search AA box.
-     * @returns {Uuid[]} An array of entity IDs whose AA boxes intersect the search AA box. The array is empty if no entities 
+     * @returns {Uuid[]} An array of entity IDs whose AA boxes intersect the search AA box. The array is empty if no entities
      *     could be found.
      */
     /// this function will not find any models in script engine contexts which don't have access to models
@@ -438,7 +438,7 @@ public slots:
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
      *     <code>projection</code>, and <code>centerRadius</code> properties must be specified.
-     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum. The array is empty if no entities 
+     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum. The array is empty if no entities
      *     could be found.
      * @example <caption>Report the number of entities in view.</caption>
      * var entityIDs = Entities.findEntitiesInFrustum(Camera.frustum);
@@ -453,7 +453,7 @@ public slots:
      * @param {Entities.EntityType} entityType - The type of entity to search for.
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if 
+     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if
      *     no entities could be found.
      * @example <caption>Report the number of Model entities within 10m of your avatar.</caption>
      * var entityIDs = Entities.findEntitiesByType("Model", MyAvatar.position, 10);

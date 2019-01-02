@@ -1089,9 +1089,6 @@ QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float
         _entityTree->withReadLock([&] {
             result = _entityTree->evalClosestEntity(center, radius, PickFilter(searchFilter));
         });
-        if (closestEntity) {
-            result = closestEntity->getEntityItemID();
-        }
     }
     return result;
 }
@@ -1114,10 +1111,6 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
         _entityTree->withReadLock([&] {
             _entityTree->evalEntitiesInSphere(center, radius, PickFilter(searchFilter), result);
         });
-
-        foreach (EntityItemPointer entity, entities) {
-            result << entity->getEntityItemID();
-        }
     }
     return result;
 }
@@ -1132,10 +1125,6 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
             AABox box(corner, dimensions);
             _entityTree->evalEntitiesInBox(box, PickFilter(searchFilter), result);
         });
-
-        foreach (EntityItemPointer entity, entities) {
-            result << entity->getEntityItemID();
-        }
     }
     return result;
 }
@@ -1174,10 +1163,6 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
             _entityTree->withReadLock([&] {
                 _entityTree->evalEntitiesInFrustum(viewFrustum, PickFilter(searchFilter), result);
             });
-
-            foreach(EntityItemPointer entity, entities) {
-                result << entity->getEntityItemID();
-            }
         }
     }
 
