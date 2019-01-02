@@ -19,7 +19,8 @@
 
 #include "AvatarMixerSlave.h"
 
-AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : NodeData(nodeID, nodeLocalID) {
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : 
+    NodeData(nodeID, nodeLocalID) {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
     _avatar->setID(nodeID);
 }
@@ -208,7 +209,6 @@ void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& m
             while (instancedSentIt != versions.instancedCEnd()) {
                 auto traitType = instancedSentIt->traitType;
                 // get or create the sent trait versions for this trait type
-                auto& sentIDValuePairs = versions.getInstanceIDValuePairs(traitType);
 
                 // enumerate each sent instance
                 for (auto& sentInstance : instancedSentIt->instances) {
@@ -258,8 +258,8 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
             // make sure we're not unecessarily overriding the default avatar with the default avatar
             if (_avatar->getWireSafeSkeletonModelURL() != slaveSharedData.skeletonReplacementURL) {
                 // we need to change this avatar's skeleton URL, and send them a traits packet informing them of the change
-                qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL() << "to replacement"
-                         << slaveSharedData.skeletonReplacementURL << "for" << sendingNode.getUUID();
+                qDebug() << "Overwriting avatar URL" << _avatar->getWireSafeSkeletonModelURL()
+                    << "to replacement" << slaveSharedData.skeletonReplacementURL << "for" << sendingNode.getUUID();
                 _avatar->setSkeletonModelURL(slaveSharedData.skeletonReplacementURL);
 
                 auto packet = NLPacket::create(PacketType::SetAvatarTraits, -1, true);
@@ -356,7 +356,9 @@ void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
 
 bool AvatarMixerClientData::otherAvatarInView(const AABox& otherAvatarBox) {
     return std::any_of(std::begin(_currentViewFrustums), std::end(_currentViewFrustums),
-                       [&](const ConicalViewFrustum& viewFrustum) { return viewFrustum.intersects(otherAvatarBox); });
+                       [&](const ConicalViewFrustum& viewFrustum) {
+        return viewFrustum.intersects(otherAvatarBox);
+    });
 }
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
@@ -367,15 +369,14 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["total_num_out_of_order_sends"] = _numOutOfOrderSends;
 
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
-    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float)BYTES_PER_KILOBIT;
+    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
     jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
     jsonObject["recent_other_av_out_of_view"] = _recentOtherAvatarsOutOfView;
 }
 
-AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherAvatarTraitsSendPoint(
-    Node::LocalID otherAvatar) const {
+AvatarMixerClientData::TraitsCheckTimestamp AvatarMixerClientData::getLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar) const {
     auto it = _lastSentTraitsTimestamps.find(otherAvatar);
 
     if (it != _lastSentTraitsTimestamps.end()) {
