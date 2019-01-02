@@ -18,6 +18,7 @@
 
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/OculusPlatformPlugin.h>
 #include <shared/GlobalAppProperties.h>
 #include <ui/TabletScriptingInterface.h>
 #include <UserActivityLogger.h>
@@ -104,8 +105,16 @@ bool LoginDialog::isSteamRunning() const {
     return steamClient && steamClient->isRunning();
 }
 
-bool LoginDialog::isOculusStoreRunning() const {
-    return qApp->property(hifi::properties::OCULUS_STORE).toBool();
+bool LoginDialog::isOculusRunning() const {
+    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
+    return oculusPlatform && oculusPlatform->isRunning();
+}
+
+QString LoginDialog::getLoggedInUserID() const {
+    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
+    auto userID = oculusPlatform->getLoggedInUserID();
+    qDebug() << "userID: " << userID;
+    return userID;
 }
 
 void LoginDialog::dismissLoginDialog() {

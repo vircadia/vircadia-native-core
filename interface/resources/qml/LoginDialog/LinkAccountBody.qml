@@ -394,7 +394,7 @@ Item {
                 buttonGlyphSize: 24
                 buttonGlyphRightMargin: 10
                 onClicked: {
-                    // if (loginDialog.isOculusStoreRunning()) {
+                    // if (loginDialog.isOculusRunning()) {
                     //     linkAccountBody.withOculus = true;
                     //     loginDialog.loginThroughSteam();
                     // } else
@@ -411,7 +411,7 @@ Item {
                         continueButton.visible = false;
                         return;
                     }
-                    if (loginDialog.isOculusStoreRunning()) {
+                    if (loginDialog.isOculusRunning()) {
                         continueButton.text = qsTr("CONTINUE WITH OCULUS");
                         continueButton.buttonGlyph = hifi.glyphs.oculus;
                     } else if (loginDialog.isSteamRunning()) {
@@ -539,6 +539,9 @@ Item {
         Qt.callLater(function() {
             emailField.forceActiveFocus();
         });
+        if (loginDialog.isOculusRunning()) {
+            print(loginDialog.getLoggedInUserID());
+        }
     }
 
     Keys.onPressed: {
