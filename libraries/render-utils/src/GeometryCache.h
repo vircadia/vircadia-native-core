@@ -270,11 +270,7 @@ public:
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
         int majorRows, int majorCols, float majorEdge,
         int minorRows, int minorCols, float minorEdge,
-        const glm::vec4& color, bool isLayered, int id);
-    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
-        int rows, int cols, float edge, const glm::vec4& color, bool isLayered, int id) {
-        renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, isLayered, id);
-    }
+        const glm::vec4& color, int id);
 
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id);
 
@@ -414,9 +410,8 @@ private:
     };
     using GridBuffer = gpu::BufferView;
     void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered);
-    gpu::PipelinePointer _gridPipeline;
-    gpu::PipelinePointer _gridPipelineLayered;
-    int _gridSlot;
+    gpu::PipelinePointer _gridPipelineOpaque;
+    gpu::PipelinePointer _gridPipelineTransparent;
 
     class BatchItemDetails {
     public:
