@@ -122,7 +122,7 @@ public:
     bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getThisNodeCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
-    
+
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
 
@@ -204,9 +204,9 @@ public:
     //   This allows multiple threads (i.e. a thread pool) to share a lock
     //   without deadlocking when a dying node attempts to acquire a write lock
     template<typename NestedNodeLambda>
-    void nestedEach(NestedNodeLambda functor, 
-                    int* lockWaitOut = nullptr, 
-                    int* nodeTransformOut = nullptr, 
+    void nestedEach(NestedNodeLambda functor,
+                    int* lockWaitOut = nullptr,
+                    int* nodeTransformOut = nullptr,
                     int* functorOut = nullptr) {
         auto start = usecTimestampNow();
         {
@@ -309,6 +309,9 @@ public:
     bool isPacketVerified(const udt::Packet& packet) { return isPacketVerifiedWithSource(packet); }
     void setAuthenticatePackets(bool useAuthentication) { _useAuthentication = useAuthentication; }
     bool getAuthenticatePackets() const { return _useAuthentication; }
+
+    void setFlagTimeForConnectionStep(bool flag) { _flagTimeForConnectionStep = flag; }
+    bool isFlagTimeForConnectionStep() { return _flagTimeForConnectionStep; }
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
@@ -440,6 +443,7 @@ private:
     using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
+    bool _flagTimeForConnectionStep { false }; // only keep track in interface
 };
 
 #endif // hifi_LimitedNodeList_h
