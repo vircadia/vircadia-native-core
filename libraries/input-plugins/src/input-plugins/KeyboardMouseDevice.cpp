@@ -254,16 +254,23 @@ controller::Input KeyboardMouseDevice::InputDevice::makeInput(KeyboardMouseDevic
  *       </td></tr>
  *     <tr><td><code>PgDown</code></td><td>number</td><td>number</td><td>The page down key on the keyboard or keypad is pressed.
  *       </td></tr>
- *     <tr><td><code>LeftMouseButton</code></td><td>number</td><td>number</td><td>The left mouse button pressed.</td></tr>
- *     <tr><td><code>MiddleMouseButton</code></td><td>number</td><td>number</td><td>The middle mouse button pressed.</td></tr>
- *     <tr><td><code>RightMouseButton</code></td><td>number</td><td>number</td><td>The right mouse button pressed.</td></tr>
- *     <tr><td><code>LeftMouseClicked</code></td><td>number</td><td>number</td><td>The left mouse button clicked.</td></tr>
- *     <tr><td><code>MiddleMouseClicked</code></td><td>number</td><td>number</td><td>The middle mouse button clicked.</td></tr>
- *     <tr><td><code>RightMouseClicked</code></td><td>number</td><td>number</td><td>The right mouse button clicked.</td></tr>
- *     <tr><td><code>MouseMoveRight</code></td><td>number</td><td>number</td><td>The mouse moved right.</td></tr>
- *     <tr><td><code>MouseMoveLeft</code></td><td>number</td><td>number</td><td>The mouse moved left.</td></tr>
- *     <tr><td><code>MouseMoveUp</code></td><td>number</td><td>number</td><td>The mouse moved up.</td></tr>
- *     <tr><td><code>MouseMoveDown</code></td><td>number</td><td>number</td><td>The mouse moved down.</td></tr>
+ *     <tr><td><code>LeftMouseButton</code></td><td>number</td><td>number</td><td>The left mouse button is pressed.</td></tr>
+ *     <tr><td><code>MiddleMouseButton</code></td><td>number</td><td>number</td><td>The middle mouse button is pressed.
+ *       </td></tr>
+ *     <tr><td><code>RightMouseButton</code></td><td>number</td><td>number</td><td>The right mouse button is pressed.</td></tr>
+ *     <tr><td><code>LeftMouseClicked</code></td><td>number</td><td>number</td><td>The left mouse button was clicked.</td></tr>
+ *     <tr><td><code>MiddleMouseClicked</code></td><td>number</td><td>number</td><td>The middle mouse button was clicked.
+ *       </td></tr>
+ *     <tr><td><code>RightMouseClicked</code></td><td>number</td><td>number</td><td>The right mouse button was clicked.
+ *       </td></tr>
+ *     <tr><td><code>MouseMoveRight</code></td><td>number</td><td>number</td><td>The mouse moved right. The data value is how 
+ *       far it moved.</td></tr>
+ *     <tr><td><code>MouseMoveLeft</code></td><td>number</td><td>number</td><td>The mouse moved left. The data value is how far 
+ *       it moved.</td></tr>
+ *     <tr><td><code>MouseMoveUp</code></td><td>number</td><td>number</td><td>The mouse moved up. The data value is how far it 
+ *       moved.</td></tr>
+ *     <tr><td><code>MouseMoveDown</code></td><td>number</td><td>number</td><td>The mouse moved down. The data value is how far 
+ *       it moved.</td></tr>
  *     <tr><td><code>MouseX</code></td><td>number</td><td>number</td><td>The mouse x-coordinate changed. The data value is its 
  *       new x-coordinate value.</td></tr>
  *     <tr><td><code>MouseY</code></td><td>number</td><td>number</td><td>The mouse y-coordinate changed. The data value is its 

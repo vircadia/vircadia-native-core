@@ -104,7 +104,7 @@ class ScriptEngine;
  * <ul>
  *   <li>{@link Controller.getValue|getValue}</li>
  *   <li>{@link Controller.getAxisValue|getAxisValue}</li>
- *   <li>{@link Controller.getPoseValue|getgetPoseValue}</li>
+ *   <li>{@link Controller.getPoseValue|getPoseValue}</li>
  *   <li>{@link Controller.getActionValue|getActionValue}</li>
  * </ul>
  *
