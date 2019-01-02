@@ -318,6 +318,12 @@ enum EntityPropertyList {
     PROP_IMAGE_URL = PROP_MODEL_URL,
     PROP_KEEP_ASPECT_RATIO = PROP_ANIMATION_PLAYING,
 
+    // Aliases/Piggyback properties for Grid. These properties intentionally reuse the enum values for
+    // other properties which will never overlap with each other.
+    PROP_GRID_FOLLOW_CAMERA = PROP_ANIMATION_PLAYING,
+    PROP_MAJOR_GRID_EVERY = PROP_ANIMATION_URL,
+    PROP_MINOR_GRID_EVERY = PROP_ANIMATION_FPS,
+
     // WARNING!!! DO NOT ADD PROPS_xxx here unless you really really meant to.... Add them UP above
 };
 

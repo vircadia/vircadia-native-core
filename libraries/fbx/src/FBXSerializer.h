@@ -111,9 +111,6 @@ public:
 
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(HFMMesh& extractedMesh, const QString& url);
-
-    static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
 
     HFMTexture getTexture(const QString& textureID);
 

@@ -178,9 +178,11 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
     }
 
     if (properties["isDashedLine"].isValid()) {
+        qDebug() << "isDashed is deprecated and will be removed in RC79!";
         setIsDashedLine(properties["isDashedLine"].toBool());
     }
     if (properties["dashed"].isValid()) {
+        qDebug() << "dashed is deprecated and will be removed in RC79!";
         setIsDashedLine(properties["dashed"].toBool());
     }
     if (properties["ignorePickIntersection"].isValid()) {
@@ -223,7 +225,7 @@ void Base3DOverlay::setProperties(const QVariantMap& originalProperties) {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
@@ -259,6 +261,7 @@ QVariant Base3DOverlay::getProperty(const QString& property) {
         return !_isSolid;
     }
     if (property == "isDashedLine" || property == "dashed") {
+        qDebug() << "isDashedLine/dashed are deprecated and will be removed in RC79!";
         return _isDashedLine;
     }
     if (property == "ignorePickIntersection" || property == "ignoreRayIntersection") {

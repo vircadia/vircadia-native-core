@@ -13,44 +13,42 @@
 
 #include <ImageEntityItem.h>
 
-namespace render {
-    namespace entities {
+namespace render { namespace entities {
 
-        class ImageEntityRenderer : public TypedEntityRenderer<ImageEntityItem> {
-            using Parent = TypedEntityRenderer<ImageEntityItem>;
-            using Pointer = std::shared_ptr<ImageEntityRenderer>;
-        public:
-            ImageEntityRenderer(const EntityItemPointer& entity);
-            ~ImageEntityRenderer();
+class ImageEntityRenderer : public TypedEntityRenderer<ImageEntityItem> {
+    using Parent = TypedEntityRenderer<ImageEntityItem>;
+    using Pointer = std::shared_ptr<ImageEntityRenderer>;
+public:
+    ImageEntityRenderer(const EntityItemPointer& entity);
+    ~ImageEntityRenderer();
 
-        protected:
-            ShapeKey getShapeKey() override;
+protected:
+    ShapeKey getShapeKey() override;
 
-            bool isTransparent() const override;
+    bool isTransparent() const override;
 
-        private:
-            virtual bool needsRenderUpdate() const override;
-            virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-            virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
-            virtual void doRender(RenderArgs* args) override;
+private:
+    virtual bool needsRenderUpdate() const override;
+    virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
+    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRender(RenderArgs* args) override;
 
-            QString _imageURL;
-            NetworkTexturePointer _texture;
-            bool _textureIsLoaded { false };
+    QString _imageURL;
+    NetworkTexturePointer _texture;
+    bool _textureIsLoaded { false };
 
-            bool _emissive;
-            bool _keepAspectRatio;
-            BillboardMode _billboardMode;
-            QRect _subImage;
+    bool _emissive;
+    bool _keepAspectRatio;
+    BillboardMode _billboardMode;
+    QRect _subImage;
 
-            glm::u8vec3 _color;
-            float _alpha;
+    glm::u8vec3 _color;
+    float _alpha;
 
-            glm::vec3 _dimensions;
+    glm::vec3 _dimensions;
 
-            int _geometryId { 0 };
-        };
+    int _geometryId { 0 };
+};
 
-    }
-}
+} }
 #endif // hifi_RenderableImageEntityItem_h
