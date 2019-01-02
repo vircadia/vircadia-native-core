@@ -43,7 +43,6 @@ namespace controller {
         virtual Pose peekPose() const { return Pose(); };
         virtual Pose pose() { return peekPose(); }
         virtual void apply(const Pose& value, const Pointer& source) {}
-        virtual bool isAxis() const { return _input.isAxis(); }
         virtual bool isPose() const { return _input.isPose(); }
         virtual bool writeable() const { return true; }
         virtual bool readable() const { return true; }

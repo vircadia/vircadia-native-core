@@ -46,7 +46,7 @@ AxisValue AnyEndpoint::value() {
     for (auto& child : _children) {
         auto childValue = child->value();
         if (std::abs(childValue.value) > std::abs(result.value)) {
-            result.value = childValue.value;
+            result = childValue;
         }
     }
     return result;

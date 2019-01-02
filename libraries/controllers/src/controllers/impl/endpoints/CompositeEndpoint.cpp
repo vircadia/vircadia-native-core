@@ -25,13 +25,17 @@ bool CompositeEndpoint::readable() const {
 }
 
 AxisValue CompositeEndpoint::peek() const {
-    auto result = AxisValue(first->peek().value * -1.0f + second->peek().value, 0);
+    auto negative = first->peek();
+    auto positive = second->peek();
+    auto result = AxisValue(positive.value - negative.value, std::max(positive.timestamp, negative.timestamp));
     return result;
 }
 
 // Fetching via value() must trigger any side effects of value() on the children
 AxisValue CompositeEndpoint::value() {
-    auto result = AxisValue(first->value().value * -1.0f + second->value().value, 0);
+    auto negative = first->value();
+    auto positive = second->value();
+    auto result = AxisValue(positive.value - negative.value, std::max(positive.timestamp, negative.timestamp));
     return result;
 }
 
