@@ -285,7 +285,6 @@ void MarketplaceItemUploader::doWaitForInventory() {
                         auto version = assetObject["version"];
                         auto valid = assetObject["valid"];
                         if (version.isDouble() && valid.isBool()) {
-                            int versionInt = version.toDouble();
                             if ((int)version.toDouble() >= _itemVersion && valid.toBool()) {
                                 return true;
                             }
