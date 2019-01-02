@@ -64,6 +64,8 @@ QString PlatformInfoScriptingInterface::getCPUBrand() {
     }
     
     return QString::fromStdString(hostStream.str());
+#else
+    return QString("NO IMPLEMENTED");
 #endif
 }
 
@@ -91,6 +93,8 @@ int PlatformInfoScriptingInterface::getTotalSystemMemoryMB() {
     QString result = QString::fromStdString(hostStream.str());
     QStringList parts = result.split(' ');
     return (int)(parts[1].toDouble() / 1024 / 1024);
+#else
+    return -1;
 #endif
 }
 
@@ -115,7 +119,9 @@ QString PlatformInfoScriptingInterface::getGraphicsCardType() {
         }
     }
 
+    // unkown graphics card
     return "UNKNOWN";
+#else
+    return QString("NO IMPLEMENTED");
 #endif
-    
 }
