@@ -22,10 +22,8 @@ const char* KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 bool KeyboardMouseDevice::_enableTouch = true;
 
 void KeyboardMouseDevice::updateDeltaAxisValue(int channel, float value) {
-    // Use timestamps for delta values so that consecutive identical values can be output.
-    if (value != 0.0f || _inputDevice->_axisStateMap[channel].value != 0) {
-        _inputDevice->_axisStateMap[channel] = { value, usecTimestampNow() };
-    }
+    // Associate timestamps with non-zero delta values so that consecutive identical values can be output.
+    _inputDevice->_axisStateMap[channel] = { value, value != 0.0f ? usecTimestampNow() : 0 };
 }
 
 void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
