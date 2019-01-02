@@ -9,6 +9,7 @@
 
 #include "Application.h"
 #include "EntityScriptingInterface.h"
+#include "PickScriptingInterface.h"
 #include "ui/overlays/Overlays.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
@@ -57,10 +58,15 @@ PickParabola ParabolaPick::getMathematicalPick() const {
 
 PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) {
     if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
-        bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
+        PickFilter searchFilter = getFilter();
+        if (DependencyManager::get<PickManager>()->getForceCoarsePicking()) {
+            searchFilter.setFlag(PickFilter::COARSE, true);
+            searchFilter.setFlag(PickFilter::PRECISE, false);
+        }
+
         ParabolaToEntityIntersectionResult entityRes =
-            DependencyManager::get<EntityScriptingInterface>()->findParabolaIntersectionVector(pick, precisionPicking,
-                getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+            DependencyManager::get<EntityScriptingInterface>()->evalParabolaIntersectionVector(pick, searchFilter,
+                getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
         if (entityRes.intersects) {
             return std::make_shared<ParabolaPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
         }
@@ -70,7 +76,7 @@ PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) 
 
 PickResultPointer ParabolaPick::getOverlayIntersection(const PickParabola& pick) {
     if (glm::length2(pick.acceleration) > EPSILON && glm::length2(pick.velocity) > EPSILON) {
-        bool precisionPicking = !(getFilter().doesPickCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
+        bool precisionPicking = !(getFilter().isCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
         ParabolaToOverlayIntersectionResult overlayRes =
             qApp->getOverlays().findParabolaIntersectionVector(pick, precisionPicking,
                 getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());

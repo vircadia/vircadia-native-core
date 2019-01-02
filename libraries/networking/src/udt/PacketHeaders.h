@@ -248,7 +248,8 @@ enum class EntityVersion : PacketVersion {
     MaterialRepeat,
     EntityHostTypes,
     CleanupProperties,
-    ImageEntities
+    ImageEntities,
+    GridEntities
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {

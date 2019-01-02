@@ -439,6 +439,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_KEEP_ASPECT_RATIO, keepAspectRatio);
     CHECK_PROPERTY_CHANGE(PROP_SUB_IMAGE, subImage);
 
+    CHECK_PROPERTY_CHANGE(PROP_GRID_FOLLOW_CAMERA, followCamera);
+    CHECK_PROPERTY_CHANGE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
+    CHECK_PROPERTY_CHANGE(PROP_MINOR_GRID_EVERY, minorGridEvery);
+
     // Certifiable Properties
     CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
     CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
@@ -714,6 +718,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
  * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
+ * @see {@link Entities.EntityProperties-Grid|EntityProperties-Grid}
  * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
  * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
@@ -1272,7 +1277,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     <code>"isFacingAvatar"</code> to <code>true</code> to set <code>billboardMode</code> to "full".  Setting either to <code>false</code> sets the mode to "none"
  * @property {Rect} subImage={ x: 0, y: 0, width: -1, height: -1 } - The portion of the image to display. If width or height are -1, defaults to
  *     the full image in that dimension.
- * @property {Color} color=255,255,255 - The color of image.
+ * @property {Color} color=255,255,255 - The color of the image.
  * @property {number} alpha=1 - The alpha of the image.
  * @example <caption>Create a image entity.</caption>
  * var image = Entities.addEntity({
@@ -1281,6 +1286,30 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
  *     imageURL: "https://images.pexels.com/photos/1020315/pexels-photo-1020315.jpeg",
  *     billboardMode: "yaw",
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Grid"</code> {@link Entities.EntityType|EntityType} displays a grid on a 2D plane.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Grid
+ * @property {Color} color=255,255,255 - The color of the grid.
+ * @property {number} alpha=1 - The alpha of the grid.
+ * @property {boolean} followCamera=true - If <code>true</code>, the grid is always visible even as the camera moves to another
+ *     position.
+ * @property {number} majorGridEvery=5 - Integer number of <code>minorGridEvery</code> intervals at which to draw a thick grid
+ *     line. Minimum value = <code>1</code>.
+ * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value =
+ *     <code>0.001</code>.
+ * @example <caption>Create a grid entity.</caption>
+ * var grid = Entities.addEntity({
+ *     type: "Grid",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 100.0, y: 100.0, z: 0.01 },
+ *     followCamera: false,
+ *     majorGridEvery: 4,
+ *     minorGridEvery: 0.5,
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
@@ -1577,6 +1606,16 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         }
     }
 
+    // Grid only
+    if (_type == EntityTypes::Grid) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRID_FOLLOW_CAMERA, followCamera);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MINOR_GRID_EVERY, minorGridEvery);
+    }
+
     /**jsdoc
      * The axis-aligned bounding box of an entity.
      * @typedef {object} Entities.BoundingBox
@@ -1815,6 +1854,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(keepAspectRatio, bool, setKeepAspectRatio);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(subImage, QRect, setSubImage);
 
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(followCamera, bool, setFollowCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(majorGridEvery, uint32_t, setMajorGridEvery);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(minorGridEvery, float, setMinorGridEvery);
+
     if (!honorReadOnly) {
         // this is used by the json reader to set things that we don't want javascript to able to affect.
         COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
@@ -1998,6 +2041,10 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(emissive);
     COPY_PROPERTY_IF_CHANGED(keepAspectRatio);
     COPY_PROPERTY_IF_CHANGED(subImage);
+
+    COPY_PROPERTY_IF_CHANGED(followCamera);
+    COPY_PROPERTY_IF_CHANGED(majorGridEvery);
+    COPY_PROPERTY_IF_CHANGED(minorGridEvery);
 
     // Certifiable Properties
     COPY_PROPERTY_IF_CHANGED(itemName);
@@ -2359,6 +2406,10 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_KEEP_ASPECT_RATIO, KeepAspectRatio, keepAspectRatio, bool);
         ADD_PROPERTY_TO_MAP(PROP_SUB_IMAGE, SubImage, subImage, QRect);
 
+        ADD_PROPERTY_TO_MAP(PROP_GRID_FOLLOW_CAMERA, FollowCamera, followCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_MAJOR_GRID_EVERY, MajorGridEvery, majorGridEvery, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float);
+
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
 
@@ -2691,6 +2742,16 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
 
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+            }
+
+            // Grid
+            if (properties.getType() == EntityTypes::Grid) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+
+                APPEND_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, properties.getFollowCamera());
+                APPEND_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, properties.getMajorGridEvery());
+                APPEND_ENTITY_PROPERTY(PROP_MINOR_GRID_EVERY, properties.getMinorGridEvery());
             }
 
             APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
@@ -3101,6 +3162,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
     }
 
+    // Grid
+    if (properties.getType() == EntityTypes::Grid) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRID_FOLLOW_CAMERA, bool, setFollowCamera);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAJOR_GRID_EVERY, uint32_t, setMajorGridEvery);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MINOR_GRID_EVERY, float, setMinorGridEvery);
+    }
+
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
@@ -3433,6 +3504,10 @@ void EntityItemProperties::markAllChanged() {
     _emissiveChanged = true;
     _keepAspectRatioChanged = true;
     _subImageChanged = true;
+
+    _followCameraChanged = true;
+    _majorGridEveryChanged = true;
+    _minorGridEveryChanged = true;
 }
 
 // The minimum bounding box for the entity.
@@ -3987,6 +4062,16 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     if (billboardModeChanged()) {
         out += "billboardMode";
+    }
+
+    if (followCameraChanged()) {
+        out += "followCamera";
+    }
+    if (majorGridEveryChanged()) {
+        out += "majorGridEvery";
+    }
+    if (minorGridEveryChanged()) {
+        out += "minorGridEvery";
     }
 
     getAnimation().listChangedProperties(out);

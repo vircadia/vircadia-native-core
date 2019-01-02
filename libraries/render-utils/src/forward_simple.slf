@@ -14,9 +14,9 @@
 <@include DefaultMaterials.slh@>
 
 <@include ForwardGlobalLight.slh@>
-<@include gpu/Transform.slh@>
-
 <$declareEvalSkyboxGlobalColor()$>
+
+<@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
 // the interpolated normal
