@@ -83,11 +83,13 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
@@ -102,10 +104,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
-    }
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     ShapeKey::Builder builder;
     builder.withMaterial();
@@ -330,11 +329,13 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withDeformed();
     }
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
@@ -346,10 +347,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
         return;
     }
 
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
-    }
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;

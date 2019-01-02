@@ -315,10 +315,6 @@ public:
     // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
 
-    int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
-    size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
-    bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
-
     void setTextureTransforms(const Transform& transform, MaterialMappingMode mode, bool repeat);
 
     const std::string& getName() const { return _name; }
@@ -355,14 +351,10 @@ private:
     std::unordered_map<MaterialKey::FlagBit, bool> _propertyFallthroughs;
 
     mutable QMutex _textureMapsMutex { QMutex::Recursive };
-    mutable size_t _textureSize { 0 };
-    mutable int _textureCount { 0 };
-    mutable bool _hasCalculatedTextureInfo { false };
-    bool calculateMaterialInfo() const;
 
     std::string _model { "hifi_pbr" };
 };
-typedef std::shared_ptr< Material > MaterialPointer;
+typedef std::shared_ptr<Material> MaterialPointer;
 
 class MaterialLayer {
 public:
@@ -378,10 +370,17 @@ public:
         return left.priority < right.priority;
     }
 };
+typedef std::priority_queue<MaterialLayer, std::vector<MaterialLayer>, MaterialLayerCompare> MaterialLayerQueue;
 
-class MultiMaterial : public std::priority_queue<MaterialLayer, std::vector<MaterialLayer>, MaterialLayerCompare> {
+class MultiMaterial : public MaterialLayerQueue {
 public:
     MultiMaterial();
+
+    void push(const MaterialLayer& value) {
+        MaterialLayerQueue::push(value);
+        _hasCalculatedTextureInfo = false;
+        _needsUpdate = true;
+    }
 
     bool remove(const MaterialPointer& value) {
         auto it = c.begin();
@@ -394,6 +393,8 @@ public:
         if (it != c.end()) {
             c.erase(it);
             std::make_heap(c.begin(), c.end(), comp);
+            _hasCalculatedTextureInfo = false;
+            _needsUpdate = true;
             return true;
         } else {
             return false;
@@ -437,11 +438,25 @@ public:
     };
 
     gpu::BufferView& getSchemaBuffer() { return _schemaBuffer; }
+    graphics::MaterialKey getMaterialKey() const { return graphics::MaterialKey(_schemaBuffer.get<graphics::MultiMaterial::Schema>()._key); }
     const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
+
+    bool needsUpdate() const { return _needsUpdate; }
+    void setNeedsUpdate(bool needsUpdate) { _needsUpdate = needsUpdate; }
+
+    int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
+    size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
+    bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
 
 private:
     gpu::BufferView _schemaBuffer;
     gpu::TextureTablePointer _textureTable { std::make_shared<gpu::TextureTable>() };
+    bool _needsUpdate { false };
+
+    mutable size_t _textureSize { 0 };
+    mutable int _textureCount { 0 };
+    mutable bool _hasCalculatedTextureInfo { false };
+    void calculateMaterialInfo() const;
 };
 
 };

@@ -160,13 +160,16 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
 std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource::parseJSONMaterial(const QJsonObject& materialJSON, const QUrl& baseUrl) {
     std::string name = "";
     std::shared_ptr<NetworkMaterial> material = std::make_shared<NetworkMaterial>();
-    std::string modelString = "hifi_pbr";
-    auto modelJSON = materialJSON.value("model");
-    if (modelJSON.isString()) {
-        modelString = modelJSON.toString().toStdString();
+
+    const std::string HIFI_PBR = "hifi_pbr";
+    std::string modelString = HIFI_PBR;
+    auto modelJSONIter = materialJSON.find("model");
+    if (modelJSONIter != materialJSON.end() && modelJSONIter.value().isString()) {
+        modelString = modelJSONIter.value().toString().toStdString();
         material->setModel(modelString);
     }
-    if (modelString == "hifi_pbr") {
+
+    if (modelString == HIFI_PBR) {
         const QString FALLTHROUGH("fallthrough");
         for (auto& key : materialJSON.keys()) {
             if (key == "name") {

@@ -16,6 +16,7 @@
 class RenderPipelines {
 public:
     static void bindMaterial(graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures);
+    static void updateMultiMaterial(graphics::MultiMaterial& multiMaterial);
     static void bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures);
 };
 

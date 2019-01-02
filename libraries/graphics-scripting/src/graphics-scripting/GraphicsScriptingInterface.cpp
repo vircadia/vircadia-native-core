@@ -380,22 +380,28 @@ namespace scriptable {
         obj.setProperty("scatteringMap", material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_MAP_BIT) ? FALLTHROUGH : material.scatteringMap);
 
         // Only set one of each of these
-        if (!material.metallicMap.isEmpty()) {
-            obj.setProperty("metallicMap", material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_MAP_BIT) ? FALLTHROUGH : material.metallicMap);
-        } else {
-            obj.setProperty("specularMap", material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_MAP_BIT) ? FALLTHROUGH : material.specularMap);
+        if (material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_MAP_BIT)) {
+            obj.setProperty("metallicMap", FALLTHROUGH);
+        } else if (!material.metallicMap.isEmpty()) {
+            obj.setProperty("metallicMap", material.metallicMap);
+        } else if (!material.specularMap.isEmpty()) {
+            obj.setProperty("specularMap", material.specularMap);
         }
 
-        if (!material.roughnessMap.isEmpty()) {
-            obj.setProperty("roughnessMap", material.propertyFallthroughs.at(graphics::MaterialKey::ROUGHNESS_MAP_BIT) ? FALLTHROUGH : material.roughnessMap);
-        } else {
-            obj.setProperty("glossMap", material.propertyFallthroughs.at(graphics::MaterialKey::ROUGHNESS_MAP_BIT) ? FALLTHROUGH : material.glossMap);
+        if (material.propertyFallthroughs.at(graphics::MaterialKey::ROUGHNESS_MAP_BIT)) {
+            obj.setProperty("roughnessMap", FALLTHROUGH);
+        } else if (!material.roughnessMap.isEmpty()) {
+            obj.setProperty("roughnessMap", material.roughnessMap);
+        } else if (!material.glossMap.isEmpty()) {
+            obj.setProperty("glossMap", material.glossMap);
         }
 
-        if (!material.normalMap.isEmpty()) {
-            obj.setProperty("normalMap", material.propertyFallthroughs.at(graphics::MaterialKey::NORMAL_MAP_BIT) ? FALLTHROUGH : material.normalMap);
-        } else {
-            obj.setProperty("bumpMap", material.propertyFallthroughs.at(graphics::MaterialKey::NORMAL_MAP_BIT) ? FALLTHROUGH : material.bumpMap);
+        if (material.propertyFallthroughs.at(graphics::MaterialKey::NORMAL_MAP_BIT)) {
+            obj.setProperty("normalMap", FALLTHROUGH);
+        } else if (!material.normalMap.isEmpty()) {
+            obj.setProperty("normalMap", material.normalMap);
+        } else if (!material.bumpMap.isEmpty()) {
+            obj.setProperty("bumpMap", material.bumpMap);
         }
 
         obj.setProperty("defaultFallthrough", material.defaultFallthrough);

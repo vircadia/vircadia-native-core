@@ -119,7 +119,6 @@ void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textur
         _key.setMapChannel(channel, false);
         _textureMaps.erase(channel);
     }
-    _hasCalculatedTextureInfo = false;
 
     if (channel == MaterialKey::ALBEDO_MAP) {
         resetOpacityMap();
@@ -177,39 +176,6 @@ const TextureMapPointer Material::getTextureMap(MapChannel channel) const {
     }
 }
 
-bool Material::calculateMaterialInfo() const {
-    if (!_hasCalculatedTextureInfo) {
-        QMutexLocker locker(&_textureMapsMutex);
-
-        bool allTextures = true; // assume we got this...
-        _textureSize = 0;
-        _textureCount = 0;
-
-        for (auto const &textureMapItem : _textureMaps) {
-            auto textureMap = textureMapItem.second;
-            if (textureMap) {
-                auto textureSoure = textureMap->getTextureSource();
-                if (textureSoure) {
-                    auto texture = textureSoure->getGPUTexture();
-                    if (texture) {
-                        auto size = texture->getSize();
-                        _textureSize += size;
-                        _textureCount++;
-                    } else {
-                        allTextures = false;
-                    }
-                } else {
-                    allTextures = false;
-                }
-            } else {
-                allTextures = false;
-            }
-        }
-        _hasCalculatedTextureInfo = allTextures;
-    }
-    return _hasCalculatedTextureInfo;
-}
-
 void Material::setTextureTransforms(const Transform& transform, MaterialMappingMode mode, bool repeat) {
     for (auto &textureMapItem : _textureMaps) {
         if (textureMapItem.second) {
@@ -227,4 +193,24 @@ void Material::setTextureTransforms(const Transform& transform, MaterialMappingM
 MultiMaterial::MultiMaterial() {
     Schema schema;
     _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema, sizeof(Schema)));
+}
+
+void MultiMaterial::calculateMaterialInfo() const {
+    if (!_hasCalculatedTextureInfo) {
+        bool allTextures = true; // assume we got this...
+        _textureSize = 0;
+        _textureCount = 0;
+
+        auto& textures = _textureTable->getTextures();
+        for (auto const &texture : textures) {
+            if (texture && texture->isDefined()) {
+                auto size = texture->getSize();
+                _textureSize += size;
+                _textureCount++;
+            } else {
+                allTextures = false;
+            }
+        }
+        _hasCalculatedTextureInfo = allTextures;
+    }
 }

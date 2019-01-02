@@ -376,23 +376,25 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state, con
 void RenderPipelines::bindMaterial(graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures) {
     graphics::MultiMaterial multiMaterial;
     multiMaterial.push(graphics::MaterialLayer(material, 0));
+    updateMultiMaterial(multiMaterial);
     bindMaterials(multiMaterial, batch, enableTextures);
 }
 
-// FIXME find a better way to setup the default textures
-void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
+void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial) {
+    auto& schemaBuffer = multiMaterial.getSchemaBuffer();
+
     if (multiMaterial.size() == 0) {
+        schemaBuffer.edit<graphics::MultiMaterial::Schema>() = graphics::MultiMaterial::Schema();
         return;
     }
 
     auto textureCache = DependencyManager::get<TextureCache>();
     auto& drawMaterialTextures = multiMaterial.getTextureTable();
-    auto& schemaBuffer = multiMaterial.getSchemaBuffer();
 
     // The total list of things we need to look for
     static std::set<graphics::MaterialKey::FlagBit> allFlagBits;
     static std::once_flag once;
-    std::call_once(once, [] {
+    std::call_once(once, [textureCache] {
         for (int i = 0; i < graphics::MaterialKey::NUM_FLAGS; i++) {
             auto flagBit = graphics::MaterialKey::FlagBit(i);
             // The opacity mask/map are derived from the albedo map
@@ -472,16 +474,12 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
                     break;
                 case graphics::MaterialKey::ALBEDO_MAP_BIT:
                     if (materialKey.isAlbedoMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setAlbedoMap(true);
                         schemaKey.setOpacityMaskMap(materialKey.isOpacityMaskMap());
@@ -490,80 +488,60 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
                     break;
                 case graphics::MaterialKey::METALLIC_MAP_BIT:
                     if (materialKey.isMetallicMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setMetallicMap(true);
                     }
                     break;
                 case graphics::MaterialKey::ROUGHNESS_MAP_BIT:
                     if (materialKey.isRoughnessMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setRoughnessMap(true);
                     }
                     break;
                 case graphics::MaterialKey::NORMAL_MAP_BIT:
                     if (materialKey.isNormalMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setNormalMap(true);
                     }
                     break;
                 case graphics::MaterialKey::OCCLUSION_MAP_BIT:
                     if (materialKey.isOcclusionMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setOcclusionMap(true);
                     }
                     break;
                 case graphics::MaterialKey::SCATTERING_MAP_BIT:
                     if (materialKey.isScatteringMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setScattering(true);
                     }
@@ -571,16 +549,12 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
                 case graphics::MaterialKey::EMISSIVE_MAP_BIT:
                     // Lightmap takes precendence over emissive map for legacy reasons
                     if (materialKey.isEmissiveMap() && !materialKey.isLightmapMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setEmissiveMap(true);
                     } else if (materialKey.isLightmapMap()) {
@@ -590,16 +564,12 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
                     break;
                 case graphics::MaterialKey::LIGHTMAP_MAP_BIT:
                     if (materialKey.isLightmapMap()) {
-                        if (!enableTextures) {
-                            forceDefault = true;
+                        auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
+                        if (itr != textureMaps.end() && itr->second->isDefined()) {
+                            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
+                            wasSet = true;
                         } else {
-                            auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
-                            if (itr != textureMaps.end() && itr->second->isDefined()) {
-                                drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
-                                wasSet = true;
-                            } else {
-                                forceDefault = true;
-                            }
+                            forceDefault = true;
                         }
                         schemaKey.setLightmapMap(true);
                     }
@@ -608,9 +578,10 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
                     break;
             }
 
+            bool fallthrough = defaultFallthrough || material->getPropertyFallthrough(flagBit);
             if (wasSet) {
                 flagBitsToCheck.erase(it++);
-            } else if (forceDefault || !defaultFallthrough || !material->getPropertyFallthrough(flagBit)) {
+            } else if (forceDefault || !fallthrough) {
                 flagBitsToSetDefault.insert(flagBit);
                 flagBitsToCheck.erase(it++);
             } else {
@@ -687,8 +658,44 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
         }
     }
 
+    // FIXME:
+    // set transforms and params
+
     schema._key = (uint32_t)schemaKey._flags.to_ulong();
     schemaBuffer.edit<graphics::MultiMaterial::Schema>() = schema;
+    multiMaterial.setNeedsUpdate(false);
+}
+
+void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
+    if (multiMaterial.size() == 0) {
+        return;
+    }
+
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    static gpu::TextureTablePointer defaultMaterialTextures = std::make_shared<gpu::TextureTable>();
+    static std::once_flag once;
+    std::call_once(once, [textureCache] {
+        defaultMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, textureCache->getWhiteTexture());
+        defaultMaterialTextures->setTexture(gr::Texture::MaterialMetallic, textureCache->getBlackTexture());
+        defaultMaterialTextures->setTexture(gr::Texture::MaterialRoughness, textureCache->getWhiteTexture());
+        defaultMaterialTextures->setTexture(gr::Texture::MaterialNormal, textureCache->getBlueTexture());
+        defaultMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, textureCache->getWhiteTexture());
+        defaultMaterialTextures->setTexture(gr::Texture::MaterialScattering, textureCache->getWhiteTexture());
+        // MaterialEmissiveLightmap has to be set later
+    });
+
+    auto& schemaBuffer = multiMaterial.getSchemaBuffer();
     batch.setUniformBuffer(gr::Buffer::Material, schemaBuffer);
-    batch.setResourceTextureTable(drawMaterialTextures);
+    if (enableTextures) {
+        batch.setResourceTextureTable(multiMaterial.getTextureTable());
+    } else {
+        auto key = multiMaterial.getMaterialKey();
+        if (key.isLightmapMap()) {
+            defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getBlackTexture());
+        } else if (key.isEmissiveMap()) {
+            defaultMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, textureCache->getGrayTexture());
+        }
+        batch.setResourceTextureTable(defaultMaterialTextures);
+    }
 }
