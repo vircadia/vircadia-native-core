@@ -150,6 +150,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
             // get or create the sent trait versions for this trait type
             auto& sentIDValuePairs = lastSentVersions.getInstanceIDValuePairs(traitType);
+            auto& ackIDValuePairs = lastAckedVersions.getInstanceIDValuePairs(traitType);
 
             // enumerate each received instance
             for (auto& receivedInstance : instancedReceivedIt->instances) {
@@ -167,7 +168,16 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                                                    {
                                                        return sentInstance.id == instanceID;
                                                    });
-
+                // look for existing acked version for this instance
+                auto ackedInstanceIt = std::find_if(ackIDValuePairs.begin(), ackIDValuePairs.end(),
+                                                    [instanceID](auto& ackInstance) { return ackInstance.id == instanceID; });
+                
+                // if we have a sent version, then we must have an acked instance of the same trait with the same
+                // version to go on, otherwise we drop the received trait
+                if (sentInstanceIt != sentIDValuePairs.end() &&
+                    (ackedInstanceIt == ackIDValuePairs.end() || sentInstanceIt->value != ackedInstanceIt->value)) {
+                    continue;
+                }
                 if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
                     addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
@@ -179,6 +189,12 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                     } else {
                         sentIDValuePairs.emplace_back(instanceID, receivedVersion);
                     }
+
+                    auto& pendingTraitVersions =
+                        listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(),
+                                                                   otherNodeLocalID);
+                    pendingTraitVersions.instanceInsert(traitType, instanceID, receivedVersion);
+
                 } else if (isDeleted && sentInstanceIt != sentIDValuePairs.end() && absoluteReceivedVersion > sentInstanceIt->value) {
                     addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
@@ -187,6 +203,12 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
                     // update the last sent version for this trait instance to the absolute value of the deleted version
                     sentInstanceIt->value = absoluteReceivedVersion;
+
+                    auto& pendingTraitVersions =
+                        listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(),
+                                                                   otherNodeLocalID);
+                    pendingTraitVersions.instanceInsert(traitType, instanceID, absoluteReceivedVersion);
+
                 }
             }
 
