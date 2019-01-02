@@ -1565,11 +1565,17 @@ ScriptAvatarData* MyAvatar::getTargetAvatar() const {
     }
 }
 
-static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myPosition, const glm::vec3& otherForward, const glm::vec3& otherPosition) {
+static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myPosition, const glm::vec3& otherForward, const glm::vec3& otherPosition,
+                                bool otherIsTalking, bool lookingAtOtherAlready) {
     const float DISTANCE_FACTOR = 3.14f;
     const float MY_ANGLE_FACTOR = 1.0f;
     const float OTHER_ANGLE_FACTOR = 1.0f;
+    const float OTHER_IS_TALKING_TERM = otherIsTalking ? 1.0f : 0.0f;
+    const float LOOKING_AT_OTHER_ALREADY_TERM = lookingAtOtherAlready ? -0.2f : 0.0f;
+
     const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;  // meters
+    const float MAX_MY_ANGLE = PI / 8.0f; // 22.5 degrees, Don't look too far away from the head facing.
+    const float MAX_OTHER_ANGLE = (3.0f * PI) / 4.0f;  // 135 degrees, Don't stare at the back of another avatars head.
 
     glm::vec3 d = otherPosition - myPosition;
     float distance = glm::length(d);
@@ -1577,10 +1583,14 @@ static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myP
     float myAngle = acosf(glm::dot(myForward, dUnit));
     float otherAngle = acosf(glm::dot(otherForward, -dUnit));
 
-    if (distance > GREATEST_LOOKING_AT_DISTANCE) {
+    if (distance > GREATEST_LOOKING_AT_DISTANCE || myAngle > MAX_MY_ANGLE || otherAngle > MAX_OTHER_ANGLE) {
         return FLT_MAX;
     } else {
-        return DISTANCE_FACTOR * distance + MY_ANGLE_FACTOR * myAngle + OTHER_ANGLE_FACTOR * otherAngle;
+        return (DISTANCE_FACTOR * distance +
+                MY_ANGLE_FACTOR * myAngle +
+                OTHER_ANGLE_FACTOR * otherAngle +
+                OTHER_IS_TALKING_TERM +
+                LOOKING_AT_OTHER_ALREADY_TERM);
     }
 }
 
@@ -1595,12 +1605,10 @@ void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
         if (!avatar->isMyAvatar() && avatar->isInitialized()) {
             glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
             glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
-            float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition);
-            if (_lookAtTargetAvatar.lock().get() == avatar.get()) {
-                const float COST_HYSTERESIS = 0.1f;
-                cost += COST_HYSTERESIS;
-            }
-
+            const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
+            bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
+            bool lookingAtOtherAlready = _lookAtTargetAvatar.lock().get() == avatar.get();
+            float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition, otherIsTalking, lookingAtOtherAlready);
             if (cost < bestCost) {
                 bestCost = cost;
                 bestAvatar = avatar;
