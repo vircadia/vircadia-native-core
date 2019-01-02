@@ -150,10 +150,12 @@ Menu::Menu() {
         qApp, SLOT(packageModel()));
 
     // Edit > Avatar Packager
+#ifndef Q_OS_ANDROID
     action = addActionToQMenuAndActionHash(editMenu, MenuOption::AvatarPackager);
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<AvatarPackager>()->open();
     });
+#endif
 
     // Edit > Reload All Content
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
