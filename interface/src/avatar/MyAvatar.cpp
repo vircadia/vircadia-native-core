@@ -1564,6 +1564,7 @@ void MyAvatar::updateAvatarEntities() {
     }
 
     // ADD real entities
+    EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
     for (const auto& id : entitiesToAdd) {
         bool blobFailed = false;
         EntityItemProperties properties;
@@ -1589,6 +1590,9 @@ void MyAvatar::updateAvatarEntities() {
         sanitizeAvatarEntityProperties(properties);
         entityTree->withWriteLock([&] {
             EntityItemPointer entity = entityTree->addEntity(id, properties);
+            if (entity) {
+                packetSender->queueEditEntityMessage(PacketType::EntityAdd, entityTree, id, properties);
+            }
         });
     }
 
