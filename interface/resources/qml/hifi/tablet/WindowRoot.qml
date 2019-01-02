@@ -20,6 +20,7 @@ Windows.ScrollingWindow {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
+    signal screenChanged(var type, var url);
 
     property var rootMenu;
     property string subMenu: ""
@@ -69,6 +70,8 @@ Windows.ScrollingWindow {
             if (loader.item.hasOwnProperty("closeButtonVisible")) {
                 loader.item.closeButtonVisible = false;
             }
+            
+            screenChanged("Web", url);
         });
     }
 
@@ -179,7 +182,25 @@ Windows.ScrollingWindow {
                 
                 if (callback) {
                     callback();
+                }                
+
+                var type = "Unknown";
+                if (newSource === "") {
+                    type = "Closed";
+                } else if (newSource === "hifi/tablet/TabletMenu.qml") {
+                    type = "Menu";
+                } else if (newSource === "hifi/tablet/TabletHome.qml") {
+                    type = "Home";
+                } else if (newSource === "hifi/tablet/TabletWebView.qml") {
+                    // Handled in `callback()`
+                    return;
+                } else if (newSource.toLowerCase().indexOf(".qml") > -1) {
+                    type = "QML";
+                } else {
+                    console.log("newSource is of unknown type!");
                 }
+                
+                screenChanged(type, newSource);
             });
         }
     }

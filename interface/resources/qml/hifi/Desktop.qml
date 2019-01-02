@@ -1,6 +1,6 @@
 import QtQuick 2.7
 import QtWebEngine 1.5;
-import Qt.labs.settings 1.0
+import Qt.labs.settings 1.0 as QtSettings
 
 import QtQuick.Controls 2.3
 
@@ -74,7 +74,7 @@ OriginalDesktop.Desktop {
         shown: tablet ? tablet.toolbarMode : false;
     }
 
-    Settings {
+    QtSettings.Settings {
         id: settings;
         category: "toolbar";
         property bool constrainToolbarToCenterX: true;

@@ -19,14 +19,13 @@
 #include "PickScriptingInterface.h"
 
 /**jsdoc
- * Synonym for {@link Picks} as used for ray picks.
+ * Synonym for {@link Picks} as used for ray picks.  Deprecated.
  *
  * @namespace RayPick
  *
  * @hifi-interface
  * @hifi-client-entity
  *
- * @property {number} PICK_NOTHING <em>Read-only.</em>
  * @property {number} PICK_ENTITIES <em>Read-only.</em>
  * @property {number} PICK_OVERLAYS <em>Read-only.</em>
  * @property {number} PICK_AVATARS <em>Read-only.</em>
@@ -44,7 +43,6 @@
 
 class RayPickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
-    Q_PROPERTY(unsigned int PICK_NOTHING READ PICK_NOTHING CONSTANT)
     Q_PROPERTY(unsigned int PICK_ENTITIES READ PICK_ENTITIES CONSTANT)
     Q_PROPERTY(unsigned int PICK_OVERLAYS READ PICK_OVERLAYS CONSTANT)
     Q_PROPERTY(unsigned int PICK_AVATARS READ PICK_AVATARS CONSTANT)
@@ -139,12 +137,6 @@ public:
     Q_INVOKABLE bool isMouse(unsigned int uid);
 
 public slots:
-
-    /**jsdoc
-     * @function RayPick.PICK_NOTHING
-     * @returns {number}
-     */
-    static unsigned int PICK_NOTHING() { return PickScriptingInterface::PICK_NOTHING(); }
 
     /**jsdoc
      * @function RayPick.PICK_ENTITIES

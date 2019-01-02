@@ -29,9 +29,9 @@ void GLBackend::do_setProjectionTransform(const Batch& batch, size_t paramOffset
 }
 
 void GLBackend::do_setProjectionJitter(const Batch& batch, size_t paramOffset) {
-	_transform._projectionJitter.x = batch._params[paramOffset]._float;
-	_transform._projectionJitter.y = batch._params[paramOffset+1]._float;
-	_transform._invalidProj = true;
+    _transform._projectionJitter.x = batch._params[paramOffset]._float;
+    _transform._projectionJitter.y = batch._params[paramOffset+1]._float;
+    _transform._invalidProj = true;
 }
 
 void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) {

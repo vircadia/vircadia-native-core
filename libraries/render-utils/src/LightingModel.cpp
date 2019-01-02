@@ -187,6 +187,24 @@ bool LightingModel::isBlendshapeEnabled() const {
     return (bool)_parametersBuffer.get<Parameters>().enableBlendshape;
 }
 
+void LightingModel::setAmbientOcclusion(bool enable) {
+    if (enable != isAmbientOcclusionEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableAmbientOcclusion = (float)enable;
+    }
+}
+bool LightingModel::isAmbientOcclusionEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableAmbientOcclusion;
+}
+
+void LightingModel::setShadow(bool enable) {
+    if (enable != isShadowEnabled()) {
+        _parametersBuffer.edit<Parameters>().enableShadow = (float)enable;
+    }
+}
+bool LightingModel::isShadowEnabled() const {
+    return (bool)_parametersBuffer.get<Parameters>().enableShadow;
+}
+
 MakeLightingModel::MakeLightingModel() {
     _lightingModel = std::make_shared<LightingModel>();
 }
@@ -218,6 +236,9 @@ void MakeLightingModel::configure(const Config& config) {
 
     _lightingModel->setSkinning(config.enableSkinning);
     _lightingModel->setBlendshape(config.enableBlendshape);
+
+    _lightingModel->setAmbientOcclusion(config.enableAmbientOcclusion);
+    _lightingModel->setShadow(config.enableShadow);
 }
 
 void MakeLightingModel::run(const render::RenderContextPointer& renderContext, LightingModelPointer& lightingModel) {

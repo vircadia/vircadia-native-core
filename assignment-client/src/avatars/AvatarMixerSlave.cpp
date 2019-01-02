@@ -268,6 +268,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // When this is true, the AvatarMixer will send Avatar data to a client
     // about avatars they've ignored or that are out of view
     bool PALIsOpen = nodeData->getRequestsDomainListData();
+    bool PALWasOpen = nodeData->getPrevRequestsDomainListData();
 
     // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
     bool getsAnyIgnored = PALIsOpen && destinationNode->getCanKick();
@@ -392,6 +393,26 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
             sortedAvatars.push(SortableAvatar(avatarNodeData, avatarNode, lastEncodeTime));
         }
+        
+        // If Avatar A's PAL WAS open but is no longer open, AND
+        // Avatar A is ignoring Avatar B OR Avatar B is ignoring Avatar A...
+        //
+        // This is a bit heavy-handed still - there are cases where a kill packet
+        // will be sent when it doesn't need to be (but where it _should_ be OK to send).
+        // However, it's less heavy-handed than using `shouldIgnore`.
+        if (PALWasOpen && !PALIsOpen &&
+            (destinationNode->isIgnoringNodeWithID(avatarNode->getUUID()) ||
+                avatarNode->isIgnoringNodeWithID(destinationNode->getUUID()))) {
+            // ...send a Kill Packet to Node A, instructing Node A to kill Avatar B,
+            // then have Node A cleanup the killed Node B.
+            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
+            packet->write(avatarNode->getUUID().toRfc4122());
+            packet->writePrimitive(KillAvatarReason::AvatarIgnored);
+            nodeList->sendPacket(std::move(packet), *destinationNode);
+            nodeData->cleanupKilledNode(avatarNode->getUUID(), avatarNode->getLocalID());
+        }
+
+        nodeData->setPrevRequestsDomainListData(PALIsOpen);
     }
 
     // loop through our sorted avatars and allocate our bandwidth to them accordingly
