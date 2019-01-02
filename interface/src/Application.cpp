@@ -120,6 +120,7 @@
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/OculusPlatformPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <render/EngineStats.h>
@@ -793,7 +794,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
-
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -999,6 +999,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 {
 
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
+    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
@@ -1130,6 +1131,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     bool isStore = arguments().indexOf(OCULUS_STORE_ARG) != -1;
     setProperty(hifi::properties::OCULUS_STORE, isStore);
     DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->init();
+    }
 
     updateHeartbeat();
 
@@ -2652,6 +2656,10 @@ Application::~Application() {
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
     }
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->shutdown();
+    }
+
     DependencyManager::destroy<PluginManager>();
 
     DependencyManager::destroy<CompositorHelper>(); // must be destroyed before the FramebufferCache

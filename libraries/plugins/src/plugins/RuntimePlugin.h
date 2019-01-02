@@ -51,5 +51,15 @@ public:
     virtual SteamClientPluginPointer getSteamClientPlugin() = 0;
 };
 
+class OculusPlatformProvider {
+public:
+    virtual ~OculusPlatformProvider() {}
+    virtual OculusPlatformPluginPointer getOculusPlatformPlugin() = 0;
+};
+
 #define SteamClientProvider_iid "com.highfidelity.plugins.steamclient"
 Q_DECLARE_INTERFACE(SteamClientProvider, SteamClientProvider_iid)
+
+
+#define OculusPlatformProvider_iid "com.highfidelity.plugins.oculusplatform"
+Q_DECLARE_INTERFACE(OculusPlatformProvider, OculusPlatformProvider_iid)

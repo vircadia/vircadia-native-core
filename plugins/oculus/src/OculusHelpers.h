@@ -29,7 +29,6 @@ struct ovr {
     static ovrSessionStatus getStatus();
     static ovrSessionStatus getStatus(ovrResult& result);
     static ovrTrackingState getTrackingState(double absTime = 0.0, ovrBool latencyMarker = ovrFalse);
-    static QString getLoggedInUserID();
     static QString getError();
     static bool handleOVREvents();
 
