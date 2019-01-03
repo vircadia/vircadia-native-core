@@ -53,6 +53,18 @@ public slots:
     * @returns {string} graphics card type
     */
     QString getGraphicsCardType();
+
+    /**jsdoc
+       * Returns true if Oculus Rift is connected (looks for hand controllers)
+       * @function Window.hasRift
+       * @returns {boolean} <code>true</code> if running on Windows, otherwise <code>false</code>.*/
+    bool hasRiftControllers();
+
+    /**jsdoc
+    * Returns true if HTC Vive is connected (looks for hand controllers)
+    * @function Window.hasRift
+    * @returns {boolean} <code>true</code> if running on Windows, otherwise <code>false</code>.*/
+    bool hasViveControllers();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h

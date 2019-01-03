@@ -326,6 +326,10 @@ public:
     void createLoginDialogOverlay();
     void updateLoginDialogOverlayPosition();
 
+    // Check if a headset is connected
+    bool hasRiftControllers();
+    bool hasViveControllers();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();

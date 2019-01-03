@@ -125,3 +125,11 @@ QString PlatformInfoScriptingInterface::getGraphicsCardType() {
     return QString("NO IMPLEMENTED");
 #endif
 }
+
+bool PlatformInfoScriptingInterface::hasRiftControllers() {
+    return qApp->hasRiftControllers();
+}
+
+bool PlatformInfoScriptingInterface::hasViveControllers() {
+    return qApp->hasViveControllers();
+}

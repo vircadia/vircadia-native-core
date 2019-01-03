@@ -8711,6 +8711,14 @@ void Application::updateLoginDialogOverlayPosition() {
     }
 }
 
+bool Application::hasRiftControllers() {
+    return PluginUtils::isOculusTouchControllerAvailable();
+}
+
+bool Application::hasViveControllers() {
+    return PluginUtils::isViveControllerAvailable();
+}
+
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
