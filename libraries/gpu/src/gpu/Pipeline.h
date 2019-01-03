@@ -38,8 +38,6 @@ protected:
     StatePointer _state;
 
     Pipeline();
-    Pipeline(const Pipeline& pipeline); // deep copy of the sysmem shader
-    Pipeline& operator=(const Pipeline& pipeline); // deep copy of the sysmem texture
 };
 
 typedef Pipeline::Pointer PipelinePointer;

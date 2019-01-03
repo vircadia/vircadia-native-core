@@ -209,6 +209,8 @@
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
 
+#include "avatar/GrabManager.h"
+
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/GooglePolyScriptingInterface.h>
@@ -920,6 +922,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceRequestObserver>();
     DependencyManager::set<Keyboard>();
     DependencyManager::set<KeyboardScriptingInterface>();
+    DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
 
     return previousSessionCrashed;
@@ -1080,6 +1083,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
+    nodeList->setFlagTimeForConnectionStep(true);
 
     // move the AddressManager to the NodeList thread so that domain resets due to domain changes always occur
     // before we tell MyAvatar to go to a new location in the new domain
@@ -4914,7 +4918,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename,
-                                 const QVector<EntityItemID>& entityIDs,
+                                 const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
@@ -4989,16 +4993,12 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     glm::vec3 minCorner = center - vec3(scale);
     float cubeSize = scale * 2;
     AACube boundingCube(minCorner, cubeSize);
-    QVector<EntityItemPointer> entities;
-    QVector<EntityItemID> ids;
+    QVector<QUuid> entities;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->findEntities(boundingCube, entities);
-        foreach(EntityItemPointer entity, entities) {
-            ids << entity->getEntityItemID();
-        }
+        entityTree->evalEntitiesInCube(boundingCube, PickFilter(), entities);
     });
-    return exportEntities(filename, ids, &center);
+    return exportEntities(filename, entities, &center);
 }
 
 void Application::loadSettings() {
@@ -6091,6 +6091,9 @@ void Application::update(float deltaTime) {
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
 
+    auto grabManager = DependencyManager::get<GrabManager>();
+    grabManager->simulateGrabs();
+
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
@@ -6694,6 +6697,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     _overlayConductor.centerUI();
+    getActiveDisplayPlugin()->resetSensors();
     getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }

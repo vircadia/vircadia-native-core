@@ -26,6 +26,7 @@
 #include "RenderableZoneEntityItem.h"
 #include "RenderableMaterialEntityItem.h"
 #include "RenderableImageEntityItem.h"
+#include "RenderableGridEntityItem.h"
 
 
 using namespace render;
@@ -257,6 +258,10 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
 
         case Type::PolyVox:
             result = make_renderer<PolyVoxEntityRenderer>(entity);
+            break;
+
+        case Type::Grid:
+            result = make_renderer<GridEntityRenderer>(entity);
             break;
 
         case Type::Light:

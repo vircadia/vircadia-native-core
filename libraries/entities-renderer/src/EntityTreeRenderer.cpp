@@ -32,6 +32,7 @@
 #include <ScriptEngine.h>
 #include <EntitySimulation.h>
 #include <ZoneRenderer.h>
+#include <PhysicalEntitySimulation.h>
 
 #include "EntitiesRendererLogging.h"
 #include "RenderableEntityItem.h"
@@ -498,20 +499,27 @@ void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUp
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {
     bool didUpdate = false;
     float radius = 0.01f; // for now, assume 0.01 meter radius, because we actually check the point inside later
-    QVector<EntityItemPointer> foundEntities;
+    QVector<QUuid> entityIDs;
 
     // find the entities near us
     // don't let someone else change our tree while we search
     _tree->withReadLock([&] {
+        auto entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
         // FIXME - if EntityTree had a findEntitiesContainingPoint() this could theoretically be a little faster
-        std::static_pointer_cast<EntityTree>(_tree)->findEntities(_avatarPosition, radius, foundEntities);
+        entityTree->evalEntitiesInSphere(_avatarPosition, radius,
+            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES)), entityIDs);
 
         LayeredZones oldLayeredZones(std::move(_layeredZones));
         _layeredZones.clear();
 
         // create a list of entities that actually contain the avatar's position
-        for (auto& entity : foundEntities) {
+        for (auto& entityID : entityIDs) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (!entity) {
+                continue;
+            }
+
             auto isZone = entity->getType() == EntityTypes::Zone;
             auto hasScript = !entity->getScript().isEmpty();
 
@@ -1242,4 +1250,12 @@ void EntityTreeRenderer::onEntityChanged(const EntityItemID& id) {
     _changedEntitiesGuard.withWriteLock([&] {
         _changedEntities.insert(id);
     });
+}
+
+EntityEditPacketSender* EntityTreeRenderer::getPacketSender() {
+    EntityTreePointer tree = getTree();
+    EntitySimulationPointer simulation = tree ? tree->getSimulation() : nullptr;
+    PhysicalEntitySimulationPointer peSimulation = std::static_pointer_cast<PhysicalEntitySimulation>(simulation);
+    EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
+    return packetSender;
 }

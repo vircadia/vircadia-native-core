@@ -22,6 +22,27 @@
 #include <QVariantHash>
 #include <QStandardPaths>
 
+namespace AvatarProjectStatus {
+    Q_NAMESPACE
+    enum AvatarProjectStatus {
+        NONE,
+        SUCCESS,
+        ERROR_CREATE_PROJECT_NAME,
+        ERROR_CREATE_CREATING_DIRECTORIES,
+        ERROR_CREATE_FIND_MODEL,
+        ERROR_CREATE_OPEN_MODEL,
+        ERROR_CREATE_READ_MODEL,
+        ERROR_CREATE_WRITE_FST,
+        ERROR_OPEN_INVALID_FILE_TYPE,
+        ERROR_OPEN_PROJECT_FOLDER,
+        ERROR_OPEN_FIND_FST,
+        ERROR_OPEN_OPEN_FST,
+        ERROR_OPEN_FIND_MODEL
+    };
+    Q_ENUM_NS(AvatarProjectStatus)
+}
+
+
 class AvatarProject : public QObject {
     Q_OBJECT
     Q_PROPERTY(FST* fst READ getFST CONSTANT)
@@ -48,16 +69,19 @@ public:
     }
     Q_INVOKABLE QString getProjectPath() const { return _projectPath; }
     Q_INVOKABLE QString getFSTPath() const { return _fst->getPath(); }
-    Q_INVOKABLE QString getFBXPath() const { return _fst->getModelPath(); }
+    Q_INVOKABLE QString getFBXPath() const {
+        return QDir::cleanPath(QDir(_projectPath).absoluteFilePath(_fst->getModelPath()));
+    }
 
     /**
      * returns the AvatarProject or a nullptr on failure.
      */
-    static AvatarProject* openAvatarProject(const QString& path);
+    static AvatarProject* openAvatarProject(const QString& path, AvatarProjectStatus::AvatarProjectStatus& status);
     static AvatarProject* createAvatarProject(const QString& projectsFolder,
                                               const QString& avatarProjectName,
                                               const QString& avatarModelPath,
-                                              const QString& textureFolder);
+                                              const QString& textureFolder,
+                                              AvatarProjectStatus::AvatarProjectStatus& status);
 
     static bool isValidNewProjectName(const QString& projectPath, const QString& projectName);
 
@@ -78,7 +102,7 @@ private:
     FST* getFST() { return _fst; }
 
     void refreshProjectFiles();
-    void appendDirectory(QString prefix, QDir dir);
+    void appendDirectory(const QString& prefix, const QDir& dir);
     QStringList getScriptPaths(const QDir& scriptsDir);
 
     FST* _fst;

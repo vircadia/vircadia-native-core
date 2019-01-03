@@ -2,6 +2,8 @@ import QtQuick 2.6
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
+import Hifi.AvatarPackager.AvatarProjectStatus 1.0
+
 import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
@@ -24,8 +26,9 @@ Item {
             text: qsTr("Create")
             enabled: false
             onClicked: {
-                if (!AvatarPackagerCore.createAvatarProject(projectLocation.text, name.text, avatarModel.text, textureFolder.text)) {
-                    Window.alert('Failed to create project');
+                let status = AvatarPackagerCore.createAvatarProject(projectLocation.text, name.text, avatarModel.text, textureFolder.text);
+                if (status !== AvatarProjectStatus.SUCCESS) {
+                    avatarPackager.displayErrorMessage(status);
                     return;
                 }
                 avatarProject.reset();

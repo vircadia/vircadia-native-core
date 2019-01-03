@@ -23,7 +23,7 @@ Item {
         onClicked: {
             root.focus = true
             Tablet.playSound(TabletEnums.ButtonClick);
-            root.clicked()
+            root.clicked();
         }
 
         property string lastState: ""
@@ -33,7 +33,7 @@ Item {
                 name: ""
                 StateChangeScript {
                     script: {
-                        mouseArea.lastState = mouseArea.state
+                        mouseArea.lastState = mouseArea.state;
                     }
                 }
             },
@@ -42,7 +42,7 @@ Item {
                 when: mouseArea.containsMouse && mouseArea.pressed
                 StateChangeScript {
                     script: {
-                        mouseArea.lastState = mouseArea.state
+                        mouseArea.lastState = mouseArea.state;
                     }
                 }
             },
@@ -54,7 +54,7 @@ Item {
                         if (mouseArea.lastState == "") {
                             Tablet.playSound(TabletEnums.ButtonHover);
                         }
-                        mouseArea.lastState = mouseArea.state
+                        mouseArea.lastState = mouseArea.state;
                     }
                 }
             }

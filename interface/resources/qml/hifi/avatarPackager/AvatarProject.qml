@@ -55,7 +55,7 @@ Item {
                 colorScheme: root.colorScheme
                 width: 133
                 height: 40
-                onClicked: function() {
+                onClicked: {
                     uploadNew();
                 }
             }
@@ -73,7 +73,7 @@ Item {
                 colorScheme: root.colorScheme
                 width: 134
                 height: 40
-                onClicked: function() {
+                onClicked: {
                     showConfirmUploadPopup(uploadNew, uploadUpdate);
                 }
             }
@@ -93,7 +93,7 @@ Item {
                     colorScheme: root.colorScheme
                     width: 134
                     height: 40
-                    onClicked: function() {
+                    onClicked: {
                         showConfirmUploadPopup(uploadNew, uploadUpdate);
                     }
                 }

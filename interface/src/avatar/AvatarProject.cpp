@@ -22,55 +22,98 @@
 #include <ui/TabletScriptingInterface.h>
 #include "scripting/HMDScriptingInterface.h"
 
-AvatarProject* AvatarProject::openAvatarProject(const QString& path) {
+AvatarProject* AvatarProject::openAvatarProject(const QString& path, AvatarProjectStatus::AvatarProjectStatus& status) {
+    status = AvatarProjectStatus::NONE;
+
     if (!path.toLower().endsWith(".fst")) {
+        status = AvatarProjectStatus::ERROR_OPEN_INVALID_FILE_TYPE;
         return nullptr;
     }
-    QFile file{ path };
+
+    QFileInfo fstFileInfo{ path };
+    if (!fstFileInfo.absoluteDir().exists()) {
+        status = AvatarProjectStatus::ERROR_OPEN_PROJECT_FOLDER;
+        return nullptr;
+    }
+
+    if (!fstFileInfo.exists()) {
+        status = AvatarProjectStatus::ERROR_OPEN_FIND_FST;
+        return nullptr;
+    }
+
+    QFile file{ fstFileInfo.filePath() };
     if (!file.open(QIODevice::ReadOnly)) {
+        status = AvatarProjectStatus::ERROR_OPEN_OPEN_FST;
         return nullptr;
     }
+
     const auto project = new AvatarProject(path, file.readAll());
+
+    QFileInfo fbxFileInfo{ project->getFBXPath() };
+    if (!fbxFileInfo.exists()) {
+        project->deleteLater();
+        status = AvatarProjectStatus::ERROR_OPEN_FIND_MODEL;
+        return nullptr;
+    }
+
     QQmlEngine::setObjectOwnership(project, QQmlEngine::CppOwnership);
+    status = AvatarProjectStatus::SUCCESS;
     return project;
 }
 
-AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder) {
+AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName,
+                                                  const QString& avatarModelPath, const QString& textureFolder,
+                                                  AvatarProjectStatus::AvatarProjectStatus& status) {
+    status = AvatarProjectStatus::NONE;
+
     if (!isValidNewProjectName(projectsFolder, avatarProjectName)) {
+        status = AvatarProjectStatus::ERROR_CREATE_PROJECT_NAME;
         return nullptr;
     }
+
     QDir projectDir(projectsFolder + "/" + avatarProjectName);
     if (!projectDir.mkpath(".")) {
+        status = AvatarProjectStatus::ERROR_CREATE_CREATING_DIRECTORIES;
         return nullptr;
     }
+
     QDir projectTexturesDir(projectDir.path() + "/textures");
     if (!projectTexturesDir.mkpath(".")) {
+        status = AvatarProjectStatus::ERROR_CREATE_CREATING_DIRECTORIES;
         return nullptr;
     }
+
     QDir projectScriptsDir(projectDir.path() + "/scripts");
     if (!projectScriptsDir.mkpath(".")) {
+        status = AvatarProjectStatus::ERROR_CREATE_CREATING_DIRECTORIES;
         return nullptr;
     }
+
     const auto fileName = QFileInfo(avatarModelPath).fileName();
     const auto newModelPath = projectDir.absoluteFilePath(fileName);
     const auto newFSTPath = projectDir.absoluteFilePath("avatar.fst");
     QFile::copy(avatarModelPath, newModelPath);
 
-    QFileInfo fbxInfo(newModelPath);
-    QFile fbx(fbxInfo.filePath());
-    if (!fbxInfo.exists() || !fbxInfo.isFile() || !fbx.open(QIODevice::ReadOnly)) {
-        // TODO: Can't open model FBX (throw error here)
+    QFileInfo fbxInfo{ newModelPath };
+    if (!fbxInfo.exists() || !fbxInfo.isFile()) {
+        status = AvatarProjectStatus::ERROR_CREATE_FIND_MODEL;
+        return nullptr;
+    }
+
+    QFile fbx{ fbxInfo.filePath() };
+    if (!fbx.open(QIODevice::ReadOnly)) {
+        status = AvatarProjectStatus::ERROR_CREATE_OPEN_MODEL;
         return nullptr;
     }
 
     std::shared_ptr<hfm::Model> hfmModel;
 
     try {
-        qDebug() << "Reading FBX file : " << fbxInfo.filePath();
         const QByteArray fbxContents = fbx.readAll();
         hfmModel = FBXSerializer().read(fbxContents, QVariantHash(), fbxInfo.filePath());
     } catch (const QString& error) {
-        qDebug() << "Error reading: " << error;
+        Q_UNUSED(error)
+        status = AvatarProjectStatus::ERROR_CREATE_READ_MODEL;
         return nullptr;
     }
     QStringList textures{};
@@ -111,9 +154,11 @@ AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder,
     fst->setName(avatarProjectName);
 
     if (!fst->write()) {
+        status = AvatarProjectStatus::ERROR_CREATE_WRITE_FST;
         return nullptr;
     }
 
+    status = AvatarProjectStatus::SUCCESS;
     return new AvatarProject(fst);
 }
 
@@ -157,7 +202,7 @@ AvatarProject::AvatarProject(FST* fst) {
     _projectPath = fileInfo.absoluteDir().absolutePath();
 }
 
-void AvatarProject::appendDirectory(QString prefix, QDir dir) {
+void AvatarProject::appendDirectory(const QString& prefix, const QDir& dir) {
     constexpr auto flags = QDir::Dirs | QDir::Files | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Hidden;
     for (auto& entry : dir.entryInfoList({}, flags)) {
         if (entry.isFile()) {

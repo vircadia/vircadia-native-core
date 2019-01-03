@@ -123,7 +123,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     glm::vec4 textColor = { toGlm(_color), getTextAlpha() };
 
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
-    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), true);
+    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f));
 }
 
 const render::ShapeKey Text3DOverlay::getShapeKey() {
@@ -224,7 +224,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.

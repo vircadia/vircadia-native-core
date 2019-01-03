@@ -3,9 +3,9 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQml.Models 2.1
 import QtGraphicalEffects 1.0
+import Hifi.AvatarPackager.AvatarProjectStatus 1.0
 import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
-import "../../windows" as Windows
 import "../../controls" 1.0
 import "../../dialogs"
 import "../avatarapp" 1.0 as AvatarApp
@@ -73,6 +73,37 @@ Item {
         }
     }
 
+    InfoBox {
+        id: errorPopup
+
+        property string errorMessage;
+
+        boxWidth: 380
+        boxHeight: 293
+
+        content: RalewayRegular {
+
+            id: bodyMessage
+
+            anchors.fill: parent
+            anchors.bottomMargin: 10
+            anchors.leftMargin: 29
+            anchors.rightMargin: 29
+
+            size: 20
+            color: "white"
+            text: errorPopup.errorMessage
+            width: parent.width
+            wrapMode: Text.WordWrap
+        }
+
+        function show(title, message) {
+            errorPopup.title = title;
+            errorMessage = message;
+            errorPopup.open();
+        }
+    }
+
     Rectangle {
         id: modalOverlay
         anchors.fill: parent
@@ -83,8 +114,8 @@ Item {
         // This mouse area captures the cursor events while the modalOverlay is active
         MouseArea {
             anchors.fill: parent
-            propagateComposedEvents: false;
-            hoverEnabled: true;
+            propagateComposedEvents: false
+            hoverEnabled: true
         }
     }
 
@@ -131,12 +162,58 @@ Item {
         property var desktopObject: desktop
 
         function openProject(path) {
-            let project = AvatarPackagerCore.openAvatarProject(path);
-            if (project) {
-                avatarProject.reset();
-                avatarPackager.state = AvatarPackagerState.project;
+            let status = AvatarPackagerCore.openAvatarProject(path);
+            if (status !== AvatarProjectStatus.SUCCESS) {
+                displayErrorMessage(status);
+                return status;
             }
-            return project;
+            avatarProject.reset();
+            avatarPackager.state = AvatarPackagerState.project;
+            return status;
+        }
+
+        function displayErrorMessage(status) {
+            if (status === AvatarProjectStatus.SUCCESS) {
+                return;
+            }
+            switch (status) {
+                case AvatarProjectStatus.ERROR_CREATE_PROJECT_NAME:
+                    errorPopup.show("Project Folder Already Exists", "A folder with that name already exists at that location. Please choose a different project name or location.");
+                    break;
+                case AvatarProjectStatus.ERROR_CREATE_CREATING_DIRECTORIES:
+                    errorPopup.show("Project Folders Creation Error", "There was a problem during the creation of the Avatar Project directories. Please select a project location with write permissions.");
+                    break;
+                case AvatarProjectStatus.ERROR_CREATE_FIND_MODEL:
+                    errorPopup.show("Cannot Find Model File", "There was a problem while trying to find the specified model file. Please verify if it exist at the specified location.");
+                    break;
+                case AvatarProjectStatus.ERROR_CREATE_OPEN_MODEL:
+                    errorPopup.show("Cannot Open Model File", "There was a problem while trying to open the specified model file. Please verify if you have read permissions at the specified location.");
+                    break;
+                case AvatarProjectStatus.ERROR_CREATE_READ_MODEL:
+                    errorPopup.show("Error Read Model File", "There was a problem while trying to read the specified model file. Please verify if the model file is supported by High Fidelity.");
+                    break;
+                case AvatarProjectStatus.ERROR_CREATE_WRITE_FST:
+                    errorPopup.show("Error Writing Project File", "There was a problem while trying to write the FST file.");
+                    break;
+                case AvatarProjectStatus.ERROR_OPEN_INVALID_FILE_TYPE:
+                    errorPopup.show("Invalid Project Path", "The avatar packager can only open FST files.");
+                    break;
+                case AvatarProjectStatus.ERROR_OPEN_PROJECT_FOLDER:
+                    errorPopup.show("Project Missing", "Project folder cannot be found. Please locate the folder and copy/move it to its original location.");
+                    break;
+                case AvatarProjectStatus.ERROR_OPEN_FIND_FST:
+                    errorPopup.show("File Missing", "We cannot find the project file (avatar.fst) in the folder. Please locate it and move to the project folder.");
+                    break;
+                case AvatarProjectStatus.ERROR_OPEN_OPEN_FST:
+                    errorPopup.show("File Read Error", "We cannot read the project file (avatar.fst). Please make sure that it is not in use by another program.");
+                    break;
+                case AvatarProjectStatus.ERROR_OPEN_FIND_MODEL:
+                    errorPopup.show("File Missing", "We cannot find the avatar model file (.fbx) in the folder. Please locate it and move to the project folder.");
+                    break;
+                default:
+                    errorPopup.show("Error Message Missing", "Error message missing for status " + status);
+            }
+
         }
 
         function openDocs() {
@@ -231,10 +308,8 @@ Item {
 
                             browser.selectedFile.connect(function(fileUrl) {
                                 let fstFilePath = fileDialogHelper.urlToPath(fileUrl);
-                                let currentAvatarProject = avatarPackager.openProject(fstFilePath);
-                                if (currentAvatarProject) {
-                                    avatarPackager.showModalOverlay = false;
-                                }
+                                avatarPackager.showModalOverlay = false;
+                                avatarPackager.openProject(fstFilePath);
                             });
                         }
                     }
@@ -251,12 +326,20 @@ Item {
                     RalewayRegular {
                         size: 20
                         color: "white"
-                        text: qsTr("Use a custom avatar to express your identity")
+                        text: "Use a custom avatar of your choice."
+                        width: parent.width
+                        wrapMode: Text.WordWrap
                     }
                     RalewayRegular {
                         size: 20
                         color: "white"
-                        text: qsTr("To learn more about using this tool, visit our docs")
+                        text: "<a href='javascript:void'>Visit our docs</a> to learn more about using the packager."
+                        linkColor: "#00B4EF"
+                        width: parent.width
+                        wrapMode: Text.WordWrap
+                        onLinkActivated: {
+                            avatarPackager.openDocs();
+                        }
                     }
                 }
 

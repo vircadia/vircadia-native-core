@@ -226,6 +226,7 @@ inline quint32 quint32_convertFromScriptValue(const QScriptValue& v, bool& isVal
 }
 inline quint16 quint16_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline uint32_t uint32_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline uint8_t uint8_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return (uint8_t)(0xff & v.toVariant().toInt(&isValid)); }

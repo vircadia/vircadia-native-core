@@ -38,5 +38,4 @@ Rectangle {
             width: parent.width
         }
     }
-
 }

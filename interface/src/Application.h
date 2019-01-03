@@ -120,7 +120,7 @@ class Application : public QApplication,
 public:
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
-    virtual void requestReset() override { resetSensors(true); }
+    virtual void requestReset() override { resetSensors(false); }
     virtual void showDisplayPluginsTools(bool show) override;
     virtual GLWidget* getPrimaryWidget() override;
     virtual MainWindow* getPrimaryWindow() override;
@@ -351,7 +351,7 @@ signals:
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
-    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
+    bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
     void updateThreadPoolCount() const;
