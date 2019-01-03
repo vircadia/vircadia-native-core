@@ -11,14 +11,11 @@ import "../../dialogs"
 import "../avatarapp" 1.0 as AvatarApp
 
 Item {
+    id: windowContent
+
     HifiConstants { id: hifi }
 
     property alias desktopObject: avatarPackager.desktopObject
-
-    id: windowContent
-   // height: pane ? pane.height : parent.width
-   // width: pane ? pane.width : parent.width
-
 
     MouseArea {
         anchors.fill: parent

@@ -11,7 +11,7 @@ ShadowRectangle {
     height: 74
     color: "#252525"
 
-    property alias title: title.text
+    property string title: qsTr("Avatar Packager")
     property alias docsEnabled: docs.visible
     property bool backButtonVisible: true // If false, is not visible and does not take up space
     property bool backButtonEnabled: true // If false, is not visible but does not affect space
@@ -43,6 +43,7 @@ ShadowRectangle {
     }
     Item {
         id: titleArea
+
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.left: root.backButtonVisible ? back.right : parent.left
@@ -57,15 +58,31 @@ ShadowRectangle {
             }
         ]
 
-        RalewaySemiBold {
+        Item {
             id: title
-            size: 28
             anchors.fill: parent
-            text: qsTr("Avatar Packager")
-            color: "white"
 
-            MouseArea {
+            RalewaySemiBold {
+                id: titleNotRenameable
+
+                visible: !root.canRename
+
+                size: 28
                 anchors.fill: parent
+                text: root.title
+                color: "white"
+            }
+
+            RalewayButton {
+                id: titleRenameable
+
+                visible: root.canRename
+                enabled: root.canRename
+
+                size: 28
+                anchors.fill: parent
+                text: root.title
+
                 onClicked: {
                     if (!root.canRename || AvatarPackagerCore.currentAvatarProject === null) {
                         return;
