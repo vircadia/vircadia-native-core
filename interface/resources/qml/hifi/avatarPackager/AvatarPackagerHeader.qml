@@ -92,8 +92,7 @@ ShadowRectangle {
                 font.pixelSize: 28
                 z: 200
                 onFocusChanged: {
-                    if (titleArea.state === "renaming" && !titleArea.focus) {
-                        //titleArea.state = "";
+                    if (titleArea.state === "renaming" && !focus) {
                         accepted();
                     }
                 }
@@ -104,11 +103,7 @@ ShadowRectangle {
                 }
                 onAccepted:  {
                     if (acceptableInput) {
-                        //AvatarPackagerCore.renameProject(text);
-                        console.warn(text);
                         AvatarPackagerCore.currentAvatarProject.name = text;
-                        console.warn(AvatarPackagerCore.currentAvatarProject.name);
-
                     }
                     titleArea.state = "";
                 }
@@ -127,7 +122,6 @@ ShadowRectangle {
         anchors.verticalCenter: docs.verticalCenter
 
         text: qsTr("Docs")
-        color: "white"
 
         onClicked: {
             docsButtonClicked();

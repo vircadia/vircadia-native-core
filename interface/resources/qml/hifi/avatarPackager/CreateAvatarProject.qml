@@ -28,6 +28,7 @@ Item {
                     Window.alert('Failed to create project');
                     return;
                 }
+                avatarProject.reset();
                 avatarPackager.state = AvatarPackagerState.project;
             }
         }

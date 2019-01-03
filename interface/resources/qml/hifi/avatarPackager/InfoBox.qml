@@ -17,6 +17,12 @@ Rectangle {
 
     property bool closeOnClickOutside: false;
 
+    onVisibleChanged: {
+        if (visible) {
+            focus = true;
+        }
+    }
+
     function open() {
         visible = true;
     }
