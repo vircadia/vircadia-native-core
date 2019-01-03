@@ -1955,6 +1955,7 @@ float AudioClient::gainForSource(float distance, float volume) {
     // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
     float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
     float gain = volume / d;
+    gain = std::min(gain, ATTN_GAIN_MAX);
 
     return gain;
 }

@@ -730,6 +730,7 @@ float approximateGain(const AvatarAudioStream& listeningNodeStream, const Positi
 
     float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
     gain = gain / d;
+    gain = std::min(gain, ATTN_GAIN_MAX);
 
     // avatar: skip master gain - it is constant for all streams
     return gain;
@@ -780,6 +781,7 @@ float computeGain(float masterListenerGain, const AvatarAudioStream& listeningNo
     // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
     float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
     gain *= fastExp2f(fastLog2f(g) * fastLog2f(d));
+    gain = std::min(gain, ATTN_GAIN_MAX);
 
     return gain;
 }
