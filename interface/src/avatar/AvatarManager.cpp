@@ -536,7 +536,6 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
         // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
             auto myAvatar = getMyAvatar();
-            myAvatar->collisionWithEntity(collision);
             auto collisionSound = myAvatar->getCollisionSound();
             if (collisionSound) {
                 const auto characterController = myAvatar->getCharacterController();
@@ -572,8 +571,9 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                     auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
                     _collisionInjectors.emplace_back(injector);
                 }
+                myAvatar->collisionWithEntity(collision);
+                return;
             }
-            return;
         }
     }
 }

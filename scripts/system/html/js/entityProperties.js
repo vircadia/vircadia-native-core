@@ -112,15 +112,6 @@ const GROUPS = [
                 type: "color",
                 propertyID: "color",
             },
-            {
-                label: "Alpha",
-                type: "",
-                type: "number",
-                min: 0,
-                max: 1,
-                step: 0.001,
-                propertyID: "alpha",
-            },
         ]
     },
     {
