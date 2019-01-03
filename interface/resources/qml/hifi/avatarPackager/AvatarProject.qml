@@ -17,7 +17,7 @@ Item {
     Style { id: style }
 
     property int colorScheme;
-    property var uploader: undefined;
+    property var uploader: null;
 
     property bool hasSuccessfullyUploaded: true;
 
@@ -25,7 +25,10 @@ Item {
     anchors.fill: parent
     anchors.margins: 10
 
-    function reset() { hasSuccessfullyUploaded = false }
+    function reset() {
+        hasSuccessfullyUploaded = false;
+        uploader = null;
+    }
 
     property var footer: Item {
         anchors.fill: parent
@@ -151,32 +154,22 @@ Item {
     }
 
     function uploadNew() {
-        console.log("Uploading new");
         upload(false);
     }
     function uploadUpdate() {
-        console.log("Uploading update");
         upload(true);
+    }
+
+    Connections {
+        target: root.uploader
+        onStateChanged: {
+            root.hasSuccessfullyUploaded = newState >= 4;
+        }
     }
 
     function upload(updateExisting) {
         root.uploader = AvatarPackagerCore.currentAvatarProject.upload(updateExisting);
         console.log("uploader: "+ root.uploader);
-        root.uploader.uploadProgress.connect(function(uploaded, total) {
-            console.log("Uploader progress: " + uploaded + " / " + total);
-        });
-        root.uploader.completed.connect(function() {
-            root.hasSuccessfullyUploaded = true;
-        });
-        root.uploader.finishedChanged.connect(function() {
-            try {
-                var response = JSON.parse(root.uploader.responseData);
-                console.log("Uploader complete! " + response);
-                uploadStatus.text = response.status;
-            } catch (e) {
-                console.log("Error parsing JSON: " + root.uploader.reponseData);
-            }
-        });
         root.uploader.send();
         avatarPackager.state = AvatarPackagerState.projectUpload;
     }
