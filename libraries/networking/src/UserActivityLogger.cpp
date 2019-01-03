@@ -150,7 +150,7 @@ void UserActivityLogger::connectedDevice(QString typeOfDevice, QString deviceNam
     QJsonObject actionDetails;
     const QString TYPE_OF_DEVICE = "type_of_device";
     const QString DEVICE_NAME = "device_name";
-    qDebug() << "UserActivityLogger::connectedDevice -> type: " << typeOfDevice << " - deviceName: " << deviceName;
+
     actionDetails.insert(TYPE_OF_DEVICE, typeOfDevice);
     actionDetails.insert(DEVICE_NAME, deviceName);
 
