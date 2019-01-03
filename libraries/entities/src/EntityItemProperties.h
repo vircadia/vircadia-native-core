@@ -46,6 +46,7 @@
 #include "BloomPropertyGroup.h"
 #include "TextEntityItem.h"
 #include "ZoneEntityItem.h"
+#include "GridEntityItem.h"
 
 #include "MaterialMappingMode.h"
 #include "BillboardMode.h"
@@ -80,6 +81,7 @@ class EntityItemProperties {
     friend class LineEntityItem;
     friend class PolyLineEntityItem;
     friend class PolyVoxEntityItem;
+    friend class GridEntityItem;
     friend class LightEntityItem;
     friend class ZoneEntityItem;
     friend class MaterialEntityItem;
@@ -257,6 +259,10 @@ public:
     DEFINE_PROPERTY_REF(PROP_EMISSIVE, Emissive, emissive, bool, false);
     DEFINE_PROPERTY_REF(PROP_KEEP_ASPECT_RATIO, KeepAspectRatio, keepAspectRatio, bool, true);
     DEFINE_PROPERTY_REF(PROP_SUB_IMAGE, SubImage, subImage, QRect, QRect());
+
+    DEFINE_PROPERTY_REF(PROP_GRID_FOLLOW_CAMERA, FollowCamera, followCamera, bool, true);
+    DEFINE_PROPERTY(PROP_MAJOR_GRID_EVERY, MajorGridEvery, majorGridEvery, uint32_t, GridEntityItem::DEFAULT_MAJOR_GRID_EVERY);
+    DEFINE_PROPERTY(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float, GridEntityItem::DEFAULT_MINOR_GRID_EVERY);
 
     // Certifiable Properties - related to Proof of Purchase certificates
     DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
