@@ -746,7 +746,7 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
-    
+
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
@@ -820,6 +820,7 @@ void MyAvatar::simulate(float deltaTime) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
+    updateGrabs();
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -874,47 +875,12 @@ void MyAvatar::simulate(float deltaTime) {
                 zoneAllowsFlying = zone->getFlyingAllowed();
                 collisionlessAllowed = zone->getGhostingAllowed();
             }
-            auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            MovingEntitiesOperator moveOperator;
+            bool force = false;
+            bool iShouldTellServer = true;
             forEachDescendant([&](SpatiallyNestablePointer object) {
-                // if the queryBox has changed, tell the entity-server
-                if (object->getNestableType() == NestableType::Entity && object->updateQueryAACube()) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                    bool success;
-                    AACube newCube = entity->getQueryAACube(success);
-                    if (success) {
-                        moveOperator.addEntityToMoveList(entity, newCube);
-                    }
-                    // send an edit packet to update the entity-server about the queryAABox
-                    if (packetSender && entity->isDomainEntity()) {
-                        EntityItemProperties properties = entity->getProperties();
-                        properties.setQueryAACubeDirty();
-                        properties.setLastEdited(now);
-
-                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
-                                                             entity->getID(), properties);
-                        entity->setLastBroadcast(usecTimestampNow());
-
-                        entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                            EntityItemPointer entityDescendant = std::dynamic_pointer_cast<EntityItem>(descendant);
-                            if (entityDescendant && entityDescendant->isDomainEntity() && descendant->updateQueryAACube()) {
-                                EntityItemProperties descendantProperties;
-                                descendantProperties.setQueryAACube(descendant->getQueryAACube());
-                                descendantProperties.setLastEdited(now);
-                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
-                                                                     entityDescendant->getID(), descendantProperties);
-                                entityDescendant->setLastBroadcast(now); // for debug/physics status icons
-                            }
-                        });
-                    }
-                }
+                entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
             });
-            // also update the position of children in our local octree
-            if (moveOperator.hasMovingEntities()) {
-                PerformanceTimer perfTimer("recurseTreeWithOperator");
-                entityTree->recurseTreeWithOperator(&moveOperator);
-            }
         });
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
@@ -1479,6 +1445,7 @@ void MyAvatar::loadData() {
     setSnapTurn(_useSnapTurnSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
     setUserHeight(_userHeightSetting.get(DEFAULT_AVATAR_HEIGHT));
+    setTargetScale(_scaleSetting.get());
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
     _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
@@ -2417,10 +2384,10 @@ void MyAvatar::attachmentDataToEntityProperties(const AttachmentData& data, Enti
 void MyAvatar::initHeadBones() {
     int neckJointIndex = -1;
     if (_skeletonModel->isLoaded()) {
-        neckJointIndex = _skeletonModel->getHFMModel().neckJointIndex;
+        neckJointIndex = getJointIndex("Neck");
     }
     if (neckJointIndex == -1) {
-        neckJointIndex = (_skeletonModel->getHFMModel().headJointIndex - 1);
+        neckJointIndex = (getJointIndex("Head") - 1);
         if (neckJointIndex < 0) {
             // return if the head is not even there. can't cauterize!!
             return;
@@ -3186,17 +3153,15 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         OctreeElementPointer element;
         float distance;
         BoxFace face;
-        const bool visibleOnly = false;
-        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
-        // What we really want is to use the collision hull!
-        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
-        const bool collidableOnly = true;
-        const bool precisionPicking = true;
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
         bool* accurateResult = NULL;
 
+        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
+        // What we really want is to use the collision hull!
+        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
         QVariantMap extraInfo;
-        EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+        EntityItemID entityID = entityTree->evalRayIntersection(startPointIn, directionIn, include, ignore,
+            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE) | PickFilter::getBitMask(PickFilter::FlagBit::PRECISE)),
             element, distance, face, normalOut, extraInfo, lockType, accurateResult);
         if (entityID.isNull()) {
             return false;
@@ -4746,4 +4711,51 @@ SpatialParentTree* MyAvatar::getParentTree() const {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     return entityTree.get();
+}
+
+const QUuid MyAvatar::grab(const QUuid& targetID, int parentJointIndex,
+                           glm::vec3 positionalOffset, glm::quat rotationalOffset) {
+    auto grabID = QUuid::createUuid();
+    // create a temporary grab object to get grabData
+
+    QString hand = "none";
+    if (parentJointIndex == CONTROLLER_RIGHTHAND_INDEX ||
+        parentJointIndex == CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX ||
+        parentJointIndex == FARGRAB_RIGHTHAND_INDEX ||
+        parentJointIndex == getJointIndex("RightHand")) {
+        hand = "right";
+    } else if (parentJointIndex == CONTROLLER_LEFTHAND_INDEX ||
+               parentJointIndex == CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX ||
+               parentJointIndex == FARGRAB_LEFTHAND_INDEX ||
+               parentJointIndex == getJointIndex("LeftHand")) {
+        hand = "left";
+    }
+
+    Grab tmpGrab(DependencyManager::get<NodeList>()->getSessionUUID(),
+                 targetID, parentJointIndex, hand, positionalOffset, rotationalOffset);
+    QByteArray grabData = tmpGrab.toByteArray();
+    bool dataChanged = updateAvatarGrabData(grabID, grabData);
+
+    if (dataChanged && _clientTraitsHandler) {
+        // indicate that the changed data should be sent to the mixer
+        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
+    }
+
+    return grabID;
+}
+
+void MyAvatar::releaseGrab(const QUuid& grabID) {
+    bool tellHandler { false };
+
+    _avatarGrabsLock.withWriteLock([&] {
+        if (_avatarGrabData.remove(grabID)) {
+            _deletedAvatarGrabs.insert(grabID);
+            tellHandler = true;
+        }
+    });
+
+    if (tellHandler && _clientTraitsHandler) {
+        // indicate the deletion of the data to the mixer
+        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
+    }
 }

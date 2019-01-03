@@ -11,7 +11,7 @@ setup_memory_debugger()
 
 # link in the shared libraries
 link_hifi_libraries(
-  audio avatars octree gpu graphics fbx hfm entities
+  audio avatars octree gpu graphics shaders fbx hfm entities
   networking animation recording shared script-engine embedded-webserver
   controllers physics plugins midi image
 )

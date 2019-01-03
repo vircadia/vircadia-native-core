@@ -137,7 +137,7 @@ void CauterizedModel::updateClusterMatrices() {
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
 
-        AnimPose cauterizePose = _rig.getJointPose(hfmModel.neckJointIndex);
+        AnimPose cauterizePose = _rig.getJointPose(_rig.indexOfJoint("Neck"));
         cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
 
         static const glm::mat4 zeroScale(
@@ -145,7 +145,7 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0001f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0001f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        auto cauterizeMatrix = _rig.getJointTransform(hfmModel.neckJointIndex) * zeroScale;
+        auto cauterizeMatrix = _rig.getJointTransform(_rig.indexOfJoint("Neck")) * zeroScale;
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];

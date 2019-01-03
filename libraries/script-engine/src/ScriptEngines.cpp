@@ -321,6 +321,7 @@ void ScriptEngines::loadScripts() {
 
     // loads all saved scripts
     auto runningScripts = runningScriptsHandle.get();
+
     for (auto script : runningScripts) {
         auto string = script.toString();
         if (!string.isEmpty()) {

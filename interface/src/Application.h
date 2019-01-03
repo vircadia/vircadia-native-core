@@ -56,6 +56,7 @@
 #include "ConnectionMonitor.h"
 #include "CursorManager.h"
 #include "gpu/Context.h"
+#include "LoginStateManager.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
 #include "render/Engine.h"
@@ -97,6 +98,7 @@ static const UINT UWM_SHOW_APPLICATION =
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 static const QString SCRIPTS_SWITCH = "scripts";
+static const QString HIFI_NO_LOGIN_COMMAND_LINE_KEY = "no-login-suggestion";
 
 class Application;
 #if defined(qApp)
@@ -118,7 +120,7 @@ class Application : public QApplication,
 public:
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
-    virtual void requestReset() override { resetSensors(true); }
+    virtual void requestReset() override { resetSensors(false); }
     virtual void showDisplayPluginsTools(bool show) override;
     virtual GLWidget* getPrimaryWidget() override;
     virtual MainWindow* getPrimaryWindow() override;
@@ -232,7 +234,7 @@ public:
     float getSettingConstrainToolbarPosition() { return _constrainToolbarPosition.get(); }
     void setSettingConstrainToolbarPosition(bool setting);
 
-     Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
+    Q_INVOKABLE void setMinimumGPUTextureMemStabilityCount(int stabilityCount) { _minimumGPUTextureMemSizeStabilityCount = stabilityCount; }
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
@@ -320,6 +322,10 @@ public:
     int getOtherAvatarsReplicaCount() { return DependencyManager::get<AvatarHashMap>()->getReplicaCount(); }
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
+    bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
+    void createLoginDialogOverlay();
+    void updateLoginDialogOverlayPosition();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -338,13 +344,14 @@ signals:
 
     void interstitialModeChanged(bool isInInterstitialMode);
 
-    void loginDialogPoppedUp();
+    void loginDialogFocusEnabled();
+    void loginDialogFocusDisabled();
 
     void miniTabletEnabledChanged(bool enabled);
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
-    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
+    bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
     void updateThreadPoolCount() const;
@@ -361,6 +368,8 @@ public slots:
     Q_INVOKABLE SharedSoundPointer getSampleSound() const;
 
     void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
+
+    void showLoginScreen();
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
@@ -440,7 +449,10 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
     void setIsServerlessMode(bool serverlessDomain);
-    void loadServerlessDomain(QUrl domainURL, bool errorDomain = false);
+    std::map<QString, QString> prepareServerlessDomainContents(QUrl domainURL);
+
+    void loadServerlessDomain(QUrl domainURL);
+    void loadErrorDomain(QUrl domainURL);
     void setIsInterstitialMode(bool interstitialMode);
 
     void updateVerboseLogging();
@@ -505,10 +517,14 @@ private slots:
     void setShowBulletConstraints(bool value);
     void setShowBulletConstraintLimits(bool value);
 
+    void onDismissedLoginDialog();
+
     void setShowTrackedObjects(bool value);
 
 private:
     void init();
+    void pauseUntilLoginDetermined();
+    void resumeAfterLoginDialogActionTaken();
     bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
@@ -622,6 +638,7 @@ private:
     Setting::Handle<float> _fieldOfView;
     Setting::Handle<float> _hmdTabletScale;
     Setting::Handle<float> _desktopTabletScale;
+    Setting::Handle<bool> _firstRun;
     Setting::Handle<bool> _desktopTabletBecomesToolbarSetting;
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _preferStylusOverLaserSetting;
@@ -649,6 +666,7 @@ private:
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
+    QDir _defaultScriptsLocation;
 
     FileLogger* _logger;
 
@@ -669,6 +687,15 @@ private:
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
+    bool _interstitialModeEnabled{ false };
+
+    bool _loginDialogPoppedUp = false;
+    bool _developerMenuVisible{ false };
+    QString _previousAvatarSkeletonModel;
+    float _previousAvatarTargetScale;
+    CameraMode _previousCameraMode;
+    OverlayID _loginDialogOverlayID;
+    LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;
 

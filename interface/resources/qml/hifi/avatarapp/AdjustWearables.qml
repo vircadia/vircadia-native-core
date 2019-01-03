@@ -75,6 +75,10 @@ Rectangle {
                 if(materialUrlOrJson) {
                     wearable.text = 'Material: ' + materialUrlOrJson;
                 }
+            } else if (wearable.sourceUrl) {
+                wearable.text = extractTitleFromUrl(wearable.sourceUrl);
+            } else if (wearable.name) {
+                wearable.text = wearable.name;
             }
             wearablesCombobox.model.append(wearable);
         }

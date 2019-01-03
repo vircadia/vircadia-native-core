@@ -12,7 +12,7 @@
 #include "KeyboardScriptingInterface.h"
 #include "ui/Keyboard.h"
 
-bool KeyboardScriptingInterface::isRaised() {
+bool KeyboardScriptingInterface::isRaised() const {
     return DependencyManager::get<Keyboard>()->isRaised();
 }
 
@@ -20,8 +20,7 @@ void KeyboardScriptingInterface::setRaised(bool raised) {
     DependencyManager::get<Keyboard>()->setRaised(raised);
 }
 
-
-bool KeyboardScriptingInterface::isPassword() {
+bool KeyboardScriptingInterface::isPassword() const {
     return DependencyManager::get<Keyboard>()->isPassword();
 }
 
@@ -33,6 +32,38 @@ void KeyboardScriptingInterface::loadKeyboardFile(const QString& keyboardFile) {
     DependencyManager::get<Keyboard>()->loadKeyboardFile(keyboardFile);
 }
 
-bool KeyboardScriptingInterface::getUse3DKeyboard() {
+bool KeyboardScriptingInterface::getUse3DKeyboard() const {
     return DependencyManager::get<Keyboard>()->getUse3DKeyboard();
+}
+
+void KeyboardScriptingInterface::disableRightMallet() {
+    DependencyManager::get<Keyboard>()->disableRightMallet();
+}
+
+void KeyboardScriptingInterface::disableLeftMallet() {
+    DependencyManager::get<Keyboard>()->disableLeftMallet();
+}
+
+void KeyboardScriptingInterface::enableRightMallet() {
+    DependencyManager::get<Keyboard>()->enableRightMallet();
+}
+
+void KeyboardScriptingInterface::enableLeftMallet() {
+    DependencyManager::get<Keyboard>()->enableLeftMallet();
+}
+
+void KeyboardScriptingInterface::setLeftHandLaser(unsigned int leftHandLaser) {
+    DependencyManager::get<Keyboard>()->setLeftHandLaser(leftHandLaser);
+}
+
+void KeyboardScriptingInterface::setRightHandLaser(unsigned int rightHandLaser) {
+    DependencyManager::get<Keyboard>()->setRightHandLaser(rightHandLaser);
+}
+
+bool KeyboardScriptingInterface::getPreferMalletsOverLasers() const {
+    return DependencyManager::get<Keyboard>()->getPreferMalletsOverLasers();
+}
+
+bool KeyboardScriptingInterface::containsID(OverlayID overlayID) const {
+    return DependencyManager::get<Keyboard>()->containsID(overlayID);
 }

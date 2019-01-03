@@ -77,6 +77,7 @@ public:
     void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
 
     int compareImageLists();
+    int checkTextResults();
 
     QStringList createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory);
 
@@ -84,7 +85,8 @@ public:
 
     void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void appendTestResultsToFile(const QString& testResultsFolderPath, TestResult testResult, QPixmap comparisonImage, bool hasFailed);
+    void appendTestResultsToFile(TestResult testResult, QPixmap comparisonImage, bool hasFailed);
+    void appendTestResultsToFile(QString testResultFilename, bool hasFailed);
 
     bool createTestResultsFolderPath(const QString& directory);
     QString zipAndDeleteTestResultsFolder();

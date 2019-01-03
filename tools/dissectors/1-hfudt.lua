@@ -77,7 +77,7 @@ local packet_types = {
   [22] = "ICEServerPeerInformation",
   [23] = "ICEServerQuery",
   [24] = "OctreeStats",
-  [25] = "UNUSED_PACKET_TYPE_1",
+  [25] = "SetAvatarTraits",
   [26] = "AvatarIdentityRequest",
   [27] = "AssignmentClientStatus",
   [28] = "NoisyMute",
@@ -229,7 +229,7 @@ function p_hfudt.dissector(buf, pinfo, tree)
     -- read the obfuscation level
     local obfuscation_bits = bit32.band(0x03, bit32.rshift(first_word, 27))
     subtree:add(f_obfuscation_level, obfuscation_bits)
-
+    
     -- read the sequence number
     subtree:add(f_sequence_number, bit32.band(first_word, SEQUENCE_NUMBER_MASK))
 
@@ -255,6 +255,11 @@ function p_hfudt.dissector(buf, pinfo, tree)
 
       -- read the message part number
       subtree:add(f_message_part_number, buf(8, 4):le_uint())
+    end
+
+    if obfuscation_bits ~= 0 then
+      local newbuf = deobfuscate(message_bit, buf, obfuscation_bits)
+      buf = newbuf:tvb("Unobfuscated")
     end
 
     -- read the type
@@ -315,4 +320,31 @@ function p_hfudt.init()
   for port=1000, 65000 do
     udp_dissector_table:add(port, p_hfudt)
   end
+end
+
+function deobfuscate(message_bit, buf, level)
+  local out = ByteArray.new()
+  out:set_size(buf:len())
+  if (level == 1) then
+    key = ByteArray.new("6362726973736574")
+  elseif level == 2 then
+    key = ByteArray.new("7362697261726461")
+  elseif level == 3 then
+    key = ByteArray.new("72687566666d616e")
+  else
+    return
+  end
+  
+  local start = 4
+  if message_bit == 1 then
+    local start = 12
+  end
+  
+  local p = 0
+  for i = start, buf:len() - 1 do
+    out:set_index(i, bit.bxor(buf(i, 1):le_uint(), key:get_index(7 - (p % 8))) )
+    p = p + 1
+  end
+
+  return out
 end

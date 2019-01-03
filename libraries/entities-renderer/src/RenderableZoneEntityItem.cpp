@@ -27,8 +27,6 @@
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
-static const unsigned int SUN_SHADOW_CASCADE_COUNT{ 4 };
-static const float SUN_SHADOW_MAX_DISTANCE{ 40.0f };
 
 using namespace render;
 using namespace render::entities;
@@ -43,7 +41,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
         if (!LightStage::isIndexInvalid(_sunIndex)) {
             _stage->removeLight(_sunIndex);
             _sunIndex = INVALID_INDEX;
-            _shadowIndex = INVALID_INDEX;
         }
         if (!LightStage::isIndexInvalid(_ambientIndex)) {
             _stage->removeLight(_ambientIndex);
@@ -74,36 +71,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
 }
 
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
-#if 0
-    if (ZoneEntityItem::getDrawZoneBoundaries()) {
-        switch (_entity->getShapeType()) {
-            case SHAPE_TYPE_BOX:
-            case SHAPE_TYPE_SPHERE:
-                {
-                    PerformanceTimer perfTimer("zone->renderPrimitive");
-                    static const glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
-                    if (!updateModelTransform()) {
-                        break;
-                    }
-                    auto geometryCache = DependencyManager::get<GeometryCache>();
-                    gpu::Batch& batch = *args->_batch;
-                    batch.setModelTransform(_modelTransform);
-                    if (_entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-                        geometryCache->renderWireSphereInstance(args, batch, DEFAULT_COLOR);
-                    } else {
-                        geometryCache->renderWireCubeInstance(args, batch, DEFAULT_COLOR);
-                    }
-                }
-                break;
-
-            // Compund shapes are handled by the _model member
-            case SHAPE_TYPE_COMPOUND:
-            default:
-                // Not handled
-                break;
-        }
-    }
-#endif
     if (!_stage) {
         _stage = args->_scene->getStage<LightStage>();
         assert(_stage);
@@ -130,7 +97,6 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
-                _shadowIndex = _stage->addShadow(_sunIndex, SUN_SHADOW_MAX_DISTANCE, SUN_SHADOW_CASCADE_COUNT);
             } else {
                 _stage->updateLightArrayBuffer(_sunIndex);
             }

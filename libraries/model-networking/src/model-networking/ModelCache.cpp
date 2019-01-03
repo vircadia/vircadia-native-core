@@ -27,6 +27,7 @@
 #include <FBXSerializer.h>
 #include <OBJSerializer.h>
 #include <GLTFSerializer.h>
+#include <model-baker/Baker.h>
 
 Q_LOGGING_CATEGORY(trace_resource_parse_geometry, "trace.resource.parse.geometry")
 
@@ -277,8 +278,12 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
 }
 
 void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel) {
-    // Assume ownership of the HFMModel pointer
-    _hfmModel = hfmModel;
+    // Do processing on the model
+    baker::Baker modelBaker(hfmModel);
+    modelBaker.run();
+
+    // Assume ownership of the processed HFMModel
+    _hfmModel = modelBaker.hfmModel;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;

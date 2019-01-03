@@ -343,18 +343,18 @@ void Rig::initJointStates(const HFMModel& hfmModel, const glm::mat4& modelOffset
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
-    _rootJointIndex = hfmModel.rootJointIndex;
-    _leftEyeJointIndex = hfmModel.leftEyeJointIndex;
-    _rightEyeJointIndex = hfmModel.rightEyeJointIndex;
-    _leftHandJointIndex = hfmModel.leftHandJointIndex;
+    _rootJointIndex = indexOfJoint("Hips");
+    _leftEyeJointIndex = indexOfJoint("LeftEye");
+    _rightEyeJointIndex = indexOfJoint("RightEye");
+    _leftHandJointIndex = indexOfJoint("LeftHand");
     _leftElbowJointIndex = _leftHandJointIndex >= 0 ? hfmModel.joints.at(_leftHandJointIndex).parentIndex : -1;
     _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? hfmModel.joints.at(_leftElbowJointIndex).parentIndex : -1;
-    _rightHandJointIndex = hfmModel.rightHandJointIndex;
+    _rightHandJointIndex = indexOfJoint("RightHand");
     _rightElbowJointIndex = _rightHandJointIndex >= 0 ? hfmModel.joints.at(_rightHandJointIndex).parentIndex : -1;
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? hfmModel.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
-    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.leftEyeJointIndex);
-    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.rightEyeJointIndex);
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(indexOfJoint("LeftEye"));
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(indexOfJoint("RightEye"));
 }
 
 void Rig::reset(const HFMModel& hfmModel) {
@@ -390,18 +390,18 @@ void Rig::reset(const HFMModel& hfmModel) {
 
     buildAbsoluteRigPoses(_animSkeleton->getRelativeDefaultPoses(), _absoluteDefaultPoses);
 
-    _rootJointIndex = hfmModel.rootJointIndex;
-    _leftEyeJointIndex = hfmModel.leftEyeJointIndex;
-    _rightEyeJointIndex = hfmModel.rightEyeJointIndex;
-    _leftHandJointIndex = hfmModel.leftHandJointIndex;
+    _rootJointIndex = indexOfJoint("Hips");;
+    _leftEyeJointIndex = indexOfJoint("LeftEye");
+    _rightEyeJointIndex = indexOfJoint("RightEye");
+    _leftHandJointIndex = indexOfJoint("LeftHand");
     _leftElbowJointIndex = _leftHandJointIndex >= 0 ? hfmModel.joints.at(_leftHandJointIndex).parentIndex : -1;
     _leftShoulderJointIndex = _leftElbowJointIndex >= 0 ? hfmModel.joints.at(_leftElbowJointIndex).parentIndex : -1;
-    _rightHandJointIndex = hfmModel.rightHandJointIndex;
+    _rightHandJointIndex = indexOfJoint("RightHand");
     _rightElbowJointIndex = _rightHandJointIndex >= 0 ? hfmModel.joints.at(_rightHandJointIndex).parentIndex : -1;
     _rightShoulderJointIndex = _rightElbowJointIndex >= 0 ? hfmModel.joints.at(_rightElbowJointIndex).parentIndex : -1;
 
-    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.leftEyeJointIndex);
-    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(hfmModel.rightEyeJointIndex);
+    _leftEyeJointChildren = _animSkeleton->getChildrenOfJoint(indexOfJoint("LeftEye"));
+    _rightEyeJointChildren = _animSkeleton->getChildrenOfJoint(indexOfJoint("RightEye"));
 
     if (!_animGraphURL.isEmpty()) {
         _animNode.reset();

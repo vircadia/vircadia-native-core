@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
+/* global module, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
    Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
@@ -31,6 +31,8 @@
    disableDispatcherModule:true,
    getEnabledModuleByName:true,
    getGrabbableData:true,
+   isAnothersAvatarEntity:true,
+   isAnothersChildEntity:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
    getControllerJointIndexCacheTime:true,
@@ -104,7 +106,7 @@ TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
 NEAR_GRAB_DISTANCE = 0.14; // Grab an entity if its bounding box is within this distance.
 // Smaller than TEAR_AWAY_DISTANCE for hysteresis.
 
-DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
+DISPATCHER_HOVERING_LIST = "dispatcherHoveringList";
 DISPATCHER_HOVERING_STYLE = {
     isOutlineSmooth: true,
     outlineWidth: 0,
@@ -144,6 +146,7 @@ DISPATCHER_PROPERTIES = [
     "grab.grabFollowsController",
     "grab.triggerable",
     "grab.equippable",
+    "grab.grabDelegateToParent",
     "grab.equippableLeftPosition",
     "grab.equippableLeftRotation",
     "grab.equippableRightPosition",
@@ -151,7 +154,9 @@ DISPATCHER_PROPERTIES = [
     "grab.equippableIndicatorURL",
     "grab.equippableIndicatorScale",
     "grab.equippableIndicatorOffset",
-    "userData"
+    "userData",
+    "avatarEntity",
+    "owningAvatarID"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -181,14 +186,14 @@ makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
     };
 };
 
-makeLaserParams = function(hand, allwaysOn) {
-    if (allwaysOn === undefined) {
-        allwaysOn = false;
+makeLaserParams = function(hand, alwaysOn) {
+    if (alwaysOn === undefined) {
+        alwaysOn = false;
     }
 
     return {
         hand: hand,
-        allwaysOn: allwaysOn
+        alwaysOn: alwaysOn
     };
 };
 
@@ -286,10 +291,44 @@ getGrabbableData = function (ggdProps) {
     return grabbableData;
 };
 
+isAnothersAvatarEntity = function (iaaeProps) {
+    if (!iaaeProps.avatarEntity) {
+        return false;
+    }
+    if (iaaeProps.owningAvatarID === MyAvatar.sessionUUID) {
+        return false;
+    }
+    if (iaaeProps.owningAvatarID === MyAvatar.SELF_ID) {
+        return false;
+    }
+    return true;
+};
+
+isAnothersChildEntity = function (iaceProps) {
+    while (iaceProps.parentID && iaceProps.parentID !== Uuid.NULL) {
+        if (Entities.getNestableType(iaceProps.parentID) == "avatar") {
+            if (iaceProps.parentID == MyAvatar.SELF_ID || iaceProps.parentID == MyAvatar.sessionUUID) {
+                return false; // not another's, it's mine.
+            }
+            return true;
+        }
+        // Entities.getNestableType(iaceProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(iaceProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = iaceProps.parentID;
+        iaceProps = parentProps;
+    }
+    return false;
+};
+
 entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
+        isAnothersAvatarEntity(eigProps) ||
+        isAnothersChildEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }
@@ -331,17 +370,9 @@ getControllerJointIndex = function (hand) {
     var now = Date.now();
     if (now - getControllerJointIndexCacheTime[hand] > GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME) {
         if (HMD.isHandControllerAvailable()) {
-            var controllerJointIndex = -1;
-            if (Camera.mode === "first person") {
-                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+            var controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
                                                               "_CONTROLLER_RIGHTHAND" :
                                                               "_CONTROLLER_LEFTHAND");
-            } else if (Camera.mode === "third person") {
-                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                                              "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                              "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-            }
-
             getControllerJointIndexCacheTime[hand] = now;
             getControllerJointIndexCache[hand] = controllerJointIndex;
             return controllerJointIndex;
@@ -409,7 +440,8 @@ ensureDynamic = function (entityID) {
 };
 
 findGroupParent = function (controllerData, targetProps) {
-    while (targetProps.parentID &&
+    while (targetProps.grab.grabDelegateToParent &&
+           targetProps.parentID &&
            targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);

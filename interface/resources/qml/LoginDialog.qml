@@ -3,7 +3,6 @@
 //
 //  Created by David Rowe on 3 Jun 2015
 //  Copyright 2015 High Fidelity, Inc.
-//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -11,32 +10,34 @@
 import Hifi 1.0
 import QtQuick 2.4
 
-import controlsUit 1.0
-import stylesUit 1.0
-import "windows"
+import controlsUit 1.0 as HifiControlsUit
+import stylesUit 1.0 as HifiStylesUit
 
 import "LoginDialog"
 
-ModalWindow {
+FocusScope {
     id: root
-    HifiConstants { id: hifi }
+    HifiStylesUit.HifiConstants { id: hifi }
     objectName: "LoginDialog"
-    implicitWidth: 520
-    implicitHeight: 320
-    closeButtonVisible: true
-    destroyOnCloseButton: true
-    destroyOnHidden: true
-    visible: true
+    property bool shown: true
+    visible: shown
+
+    anchors.fill: parent
 
     readonly property bool isTablet: false
+    readonly property bool isOverlay: false
 
     property string iconText: ""
     property int iconSize: 50
-
+    property bool keyboardEnabled: false
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+    property bool isPassword: false
     property string title: ""
+    property string text: ""
     property int titleWidth: 0
-
-    keyboardOverride: true  // Disable ModalWindow's keyboard.
+    property alias bannerWidth: banner.width
+    property alias bannerHeight: banner.height
 
     function tryDestroy() {
         root.destroy()
@@ -47,7 +48,39 @@ ModalWindow {
 
         Loader {
             id: bodyLoader
-            source: loginDialog.isSteamRunning() ? "LoginDialog/SignInBody.qml" : "LoginDialog/LinkAccountBody.qml"
+        }
+    }
+
+    Image {
+        z: -10
+        id: loginDialogBackground
+        source: "LoginDialog/images/background.jpg"
+        anchors.fill: parent
+    }
+
+    Rectangle {
+        z: -6
+        id: opaqueRect
+        height: parent.height
+        width: parent.width
+        opacity: 0.65
+        color: "black"
+    }
+
+    Item {
+        z: -5
+        id: bannerContainer
+        width: parent.width
+        height: banner.height
+        anchors {
+            top: parent.top
+            topMargin: 0.18 * parent.height
+        }
+        Image {
+            id: banner
+            anchors.centerIn: parent
+            source: "../images/high-fidelity-banner.svg"
+            horizontalAlignment: Image.AlignHCenter
         }
     }
 
@@ -76,7 +109,6 @@ ModalWindow {
             case Qt.Key_Escape:
             case Qt.Key_Back:
                 event.accepted = true
-                destroy()
                 break
 
             case Qt.Key_Enter:
@@ -84,5 +116,9 @@ ModalWindow {
                 event.accepted = true
                 break
         }
+    }
+
+    Component.onCompleted: {
+        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
     }
 }

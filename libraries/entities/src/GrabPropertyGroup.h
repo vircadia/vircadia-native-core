@@ -31,6 +31,7 @@ static const bool INITIAL_KINEMATIC { true };
 static const bool INITIAL_FOLLOWS_CONTROLLER { true };
 static const bool INITIAL_TRIGGERABLE { false };
 static const bool INITIAL_EQUIPPABLE { false };
+static const bool INITIAL_GRAB_DELEGATE_TO_PARENT { true };
 static const glm::vec3 INITIAL_LEFT_EQUIPPABLE_POSITION { glm::vec3(0.0f) };
 static const glm::quat INITIAL_LEFT_EQUIPPABLE_ROTATION { glm::quat() };
 static const glm::vec3 INITIAL_RIGHT_EQUIPPABLE_POSITION { glm::vec3(0.0f) };
@@ -123,6 +124,8 @@ public:
                     INITIAL_FOLLOWS_CONTROLLER);
     DEFINE_PROPERTY(PROP_GRAB_TRIGGERABLE, Triggerable, triggerable, bool, INITIAL_TRIGGERABLE);
     DEFINE_PROPERTY(PROP_GRAB_EQUIPPABLE, Equippable, equippable, bool, INITIAL_EQUIPPABLE);
+    DEFINE_PROPERTY(PROP_GRAB_DELEGATE_TO_PARENT, GrabDelegateToParent, grabDelegateToParent, bool,
+                    INITIAL_GRAB_DELEGATE_TO_PARENT);
     DEFINE_PROPERTY_REF(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, EquippableLeftPosition, equippableLeftPosition,
                         glm::vec3, INITIAL_LEFT_EQUIPPABLE_POSITION);
     DEFINE_PROPERTY_REF(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, EquippableLeftRotation, equippableLeftRotation,

@@ -5,7 +5,7 @@ Nitpick is a stand alone application that provides a mechanism for regression te
 * The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
 * The result, if any test failed, is a zipped folder describing the failure.
 
-Nitpick has 5 functions, separated into 4 tabs:
+Nitpick has 5 functions, separated into separate tabs:
 1. Creating tests, MD files and recursive scripts
 1. Windows task bar utility (Windows only)
 1. Running tests
@@ -22,9 +22,9 @@ Nitpick is built as part of the High Fidelity build.
 1.  Select all, right-click and select 7-Zip->Add to archive...
 1.  Set Archive format to 7z
 1.  Check "Create SFX archive
-1.  Enter installer name (i.e. `nitpick-installer-v1.1.exe`)
+1.  Enter installer name (i.e. `nitpick-installer-v1.2.exe`)
 1.  Click "OK"
-1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe: aws s3 cp nitpick-installer-v1.1.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.exe
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe: aws s3 cp nitpick-installer-v1.2.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.2.exe
 #### Mac
 These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  (first time) Install brew
@@ -37,12 +37,12 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  Change the loader instruction to find the dynamic library locally
     In a terminal: `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
 1.  Delete any existing disk images. In a terminal: `rm *.dmg`
-1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-v1.1 nitpick-installer-v1.1.dmg .`  
+1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-v1.2 nitpick-installer-v1.2.dmg .`  
     Make sure to wait for completion.
-1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.1.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.1.dmg`
+1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.2.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.2.dmg`
 ### Installation
 #### Windows
-1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe)
+1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe)
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
@@ -52,7 +52,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  `pip install boto3`
 
-1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.1.exe>)
+1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe>)
 1. Double click on the installer and install to a convenient location  
 ![](./setup_7z.PNG)
 
@@ -76,14 +76,14 @@ In a terminal: `python3 get-pip.py --user`
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3
-1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.1.dmg>).
+1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.2.dmg>).
 1.  Double-click on the downloaded image to mount it
 1. Create a folder for the nitpick files (e.g. ~/nitpick)
    If this folder exists then delete all it's contents.
 1. Copy the downloaded files to the folder  
    In a terminal:  
      `cd ~/nitpick`  
-     `cp -r /Volumes/nitpick-installer-v1.1/* .`
+     `cp -r /Volumes/nitpick-installer-v1.2/* .`
 
 1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__  
 # Usage

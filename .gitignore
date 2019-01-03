@@ -17,10 +17,11 @@ Makefile
 local.properties
 android/gradle*
 android/.gradle
-android/app/src/main/jniLibs
-android/app/libs
-android/app/src/main/res/values/libs.xml
-android/app/src/main/assets/bundled
+android/**/src/main/jniLibs
+android/**/libs
+android/**/src/main/res/values/libs.xml
+android/**/src/main/assets
+android/**/gradle*
 
 # VSCode
 # List taken from Github Global Ignores master@435c4d92
@@ -83,9 +84,6 @@ npm-debug.log
 # Android studio files
 *___jb_old___
 
-# Generated assets for Android
-android/app/src/main/assets
-
 # Resource binary file
 interface/compiledResources
 
@@ -95,7 +93,11 @@ interface/resources/GPUCache/*
 # package lock file for JSDoc tool
 tools/jsdoc/package-lock.json
 
+# Python compile artifacts
+**/__pycache__
+
 # ignore unneeded unity project files for avatar exporter
 tools/unity-avatar-exporter/Library
 tools/unity-avatar-exporter/Packages
 tools/unity-avatar-exporter/ProjectSettings
+tools/unity-avatar-exporter/Temp

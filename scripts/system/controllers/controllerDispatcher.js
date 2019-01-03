@@ -12,7 +12,7 @@
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES,
    getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
    PointerManager, getGrabPointSphereOffset, HMD, MyAvatar, Messages, findHandChildEntities, Picks, PickType, Pointers,
-   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE
+   PointerManager, print, Selection, DISPATCHER_HOVERING_LIST, DISPATCHER_HOVERING_STYLE, Keyboard
 */
 
 controllerDispatcherPlugins = {};
@@ -463,6 +463,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             distanceScaleEnd: true,
             hand: LEFT_HAND
         });
+        Keyboard.setLeftHandLaser(this.leftPointer);
         this.rightPointer = this.pointerManager.createPointer(false, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
             filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
@@ -473,6 +474,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             distanceScaleEnd: true,
             hand: RIGHT_HAND
         });
+        Keyboard.setRightHandLaser(this.rightPointer);
         this.leftHudPointer = this.pointerManager.createPointer(true, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
             filter: Picks.PICK_HUD,

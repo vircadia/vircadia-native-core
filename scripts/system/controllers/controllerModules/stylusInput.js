@@ -128,7 +128,7 @@ Script.include("/~/system/libraries/controllers.js");
                 }
             }
 
-            var WEB_DISPLAY_STYLUS_DISTANCE = 0.5;
+            const WEB_DISPLAY_STYLUS_DISTANCE = (Keyboard.raised && Keyboard.preferMalletsOverLasers) ? 0.2 : 0.5;
             var nearStylusTarget = isNearStylusTarget(stylusTargets, WEB_DISPLAY_STYLUS_DISTANCE * sensorScaleFactor);
 
             if (nearStylusTarget.length !== 0) {
@@ -152,9 +152,13 @@ Script.include("/~/system/libraries/controllers.js");
 
             if (isUsingStylus && this.processStylus(controllerData)) {
                 Pointers.enablePointer(this.pointer);
+                this.hand === RIGHT_HAND ? Keyboard.disableRightMallet() : Keyboard.disableLeftMallet();
                 return makeRunningValues(true, [], []);
             } else {
                 Pointers.disablePointer(this.pointer);
+                if (Keyboard.raised && Keyboard.preferMalletsOverLasers) {
+                    this.hand === RIGHT_HAND ? Keyboard.enableRightMallet() : Keyboard.enableLeftMallet();
+                }
                 return makeRunningValues(false, [], []);
             }
         };

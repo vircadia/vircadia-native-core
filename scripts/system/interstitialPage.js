@@ -21,7 +21,7 @@
     var TEXTURE_EPSILON = 0.01;
     var isVisible = false;
     var VOLUME = 0.4;
-    var tune = SoundCache.getSound(Script.resolvePath("/~/system/assets/sounds/crystals_and_voices.mp3"));
+    var tune = SoundCache.getSound(Script.resourcesPath() + "sounds/crystals_and_voices.mp3");
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;

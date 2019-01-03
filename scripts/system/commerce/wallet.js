@@ -377,12 +377,8 @@ function deleteSendMoneyParticleEffect() {
 }
 
 function onUsernameChanged() {
-    if (Account.username !== Settings.getValue("keepMeLoggedIn/savedUsername")) {
-        Settings.setValue("keepMeLoggedIn", false);
-        Settings.setValue("keepMeLoggedIn/savedUsername", "");
-    }
 }    
-    
+
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 var METAVERSE_SERVER_URL = Account.metaverseServerURL;
 var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.
@@ -437,7 +433,6 @@ function fromQml(message) {
         }
         break;
     case 'needsLogIn_loginClicked':
-        ui.close();
         openLoginWindow();
         break;
     case 'disableHmdPreview':
@@ -536,6 +531,10 @@ function fromQml(message) {
         shouldShowDotHistory = false;
         ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
         break;
+    case 'clearShouldShowDotUpdates':
+        shouldShowDotUpdates = false;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
+        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
@@ -578,7 +577,7 @@ function notificationDataProcessPageHistory(data) {
 
 var shouldShowDotUpdates = false;
 function notificationPollCallbackUpdates(updatesArray) {
-    shouldShowDotUpdates = shouldShowDotUpdates || updatesArray.length > 0;
+    shouldShowDotUpdates = updatesArray.length > 0;
     ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
     if (updatesArray.length > 0) {

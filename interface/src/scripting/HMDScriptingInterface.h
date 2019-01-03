@@ -413,6 +413,8 @@ public:
     QVariant getPlayAreaRect();
     QVector<glm::vec3> getSensorPositions();
 
+    glm::vec3 getPosition() const;
+
 private:
     bool _showTablet { false };
     bool _tabletContextualMode { false };
@@ -425,9 +427,6 @@ private:
     QUuid _miniTabletScreenID;
     int _miniTabletHand { -1 };
     bool _miniTabletEnabled { true };
-
-    // Get the position of the HMD
-    glm::vec3 getPosition() const;
 
     // Get the orientation of the HMD
     glm::quat getOrientation() const;

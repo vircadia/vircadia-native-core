@@ -48,6 +48,7 @@ public slots:
     void setDomainConnectionFailureVisibility(bool visible);
     void toggleLoginDialog();
     void showLoginDialog();
+    void hideLoginDialog();
     void octreeStatsDetails();
     void lodTools();
     void hmdTools(bool showTools);

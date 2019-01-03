@@ -1089,9 +1089,13 @@ Rectangle {
         root.itemInfoReceived = true;
         root.itemName = result.data.title;
         root.itemPrice = result.data.cost;
-        root.itemHref = Account.metaverseServerURL + result.data.path;
         root.itemAuthor = result.data.creator;
         root.itemType = result.data.item_type || "unknown";
+        if (root.itemType === "unknown") {
+            root.itemHref = result.data.review_url;
+        } else {
+            root.itemHref = Account.metaverseServerURL + result.data.path;
+        }
         itemPreviewImage.source = result.data.thumbnail_url;
         refreshBuyUI();
     }

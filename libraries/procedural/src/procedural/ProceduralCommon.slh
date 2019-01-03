@@ -8,11 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include gpu/Transform.slh@>
 <@include gpu/Noise.slh@>
 <@include procedural/ShaderConstants.h@>
- 
-<$declareStandardCameraTransform()$>
 
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL0) uniform sampler2D iChannel0;
 LAYOUT(binding=PROCEDURAL_TEXTURE_CHANNEL1) uniform sampler2D iChannel1;
@@ -59,6 +56,32 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
 #define iChannelResolution standardInputs.channelResolution
 #define iWorldOrientation standardInputs.worldOrientation
 
+struct ProceduralFragment {
+    vec3 normal;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emissive;
+    float alpha;
+    float roughness;
+    float metallic;
+    float occlusion;
+    float scattering;
+};
+
+// Same as ProceduralFragment but with position
+struct ProceduralFragmentWithPosition {
+    vec3 position;
+    vec3 normal;
+    vec3 diffuse;
+    vec3 specular;
+    vec3 emissive;
+    float alpha;
+    float roughness;
+    float metallic;
+    float occlusion;
+    float scattering;
+};
+
 // Unimplemented uniforms
 // Resolution doesn't make sense in the VR context
 const vec3 iResolution = vec3(1.0);
@@ -68,8 +91,6 @@ const vec4 iMouse = vec4(0.0);
 const float iSampleRate = 1.0;
 // No support for video input
 const vec4 iChannelTime = vec4(0.0);
-
-#define PROCEDURAL 1
 
 //PROCEDURAL_VERSION
 

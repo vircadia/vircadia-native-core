@@ -14,7 +14,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath 'com.android.tools.build:gradle:3.2.1'
     }
 }
 
@@ -392,7 +392,7 @@ task extractDependencies(dependsOn: verifyDependencyDownloads) {
 }
 
 // Copies the non Qt dependencies.  Qt dependencies (primary libraries and plugins) are handled by the qtBundle task
-task copyDependencies(dependsOn: [ extractDependencies ]) {
+task copyDependencies() {
     doLast {
         packages.each { entry ->
             def packageName = entry.key
@@ -414,7 +414,7 @@ task copyDependencies(dependsOn: [ extractDependencies ]) {
     }
 }
 
-task extractGvrBinaries(dependsOn: extractDependencies) {
+task extractGvrBinaries() {
     doLast {
         def gvrLibFolder = new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries');
         zipTree(new File(HIFI_ANDROID_PRECOMPILED, 'gvr/gvr-android-sdk-1.101.0/libraries/sdk-audio-1.101.0.aar')).visit { element ->

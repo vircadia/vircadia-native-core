@@ -247,6 +247,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool isInSittingState READ getIsInSittingState WRITE setIsInSittingState);
     Q_PROPERTY(MyAvatar::SitStandModelType userRecenterModel READ getUserRecenterModel WRITE setUserRecenterModel);
     Q_PROPERTY(bool isSitStandStateLocked READ getIsSitStandStateLocked WRITE setIsSitStandStateLocked);
+    Q_PROPERTY(bool allowTeleporting READ getAllowTeleporting)
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -558,6 +559,9 @@ public:
     bool useAdvancedMovementControls() const { return _useAdvancedMovementControls.get(); }
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
         { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
+
+    bool getAllowTeleporting() { return _allowTeleportingSetting.get(); }
+    void setAllowTeleporting(bool allowTeleporting) { _allowTeleportingSetting.set(allowTeleporting); }
 
     bool getShowPlayArea() const { return _showPlayArea.get(); }
     void setShowPlayArea(bool showPlayArea) { _showPlayArea.set(showPlayArea); }
@@ -1165,6 +1169,25 @@ public:
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
+
+    /**jsdoc
+     * Create a new grab.
+     * @function MyAvatar.grab
+     * @param {Uuid} targetID - id of grabbed thing
+     * @param {number} parentJointIndex - avatar joint being used to grab
+     * @param {Vec3} offset - target's positional offset from joint
+     * @param {Quat} rotationalOffset - target's rotational offset from joint
+     * @returns {Uuid} id of the new grab
+     */
+    Q_INVOKABLE const QUuid grab(const QUuid& targetID, int parentJointIndex,
+                                 glm::vec3 positionalOffset, glm::quat rotationalOffset);
+
+    /**jsdoc
+     * Release (delete) a grab.
+     * @function MyAvatar.releaseGrab
+     * @param {Uuid} grabID - id of grabbed thing
+     */
+    Q_INVOKABLE void releaseGrab(const QUuid& grabID);
 
 public slots:
 
@@ -1889,6 +1912,7 @@ private:
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
     Setting::Handle<int> _avatarEntityCountSetting;
+    Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
 };
