@@ -252,7 +252,7 @@ enum class EntityVersion : PacketVersion {
     GridEntities,
     MissingTextProperties,
     GrabTraits,
-    MorePropertiesCleanup
+    MorePropertiesCleanup,
     UpdatedPolyLines
 };
 
