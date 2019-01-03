@@ -128,8 +128,6 @@ void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
 
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {
     auto currentMove = event->angleDelta() / 120.0f;
-
-    // ####### TODO: Use AxisValue timestamps?
     _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_POS).getChannel()].value = currentMove.x() > 0 ? currentMove.x() : 0;
     _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_X_NEG).getChannel()].value = currentMove.x() < 0 ? -currentMove.x() : 0;
     _inputDevice->_axisStateMap[_inputDevice->makeInput(MOUSE_AXIS_WHEEL_Y_POS).getChannel()].value = currentMove.y() > 0 ? currentMove.y() : 0;
@@ -172,8 +170,6 @@ void KeyboardMouseDevice::touchUpdateEvent(const QTouchEvent* event) {
             _isTouching = event->touchPointStates().testFlag(Qt::TouchPointPressed);
         } else {
             auto currentMove = currentPos - _lastTouch;
-
-            // ####### TODO: Use AxisValue timestamp fields?
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = (currentMove.x > 0 ? currentMove.x : 0.0f);
             _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()].value = (currentMove.x < 0 ? -currentMove.x : 0.0f);
             // Y mouse is inverted positive is pointing up the screen

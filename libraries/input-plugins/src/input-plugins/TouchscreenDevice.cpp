@@ -38,7 +38,6 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
         _inputDevice->update(deltaTime, inputCalibrationData);
     });
 
-    // ####### TODO: Use AxisValue timestamp fields?
     float distanceScaleX, distanceScaleY;
     if (_touchPointCount == 1) {
         if (_firstTouchVec.x < _currentTouchVec.x) {
