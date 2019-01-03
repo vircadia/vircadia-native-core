@@ -85,9 +85,9 @@ class AvatarExporter : MonoBehaviour {
         {"LeftHandRing3", new Quaternion(-0.4936301f, 0.5097645f, -0.5061787f, -0.4901562f)},
         {"LeftHandRing2", new Quaternion(-0.5089865f, 0.4943658f, -0.4909532f, -0.5054707f)},
         {"LeftHandRing1", new Quaternion(-0.5020972f, 0.5005084f, -0.4979034f, -0.4994819f)},
-        {"LeftHandThumb3", new Quaternion(-0.7228092f, 0.2988393f, -0.4472938f, -0.4337862f)},
-        {"LeftHandThumb2", new Quaternion(-0.7554525f, 0.2018595f, -0.3871402f, -0.4885356f)},
-        {"LeftHandThumb1", new Quaternion(-0.7276843f, 0.2878546f, -0.439926f, -0.4405459f)},
+        {"LeftHandThumb3", new Quaternion(-0.6617184f, 0.2884935f, -0.3604706f, -0.5907297f)},
+        {"LeftHandThumb2", new Quaternion(-0.6935627f, 0.1995147f, -0.2805665f, -0.6328092f)},
+        {"LeftHandThumb1", new Quaternion(-0.6663674f, 0.278572f, -0.3507071f, -0.5961183f)},
         {"LeftEye", new Quaternion(-2.509889e-9f, -3.379446e-12f, 2.306033e-13f, 1f)},
         {"LeftFoot", new Quaternion(0.009215056f, 0.3612514f, 0.9323555f, -0.01121602f)},
         {"LeftHand", new Quaternion(-0.4797408f, 0.5195366f, -0.5279632f, -0.4703038f)},
@@ -110,9 +110,9 @@ class AvatarExporter : MonoBehaviour {
         {"RightHandRing3", new Quaternion(0.4933217f, 0.5102056f, -0.5064691f, 0.4897075f)},
         {"RightHandRing2", new Quaternion(0.5085972f, 0.494844f, -0.4913519f, 0.505007f)},
         {"RightHandRing1", new Quaternion(0.502959f, 0.4996676f, -0.4970418f, 0.5003144f)},
-        {"RightHandThumb3", new Quaternion(0.7221864f, 0.3001843f, -0.4482129f, 0.4329457f)},
-        {"RightHandThumb2", new Quaternion(0.755621f, 0.20102f, -0.386691f, 0.4889769f)},
-        {"RightHandThumb1", new Quaternion(0.7277303f, 0.2876409f, -0.4398623f, 0.4406733f)},
+        {"RightHandThumb3", new Quaternion(0.6611374f, 0.2896575f, -0.3616535f, 0.5900872f)},
+        {"RightHandThumb2", new Quaternion(0.6937408f, 0.1986776f, -0.279922f, 0.6331626f)},
+        {"RightHandThumb1", new Quaternion(0.6664271f, 0.2783172f, -0.3505667f, 0.596253f)},
         {"RightEye", new Quaternion(-2.509889e-9f, -3.379446e-12f, 2.306033e-13f, 1f)},
         {"RightFoot", new Quaternion(-0.009482829f, 0.3612484f, 0.9323512f, 0.01144584f)},
         {"RightHand", new Quaternion(0.4797273f, 0.5195542f, -0.5279628f, 0.4702987f)},
@@ -482,6 +482,7 @@ class ExportProjectWindow : EditorWindow {
     const int BUTTON_FONT_SIZE = 16;
     const int LABEL_FONT_SIZE = 16;
     const int TEXT_FIELD_FONT_SIZE = 14;
+    const int TEXT_FIELD_HEIGHT = 20;
     const int ERROR_FONT_SIZE = 12;
     
     string projectName = "";
@@ -508,6 +509,7 @@ class ExportProjectWindow : EditorWindow {
         labelStyle.fontSize = LABEL_FONT_SIZE;
         GUIStyle textStyle = new GUIStyle(GUI.skin.textField);
         textStyle.fontSize = TEXT_FIELD_FONT_SIZE;
+        textStyle.fixedHeight = TEXT_FIELD_HEIGHT;
         GUIStyle errorStyle = new GUIStyle(GUI.skin.label); 
         errorStyle.fontSize = ERROR_FONT_SIZE;
         errorStyle.normal.textColor = Color.red;
