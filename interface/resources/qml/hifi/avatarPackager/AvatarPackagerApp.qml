@@ -19,6 +19,7 @@ Item {
 
     MouseArea {
         anchors.fill: parent
+
         onClicked: {
             unfocusser.forceActiveFocus();
         }
@@ -351,8 +352,6 @@ Item {
                         id: recentProjectsText
 
                         color: 'white'
-
-                        visible: AvatarPackagerCore.currentAvatarProject !== null
 
                         anchors.top: parent.top
                         anchors.left: parent.left

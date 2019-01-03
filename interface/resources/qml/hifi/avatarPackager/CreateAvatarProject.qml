@@ -31,6 +31,7 @@ Item {
                     avatarPackager.displayErrorMessage(status);
                     return;
                 }
+                avatarProject.reset();
                 avatarPackager.state = AvatarPackagerState.project;
             }
         }

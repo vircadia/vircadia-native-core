@@ -122,7 +122,6 @@ ShadowRectangle {
         anchors.verticalCenter: docs.verticalCenter
 
         text: qsTr("Docs")
-        color: "white"
 
         onClicked: {
             docsButtonClicked();

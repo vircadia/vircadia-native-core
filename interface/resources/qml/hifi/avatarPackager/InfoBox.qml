@@ -20,6 +20,12 @@ Rectangle {
     property alias boxWidth: mainContainer.width
     property alias boxHeight: mainContainer.height
 
+    onVisibleChanged: {
+        if (visible) {
+            focus = true;
+        }
+    }
+
     function open() {
         visible = true;
     }
