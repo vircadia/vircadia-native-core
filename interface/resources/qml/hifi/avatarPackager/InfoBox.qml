@@ -5,9 +5,9 @@ import controlsUit 1.0 as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {
-    id: root;
-    visible: false;
-    color: Qt.rgba(.34, .34, .34, 0.6);
+    id: root
+    visible: false
+    color: Qt.rgba(.34, .34, .34, 0.6)
     z: 999;
 
     anchors.fill: parent
@@ -16,6 +16,9 @@ Rectangle {
     property alias content: loader.sourceComponent
 
     property bool closeOnClickOutside: false;
+
+    property alias boxWidth: mainContainer.width
+    property alias boxHeight: mainContainer.height
 
     function open() {
         visible = true;
@@ -44,15 +47,15 @@ Rectangle {
     }
 
     Rectangle {
-        id: mainContainer;
+        id: mainContainer
 
         width: Math.max(parent.width * 0.8, 400)
         height: parent.height * 0.6
 
         MouseArea {
-            anchors.fill: parent;
-            propagateComposedEvents: false;
-            hoverEnabled: true;
+            anchors.fill: parent
+            propagateComposedEvents: false
+            hoverEnabled: true
             onClicked: function(ev) {
                 ev.accepted = true;
             }
@@ -107,6 +110,5 @@ Rectangle {
                 colorScheme: hifi.colorSchemes.dark;
             }
         }
-
     }
 }

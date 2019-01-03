@@ -29,10 +29,11 @@ Item {
 
     function stateChangedCallback(newState) {
         if (newState >= 4) {
-            root.uploader.stateChanged.disconnect(stateChangedCallback)
+            root.uploader.stateChanged.disconnect(stateChangedCallback);
             backToProjectTimer.start();
         }
     }
+
     onVisibleChanged: {
         if (visible) {
             root.uploader.stateChanged.connect(stateChangedCallback);
@@ -120,6 +121,7 @@ Item {
                 source: "../../../icons/checkmark-stroke.svg"
             }
         }
+
         Item {
             id: statusRows
 
@@ -169,6 +171,7 @@ Item {
             color: "white"
             text: "We couldn't upload your avatar at this time. Please try again later."
         }
+
         AvatarPackagerFooter {
             id: errorFooter
 

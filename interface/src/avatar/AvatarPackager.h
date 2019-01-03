@@ -63,8 +63,12 @@ public:
     AvatarPackager();
     bool open();
 
-    Q_INVOKABLE AvatarProject* createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder);
-    Q_INVOKABLE AvatarProject* openAvatarProject(const QString& avatarProjectFSTPath);
+    Q_INVOKABLE AvatarProjectStatus::AvatarProjectStatus createAvatarProject(const QString& projectsFolder,
+                                                                             const QString& avatarProjectName,
+                                                                             const QString& avatarModelPath,
+                                                                             const QString& textureFolder);
+
+    Q_INVOKABLE AvatarProjectStatus::AvatarProjectStatus openAvatarProject(const QString& avatarProjectFSTPath);
     Q_INVOKABLE bool isValidNewProjectName(const QString& projectPath, const QString& projectName) { return AvatarProject::isValidNewProjectName(projectPath, projectName); }
 
 signals:

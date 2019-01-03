@@ -93,7 +93,6 @@ ShadowRectangle {
                 z: 200
                 onFocusChanged: {
                     if (titleArea.state === "renaming" && !titleArea.focus) {
-                        //titleArea.state = "";
                         accepted();
                     }
                 }
@@ -104,11 +103,7 @@ ShadowRectangle {
                 }
                 onAccepted:  {
                     if (acceptableInput) {
-                        //AvatarPackagerCore.renameProject(text);
-                        console.warn(text);
                         AvatarPackagerCore.currentAvatarProject.name = text;
-                        console.warn(AvatarPackagerCore.currentAvatarProject.name);
-
                     }
                     titleArea.state = "";
                 }

@@ -22,7 +22,6 @@
 #include <avatar/MarketplaceItemUploader.h>
 
 #include <mutex>
-#include "scripting/HMDScriptingInterface.h"
 #include "ui/TabletScriptingInterface.h"
 
 std::once_flag setupQMLTypesFlag;
@@ -32,6 +31,14 @@ AvatarPackager::AvatarPackager() {
         qmlRegisterType<MarketplaceItemUploader>();
         qRegisterMetaType<AvatarPackager*>();
         qRegisterMetaType<AvatarProject*>();
+        qRegisterMetaType<AvatarProjectStatus::AvatarProjectStatus>();
+        qmlRegisterUncreatableMetaObject(
+            AvatarProjectStatus::staticMetaObject,
+            "Hifi.AvatarPackager.AvatarProjectStatus",
+            1, 0,
+            "AvatarProjectStatus",
+            "Error: only enums"
+        );
     });
 
     recentProjectsFromVariantList(_recentProjectsSetting.get());
@@ -41,39 +48,39 @@ AvatarPackager::AvatarPackager() {
 }
 
 bool AvatarPackager::open() {
-    static const QUrl url{ "hifi/AvatarPackagerWindow.qml" };
-
     const auto packageModelDialogCreated = [=](QQmlContext* context, QObject* newObject) {
         context->setContextProperty("AvatarPackagerCore", this);
     };
 
     static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet(SYSTEM_TABLET));
 
     if (tablet->getToolbarMode()) {
+        static const QUrl url{ "hifi/AvatarPackagerWindow.qml" };
         DependencyManager::get<OffscreenUi>()->show(url, "AvatarPackager", packageModelDialogCreated);
-    } else {
-        static const QUrl url("hifi/tablet/AvatarPackager.qml");
-        if (!tablet->isPathLoaded(url)) {
-            tablet->getTabletSurface()->getSurfaceContext()->setContextProperty("AvatarPackagerCore", this);
-            tablet->pushOntoStack(url);
-        }
+        return true;
     }
-    return true;
+
+    static const QUrl url{ "hifi/tablet/AvatarPackager.qml" };
+    if (!tablet->isPathLoaded(url)) {
+        tablet->getTabletSurface()->getSurfaceContext()->setContextProperty("AvatarPackagerCore", this);
+        tablet->pushOntoStack(url);
+        return true;
+    }
+
+    return false;
 }
 
 void AvatarPackager::addCurrentProjectToRecentProjects() {
     const int MAX_RECENT_PROJECTS = 5;
     const QString& fstPath = _currentAvatarProject->getFSTPath();
     auto removeProjects = QVector<RecentAvatarProject>();
-    for (auto project : _recentProjects) {
+    for (const auto& project : _recentProjects) {
         if (project.getProjectFSTPath() == fstPath) {
             removeProjects.append(project);
         }
     }
-    for (const auto removeProject : removeProjects) {
+    for (const auto& removeProject : removeProjects) {
         _recentProjects.removeOne(removeProject);
     }
 
@@ -110,14 +117,19 @@ void AvatarPackager::recentProjectsFromVariantList(QVariantList projectsVariant)
     }
 }
 
-AvatarProject* AvatarPackager::openAvatarProject(const QString& avatarProjectFSTPath) {
-    setAvatarProject(AvatarProject::openAvatarProject(avatarProjectFSTPath));
-    return _currentAvatarProject;
+AvatarProjectStatus::AvatarProjectStatus AvatarPackager::openAvatarProject(const QString& avatarProjectFSTPath) {
+    AvatarProjectStatus::AvatarProjectStatus status;
+    setAvatarProject(AvatarProject::openAvatarProject(avatarProjectFSTPath, status));
+    return status;
 }
 
-AvatarProject* AvatarPackager::createAvatarProject(const QString& projectsFolder, const QString& avatarProjectName, const QString& avatarModelPath, const QString& textureFolder) {
-    setAvatarProject(AvatarProject::createAvatarProject(projectsFolder, avatarProjectName, avatarModelPath, textureFolder));
-    return _currentAvatarProject;
+AvatarProjectStatus::AvatarProjectStatus AvatarPackager::createAvatarProject(const QString& projectsFolder,
+                                                                             const QString& avatarProjectName,
+                                                                             const QString& avatarModelPath,
+                                                                             const QString& textureFolder) {
+    AvatarProjectStatus::AvatarProjectStatus status;
+    setAvatarProject(AvatarProject::createAvatarProject(projectsFolder, avatarProjectName, avatarModelPath, textureFolder, status));
+    return status;
 }
 
 void AvatarPackager::setAvatarProject(AvatarProject* avatarProject) {
