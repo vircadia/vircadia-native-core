@@ -2419,6 +2419,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_FOLLOWS_CONTROLLER, Grab, grab, GrabFollowsController, grabFollowsController);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_TRIGGERABLE, Grab, grab, Triggerable, triggerable);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE, Grab, grab, Equippable, equippable);
+        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_DELEGATE_TO_PARENT, Grab, grab, GrabDelegateToParent, grabDelegateToParent);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
                                   EquippableLeftPosition, equippableLeftPosition);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
@@ -2449,6 +2450,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_RIGHT_MARGIN, RightMargin, rightMargin, float);
         ADD_PROPERTY_TO_MAP(PROP_TOP_MARGIN, TopMargin, topMargin, float);
         ADD_PROPERTY_TO_MAP(PROP_BOTTOM_MARGIN, BottomMargin, bottomMargin, float);
+
+        ADD_PROPERTY_TO_MAP(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid);
 
         // FIXME - these are not yet handled
         //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
@@ -3594,6 +3597,18 @@ bool EntityItemProperties::hasTransformOrVelocityChanges() const {
         || _accelerationChanged;
 }
 
+void EntityItemProperties::clearTransformOrVelocityChanges() {
+    _positionChanged = false;
+    _localPositionChanged = false;
+    _rotationChanged = false;
+    _localRotationChanged = false;
+    _velocityChanged = false;
+    _localVelocityChanged = false;
+    _angularVelocityChanged = false;
+    _localAngularVelocityChanged = false;
+    _accelerationChanged = false;
+}
+
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
     return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged
         || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
@@ -3604,6 +3619,7 @@ bool EntityItemProperties::hasSimulationRestrictedChanges() const {
     return _positionChanged || _localPositionChanged
         || _rotationChanged || _localRotationChanged
         || _velocityChanged || _localVelocityChanged
+        || _localDimensionsChanged || _dimensionsChanged
         || _angularVelocityChanged || _localAngularVelocityChanged
         || _accelerationChanged
         || _parentIDChanged || _parentJointIndexChanged;

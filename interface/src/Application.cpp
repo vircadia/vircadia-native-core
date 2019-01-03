@@ -209,6 +209,8 @@
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
 
+#include "avatar/GrabManager.h"
+
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
 #include <src/scripting/GooglePolyScriptingInterface.h>
@@ -920,6 +922,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceRequestObserver>();
     DependencyManager::set<Keyboard>();
     DependencyManager::set<KeyboardScriptingInterface>();
+    DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
 
     return previousSessionCrashed;
@@ -6087,6 +6090,9 @@ void Application::update(float deltaTime) {
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
+
+    auto grabManager = DependencyManager::get<GrabManager>();
+    grabManager->simulateGrabs();
 
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
