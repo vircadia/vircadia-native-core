@@ -20,6 +20,7 @@ public:
 
     void requestTicket(TicketRequestCallback callback) override;
 
+    QString requestUserProof() override;
     QString getLoggedInUserID() override;
 
     QString getOculusVRBuildID() override;

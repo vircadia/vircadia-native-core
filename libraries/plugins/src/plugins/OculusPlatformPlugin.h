@@ -29,6 +29,8 @@ public:
 
     virtual void requestTicket(TicketRequestCallback callback) = 0;
 
+    virtual QString getUserProof() = 0;
+
     virtual QString getLoggedInUserID() = 0;
 
     virtual QString getOculusVRBuildID() = 0;

@@ -21,9 +21,15 @@
 #include "OculusHelpers.h"
 
 static const Ticket INVALID_TICKET = Ticket();
-//static std::atomic_bool initialized { false };
 static std::atomic_bool initialized { false };
 static ovrSession session { nullptr };
+
+class OculusCallbackManager {
+public:
+    OculusCallbackManager();
+};
+
+static OculusCallbackManager oculusCallbackManager;
 
 bool OculusAPIPlugin::init() {
     if (session) {
@@ -39,7 +45,6 @@ bool OculusAPIPlugin::init() {
     }
 
 #ifdef OCULUS_APP_ID
-
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
         auto result = ovr_PlatformInitializeWindows(OCULUS_APP_ID);
         if (result != ovrPlatformInitialize_Success && result != ovrPlatformInitialize_PreLoaded) {
@@ -57,16 +62,6 @@ bool OculusAPIPlugin::init() {
     }
 #endif
 
-    //ovrGraphicsLuid luid;
-    //if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
-    //    qCWarning(oculusLog) << "Failed to acquire Oculus session" << hifi::ovr::getError();
-    //    return initialized;
-    //} else {
-    //    ovrResult setFloorLevelOrigin = ovr_SetTrackingOriginType(session, ovrTrackingOrigin::ovrTrackingOrigin_FloorLevel);
-    //    if (!OVR_SUCCESS(setFloorLevelOrigin)) {
-    //        qCWarning(oculusLog) << "Failed to set the Oculus tracking origin to floor level" << hifi::ovr::getError();
-    //    }
-    //}
     initialized = true;
     return initialized;
 }
@@ -78,10 +73,62 @@ void OculusAPIPlugin::runCallbacks() {
 }
 
 void OculusAPIPlugin::requestTicket(TicketRequestCallback callback) {
+    if (!initialized) {
+        if (!ovr_IsPlatformInitialized()) {
+            init();
+        }
+        else {
+            qWarning() << "Oculus is not running";
+            callback(INVALID_TICKET);
+            return;
+        }
+    }
+
+    if (!initialized) {
+        qDebug() << "Oculus not initialized";
+        return;
+    }
+
+    auto userProof = requestUserProof();
+    if (userProof == "") {
+        qWarning() << "User proof unavailable.";
+        callback(INVALID_TICKET);
+        return;
+    } else {
+        oculusCallbackManager;
+    }
 }
 
 bool OculusAPIPlugin::isRunning() {
     return initialized;
+}
+
+QString OculusAPIPlugin::requestUserProof() {
+    if (initialized) {
+        QTimer timer;
+        timer.start(1000);
+        auto request = ovr_User_GetUserProof();
+        ovrMessageHandle message { nullptr };
+        while (message = ovr_PopMessage()) {
+            if (message == nullptr) {
+                break;
+            } else if (!timer.isActive()) {
+                qCDebug(oculusLog) << "login user id timeout after 1 second";
+                return "";
+            } else if (ovr_Message_GetType(message) == ovrMessage_User_GetUserProof) {
+                if (!ovr_Message_IsError(message)) {
+                    ovrUserProofHandle userProof = ovr_Message_GetUserProof(message);
+                    QString nonce = ovr_UserProof_GetNonce(userProof);
+                    qCDebug(oculusLog) << "User nonce: " << nonce;
+                    return nonce;
+                } else {
+                    qDebug() << "Error getting user proof: " << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                    return "";
+                }
+            }
+        }
+        return "";
+    }
 }
 
 QString OculusAPIPlugin::getLoggedInUserID() {
@@ -90,10 +137,10 @@ QString OculusAPIPlugin::getLoggedInUserID() {
         timer.start(1000);
         auto request = ovr_User_GetLoggedInUser();
         ovrMessageHandle message { nullptr };
-        using namespace std::chrono_literals;
-        std::this_thread::sleep_for(100ms);
-        while ((message = ovr_PopMessage()) != nullptr) {
-            if (!timer.isActive()) {
+        while (message = ovr_PopMessage()) {
+            if (message == nullptr) {
+                break;
+            } else if (!timer.isActive()) {
                 qCDebug(oculusLog) << "login user id timeout after 1 second";
                 return "";
             } else if (ovr_Message_GetType(message) == ovrMessage_User_GetLoggedInUser) {
