@@ -150,21 +150,6 @@ bool ShapeEntityRenderer::isTransparent() const {
     return Parent::isTransparent();
 }
 
-ItemKey ShapeEntityRenderer::getKey() {
-    ItemKey::Builder builder;
-    builder.withTypeShape().withTypeMeta().withTagBits(getTagMask());
-
-    withReadLock([&] {
-        if (isTransparent()) {
-            builder.withTransparent();
-        } else if (_canCastShadow) {
-            builder.withShadowCaster();
-        }
-    });
-
-    return builder.build();
-}
-
 bool ShapeEntityRenderer::useMaterialPipeline(const graphics::MultiMaterial& materials) const {
     bool proceduralReady = resultWithReadLock<bool>([&] {
         return _procedural.isReady();

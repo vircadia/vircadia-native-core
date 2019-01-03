@@ -50,6 +50,8 @@ public:
     const QUuid& getID() const { return _id; }
     EntityDynamicType getType() const { return _type; }
 
+    virtual void removeFromOwner() { }
+
     virtual void remapIDs(QHash<EntityItemID, EntityItemID>& map) = 0;
 
     virtual bool isAction() const { return false; }

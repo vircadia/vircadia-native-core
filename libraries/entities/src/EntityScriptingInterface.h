@@ -1573,6 +1573,109 @@ public slots:
      * print("Scale: " + JSON.stringify(Mat4.extractScale(transform)));  // { x: 1, y: 1, z: 1 }     */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
+
+    /**jsdoc
+     * @function Entities.worldToLocalPosition
+     * @param {Vec3} worldPosition
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalPosition(glm::vec3 worldPosition, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalRotation
+     * @param {Quat} worldRotation
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Quat}
+     */
+    Q_INVOKABLE glm::quat worldToLocalRotation(glm::quat worldRotation, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalVelocity
+     * @param {Vec3} worldVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalVelocity(glm::vec3 worldVelocity, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalAngularVelocity
+     * @param {Vec3} worldAngularVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalAngularVelocity(glm::vec3 worldAngularVelocity, const QUuid& parentID,
+                                                      int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalDimensions
+     * @param {Vec3} worldDimensions
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalDimensions(glm::vec3 worldDimensions, const QUuid& parentID,
+                                                 int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldPosition
+     * @param {Vec3} localPosition
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldPosition(glm::vec3 localPosition, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldRotation
+     * @param {Quat} localRotation
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Quat}
+     */
+    Q_INVOKABLE glm::quat localToWorldRotation(glm::quat localRotation, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldVelocity
+     * @param {Vec3} localVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldVelocity(glm::vec3 localVelocity, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldAngularVelocity
+     * @param {Vec3} localAngularVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldAngularVelocity(glm::vec3 localAngularVelocity, const QUuid& parentID,
+                                                      int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldDimensions
+     * @param {Vec3} localDimensions
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldDimensions(glm::vec3 localDimensions, const QUuid& parentID,
+                                                 int parentJointIndex = -1, bool scalesWithParent = false);
+
+
     /**jsdoc
     * Get the static certificate for an entity. The static certificate contains static properties of the item which cannot 
     * be altered.
