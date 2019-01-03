@@ -68,15 +68,14 @@ protected slots:
 
     Q_INVOKABLE bool isSteamRunning() const;
     Q_INVOKABLE bool isOculusRunning() const;
-    Q_INVOKABLE QString getLoggedInUserID() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromSteam(QString username = QString());
     Q_INVOKABLE void loginThroughOculus();
-    //Q_INVOKABLE void linkOculus();
-    //Q_INVOKABLE void createAccountFromOculus(QString username = QString());
+    Q_INVOKABLE void linkOculus();
+    Q_INVOKABLE void createAccountFromOculus(QString username = QString());
 
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 

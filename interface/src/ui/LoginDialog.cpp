@@ -110,13 +110,6 @@ bool LoginDialog::isOculusRunning() const {
     return oculusPlatform && oculusPlatform->isRunning();
 }
 
-QString LoginDialog::getLoggedInUserID() const {
-    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
-    auto userID = oculusPlatform->getLoggedInUserID();
-    qDebug() << "userID: " << userID;
-    return userID;
-}
-
 void LoginDialog::dismissLoginDialog() {
     QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
     Q_CHECK_PTR(loginAction);
@@ -132,7 +125,38 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 
 void LoginDialog::loginThroughOculus() {
     qDebug() << "Attempting to login through Oculus";
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
+        });
+    }
+}
 
+void LoginDialog::linkOculus() {
+    qDebug() << "Attempting to link Oculus account";
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
+        });
+    }
+}
+
+void LoginDialog::createAccountFromOculus(QString username) {
+    qDebug() << "Attempting to create account from Oculus info";
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->requestTicket([this](Ticket ticket) {
+            if (ticket.isNull()) {
+                emit handleLoginFailed();
+                return;
+            }
+        });
+    }
 }
 
 void LoginDialog::loginThroughSteam() {
