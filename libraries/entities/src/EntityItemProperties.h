@@ -385,9 +385,12 @@ public:
 
     void setQueryAACubeDirty() { _queryAACubeChanged = true; }
 
+    void setLocationDirty() { _positionChanged = true; _rotationChanged = true; }
+
     void setCreated(QDateTime& v);
 
     bool hasTransformOrVelocityChanges() const;
+    void clearTransformOrVelocityChanges();
     bool hasMiscPhysicsChanges() const;
 
     bool hasSimulationRestrictedChanges() const;
