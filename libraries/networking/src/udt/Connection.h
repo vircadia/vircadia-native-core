@@ -75,7 +75,7 @@ public:
     void sendHandshakeRequest();
     
     void recordSentUnreliablePackets(int wireSize, int payloadSize);
-    void recordRecievedUnreliablePackets(int wireSize, int payloadSize);
+    void recordReceivedUnreliablePackets(int wireSize, int payloadSize);
 
 signals:
     void packetSent();

@@ -203,7 +203,7 @@ void Connection::recordSentUnreliablePackets(int wireSize, int payloadSize) {
     _stats.recordUnreliableSentPackets(payloadSize, wireSize);
 }
 
-void Connection::recordRecievedUnreliablePackets(int wireSize, int payloadSize) {
+void Connection::recordReceivedUnreliablePackets(int wireSize, int payloadSize) {
     _stats.recordUnreliableReceivedPackets(payloadSize, wireSize);
 }
 

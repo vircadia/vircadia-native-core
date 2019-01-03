@@ -414,7 +414,7 @@ void Socket::readPendingDatagrams() {
                         continue;
                     }
                 } else if (connection) {
-                    connection->recordRecievedUnreliablePackets(packet->getWireSize(),
+                    connection->recordReceivedUnreliablePackets(packet->getWireSize(),
                                                                 packet->getPayloadSize());
                 }
 
