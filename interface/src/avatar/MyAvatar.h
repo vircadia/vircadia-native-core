@@ -264,6 +264,8 @@ public:
         STEP_YAW,
         PITCH,
         ZOOM,
+        DELTA_YAW,
+        DELTA_PITCH,
         MAX_DRIVE_KEYS
     };
     Q_ENUM(DriveKeys)
