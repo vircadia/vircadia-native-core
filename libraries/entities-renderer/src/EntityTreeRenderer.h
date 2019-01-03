@@ -120,6 +120,8 @@ public:
     static void setGetAvatarUpOperator(std::function<glm::vec3()> getAvatarUpOperator) { _getAvatarUpOperator = getAvatarUpOperator; }
     static glm::vec3 getAvatarUp() { return _getAvatarUpOperator(); }
 
+    EntityEditPacketSender* getPacketSender();
+
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);

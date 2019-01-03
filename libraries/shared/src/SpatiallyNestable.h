@@ -18,6 +18,7 @@
 #include "AACube.h"
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
+#include "Grab.h"
 
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
@@ -213,6 +214,11 @@ public:
     virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
     virtual void parentDeleted() { } // called on children of a deleted parent
 
+    virtual void addGrab(GrabPointer grab);
+    virtual void removeGrab(GrabPointer grab);
+    bool hasGrabs();
+    virtual QUuid getEditSenderID();
+
 protected:
     QUuid _id;
     mutable SpatiallyNestableWeakPointer _parent;
@@ -231,6 +237,9 @@ protected:
     quint64 _scaleChanged { 0 };
     quint64 _translationChanged { 0 };
     quint64 _rotationChanged { 0 };
+
+    mutable ReadWriteLockable _grabsLock;
+    QSet<GrabPointer> _grabs;
 
 private:
     SpatiallyNestable() = delete;

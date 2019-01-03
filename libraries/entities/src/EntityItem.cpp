@@ -31,12 +31,15 @@
 #include <SharedUtil.h> // usecTimestampNow()
 #include <LogHandler.h>
 #include <Extents.h>
+#include <QVariantGLM.h>
+#include <Grab.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
+
 
 Q_DECLARE_METATYPE(EntityItemPointer);
 int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
@@ -243,6 +246,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
         propertyFlags -= PROP_LAST_ITEM; // clear the last item for now, we may or may not set it as the actual item
 
+        // NOTE: When we enable partial packing of entity properties, we'll want to pack simulationOwner, transform, and velocity properties near each other
+        // since they will commonly be transmitted together.  simulationOwner must always go first, to avoid race conditions of simulation ownership bids
         // These items would go here once supported....
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
@@ -680,7 +685,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-    // pack SimulationOwner, transform, and velocity properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
@@ -1652,7 +1656,10 @@ AACube EntityItem::getQueryAACube(bool& success) const {
 }
 
 bool EntityItem::shouldPuffQueryAACube() const {
-    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent();
+    bool hasGrabs = _grabsLock.resultWithReadLock<bool>([&] {
+        return _grabs.count() > 0;
+    });
+    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent() || hasGrabs;
 }
 
 // TODO: get rid of all users of this function...
@@ -2095,6 +2102,35 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
     return result;
 }
 
+void EntityItem::enableNoBootstrap() {
+    if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
+        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            }
+        });
+    }
+}
+
+void EntityItem::disableNoBootstrap() {
+    if (!stillHasGrabActions()) {
+        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            }
+        });
+    }
+}
+
+
 bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action) {
     assert(action);
     assert(simulation);
@@ -2116,17 +2152,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDyn
 
         auto actionType = action->getType();
         if (actionType == DYNAMIC_TYPE_HOLD || actionType == DYNAMIC_TYPE_FAR_GRAB) {
-            if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-                _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-                _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-                forEachDescendant([&](SpatiallyNestablePointer child) {
-                    if (child->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                        entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                        entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                    }
-                });
-            }
+            enableNoBootstrap();
         }
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
@@ -2207,16 +2233,8 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         action->setIsMine(false);
         _objectActions.remove(actionID);
 
-        if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
-            _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-            _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-            forEachDescendant([&](SpatiallyNestablePointer child) {
-                if (child->getNestableType() == NestableType::Entity) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                    entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                    entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                }
-            });
+        if (removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) {
+            disableNoBootstrap();
         } else {
             // NO-OP: we assume SPECIAL_FLAGS_NO_BOOTSTRAPPING bits and collision group are correct
             // because they should have been set correctly when the action was added
@@ -2453,6 +2471,14 @@ bool EntityItem::shouldSuppressLocationEdits() const {
         i++;
     }
 
+    i = _grabActions.begin();
+    while (i != _grabActions.end()) {
+        if (i.value()->shouldSuppressLocationEdits()) {
+            return true;
+        }
+        i++;
+    }
+
     // if any of the ancestors are MyAvatar, suppress
     return isChildOfMyAvatar();
 }
@@ -2460,13 +2486,22 @@ bool EntityItem::shouldSuppressLocationEdits() const {
 QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeToGet) const {
     QList<EntityDynamicPointer> result;
 
-    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
-    while (i != _objectActions.end()) {
+    for (QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
+         i != _objectActions.end();
+         i++) {
         EntityDynamicPointer action = i.value();
         if (action->getType() == typeToGet && action->isActive()) {
             result += action;
         }
-        i++;
+    }
+
+    for (QHash<QUuid, EntityDynamicPointer>::const_iterator i = _grabActions.begin();
+         i != _grabActions.end();
+         i++) {
+        EntityDynamicPointer action = i.value();
+        if (action->getType() == typeToGet && action->isActive()) {
+            result += action;
+        }
     }
 
     return result;
@@ -3272,4 +3307,67 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
 
 bool EntityItem::isWearable() const {
     return isVisible() && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
+}
+
+void EntityItem::addGrab(GrabPointer grab) {
+    enableNoBootstrap();
+    SpatiallyNestable::addGrab(grab);
+
+    if (getDynamic() && getParentID().isNull()) {
+        EntityTreePointer entityTree = getTree();
+        assert(entityTree);
+        EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        assert(simulation);
+
+        auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
+        QUuid actionID = QUuid::createUuid();
+
+        EntityDynamicType dynamicType;
+        QVariantMap arguments;
+        int grabParentJointIndex =grab->getParentJointIndex();
+        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX) {
+            // add a far-grab action
+            dynamicType = DYNAMIC_TYPE_FAR_GRAB;
+            arguments["otherID"] = grab->getOwnerID();
+            arguments["otherJointIndex"] = grabParentJointIndex;
+            arguments["targetPosition"] = vec3ToQMap(grab->getPositionalOffset());
+            arguments["targetRotation"] = quatToQMap(grab->getRotationalOffset());
+            arguments["linearTimeScale"] = 0.05;
+            arguments["angularTimeScale"] = 0.05;
+        } else {
+            // add a near-grab action
+            dynamicType = DYNAMIC_TYPE_HOLD;
+            arguments["holderID"] = grab->getOwnerID();
+            arguments["hand"] = grab->getHand();
+            arguments["timeScale"] = 0.05;
+            arguments["relativePosition"] = vec3ToQMap(grab->getPositionalOffset());
+            arguments["relativeRotation"] = quatToQMap(grab->getRotationalOffset());
+            arguments["kinematic"] = _grabProperties.getGrabKinematic();
+            arguments["kinematicSetVelocity"] = true;
+            arguments["ignoreIK"] = _grabProperties.getGrabFollowsController();
+        }
+        EntityDynamicPointer action = actionFactory->factory(dynamicType, actionID, getThisPointer(), arguments);
+        grab->setActionID(actionID);
+        _grabActions[actionID] = action;
+        simulation->addDynamic(action);
+    }
+}
+
+void EntityItem::removeGrab(GrabPointer grab) {
+    SpatiallyNestable::removeGrab(grab);
+
+    QUuid actionID = grab->getActionID();
+    if (!actionID.isNull()) {
+        EntityDynamicPointer action = _grabActions.value(actionID);
+        if (action) {
+            _grabActions.remove(actionID);
+            EntityTreePointer entityTree = getTree();
+            EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+            if (simulation) {
+                action->removeFromSimulation(simulation);
+                action->removeFromOwner();
+            }
+        }
+    }
+    disableNoBootstrap();
 }

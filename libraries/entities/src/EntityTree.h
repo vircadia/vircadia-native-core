@@ -277,6 +277,9 @@ public:
 
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
+    void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                 bool force, bool tellServer);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void deletingEntityPointer(EntityItem* entityID);
@@ -392,6 +395,9 @@ private:
     bool _serverlessDomain { false };
 
     std::map<QString, QString> _namedPaths;
+
+    void updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                       MovingEntitiesOperator& moveOperator, bool force, bool tellServer);
 };
 
 void convertGrabUserDataToProperties(EntityItemProperties& properties);
