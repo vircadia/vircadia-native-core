@@ -727,13 +727,9 @@ float approximateGain(const AvatarAudioStream& listeningNodeStream, const Positi
     // distance attenuation: approximate, ignore zone-specific attenuations
     glm::vec3 relativePosition = streamToAdd.getPosition() - listeningNodeStream.getPosition();
     float distance = glm::length(relativePosition);
-
-    float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
-    gain = gain / d;
-    gain = std::min(gain, ATTN_GAIN_MAX);
+    return gain / distance;
 
     // avatar: skip master gain - it is constant for all streams
-    return gain;
 }
 
 float computeGain(float masterListenerGain, const AvatarAudioStream& listeningNodeStream,
