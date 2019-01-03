@@ -267,6 +267,7 @@ enum EntityPropertyList {
     PROP_GRAB_FOLLOWS_CONTROLLER,
     PROP_GRAB_TRIGGERABLE,
     PROP_GRAB_EQUIPPABLE,
+    PROP_GRAB_DELEGATE_TO_PARENT,
     PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET,
     PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET,
     PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET,
@@ -280,6 +281,11 @@ enum EntityPropertyList {
     PROP_EMISSIVE,
     PROP_SUB_IMAGE,
 
+    PROP_LEFT_MARGIN,
+    PROP_RIGHT_MARGIN,
+    PROP_TOP_MARGIN,
+    PROP_BOTTOM_MARGIN,
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
@@ -291,10 +297,11 @@ enum EntityPropertyList {
     // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
     // since the derived class knows how to interpret it's own properties and knows the types it expects
     PROP_TEXT_COLOR = PROP_COLOR,
+    PROP_TEXT_ALPHA = PROP_ALPHA,
     PROP_TEXT = PROP_MODEL_URL,
     PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
     PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
-    PROP_COLLISION_MODEL_URL_OLD_VERSION = PROP_ANIMATION_FPS + 1,
+    PROP_BACKGROUND_ALPHA = PROP_ALPHA_START,
 
     // Aliases/Piggyback properties for Zones. These properties intentionally reuse the enum values for
     // other properties which will never overlap with each other. We do this so that we don't have to expand

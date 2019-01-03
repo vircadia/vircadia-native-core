@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Vec3, MyAvatar, Entities, RIGHT_HAND */
+/* global Script, Vec3, MyAvatar, Entities, RIGHT_HAND, entityIsGrabbable */
 
 (function() {
     var dispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
@@ -62,14 +62,19 @@
                 var otherHandTargetProps = otherModule.getTargetProps(controllerData);
                 if (thisHandTargetProps && otherHandTargetProps) {
                     if (thisHandTargetProps.id === otherHandTargetProps.id) {
+                        if (!entityIsGrabbable(thisHandTargetProps)) {
+                            return dispatcherUtils.makeRunningValues(false, [], []);
+                        }
                         this.grabbedThingID = thisHandTargetProps.id;
-                        this.scalingStartDistance = Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
-                            controllerData.controllerLocations[this.otherHand()].position));
+                        this.scalingStartDistance =
+                            Vec3.length(Vec3.subtract(controllerData.controllerLocations[this.hand].position,
+                                                      controllerData.controllerLocations[this.otherHand()].position));
                         this.scalingStartDimensions = thisHandTargetProps.dimensions;
                         return dispatcherUtils.makeRunningValues(true, [], []);
                     }
                 }
             }
+            this.grabbedThingID = false;
             return dispatcherUtils.makeRunningValues(false, [], []);
         };
 
@@ -82,10 +87,11 @@
                             controllerData.controllerLocations[this.otherHand()].position));
                     var currentRescale = scalingCurrentDistance / this.scalingStartDistance;
                     var newDimensions = Vec3.multiply(currentRescale, this.scalingStartDimensions);
-                    Entities.editEntity(this.grabbedThingID, { dimensions: newDimensions });
+                    Entities.editEntity(this.grabbedThingID, { localDimensions: newDimensions });
                 }
                 return dispatcherUtils.makeRunningValues(true, [], []);
             }
+            this.grabbedThingID = false;
             return dispatcherUtils.makeRunningValues(false, [], []);
         };
     }

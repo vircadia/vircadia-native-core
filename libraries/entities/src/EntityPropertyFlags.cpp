@@ -190,6 +190,7 @@ QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
     result = f.getHasProperty(PROP_GRAB_FOLLOWS_CONTROLLER) ? result + "grab.FollowsController " : result;
     result = f.getHasProperty(PROP_GRAB_TRIGGERABLE) ? result + "grab.Triggerable " : result;
     result = f.getHasProperty(PROP_GRAB_EQUIPPABLE) ? result + "grab.Equippable " : result;
+    result = f.getHasProperty(PROP_GRAB_DELEGATE_TO_PARENT) ? result + "grab.GrabDelegateToParent " : result;
     result =
         f.getHasProperty(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET) ? result + "grab.LeftEquippablePositionOffset " : result;
     result =

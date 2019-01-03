@@ -1172,6 +1172,25 @@ public:
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
 
+    /**jsdoc
+     * Create a new grab.
+     * @function MyAvatar.grab
+     * @param {Uuid} targetID - id of grabbed thing
+     * @param {number} parentJointIndex - avatar joint being used to grab
+     * @param {Vec3} offset - target's positional offset from joint
+     * @param {Quat} rotationalOffset - target's rotational offset from joint
+     * @returns {Uuid} id of the new grab
+     */
+    Q_INVOKABLE const QUuid grab(const QUuid& targetID, int parentJointIndex,
+                                 glm::vec3 positionalOffset, glm::quat rotationalOffset);
+
+    /**jsdoc
+     * Release (delete) a grab.
+     * @function MyAvatar.releaseGrab
+     * @param {Uuid} grabID - id of grabbed thing
+     */
+    Q_INVOKABLE void releaseGrab(const QUuid& grabID);
+
 public slots:
 
     /**jsdoc

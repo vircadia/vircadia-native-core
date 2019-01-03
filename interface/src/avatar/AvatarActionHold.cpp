@@ -58,6 +58,16 @@ AvatarActionHold::~AvatarActionHold() {
 #endif
 }
 
+void AvatarActionHold::removeFromOwner() {
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    if (avatarManager) {
+        auto myAvatar = avatarManager->getMyAvatar();
+        if (myAvatar) {
+            myAvatar->removeHoldAction(this);
+        }
+    }
+}
+
 bool AvatarActionHold::getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     MyCharacterController* controller = myAvatar ? myAvatar->getCharacterController() : nullptr;
@@ -143,7 +153,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
                 ownerEntity->setTransitingWithAvatar(_isTransitingWithAvatar);
             }
         }
-        
+
         if (holdingAvatar->isMyAvatar()) {
             std::shared_ptr<MyAvatar> myAvatar = avatarManager->getMyAvatar();
 
@@ -226,7 +236,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         }
 
         rotation = palmRotation * _relativeRotation;
-        position = palmPosition + rotation * _relativePosition;
+        position = palmPosition + palmRotation * _relativePosition;
 
         // update linearVelocity based on offset via _relativePosition;
         linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
@@ -369,8 +379,12 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand = _hand;
         }
 
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        holderID = myAvatar->getSessionUUID();
+        ok = true;
+        holderID = EntityDynamicInterface::extractStringArgument("hold", arguments, "holderID", ok, false);
+        if (!ok) {
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            holderID = myAvatar->getSessionUUID();
+        }
 
         ok = true;
         kinematic = EntityDynamicInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
@@ -417,13 +431,13 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _kinematicSetVelocity = kinematicSetVelocity;
             _ignoreIK = ignoreIK;
             _active = true;
-            
+
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setDynamicDataDirty(true);
-                ownerEntity->setDynamicDataNeedsTransmit(true);     
+                ownerEntity->setDynamicDataNeedsTransmit(true);
                 ownerEntity->setTransitingWithAvatar(myAvatar->getTransit()->isActive());
             }
         });
