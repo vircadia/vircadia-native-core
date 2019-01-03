@@ -476,24 +476,33 @@ void AWSInterface::updateAWS() {
         QStringList parts = nextDirectory.split('/');
         QString filename = parts[parts.length() - 3] + "/" + parts[parts.length() - 2] + "/" + parts[parts.length() - 1];
 
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-               << "Actual Image.png"
-               << "', 'rb')\n";
-
-        stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Actual Image.png" << "', Body=data)\n\n";
-
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-               << "Expected Image.png"
-               << "', 'rb')\n";
-
-        stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
-
-        if (QFile::exists(_htmlFailuresFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
+        // The directory may contain either 'Result.txt', or 3 images (and a text file named 'TestResults.txt' that is not used)
+        if (QFile::exists(_htmlFailuresFolder + "/" + parts[parts.length() - 1] + "/Result.txt")) {
             stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-                   << "Difference Image.png"
-                   << "', 'rb')\n";
+                << "Result.txt"
+                << "', 'rb')\n";
 
-            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Result.txt" << "', Body=data)\n\n";
+        } else {
+            stream << "data = open('" << _workingDirectory << "/" << filename << "/"
+                << "Actual Image.png"
+                << "', 'rb')\n";
+
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Actual Image.png" << "', Body=data)\n\n";
+
+            stream << "data = open('" << _workingDirectory << "/" << filename << "/"
+                << "Expected Image.png"
+                << "', 'rb')\n";
+
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
+
+            if (QFile::exists(_htmlFailuresFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
+                stream << "data = open('" << _workingDirectory << "/" << filename << "/"
+                    << "Difference Image.png"
+                    << "', 'rb')\n";
+
+                stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
+            }
         }
     }
 
@@ -510,31 +519,39 @@ void AWSInterface::updateAWS() {
         // We need to concatenate the last 3 components, to get `TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ]/successes/engine.render.effect.bloom.00000`
         QStringList parts = nextDirectory.split('/');
         QString filename = parts[parts.length() - 3] + "/" + parts[parts.length() - 2] + "/" + parts[parts.length() - 1];
-
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-               << "Actual Image.png"
-               << "', 'rb')\n";
-
-        stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Actual Image.png" << "', Body=data)\n\n";
-
-        stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-               << "Expected Image.png"
-               << "', 'rb')\n";
-
-        stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
-
-        if (QFile::exists(_htmlSuccessesFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
+        // The directory may contain either 'Result.txt', or 3 images (and a text file named 'TestResults.txt' that is not used)
+        if (QFile::exists(_htmlSuccessesFolder + "/" + parts[parts.length() - 1] + "/Result.txt")) {
             stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-                   << "Difference Image.png"
-                   << "', 'rb')\n";
+                << "Result.txt"
+                << "', 'rb')\n";
 
-            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Result.txt" << "', Body=data)\n\n";
+        } else {
+            stream << "data = open('" << _workingDirectory << "/" << filename << "/"
+                << "Actual Image.png"
+                << "', 'rb')\n";
+
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Actual Image.png" << "', Body=data)\n\n";
+
+            stream << "data = open('" << _workingDirectory << "/" << filename << "/"
+                << "Expected Image.png"
+                << "', 'rb')\n";
+
+            stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
+
+            if (QFile::exists(_htmlSuccessesFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
+                stream << "data = open('" << _workingDirectory << "/" << filename << "/"
+                    << "Difference Image.png"
+                    << "', 'rb')\n";
+
+                stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
+            }
         }
     }
 
     stream << "data = open('" << _workingDirectory << "/" << _resultsFolder << "/" << HTML_FILENAME << "', 'rb')\n";
     stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << _resultsFolder << "/"
-           << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
+        << HTML_FILENAME << "', Body=data, ContentType='text/html')\n";
 
     file.close();
 
@@ -548,7 +565,7 @@ void AWSInterface::updateAWS() {
     connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
     connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,
-            [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
+        [=](int exitCode, QProcess::ExitStatus exitStatus) { _busyWindow.hide(); });
 
 #ifdef Q_OS_WIN
     QStringList parameters = QStringList() << filename;
