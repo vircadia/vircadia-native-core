@@ -31,8 +31,8 @@ static const float HRTF_NEARFIELD_MIN = 0.125f; // distance in meters
 static const float HRTF_HEAD_RADIUS = 0.0875f;  // average human head in meters
 
 // Distance attenuation
-static const float ATTN_DISTANCE_REF = 1.0f;    // distance where attn is 0dB
-static const float ATTN_GAIN_MAX = 8.0f;        // max gain allowed by distance attn (+18dB)
+static const float ATTN_DISTANCE_REF = 2.0f;    // distance where attn is 0dB
+static const float ATTN_GAIN_MAX = 16.0f;       // max gain allowed by distance attn (+24dB)
 
 class AudioHRTF {
 
