@@ -42,7 +42,7 @@ public:
     AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID);
     virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
-    using NodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
+    using PerNodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
 
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
@@ -143,11 +143,11 @@ public:
     AvatarTraits::TraitMessageSequence getTraitsMessageSequence() const { return _currentTraitsMessageSequence; }
     AvatarTraits::TraitMessageSequence nextTraitsMessageSequence() { return ++_currentTraitsMessageSequence; }
     AvatarTraits::TraitVersions& getPendingTraitVersions(AvatarTraits::TraitMessageSequence seq, Node::LocalID otherId) {
-        return _pendingTraitVersions[seq][otherId];
+        return _perNodePendingTraitVersions[seq][otherId];
     }
 
-    AvatarTraits::TraitVersions& getLastSentTraitVersions(Node::LocalID otherAvatar) { return _sentTraitVersions[otherAvatar]; }
-    AvatarTraits::TraitVersions& getLastAckedTraitVersions(Node::LocalID otherAvatar) { return _ackedTraitVersions[otherAvatar]; }
+    AvatarTraits::TraitVersions& getLastSentTraitVersions(Node::LocalID otherAvatar) { return _perNodeSentTraitVersions[otherAvatar]; }
+    AvatarTraits::TraitVersions& getLastAckedTraitVersions(Node::LocalID otherAvatar) { return _perNodeAckedTraitVersions[otherAvatar]; }
 
     void resetSentTraitData(Node::LocalID nodeID);
 
@@ -194,11 +194,11 @@ private:
 
     AvatarTraits::TraitMessageSequence _currentTraitsMessageSequence{ 0 };
 
-    std::unordered_map<AvatarTraits::TraitMessageSequence, NodeTraitVersions> _pendingTraitVersions;
+    std::unordered_map<AvatarTraits::TraitMessageSequence, PerNodeTraitVersions> _perNodePendingTraitVersions;
 
     std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
-    NodeTraitVersions _sentTraitVersions;
-    NodeTraitVersions _ackedTraitVersions;
+    PerNodeTraitVersions _perNodeSentTraitVersions;
+    PerNodeTraitVersions _perNodeAckedTraitVersions;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
 };

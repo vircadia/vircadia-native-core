@@ -85,11 +85,11 @@ qint64 AvatarMixerSlave::addTraitsNodeHeader(AvatarMixerClientData* listeningNod
                                              NLPacketList& traitsPacketList,
                                              qint64 bytesWritten) {
     if (bytesWritten == 0) {
-
         if (traitsPacketList.getNumPackets() == 0) {
+            // This is the beginning of the traits packet, write out the sequence number.
             bytesWritten += traitsPacketList.writePrimitive(listeningNodeData->nextTraitsMessageSequence());
         }
-        // add the avatar ID to mark the beginning of traits for this avatar
+        // This is the beginning of the traits for a node, write out the node id
         bytesWritten += traitsPacketList.write(sendingNodeData->getNodeID().toRfc4122());
     }
     return bytesWritten;
@@ -98,6 +98,12 @@ qint64 AvatarMixerSlave::addTraitsNodeHeader(AvatarMixerClientData* listeningNod
 qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
                                                       const AvatarMixerClientData* sendingNodeData,
                                                       NLPacketList& traitsPacketList) {
+
+    // Avatar Traits flow control marks each outgoing avatar traits packet with a
+    // sequence number. The mixer caches the traits sent in the traits packet.
+    // Until an ack with the sequence number comes back, all updates to _traits
+    // in that packet_ are ignored.  Updates to traits not in that packet will
+    // be sent.
 
     auto otherNodeLocalID = sendingNodeData->getNodeLocalID();
 

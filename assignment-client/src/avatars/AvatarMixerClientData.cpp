@@ -184,42 +184,47 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
 }
 
 void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& message) {
+    // Avatar Traits flow control marks each outgoing avatar traits packet with a
+    // sequence number. The mixer caches the traits sent in the traits packet.
+    // Until an ack with the sequence number comes back, all updates to _traits
+    // in that packet_ are ignored.  Updates to traits not in that packet will
+    // be sent.
+
     // Look up the avatar/trait data associated with this ack and update the 'last ack' list
     // with it.
     AvatarTraits::TraitMessageSequence seq;
     message.readPrimitive(&seq);
-    auto sentAvatarTraitVersions = _pendingTraitVersions.find(seq);
-    if (sentAvatarTraitVersions != _pendingTraitVersions.end()) {
-        // Note, this is not a simple move of the pending traits
-        // to the acked traits.  Instead, it's a copy where existing
-        // trait versions in the acked hash are retained for traits not
-        // included in the pending hash
-        for (auto& nodeTraitVersions : sentAvatarTraitVersions->second) {
-            auto& nodeId = nodeTraitVersions.first;
-            auto& versions = nodeTraitVersions.second;
-            auto simpleReceivedIt = versions.simpleCBegin();
-            while (simpleReceivedIt != versions.simpleCEnd()) {
-                auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(versions.simpleCBegin(), simpleReceivedIt));
-                _ackedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+    auto sentAvatarTraitVersions = _perNodePendingTraitVersions.find(seq);
+    if (sentAvatarTraitVersions != _perNodePendingTraitVersions.end()) {
+        for (auto& perNodeTraitVersions : sentAvatarTraitVersions->second) {
+            auto& nodeId = perNodeTraitVersions.first;
+            auto& traitVersions = perNodeTraitVersions.second;
+            // For each trait that was sent in the traits packet,
+            // update the 'acked' trait version.  Traits not
+            // sent in the traits packet keep their version.
+
+            // process simple traits
+            auto simpleReceivedIt = traitVersions.simpleCBegin();
+            while (simpleReceivedIt != traitVersions.simpleCEnd()) {
+                auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
+                _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
                 simpleReceivedIt++;
             }
 
-            // enumerate the sent instanced trait versions
-            auto instancedSentIt = versions.instancedCBegin();
-            while (instancedSentIt != versions.instancedCEnd()) {
+            // process instanced traits
+            auto instancedSentIt = traitVersions.instancedCBegin();
+            while (instancedSentIt != traitVersions.instancedCEnd()) {
                 auto traitType = instancedSentIt->traitType;
-                // get or create the sent trait versions for this trait type
 
-                // enumerate each sent instance
                 for (auto& sentInstance : instancedSentIt->instances) {
                     auto instanceID = sentInstance.id;
                     const auto sentVersion = sentInstance.value;
-                    _ackedTraitVersions[nodeId].instanceInsert(traitType, instanceID, sentVersion);
+                    _perNodeAckedTraitVersions[nodeId].instanceInsert(traitType, instanceID, sentVersion);
                 }
                 instancedSentIt++;
             }
         }
-        _pendingTraitVersions.erase(sentAvatarTraitVersions);
+        _perNodePendingTraitVersions.erase(sentAvatarTraitVersions);
     } else {
         // This can happen either the BulkAvatarTraits was sent with no simple traits,
         // or if the avatar mixer restarts while there are pending
@@ -334,7 +339,7 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
 
 void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
-    _sentTraitVersions[nodeLocalID].reset();
+    _perNodeSentTraitVersions[nodeLocalID].reset();
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
@@ -390,5 +395,5 @@ void AvatarMixerClientData::cleanupKilledNode(const QUuid&, Node::LocalID nodeLo
     removeLastBroadcastSequenceNumber(nodeLocalID);
     removeLastBroadcastTime(nodeLocalID);
     _lastSentTraitsTimestamps.erase(nodeLocalID);
-    _sentTraitVersions.erase(nodeLocalID);
+    _perNodeSentTraitVersions.erase(nodeLocalID);
 }
