@@ -51,7 +51,7 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& outp
     output = zoneItems;
 }
 
-void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
+void SetupZones::run(const RenderContextPointer& context, const Input& input) {
     // Grab light, background, haze, and bloom stages and clear them
     auto lightStage = context->_scene->getStage<LightStage>();
     assert(lightStage);
@@ -70,7 +70,7 @@ void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) 
     bloomStage->_currentFrame.clear();
 
     // call render over the zones to grab their components in the correct order first...
-    render::renderItems(context, inputs);
+    render::renderItems(context, input);
 
     // Finally add the default lights and background:
     lightStage->_currentFrame.pushSunLight(lightStage->getDefaultLight());

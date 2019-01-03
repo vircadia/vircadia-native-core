@@ -25,6 +25,30 @@
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
+#if defined(Q_OS_ANDROID)
+#define HFM_PACK_NORMALS 0
+#else
+#define HFM_PACK_NORMALS 1
+#endif
+
+#if HFM_PACK_NORMALS
+using NormalType = glm::uint32;
+#define HFM_NORMAL_ELEMENT gpu::Element::VEC4F_NORMALIZED_XYZ10W2
+#else
+using NormalType = glm::vec3;
+#define HFM_NORMAL_ELEMENT gpu::Element::VEC3F_XYZ
+#endif
+
+#define HFM_PACK_COLORS 1
+
+#if HFM_PACK_COLORS
+using ColorType = glm::uint32;
+#define HFM_COLOR_ELEMENT gpu::Element::COLOR_RGBA_32
+#else
+using ColorType = glm::vec3;
+#define HFM_COLOR_ELEMENT gpu::Element::VEC3F_XYZ
+#endif
+
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
 // High Fidelity Model namespace
@@ -269,22 +293,6 @@ public:
     QHash<QString, Material> materials;
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
-
-    int leftEyeJointIndex = -1;
-    int rightEyeJointIndex = -1;
-    int neckJointIndex = -1;
-    int rootJointIndex = -1;
-    int leanJointIndex = -1;
-    int headJointIndex = -1;
-    int leftHandJointIndex = -1;
-    int rightHandJointIndex = -1;
-    int leftToeJointIndex = -1;
-    int rightToeJointIndex = -1;
-
-    float leftEyeSize = 0.0f;  // Maximum mesh extents dimension
-    float rightEyeSize = 0.0f;
-
-    QVector<int> humanIKJointIndices;
 
     glm::vec3 palmDirection;
 

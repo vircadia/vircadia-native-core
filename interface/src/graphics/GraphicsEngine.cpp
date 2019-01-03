@@ -56,9 +56,11 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
     glwidget->makeCurrent();
     _gpuContext = std::make_shared<gpu::Context>();
 
+#ifndef Q_OS_ANDROID
     _gpuContext->pushProgramsToSync(shader::allPrograms(), [this] {
         _programsCompiled.store(true);
     }, 1);
+#endif
 
     DependencyManager::get<TextureCache>()->setGPUContext(_gpuContext);
 }

@@ -86,7 +86,11 @@ protected:
     FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 
     std::shared_ptr<ProceduralSkybox> _splashScreen { std::make_shared<ProceduralSkybox>() };
+#ifndef Q_OS_ANDROID
     std::atomic<bool> _programsCompiled { false };
+#else
+    std::atomic<bool> _programsCompiled { true };
+#endif
 
     friend class Application;
 };

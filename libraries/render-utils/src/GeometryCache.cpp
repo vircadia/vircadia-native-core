@@ -944,42 +944,44 @@ void GeometryCache::renderWireSphere(gpu::Batch& batch, const glm::vec4& color) 
 }
 
 void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
-    int majorRows, int majorCols, float majorEdge,
-    int minorRows, int minorCols, float minorEdge,
-    const glm::vec4& color, int id) {
-    static const glm::vec2 MIN_TEX_COORD(0.0f, 0.0f);
-    static const glm::vec2 MAX_TEX_COORD(1.0f, 1.0f);
-
-    bool registered = (id != UNKNOWN_ID);
+        int majorRows, int majorCols, float majorEdge, int minorRows, int minorCols, float minorEdge,
+        const glm::vec4& color, int id) {
     Vec2FloatPair majorKey(glm::vec2(majorRows, majorCols), majorEdge);
     Vec2FloatPair minorKey(glm::vec2(minorRows, minorCols), minorEdge);
     Vec2FloatPairPair key(majorKey, minorKey);
 
     // Make the gridbuffer
-    if (registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) {
-        GridSchema gridSchema;
-        GridBuffer gridBuffer = std::make_shared<gpu::Buffer>(sizeof(GridSchema), (const gpu::Byte*) &gridSchema);
-
-        if (registered && _registeredGridBuffers.contains(id)) {
-            gridBuffer = _registeredGridBuffers[id];
+    GridBuffer gridBuffer;
+    if (id != UNKNOWN_ID) {
+        auto gridBufferIter = _registeredGridBuffers.find(id);
+        bool hadGridBuffer = gridBufferIter != _registeredGridBuffers.end();
+        if (hadGridBuffer) {
+            gridBuffer = gridBufferIter.value();
+        } else {
+            GridSchema gridSchema;
+            gridBuffer = std::make_shared<gpu::Buffer>(sizeof(GridSchema), (const gpu::Byte*)&gridSchema);
         }
 
-        _registeredGridBuffers[id] = gridBuffer;
-        _lastRegisteredGridBuffer[id] = key;
+        if (!hadGridBuffer || _lastRegisteredGridBuffer[id] != key) {
+            _registeredGridBuffers[id] = gridBuffer;
+            _lastRegisteredGridBuffer[id] = key;
 
-        gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
-        gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
-        gridBuffer.edit<GridSchema>().offset.y = -(majorEdge / majorCols) / 2;
-        gridBuffer.edit<GridSchema>().offset.z = -(minorEdge / minorRows) / 2;
-        gridBuffer.edit<GridSchema>().offset.w = -(minorEdge / minorCols) / 2;
-        gridBuffer.edit<GridSchema>().edge = glm::vec4(glm::vec2(majorEdge),
-            // If rows or columns are not set, do not draw minor gridlines
-            glm::vec2((minorRows != 0 && minorCols != 0) ? minorEdge : 0.0f));
+            gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
+            gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
+            gridBuffer.edit<GridSchema>().offset.y = -(majorEdge / majorCols) / 2;
+            gridBuffer.edit<GridSchema>().offset.z = -(minorEdge / minorRows) / 2;
+            gridBuffer.edit<GridSchema>().offset.w = -(minorEdge / minorCols) / 2;
+            gridBuffer.edit<GridSchema>().edge = glm::vec4(glm::vec2(majorEdge),
+                // If rows or columns are not set, do not draw minor gridlines
+                glm::vec2((minorRows != 0 && minorCols != 0) ? minorEdge : 0.0f));
+        }
     }
 
     // Set the grid pipeline
-    useGridPipeline(batch, _registeredGridBuffers[id], color.a < 1.0f);
+    useGridPipeline(batch, gridBuffer, color.a < 1.0f);
 
+    static const glm::vec2 MIN_TEX_COORD(0.0f, 0.0f);
+    static const glm::vec2 MAX_TEX_COORD(1.0f, 1.0f);
     renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
 
@@ -2117,10 +2119,11 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
 void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool transparent) {
     if (!_gridPipelineOpaque || !_gridPipelineTransparent) {
-        auto program = gpu::Shader::createProgram(shader::render_utils::program::grid);
         const float DEPTH_BIAS = 0.001f;
 
+        // FIXME: need forward pipelines
         {
+            auto program = gpu::Shader::createProgram(shader::render_utils::program::grid);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(false,
@@ -2133,6 +2136,7 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
         }
 
         {
+            auto program = gpu::Shader::createProgram(shader::render_utils::program::grid_translucent);
             auto state = std::make_shared<gpu::State>();
             state->setDepthTest(true, true, gpu::LESS_EQUAL);
             state->setBlendFunction(true,

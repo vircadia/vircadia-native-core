@@ -38,18 +38,10 @@ ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Pare
     // FIXME: Setup proper uniform slots and use correct pipelines for forward rendering
     _procedural._opaqueFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple);
     _procedural._transparentFragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::simple_transparent);
-    _procedural._opaqueState->setCullMode(gpu::State::CULL_NONE);
-    _procedural._opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
+
+    // TODO: move into Procedural.cpp
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
-    _procedural._opaqueState->setBlendFunction(false,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    _procedural._transparentState->setCullMode(gpu::State::CULL_BACK);
-    _procedural._transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
     PrepareStencil::testMask(*_procedural._transparentState);
-    _procedural._transparentState->setBlendFunction(true,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 }
 
 bool ShapeEntityRenderer::needsRenderUpdate() const {
@@ -197,7 +189,10 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
         return builder.build();
     } else {
         ShapeKey::Builder builder;
-        if (_procedural.isReady()) {
+        bool proceduralReady = resultWithReadLock<bool>([&] {
+            return _procedural.isReady();
+        });
+        if (proceduralReady) {
             builder.withOwnPipeline();
         }
         if (isTransparent()) {
@@ -227,7 +222,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
             if (_procedural.isReady()) {
                 outColor = _procedural.getColor(outColor);
                 outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
-                _procedural.prepare(batch, _position, _dimensions, _orientation, outColor);
+                _procedural.prepare(batch, _position, _dimensions, _orientation, ProceduralProgramKey(outColor.a < 1.0f));
                 proceduralRender = true;
             }
         }
