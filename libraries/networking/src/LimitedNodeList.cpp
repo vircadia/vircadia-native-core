@@ -300,10 +300,10 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             } else {
                 HIFI_FCDEBUG(networking(), "Replicated packet of type" << headerType
                     << "received from unknown upstream" << packet.getSenderSockAddr());
-                
+
                 return false;
             }
-            
+
         } else {
             emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
             return true;
@@ -319,7 +319,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             SharedNodePointer matchingNode = nodeWithLocalID(sourceLocalID);
             sourceNode = matchingNode.data();
         }
-        
+
         QUuid sourceID = sourceNode ? sourceNode->getUUID() : QUuid();
 
         if (!sourceNode &&
@@ -1261,6 +1261,10 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep) {
 }
 
 void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp) {
+    if (!_flagTimeForConnectionStep) {
+        // this is only true in interface
+        return;
+    }
     if (connectionStep == ConnectionStep::LookupAddress) {
         QWriteLocker writeLock(&_connectionTimeLock);
 

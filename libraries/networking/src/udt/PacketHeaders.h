@@ -249,7 +249,9 @@ enum class EntityVersion : PacketVersion {
     EntityHostTypes,
     CleanupProperties,
     ImageEntities,
-    GridEntities
+    GridEntities,
+    MissingTextProperties,
+    GrabTraits
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -303,6 +305,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     MigrateAvatarEntitiesToTraits,
     FarGrabJointsRedux,
     JointTransScaled,
+    GrabTraits,
     AvatarTraitsAck
 };
 

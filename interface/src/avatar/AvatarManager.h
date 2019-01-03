@@ -198,6 +198,8 @@ public:
     void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void removeDeadAvatarEntities(const SetOfEntities& deadEntities);
 
+    void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
+
 public slots:
     /**jsdoc
      * @function AvatarManager.updateAvatarRenderStatus
@@ -215,7 +217,7 @@ private:
     void simulateAvatarFades(float deltaTime);
 
     AvatarSharedPointer newSharedAvatar() override;
-    
+
     // called only from the AvatarHashMap thread - cannot be called while this thread holds the
     // hash lock, since handleRemovedAvatar needs a write lock on the entity tree and the entity tree
     // frequently grabs a read lock on the hash to get a given avatar by ID

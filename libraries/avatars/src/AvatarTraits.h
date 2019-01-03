@@ -24,6 +24,7 @@ namespace AvatarTraits {
         SkeletonModelURL,
         FirstInstancedTrait,
         AvatarEntity = FirstInstancedTrait,
+        Grab,
         TotalTraitTypes
     };
 
