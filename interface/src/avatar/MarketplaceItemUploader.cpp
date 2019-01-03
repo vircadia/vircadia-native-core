@@ -14,11 +14,14 @@
 #include <AccountManager.h>
 #include <DependencyManager.h>
 
-#include <QBuffer>
+#ifndef Q_OS_ANDROID
 #include <quazip5/quazip.h>
 #include <quazip5/quazipfile.h>
+#endif
 
-#include <qtimer.h>
+#include <QTimer>
+#include <QBuffer>
+
 #include <QFile>
 #include <QFileInfo>
 
@@ -125,8 +128,12 @@ void MarketplaceItemUploader::doGetCategories() {
 }
 
 void MarketplaceItemUploader::doUploadAvatar() {
+#ifdef Q_OS_ANDROID
+    qWarning() << "Marketplace uploading is not supported on Android";
+    setError(Error::Unknown);
+    return;
+#else
     QBuffer buffer{ &_fileData };
-    //buffer.open(QIODevice::WriteOnly);
     QuaZip zip{ &buffer };
     if (!zip.open(QuaZip::Mode::mdAdd)) {
         qWarning() << "Failed to open zip";
@@ -227,6 +234,7 @@ void MarketplaceItemUploader::doUploadAvatar() {
     });
 
     setState(State::UploadingAvatar);
+#endif
 }
 
 void MarketplaceItemUploader::doWaitForInventory() {
@@ -277,7 +285,6 @@ void MarketplaceItemUploader::doWaitForInventory() {
                         auto version = assetObject["version"];
                         auto valid = assetObject["valid"];
                         if (version.isDouble() && valid.isBool()) {
-                            int versionInt = version.toDouble();
                             if ((int)version.toDouble() >= _itemVersion && valid.toBool()) {
                                 return true;
                             }

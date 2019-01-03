@@ -146,6 +146,8 @@ Item {
         }
 
         AvatarPackagerHeader {
+            z: 100
+
             id: avatarPackagerHeader
             colorScheme: root.colorScheme
             onBackButtonClicked: {
@@ -260,22 +262,49 @@ Item {
                     }
                 }
 
-                Column {
-                    visible: AvatarPackagerCore.recentProjects.length > 0
-                    anchors {
-                        fill: parent
-                        topMargin: 18
-                        leftMargin: 16
-                        rightMargin: 16
-                    }
-                    spacing: 10
+                Item {
+                    anchors.fill: parent
 
-                    Repeater {
-                        model: AvatarPackagerCore.recentProjects
-                        AvatarProjectCard {
-                            title: modelData.name
-                            path: modelData.projectPath
-                            onOpen: avatarPackager.openProject(modelData.path)
+                    visible: AvatarPackagerCore.recentProjects.length > 0
+
+                    RalewayRegular {
+                        id: recentProjectsText
+
+                        color: 'white'
+
+                        visible: AvatarPackagerCore.currentAvatarProject !== null
+
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.topMargin: 16
+                        anchors.leftMargin: 16
+
+                        size: 20
+
+                        text: "Recent Projects"
+
+                        onLinkActivated: fileListPopup.open()
+                    }
+
+                    Column {
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            bottom: parent.bottom
+                            top: recentProjectsText.bottom
+                            topMargin: 16
+                            leftMargin: 16
+                            rightMargin: 16
+                        }
+                        spacing: 10
+
+                        Repeater {
+                            model: AvatarPackagerCore.recentProjects
+                            AvatarProjectCard {
+                                title: modelData.name
+                                path: modelData.projectPath
+                                onOpen: avatarPackager.openProject(modelData.path)
+                            }
                         }
                     }
                 }

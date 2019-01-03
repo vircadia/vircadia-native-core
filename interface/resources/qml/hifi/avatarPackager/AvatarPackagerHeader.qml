@@ -2,8 +2,9 @@ import QtQuick 2.6
 
 import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
+import "../avatarapp" 1.0
 
-Rectangle {
+ShadowRectangle {
     id: root 
 
     width: parent.width
@@ -24,30 +25,21 @@ Rectangle {
     signal backButtonClicked
     signal docsButtonClicked
 
-    RalewaySemiBold {
+    RalewayButton {
         id: back
+
         visible: backButtonEnabled && backButtonVisible
+
         size: 28
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.leftMargin: 16
         anchors.verticalCenter: back.verticalCenter
+
         text: "◀"
-        color: textColor
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.backButtonClicked()
-            hoverEnabled: true
-            onEntered: { state = "hovering" }
-            onExited: { state = "" }
-            states: [
-                State {
-                    name: "hovering"
-                    PropertyChanges { target: back; color: hoverTextColor }
-                }
-            ]
-        }
+
+        onClicked: root.backButtonClicked()
     }
     Item {
         id: titleArea
@@ -124,7 +116,7 @@ Rectangle {
         }
     }
 
-    RalewaySemiBold {
+    RalewayButton {
         id: docs
         visible: false
         size: 28
@@ -133,13 +125,12 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 16
         anchors.verticalCenter: docs.verticalCenter
+
         text: qsTr("Docs")
         color: "white"
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                docsButtonClicked();
-            }
+
+        onClicked: {
+            docsButtonClicked();
         }
     }
 }
