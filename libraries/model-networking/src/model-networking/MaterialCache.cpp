@@ -153,6 +153,14 @@ NetworkMaterialResource::ParsedMaterials NetworkMaterialResource::parseJSONMater
  *     <code>bumpMap</code> is specified.  Set to <code>"fallthrough"</code> to fallthrough to the material below.  "hifi_pbr" model only.
  * @property {string} lightMap - URL of light map texture image. <em>Currently not used.</em>.  Set to <code>"fallthrough"</code>
  *     to fallthrough to the material below.  "hifi_pbr" model only.
+ * @property {string} texCoordTransform0 - The transform to use for all of the maps besides occlusionMap and lightMap.  Currently unused.  Set to
+ *     <code>"fallthrough"</code> to fallthrough to the material below.  "hifi_pbr" model only.
+ * @property {string} texCoordTransform1 - The transform to use for occlusionMap and lightMap.  Currently unused.  Set to <code>"fallthrough"</code>
+ *     to fallthrough to the material below.  "hifi_pbr" model only.
+ * @property {string} lightmapParams - Parameters for controlling how lightMap is used.  Currently unused.  Set to <code>"fallthrough"</code>
+ *     to fallthrough to the material below.  "hifi_pbr" model only.
+ * @property {string} materialParams - Parameters for controlling the material projection and repition.  Currently unused.  Set to <code>"fallthrough"</code>
+ *     to fallthrough to the material below.  "hifi_pbr" model only.
  * @property {bool} defaultFallthrough=false - If <code>true</code>, all properties will fallthrough to the material below unless they are set.  If
  *     <code>false</code>, they will respect the individual properties' fallthrough state.  "hifi_pbr" model only.
  */
@@ -356,6 +364,42 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                         material->setLightmapMap(baseUrl.resolved(valueString));
                     }
                 }
+            } else if (key == "texCoordTransform0") {
+                auto value = materialJSON.value(key);
+                if (value.isString()) {
+                    auto valueString = value.toString();
+                    if (valueString == FALLTHROUGH) {
+                        material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::TEXCOORDTRANSFORM0);
+                    }
+                }
+                // TODO: implement texCoordTransform0
+            } else if (key == "texCoordTransform1") {
+                auto value = materialJSON.value(key);
+                if (value.isString()) {
+                    auto valueString = value.toString();
+                    if (valueString == FALLTHROUGH) {
+                        material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::TEXCOORDTRANSFORM1);
+                    }
+                }
+                // TODO: implement texCoordTransform1
+            } else if (key == "lightmapParams") {
+                auto value = materialJSON.value(key);
+                if (value.isString()) {
+                    auto valueString = value.toString();
+                    if (valueString == FALLTHROUGH) {
+                        material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::LIGHTMAP_PARAMS);
+                    }
+                }
+                // TODO: implement lightmapParams
+            } else if (key == "materialParams") {
+                auto value = materialJSON.value(key);
+                if (value.isString()) {
+                    auto valueString = value.toString();
+                    if (valueString == FALLTHROUGH) {
+                        material->setPropertyDoesFallthrough(graphics::Material::ExtraFlagBit::MATERIAL_PARAMS);
+                    }
+                }
+                // TODO: implement materialParams
             } else if (key == "defaultFallthrough") {
                 auto value = materialJSON.value(key);
                 if (value.isBool()) {

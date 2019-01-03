@@ -25,8 +25,8 @@ const float Material::DEFAULT_ROUGHNESS { 1.0f };
 const float Material::DEFAULT_SCATTERING { 0.0f };
 
 Material::Material() {
-    for (int i = 0; i < graphics::MaterialKey::NUM_FLAGS; i++) {
-        _propertyFallthroughs[graphics::MaterialKey::FlagBit(i)] = false;
+    for (int i = 0; i < NUM_TOTAL_FLAGS; i++) {
+        _propertyFallthroughs[i] = false;
     }
 }
 
@@ -201,7 +201,7 @@ void MultiMaterial::calculateMaterialInfo() const {
         _textureSize = 0;
         _textureCount = 0;
 
-        auto& textures = _textureTable->getTextures();
+        auto textures = _textureTable->getTextures();
         for (auto const &texture : textures) {
             if (texture && texture->isDefined()) {
                 auto size = texture->getSize();

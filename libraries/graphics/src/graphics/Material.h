@@ -14,6 +14,7 @@
 #include <QMutex>
 
 #include <bitset>
+#include <map>
 #include <unordered_map>
 #include <queue>
 
@@ -176,7 +177,6 @@ public:
     bool isTexelOpaque() const { return isOpaque() && isOpacityMaskMap(); }
 };
 
-
 class MaterialFilter {
 public:
     MaterialKey::Flags _value{ 0 };
@@ -267,7 +267,7 @@ public:
 class Material {
 public:
     typedef MaterialKey::MapChannel MapChannel;
-    typedef std::unordered_map<MapChannel, TextureMapPointer> TextureMaps;
+    typedef std::map<MapChannel, TextureMapPointer> TextureMaps;
 
     Material();
     Material(const Material& material);
@@ -322,17 +322,30 @@ public:
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }
 
+    glm::mat4 getTexCoordTransform(uint i) const { return _texcoordTransforms[i]; }
+    glm::vec2 getLightmapParams() const { return _lightmapParams; }
+    glm::vec2 getMaterialParams() const { return _materialParams; }
+
     bool getDefaultFallthrough() const { return _defaultFallthrough; }
     void setDefaultFallthrough(bool defaultFallthrough) { _defaultFallthrough = defaultFallthrough; }
 
-    std::unordered_map<MaterialKey::FlagBit, bool> getPropertyFallthroughs() { return _propertyFallthroughs; }
-    bool getPropertyFallthrough(MaterialKey::FlagBit property) { return _propertyFallthroughs[property]; }
-    void setPropertyDoesFallthrough(MaterialKey::FlagBit property) { _propertyFallthroughs[property] = true; }
+    enum ExtraFlagBit {
+        TEXCOORDTRANSFORM0 = MaterialKey::NUM_FLAGS,
+        TEXCOORDTRANSFORM1,
+        LIGHTMAP_PARAMS,
+        MATERIAL_PARAMS,
+
+        NUM_TOTAL_FLAGS
+    };
+    std::unordered_map<uint, bool> getPropertyFallthroughs() { return _propertyFallthroughs; }
+    bool getPropertyFallthrough(uint property) { return _propertyFallthroughs[property]; }
+    void setPropertyDoesFallthrough(uint property) { _propertyFallthroughs[property] = true; }
 
 protected:
     std::string _name { "" };
 
 private:
+    std::string _model { "hifi_pbr" };
     mutable MaterialKey _key { 0 };
 
     // Material properties
@@ -348,11 +361,9 @@ private:
     TextureMaps _textureMaps;
 
     bool _defaultFallthrough { false };
-    std::unordered_map<MaterialKey::FlagBit, bool> _propertyFallthroughs;
+    std::unordered_map<uint, bool> _propertyFallthroughs { NUM_TOTAL_FLAGS };
 
     mutable QMutex _textureMapsMutex { QMutex::Recursive };
-
-    std::string _model { "hifi_pbr" };
 };
 typedef std::shared_ptr<Material> MaterialPointer;
 
@@ -434,7 +445,11 @@ public:
         // y: 1 for texture repeat, 0 for discard outside of 0 - 1
         glm::vec2 _materialParams { 0.0, 1.0 };
 
-        Schema() {}
+        Schema() {
+            for (auto& transform : _texcoordTransforms) {
+                transform = glm::mat4();
+            }
+        }
     };
 
     gpu::BufferView& getSchemaBuffer() { return _schemaBuffer; }

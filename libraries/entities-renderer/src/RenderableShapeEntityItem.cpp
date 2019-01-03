@@ -125,13 +125,18 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
         }
     });
 
-    _color = entity->getColor();
-    _alpha = entity->getAlpha();
-    _material->setAlbedo(toGlm(_color));
-    _material->setOpacity(_alpha);
-    auto materials = _materials.find("0");
-    if (materials != _materials.end()) {
-        materials->second.setNeedsUpdate(true);
+    glm::u8vec3 color = entity->getColor();
+    float alpha = entity->getAlpha();
+    if (_color != color || _alpha != alpha) {
+        _color = color;
+        _alpha = alpha;
+        _material->setAlbedo(toGlm(_color));
+        _material->setOpacity(_alpha);
+
+        auto materials = _materials.find("0");
+        if (materials != _materials.end()) {
+            materials->second.setNeedsUpdate(true);
+        }
     }
 }
 
@@ -279,7 +284,7 @@ scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel()  {
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
         result.appendMaterials(_materials);
-        auto& materials = _materials.find("0");
+        auto materials = _materials.find("0");
         if (materials != _materials.end()) {
             vertexColor = materials->second.getSchemaBuffer().get<graphics::MultiMaterial::Schema>()._albedo;
         }

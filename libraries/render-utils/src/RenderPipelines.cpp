@@ -392,15 +392,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     auto& drawMaterialTextures = multiMaterial.getTextureTable();
 
     // The total list of things we need to look for
-    static std::set<graphics::MaterialKey::FlagBit> allFlagBits;
+    static std::set<uint> allFlags;
     static std::once_flag once;
     std::call_once(once, [textureCache] {
-        for (int i = 0; i < graphics::MaterialKey::NUM_FLAGS; i++) {
-            auto flagBit = graphics::MaterialKey::FlagBit(i);
+        for (int i = 0; i < graphics::Material::NUM_TOTAL_FLAGS; i++) {
             // The opacity mask/map are derived from the albedo map
-            if (flagBit != graphics::MaterialKey::OPACITY_MASK_MAP_BIT &&
-                    flagBit != graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT) {
-                allFlagBits.insert(flagBit);
+            if (i != graphics::MaterialKey::OPACITY_MASK_MAP_BIT &&
+                    i != graphics::MaterialKey::OPACITY_TRANSLUCENT_MAP_BIT) {
+                allFlags.insert(i);
             }
         }
     });
@@ -409,21 +408,28 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     graphics::MultiMaterial::Schema schema;
     graphics::MaterialKey schemaKey;
 
-    std::set<graphics::MaterialKey::FlagBit> flagBitsToCheck = allFlagBits;
-    std::set<graphics::MaterialKey::FlagBit> flagBitsToSetDefault;
+    std::set<uint> flagsToCheck = allFlags;
+    std::set<uint> flagsToSetDefault;
 
-    auto material = materials.top().material;
-    while (material) {
+    while (!materials.empty()) {
+        auto material = materials.top().material;
+        if (!material) {
+            break;
+        }
+        materials.pop();
+
         bool defaultFallthrough = material->getDefaultFallthrough();
         const auto& materialKey = material->getKey();
         const auto& textureMaps = material->getTextureMaps();
 
-        auto it = flagBitsToCheck.begin();
-        while (it != flagBitsToCheck.end()) {
-            auto flagBit = *it;
+        auto it = flagsToCheck.begin();
+        while (it != flagsToCheck.end()) {
+            auto flag = *it;
+            bool fallthrough = defaultFallthrough || material->getPropertyFallthrough(flag);
+
             bool wasSet = false;
             bool forceDefault = false;
-            switch (flagBit) {
+            switch (flag) {
                 case graphics::MaterialKey::EMISSIVE_VAL_BIT:
                     if (materialKey.isEmissive()) {
                         schema._emissive = material->getEmissive(false);
@@ -574,36 +580,56 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         schemaKey.setLightmapMap(true);
                     }
                     break;
+                case graphics::Material::TEXCOORDTRANSFORM0:
+                    if (!fallthrough) {
+                        schema._texcoordTransforms[0] = material->getTexCoordTransform(0);
+                        wasSet = true;
+                    }
+                    break;
+                case graphics::Material::TEXCOORDTRANSFORM1:
+                    if (!fallthrough) {
+                        schema._texcoordTransforms[1] = material->getTexCoordTransform(1);
+                        wasSet = true;
+                    }
+                    break;
+                case graphics::Material::LIGHTMAP_PARAMS:
+                    if (!fallthrough) {
+                        schema._lightmapParams = material->getLightmapParams();
+                        wasSet = true;
+                    }
+                    break;
+                case graphics::Material::MATERIAL_PARAMS:
+                    if (!fallthrough) {
+                        schema._materialParams = material->getMaterialParams();
+                        wasSet = true;
+                    }
+                    break;
                 default:
                     break;
             }
 
-            bool fallthrough = defaultFallthrough || material->getPropertyFallthrough(flagBit);
             if (wasSet) {
-                flagBitsToCheck.erase(it++);
+                flagsToCheck.erase(it++);
             } else if (forceDefault || !fallthrough) {
-                flagBitsToSetDefault.insert(flagBit);
-                flagBitsToCheck.erase(it++);
+                flagsToSetDefault.insert(flag);
+                flagsToCheck.erase(it++);
             } else {
                 ++it;
             }
         }
 
-        if (flagBitsToCheck.empty()) {
+        if (flagsToCheck.empty()) {
             break;
         }
-
-        materials.pop();
-        material = materials.top().material;
     }
 
-    for (auto flagBit : flagBitsToCheck) {
-        flagBitsToSetDefault.insert(flagBit);
+    for (auto flagBit : flagsToCheck) {
+        flagsToSetDefault.insert(flagBit);
     }
 
     // Handle defaults
-    for (auto flagBit : flagBitsToSetDefault) {
-        switch (flagBit) {
+    for (auto flag : flagsToSetDefault) {
+        switch (flag) {
             case graphics::MaterialKey::EMISSIVE_VAL_BIT:
             case graphics::MaterialKey::UNLIT_VAL_BIT:
             case graphics::MaterialKey::ALBEDO_VAL_BIT:
@@ -611,6 +637,10 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
             case graphics::MaterialKey::GLOSSY_VAL_BIT:
             case graphics::MaterialKey::OPACITY_VAL_BIT:
             case graphics::MaterialKey::SCATTERING_VAL_BIT:
+            case graphics::Material::TEXCOORDTRANSFORM0:
+            case graphics::Material::TEXCOORDTRANSFORM1:
+            case graphics::Material::LIGHTMAP_PARAMS:
+            case graphics::Material::MATERIAL_PARAMS:
                 // these are initialized to the correct default values in Schema()
                 break;
             case graphics::MaterialKey::ALBEDO_MAP_BIT:
@@ -657,9 +687,6 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 break;
         }
     }
-
-    // FIXME:
-    // set transforms and params
 
     schema._key = (uint32_t)schemaKey._flags.to_ulong();
     schemaBuffer.edit<graphics::MultiMaterial::Schema>() = schema;

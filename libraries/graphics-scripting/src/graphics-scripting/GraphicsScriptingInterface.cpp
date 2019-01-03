@@ -404,6 +404,20 @@ namespace scriptable {
             obj.setProperty("bumpMap", material.bumpMap);
         }
 
+        // These need to be implemented, but set the fallthrough for now
+        if (material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM0)) {
+            obj.setProperty("texCoordTransform0", FALLTHROUGH);
+        }
+        if (material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM1)) {
+            obj.setProperty("texCoordTransform1", FALLTHROUGH);
+        }
+        if (material.propertyFallthroughs.at(graphics::Material::LIGHTMAP_PARAMS)) {
+            obj.setProperty("lightmapParams", FALLTHROUGH);
+        }
+        if (material.propertyFallthroughs.at(graphics::Material::MATERIAL_PARAMS)) {
+            obj.setProperty("materialParams", FALLTHROUGH);
+        }
+
         obj.setProperty("defaultFallthrough", material.defaultFallthrough);
 
         return obj;

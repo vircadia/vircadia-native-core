@@ -59,6 +59,10 @@ namespace scriptable {
      * @property {string} occlusionMap
      * @property {string} lightmapMap
      * @property {string} scatteringMap
+     * @property {string} texCoordTransform0
+     * @property {string} texCoordTransform1
+     * @property {string} lightmapParams
+     * @property {string} materialParams
      * @property {boolean} defaultFallthrough
      */
     class ScriptableMaterial {
@@ -91,7 +95,7 @@ namespace scriptable {
         QString scatteringMap;
 
         bool defaultFallthrough;
-        std::unordered_map<graphics::MaterialKey::FlagBit, bool> propertyFallthroughs; // not actually exposed to script
+        std::unordered_map<uint, bool> propertyFallthroughs; // not actually exposed to script
     };
 
     /**jsdoc
