@@ -417,7 +417,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 avatar->resetDetailedMotionStates();
 
             } else {
-                {
+                if (avatar->_motionState == nullptr) {
                     ShapeInfo shapeInfo;
                     avatar->computeShapeInfo(shapeInfo);
                     btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
@@ -427,20 +427,19 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                         avatar->_motionState = motionState;
                         transaction.objectsToAdd.push_back(motionState);
                     }
-                    else {
-                        failedShapeBuilds.insert(avatar);
-                    }
                 }
-
-                {
+                auto& detailedMotionStates = avatar->getDetailedMotionStates();
+                if (detailedMotionStates.size() == 0) {
                     for (int i = 0; i < avatar->getJointCount(); i++) {
                         avatar->addNewMotionState(avatar, i);
                     }
-                    auto& detailedMotionStates = avatar->getDetailedMotionStates();
                     for (auto& mState : detailedMotionStates) {
                         transaction.objectsToAdd.push_back(mState);
                     }
                     qCDebug(animation) << "Creating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
+                }
+                if (avatar->_motionState == nullptr || detailedMotionStates.size() == 0) {
+                    failedShapeBuilds.insert(avatar);
                 }
             }
         } else if (isInPhysics) {

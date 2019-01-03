@@ -39,7 +39,7 @@ public:
 
     int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    bool isInPhysicsSimulation() const { return _motionState != nullptr; }
+    bool isInPhysicsSimulation() const { return _motionState != nullptr && _detailedMotionStates.size() > 0; }
     void rebuildCollisionShape() override;
 
     void setWorkloadRegion(uint8_t region);
@@ -47,7 +47,7 @@ public:
     bool needsPhysicsUpdate() const;
 
     void addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
-    const std::vector<DetailedMotionState*>& getDetailedMotionStates();
+    const std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
 
     friend AvatarManager;
@@ -59,7 +59,6 @@ protected:
     std::vector<DetailedMotionState*> _detailedMotionStates;
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };
-    std::mutex _mStateLock;
 };
 
 using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;

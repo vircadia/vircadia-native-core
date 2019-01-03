@@ -118,7 +118,6 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
 }
 
 void OtherAvatar::addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
-    std::lock_guard<std::mutex> lock(_mStateLock);
     if (jointIndex > -1 && jointIndex < _multiSphereShapes.size()) {
         auto& data = _multiSphereShapes[jointIndex].getSpheresData();
         std::vector<btVector3> positions;
@@ -138,10 +137,7 @@ void OtherAvatar::addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int joi
         }
     }
 }
-const std::vector<DetailedMotionState*>& OtherAvatar::getDetailedMotionStates() {
-    std::lock_guard<std::mutex> lock(_mStateLock);
-    return _detailedMotionStates; 
-}
+
 void OtherAvatar::resetDetailedMotionStates() {
     for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
         _detailedMotionStates[i] = nullptr;
