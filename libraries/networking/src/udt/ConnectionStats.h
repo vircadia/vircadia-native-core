@@ -14,6 +14,7 @@
 
 #include <chrono>
 #include <array>
+#include <stdint.h>
 
 namespace udt {
 
@@ -24,8 +25,6 @@ public:
             SentACK,
             ReceivedACK,
             ProcessedACK,
-            Retransmission,
-            Duplicate,
             
             NumEvents
         };
@@ -40,19 +39,27 @@ public:
         Events events;
         
         // packet counts and sizes
-        int sentPackets { 0 };
-        int receivedPackets { 0 };
-        int sentUtilBytes { 0 };
-        int receivedUtilBytes { 0 };
-        int sentBytes { 0 };
-        int receivedBytes { 0 };
+        uint32_t sentPackets { 0 };
+        uint32_t receivedPackets { 0 };
+        uint32_t retransmittedPackets { 0 };
+        uint32_t duplicatePackets { 0 };
+
+        uint64_t sentUtilBytes { 0 };
+        uint64_t receivedUtilBytes { 0 };
+        uint64_t retransmittedUtilBytes { 0 };
+        uint64_t duplicateUtilBytes { 0 };
+
+        uint64_t sentBytes { 0 };
+        uint64_t receivedBytes { 0 };
+        uint64_t retransmittedBytes { 0 };
+        uint64_t duplicateBytes { 0 };
         
-        int sentUnreliablePackets { 0 };
-        int receivedUnreliablePackets { 0 };
-        int sentUnreliableUtilBytes { 0 };
-        int receivedUnreliableUtilBytes { 0 };
-        int sentUnreliableBytes { 0 };
-        int receivedUnreliableBytes { 0 };
+        uint32_t sentUnreliablePackets { 0 };
+        uint32_t receivedUnreliablePackets { 0 };
+        uint64_t sentUnreliableUtilBytes { 0 };
+        uint64_t receivedUnreliableUtilBytes { 0 };
+        uint64_t sentUnreliableBytes { 0 };
+        uint64_t receivedUnreliableBytes { 0 };
        
         // the following stats are trailing averages in the result, not totals
         int sendRate { 0 };
@@ -69,25 +76,26 @@ public:
     ConnectionStats();
     
     Stats sample();
-    Stats getTotalStats();
     
     void record(Stats::Event event);
-    
+
+    void recordSentACK(int size);
+    void recordReceivedACK(int size);
+
     void recordSentPackets(int payload, int total);
     void recordReceivedPackets(int payload, int total);
+
+    void recordRetransmittedPackets(int payload, int total);
+    void recordDuplicatePackets(int payload, int total);
     
     void recordUnreliableSentPackets(int payload, int total);
     void recordUnreliableReceivedPackets(int payload, int total);
-    
-    void recordSendRate(int sample);
-    void recordReceiveRate(int sample);
-    void recordRTT(int sample);
+
     void recordCongestionWindowSize(int sample);
     void recordPacketSendPeriod(int sample);
     
 private:
     Stats _currentSample;
-    Stats _total;
 };
     
 }

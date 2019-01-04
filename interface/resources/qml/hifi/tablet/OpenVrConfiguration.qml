@@ -869,7 +869,7 @@ Flickable {
                     id: outOfRangeDataStrategyComboBox
 
                     height: 25
-                    width: 100
+                    width: 150
 
                     editable: true
                     colorScheme: hifi.colorSchemes.dark

@@ -8,13 +8,11 @@ import TabletScriptingInterface 1.0
 RalewaySemiBold {
     id: root
 
-    anchors.fill: textItem
+    property color idleColor: "white"
+    property color hoverColor: "#AFAFAF"
+    property color pressedColor: "#575757"
 
-    property var idleColor: "white"
-    property var hoverColor: "#AFAFAF"
-    property var pressedColor: "#575757"
-
-    color: clickable.hovered ? root.hoverColor : (clickable.pressed ? root.pressedColor : root.idleColor);
+    color: clickable.hovered ? root.hoverColor : (clickable.pressed ? root.pressedColor : root.idleColor)
 
     signal clicked()
 

@@ -56,7 +56,7 @@ class AvatarProject : public QObject {
 
 public:
     Q_INVOKABLE MarketplaceItemUploader* upload(bool updateExisting);
-    Q_INVOKABLE void openInInventory();
+    Q_INVOKABLE void openInInventory() const;
     Q_INVOKABLE QStringList getProjectFiles() const;
 
     Q_INVOKABLE QString getProjectName() const { return _fst->getName(); }

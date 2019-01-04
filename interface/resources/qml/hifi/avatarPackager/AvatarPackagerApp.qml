@@ -76,7 +76,7 @@ Item {
     InfoBox {
         id: errorPopup
 
-        property string errorMessage;
+        property string errorMessage
 
         boxWidth: 380
         boxHeight: 293
@@ -181,16 +181,16 @@ Item {
                     errorPopup.show("Project Folder Already Exists", "A folder with that name already exists at that location. Please choose a different project name or location.");
                     break;
                 case AvatarProjectStatus.ERROR_CREATE_CREATING_DIRECTORIES:
-                    errorPopup.show("Project Folders Creation Error", "There was a problem during the creation of the Avatar Project directories. Please select a project location with write permissions.");
+                    errorPopup.show("Project Folders Creation Error", "There was a problem creating the Avatar Project directory. Please check the project location and try again.");
                     break;
                 case AvatarProjectStatus.ERROR_CREATE_FIND_MODEL:
-                    errorPopup.show("Cannot Find Model File", "There was a problem while trying to find the specified model file. Please verify if it exist at the specified location.");
+                    errorPopup.show("Cannot Find Model File", "There was a problem while trying to find the specified model file. Please verify that it exists at the specified location.");
                     break;
                 case AvatarProjectStatus.ERROR_CREATE_OPEN_MODEL:
-                    errorPopup.show("Cannot Open Model File", "There was a problem while trying to open the specified model file. Please verify if you have read permissions at the specified location.");
+                    errorPopup.show("Cannot Open Model File", "There was a problem while trying to open the specified model file.");
                     break;
                 case AvatarProjectStatus.ERROR_CREATE_READ_MODEL:
-                    errorPopup.show("Error Read Model File", "There was a problem while trying to read the specified model file. Please verify if the model file is supported by High Fidelity.");
+                    errorPopup.show("Error Read Model File", "There was a problem while trying to read the specified model file. Please check that the file is a valid FBX file and try again.");
                     break;
                 case AvatarProjectStatus.ERROR_CREATE_WRITE_FST:
                     errorPopup.show("Error Writing Project File", "There was a problem while trying to write the FST file.");
@@ -202,13 +202,13 @@ Item {
                     errorPopup.show("Project Missing", "Project folder cannot be found. Please locate the folder and copy/move it to its original location.");
                     break;
                 case AvatarProjectStatus.ERROR_OPEN_FIND_FST:
-                    errorPopup.show("File Missing", "We cannot find the project file (avatar.fst) in the folder. Please locate it and move to the project folder.");
+                    errorPopup.show("File Missing", "We cannot find the project file (.fst) in the project folder. Please locate it and move it to the project folder.");
                     break;
                 case AvatarProjectStatus.ERROR_OPEN_OPEN_FST:
-                    errorPopup.show("File Read Error", "We cannot read the project file (avatar.fst). Please make sure that it is not in use by another program.");
+                    errorPopup.show("File Read Error", "We cannot read the project file (.fst).");
                     break;
                 case AvatarProjectStatus.ERROR_OPEN_FIND_MODEL:
-                    errorPopup.show("File Missing", "We cannot find the avatar model file (.fbx) in the folder. Please locate it and move to the project folder.");
+                    errorPopup.show("File Missing", "We cannot find the avatar model file (.fbx) in the project folder. Please locate it and move it to the project folder.");
                     break;
                 default:
                     errorPopup.show("Error Message Missing", "Error message missing for status " + status);

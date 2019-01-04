@@ -129,6 +129,7 @@ public:
     // bool _fooChanged { false };
 
     // Core Properties
+    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner, SimulationOwner());
     DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool, ENTITY_ITEM_DEFAULT_VISIBLE);
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
@@ -164,7 +165,6 @@ public:
     DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
     DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint16_t, ENTITY_COLLISION_MASK_DEFAULT);
     DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
-    DEFINE_PROPERTY_REF(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner, SimulationOwner());
     DEFINE_PROPERTY_REF(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString, ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
 
@@ -181,8 +181,34 @@ public:
     DEFINE_PROPERTY(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64, ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP);
     DEFINE_PROPERTY_REF(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString, ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS);
 
-    // Particles
+    // Certifiable Properties - related to Proof of Purchase certificates
+    DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
+    DEFINE_PROPERTY_REF(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString, ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION);
+    DEFINE_PROPERTY_REF(PROP_ITEM_CATEGORIES, ItemCategories, itemCategories, QString, ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES);
+    DEFINE_PROPERTY_REF(PROP_ITEM_ARTIST, ItemArtist, itemArtist, QString, ENTITY_ITEM_DEFAULT_ITEM_ARTIST);
+    DEFINE_PROPERTY_REF(PROP_ITEM_LICENSE, ItemLicense, itemLicense, QString, ENTITY_ITEM_DEFAULT_ITEM_LICENSE);
+    DEFINE_PROPERTY_REF(PROP_LIMITED_RUN, LimitedRun, limitedRun, quint32, ENTITY_ITEM_DEFAULT_LIMITED_RUN);
+    DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
+    DEFINE_PROPERTY_REF(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32, ENTITY_ITEM_DEFAULT_EDITION_NUMBER);
+    DEFINE_PROPERTY_REF(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32, ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER);
+    DEFINE_PROPERTY_REF(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString, ENTITY_ITEM_DEFAULT_CERTIFICATE_ID);
+    DEFINE_PROPERTY_REF(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32, ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION);
+
+    // these are used when bouncing location data into and out of scripts
+    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat, ENTITY_ITEM_DEFAULT_ROTATION);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
+    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
+
+    // Common
     DEFINE_PROPERTY_REF_ENUM(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType, SHAPE_TYPE_NONE);
+    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, u8vec3Color, particle::DEFAULT_COLOR);
+    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
+    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
+
+    // Particles
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, particle::DEFAULT_MAX_PARTICLES);
     DEFINE_PROPERTY(PROP_LIFESPAN, Lifespan, lifespan, float, particle::DEFAULT_LIFESPAN);
     DEFINE_PROPERTY(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool, true);
@@ -192,25 +218,22 @@ public:
     DEFINE_PROPERTY_REF(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, glm::quat, particle::DEFAULT_EMIT_ORIENTATION);
     DEFINE_PROPERTY_REF(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, glm::vec3, particle::DEFAULT_EMIT_DIMENSIONS);
     DEFINE_PROPERTY(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float, particle::DEFAULT_EMIT_RADIUS_START);
-    DEFINE_PROPERTY_REF(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3, particle::DEFAULT_EMIT_ACCELERATION);
-    DEFINE_PROPERTY_REF(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3, particle::DEFAULT_ACCELERATION_SPREAD);
     DEFINE_PROPERTY(PROP_POLAR_START, PolarStart, polarStart, float, particle::DEFAULT_POLAR_START);
     DEFINE_PROPERTY(PROP_POLAR_FINISH, PolarFinish, polarFinish, float, particle::DEFAULT_POLAR_FINISH);
     DEFINE_PROPERTY(PROP_AZIMUTH_START, AzimuthStart, azimuthStart, float, particle::DEFAULT_AZIMUTH_START);
     DEFINE_PROPERTY(PROP_AZIMUTH_FINISH, AzimuthFinish, azimuthFinish, float, particle::DEFAULT_AZIMUTH_FINISH);
+    DEFINE_PROPERTY_REF(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, glm::vec3, particle::DEFAULT_EMIT_ACCELERATION);
+    DEFINE_PROPERTY_REF(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, glm::vec3, particle::DEFAULT_ACCELERATION_SPREAD);
     DEFINE_PROPERTY(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float, particle::DEFAULT_PARTICLE_RADIUS);
     DEFINE_PROPERTY(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, particle::DEFAULT_RADIUS_SPREAD);
     DEFINE_PROPERTY(PROP_RADIUS_START, RadiusStart, radiusStart, float, particle::DEFAULT_RADIUS_START);
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, particle::DEFAULT_RADIUS_FINISH);
-    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, u8vec3Color, particle::DEFAULT_COLOR);
     DEFINE_PROPERTY_REF(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3Color, particle::DEFAULT_COLOR_SPREAD);
     DEFINE_PROPERTY_REF(PROP_COLOR_START, ColorStart, colorStart, glm::vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
     DEFINE_PROPERTY_REF(PROP_COLOR_FINISH, ColorFinish, colorFinish, glm::vec3, particle::DEFAULT_COLOR_UNINITIALIZED);
-    DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
     DEFINE_PROPERTY(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, particle::DEFAULT_ALPHA_SPREAD);
     DEFINE_PROPERTY(PROP_ALPHA_START, AlphaStart, alphaStart, float, particle::DEFAULT_ALPHA_START);
     DEFINE_PROPERTY(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, particle::DEFAULT_ALPHA_FINISH);
-    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
     DEFINE_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool, particle::DEFAULT_EMITTER_SHOULD_TRAIL);
     DEFINE_PROPERTY(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float, particle::DEFAULT_PARTICLE_SPIN);
     DEFINE_PROPERTY(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float, particle::DEFAULT_SPIN_SPREAD);
@@ -220,7 +243,6 @@ public:
 
     // Model
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString, "");
-    DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
@@ -281,14 +303,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
 
-    // Line
-    DEFINE_PROPERTY(PROP_LINE_WIDTH, LineWidth, lineWidth, float, LineEntityItem::DEFAULT_LINE_WIDTH);
-    DEFINE_PROPERTY_REF(LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
-
     // Polyline
-    DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
-    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
+    DEFINE_PROPERTY(PROP_STROKE_NORMALS, Normals, normals, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
+    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
 
     // Shape
@@ -316,26 +335,6 @@ public:
     DEFINE_PROPERTY(PROP_MAJOR_GRID_EVERY, MajorGridEvery, majorGridEvery, uint32_t, GridEntityItem::DEFAULT_MAJOR_GRID_EVERY);
     DEFINE_PROPERTY(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float, GridEntityItem::DEFAULT_MINOR_GRID_EVERY);
 
-    // Certifiable Properties - related to Proof of Purchase certificates
-    DEFINE_PROPERTY_REF(PROP_ITEM_NAME, ItemName, itemName, QString, ENTITY_ITEM_DEFAULT_ITEM_NAME);
-    DEFINE_PROPERTY_REF(PROP_ITEM_DESCRIPTION, ItemDescription, itemDescription, QString, ENTITY_ITEM_DEFAULT_ITEM_DESCRIPTION);
-    DEFINE_PROPERTY_REF(PROP_ITEM_CATEGORIES, ItemCategories, itemCategories, QString, ENTITY_ITEM_DEFAULT_ITEM_CATEGORIES);
-    DEFINE_PROPERTY_REF(PROP_ITEM_ARTIST, ItemArtist, itemArtist, QString, ENTITY_ITEM_DEFAULT_ITEM_ARTIST);
-    DEFINE_PROPERTY_REF(PROP_ITEM_LICENSE, ItemLicense, itemLicense, QString, ENTITY_ITEM_DEFAULT_ITEM_LICENSE);
-    DEFINE_PROPERTY_REF(PROP_LIMITED_RUN, LimitedRun, limitedRun, quint32, ENTITY_ITEM_DEFAULT_LIMITED_RUN);
-    DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
-    DEFINE_PROPERTY_REF(PROP_EDITION_NUMBER, EditionNumber, editionNumber, quint32, ENTITY_ITEM_DEFAULT_EDITION_NUMBER);
-    DEFINE_PROPERTY_REF(PROP_ENTITY_INSTANCE_NUMBER, EntityInstanceNumber, entityInstanceNumber, quint32, ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER);
-    DEFINE_PROPERTY_REF(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString, ENTITY_ITEM_DEFAULT_CERTIFICATE_ID);
-    DEFINE_PROPERTY_REF(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32, ENTITY_ITEM_DEFAULT_STATIC_CERTIFICATE_VERSION);
-
-    // these are used when bouncing location data into and out of scripts
-    DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat, ENTITY_ITEM_DEFAULT_ROTATION);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
-    DEFINE_PROPERTY_REF(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, glm::vec3, ENTITY_ITEM_ZERO_VEC3);
-
     static QString getComponentModeAsString(uint32_t mode);
 
     std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator findComponent(const QString& mode);
@@ -350,9 +349,6 @@ public:
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
 
-    float getLocalRenderAlpha() const { return _localRenderAlpha; }
-    void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
-
     static OctreeElement::AppendState encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
                                        QByteArray& buffer, EntityPropertyFlags requestedProperties, EntityPropertyFlags& didntFitProperties);
 
@@ -362,8 +358,6 @@ public:
 
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                                        EntityItemID& entityID, EntityItemProperties& properties);
-
-    bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
 
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
@@ -455,8 +449,6 @@ private:
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
-    float _localRenderAlpha;
-    bool _localRenderAlphaChanged;
     bool _defaultSettings;
     bool _dimensionsInitialized = true; // Only false if creating an entity locally with no dimensions properties
 
@@ -489,6 +481,8 @@ void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityProper
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)
                     { _position = glm::clamp(value, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); _positionChanged = true; }
+
+QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f);
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     debug << "EntityItemProperties[" << "\n";

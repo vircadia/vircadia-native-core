@@ -411,10 +411,12 @@ inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
-        _propertyStringsToEnums[#n] = P;
+        _propertyStringsToEnums[#n] = P; \
+        _enumsToPropertyStrings[P] = #n;
 
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
-        _propertyStringsToEnums[#g "." #n] = P;
+        _propertyStringsToEnums[#g "." #n] = P; \
+        _enumsToPropertyStrings[P] = #g "." #n;
 
 #define DEFINE_CORE(N, n, T, V) \
     public: \

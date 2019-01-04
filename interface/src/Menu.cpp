@@ -145,10 +145,6 @@ Menu::Menu() {
         assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
     }
 
-    // Edit > Package Avatar as .fst...
-    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
-        qApp, SLOT(packageModel()));
-
     // Edit > Avatar Packager
 #ifndef Q_OS_ANDROID
     action = addActionToQMenuAndActionHash(editMenu, MenuOption::AvatarPackager);
@@ -653,6 +649,8 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Developer");
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowTrackedObjects, 0, false, qApp, SLOT(setShowTrackedObjects(bool)));
+
+    addActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::PackageModel, 0, qApp, SLOT(packageModel()));
 
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
