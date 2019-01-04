@@ -832,6 +832,8 @@ public:
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
+    void computeMyLookAtTarget(const AvatarHash& hash);
+    void snapOtherAvatarLookAtTargetsToMe(const AvatarHash& hash);
     void clearLookAtTargetAvatar();
 
     virtual void setJointRotations(const QVector<glm::quat>& jointRotations) override;
