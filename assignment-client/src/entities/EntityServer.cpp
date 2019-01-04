@@ -23,6 +23,7 @@
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
 #include <AddressManager.h>
+#include <hfm/ModelFormatRegistry.h>
 
 #include "../AssignmentDynamicFactory.h"
 #include "AssignmentParentFinder.h"
@@ -45,6 +46,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
 
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
     DependencyManager::set<AssignmentDynamicFactory>();
+    DependencyManager::set<ModelFormatRegistry>(); // ModelFormatRegistry must be defined before ModelCache. See the ModelCache ctor
     DependencyManager::set<ModelCache>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
