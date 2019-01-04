@@ -381,7 +381,7 @@ public:
 
     void setLocationDirty() { _positionChanged = true; _rotationChanged = true; }
 
-    void setCreated(QDateTime& v);
+    void setCreated(QDateTime& v) { _created = v.toMSecsSinceEpoch() * 1000; }
 
     bool hasTransformOrVelocityChanges() const;
     void clearTransformOrVelocityChanges();

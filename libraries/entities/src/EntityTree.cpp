@@ -1828,7 +1828,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         }
 
                         // this is a new entity... assign a new entityID
-                        properties.setCreated(properties.getLastEdited());
                         properties.setLastEditedBy(senderNode->getUUID());
                         startCreate = usecTimestampNow();
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);

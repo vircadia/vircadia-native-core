@@ -63,10 +63,6 @@ void EntityItemProperties::calculateNaturalPosition(const vec3& min, const vec3&
     _naturalPosition = max - halfDimension;
 }
 
-void EntityItemProperties::setCreated(QDateTime &v) {
-    _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
-}
-
 void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "EntityItemProperties...";
     qCDebug(entities) << "    _type=" << EntityTypes::getEntityTypeName(_type);
@@ -1367,11 +1363,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::Type)) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(type, EntityTypes::getEntityTypeName(_type));
     }
-    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::Created)) {
-        auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
-        created.setTimeSpec(Qt::OffsetFromUTC);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(created, created.toString(Qt::ISODate));
-    }
     if ((!skipDefaults || _lifetime != defaultEntityProperties._lifetime) && !strictSemantics) {
         if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::Age)) {
             COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
@@ -1400,7 +1391,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ROTATION, rotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_REGISTRATION_POINT, registrationPoint);
-    //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CREATED, created); // handled above
+    {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_CREATED, created, [this]() {
+            auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
+            created.setTimeSpec(Qt::OffsetFromUTC);
+            return created.toString(Qt::ISODate);
+        }());
+    }
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ENTITY_HOST_TYPE, entityHostType, getEntityHostTypeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
@@ -1762,18 +1759,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         setType(typeScriptValue.toVariant().toString());
     }
 
-    if (!honorReadOnly) {
-        // this is used by the json reader to set things that we don't want javascript to able to affect.
-        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
-            auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
-            return result;
-        });
-        // TODO: expose this to QScriptValue for JSON saves?
-        //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
-    }
-
     // Core
-    // simluationOwner above
+    if (!honorReadOnly) {
+        // not handled yet
+        // COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, SimulationOwner, setSimulationOwner);
+    }
     COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
@@ -1784,10 +1774,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, vec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
-    // created is read only
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHostType, EntityHostType);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
+    if (!honorReadOnly) {
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
+            auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
+            return result;
+        });
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHostType, EntityHostType);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
+    }
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentID, QUuid, setParentID);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube); // TODO: should scripts be able to set this?
@@ -1813,7 +1808,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData); // TODO: should scripts be able to set this?
+    if (!honorReadOnly) {
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
+    }
 
     // Cloning
     COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneable, bool, setCloneable);
@@ -3068,10 +3065,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     dataAt += sizeof(lastEdited);
     processedBytes += sizeof(lastEdited);
     properties.setLastEdited(lastEdited);
-
-    // NOTE: We intentionally do not send "created" times in edit messages. This is because:
-    //   1) if the edit is to an existing entity, the created time can not be changed
-    //   2) if the edit is to a new entity, the created time is the last edited time
 
     // encoded id
     QUuid editID = QUuid::fromRfc4122(QByteArray::fromRawData(reinterpret_cast<const char*>(dataAt), NUM_BYTES_RFC4122_UUID));
