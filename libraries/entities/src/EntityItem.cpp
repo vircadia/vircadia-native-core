@@ -85,15 +85,15 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DIMENSIONS;
     requestedProperties += PROP_ROTATION;
     requestedProperties += PROP_REGISTRATION_POINT;
-    // TODO: handle PROP_CREATED?
+    requestedProperties += PROP_CREATED;
     requestedProperties += PROP_LAST_EDITED_BY;
-    requestedProperties += PROP_ENTITY_HOST_TYPE;
-    requestedProperties += PROP_OWNING_AVATAR_ID;
+    //requestedProperties += PROP_ENTITY_HOST_TYPE;             // not sent over the wire
+    //requestedProperties += PROP_OWNING_AVATAR_ID;             // not sent over the wire
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
     requestedProperties += PROP_CAN_CAST_SHADOW;
-    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over wire
+    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
     withReadLock([&] {
         requestedProperties += _grabProperties.getEntityProperties(params);
     });
@@ -178,9 +178,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
 
-    requestedProperties -= PROP_ENTITY_HOST_TYPE;
-    requestedProperties -= PROP_OWNING_AVATAR_ID;
-
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
@@ -263,10 +260,10 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
-        // TODO: handle created?
+        APPEND_ENTITY_PROPERTY(PROP_CREATED, getCreated());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
-        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, getEntityHostType());  // not sent over wire
-        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());  // not sent over wire
+        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, getEntityHostType());  // not sent over the wire
+        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());  // not sent over the wire
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
         if (actualParentID == AVATAR_SELF_ID) {
@@ -277,7 +274,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
-        // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over wire
+        // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over the wire
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -314,13 +311,13 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
 
         // Certifiable Properties
-        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, getItemName());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, getItemDescription());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, getItemCategories());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, getItemArtist());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
         APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
         APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
@@ -818,10 +815,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, customUpdateRotationFromNetwork);
     }
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    // READ_ENTITY_PROPERTY(PROP_CREATED, quint64, setCreated);                          // not sent over wire
+    READ_ENTITY_PROPERTY(PROP_CREATED, quint64, setCreated);
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
-    // READ_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, entity::HostType, setEntityHostType); // not sent over wire
-    // READ_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, QUuuid, setOwningAvatarID);           // not sent over wire
+    // READ_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, entity::HostType, setEntityHostType); // not sent over the wire
+    // READ_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, QUuuid, setOwningAvatarID);           // not sent over the wire
     {   // parentID and parentJointIndex are protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
@@ -840,7 +837,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, customUpdateQueryAACubeFromNetwork);
     }
     READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
-    // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over wire
+    // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over the wire
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -909,13 +906,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     // Certifiable props
-    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
     READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
     READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
     READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
     READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
     READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
+    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
@@ -1309,7 +1306,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
-    // COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, getIsVisibleInSecondaryCamera); // not sent over wire
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
