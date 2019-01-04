@@ -156,9 +156,6 @@ public:
 
     virtual void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
-    //setters
-    void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
-    bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
@@ -595,7 +592,6 @@ protected:
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };
     bool _initialized { false };
-    bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
