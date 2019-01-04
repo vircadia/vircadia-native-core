@@ -83,6 +83,11 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     connect(silentNodeTimer, &QTimer::timeout, this, &LimitedNodeList::removeSilentNodes);
     silentNodeTimer->start(NODE_SILENCE_THRESHOLD_MSECS);
 
+    const int CONNECTION_STATS_SAMPLE_INTERVAL_MSECS = 1000;
+    QTimer* statsSampleTimer = new QTimer(this);
+    connect(statsSampleTimer, &QTimer::timeout, this, &LimitedNodeList::sampleConnectionStats);
+    statsSampleTimer->start(CONNECTION_STATS_SAMPLE_INTERVAL_MSECS);
+
     // check the local socket right now
     updateLocalSocket();
 
@@ -295,17 +300,14 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             });
 
             if (sendingNodeType != NodeType::Unassigned) {
-                emit dataReceived(sendingNodeType, packet.getPayloadSize());
                 return true;
             } else {
                 HIFI_FCDEBUG(networking(), "Replicated packet of type" << headerType
                     << "received from unknown upstream" << packet.getSenderSockAddr());
-                
+
                 return false;
             }
-            
         } else {
-            emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
             return true;
         }
     } else {
@@ -319,7 +321,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             SharedNodePointer matchingNode = nodeWithLocalID(sourceLocalID);
             sourceNode = matchingNode.data();
         }
-        
+
         QUuid sourceID = sourceNode ? sourceNode->getUUID() : QUuid();
 
         if (!sourceNode &&
@@ -328,8 +330,6 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             packet.getSenderSockAddr() == getDomainSockAddr() &&
             PacketTypeEnum::getDomainSourcedPackets().contains(headerType)) {
             // This is a packet sourced by the domain server
-
-            emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
             return true;
         }
 
@@ -366,8 +366,6 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             // No matter if this packet is handled or not, we update the timestamp for the last time we heard
             // from this sending node
             sourceNode->setLastHeardMicrostamp(usecTimestampNow());
-
-            emit dataReceived(sourceNode->getType(), packet.getPayloadSize());
 
             return true;
 
@@ -407,9 +405,6 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node&
         return 0;
     }
 
-    emit dataSent(destinationNode.getType(), packet.getDataSize());
-    destinationNode.recordBytesSent(packet.getDataSize());
-
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getAuthenticateHash());
 }
 
@@ -430,9 +425,6 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
     auto activeSocket = destinationNode.getActiveSocket();
 
     if (activeSocket) {
-        emit dataSent(destinationNode.getType(), packet->getDataSize());
-        destinationNode.recordBytesSent(packet->getDataSize());
-
         return sendPacket(std::move(packet), *activeSocket, destinationNode.getAuthenticateHash());
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
@@ -470,8 +462,6 @@ qint64 LimitedNodeList::sendUnreliableUnorderedPacketList(NLPacketList& packetLi
             bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket,
                 connectionHash);
         }
-
-        emit dataSent(destinationNode.getType(), bytesSent);
         return bytesSent;
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node" << destinationNode
@@ -887,9 +877,55 @@ void LimitedNodeList::removeSilentNodes() {
     }
 }
 
+void LimitedNodeList::sampleConnectionStats() {
+    uint32_t packetsIn { 0 };
+    uint32_t packetsOut { 0 };
+    uint64_t bytesIn { 0 };
+    uint64_t bytesOut { 0 };
+    int elapsedSum { 0 };
+    int elapsedCount { 0 };
+
+    auto allStats = _nodeSocket.sampleStatsForAllConnections();
+    for (const auto& stats : allStats) {
+        auto node = findNodeWithAddr(stats.first);
+        if (node && node->getActiveSocket() &&
+            *node->getActiveSocket() == stats.first) {
+            node->updateStats(stats.second);
+        }
+
+        packetsIn += stats.second.receivedPackets;
+        packetsIn += stats.second.receivedUnreliablePackets;
+        packetsOut += stats.second.sentPackets;
+        packetsOut += stats.second.sentUnreliablePackets;
+        bytesIn += stats.second.receivedBytes;
+        bytesIn += stats.second.receivedUnreliableBytes;
+        bytesOut += stats.second.sentBytes;
+        bytesOut += stats.second.sentUnreliableBytes;
+        elapsedSum += (stats.second.endTime - stats.second.startTime).count();
+        elapsedCount++;
+    }
+
+    if (elapsedCount > 0) {
+        float elapsedAvg = (float)elapsedSum / elapsedCount;
+        float factor = USECS_PER_SECOND / elapsedAvg;
+
+        float kilobitsReceived = (float)bytesIn * BITS_IN_BYTE / BYTES_PER_KILOBYTE;
+        float kilobitsSent = (float)bytesOut * BITS_IN_BYTE / BYTES_PER_KILOBYTE;
+
+        _inboundPPS = packetsIn * factor;
+        _outboundPPS = packetsOut * factor;
+        _inboundKbps = kilobitsReceived * factor;
+        _outboundKbps = kilobitsSent * factor;
+    } else {
+        _inboundPPS = 0;
+        _outboundPPS = 0;
+        _inboundKbps = 0.0f;
+        _outboundKbps = 0.0f;
+    }
+}
+
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
-
 
 void LimitedNodeList::makeSTUNRequestPacket(char* stunRequestPacket) {
     int packetIndex = 0;
@@ -1261,6 +1297,10 @@ void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep) {
 }
 
 void LimitedNodeList::flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp) {
+    if (!_flagTimeForConnectionStep) {
+        // this is only true in interface
+        return;
+    }
     if (connectionStep == ConnectionStep::LookupAddress) {
         QWriteLocker writeLock(&_connectionTimeLock);
 

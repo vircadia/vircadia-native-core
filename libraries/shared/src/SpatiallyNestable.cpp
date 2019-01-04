@@ -481,27 +481,29 @@ void SpatiallyNestable::setWorldTransform(const glm::vec3& position, const glm::
         return;
     }
 
-    bool changed = false;
     bool success = true;
     Transform parentTransform = getParentTransform(success);
-    _transformLock.withWriteLock([&] {
-        Transform myWorldTransform;
-        Transform::mult(myWorldTransform, parentTransform, _transform);
-        if (myWorldTransform.getRotation() != orientation) {
-            changed = true;
-            myWorldTransform.setRotation(orientation);
-        }
-        if (myWorldTransform.getTranslation() != position) {
-            changed = true;
-            myWorldTransform.setTranslation(position);
-        }
+    if (success) {
+        bool changed = false;
+        _transformLock.withWriteLock([&] {
+            Transform myWorldTransform;
+            Transform::mult(myWorldTransform, parentTransform, _transform);
+            if (myWorldTransform.getRotation() != orientation) {
+                changed = true;
+                myWorldTransform.setRotation(orientation);
+            }
+            if (myWorldTransform.getTranslation() != position) {
+                changed = true;
+                myWorldTransform.setTranslation(position);
+            }
+            if (changed) {
+                Transform::inverseMult(_transform, parentTransform, myWorldTransform);
+                _translationChanged = usecTimestampNow();
+            }
+        });
         if (changed) {
-            Transform::inverseMult(_transform, parentTransform, myWorldTransform);
-            _translationChanged = usecTimestampNow();
+            locationChanged(false);
         }
-    });
-    if (success && changed) {
-        locationChanged(false);
     }
 }
 
@@ -788,19 +790,21 @@ void SpatiallyNestable::setTransform(const Transform& transform, bool& success) 
         return;
     }
 
-    bool changed = false;
     Transform parentTransform = getParentTransform(success);
-    _transformLock.withWriteLock([&] {
-        Transform beforeTransform = _transform;
-        Transform::inverseMult(_transform, parentTransform, transform);
-        if (_transform != beforeTransform) {
-            changed = true;
-            _translationChanged = usecTimestampNow();
-            _rotationChanged = usecTimestampNow();
+    if (success) {
+        bool changed = false;
+        _transformLock.withWriteLock([&] {
+            Transform beforeTransform = _transform;
+            Transform::inverseMult(_transform, parentTransform, transform);
+            if (_transform != beforeTransform) {
+                changed = true;
+                _translationChanged = usecTimestampNow();
+                _rotationChanged = usecTimestampNow();
+            }
+        });
+        if (changed) {
+            locationChanged();
         }
-    });
-    if (success && changed) {
-        locationChanged();
     }
 }
 
@@ -1368,4 +1372,44 @@ bool SpatiallyNestable::isParentPathComplete(int depth) const {
     }
 
     return parent->isParentPathComplete(depth + 1);
+}
+
+void SpatiallyNestable::addGrab(GrabPointer grab) {
+    _grabsLock.withWriteLock([&] {
+        _grabs.insert(grab);
+    });
+}
+
+void SpatiallyNestable::removeGrab(GrabPointer grab) {
+    _grabsLock.withWriteLock([&] {
+        _grabs.remove(grab);
+    });
+}
+
+bool SpatiallyNestable::hasGrabs() {
+    bool result { false };
+    _grabsLock.withReadLock([&] {
+        result = !_grabs.isEmpty();
+    });
+    return result;
+}
+
+QUuid SpatiallyNestable::getEditSenderID() {
+    // if more than one avatar is grabbing something, decide which one should tell the enity-server about it
+    QUuid editSenderID;
+    bool editSenderIDSet { false };
+    _grabsLock.withReadLock([&] {
+        foreach (const GrabPointer &grab, _grabs) {
+            QUuid ownerID = grab->getOwnerID();
+            if (!editSenderIDSet) {
+                editSenderID = ownerID;
+                editSenderIDSet = true;
+            } else {
+                if (ownerID < editSenderID) {
+                    editSenderID = ownerID;
+                }
+            }
+        }
+    });
+    return editSenderID;
 }

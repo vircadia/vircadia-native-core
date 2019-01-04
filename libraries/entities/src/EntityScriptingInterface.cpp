@@ -816,6 +816,10 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
 
     QString previousUserdata;
     if (entity) {
+        if (properties.hasTransformOrVelocityChanges() && entity->hasGrabs()) {
+            // if an entity is grabbed, the grab will override any position changes
+            properties.clearTransformOrVelocityChanges();
+        }
         if (properties.hasSimulationRestrictedChanges()) {
             if (_bidOnSimulationOwnership) {
                 // flag for simulation ownership, or upgrade existing ownership priority
@@ -2274,4 +2278,127 @@ const EntityPropertyInfo EntityScriptingInterface::getPropertyInfo(const QScript
     EntityPropertyInfo propertyInfo;
     EntityItemProperties::getPropertyInfo(name, propertyInfo);
     return propertyInfo;
+}
+
+glm::vec3 EntityScriptingInterface::worldToLocalPosition(glm::vec3 worldPosition, const QUuid& parentID,
+                                                         int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 localPosition = SpatiallyNestable::worldToLocal(worldPosition, parentID, parentJointIndex,
+                                                              scalesWithParent, success);
+    if (success) {
+        return localPosition;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::quat EntityScriptingInterface::worldToLocalRotation(glm::quat worldRotation, const QUuid& parentID,
+                                                         int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::quat localRotation = SpatiallyNestable::worldToLocal(worldRotation, parentID, parentJointIndex,
+                                                              scalesWithParent, success);
+    if (success) {
+        return localRotation;
+    } else {
+        return glm::quat();
+    }
+}
+
+glm::vec3 EntityScriptingInterface::worldToLocalVelocity(glm::vec3 worldVelocity, const QUuid& parentID,
+                                                         int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 localVelocity = SpatiallyNestable::worldToLocalVelocity(worldVelocity, parentID, parentJointIndex,
+                                                                      scalesWithParent, success);
+    if (success) {
+        return localVelocity;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::vec3 EntityScriptingInterface::worldToLocalAngularVelocity(glm::vec3 worldAngularVelocity, const QUuid& parentID,
+                                                                int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 localAngularVelocity = SpatiallyNestable::worldToLocalAngularVelocity(worldAngularVelocity, parentID,
+                                                                                    parentJointIndex, scalesWithParent,
+                                                                                    success);
+    if (success) {
+        return localAngularVelocity;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::vec3 EntityScriptingInterface::worldToLocalDimensions(glm::vec3 worldDimensions, const QUuid& parentID,
+                                                           int parentJointIndex, bool scalesWithParent) {
+
+    bool success;
+    glm::vec3 localDimensions = SpatiallyNestable::worldToLocalDimensions(worldDimensions, parentID, parentJointIndex,
+                                                                          scalesWithParent, success);
+    if (success) {
+        return localDimensions;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::vec3 EntityScriptingInterface::localToWorldPosition(glm::vec3 localPosition, const QUuid& parentID,
+                                                         int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 worldPosition = SpatiallyNestable::localToWorld(localPosition, parentID, parentJointIndex,
+                                                              scalesWithParent, success);
+    if (success) {
+        return worldPosition;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::quat EntityScriptingInterface::localToWorldRotation(glm::quat localRotation, const QUuid& parentID,
+                                                         int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::quat worldRotation = SpatiallyNestable::localToWorld(localRotation, parentID, parentJointIndex,
+                                                              scalesWithParent, success);
+    if (success) {
+        return worldRotation;
+    } else {
+        return glm::quat();
+    }
+}
+
+glm::vec3 EntityScriptingInterface::localToWorldVelocity(glm::vec3 localVelocity, const QUuid& parentID,
+                                                         int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 worldVelocity = SpatiallyNestable::localToWorldVelocity(localVelocity, parentID, parentJointIndex,
+                                                                      scalesWithParent, success);
+    if (success) {
+        return worldVelocity;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::vec3 EntityScriptingInterface::localToWorldAngularVelocity(glm::vec3 localAngularVelocity, const QUuid& parentID,
+                                                                int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 worldAngularVelocity = SpatiallyNestable::localToWorldAngularVelocity(localAngularVelocity,
+                                                                                    parentID, parentJointIndex,
+                                                                                    scalesWithParent, success);
+    if (success) {
+        return worldAngularVelocity;
+    } else {
+        return glm::vec3(0.0f);
+    }
+}
+
+glm::vec3 EntityScriptingInterface::localToWorldDimensions(glm::vec3 localDimensions, const QUuid& parentID,
+                                                           int parentJointIndex, bool scalesWithParent) {
+    bool success;
+    glm::vec3 worldDimensions = SpatiallyNestable::localToWorldDimensions(localDimensions, parentID, parentJointIndex,
+                                                                          scalesWithParent, success);
+    if (success) {
+        return worldDimensions;
+    } else {
+        return glm::vec3(0.0f);
+    }
 }

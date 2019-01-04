@@ -75,8 +75,8 @@ void MessagesMixer::sendStatsPacket() {
     DependencyManager::get<NodeList>()->eachNode([&](const SharedNodePointer& node) {
         QJsonObject clientStats;
         clientStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
-        clientStats["outbound_kbps"] = node->getOutboundBandwidth();
-        clientStats["inbound_kbps"] = node->getInboundBandwidth();
+        clientStats["outbound_kbps"] = node->getOutboundKbps();
+        clientStats["inbound_kbps"] = node->getInboundKbps();
         messagesMixerObject[uuidStringWithoutCurlyBraces(node->getUUID())] = clientStats;
     });
 

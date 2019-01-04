@@ -122,7 +122,7 @@ public:
     bool getThisNodeCanWriteAssets() const { return _permissions.can(NodePermissions::Permission::canWriteToAssetServer); }
     bool getThisNodeCanKick() const { return _permissions.can(NodePermissions::Permission::canKick); }
     bool getThisNodeCanReplaceContent() const { return _permissions.can(NodePermissions::Permission::canReplaceDomainContent); }
-    
+
     quint16 getSocketLocalPort() const { return _nodeSocket.localPort(); }
     Q_INVOKABLE void setSocketLocalPort(quint16 socketLocalPort);
 
@@ -204,9 +204,9 @@ public:
     //   This allows multiple threads (i.e. a thread pool) to share a lock
     //   without deadlocking when a dying node attempts to acquire a write lock
     template<typename NestedNodeLambda>
-    void nestedEach(NestedNodeLambda functor, 
-                    int* lockWaitOut = nullptr, 
-                    int* nodeTransformOut = nullptr, 
+    void nestedEach(NestedNodeLambda functor,
+                    int* lockWaitOut = nullptr,
+                    int* nodeTransformOut = nullptr,
                     int* functorOut = nullptr) {
         auto start = usecTimestampNow();
         {
@@ -310,11 +310,19 @@ public:
     void setAuthenticatePackets(bool useAuthentication) { _useAuthentication = useAuthentication; }
     bool getAuthenticatePackets() const { return _useAuthentication; }
 
+    void setFlagTimeForConnectionStep(bool flag) { _flagTimeForConnectionStep = flag; }
+    bool isFlagTimeForConnectionStep() { return _flagTimeForConnectionStep; }
+
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
 #if (PR_BUILD || DEV_BUILD)
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
+
+    int getInboundPPS() const { return _inboundPPS; }
+    int getOutboundPPS() const { return _outboundPPS; }
+    float getInboundKbps() const { return _inboundKbps; }
+    float getOutboundKbps() const { return _outboundKbps; }
 
 public slots:
     void reset();
@@ -329,10 +337,10 @@ public slots:
 
     bool killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
-signals:
-    void dataSent(quint8 channelType, int bytes);
-    void dataReceived(quint8 channelType, int bytes);
+private slots:
+    void sampleConnectionStats();
 
+signals:
     // QUuid might be zero for non-sourced packet types.
     void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
@@ -369,8 +377,6 @@ protected:
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const HifiSockAddr& overridenSockAddr);
-    qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
-                       const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
     void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 
@@ -440,6 +446,12 @@ private:
     using LocalIDMapping = tbb::concurrent_unordered_map<Node::LocalID, SharedNodePointer>;
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
+    bool _flagTimeForConnectionStep { false }; // only keep track in interface
+
+    int _inboundPPS { 0 };
+    int _outboundPPS { 0 };
+    float _inboundKbps { 0.0f };
+    float _outboundKbps { 0.0f };
 };
 
 #endif // hifi_LimitedNodeList_h

@@ -404,6 +404,7 @@ bool SendQueue::maybeResendPacket() {
                 Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
 
                 auto wireSize = resendPacket.getWireSize();
+                auto payloadSize = resendPacket.getPayloadSize();
                 auto sequenceNumber = it->first;
 
                 if (level != Packet::NoObfuscation) {
@@ -439,7 +440,8 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted(wireSize, sequenceNumber, p_high_resolution_clock::now());
+                emit packetRetransmitted(wireSize, payloadSize, sequenceNumber,
+                                         p_high_resolution_clock::now());
                 
                 // Signal that we did resend a packet
                 return true;
