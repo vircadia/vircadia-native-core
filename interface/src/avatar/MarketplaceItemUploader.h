@@ -30,21 +30,19 @@ class MarketplaceItemUploader : public QObject {
     Q_PROPERTY(Error error READ getError NOTIFY errorChanged)
     Q_PROPERTY(QString responseData READ getResponseData)
 public:
-    enum class Error
-    {
+    enum class Error {
         None,
-        Unknown
+        Unknown,
     };
     Q_ENUM(Error);
 
-    enum class State
-    {
+    enum class State {
         Idle,
         GettingCategories,
         UploadingAvatar,
         WaitingForUploadResponse,
         WaitingForInventory,
-        Complete
+        Complete,
     };
     Q_ENUM(State);
 
@@ -62,7 +60,6 @@ public:
     void setState(State newState);
     State getState() const { return _state; }
     bool getComplete() const { return _state == State::Complete; }
-
 
     QUuid getMarketplaceID() const { return _marketplaceID; }
 
@@ -86,8 +83,8 @@ private:
 
     QNetworkReply* _reply;
 
-    State _state{ State::Idle };
-    Error _error{ Error::None };
+    State _state { State::Idle };
+    Error _error { Error::None };
 
     QString _title;
     QString _description;
@@ -98,7 +95,7 @@ private:
 
     QString _responseData;
 
-    int _numRequestsForInventory{ 0 };
+    int _numRequestsForInventory { 0 };
 
     QString _rootFilePath;
     QList<ProjectFilePath> _filePaths;

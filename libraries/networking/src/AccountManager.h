@@ -40,11 +40,10 @@ public:
 };
 
 namespace AccountManagerAuth {
-enum Type
-{
+enum Type {
     None,
     Required,
-    Optional
+    Optional,
 };
 }
 
@@ -157,7 +156,7 @@ private:
     bool _isWaitingForTokenRefresh{ false };
     bool _isAgent{ false };
 
-    bool _isWaitingForKeypairResponse{ false };
+    bool _isWaitingForKeypairResponse { false };
     QByteArray _pendingPrivateKey;
 
     QUuid _sessionID{ QUuid::createUuid() };
