@@ -173,7 +173,7 @@ void MarketplaceItemUploader::doUploadAvatar() {
 
     qDebug() << "Finished zipping, size: " << (buffer.size() / (1000.0f)) << "KB";
 
-    QString path = "/api/v1/marketplace/items";
+    static const QString path = "/api/v1/marketplace/items";
     bool creating = true;
     if (!_marketplaceID.isNull()) {
         creating = false;
