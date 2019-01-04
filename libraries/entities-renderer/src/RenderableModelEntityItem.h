@@ -169,6 +169,7 @@ protected:
     render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
+    void setRenderLayer(RenderLayer value) override;
 
 private:
     void animate(const TypedEntityPointer& entity);

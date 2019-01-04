@@ -123,11 +123,7 @@ public:
     bool canCastShadow() const;
     void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene = nullptr);
 
-    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene = nullptr);
-    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene = nullptr);
-
-    bool isLayeredInFront() const;
-    bool isLayeredInHUD() const;
+    void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;

@@ -39,6 +39,7 @@ enum EntityPropertyList {
     PROP_QUERY_AA_CUBE,
     PROP_CAN_CAST_SHADOW,
     PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over wire
+    PROP_RENDER_LAYER,
     // Grab
     PROP_GRAB_GRABBABLE,
     PROP_GRAB_KINEMATIC,

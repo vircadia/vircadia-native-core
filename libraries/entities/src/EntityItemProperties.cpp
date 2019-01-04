@@ -343,6 +343,33 @@ void EntityItemProperties::setBillboardModeFromString(const QString& materialMap
     }
 }
 
+QHash<QString, RenderLayer> stringToRenderLayerLookup;
+
+void addRenderLayer(RenderLayer mode) {
+    stringToRenderLayerLookup[RenderLayerHelpers::getNameForRenderLayer(mode)] = mode;
+}
+
+void buildStringToRenderLayerLookup() {
+    addRenderLayer(RenderLayer::WORLD);
+    addRenderLayer(RenderLayer::FRONT);
+    addRenderLayer(RenderLayer::HUD);
+}
+
+QString EntityItemProperties::getRenderLayerAsString() const {
+    return RenderLayerHelpers::getNameForRenderLayer(_renderLayer);
+}
+
+void EntityItemProperties::setRenderLayerFromString(const QString& materialMappingMode) {
+    if (stringToRenderLayerLookup.empty()) {
+        buildStringToRenderLayerLookup();
+    }
+    auto renderLayerItr = stringToRenderLayerLookup.find(materialMappingMode.toLower());
+    if (renderLayerItr != stringToRenderLayerLookup.end()) {
+        _renderLayer = renderLayerItr.value();
+        _renderLayerChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -367,6 +394,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
     CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -603,6 +631,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
  * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
+ * @property {RenderLayer} renderLayer="world" - In which layer this entity renders.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -1413,6 +1442,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1799,6 +1829,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube); // TODO: should scripts be able to set this?
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -2056,6 +2087,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(queryAACube);
     COPY_PROPERTY_IF_CHANGED(canCastShadow);
     COPY_PROPERTY_IF_CHANGED(isVisibleInSecondaryCamera);
+    COPY_PROPERTY_IF_CHANGED(renderLayer);
     _grab.merge(other._grab);
 
     // Physics
@@ -2309,6 +2341,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         //ADD_PROPERTY_TO_MAP(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube);                  // not yet handled
         ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2701,6 +2734,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, properties.getQueryAACube());
             APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
             // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, properties.getIsVisibleInSecondaryCamera()); // Not sent over the wire
+            APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -3147,6 +3181,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera); // Not sent over the wire
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3529,6 +3564,7 @@ void EntityItemProperties::markAllChanged() {
     _queryAACubeChanged = true;
     _canCastShadowChanged = true;
     _isVisibleInSecondaryCameraChanged = true;
+    _renderLayerChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -3901,6 +3937,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (isVisibleInSecondaryCameraChanged()) {
         out += "isVisibleInSecondaryCamera";
+    }
+    if (renderLayerChanged()) {
+        out += "renderLayer";
     }
     getGrab().listChangedProperties(out);
 

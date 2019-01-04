@@ -55,7 +55,7 @@ void PolyLineEntityRenderer::buildPipeline() {
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
+    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {

@@ -925,28 +925,12 @@ bool Model::canCastShadow() const {
     return _renderItemKeyGlobalFlags.isShadowCaster();
 }
 
-void Model::setLayeredInFront(bool layeredInFront, const render::ScenePointer& scene) {
-    if (Model::isLayeredInFront() != layeredInFront) {
+void Model::setHifiRenderLayer(render::hifi::Layer renderLayer, const render::ScenePointer& scene) {
+    if (_renderItemKeyGlobalFlags.getLayer() != renderLayer) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (layeredInFront ? keyBuilder.withLayer(render::hifi::LAYER_3D_FRONT) : keyBuilder.withoutLayer());
+        _renderItemKeyGlobalFlags = keyBuilder.withLayer(renderLayer);
         updateRenderItemsKey(scene);
     }
-}
-
-bool Model::isLayeredInFront() const {
-    return _renderItemKeyGlobalFlags.isLayer(render::hifi::LAYER_3D_FRONT);
-}
-
-void Model::setLayeredInHUD(bool layeredInHUD, const render::ScenePointer& scene) {
-    if (Model::isLayeredInHUD() != layeredInHUD) {
-        auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (layeredInHUD ? keyBuilder.withLayer(render::hifi::LAYER_3D_HUD) : keyBuilder.withoutLayer());
-        updateRenderItemsKey(scene);
-    }
-}
-
-bool Model::isLayeredInHUD() const {
-    return _renderItemKeyGlobalFlags.isLayer(render::hifi::LAYER_3D_HUD);
 }
 
 void Model::setTagMask(uint8_t mask, const render::ScenePointer& scene) {

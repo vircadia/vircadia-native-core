@@ -1070,9 +1070,9 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask());
+        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask());
+        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     }
 }
 
@@ -1346,6 +1346,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
+            _model->setTagMask(getTagMask());
+            _model->setHifiRenderLayer(getHifiRenderLayer());
             emit requestRenderUpdate();
             if(didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
@@ -1489,6 +1491,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {
     Parent::setIsVisibleInSecondaryCamera(value);
     setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setTagMask(getTagMask());
+    }
+}
+
+void ModelEntityRenderer::setRenderLayer(RenderLayer value) {
+    Parent::setRenderLayer(value);
+    setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setHifiRenderLayer(getHifiRenderLayer());
+    }
 }
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items

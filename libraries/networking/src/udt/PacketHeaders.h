@@ -253,7 +253,12 @@ enum class EntityVersion : PacketVersion {
     MissingTextProperties,
     GrabTraits,
     MorePropertiesCleanup,
-    UpdatedPolyLines
+    UpdatedPolyLines,
+    RenderLayer,
+
+    // Add new versions above here
+    NUM_PACKET_TYPE,
+    LAST_PACKET_TYPE = NUM_PACKET_TYPE - 1
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
