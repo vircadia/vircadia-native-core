@@ -367,8 +367,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
-    glm::vec3 dimensions = getScaledDimensions();
-    auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
@@ -450,6 +448,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
+        auto model = getModel();
+        // assert we never fall in here when model not fully loaded
+        assert(model && model->isLoaded());
+
+        glm::vec3 dimensions = getScaledDimensions();
         glm::vec3 scaleToFit = dimensions / model->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
@@ -461,11 +464,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
+        adjustShapeInfoByRegistration(shapeInfo);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        // TODO: assert we never fall in here when model not fully loaded
-        // assert(_model && _model->isLoaded());
-
         updateModelBounds();
+        auto model = getModel();
+        // assert we never fall in here when model not fully loaded
+        assert(model && model->isLoaded());
         model->updateGeometry();
 
         // compute meshPart local transforms
@@ -473,6 +477,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         const HFMModel& hfmModel = model->getHFMModel();
         int numHFMMeshes = hfmModel.meshes.size();
         int totalNumVertices = 0;
+        glm::vec3 dimensions = getScaledDimensions();
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
         for (int i = 0; i < numHFMMeshes; i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
@@ -695,12 +700,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         }
 
         shapeInfo.setParams(type, 0.5f * dimensions, getModelURL());
+        adjustShapeInfoByRegistration(shapeInfo);
     } else {
-        ModelEntityItem::computeShapeInfo(shapeInfo);
-        shapeInfo.setParams(type, 0.5f * dimensions);
+        EntityItem::computeShapeInfo(shapeInfo);
     }
-    // finally apply the registration offset to the shapeInfo
-    adjustShapeInfoByRegistration(shapeInfo);
 }
 
 void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {

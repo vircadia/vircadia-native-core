@@ -345,11 +345,10 @@ bool ZoneEntityItem::contains(const glm::vec3& point) const {
         if (resource->isLoaded()) {
             const HFMModel& hfmModel = resource->getHFMModel();
 
-            glm::vec3 minimum = glm::vec3(hfmModel.offset * glm::vec4(hfmModel.meshExtents.minimum, 1.0f));
-            glm::vec3 maximum = glm::vec3(hfmModel.offset * glm::vec4(hfmModel.meshExtents.maximum, 1.0f));
-            glm::vec3 modelExtentsDiagonal = maximum - minimum;
-            glm::vec3 offset = -minimum - (modelExtentsDiagonal * getRegistrationPoint());
-            glm::vec3 scale(getScaledDimensions() / modelExtentsDiagonal);
+            Extents meshExtents = hfmModel.getMeshExtents();
+            glm::vec3 meshExtentsDiagonal = meshExtents.maximum - meshExtents.minimum;
+            glm::vec3 offset = -meshExtents.minimum- (meshExtentsDiagonal * getRegistrationPoint());
+            glm::vec3 scale(getScaledDimensions() / meshExtentsDiagonal);
 
             glm::mat4 hfmToEntityMatrix = glm::scale(scale) * glm::translate(offset);
             glm::mat4 entityToWorldMatrix = getTransform().getMatrix();
