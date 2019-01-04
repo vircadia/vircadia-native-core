@@ -69,7 +69,7 @@ public:
                                                                              const QString& textureFolder);
 
     Q_INVOKABLE AvatarProjectStatus::AvatarProjectStatus openAvatarProject(const QString& avatarProjectFSTPath);
-    Q_INVOKABLE bool isValidNewProjectName(const QString& projectPath, const QString& projectName) {
+    Q_INVOKABLE bool isValidNewProjectName(const QString& projectPath, const QString& projectName) const {
         return AvatarProject::isValidNewProjectName(projectPath, projectName);
     }
 

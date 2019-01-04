@@ -153,15 +153,15 @@ private:
     QUrl _authURL;
 
     DataServerAccountInfo _accountInfo;
-    bool _isWaitingForTokenRefresh{ false };
-    bool _isAgent{ false };
+    bool _isWaitingForTokenRefresh { false };
+    bool _isAgent { false };
 
     bool _isWaitingForKeypairResponse { false };
     QByteArray _pendingPrivateKey;
 
-    QUuid _sessionID{ QUuid::createUuid() };
+    QUuid _sessionID { QUuid::createUuid() };
 
-    bool _limitedCommerce{ false };
+    bool _limitedCommerce { false };
 };
 
 #endif  // hifi_AccountManager_h
