@@ -256,6 +256,5 @@ void AvatarProject::openInInventory() {
     // I'm not a fan of this, but it's the only current option.
     QTimer::singleShot(TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS, [name, tablet]() {
         tablet->sendToQml(QVariantMap({ { "method", "updatePurchases" }, { "filterText", name } }));
-
     });
 }

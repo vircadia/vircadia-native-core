@@ -190,7 +190,12 @@ void MarketplaceItemUploader::doUploadAvatar() {
 
     QString jsonString = "{\"marketplace_item\":{";
     jsonString += "\"title\":\"" + escapeJson(_title) + "\"";
-    jsonString += ",\"description\":\"" + escapeJson(_description) + "\"";
+
+    // Items cannot have their description updated after they have been submitted.
+    if (creating) {
+        jsonString += ",\"description\":\"" + escapeJson(_description) + "\"";
+    }
+
     jsonString += ",\"root_file_key\":\"" + escapeJson(_rootFilename) + "\"";
     jsonString += ",\"category_ids\":[" + QStringLiteral("%1").arg(_categoryID) + "]";
     jsonString += ",\"license\":0";
@@ -300,12 +305,13 @@ void MarketplaceItemUploader::doWaitForInventory() {
             success = isAssetAvailable();
         }
         if (success) {
+            qDebug() << "Found item in inventory";
             setState(State::Complete);
         } else {
             constexpr int MAX_INVENTORY_REQUESTS { 8 };
             constexpr int TIME_BETWEEN_INVENTORY_REQUESTS_MS { 5000 };
-            qDebug() << "Failed to find item in inventory";
             if (_numRequestsForInventory > MAX_INVENTORY_REQUESTS) {
+                qDebug() << "Failed to find item in inventory";
                 setError(Error::Unknown);
             } else {
                 QTimer::singleShot(TIME_BETWEEN_INVENTORY_REQUESTS_MS, [this]() { doWaitForInventory(); });
