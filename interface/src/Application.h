@@ -326,6 +326,10 @@ public:
     void createLoginDialogOverlay();
     void updateLoginDialogOverlayPosition();
 
+    // Check if a headset is connected
+    bool hasRiftControllers();
+    bool hasViveControllers();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -458,6 +462,8 @@ public slots:
     void updateVerboseLogging();
 
     void changeViewAsNeeded(float boomLength);
+
+    QString getGraphicsCardType();
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -787,6 +793,5 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
-
 };
 #endif // hifi_Application_h
