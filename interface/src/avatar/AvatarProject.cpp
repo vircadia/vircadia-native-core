@@ -250,10 +250,12 @@ void AvatarProject::openInInventory() {
         DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     tablet->loadQMLSource("hifi/commerce/wallet/Wallet.qml");
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
+    tablet->getTabletRoot()->forceActiveFocus();
     auto name = getProjectName();
 
     // I'm not a fan of this, but it's the only current option.
     QTimer::singleShot(TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS, [name, tablet]() {
         tablet->sendToQml(QVariantMap({ { "method", "updatePurchases" }, { "filterText", name } }));
+
     });
 }
