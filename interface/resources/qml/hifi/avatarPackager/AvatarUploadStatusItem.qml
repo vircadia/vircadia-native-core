@@ -14,12 +14,6 @@ Item {
     property int uploaderState;
     property var uploader;
 
-/*
-    state: root.uploader === undefined ? "" :
-                (root.uploader.state > uploaderState ? "success"
-                : (root.uploader.error !== 0 ? "fail" : (root.uploader.state === uploaderState ? "running" : "")))
-                */
-
     states: [
         State {
             name: ""
