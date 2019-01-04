@@ -338,7 +338,7 @@ void AudioMixer::sendStatsPacket() {
             QJsonObject nodeStats;
             QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
 
-            nodeStats["outbound_kbps"] = node->getOutboundBandwidth();
+            nodeStats["outbound_kbps"] = node->getOutboundKbps();
             nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidString;
 
             nodeStats["jitter"] = clientData->getAudioStreamStats();

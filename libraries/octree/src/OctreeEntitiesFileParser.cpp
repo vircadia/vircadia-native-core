@@ -9,13 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "OctreeEntitiesFileParser.h"
+
 #include <sstream>
 #include <cctype>
+
 #include <QUuid>
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include "OctreeEntitiesFileParser.h"
 
 using std::string;
 
