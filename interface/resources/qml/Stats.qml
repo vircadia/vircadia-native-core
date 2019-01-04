@@ -210,13 +210,13 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
-                            "Silent: " + root.audioSilentInboundPPS + " pps";
+                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
+                        root.audioMixerOutPps + "pps";
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
-                            root.audioMixerOutPps + "pps";
+                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentInboundPPS + " pps";
                     }
                     StatText {
                         visible: root.expanded;

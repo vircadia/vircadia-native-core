@@ -44,9 +44,6 @@ class PolyLineEntityItem : public EntityItem {
     glm::u8vec3 getColor() const;
     void setColor(const glm::u8vec3& value);
 
-    void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
-    float getLineWidth() const{ return _lineWidth; }
-
     bool setLinePoints(const QVector<glm::vec3>& points);
     bool appendPoint(const glm::vec3& point);
     QVector<glm::vec3> getLinePoints() const;
@@ -99,7 +96,6 @@ private:
     
  protected:
     glm::u8vec3 _color;
-    float _lineWidth { DEFAULT_LINE_WIDTH };
     bool _pointsChanged { true };
     bool _normalsChanged { true };
     bool _strokeColorsChanged { true };

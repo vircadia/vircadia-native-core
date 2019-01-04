@@ -840,8 +840,8 @@ void AvatarMixer::sendStatsPacket() {
         // add the key to ask the domain-server for a username replacement, if it has it
         avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
 
-        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
-        avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundBandwidth();
+        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundKbps();
+        avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundKbps();
 
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
