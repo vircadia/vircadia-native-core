@@ -21,7 +21,7 @@ Item {
     property color hoverBackgroundColor: "#E3E3E3"
     property color pressedBackgroundColor: "#6A6A6A"
 
-    signal open;
+    signal open
 
     state: mouseArea.pressed ? "pressed" : (mouseArea.containsMouse ? "hover" : "normal")
     states: [

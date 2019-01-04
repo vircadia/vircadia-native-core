@@ -16,10 +16,10 @@ Item {
 
     Style { id: style }
 
-    property int colorScheme;
-    property var uploader: null;
+    property int colorScheme
+    property var uploader: null
 
-    property bool hasSuccessfullyUploaded: true;
+    property bool hasSuccessfullyUploaded: true
 
     visible: false
     anchors.fill: parent
@@ -44,7 +44,7 @@ Item {
             HifiControls.Button {
                 id: uploadButton
 
-                visible: !AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
+                visible: AvatarPackagerCore.currentAvatarProject && !AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
                 enabled: Account.loggedIn
 
                 anchors.verticalCenter: parent.verticalCenter
@@ -62,7 +62,7 @@ Item {
             HifiControls.Button {
                 id: updateButton
 
-                visible: AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
+                visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.fst.hasMarketplaceID && !root.hasSuccessfullyUploaded
                 enabled: Account.loggedIn
 
                 anchors.verticalCenter: parent.verticalCenter
@@ -175,9 +175,9 @@ Item {
     }
 
     function showConfirmUploadPopup() {
-        popup.titleText = 'Overwrite Avatar'
+        popup.titleText = 'Overwrite Avatar';
         popup.bodyText = 'You have previously uploaded the avatar file from this project.' + 
-                         ' This will overwrite that avatar and you won’t be able to access the older version.'
+                         ' This will overwrite that avatar and you won’t be able to access the older version.';
 
         popup.button1text = 'CREATE NEW';
         popup.button2text = 'OVERWRITE';
@@ -185,7 +185,7 @@ Item {
         popup.onButton2Clicked = function() {
             popup.close();
             uploadUpdate();
-        }
+        };
         popup.onButton1Clicked = function() {
             popup.close();
             showConfirmCreateNewPopup();
@@ -195,9 +195,9 @@ Item {
     }
 
     function showConfirmCreateNewPopup(confirmCallback) {
-        popup.titleText = 'Create New'
+        popup.titleText = 'Create New';
         popup.bodyText = 'This will upload your current files with the same avatar name.' +
-                         ' You will lose the ability to update the previously uploaded avatar. Are you sure you want to continue?'
+                         ' You will lose the ability to update the previously uploaded avatar. Are you sure you want to continue?';
 
         popup.button1text = 'CANCEL';
         popup.button2text = 'CONFIRM';
@@ -277,7 +277,7 @@ Item {
 
         size: 20
 
-        text: AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in project. <a href='toggle'>See list</a>"
+        text: AvatarPackagerCore.currentAvatarProject ? AvatarPackagerCore.currentAvatarProject.projectFiles.length + " files in project. <a href='toggle'>See list</a>" : ""
 
         onLinkActivated: fileListPopup.open()
     }

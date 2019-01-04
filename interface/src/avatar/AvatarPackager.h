@@ -69,7 +69,9 @@ public:
                                                                              const QString& textureFolder);
 
     Q_INVOKABLE AvatarProjectStatus::AvatarProjectStatus openAvatarProject(const QString& avatarProjectFSTPath);
-    Q_INVOKABLE bool isValidNewProjectName(const QString& projectPath, const QString& projectName) { return AvatarProject::isValidNewProjectName(projectPath, projectName); }
+    Q_INVOKABLE bool isValidNewProjectName(const QString& projectPath, const QString& projectName) {
+        return AvatarProject::isValidNewProjectName(projectPath, projectName);
+    }
 
 signals:
     void avatarProjectChanged();
@@ -78,21 +80,21 @@ signals:
 private:
     Q_INVOKABLE AvatarProject* getAvatarProject() const { return _currentAvatarProject; };
     Q_INVOKABLE QString getAvatarProjectsPath() const { return AvatarProject::getDefaultProjectsPath(); }
-    Q_INVOKABLE QVariantList getRecentProjects() { return recentProjectsToVariantList(true); }
+    Q_INVOKABLE QVariantList getRecentProjects() const { return recentProjectsToVariantList(true); }
 
     void setAvatarProject(AvatarProject* avatarProject);
 
     void addCurrentProjectToRecentProjects();
 
-    AvatarProject* _currentAvatarProject{ nullptr };
+    AvatarProject* _currentAvatarProject { nullptr };
     QVector<RecentAvatarProject> _recentProjects;
 
-    QVariantList recentProjectsToVariantList(bool includeProjectPaths);
+    QVariantList recentProjectsToVariantList(bool includeProjectPaths) const;
 
     void recentProjectsFromVariantList(QVariantList projectsVariant);
 
 
-    Setting::Handle<QVariantList> _recentProjectsSetting{ "io.highfidelity.avatarPackager.recentProjects", QVariantList() };
+    Setting::Handle<QVariantList> _recentProjectsSetting { "io.highfidelity.avatarPackager.recentProjects", QVariantList() };
 };
 
 #endif  // hifi_AvatarPackager_h

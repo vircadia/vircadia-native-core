@@ -95,7 +95,7 @@ void AvatarPackager::addCurrentProjectToRecentProjects() {
     emit recentProjectsChanged();
 }
 
-QVariantList AvatarPackager::recentProjectsToVariantList(bool includeProjectPaths) {
+QVariantList AvatarPackager::recentProjectsToVariantList(bool includeProjectPaths) const {
     QVariantList result;
     for (const auto& project : _recentProjects) {
         QVariantMap projectVariant;

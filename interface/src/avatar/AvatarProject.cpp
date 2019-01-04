@@ -169,8 +169,8 @@ QStringList AvatarProject::getScriptPaths(const QDir& scriptsDir) const {
         return result;
     }
 
-    for (auto& script : scriptsDir.entryInfoList({}, flags)) {
-        if (script.fileName().endsWith(".js")) {
+    for (const auto& script : scriptsDir.entryInfoList({}, flags)) {
+        if (script.fileName().toLower().endsWith(".js")) {
             result.push_back("scripts/" + script.fileName());
         }
     }
@@ -243,7 +243,7 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     return uploader;
 }
 
-void AvatarProject::openInInventory() {
+void AvatarProject::openInInventory() const {
     constexpr int TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS { 1000 };
 
     auto tablet = dynamic_cast<TabletProxy*>(
@@ -256,6 +256,5 @@ void AvatarProject::openInInventory() {
     // I'm not a fan of this, but it's the only current option.
     QTimer::singleShot(TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS, [name, tablet]() {
         tablet->sendToQml(QVariantMap({ { "method", "updatePurchases" }, { "filterText", name } }));
-
     });
 }

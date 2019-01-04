@@ -35,7 +35,6 @@ ShadowRectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.leftMargin: 16
-        anchors.verticalCenter: back.verticalCenter
 
         text: "◀"
 
@@ -48,7 +47,6 @@ ShadowRectangle {
         anchors.bottom: parent.bottom
         anchors.left: root.backButtonVisible ? back.right : parent.left
         anchors.leftMargin: root.backButtonVisible ? 11 : 21
-        anchors.verticalCenter: title.verticalCenter
         anchors.right: docs.left
         states: [
             State {
@@ -136,7 +134,6 @@ ShadowRectangle {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.rightMargin: 16
-        anchors.verticalCenter: docs.verticalCenter
 
         text: qsTr("Docs")
 
