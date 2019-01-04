@@ -14,25 +14,28 @@ Item {
     property int uploaderState;
     property var uploader;
 
-    state: root.uploader === undefined ? "" :
-                (root.uploader.state > uploaderState ? "success"
-                : (root.uploader.error !== 0 ? "fail" : (root.uploader.state === uploaderState ? "running" : "")))
-
     states: [
         State {
-            name: "running"
+            name: ""
+            when: root.uploader === null
+        },
+        State {
+            name: "success"
+            when: root.uploader.state > uploaderState
             PropertyChanges { target: stepText; color: "white" }
-            PropertyChanges { target: runningImage; visible: true; playing: true }
+            PropertyChanges { target: successGlyph; visible: true }
         },
         State {
             name: "fail"
+            when: root.uploader.error !== 0
             PropertyChanges { target: stepText; color: "#EA4C5F" }
             PropertyChanges { target: failGlyph; visible: true }
         },
         State {
-            name: "success"
+            name: "running"
+            when: root.uploader.state === uploaderState
             PropertyChanges { target: stepText; color: "white" }
-            PropertyChanges { target: successGlyph; visible: true }
+            PropertyChanges { target: runningImage; visible: true; playing: true }
         }
     ]
 

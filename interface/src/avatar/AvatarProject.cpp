@@ -162,7 +162,7 @@ AvatarProject* AvatarProject::createAvatarProject(const QString& projectsFolder,
     return new AvatarProject(fst);
 }
 
-QStringList AvatarProject::getScriptPaths(const QDir& scriptsDir) {
+QStringList AvatarProject::getScriptPaths(const QDir& scriptsDir) const {
     QStringList result{};
     constexpr auto flags = QDir::Files | QDir::NoSymLinks | QDir::NoDotAndDotDot | QDir::Hidden;
     if (!scriptsDir.exists()) {
@@ -244,16 +244,18 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
 }
 
 void AvatarProject::openInInventory() {
+    constexpr int TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS { 1000 };
+
     auto tablet = dynamic_cast<TabletProxy*>(
         DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     tablet->loadQMLSource("hifi/commerce/wallet/Wallet.qml");
     DependencyManager::get<HMDScriptingInterface>()->openTablet();
+    tablet->getTabletRoot()->forceActiveFocus();
     auto name = getProjectName();
 
     // I'm not a fan of this, but it's the only current option.
-    QTimer::singleShot(1000, [name]() {
-        auto tablet = dynamic_cast<TabletProxy*>(
-            DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    QTimer::singleShot(TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS, [name, tablet]() {
         tablet->sendToQml(QVariantMap({ { "method", "updatePurchases" }, { "filterText", name } }));
+
     });
 }

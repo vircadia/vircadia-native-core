@@ -109,7 +109,7 @@ ShadowRectangle {
                 font.pixelSize: 28
                 z: 200
                 onFocusChanged: {
-                    if (titleArea.state === "renaming" && !titleArea.focus) {
+                    if (titleArea.state === "renaming" && !focus) {
                         accepted();
                     }
                 }

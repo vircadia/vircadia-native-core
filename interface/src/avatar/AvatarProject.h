@@ -103,7 +103,7 @@ private:
 
     void refreshProjectFiles();
     void appendDirectory(const QString& prefix, const QDir& dir);
-    QStringList getScriptPaths(const QDir& scriptsDir);
+    QStringList getScriptPaths(const QDir& scriptsDir) const;
 
     FST* _fst;
 

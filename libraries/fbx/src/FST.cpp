@@ -15,6 +15,8 @@
 #include <QFileInfo>
 #include <hfm/HFM.h>
 
+constexpr float DEFAULT_SCALE { 1.0f };
+
 FST::FST(QString fstPath, QVariantHash data) : _fstPath(std::move(fstPath)) {
 
     auto setValueFromFSTData = [&data] (const QString& propertyID, auto &targetProperty) mutable {
@@ -55,7 +57,7 @@ FST* FST::createFSTFromModel(const QString& fstPath, const QString& modelFilePat
     mapping.insert(TEXDIR_FIELD, "textures");
 
     // mixamo/autodesk defaults
-    mapping.insert(SCALE_FIELD, 1.0);
+    mapping.insert(SCALE_FIELD, DEFAULT_SCALE);
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
         joints.insert("jointEyeLeft", hfmModel.jointIndices.contains("jointEyeLeft") ? "jointEyeLeft" :
             (hfmModel.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye"));
@@ -161,7 +163,7 @@ void FST::setModelPath(const QString& modelPath) {
     emit modelPathChanged(modelPath);
 }
 
-QVariantHash FST::getMapping() {
+QVariantHash FST::getMapping() const {
     QVariantHash mapping;
     mapping.unite(_other);
     mapping.insert(NAME_FIELD, _name);

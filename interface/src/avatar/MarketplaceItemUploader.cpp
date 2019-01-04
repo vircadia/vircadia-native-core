@@ -36,7 +36,10 @@ MarketplaceItemUploader::MarketplaceItemUploader(QString title,
                                                  QUuid marketplaceID,
                                                  QList<ProjectFilePath> filePaths) :
     _title(title),
-    _description(description), _rootFilename(rootFilename), _marketplaceID(marketplaceID), _filePaths(filePaths) {
+    _description(description),
+    _rootFilename(rootFilename),
+    _marketplaceID(marketplaceID),
+    _filePaths(filePaths) {
 }
 
 void MarketplaceItemUploader::setState(State newState) {
@@ -299,11 +302,13 @@ void MarketplaceItemUploader::doWaitForInventory() {
         if (success) {
             setState(State::Complete);
         } else {
+            constexpr int MAX_INVENTORY_REQUESTS { 8 };
+            constexpr int TIME_BETWEEN_INVENTORY_REQUESTS_MS { 5000 };
             qDebug() << "Failed to find item in inventory";
-            if (_numRequestsForInventory > 8) {
+            if (_numRequestsForInventory > MAX_INVENTORY_REQUESTS) {
                 setError(Error::Unknown);
             } else {
-                QTimer::singleShot(5000, [this]() { doWaitForInventory(); });
+                QTimer::singleShot(TIME_BETWEEN_INVENTORY_REQUESTS_MS, [this]() { doWaitForInventory(); });
             }
         }
     });

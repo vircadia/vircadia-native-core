@@ -45,9 +45,9 @@ public:
     QStringList getScriptPaths() const { return _scriptPaths; }
     void setScriptPaths(QStringList scriptPaths) { _scriptPaths = scriptPaths; }
 
-    QString getPath() { return _fstPath; }
+    QString getPath() const { return _fstPath; }
 
-    QVariantHash getMapping();
+    QVariantHash getMapping() const;
 
     bool write();
 
