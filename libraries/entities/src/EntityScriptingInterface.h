@@ -1699,11 +1699,11 @@ public slots:
      * Get information about entity properties including a minimum to maximum range for numerical properties 
      * as well as property enum value.
      * @function Entities.getPropertyInfo
-     * @param {string} property - The property name to get the information for.
+     * @param {string} propertyName - The name of the property to get the information for.
      * @returns {Entities.EntityPropertyInfo} The information data including propertyEnum, minimum, and maximum
      * if the property can be found, otherwise an empty object.
      */
-    Q_INVOKABLE const EntityPropertyInfo getPropertyInfo(const QScriptValue& property) const;
+    Q_INVOKABLE const EntityPropertyInfo getPropertyInfo(const QString& propertyName) const;
 
 signals:
     /**jsdoc

@@ -2273,10 +2273,9 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
     return result;
 }
 
-const EntityPropertyInfo EntityScriptingInterface::getPropertyInfo(const QScriptValue& property) const {
-    const QString name = property.toString();
+const EntityPropertyInfo EntityScriptingInterface::getPropertyInfo(const QString& propertyName) const {
     EntityPropertyInfo propertyInfo;
-    EntityItemProperties::getPropertyInfo(name, propertyInfo);
+    EntityItemProperties::getPropertyInfo(propertyName, propertyInfo);
     return propertyInfo;
 }
 

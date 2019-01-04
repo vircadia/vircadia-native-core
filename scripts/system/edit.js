@@ -420,7 +420,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
         emitOrientation: { x: 0, y: 0, z: 0, w: 1 },
         emitterShouldTrail: true,
         particleRadius: 0.25,
-        radiusFinish: 0.1,
+        radiusStart: 0,
         radiusSpread: 0,
         particleColor: {
             red: 255,
