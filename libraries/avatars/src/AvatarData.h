@@ -110,6 +110,7 @@ const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
 const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
 const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
+const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
 
 
 const char HAND_STATE_NULL = 0;
@@ -1495,6 +1496,7 @@ protected:
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };
     bool _isClientAvatar { false };
+    bool _collideWithOtherAvatars { true };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler, LaterDeleter> _clientTraitsHandler;

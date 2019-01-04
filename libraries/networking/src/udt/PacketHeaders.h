@@ -305,7 +305,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     MigrateAvatarEntitiesToTraits,
     FarGrabJointsRedux,
     JointTransScaled,
-    GrabTraits
+    GrabTraits,
+    CollisionFlag
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

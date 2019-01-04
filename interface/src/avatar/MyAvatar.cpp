@@ -3326,7 +3326,6 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
         QMetaObject::invokeMethod(this, "setCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
-
     _characterController.setCollisionless(!enabled);
     emit collisionsEnabledChanged(enabled);
 }
@@ -3335,6 +3334,20 @@ bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
     return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+}
+
+void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setOtherAvatarsCollisionsEnabled", Q_ARG(bool, enabled));
+        return;
+    }
+    _collideWithOtherAvatars = enabled;
+    emit otherAvatarsCollisionsEnabledChanged(enabled);
+}
+
+bool MyAvatar::getOtherAvatarsCollisionsEnabled() {
+    return _collideWithOtherAvatars;
 }
 
 void MyAvatar::updateCollisionCapsuleCache() {

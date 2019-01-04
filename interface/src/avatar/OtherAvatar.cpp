@@ -120,12 +120,26 @@ bool OtherAvatar::shouldBeInPhysicsSimulation() const {
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
-    constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION;
+    constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION | Simulation::DIRTY_COLLISION_GROUP;
     return (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST));
 }
 
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+    }
+}
+
+void OtherAvatar::updateCollisionGroup(bool myAvatarCollide) {
+    if (_motionState) {
+        bool collides = _motionState->getCollisionGroup() == BULLET_COLLISION_GROUP_OTHER_AVATAR && myAvatarCollide;
+        if (_collideWithOtherAvatars != collides) {
+            if (!myAvatarCollide) {
+                _collideWithOtherAvatars = false;
+            }
+            auto newCollisionGroup = _collideWithOtherAvatars ? BULLET_COLLISION_GROUP_OTHER_AVATAR : BULLET_COLLISION_GROUP_COLLISIONLESS;
+            _motionState->setCollisionGroup(newCollisionGroup);
+            _motionState->addDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+        }
     }
 }

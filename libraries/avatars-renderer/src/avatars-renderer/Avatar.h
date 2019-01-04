@@ -552,6 +552,7 @@ protected:
     glm::vec3 getBodyRightDirection() const { return getWorldOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getWorldOrientation() * IDENTITY_UP; }
     void measureMotionDerivatives(float deltaTime);
+    bool getCollideWithOtherAvatars() const { return _collideWithOtherAvatars; }
 
     float getSkeletonHeight() const;
     float getHeadHeight() const;
