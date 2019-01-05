@@ -330,19 +330,25 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     AvatarTraits::TraitMessageSequence seq;
 
-    message->readPrimitive(&seq);
+    if (message->getBytesLeftToRead() > sizeof(AvatarTraits::TraitMessageSequence)) {
+        message->readPrimitive(&seq);
 
-    auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
-    traitsAckPacket->writePrimitive(seq);
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
-    SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
-    if (!avatarMixer.isNull()) {
-        // we have a mixer to send to, acknowledge that we received these
-        // traits.
-        nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
+        auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
+        traitsAckPacket->writePrimitive(seq);
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+        if (!avatarMixer.isNull()) {
+            // we have a mixer to send to, acknowledge that we received these
+            // traits.
+            nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
+        }
+    }
+    else {
+        qWarning() << "No BulkAvatarTraits packet sequence number.";
+        return;
     }
 
-    while (message->getBytesLeftToRead()) {
+    while (message->getBytesLeftToRead() >= NUM_BYTES_RFC4122_UUID + sizeof(AvatarTraits::TraitType)) {
         // read the avatar ID to figure out which avatar this is for
         auto avatarID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
@@ -406,6 +412,9 @@ void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> mess
             // read the next trait type, which is null if there are no more traits for this avatar
             message->readPrimitive(&traitType);
         }
+    }
+    if (message->getBytesLeftToRead() > 0) {
+        qWarning() << "Leftover bytes in BulkAvatarTraits message";
     }
 }
 
