@@ -32,6 +32,10 @@ Original.Button {
     width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
 
+    property size implicitPadding: Qt.size(20, 16)
+    property int implicitWidth: buttonContentItem.implicitWidth + implicitPadding.width
+    property int implicitHeight: buttonContentItem.implicitHeight + implicitPadding.height
+
     HifiConstants { id: hifi }
 
     onHoveredChanged: {
@@ -94,6 +98,8 @@ Original.Button {
 
     contentItem: Item {
         id: buttonContentItem
+        implicitWidth: (buttonGlyph.visible ? buttonGlyph.implicitWidth : 0) + buttonText.implicitWidth
+        implicitHeight: buttonText.implicitHeight
         TextMetrics {
             id: buttonGlyphTextMetrics;
             font: buttonGlyph.font;
