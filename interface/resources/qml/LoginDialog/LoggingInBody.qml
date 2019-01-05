@@ -252,7 +252,11 @@ Item {
             console.log("Login Failed")
             loggingInSpinner.visible = false;
             var errorString = "";
-            if (loggingInBody.linkSteam && loggingInBody.withSteam) {
+            if (loggingInBody.withOculus) {
+                loggingInGlyph.visible = false;
+                errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again.";
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "errorString": errorString });
+            } else if (loggingInBody.linkSteam && loggingInBody.withSteam) {
                 errorString = "Username or password is incorrect.";
                 bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "linkSteam": loggingInBody.linkSteam, "errorString": errorString });
             } else if (loggingInBody.withSteam) {

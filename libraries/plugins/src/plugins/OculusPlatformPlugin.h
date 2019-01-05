@@ -12,8 +12,7 @@
 
 #include <functional>
 
-using Ticket = QByteArray;
-using TicketRequestCallback = std::function<void(Ticket)>;
+using OculusTicketRequestCallback = std::function<void(QString, QString)>;
 
 
 class OculusPlatformPlugin {
@@ -27,7 +26,7 @@ public:
 
     virtual void runCallbacks() = 0;
 
-    virtual void requestTicket(TicketRequestCallback callback) = 0;
+    virtual void requestTicket(OculusTicketRequestCallback callback) = 0;
 
     virtual QString getUserProof() = 0;
 
