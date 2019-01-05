@@ -90,7 +90,7 @@ protected:
 
     OtherAvatarPointer _avatar;
     float _diameter { 0.0f };
-    uint32_t _collisionGroup;
+    int32_t _collisionGroup;
     uint32_t _dirtyFlags;
 };
 
