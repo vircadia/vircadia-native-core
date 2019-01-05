@@ -20,6 +20,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <BufferParser.h>
 #include <ByteCountCoding.h>
@@ -1714,9 +1715,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
         // the above cases not yet supported --> fall through to BOX case
         case SHAPE_TYPE_BOX: {
             localPoint = glm::abs(localPoint);
-            return localPoint.x <= NORMALIZED_HALF_SIDE &&
-                localPoint.y <= NORMALIZED_HALF_SIDE &&
-                localPoint.z <= NORMALIZED_HALF_SIDE;
+            return glm::any(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
         }
         case SHAPE_TYPE_ELLIPSOID: {
             // since we've transformed into the normalized space this is just a sphere-point intersection test
@@ -1726,10 +1725,10 @@ bool EntityItem::contains(const glm::vec3& point) const {
             return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
                 localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED;
         case SHAPE_TYPE_CYLINDER_Y:
-            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+            return fabsf(localPoint.y) <= NORMALIZED_HALF_SIDE &&
                 localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED;
         case SHAPE_TYPE_CYLINDER_Z:
-            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+            return fabsf(localPoint.z) <= NORMALIZED_HALF_SIDE &&
                 localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED;
         default:
             return false;
