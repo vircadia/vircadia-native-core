@@ -135,7 +135,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
             // hold sending more traits until we've been acked that the last one we sent was received
             if (lastSentVersionRef == lastAckedVersionRef && lastReceivedVersions[traitType] > lastSentVersionRef) {
-                addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+                bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
                 // there is an update to this trait, add it to the traits packet
                 bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
                 // update the last sent version
@@ -185,7 +185,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                     continue;
                 }
                 if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
-                    addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+                    bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
                     // this instance version exists and has never been sent or is newer so we need to send it
                     bytesWritten += sendingAvatar->packTraitInstance(traitType, instanceID, traitsPacketList, receivedVersion);
@@ -202,7 +202,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                     pendingTraitVersions.instanceInsert(traitType, instanceID, receivedVersion);
 
                 } else if (isDeleted && sentInstanceIt != sentIDValuePairs.end() && absoluteReceivedVersion > sentInstanceIt->value) {
-                    addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+                    bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
                     // this instance version was deleted and we haven't sent the delete to this client yet
                     bytesWritten += AvatarTraits::packInstancedTraitDelete(traitType, instanceID, traitsPacketList, absoluteReceivedVersion);
