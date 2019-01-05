@@ -190,6 +190,18 @@ TabBar {
                                 editTabView.currentIndex = 2
                             }
                         }
+						
+						NewEntityButton {
+                            icon: "icons/create-icons/21-cube-01.svg"
+                            text: "GRID"
+                            onClicked: {
+                                editRoot.sendToScript({
+                                    method: "newEntityButtonClicked",
+                                    params: { buttonName: "newGridButton" }
+                                });
+                                editTabView.currentIndex = 2
+                            }
+                        }
                     }
 
                     HifiControls.Button {
