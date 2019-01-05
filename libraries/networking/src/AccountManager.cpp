@@ -586,7 +586,7 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
 }
 
-void AccountManager::requestAccessTokenWithOculus(QByteArray authSessionTicket) {
+void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QString& userID) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
@@ -597,8 +597,8 @@ void AccountManager::requestAccessTokenWithOculus(QByteArray authSessionTicket) 
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append("oculus_nonce=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
-    postData.append("oculus_user_id=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("oculus_nonce=" + nonce + "&");
+    postData.append("oculus_user_id=" + userID + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
     request.setUrl(grantURL);

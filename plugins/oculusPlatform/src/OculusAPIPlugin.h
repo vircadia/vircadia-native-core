@@ -18,9 +18,9 @@ public:
 
     void runCallbacks() override;
 
-    void requestTicket(TicketRequestCallback callback) override;
+    void requestTicket(OculusTicketRequestCallback callback) override;
 
-    QString requestUserProof() override;
+    QString getUserProof() override;
     QString getLoggedInUserID() override;
 
     QString getOculusVRBuildID() override;

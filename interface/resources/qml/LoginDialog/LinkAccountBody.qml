@@ -391,10 +391,10 @@ Item {
                 buttonGlyphSize: 24
                 buttonGlyphRightMargin: 10
                 onClicked: {
-                    // if (loginDialog.isOculusRunning()) {
-                    //     linkAccountBody.withOculus = true;
-                    //     loginDialog.loginThroughSteam();
-                    // } else
+                    if (loginDialog.isOculusRunning()) {
+                        linkAccountBody.withOculus = true;
+                        loginDialog.loginThroughOculus();
+                    } else
                     if (loginDialog.isSteamRunning()) {
                         linkAccountBody.withSteam = true;
                         loginDialog.loginThroughSteam();
@@ -524,6 +524,9 @@ Item {
                 });
             }
         }
+        onLoginFailed: {
+            console.log("login failed");
+        }
     }
 
     Component.onCompleted: {
@@ -536,9 +539,6 @@ Item {
         Qt.callLater(function() {
             emailField.forceActiveFocus();
         });
-        if (loginDialog.isOculusRunning()) {
-            print(loginDialog.getLoggedInUserID());
-        }
     }
 
     Keys.onPressed: {
