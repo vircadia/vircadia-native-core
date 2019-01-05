@@ -646,7 +646,7 @@ const GROUPS = [
             },
         ]
     },
-	{
+    {
         id: "grid",
         addToGroup: "base",
         properties: [
@@ -663,17 +663,17 @@ const GROUPS = [
             {
                 label: "Major Grid Every",
                 type: "number-draggable",
-				min: 0,
-				step: 1,
-				decimals: 0,
+                min: 0,
+                step: 1,
+                decimals: 0,
                 propertyID: "majorGridEvery",
             },
-			{
+            {
                 label: "Minor Grid Every",
                 type: "number-draggable",
-				min: 0,
-				step: 0.01,
-				decimals: 2,
+                min: 0,
+                step: 0.01,
+                decimals: 2,
                 propertyID: "minorGridEvery",
             },
         ]

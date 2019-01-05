@@ -196,8 +196,8 @@ TabBar {
                                 editTabView.currentIndex = tabIndex.properties
                             }
                         }
-						
-						NewEntityButton {
+                        
+                        NewEntityButton {
                             icon: "icons/create-icons/21-cube-01.svg"
                             text: "GRID"
                             onClicked: {
