@@ -25,12 +25,12 @@ float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
     return qApp->getEntityClipboard()->getContentsLargestDimension();
 }
 
-bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
+bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<QUuid>& entityIDs) {
     bool retVal;
     BLOCKING_INVOKE_METHOD(qApp, "exportEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename),
-                              Q_ARG(const QVector<EntityItemID>&, entityIDs));
+                              Q_ARG(const QVector<QUuid>&, entityIDs));
     return retVal;
 }
 
