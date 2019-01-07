@@ -390,7 +390,7 @@ void Avatar::updateAvatarEntities() {
             QVariantMap asMap = variantProperties.toMap();
             QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
             EntityItemProperties properties;
-            EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
+            EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptProperties, properties);
             properties.setEntityHostType(entity::HostType::AVATAR);
             properties.setOwningAvatarID(getID());
 

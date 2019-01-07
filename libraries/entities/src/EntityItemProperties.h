@@ -21,6 +21,7 @@
 #include <QtCore/QObject>
 #include <QVector>
 #include <QString>
+#include <QDateTime>
 
 #include <AACube.h>
 #include <NumericalConstants.h>
@@ -382,8 +383,6 @@ public:
     void setQueryAACubeDirty() { _queryAACubeChanged = true; }
 
     void setLocationDirty() { _positionChanged = true; _rotationChanged = true; }
-
-    void setCreated(QDateTime& v);
 
     bool hasTransformOrVelocityChanges() const;
     void clearTransformOrVelocityChanges();
