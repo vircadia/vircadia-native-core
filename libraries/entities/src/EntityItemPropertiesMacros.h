@@ -13,8 +13,6 @@
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
-#include <QDateTime>
-
 #include "EntityItemID.h"
 #include <RegisteredMetaTypes.h>
 
@@ -233,14 +231,6 @@ inline uint8_t uint8_t_convertFromScriptValue(const QScriptValue& v, bool& isVal
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
-
-
-inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = true;
-    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
-    // result.setTimeSpec(Qt::OffsetFromUTC);
-    return result;
-}
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
