@@ -296,6 +296,7 @@ void Avatar::setTargetScale(float targetScale) {
     if (_targetScale != newValue) {
         _targetScale = newValue;
         _scaleChanged = usecTimestampNow();
+        _avatarScaleChanged = _scaleChanged;
         _isAnimatingScale = true;
 
         emit targetScaleChanged(targetScale);
@@ -389,7 +390,7 @@ void Avatar::updateAvatarEntities() {
             QVariantMap asMap = variantProperties.toMap();
             QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
             EntityItemProperties properties;
-            EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, properties);
+            EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptProperties, properties);
             properties.setEntityHostType(entity::HostType::AVATAR);
             properties.setOwningAvatarID(getID());
 

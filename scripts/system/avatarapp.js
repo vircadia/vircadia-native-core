@@ -62,7 +62,8 @@ function getMyAvatar() {
 function getMyAvatarSettings() {
     return {
         dominantHand: MyAvatar.getDominantHand(),
-        collisionsEnabled : MyAvatar.getCollisionsEnabled(),
+        collisionsEnabled: MyAvatar.getCollisionsEnabled(),
+        otherAvatarsCollisionsEnabled: MyAvatar.getOtherAvatarsCollisionsEnabled(),
         collisionSoundUrl : MyAvatar.collisionSoundURL,
         animGraphUrl: MyAvatar.getAnimGraphUrl(),
         animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
@@ -132,6 +133,13 @@ function onCollisionsEnabledChanged(enabled) {
     if(currentAvatarSettings.collisionsEnabled !== enabled) {
         currentAvatarSettings.collisionsEnabled = enabled;
         sendToQml({'method' : 'settingChanged', 'name' : 'collisionsEnabled', 'value' : enabled})
+    }
+}
+
+function onOtherAvatarsCollisionsEnabledChanged(enabled) {
+    if (currentAvatarSettings.otherAvatarsCollisionsEnabled !== enabled) {
+        currentAvatarSettings.otherAvatarsCollisionsEnabled = enabled;
+        sendToQml({ 'method': 'settingChanged', 'name': 'otherAvatarsCollisionsEnabled', 'value': enabled })
     }
 }
 
@@ -323,6 +331,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         currentAvatar.avatarScale = message.avatarScale;
 
         MyAvatar.setDominantHand(message.settings.dominantHand);
+        MyAvatar.setOtherAvatarsCollisionsEnabled(message.settings.otherAvatarsCollisionsEnabled);
         MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
         MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
@@ -513,6 +522,7 @@ function off() {
         MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
         MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
+        MyAvatar.otherAvatarsCollisionsEnabledChanged.disconnect(onOtherAvatarsCollisionsEnabledChanged);
         MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
         MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
         MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
@@ -533,6 +543,7 @@ function on() {
         MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
         MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
         MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
+        MyAvatar.otherAvatarsCollisionsEnabledChanged.connect(onOtherAvatarsCollisionsEnabledChanged);
         MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
         MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
         MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);

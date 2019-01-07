@@ -156,9 +156,6 @@ public:
 
     virtual void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
-    //setters
-    void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
-    bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
@@ -552,6 +549,7 @@ protected:
     glm::vec3 getBodyRightDirection() const { return getWorldOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getWorldOrientation() * IDENTITY_UP; }
     void measureMotionDerivatives(float deltaTime);
+    bool getCollideWithOtherAvatars() const { return _collideWithOtherAvatars; }
 
     float getSkeletonHeight() const;
     float getHeadHeight() const;
@@ -595,7 +593,6 @@ protected:
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };
     bool _initialized { false };
-    bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };

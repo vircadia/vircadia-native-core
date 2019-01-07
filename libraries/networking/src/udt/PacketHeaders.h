@@ -253,6 +253,7 @@ enum class EntityVersion : PacketVersion {
     MissingTextProperties,
     GrabTraits,
     MorePropertiesCleanup,
+    FixPropertiesFromCleanup,
     UpdatedPolyLines,
     RenderLayer,
 
@@ -312,7 +313,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     MigrateAvatarEntitiesToTraits,
     FarGrabJointsRedux,
     JointTransScaled,
-    GrabTraits
+    GrabTraits,
+    CollisionFlag
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

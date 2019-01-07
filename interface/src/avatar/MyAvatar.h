@@ -225,6 +225,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool centerOfGravityModelEnabled READ getCenterOfGravityModelEnabled WRITE setCenterOfGravityModelEnabled)
     Q_PROPERTY(bool hmdLeanRecenterEnabled READ getHMDLeanRecenterEnabled WRITE setHMDLeanRecenterEnabled)
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
+    Q_PROPERTY(bool otherAvatarsCollisionsEnabled READ getOtherAvatarsCollisionsEnabled WRITE setOtherAvatarsCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
     Q_PROPERTY(bool showPlayArea READ getShowPlayArea WRITE setShowPlayArea)
@@ -832,6 +833,8 @@ public:
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
+    void computeMyLookAtTarget(const AvatarHash& hash);
+    void snapOtherAvatarLookAtTargetsToMe(const AvatarHash& hash);
     void clearLookAtTargetAvatar();
 
     virtual void setJointRotations(const QVector<glm::quat>& jointRotations) override;
@@ -1061,6 +1064,18 @@ public:
      * @returns {boolean} 
      */
     Q_INVOKABLE bool getCollisionsEnabled();
+
+    /**jsdoc
+    * @function MyAvatar.setOtherAvatarsCollisionsEnabled
+    * @param {boolean} enabled
+    */
+    Q_INVOKABLE void setOtherAvatarsCollisionsEnabled(bool enabled);
+
+    /**jsdoc
+    * @function MyAvatar.getOtherAvatarsCollisionsEnabled
+    * @returns {boolean}
+    */
+    Q_INVOKABLE bool getOtherAvatarsCollisionsEnabled();
 
     /**jsdoc
     * @function MyAvatar.getCollisionCapsule
@@ -1488,6 +1503,14 @@ signals:
      * @returns {Signal}
      */
     void collisionsEnabledChanged(bool enabled);
+
+    /**jsdoc
+    * Triggered when collisions with other avatars enabled or disabled
+    * @function MyAvatar.otherAvatarsCollisionsEnabledChanged
+    * @param {boolean} enabled
+    * @returns {Signal}
+    */
+    void otherAvatarsCollisionsEnabledChanged(bool enabled);
 
     /**jsdoc
      * Triggered when avatar's animation url changes

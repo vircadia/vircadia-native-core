@@ -1828,7 +1828,6 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         }
 
                         // this is a new entity... assign a new entityID
-                        properties.setCreated(properties.getLastEdited());
                         properties.setLastEditedBy(senderNode->getUUID());
                         startCreate = usecTimestampNow();
                         EntityItemPointer newEntity = addEntity(entityItemID, properties);
@@ -2829,6 +2828,13 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setRadiusSpread(0.0f);
             properties.setAlphaSpread(0.0f);
             properties.setColorSpread({0, 0, 0});
+        }
+
+        if (contentVersion < (int)EntityVersion::FixPropertiesFromCleanup) {
+            if (entityMap.contains("created")) {
+                quint64 created = QDateTime::fromString(entityMap["created"].toString().trimmed(), Qt::ISODate).toMSecsSinceEpoch() * 1000;
+                properties.setCreated(created);
+            }
         }
 
         EntityItemPointer entity = addEntity(entityItemID, properties);
