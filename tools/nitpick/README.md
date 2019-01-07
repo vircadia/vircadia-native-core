@@ -16,6 +16,7 @@ Nitpick has 5 functions, separated into separate tabs:
 Nitpick is built as part of the High Fidelity build.
 ### Creating installers
 #### Windows
+1.  Perform Release build
 1.  Verify that 7Zip is installed.
 1.  cd to the `build\tools\nitpick\Release` directory
 1.  Delete any existing installers (named nitpick-installer-###.exe)
@@ -31,6 +32,7 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
     In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
 1.  (First time) install create-dmg:
     In a terminal: `brew install create-dmg`
+1.  Perform Release build
 1.  In a terminal: cd to the `build/tools/nitpick/Release` folder
 1.  Copy the quazip dynamic library (note final period):
     In a terminal: `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib .`
