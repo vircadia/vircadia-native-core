@@ -381,7 +381,8 @@ public:
 
     void setLocationDirty() { _positionChanged = true; _rotationChanged = true; }
 
-    void setCreated(QDateTime& v) { _created = v.toMSecsSinceEpoch() * 1000; }
+    void setCreatedFromString(QString& v) { _created = QDateTime::fromString(v, Qt::ISODate).toMSecsSinceEpoch() * 1000; }
+    QString getCreatedAsString() const;
 
     bool hasTransformOrVelocityChanges() const;
     void clearTransformOrVelocityChanges();
