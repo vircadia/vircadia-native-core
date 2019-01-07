@@ -339,11 +339,6 @@ void EntityItemProperties::setBillboardModeFromString(const QString& materialMap
     }
 }
 
-QString EntityItemProperties::getCreatedAsString() const {
-    auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
-    return created.toString(Qt::ISODate);
-}
-
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -1396,7 +1391,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ROTATION, rotation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_REGISTRATION_POINT, registrationPoint);
-    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_CREATED, created, getCreatedAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CREATED, created);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ENTITY_HOST_TYPE, entityHostType, getEntityHostTypeAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
@@ -1774,7 +1769,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
     if (!honorReadOnly) {
-        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QString, setCreatedFromString, getCreatedAsString);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(created, quint64, setCreated);
         COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
         COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHostType, EntityHostType);
         COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
