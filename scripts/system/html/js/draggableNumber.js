@@ -139,7 +139,6 @@ DraggableNumber.prototype = {
     },
     
     inputChange: function() {
-        console.log("DBACK TEST inputChange1 elInput " + this.elInput.value + " elText " + this.elText.firstChild.data + " min " + this.min + " max " + this.max + " step " + this.step);
         let value = this.elInput.value;
         if (this.max !== undefined) {
             value = Math.min(this.max, value);
@@ -147,9 +146,7 @@ DraggableNumber.prototype = {
         if (this.min !== undefined) {
             value = Math.max(this.min, value);
         }
-        console.log("DBACK TEST inputChange2 elInput " + this.elInput.value + " elText " + this.elText.firstChild.data + " min " + this.min + " max " + this.max + " step " + this.step);
         this.setValue(value);
-        console.log("DBACK TEST inputChange3 elInput " + this.elInput.value + " elText " + this.elText.firstChild.data + " min " + this.min + " max " + this.max + " step " + this.step);
     },
     
     inputBlur: function(ev) {
