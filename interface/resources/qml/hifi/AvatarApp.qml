@@ -254,7 +254,8 @@ Rectangle {
         onSaveClicked: function() {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
-                collisionsEnabled : settings.avatarCollisionsOn,
+                collisionsEnabled : settings.environmentCollisionsOn,
+                otherAvatarsCollisionsEnabled : settings.otherAvatarsCollisionsOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };

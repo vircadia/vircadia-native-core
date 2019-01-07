@@ -38,6 +38,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(EntityQueryPacketVersion::ConicalFrustums);
         case PacketType::AvatarIdentity:
         case PacketType::AvatarData:
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::CollisionFlag);
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::GrabTraits);
