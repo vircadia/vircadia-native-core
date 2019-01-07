@@ -21,6 +21,7 @@
 #include <QtCore/QObject>
 #include <QVector>
 #include <QString>
+#include <QDateTime>
 
 #include <AACube.h>
 #include <NumericalConstants.h>
@@ -381,7 +382,7 @@ public:
 
     void setLocationDirty() { _positionChanged = true; _rotationChanged = true; }
 
-    void setCreatedFromString(QString& v) { _created = QDateTime::fromString(v, Qt::ISODate).toMSecsSinceEpoch() * 1000; }
+    void setCreatedFromString(QString& v) { _created = QDateTime::fromString(v.trimmed(), Qt::ISODate).toMSecsSinceEpoch() * 1000; }
     QString getCreatedAsString() const;
 
     bool hasTransformOrVelocityChanges() const;

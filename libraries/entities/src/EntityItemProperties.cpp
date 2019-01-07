@@ -341,7 +341,6 @@ void EntityItemProperties::setBillboardModeFromString(const QString& materialMap
 
 QString EntityItemProperties::getCreatedAsString() const {
     auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
-    created.setTimeSpec(Qt::OffsetFromUTC);
     return created.toString(Qt::ISODate);
 }
 

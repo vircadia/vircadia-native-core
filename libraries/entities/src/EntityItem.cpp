@@ -901,8 +901,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // from being received by an entity script server running a script that continously updates an entity.
         // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
         // that have been made more recently.
-        bool overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
         READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
+        overwriteLocalData = oldOverwrite;
     }
 
     // Certifiable props
