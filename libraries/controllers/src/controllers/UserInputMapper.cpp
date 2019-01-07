@@ -489,6 +489,21 @@ void UserInputMapper::runMappings() {
     }
     applyRoutes(_standardRoutes);
 
+    InputRecorder* inputRecorder = InputRecorder::getInstance();
+    if (inputRecorder->isPlayingback()) {
+        if (debugRoutes) {
+            qCDebug(controllers) << "Playing back recording actions";
+        }
+
+        // Play back each numeric action even if there is no current route active for the action.
+        auto actionStates = inputRecorder->getActionstates();
+        for (InputRecorder::ActionStates::iterator it = actionStates.begin(); it != actionStates.end(); ++it) {
+            setActionState((Action)findAction(it->first), it->second);
+        }
+
+        // Poses are played back in StandardEndpoint.
+    }
+
     if (debugRoutes) {
         qCDebug(controllers) << "Done with mappings";
     }

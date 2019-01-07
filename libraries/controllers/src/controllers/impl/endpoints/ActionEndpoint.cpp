@@ -18,19 +18,16 @@ using namespace controller;
 void ActionEndpoint::apply(AxisValue newValue, const Pointer& source) {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     InputRecorder* inputRecorder = InputRecorder::getInstance();
-    QString actionName;
     if (inputRecorder->isPlayingback() || inputRecorder->isRecording()) {
-        actionName = userInputMapper->getActionName(Action(_input.getChannel()));
-        if (inputRecorder->isPlayingback()) {
-            newValue = AxisValue(inputRecorder->getActionState(actionName), 0);
-        }
+        QString actionName = userInputMapper->getActionName(Action(_input.getChannel()));
+        inputRecorder->setActionState(actionName, newValue.value);
     }
     
     _currentValue.value += newValue.value;
+
     if (_input != Input::INVALID_INPUT) {
         userInputMapper->deltaActionState(Action(_input.getChannel()), newValue.value);
     }
-    inputRecorder->setActionState(actionName, newValue.value);
 }
 
 void ActionEndpoint::apply(const Pose& value, const Pointer& source) {
