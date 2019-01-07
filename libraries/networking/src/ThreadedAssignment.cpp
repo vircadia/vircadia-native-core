@@ -94,15 +94,11 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
 void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObject) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    float packetsInPerSecond, bytesInPerSecond, packetsOutPerSecond, bytesOutPerSecond;
-    nodeList->getPacketStats(packetsInPerSecond, bytesInPerSecond, packetsOutPerSecond, bytesOutPerSecond);
-    nodeList->resetPacketStats();
-
     QJsonObject ioStats;
-    ioStats["inbound_bytes_per_s"] = bytesInPerSecond;
-    ioStats["inbound_packets_per_s"] = packetsInPerSecond;
-    ioStats["outbound_bytes_per_s"] = bytesOutPerSecond;
-    ioStats["outbound_packets_per_s"] = packetsOutPerSecond;
+    ioStats["inbound_kbps"] = nodeList->getInboundKbps();
+    ioStats["inbound_pps"] = nodeList->getInboundPPS();
+    ioStats["outbound_kbps"] = nodeList->getOutboundKbps();
+    ioStats["outbound_pps"] = nodeList->getOutboundPPS();
 
     statsObject["io_stats"] = ioStats;
 

@@ -183,9 +183,6 @@ public:
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);
 
-    void getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond);
-    void resetPacketStats();
-
     std::unique_ptr<NLPacket> constructPingPacket(const QUuid& nodeId, PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
@@ -377,7 +374,6 @@ protected:
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const HifiSockAddr& overridenSockAddr);
-    void collectPacketStats(const NLPacket& packet);
     void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
@@ -406,10 +402,6 @@ protected:
 
     PacketReceiver* _packetReceiver;
 
-    std::atomic<int> _numCollectedPackets { 0 };
-    std::atomic<int> _numCollectedBytes { 0 };
-
-    QElapsedTimer _packetStatTimer;
     NodePermissions _permissions;
 
     QPointer<QTimer> _initialSTUNTimer;

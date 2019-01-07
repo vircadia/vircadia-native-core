@@ -307,6 +307,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FarGrabJointsRedux,
     JointTransScaled,
     GrabTraits,
+    CollisionFlag,
     AvatarTraitsAck
 };
 
