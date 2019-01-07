@@ -1947,13 +1947,14 @@ function createNumberProperty(property, elProperty) {
 }
 
 function updateNumberMinMax(property) {
-    let propertyData = property.data;
     let elInput = property.elInput;
-    if (propertyData.min !== undefined) {
-        elInput.setAttribute("min", propertyData.min);
+    let min = property.data.min;
+    let max = property.data.max;
+    if (min !== undefined) {
+        elInput.setAttribute("min", min);
     }
-    if (propertyData.max !== undefined) {
-        elInput.setAttribute("max", propertyData.max);
+    if (max !== undefined) {
+        elInput.setAttribute("max", max);
     }
 }
 
@@ -2029,6 +2030,15 @@ function createRectProperty(property, elProperty) {
     return elResult;
 }
 
+function updateRectMinMax(property) {
+    let min = property.data.min;
+    let max = property.data.max;
+    property.elNumberX.updateMinMax(min, max);
+    property.elNumberY.updateMinMax(min, max);
+    property.elNumberWidth.updateMinMax(min, max);
+    property.elNumberHeight.updateMinMax(min, max);
+}
+
 function createVec3Property(property, elProperty) {
     let propertyData = property.data;
 
@@ -2079,11 +2089,12 @@ function createVec2Property(property, elProperty) {
 }
 
 function updateVectorMinMax(property) {
-    let propertyData = property.data;
-    property.elNumberX.updateMinMax(propertyData.min, propertyData.max);
-    property.elNumberY.updateMinMax(propertyData.min, propertyData.max);
+    let min = property.data.min;
+    let max = property.data.max;
+    property.elNumberX.updateMinMax(min, max);
+    property.elNumberY.updateMinMax(min, max);
     if (property.elNumberZ) {
-        property.elNumberZ.updateMinMax(propertyData.min, propertyData.max);
+        property.elNumberZ.updateMinMax(min, max);
     }
 }
 
@@ -3094,7 +3105,7 @@ function loaded() {
                         properties[propertyID] = property;
                     }           
                     if (propertyData.type === 'number' || propertyData.type === 'number-draggable' || 
-                        propertyData.type === 'vec2' || propertyData.type === 'vec3') {
+                        propertyData.type === 'vec2' || propertyData.type === 'vec3' || propertyData.type === 'rect') {
                         propertyRangeRequests.push(propertyID);
                     }
                     
@@ -3473,13 +3484,21 @@ function loaded() {
                                     propertyData.max /= multiplier;
                                 }
                             }
-                            if (propertyData.type === 'number') {
-                                updateNumberMinMax(properties[property]);
-                            } else if (propertyData.type === 'number-draggable') {
-                                updateNumberDraggableMinMax(properties[property]);
-                            } else if (propertyData.type === 'vec2' || propertyData.type === 'vec3') {
-                                updateVectorMinMax(properties[property]);
-                            } 
+                            switch (propertyData.type) {
+                                case 'number':
+                                    updateNumberMinMax(properties[property]);
+                                    break;
+                                case 'number-draggable':
+                                    updateNumberDraggableMinMax(properties[property]);
+                                    break;
+                                case 'vec3':
+                                case 'vec2':
+                                    updateVectorMinMax(properties[property]);
+                                    break;
+                                case 'rect':
+                                    updateRectMinMax(properties[property]);
+                                    break;
+                            }
                         }
                     }
                 }
