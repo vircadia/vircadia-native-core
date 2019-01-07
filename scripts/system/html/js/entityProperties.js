@@ -2159,6 +2159,7 @@ function createColorProperty(property, elProperty) {
                 "b": elNumberB.elInput.value
             });
 
+            // Set the color picker active after setting the color, otherwise an update will be sent on open.
             $(colorPickerID).attr('active', 'true');
         },
         onHide: function(colpick) {
@@ -3355,6 +3356,8 @@ function loaded() {
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
                                     if ($(property.elColorPicker).attr('active') === 'true') {
+                                        // Set the color picker inactive before setting the color,
+                                        // otherwise an update will be sent directly after setting it here.
                                         $(property.elColorPicker).attr('active', 'false');
                                         colorPickers['#' + property.elementID].colpickSetColor({
                                             "r": propertyValue.red,
