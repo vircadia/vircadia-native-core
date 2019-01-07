@@ -10,13 +10,8 @@
 #define hifi_RenderCommonTask_h
 
 #include <gpu/Pipeline.h>
-#include <render/RenderFetchCullSortTask.h>
-#include "LightingModel.h"
-
 #include "LightStage.h"
-#include "BackgroundStage.h"
-#include "HazeStage.h"
-#include "BloomStage.h"
+#include "LightingModel.h"
 
 class BeginGPURangeTimer {
 public:
@@ -111,22 +106,11 @@ public:
         FRUSTUM_COUNT
     };
 
-    using Inputs = LightStage::FramePointer;
+    using Inputs = LightStage::ShadowFramePointer;
     using Outputs = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
     using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
-};
-
-
-class FetchCurrentFrames {
-public:
-    using Outputs = render::VaryingSet4<LightStage::FramePointer, BackgroundStage::FramePointer, HazeStage::FramePointer, BloomStage::FramePointer>;
-    using JobModel = render::Job::ModelO<FetchCurrentFrames, Outputs>;
-
-    FetchCurrentFrames() {}
-
-    void run(const render::RenderContextPointer& renderContext, Outputs& outputs);
 };
 
 #endif // hifi_RenderDeferredTask_h

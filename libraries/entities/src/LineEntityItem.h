@@ -44,9 +44,6 @@ class LineEntityItem : public EntityItem {
     glm::u8vec3 getColor() const;
     void setColor(const glm::u8vec3& value);
 
-    void setLineWidth(float lineWidth);
-    float getLineWidth() const;
-
     bool setLinePoints(const QVector<glm::vec3>& points);
     bool appendPoint(const glm::vec3& point);
 
@@ -69,12 +66,10 @@ class LineEntityItem : public EntityItem {
     bool pointsChanged() const { return _pointsChanged; }
     void resetPointsChanged();
     virtual void debugDump() const override;
-    static const float DEFAULT_LINE_WIDTH;
     static const int MAX_POINTS_PER_LINE;
 
  private:
     glm::u8vec3 _color;
-    float _lineWidth { DEFAULT_LINE_WIDTH };
     QVector<glm::vec3> _points;
     bool _pointsChanged { true };
 };

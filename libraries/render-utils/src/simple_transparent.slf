@@ -16,6 +16,9 @@
 <@include DeferredGlobalLight.slh@>
 <$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
 <@include render-utils/ShaderConstants.h@>
 
 // the interpolated normal
@@ -50,46 +53,100 @@ float getProceduralColors(inout vec3 diffuse, inout vec3 specular, inout float s
     return 1.0;
 }
 
+float getProceduralFragment(inout ProceduralFragment proceduralData) {
+    return 1.0;
+}
+
+float getProceduralFragmentWithPosition(inout ProceduralFragmentWithPosition proceduralData) {
+    return 1.0;
+}
+
 //PROCEDURAL_BLOCK_END
 
 #line 2030
 void main(void) {
     vec3 normal = normalize(_normalWS.xyz);
     vec3 diffuse = _color.rgb;
-    vec3 specular = DEFAULT_SPECULAR;
-    float shininess = DEFAULT_SHININESS;
+    float alpha = _color.a;
+    float occlusion = DEFAULT_OCCLUSION;
+    vec3 fresnel = DEFAULT_FRESNEL;
+    float metallic = DEFAULT_METALLIC;
+    vec3 emissive = DEFAULT_EMISSIVE;
+    float roughness = DEFAULT_ROUGHNESS;
+
     float emissiveAmount = 0.0;
-    
-#ifdef PROCEDURAL
+
+    TransformCamera cam = getTransformCamera();
+    vec3 posEye = _positionES.xyz;
 
 #ifdef PROCEDURAL_V1
     diffuse = getProceduralColor().rgb;
-    // Procedural Shaders are expected to be Gamma corrected so let's bring back the RGB in linear space for the rest of the pipeline
-    //diffuse = pow(diffuse, vec3(2.2));
     emissiveAmount = 1.0;
-#else
+    emissive = vec3(1.0);
+#elif defined(PROCEDURAL_V2)
+    vec3 specular = DEFAULT_SPECULAR;
+    float shininess = DEFAULT_SHININESS;
     emissiveAmount = getProceduralColors(diffuse, specular, shininess);
+    roughness = max(0.0, 1.0 - shininess / 128.0);
+    metallic = length(specular);
+    emissive = vec3(clamp(emissiveAmount, 0.0, 1.0));
+#elif defined(PROCEDURAL_V3) || defined(PROCEDURAL_V4)
+#if defined(PROCEDURAL_V3)
+    ProceduralFragment proceduralData = {
+#else
+    vec4 position = cam._viewInverse * _positionES;
+    ProceduralFragmentWithPosition proceduralData = {
+        position.xyz,
+#endif
+        normal,
+        vec3(0.0),
+        DEFAULT_SPECULAR,
+        DEFAULT_EMISSIVE,
+        1.0,
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_OCCLUSION,
+        DEFAULT_SCATTERING
+    };
+
+#if defined(PROCEDURAL_V3)
+    emissiveAmount = getProceduralFragment(proceduralData);
+#else
+    emissiveAmount = getProceduralFragmentWithPosition(proceduralData);
+#endif
+    occlusion = proceduralData.occlusion;
+    normal = proceduralData.normal;
+    diffuse = proceduralData.diffuse;
+    fresnel = proceduralData.specular;
+    metallic = proceduralData.metallic;
+    emissive = proceduralData.emissive;
+    roughness = proceduralData.roughness;
+    alpha = proceduralData.alpha;
+
+#if defined(PROCEDURAL_V4)
+    position = vec4(proceduralData.position, 1.0);
+    vec4 posEye4 = cam._view * position;
+    posEye = posEye4.xyz;
+    vec4 posClip = cam._projection * posEye4;
+    gl_FragDepth = 0.5 * (posClip.z / posClip.w + 1.0);
 #endif
 
 #endif
-
-    TransformCamera cam = getTransformCamera();
-    vec3 fragPosition = _positionES.xyz;
 
     if (emissiveAmount > 0.0) {
-        _fragColor0 = vec4(diffuse, _color.a);
+        _fragColor0 = vec4(diffuse, alpha);
     } else {
         _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
             cam._viewInverse,
             1.0,
-            DEFAULT_OCCLUSION,
-            fragPosition,
+            occlusion,
+            posEye,
             normal,
             diffuse,
-            DEFAULT_FRESNEL,
-            length(specular),
-            DEFAULT_EMISSIVE,
-            max(0.0, 1.0 - shininess / 128.0), _color.a),
-            _color.a);
+            fresnel,
+            metallic,
+            emissive,
+            roughness, alpha),
+            alpha);
     }
 }

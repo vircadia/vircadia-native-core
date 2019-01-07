@@ -32,6 +32,7 @@
 #include <ScriptEngine.h>
 #include <EntitySimulation.h>
 #include <ZoneRenderer.h>
+#include <PhysicalEntitySimulation.h>
 
 #include "EntitiesRendererLogging.h"
 #include "RenderableEntityItem.h"
@@ -41,6 +42,7 @@
 #include <PointerManager.h>
 
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction = []() { return true; };
+std::function<glm::vec3()> EntityTreeRenderer::_getAvatarUpOperator = []() { return Vectors::UP; };
 
 QString resolveScriptURL(const QString& scriptUrl) {
     auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
@@ -61,8 +63,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _lastPointerEventValid(false),
     _viewState(viewState),
     _scriptingServices(scriptingServices),
-    _displayModelBounds(false),
-    _layeredZones(this)
+    _displayModelBounds(false)
 {
     setMouseRayPickResultOperator([](unsigned int rayPickID) {
         RayToEntityIntersectionResult entityResult;
@@ -498,59 +499,61 @@ void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUp
 bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar) {
     bool didUpdate = false;
     float radius = 0.01f; // for now, assume 0.01 meter radius, because we actually check the point inside later
-    QVector<EntityItemPointer> foundEntities;
+    QVector<QUuid> entityIDs;
 
     // find the entities near us
     // don't let someone else change our tree while we search
     _tree->withReadLock([&] {
+        auto entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
         // FIXME - if EntityTree had a findEntitiesContainingPoint() this could theoretically be a little faster
-        std::static_pointer_cast<EntityTree>(_tree)->findEntities(_avatarPosition, radius, foundEntities);
+        entityTree->evalEntitiesInSphere(_avatarPosition, radius,
+            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES)), entityIDs);
 
         LayeredZones oldLayeredZones(std::move(_layeredZones));
         _layeredZones.clear();
 
         // create a list of entities that actually contain the avatar's position
-        for (auto& entity : foundEntities) {
+        for (auto& entityID : entityIDs) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (!entity) {
+                continue;
+            }
+
             auto isZone = entity->getType() == EntityTypes::Zone;
             auto hasScript = !entity->getScript().isEmpty();
 
             // only consider entities that are zones or have scripts, all other entities can
-            // be ignored because they can have events fired on them.
+            // be ignored because they can't have events fired on them.
             // FIXME - this could be optimized further by determining if the script is loaded
             // and if it has either an enterEntity or leaveEntity method
             //
             // also, don't flag a scripted entity as containing the avatar until the script is loaded,
             // so that the script is awake in time to receive the "entityEntity" call (even if the entity is a zone).
-            if ((!hasScript && isZone) ||
-                (hasScript && entity->isScriptPreloadFinished())) {
-                // now check to see if the point contains our entity, this can be expensive if
-                // the entity has a collision hull
-                if (entity->contains(_avatarPosition)) {
+            bool contains = false;
+            bool scriptHasLoaded = hasScript && entity->isScriptPreloadFinished();
+            if (isZone || scriptHasLoaded) {
+                contains = entity->contains(_avatarPosition);
+            }
+
+            if (contains) {
+                // if this entity is a zone and visible, add it to our layered zones
+                if (isZone && entity->getVisible() && renderableForEntity(entity)) {
+                    _layeredZones.insert(std::dynamic_pointer_cast<ZoneEntityItem>(entity));
+                }
+
+                if ((!hasScript && isZone) || scriptHasLoaded) {
                     if (entitiesContainingAvatar) {
                         *entitiesContainingAvatar << entity->getEntityItemID();
                     }
-
-                    // if this entity is a zone and visible, determine if it is the bestZone
-                    if (isZone && entity->getVisible() && renderableForEntity(entity)) {
-                            auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                            _layeredZones.insert(zone);
-                        }
-                    }
                 }
             }
+        }
 
         // check if our layered zones have changed
-        if (_layeredZones.empty()) {
-            if (oldLayeredZones.empty()) {
-                return;
-            }
-        } else if (!oldLayeredZones.empty()) {
-            if (_layeredZones.contains(oldLayeredZones)) {
-                return;
-            }
+        if ((_layeredZones.empty() && oldLayeredZones.empty()) || (!oldLayeredZones.empty() && _layeredZones.contains(oldLayeredZones))) {
+            return;
         }
-        _layeredZones.apply();
 
         applyLayeredZones();
 
@@ -653,8 +656,8 @@ bool EntityTreeRenderer::applyLayeredZones() {
     } else {
         qCWarning(entitiesrenderer) << "EntityTreeRenderer::applyLayeredZones(), Unexpected null scene, possibly during application shutdown";
     }
-     
-     return true;
+
+    return true;
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
@@ -1151,18 +1154,12 @@ std::pair<EntityTreeRenderer::LayeredZones::iterator, bool> EntityTreeRenderer::
     return { it, success };
 }
 
-void EntityTreeRenderer::LayeredZones::apply() {
-    assert(_entityTreeRenderer);
-}
-
 void EntityTreeRenderer::LayeredZones::update(std::shared_ptr<ZoneEntityItem> zone) {
-    assert(_entityTreeRenderer);
     bool isVisible = zone->isVisible();
 
     if (empty() && isVisible) {
         // there are no zones: set this one
         insert(zone);
-        apply();
         return;
     } else {
         LayeredZone zoneLayer(zone);
@@ -1253,4 +1250,12 @@ void EntityTreeRenderer::onEntityChanged(const EntityItemID& id) {
     _changedEntitiesGuard.withWriteLock([&] {
         _changedEntities.insert(id);
     });
+}
+
+EntityEditPacketSender* EntityTreeRenderer::getPacketSender() {
+    EntityTreePointer tree = getTree();
+    EntitySimulationPointer simulation = tree ? tree->getSimulation() : nullptr;
+    PhysicalEntitySimulationPointer peSimulation = std::static_pointer_cast<PhysicalEntitySimulation>(simulation);
+    EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
+    return packetSender;
 }

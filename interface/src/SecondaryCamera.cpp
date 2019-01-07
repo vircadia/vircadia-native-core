@@ -13,6 +13,7 @@
 
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <RenderViewTask.h>
 
 #include <glm/gtx/transform.hpp>
 #include <gpu/Context.h>
@@ -270,14 +271,8 @@ public:
 
 void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
     const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
-    const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
-    if (isDeferred) {
-        const render::Varying cascadeSceneBBoxes;
-        const auto renderInput = RenderDeferredTask::Input(items, cascadeSceneBBoxes).asVarying();
-        task.addJob<RenderDeferredTask>("RenderDeferredTask", renderInput, false);
-    } else {
-        task.addJob<RenderForwardTask>("Forward", items);
-    }
+
+    task.addJob<RenderViewTask>("RenderSecondView", cullFunctor, isDeferred, render::ItemKey::TAG_BITS_1, render::ItemKey::TAG_BITS_1);
+
     task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }

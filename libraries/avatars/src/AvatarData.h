@@ -54,14 +54,20 @@
 #include "AvatarTraits.h"
 #include "HeadData.h"
 #include "PathUtils.h"
+#include "Grab.h"
 
 #include <graphics/Material.h>
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
+
 using AvatarEntityMap = QMap<QUuid, QByteArray>;
 using AvatarEntityIDs = QSet<QUuid>;
+
+using AvatarGrabDataMap = QMap<QUuid, QByteArray>;
+using AvatarGrabIDs = QSet<QUuid>;
+using AvatarGrabMap = QMap<QUuid, GrabPointer>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
@@ -104,6 +110,7 @@ const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
 const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
 const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
+const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
 
 
 const char HAND_STATE_NULL = 0;
@@ -1342,6 +1349,13 @@ protected:
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
+    qint64 packAvatarEntityTraitInstance(AvatarTraits::TraitType traitType,
+                                         AvatarTraits::TraitInstanceID traitInstanceID,
+                                         ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion);
+    qint64 packGrabTraitInstance(AvatarTraits::TraitType traitType,
+                                 AvatarTraits::TraitInstanceID traitInstanceID,
+                                 ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion);
+
     // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
     // Audio Mixer that the replicated avatar is connected to.
     bool _isReplicated{ false };
@@ -1452,6 +1466,12 @@ protected:
     AvatarEntityMap _avatarEntityData;
     bool _avatarEntityDataChanged { false };
 
+    mutable ReadWriteLockable _avatarGrabsLock;
+    AvatarGrabDataMap _avatarGrabData;
+    bool _avatarGrabDataChanged { false }; // by network
+    AvatarGrabIDs _changedAvatarGrabs; // updated grab IDs -- changes needed to entities or physics
+    AvatarGrabIDs _deletedAvatarGrabs; // deleted grab IDs -- changes needed to entities or physics
+
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
     ThreadSafeValueCache<glm::mat4> _controllerLeftHandMatrixCache { glm::mat4() };
@@ -1476,6 +1496,7 @@ protected:
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };
     bool _isClientAvatar { false };
+    bool _collideWithOtherAvatars { true };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler, LaterDeleter> _clientTraitsHandler;
@@ -1510,6 +1531,9 @@ protected:
         }
         f(index);
     }
+
+    bool updateAvatarGrabData(const QUuid& grabID, const QByteArray& grabData);
+    void clearAvatarGrabData(const QUuid& grabID);
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -1614,6 +1638,7 @@ QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEnt
 void AvatarEntityMapFromScriptValue(const QScriptValue& object, AvatarEntityMap& value);
 
 // faux joint indexes (-1 means invalid)
+const int NO_JOINT_INDEX = 65535; // -1
 const int SENSOR_TO_WORLD_MATRIX_INDEX = 65534; // -2
 const int CONTROLLER_RIGHTHAND_INDEX = 65533; // -3
 const int CONTROLLER_LEFTHAND_INDEX = 65532; // -4
@@ -1626,5 +1651,6 @@ const int FARGRAB_MOUSE_INDEX = 65526; // -10
 
 const int LOWEST_PSEUDO_JOINT_INDEX = 65526;
 
+const int MAX_NUM_AVATAR_GRABS = 6;
 
 #endif // hifi_AvatarData_h

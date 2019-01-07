@@ -78,7 +78,7 @@ public slots:
 
 signals:
     void packetSent(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
-    void packetRetransmitted(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
+    void packetRetransmitted(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
     
     void queueInactive();
 

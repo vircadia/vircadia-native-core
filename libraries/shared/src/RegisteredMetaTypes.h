@@ -705,5 +705,7 @@ void meshFaceFromScriptValue(const QScriptValue &object, MeshFace& meshFaceResul
 QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<MeshFace>& vector);
 void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>& result);
 
+QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures);
+
 
 #endif // hifi_RegisteredMetaTypes_h

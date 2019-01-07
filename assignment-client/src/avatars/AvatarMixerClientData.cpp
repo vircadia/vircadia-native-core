@@ -146,7 +146,8 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                 break;
             }
 
-            if (traitType == AvatarTraits::AvatarEntity) {
+            if (traitType == AvatarTraits::AvatarEntity ||
+                traitType == AvatarTraits::Grab) {
                 auto& instanceVersionRef = _lastReceivedTraitVersions.getInstanceValueRef(traitType, instanceID);
 
                 if (packetTraitVersion > instanceVersionRef) {

@@ -122,6 +122,8 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QRect& v) { return qRectToScriptValue(e, v); }
+
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     QByteArray b64 = v.toBase64();
     return QScriptValue(QString(b64));
@@ -224,6 +226,7 @@ inline quint32 quint32_convertFromScriptValue(const QScriptValue& v, bool& isVal
 }
 inline quint16 quint16_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline uint32_t uint32_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline uint8_t uint8_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return (uint8_t)(0xff & v.toVariant().toInt(&isValid)); }
@@ -323,6 +326,13 @@ inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isVali
     return glm::quat();
 }
 
+inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    QRect rect;
+    qRectFromScriptValue(v, rect);
+    return rect;
+}
+
 #define COPY_PROPERTY_IF_CHANGED(P) \
 {                                   \
     if (other._##P##Changed) {      \
@@ -401,10 +411,12 @@ inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isVali
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
-        _propertyStringsToEnums[#n] = P;
+        _propertyStringsToEnums[#n] = P; \
+        _enumsToPropertyStrings[P] = #n;
 
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
-        _propertyStringsToEnums[#g "." #n] = P;
+        _propertyStringsToEnums[#g "." #n] = P; \
+        _enumsToPropertyStrings[P] = #g "." #n;
 
 #define DEFINE_CORE(N, n, T, V) \
     public: \

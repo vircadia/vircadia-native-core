@@ -671,8 +671,6 @@ void OpenVrDisplayPlugin::postPreview() {
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
 
-    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-
     if (!_threadedSubmit) {
         vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses,
                                          vr::k_unMaxTrackedDeviceCount);
@@ -692,7 +690,7 @@ void OpenVrDisplayPlugin::postPreview() {
 }
 
 bool OpenVrDisplayPlugin::isHmdMounted() const {
-    return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+    return isHeadInHeadset();
 }
 
 void OpenVrDisplayPlugin::updatePresentPose() {

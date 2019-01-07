@@ -41,12 +41,12 @@ EntityItemProperties PolyLineEntityItem::getProperties(const EntityPropertyFlags
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeColors, getStrokeColors);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isUVModeStretch, getIsUVModeStretch);
     return properties;
 }
@@ -57,12 +57,12 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineWidth, setLineWidth);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(linePoints, setLinePoints);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeColors, setStrokeColors);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isUVModeStretch, setIsUVModeStretch);
 
     if (somethingChanged) {
@@ -201,12 +201,12 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     const unsigned char* dataAt = data;
 
     READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
-    READ_ENTITY_PROPERTY(PROP_LINE_WIDTH, float, setLineWidth);
-    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
-    READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>, setNormals);
-    READ_ENTITY_PROPERTY(PROP_STROKE_COLORS, QVector<glm::vec3>, setStrokeColors);
-    READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+
+    READ_ENTITY_PROPERTY(PROP_LINE_POINTS, QVector<glm::vec3>, setLinePoints);
+    READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
+    READ_ENTITY_PROPERTY(PROP_STROKE_NORMALS, QVector<glm::vec3>, setNormals);
+    READ_ENTITY_PROPERTY(PROP_STROKE_COLORS, QVector<glm::vec3>, setStrokeColors);
     READ_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
 
     return bytesRead;
@@ -215,12 +215,12 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
 EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
-    requestedProperties += PROP_LINE_WIDTH;
-    requestedProperties += PROP_LINE_POINTS;
-    requestedProperties += PROP_NORMALS;
-    requestedProperties += PROP_STROKE_COLORS;
-    requestedProperties += PROP_STROKE_WIDTHS;
     requestedProperties += PROP_TEXTURES;
+
+    requestedProperties += PROP_LINE_POINTS;
+    requestedProperties += PROP_STROKE_WIDTHS;
+    requestedProperties += PROP_STROKE_NORMALS;
+    requestedProperties += PROP_STROKE_COLORS;
     requestedProperties += PROP_IS_UV_MODE_STRETCH;
     return requestedProperties;
 }
@@ -237,12 +237,12 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     bool successPropertyFits = true;
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
-    APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, getLineWidth());
-    APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
-    APPEND_ENTITY_PROPERTY(PROP_NORMALS, getNormals());
-    APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, getStrokeColors());
-    APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+
+    APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, getLinePoints());
+    APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
+    APPEND_ENTITY_PROPERTY(PROP_STROKE_NORMALS, getNormals());
+    APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, getStrokeColors());
     APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, getIsUVModeStretch());
 }
 
