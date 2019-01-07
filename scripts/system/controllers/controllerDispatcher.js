@@ -455,7 +455,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.leftPointer = this.pointerManager.createPointer(false, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE | Picks.PICK_INCLUDE_COLLIDABLE,
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
             triggers: [{action: Controller.Standard.LTClick, button: "Focus"}, {action: Controller.Standard.LTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.LeftHand, true),
             hover: true,
@@ -466,7 +466,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         Keyboard.setLeftHandLaser(this.leftPointer);
         this.rightPointer = this.pointerManager.createPointer(false, PickType.Ray, {
             joint: "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND",
-            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE | Picks.PICK_INCLUDE_COLLIDABLE,
+            filter: Picks.PICK_OVERLAYS | Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
             triggers: [{action: Controller.Standard.RTClick, button: "Focus"}, {action: Controller.Standard.RTClick, button: "Primary"}],
             posOffset: getGrabPointSphereOffset(Controller.Standard.RightHand, true),
             hover: true,
