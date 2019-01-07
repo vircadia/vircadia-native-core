@@ -2144,7 +2144,7 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
-            $(colorPickerID).attr('active', 'true');
+            console.log("Showing");
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
             colorPickers[colorPickerID].colpickSetColor({
@@ -2152,13 +2152,18 @@ function createColorProperty(property, elProperty) {
                 "g": elNumberG.elInput.value,
                 "b": elNumberB.elInput.value
             });
+
+            // Set the color picker active after setting the color, otherwise an update will be sent on open.
+            $(colorPickerID).attr('active', 'true');
         },
         onHide: function(colpick) {
             $(colorPickerID).attr('active', 'false');
         },
         onChange: function(hsb, hex, rgb, el) {
             $(el).css('background-color', '#' + hex);
-            emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
+            if ($(colorPickerID).attr('active') === 'true') {
+                emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
+            }
         }
     });
     
@@ -3351,6 +3356,18 @@ function loaded() {
                                     property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
+                                    if ($(property.elColorPicker).attr('active') === 'true') {
+                                        // Set the color picker inactive before setting the color,
+                                        // otherwise an update will be sent directly after setting it here.
+                                        $(property.elColorPicker).attr('active', 'false');
+                                        colorPickers['#' + property.elementID].colpickSetColor({
+                                            "r": propertyValue.red,
+                                            "g": propertyValue.green,
+                                            "b": propertyValue.blue
+                                        });
+                                        $(property.elColorPicker).attr('active', 'true');
+                                    }
+
                                     property.elNumberR.setValue(propertyValue.red);
                                     property.elNumberG.setValue(propertyValue.green);
                                     property.elNumberB.setValue(propertyValue.blue);
