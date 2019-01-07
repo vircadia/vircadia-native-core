@@ -10,7 +10,7 @@
 
 const ENTITY_TYPE_ICON = {
     Box: "m",
-    Grid: "V",
+    Grid: "m",
     Image: "&#xe02a;",
     Light: "p",
     Material: "&#xe00b;",

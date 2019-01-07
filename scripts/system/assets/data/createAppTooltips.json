@@ -17,9 +17,6 @@
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
     },
-    "faceCamera": {
-        "tooltip": "If enabled, the entity follows the camera of each user, creating a billboard effect."
-    },
     "textBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
         "jsPropertyName": "billboardMode"
@@ -355,6 +352,15 @@
     },
     "materialMappingRot": {
         "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
+    },
+    "followCamera": {
+        "tooltip": "If enabled, the grid is always visible even as the camera moves to another position."
+    },
+    "majorGridEvery": {
+        "tooltip": "The number of \"Minor Grid Every\" intervals at which to draw a thick grid line."
+    },
+    "minorGridEvery": {
+        "tooltip": "The real number of meters at which to draw thin grid lines."
     },
     "id": {
         "tooltip": "The unique identifier of this entity."
