@@ -45,6 +45,8 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
+    void updateCollisionGroup(bool myAvatarCollide);
+
     friend AvatarManager;
 
 protected:

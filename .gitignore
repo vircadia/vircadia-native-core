@@ -98,6 +98,7 @@ tools/jsdoc/package-lock.json
 
 # ignore unneeded unity project files for avatar exporter
 tools/unity-avatar-exporter/Library
+tools/unity-avatar-exporter/Logs
 tools/unity-avatar-exporter/Packages
 tools/unity-avatar-exporter/ProjectSettings
 tools/unity-avatar-exporter/Temp

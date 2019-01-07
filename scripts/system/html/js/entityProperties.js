@@ -140,12 +140,14 @@ const GROUPS = [
                 step: 0.005,
                 decimals: 4,
                 unit: "m",
-                propertyID: "lineHeight"
+                propertyID: "lineHeight",
             },
             {
-                label: "Face Camera",
-                type: "bool",
-                propertyID: "faceCamera"
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "textBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
             },
         ]
     },
@@ -477,6 +479,37 @@ const GROUPS = [
                 type: "string",
                 placeholder: "URL",
                 propertyID: "imageURL",
+            },
+            {
+                label: "Color",
+                type: "color",
+                propertyID: "imageColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Emissive",
+                type: "bool",
+                propertyID: "emissive",
+            },
+            {
+                label: "Sub Image",
+                type: "rect",
+                min: 0,
+                step: 1,
+                subLabels: [ "x", "y", "w", "h" ],
+                propertyID: "subImage",
+            },
+            {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "imageBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Keep Aspect Ratio",
+                type: "bool",
+                propertyID: "keepAspectRatio",
             },
         ]
     },
@@ -1424,6 +1457,13 @@ const PROPERTY_NAME_DIVISION = {
     SUBPROPERTY: 2,
 };
 
+const RECT_ELEMENTS = {
+    X_NUMBER: 0,
+    Y_NUMBER: 1,
+    WIDTH_NUMBER: 2,
+    HEIGHT_NUMBER: 3,
+};
+
 const VECTOR_ELEMENTS = {
     X_NUMBER: 0,
     Y_NUMBER: 1,
@@ -1475,6 +1515,13 @@ function getPropertyInputElement(propertyID) {
             return property.elInput;
         case 'number-draggable':
             return property.elNumber.elInput;
+        case 'rect':
+            return {
+                x: property.elNumberX.elInput,
+                y: property.elNumberY.elInput,
+                width: property.elNumberWidth.elInput,
+                height: property.elNumberHeight.elInput
+            };
         case 'vec3': 
         case 'vec2':
             return { x: property.elNumberX.elInput, y: property.elNumberY.elInput, z: property.elNumberZ.elInput };
@@ -1562,6 +1609,13 @@ function resetProperties() {
                 } else { 
                     property.elNumber.setValue("");
                 }
+                break;
+            }
+            case 'rect': {
+                property.elNumberX.setValue("");
+                property.elNumberY.setValue("");
+                property.elNumberWidth.setValue("");
+                property.elNumberHeight.setValue("");
                 break;
             }
             case 'vec3': 
@@ -1748,7 +1802,7 @@ function createDragStartFunction(property) {
 function createDragEndFunction(property) {
     return function() {
         property.dragging = false;
-        // send an additonal update post-dragging to consider whole property change from dragStart to dragEnd to be 1 action
+        // send an additional update post-dragging to consider whole property change from dragStart to dragEnd to be 1 action
         this.valueChangeFunction();
     };
 }
@@ -1788,6 +1842,18 @@ function createEmitVec3PropertyUpdateFunction(property) {
             x: property.elNumberX.elInput.value * multiplier,
             y: property.elNumberY.elInput.value * multiplier,
             z: property.elNumberZ.elInput.value * multiplier
+        };
+        updateProperty(property.name, newValue, property.isParticleProperty);
+    };
+}
+
+function createEmitRectPropertyUpdateFunction(property) {
+    return function() {
+        let newValue = {
+            x: property.elNumberX.elInput.value,
+            y: property.elNumberY.elInput.value,
+            width: property.elNumberWidth.elInput.value,
+            height: property.elNumberHeight.elInput.value,
         };
         updateProperty(property.name, newValue, property.isParticleProperty);
     };
@@ -1949,6 +2015,44 @@ function createNumberDraggableProperty(property, elProperty) {
     }
     
     return elDraggableNumber;
+}
+
+function createRectProperty(property, elProperty) {
+    let propertyData = property.data;
+
+    elProperty.className = "rect";
+
+    let elXYRow = document.createElement('div');
+    elXYRow.className = "rect-row fstuple";
+    elProperty.appendChild(elXYRow);
+
+    let elWidthHeightRow = document.createElement('div');
+    elWidthHeightRow.className = "rect-row fstuple";
+    elProperty.appendChild(elWidthHeightRow);
+
+
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.Y_NUMBER]);
+    let elNumberWidth = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.WIDTH_NUMBER]);
+    let elNumberHeight = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.HEIGHT_NUMBER]);
+
+    elXYRow.appendChild(elNumberX.elDiv);
+    elXYRow.appendChild(elNumberY.elDiv);
+    elWidthHeightRow.appendChild(elNumberWidth.elDiv);
+    elWidthHeightRow.appendChild(elNumberHeight.elDiv);
+
+    let valueChangeFunction = createEmitRectPropertyUpdateFunction(property);
+    elNumberX.setValueChangeFunction(valueChangeFunction);
+    elNumberY.setValueChangeFunction(valueChangeFunction);
+    elNumberWidth.setValueChangeFunction(valueChangeFunction);
+    elNumberHeight.setValueChangeFunction(valueChangeFunction);
+
+    let elResult = [];
+    elResult[RECT_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[RECT_ELEMENTS.Y_NUMBER] = elNumberY;
+    elResult[RECT_ELEMENTS.WIDTH_NUMBER] = elNumberWidth;
+    elResult[RECT_ELEMENTS.HEIGHT_NUMBER] = elNumberHeight;
+    return elResult;
 }
 
 function createVec3Property(property, elProperty) {
@@ -2271,6 +2375,14 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
         }
         case 'number-draggable': {
             property.elNumber = createNumberDraggableProperty(property, elProperty);
+            break;
+        }
+        case 'rect': {
+            let elRect = createRectProperty(property, elProperty);
+            property.elNumberX = elRect[RECT_ELEMENTS.X_NUMBER];
+            property.elNumberY = elRect[RECT_ELEMENTS.Y_NUMBER];
+            property.elNumberWidth = elRect[RECT_ELEMENTS.WIDTH_NUMBER];
+            property.elNumberHeight = elRect[RECT_ELEMENTS.HEIGHT_NUMBER];
             break;
         }
         case 'vec3': {
@@ -3160,6 +3272,7 @@ function loaded() {
                                 case 'number-draggable':
                                     isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
                                     break;
+                                case 'rect':
                                 case 'vec3':
                                 case 'vec2':
                                     isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
@@ -3202,6 +3315,12 @@ function loaded() {
                                     property.elNumber.setValue(value);
                                     break;
                                 }
+                                case 'rect':
+                                    property.elNumberX.setValue(propertyValue.x);
+                                    property.elNumberY.setValue(propertyValue.y);
+                                    property.elNumberWidth.setValue(propertyValue.width);
+                                    property.elNumberHeight.setValue(propertyValue.height);
+                                    break;
                                 case 'vec3':
                                 case 'vec2': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
