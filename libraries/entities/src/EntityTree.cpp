@@ -2830,6 +2830,13 @@ bool EntityTree::readFromMap(QVariantMap& map) {
             properties.setColorSpread({0, 0, 0});
         }
 
+        if (contentVersion < (int)EntityVersion::FixPropertiesFromCleanup) {
+            if (entityMap.contains("created")) {
+                quint64 created = QDateTime::fromString(entityMap["created"].toString().trimmed(), Qt::ISODate).toMSecsSinceEpoch() * 1000;
+                properties.setCreated(created);
+            }
+        }
+
         EntityItemPointer entity = addEntity(entityItemID, properties);
         if (!entity) {
             qCDebug(entities) << "adding Entity failed:" << entityItemID << properties.getType();
