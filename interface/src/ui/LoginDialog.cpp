@@ -125,7 +125,7 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 void LoginDialog::loginThroughOculus() {
     qDebug() << "Attempting to login through Oculus";
     if (auto oculusDisplay = PluginManager::getInstance()->getOculusDisplayPlugin()) {
-        //oculusDisplay->requestTicket([this](QString nonce, QString userID) {
+        oculusDisplay->requestTicket([this](QString nonce, QString userID) {
         //    if (nonce.isEmpty() || userID.isEmpty()) {
         //        emit handleLoginFailed();
         //        return;

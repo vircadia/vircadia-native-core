@@ -31,7 +31,7 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         return false;
     }
 
-    if (ovr::quitRequested(status) || ovr::displayLost(status) || _isViewerEntitled) {
+    if (ovr::quitRequested(status) || ovr::displayLost(status) || !_isViewerEntitled) {
         QMetaObject::invokeMethod(qApp, "quit");
         return false;
     }
@@ -255,6 +255,7 @@ void OculusBaseDisplayPlugin::handleOVREvents() {
                         _user = ovr_User_GetOculusID(user);
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform user retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                        _user = "";
                     }
                     break;
                 }
@@ -269,14 +270,22 @@ void OculusBaseDisplayPlugin::handleOVREvents() {
                     break;
                 }
                 case ovrMessage_User_GetUserProof: {
+                    _nonceChanged = true;
                     if (!ovr_Message_IsError(message)) {
                         ovrUserProofHandle userProof = ovr_Message_GetUserProof(message);
-                        QString nonce = ovr_UserProof_GetNonce(userProof);
+                        _nonce = ovr_UserProof_GetNonce(userProof);
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform nonce retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                        _nonce = "";
                     }
                     break;
                 }
+            }
+
+            if (_nonceChanged) {
+                emit nonceAndUserIDChanged(_nonce, _user);
+                _nonce = _user = "";
+                _nonceChanged = false;
             }
 
             // free the message handle to cleanup and not leak
