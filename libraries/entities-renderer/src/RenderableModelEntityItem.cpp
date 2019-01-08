@@ -1074,10 +1074,16 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 }
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
+    auto builder = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (_model && _model->isGroupCulled()) {
+        builder.withMetaCullGroup();
+    }
+
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+        _itemKey = builder.build();
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+        _itemKey = builder.withTypeShape().build();
     }
 }
 
@@ -1447,6 +1453,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         bool groupCulled = entity->getGroupCulled();
         if (model->isGroupCulled() != groupCulled) {
             model->setGroupCulled(groupCulled);
+            setKey(_didLastVisualGeometryRequestSucceed);
         }
     }
 
