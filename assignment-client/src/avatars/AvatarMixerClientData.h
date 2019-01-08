@@ -194,11 +194,25 @@ private:
 
     AvatarTraits::TraitMessageSequence _currentTraitsMessageSequence{ 0 };
 
+    // Cache of trait versions sent in a given packet (indexed by sequence number)
+    // When an ack is received, the sequence number in the ack is used to look up
+    // the sent trait versions and they are copied to _perNodeAckedTraitVersions.
+    // We remember the data in _perNodePendingTraitVersions instead of requiring
+    // the client to return all of the versions for each trait it received in a given packet,
+    // reducing the size of the ack packet.
     std::unordered_map<AvatarTraits::TraitMessageSequence, PerNodeTraitVersions> _perNodePendingTraitVersions;
 
-    std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
-    PerNodeTraitVersions _perNodeSentTraitVersions;
+    // Versions of traits that have been acked, which will be compared to incoming
+    // trait updates.  Incoming updates going to a given node will be ignored if 
+    // the ack for the previous packet (containing those versions) has not been
+    // received.
     PerNodeTraitVersions _perNodeAckedTraitVersions;
+
+    std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
+
+    // cache of traits sent to a node which are compared to incoming traits to 
+    // prevent sending traits that have already been sent.
+    PerNodeTraitVersions _perNodeSentTraitVersions;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
 };
