@@ -540,6 +540,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (_headData->getHasProceduralBlinkFaceMovement()) {
             setAtBit16(flags, PROCEDURAL_BLINK_FACE_MOVEMENT);
         }
+        // avatar collisions enabled
+        if (_collideWithOtherAvatars) {
+            setAtBit16(flags, COLLIDE_WITH_OTHER_AVATARS);
+        }
 
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
@@ -1116,7 +1120,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasAudioEnabledFaceMovement = oneAtBit16(bitItems, AUDIO_ENABLED_FACE_MOVEMENT);
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
-
+        auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
         
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
@@ -1125,7 +1129,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool audioEnableFaceMovementChanged = (_headData->getHasAudioEnabledFaceMovement() != newHasAudioEnabledFaceMovement);
         bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
         bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
-        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged;
+        bool collideWithOtherAvatarsChanged = (_collideWithOtherAvatars != newCollideWithOtherAvatars);
+        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || 
+                                proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged;
 
         _keyState = newKeyState;
         _handState = newHandState;
@@ -1134,6 +1140,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setHasAudioEnabledFaceMovement(newHasAudioEnabledFaceMovement);
         _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
         _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
+        _collideWithOtherAvatars = newCollideWithOtherAvatars;
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1893,42 +1900,96 @@ qint64 AvatarData::packTrait(AvatarTraits::TraitType traitType, ExtendedIODevice
     return bytesWritten;
 }
 
+
+qint64 AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitType traitType,
+                                                 AvatarTraits::TraitInstanceID traitInstanceID,
+                                                 ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
+    qint64 bytesWritten = 0;
+
+    // grab a read lock on the avatar entities and check for entity data for the given ID
+    QByteArray entityBinaryData;
+
+    _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
+        if (_avatarEntityData.contains(traitInstanceID)) {
+            entityBinaryData = _avatarEntityData[traitInstanceID];
+        }
+    });
+
+    if (entityBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
+        qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << entityBinaryData.size()
+                   << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
+        return 0;
+    }
+
+    bytesWritten += destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        bytesWritten += destination.writePrimitive(traitVersion);
+    }
+
+    bytesWritten += destination.write(traitInstanceID.toRfc4122());
+
+    if (!entityBinaryData.isNull()) {
+        AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
+
+        bytesWritten += destination.writePrimitive(entityBinarySize);
+        bytesWritten += destination.write(entityBinaryData);
+    } else {
+        bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
+    }
+
+    return bytesWritten;
+}
+
+
+qint64 AvatarData::packGrabTraitInstance(AvatarTraits::TraitType traitType,
+                                         AvatarTraits::TraitInstanceID traitInstanceID,
+                                         ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
+    qint64 bytesWritten = 0;
+
+    // grab a read lock on the avatar grabs and check for grab data for the given ID
+    QByteArray grabBinaryData;
+
+    _avatarGrabsLock.withReadLock([this, &grabBinaryData, &traitInstanceID] {
+        if (_avatarGrabData.contains(traitInstanceID)) {
+            grabBinaryData = _avatarGrabData[traitInstanceID];
+        }
+    });
+
+    if (grabBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
+        qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << grabBinaryData.size()
+                   << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
+        return 0;
+    }
+
+    bytesWritten += destination.writePrimitive(traitType);
+
+    if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
+        bytesWritten += destination.writePrimitive(traitVersion);
+    }
+
+    bytesWritten += destination.write(traitInstanceID.toRfc4122());
+
+    if (!grabBinaryData.isNull()) {
+        AvatarTraits::TraitWireSize grabBinarySize = grabBinaryData.size();
+
+        bytesWritten += destination.writePrimitive(grabBinarySize);
+        bytesWritten += destination.write(grabBinaryData);
+    } else {
+        bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
+    }
+
+    return bytesWritten;
+}
+
 qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID traitInstanceID,
                                    ExtendedIODevice& destination, AvatarTraits::TraitVersion traitVersion) {
     qint64 bytesWritten = 0;
 
     if (traitType == AvatarTraits::AvatarEntity) {
-        // grab a read lock on the avatar entities and check for entity data for the given ID
-        QByteArray entityBinaryData;
-
-        _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
-            if (_avatarEntityData.contains(traitInstanceID)) {
-                entityBinaryData = _avatarEntityData[traitInstanceID];
-            }
-        });
-
-        if (entityBinaryData.size() > AvatarTraits::MAXIMUM_TRAIT_SIZE) {
-            qWarning() << "Refusing to pack instanced trait" << traitType << "of size" << entityBinaryData.size()
-                << "bytes since it exceeds the maximum size " << AvatarTraits::MAXIMUM_TRAIT_SIZE << "bytes";
-            return 0;
-        }
-
-        bytesWritten += destination.writePrimitive(traitType);
-
-        if (traitVersion > AvatarTraits::DEFAULT_TRAIT_VERSION) {
-            bytesWritten += destination.writePrimitive(traitVersion);
-        }
-
-        bytesWritten += destination.write(traitInstanceID.toRfc4122());
-
-        if (!entityBinaryData.isNull()) {
-            AvatarTraits::TraitWireSize entityBinarySize = entityBinaryData.size();
-
-            bytesWritten += destination.writePrimitive(entityBinarySize);
-            bytesWritten += destination.write(entityBinaryData);
-        } else {
-            bytesWritten += destination.writePrimitive(AvatarTraits::DELETED_TRAIT_SIZE);
-        }
+        packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+    } else if (traitType == AvatarTraits::Grab) {
+        packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
     }
 
     return bytesWritten;
@@ -1939,6 +2000,9 @@ void AvatarData::prepareResetTraitInstances() {
         _avatarEntitiesLock.withReadLock([this]{
             foreach (auto entityID, _avatarEntityData.keys()) {
                 _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+            }
+            foreach (auto grabID, _avatarGrabData.keys()) {
+                _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
             }
         });
     }
@@ -1956,12 +2020,16 @@ void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
                                       AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::AvatarEntity) {
         updateAvatarEntity(instanceID, traitBinaryData);
+    } else if (traitType == AvatarTraits::Grab) {
+        updateAvatarGrabData(instanceID, traitBinaryData);
     }
 }
 
 void AvatarData::processDeletedTraitInstance(AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID) {
     if (traitType == AvatarTraits::AvatarEntity) {
         clearAvatarEntity(instanceID);
+    } else if (traitType == AvatarTraits::Grab) {
+        clearAvatarGrabData(instanceID);
     }
 }
 
@@ -2908,4 +2976,39 @@ AABox AvatarData::getDefaultBubbleBox() const {
     AABox bubbleBox(_defaultBubbleBox);
     bubbleBox.translate(_globalPosition);
     return bubbleBox;
+}
+
+bool AvatarData::updateAvatarGrabData(const QUuid& grabID, const QByteArray& grabData) {
+    bool changed { false };
+    _avatarGrabsLock.withWriteLock([&] {
+        AvatarGrabDataMap::iterator itr = _avatarGrabData.find(grabID);
+        if (itr == _avatarGrabData.end()) {
+            // create a new one
+            if (_avatarGrabData.size() < MAX_NUM_AVATAR_GRABS) {
+                _avatarGrabData.insert(grabID, grabData);
+                _avatarGrabDataChanged = true;
+                changed = true;
+            } else {
+                qCWarning(avatars) << "Can't create more grabs on avatar, limit reached.";
+            }
+        } else {
+            // update an existing one
+            if (itr.value() != grabData) {
+                itr.value() = grabData;
+                _avatarGrabDataChanged = true;
+                changed = true;
+            }
+        }
+    });
+
+    return changed;
+}
+
+void AvatarData::clearAvatarGrabData(const QUuid& grabID) {
+    _avatarGrabsLock.withWriteLock([&] {
+        if (_avatarGrabData.remove(grabID)) {
+            _avatarGrabDataChanged = true;
+            _deletedAvatarGrabs.insert(grabID);
+        }
+    });
 }

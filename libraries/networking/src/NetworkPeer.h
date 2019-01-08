@@ -18,7 +18,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
-#include "BandwidthRecorder.h"
 #include "HifiSockAddr.h"
 #include "UUID.h"
 
@@ -78,12 +77,6 @@ public:
     void incrementConnectionAttempts() { ++_connectionAttempts; }
     void resetConnectionAttempts() { _connectionAttempts = 0; }
 
-    void recordBytesSent(int count) const;
-    void recordBytesReceived(int count) const;
-
-    float getOutboundBandwidth() const; // in kbps
-    float getInboundBandwidth() const; // in kbps
-
     // Typically the LimitedNodeList removes nodes after they are "silent"
     // meaning that we have not received any packets (including simple keepalive pings) from them for a set interval.
     // The _isForcedNeverSilent flag tells the LimitedNodeList that a Node should never be killed by removeSilentNodes()
@@ -113,8 +106,6 @@ protected:
     HifiSockAddr _localSocket;
     HifiSockAddr _symmetricSocket;
     HifiSockAddr* _activeSocket;
-
-    mutable BandwidthRecorder _bandwidthRecorder;
 
     quint64 _wakeTimestamp;
     std::atomic_ullong _lastHeardMicrostamp;

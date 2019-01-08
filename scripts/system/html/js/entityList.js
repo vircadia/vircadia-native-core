@@ -24,6 +24,19 @@ const DELTA_X_MOVE_COLUMNS_THRESHOLD = 2;
 const DELTA_X_COLUMN_SWAP_POSITION = 5;
 const CERTIFIED_PLACEHOLDER = "** Certified **";
 
+function decimalMegabytes(number) {
+    return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
+}
+
+function displayIfNonZero(number) {
+    return number ? number : "";
+}
+
+function getFilename(url) {
+    let urlParts = url.split('/');
+    return urlParts[urlParts.length - 1];
+}
+
 const COLUMNS = {
     type: {
         columnHeader: "Type",
@@ -79,6 +92,7 @@ const COLUMNS = {
         dropdownLabel: "Texture Size",
         propertyID: "texturesSize",
         initialWidth: 0.10,
+        format: decimalMegabytes
     },
     hasTransparent: {
         columnHeader: "&#xe00b;",
@@ -139,21 +153,8 @@ const FILTER_TYPES = [
     "PolyLine",
     "PolyVox",
     "Text",
+    "Grid",
 ];
-
-const ICON_FOR_TYPE = {
-    Shape: "n",
-    Model: "&#xe008;",
-    Image: "&#xe02a;",
-    Light: "p",
-    Zone: "o",
-    Web: "q",
-    Material: "&#xe00b;",
-    ParticleEffect: "&#xe004;",
-    PolyLine: "&#xe01b;",
-    PolyVox: "&#xe005;",
-    Text: "l",
-};
 
 const DOUBLE_CLICK_TIMEOUT = 300; // ms
 const RENAME_COOLDOWN = 400; // ms
@@ -311,7 +312,7 @@ function loaded() {
             
             let elSpan = document.createElement('span');
             elSpan.setAttribute("class", "typeIcon");
-            elSpan.innerHTML = ICON_FOR_TYPE[type];
+            elSpan.innerHTML = ENTITY_TYPE_ICON[type];
 
             elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
             
@@ -605,19 +606,6 @@ function loaded() {
             }));
         }
         
-        function decimalMegabytes(number) {
-            return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
-        }
-
-        function displayIfNonZero(number) {
-            return number ? number : "";
-        }
-
-        function getFilename(url) {
-            let urlParts = url.split('/');
-            return urlParts[urlParts.length - 1];
-        }
-        
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
@@ -639,7 +627,7 @@ function loaded() {
                         certificateID: entity.certificateID,
                         verticesCount: displayIfNonZero(entity.verticesCount),
                         texturesCount: displayIfNonZero(entity.texturesCount),
-                        texturesSize: decimalMegabytes(entity.texturesSize),
+                        texturesSize: entity.texturesSize,
                         hasTransparent: entity.hasTransparent,
                         isBaked: entity.isBaked,
                         drawCalls: displayIfNonZero(entity.drawCalls),
@@ -874,7 +862,11 @@ function loaded() {
                 if (column.data.glyph) {
                     elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
                 } else {
-                    elCell.innerHTML = itemData[column.data.propertyID];
+                    let value = itemData[column.data.propertyID];
+                    if (column.data.format) {
+                        value = column.data.format(value);
+                    }
+                    elCell.innerHTML = value;
                 }
                 elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
                 elCell.className = createColumnClassName(column.columnID);

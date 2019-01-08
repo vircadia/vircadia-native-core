@@ -106,7 +106,7 @@ DraggableNumber.prototype = {
     
     stepUp: function() {
         if (!this.isDisabled()) {
-            this.elInput.stepUp();
+            this.elInput.value = parseFloat(this.elInput.value) + this.step;
             this.inputChange();
             if (this.valueChangeFunction) {
                 this.valueChangeFunction();
@@ -116,7 +116,7 @@ DraggableNumber.prototype = {
     
     stepDown: function() {
         if (!this.isDisabled()) {
-            this.elInput.stepDown();
+            this.elInput.value = parseFloat(this.elInput.value) - this.step;
             this.inputChange();
             if (this.valueChangeFunction) {
                 this.valueChangeFunction();
@@ -139,7 +139,14 @@ DraggableNumber.prototype = {
     },
     
     inputChange: function() {
-        this.setValue(this.elInput.value);
+        let value = this.elInput.value;
+        if (this.max !== undefined) {
+            value = Math.min(this.max, value);
+        }
+        if (this.min !== undefined) {
+            value = Math.max(this.min, value);
+        }
+        this.setValue(value);
     },
     
     inputBlur: function(ev) {
@@ -154,6 +161,17 @@ DraggableNumber.prototype = {
     
     isDisabled: function() {
         return this.elText.getAttribute("disabled") === "disabled";
+    },
+    
+    updateMinMax: function(min, max) {
+        this.min = min;
+        this.max = max;
+        if (this.min !== undefined) {
+            this.elInput.setAttribute("min", this.min);
+        }
+        if (this.max !== undefined) {
+            this.elInput.setAttribute("max", this.max);
+        }
     },
     
     initialize: function() {
@@ -189,12 +207,7 @@ DraggableNumber.prototype = {
         this.elInput = document.createElement('input');
         this.elInput.className = "input";
         this.elInput.setAttribute("type", "number");
-        if (this.min !== undefined) {
-            this.elInput.setAttribute("min", this.min);
-        }
-        if (this.max !== undefined) {
-            this.elInput.setAttribute("max", this.max);
-        }
+        this.updateMinMax(this.min, this.max);
         if (this.step !== undefined) {
             this.elInput.setAttribute("step", this.step);
         }

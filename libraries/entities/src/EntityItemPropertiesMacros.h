@@ -13,8 +13,6 @@
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
-#include <QDateTime>
-
 #include "EntityItemID.h"
 #include <RegisteredMetaTypes.h>
 
@@ -226,20 +224,13 @@ inline quint32 quint32_convertFromScriptValue(const QScriptValue& v, bool& isVal
 }
 inline quint16 quint16_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline uint32_t uint32_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline uint8_t uint8_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return (uint8_t)(0xff & v.toVariant().toInt(&isValid)); }
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
-
-
-inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = true;
-    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
-    // result.setTimeSpec(Qt::OffsetFromUTC);
-    return result;
-}
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
@@ -410,10 +401,32 @@ inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
-        _propertyStringsToEnums[#n] = P;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #n; \
+    }
+
+#define ADD_PROPERTY_TO_MAP_WITH_RANGE(P, N, n, T, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #n; \
+    }
 
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
-        _propertyStringsToEnums[#g "." #n] = P;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #g "." #n; \
+    }
+
+#define ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(P, G, g, N, n, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #g "." #n; \
+    }
 
 #define DEFINE_CORE(N, n, T, V) \
     public: \

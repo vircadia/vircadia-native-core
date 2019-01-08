@@ -76,6 +76,8 @@ public:
      *       <td>{@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}</td></tr>
      *     <tr><td><code>"PolyVox"</code></td><td>A set of textured voxels.</td>
      *       <td>{@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}</td></tr>
+     *     <tr><td><code>"Grid"</code></td><td>A grid of lines in a plane.</td>
+     *       <td>{@link Entities.EntityProperties-Grid|EntityProperties-Grid}</td></tr>
      *     <tr><td><code>"Light"</code></td><td>A local lighting effect.</td>
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>
      *     <tr><td><code>"Zone"</code></td><td>A volume of lighting effects and avatar permissions.</td>
@@ -100,6 +102,7 @@ public:
         Line,
         PolyLine,
         PolyVox,
+        Grid,
         Light,
         Zone,
         Material,

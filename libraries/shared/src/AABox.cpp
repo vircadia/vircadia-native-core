@@ -480,7 +480,7 @@ void AABox::embiggen(const glm::vec3& scale) {
 }
 
 void AABox::setScaleStayCentered(const glm::vec3& scale) {
-    _corner += -0.5f * scale;
+    _corner -= 0.5f * (scale - _scale);
     _scale = scale;
 }
 

@@ -248,7 +248,14 @@ enum class EntityVersion : PacketVersion {
     MaterialRepeat,
     EntityHostTypes,
     CleanupProperties,
-    ImageEntities
+    ImageEntities,
+    GridEntities,
+    MissingTextProperties,
+    GrabTraits,
+    MorePropertiesCleanup,
+    FixPropertiesFromCleanup,
+    UpdatedPolyLines,
+    FixProtocolVersionBumpMismatch
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -301,7 +308,9 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     MigrateSkeletonURLToTraits,
     MigrateAvatarEntitiesToTraits,
     FarGrabJointsRedux,
-    JointTransScaled
+    JointTransScaled,
+    GrabTraits,
+    CollisionFlag
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

@@ -326,6 +326,10 @@ public:
     void createLoginDialogOverlay();
     void updateLoginDialogOverlayPosition();
 
+    // Check if a headset is connected
+    bool hasRiftControllers();
+    bool hasViveControllers();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -351,7 +355,7 @@ signals:
 
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
-    bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);
+    bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
     bool exportEntities(const QString& filename, float x, float y, float z, float scale);
     bool importEntities(const QString& url, const bool isObservable = true, const qint64 callerId = -1);
     void updateThreadPoolCount() const;
@@ -458,6 +462,8 @@ public slots:
     void updateVerboseLogging();
 
     void changeViewAsNeeded(float boomLength);
+
+    QString getGraphicsCardType();
 
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
@@ -787,6 +793,5 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
-
 };
 #endif // hifi_Application_h

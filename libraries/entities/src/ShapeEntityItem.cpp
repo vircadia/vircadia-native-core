@@ -118,10 +118,10 @@ ShapeEntityItem::ShapeEntityItem(const EntityItemID& entityItemID) : EntityItem(
 EntityItemProperties ShapeEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
-    properties.setShape(entity::stringFromShape(getShape()));
-    properties._shapeChanged = false;
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+    properties.setShape(entity::stringFromShape(getShape()));
+    properties._shapeChanged = false;
 
     return properties;
 }
@@ -158,9 +158,9 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
 bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shape, setShape);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -183,18 +183,18 @@ int ShapeEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_SHAPE, QString, setShape);
     READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    READ_ENTITY_PROPERTY(PROP_SHAPE, QString, setShape);
 
     return bytesRead;
 }
 
 EntityPropertyFlags ShapeEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-    requestedProperties += PROP_SHAPE;
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
+    requestedProperties += PROP_SHAPE;
     return requestedProperties;
 }
 
@@ -207,9 +207,9 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_SHAPE, entity::stringFromShape(getShape()));
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    APPEND_ENTITY_PROPERTY(PROP_SHAPE, entity::stringFromShape(getShape()));
 }
 
 void ShapeEntityItem::setColor(const glm::u8vec3& value) {

@@ -746,7 +746,7 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
 void MyAvatar::simulate(float deltaTime) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
-    
+
     setFlyingEnabled(getFlyingEnabled());
 
     if (_cauterizationNeedsUpdate) {
@@ -820,6 +820,7 @@ void MyAvatar::simulate(float deltaTime) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
+    updateGrabs();
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -874,47 +875,12 @@ void MyAvatar::simulate(float deltaTime) {
                 zoneAllowsFlying = zone->getFlyingAllowed();
                 collisionlessAllowed = zone->getGhostingAllowed();
             }
-            auto now = usecTimestampNow();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            MovingEntitiesOperator moveOperator;
+            bool force = false;
+            bool iShouldTellServer = true;
             forEachDescendant([&](SpatiallyNestablePointer object) {
-                // if the queryBox has changed, tell the entity-server
-                if (object->getNestableType() == NestableType::Entity && object->updateQueryAACube()) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-                    bool success;
-                    AACube newCube = entity->getQueryAACube(success);
-                    if (success) {
-                        moveOperator.addEntityToMoveList(entity, newCube);
-                    }
-                    // send an edit packet to update the entity-server about the queryAABox
-                    if (packetSender && entity->isDomainEntity()) {
-                        EntityItemProperties properties = entity->getProperties();
-                        properties.setQueryAACubeDirty();
-                        properties.setLastEdited(now);
-
-                        packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
-                                                             entity->getID(), properties);
-                        entity->setLastBroadcast(usecTimestampNow());
-
-                        entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-                            EntityItemPointer entityDescendant = std::dynamic_pointer_cast<EntityItem>(descendant);
-                            if (entityDescendant && entityDescendant->isDomainEntity() && descendant->updateQueryAACube()) {
-                                EntityItemProperties descendantProperties;
-                                descendantProperties.setQueryAACube(descendant->getQueryAACube());
-                                descendantProperties.setLastEdited(now);
-                                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree,
-                                                                     entityDescendant->getID(), descendantProperties);
-                                entityDescendant->setLastBroadcast(now); // for debug/physics status icons
-                            }
-                        });
-                    }
-                }
+                entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
             });
-            // also update the position of children in our local octree
-            if (moveOperator.hasMovingEntities()) {
-                PerformanceTimer perfTimer("recurseTreeWithOperator");
-                entityTree->recurseTreeWithOperator(&moveOperator);
-            }
         });
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
@@ -1565,35 +1531,74 @@ ScriptAvatarData* MyAvatar::getTargetAvatar() const {
     }
 }
 
-void MyAvatar::updateLookAtTargetAvatar() {
-    //
-    //  Look at the avatar whose eyes are closest to the ray in direction of my avatar's head
-    //  And set the correctedLookAt for all (nearby) avatars that are looking at me.
-    _lookAtTargetAvatar.reset();
-    _targetAvatarPosition = glm::vec3(0.0f);
+static float lookAtCostFunction(const glm::vec3& myForward, const glm::vec3& myPosition, const glm::vec3& otherForward, const glm::vec3& otherPosition,
+                                bool otherIsTalking, bool lookingAtOtherAlready) {
+    const float DISTANCE_FACTOR = 3.14f;
+    const float MY_ANGLE_FACTOR = 1.0f;
+    const float OTHER_ANGLE_FACTOR = 1.0f;
+    const float OTHER_IS_TALKING_TERM = otherIsTalking ? 1.0f : 0.0f;
+    const float LOOKING_AT_OTHER_ALREADY_TERM = lookingAtOtherAlready ? -0.2f : 0.0f;
 
-    glm::vec3 lookForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
-    glm::vec3 cameraPosition = qApp->getCamera().getPosition();
+    const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;  // meters
+    const float MAX_MY_ANGLE = PI / 8.0f; // 22.5 degrees, Don't look too far away from the head facing.
+    const float MAX_OTHER_ANGLE = (3.0f * PI) / 4.0f;  // 135 degrees, Don't stare at the back of another avatars head.
 
-    float smallestAngleTo = glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES) / 2.0f;
-    const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
-    const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
+    glm::vec3 d = otherPosition - myPosition;
+    float distance = glm::length(d);
+    glm::vec3 dUnit = d / distance;
+    float myAngle = acosf(glm::dot(myForward, dUnit));
+    float otherAngle = acosf(glm::dot(otherForward, -dUnit));
 
-    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
+    if (distance > GREATEST_LOOKING_AT_DISTANCE || myAngle > MAX_MY_ANGLE || otherAngle > MAX_OTHER_ANGLE) {
+        return FLT_MAX;
+    } else {
+        return (DISTANCE_FACTOR * distance +
+                MY_ANGLE_FACTOR * myAngle +
+                OTHER_ANGLE_FACTOR * otherAngle +
+                OTHER_IS_TALKING_TERM +
+                LOOKING_AT_OTHER_ALREADY_TERM);
+    }
+}
 
-    foreach (const AvatarSharedPointer& avatarPointer, hash) {
-        auto avatar = static_pointer_cast<Avatar>(avatarPointer);
-        bool isCurrentTarget = avatar->getIsLookAtTarget();
-        float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
-        avatar->setIsLookAtTarget(false);
-        if (!avatar->isMyAvatar() && avatar->isInitialized() &&
-            (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getModelScale())) {
-            float radius = glm::length(avatar->getHead()->getEyePosition() - avatar->getHead()->getRightEyePosition());
-            float angleTo = coneSphereAngle(getHead()->getEyePosition(), lookForward, avatar->getHead()->getEyePosition(), radius);
-            if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
-                _lookAtTargetAvatar = avatarPointer;
-                _targetAvatarPosition = avatarPointer->getWorldPosition();
+void MyAvatar::computeMyLookAtTarget(const AvatarHash& hash) {
+    glm::vec3 myForward = getHead()->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;
+    glm::vec3 myPosition = getHead()->getEyePosition();
+    CameraMode mode = qApp->getCamera().getMode();
+    if (mode == CAMERA_MODE_FIRST_PERSON) {
+        myPosition = qApp->getCamera().getPosition();
+    }
+
+    float bestCost = FLT_MAX;
+    std::shared_ptr<Avatar> bestAvatar;
+
+    foreach (const AvatarSharedPointer& avatarData, hash) {
+        std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if (!avatar->isMyAvatar() && avatar->isInitialized()) {
+            glm::vec3 otherForward = avatar->getHead()->getForwardDirection();
+            glm::vec3 otherPosition = avatar->getHead()->getEyePosition();
+            const float TIME_WITHOUT_TALKING_THRESHOLD = 1.0f;
+            bool otherIsTalking = avatar->getHead()->getTimeWithoutTalking() <= TIME_WITHOUT_TALKING_THRESHOLD;
+            bool lookingAtOtherAlready = _lookAtTargetAvatar.lock().get() == avatar.get();
+            float cost = lookAtCostFunction(myForward, myPosition, otherForward, otherPosition, otherIsTalking, lookingAtOtherAlready);
+            if (cost < bestCost) {
+                bestCost = cost;
+                bestAvatar = avatar;
             }
+        }
+    }
+
+    if (bestAvatar) {
+        _lookAtTargetAvatar = bestAvatar;
+        _targetAvatarPosition = bestAvatar->getWorldPosition();
+    } else {
+        _lookAtTargetAvatar.reset();
+    }
+}
+
+void MyAvatar::snapOtherAvatarLookAtTargetsToMe(const AvatarHash& hash) {
+    foreach (const AvatarSharedPointer& avatarData, hash) {
+        std::shared_ptr<Avatar> avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if (!avatar->isMyAvatar() && avatar->isInitialized()) {
             if (_lookAtSnappingEnabled && avatar->getLookAtSnappingEnabled() && isLookingAtMe(avatar)) {
 
                 // Alter their gaze to look directly at my camera; this looks more natural than looking at my avatar's face.
@@ -1648,10 +1653,19 @@ void MyAvatar::updateLookAtTargetAvatar() {
             avatar->getHead()->clearCorrectedLookAtPosition();
         }
     }
-    auto avatarPointer = _lookAtTargetAvatar.lock();
-    if (avatarPointer) {
-        static_pointer_cast<Avatar>(avatarPointer)->setIsLookAtTarget(true);
-    }
+}
+
+void MyAvatar::updateLookAtTargetAvatar() {
+
+    // The AvatarManager is a mutable class shared by many threads.  We make a thread-safe deep copy of it,
+    // to avoid having to hold a lock while we iterate over all the avatars within.
+    AvatarHash hash = DependencyManager::get<AvatarManager>()->getHashCopy();
+
+    // determine what the best look at target for my avatar should be.
+    computeMyLookAtTarget(hash);
+
+    // snap look at position for avatars that are looking at me.
+    snapOtherAvatarLookAtTargetsToMe(hash);
 }
 
 void MyAvatar::clearLookAtTargetAvatar() {
@@ -3187,17 +3201,15 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         OctreeElementPointer element;
         float distance;
         BoxFace face;
-        const bool visibleOnly = false;
-        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
-        // What we really want is to use the collision hull!
-        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
-        const bool collidableOnly = true;
-        const bool precisionPicking = true;
         const auto lockType = Octree::Lock; // Should we refactor to take a lock just once?
         bool* accurateResult = NULL;
 
+        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
+        // What we really want is to use the collision hull!
+        // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
         QVariantMap extraInfo;
-        EntityItemID entityID = entityTree->findRayIntersection(startPointIn, directionIn, include, ignore, visibleOnly, collidableOnly, precisionPicking,
+        EntityItemID entityID = entityTree->evalRayIntersection(startPointIn, directionIn, include, ignore,
+            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE) | PickFilter::getBitMask(PickFilter::FlagBit::PRECISE)),
             element, distance, face, normalOut, extraInfo, lockType, accurateResult);
         if (entityID.isNull()) {
             return false;
@@ -3362,7 +3374,6 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
         QMetaObject::invokeMethod(this, "setCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
-
     _characterController.setCollisionless(!enabled);
     emit collisionsEnabledChanged(enabled);
 }
@@ -3371,6 +3382,20 @@ bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
     return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+}
+
+void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setOtherAvatarsCollisionsEnabled", Q_ARG(bool, enabled));
+        return;
+    }
+    _collideWithOtherAvatars = enabled;
+    emit otherAvatarsCollisionsEnabledChanged(enabled);
+}
+
+bool MyAvatar::getOtherAvatarsCollisionsEnabled() {
+    return _collideWithOtherAvatars;
 }
 
 void MyAvatar::updateCollisionCapsuleCache() {
@@ -4747,4 +4772,51 @@ SpatialParentTree* MyAvatar::getParentTree() const {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     return entityTree.get();
+}
+
+const QUuid MyAvatar::grab(const QUuid& targetID, int parentJointIndex,
+                           glm::vec3 positionalOffset, glm::quat rotationalOffset) {
+    auto grabID = QUuid::createUuid();
+    // create a temporary grab object to get grabData
+
+    QString hand = "none";
+    if (parentJointIndex == CONTROLLER_RIGHTHAND_INDEX ||
+        parentJointIndex == CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX ||
+        parentJointIndex == FARGRAB_RIGHTHAND_INDEX ||
+        parentJointIndex == getJointIndex("RightHand")) {
+        hand = "right";
+    } else if (parentJointIndex == CONTROLLER_LEFTHAND_INDEX ||
+               parentJointIndex == CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX ||
+               parentJointIndex == FARGRAB_LEFTHAND_INDEX ||
+               parentJointIndex == getJointIndex("LeftHand")) {
+        hand = "left";
+    }
+
+    Grab tmpGrab(DependencyManager::get<NodeList>()->getSessionUUID(),
+                 targetID, parentJointIndex, hand, positionalOffset, rotationalOffset);
+    QByteArray grabData = tmpGrab.toByteArray();
+    bool dataChanged = updateAvatarGrabData(grabID, grabData);
+
+    if (dataChanged && _clientTraitsHandler) {
+        // indicate that the changed data should be sent to the mixer
+        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::Grab, grabID);
+    }
+
+    return grabID;
+}
+
+void MyAvatar::releaseGrab(const QUuid& grabID) {
+    bool tellHandler { false };
+
+    _avatarGrabsLock.withWriteLock([&] {
+        if (_avatarGrabData.remove(grabID)) {
+            _deletedAvatarGrabs.insert(grabID);
+            tellHandler = true;
+        }
+    });
+
+    if (tellHandler && _clientTraitsHandler) {
+        // indicate the deletion of the data to the mixer
+        _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
+    }
 }

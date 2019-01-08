@@ -50,6 +50,7 @@ public:
     DetailedMotionState* createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
+    void updateCollisionGroup(bool myAvatarCollide);
 
     friend AvatarManager;
 

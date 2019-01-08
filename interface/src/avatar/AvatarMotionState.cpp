@@ -19,6 +19,7 @@
 AvatarMotionState::AvatarMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
+    _collisionGroup = BULLET_COLLISION_GROUP_OTHER_AVATAR;
     cacheShapeDiameter();
 }
 
@@ -171,8 +172,8 @@ QUuid AvatarMotionState::getSimulatorID() const {
 
 // virtual
 void AvatarMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
-    group = BULLET_COLLISION_GROUP_OTHER_AVATAR;
-    mask = Physics::getDefaultCollisionMask(group);
+    group = _collisionGroup;
+    mask = _collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ? 0 : Physics::getDefaultCollisionMask(group);
 }
 
 // virtual

@@ -956,12 +956,12 @@ div.refresh input[type="button"] {
 }
 .draggable-number .left-arrow {
     top: 3px;
-    left: 0px;
+    left: 0;
     transform: rotate(180deg);
 }
 .draggable-number .right-arrow {
     top: 3px;
-    right: 0px;
+    right: 0;
 }
 .draggable-number input[type=number] {
     position: absolute;
@@ -993,6 +993,10 @@ div.refresh input[type="button"] {
     left: -16px;
     font-family: FiraSans-SemiBold;
     font-size: 15px;
+}
+
+.rect .rect-row {
+    margin-bottom: 8px;
 }
 
 .row .property {
@@ -1602,10 +1606,10 @@ input.rename-entity {
     margin-left: 4px;
     margin-right: 10px;
 }
-.fstuple label.red, .fstuple label.x {
+.fstuple label.red, .fstuple label.x, .fstuple label.w {
     color: #C62147;
 }
-.fstuple label.green, .fstuple label.y {
+.fstuple label.green, .fstuple label.y, .fstuple label.h {
     color: #359D85;
 }
 .fstuple label.blue, .fstuple label.z {

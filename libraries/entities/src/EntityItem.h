@@ -51,7 +51,6 @@ typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
-
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
 
@@ -206,9 +205,6 @@ public:
 
     glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
-
-    float getLocalRenderAlpha() const;
-    void setLocalRenderAlpha(float localRenderAlpha);
 
     void setDensity(float density);
     float computeMass() const;
@@ -554,6 +550,9 @@ public:
 
     void prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority);
 
+    virtual void addGrab(GrabPointer grab) override;
+    virtual void removeGrab(GrabPointer grab) override;
+
 signals:
     void requestRenderUpdate();
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
@@ -592,7 +591,6 @@ protected:
     mutable bool _recalcMinAACube { true };
     mutable bool _recalcMaxAACube { true };
 
-    float _localRenderAlpha { ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA };
     float _density { ENTITY_ITEM_DEFAULT_DENSITY }; // kg/m^3
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
@@ -668,6 +666,9 @@ protected:
     bool _simulated { false }; // set by EntitySimulation
     bool _visuallyReady { true };
 
+    void enableNoBootstrap();
+    void disableNoBootstrap();
+
     bool addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);
     void deserializeActionsInternal();
@@ -733,6 +734,8 @@ protected:
     QVector<QUuid> _cloneIDs;
 
     GrabPropertyGroup _grabProperties;
+
+    QHash<QUuid, EntityDynamicPointer> _grabActions;
 
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
