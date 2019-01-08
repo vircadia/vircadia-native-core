@@ -120,7 +120,6 @@
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
 #include <plugins/SteamClientPlugin.h>
-#include <plugins/OculusPlatformPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <render/EngineStats.h>
@@ -999,7 +998,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 {
 
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
-    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
     setProperty(hifi::properties::CRASHED, _previousSessionCrashed);
 
@@ -1131,9 +1129,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     bool isStore = arguments().indexOf(OCULUS_STORE_ARG) != -1;
     setProperty(hifi::properties::OCULUS_STORE, isStore);
     DependencyManager::get<WalletScriptingInterface>()->setLimitedCommerce(isStore);  // Or we could make it a separate arg, or if either arg is set, etc. And should this instead by a hifi::properties?
-    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        oculusPlatform->init();
-    }
 
     updateHeartbeat();
 
@@ -2655,9 +2650,6 @@ Application::~Application() {
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
-    }
-    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        oculusPlatform->shutdown();
     }
 
     DependencyManager::destroy<PluginManager>();
@@ -5964,6 +5956,10 @@ void Application::update(float deltaTime) {
             } else if (inputPlugin->isActive()) {
                 inputPlugin->pluginUpdate(deltaTime, calibrationData);
             }
+        }
+
+        if (auto oculusPlugin = PluginManager::getInstance()->getOculusDisplayPlugin()) {
+            oculusPlugin->pluginUpdate();
         }
 
         userInputMapper->setInputCalibrationData(calibrationData);

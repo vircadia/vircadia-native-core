@@ -30,15 +30,25 @@ public:
 
     QRectF getPlayAreaRect() override;
     QVector<glm::vec3> getSensorPositions() override;
-   
+
+signals:
+    void userIDChanged(uint64_t userID);
+    void userChanged(QString user);
+    void nonceChanged(QString nonce);
+
 protected:
     void customizeContext() override;
     void uncustomizeContext() override;
     bool internalActivate() override;
     void internalDeactivate() override;
     void updatePresentPose() override;
+    void handleOVREvents();
 
 protected:
+    bool _isViewerEntitled;
+    QString _nonce;
+    QString _user;
+    uint64_t _userID;
     ovrSession _session{ nullptr };
     ovrGraphicsLuid _luid;
     std::array<ovrEyeRenderDesc, 2> _eyeRenderDescs;

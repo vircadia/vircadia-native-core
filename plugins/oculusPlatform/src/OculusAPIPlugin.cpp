@@ -94,9 +94,11 @@ void OculusAPIPlugin::requestTicket(OculusTicketRequestCallback callback) {
         return;
     }
 
-    auto userProof = getUserProof();
+    auto nonce = getUserProof();
     auto userID = getLoggedInUserID();
-    callback(userProof, userID);
+    qDebug() << "Nonce: " << nonce << ", " << userID;
+
+    callback(nonce, userID);
     return;
 }
 
@@ -111,7 +113,7 @@ QString OculusAPIPlugin::getUserProof() {
         auto request = ovr_User_GetUserProof();
         ovrMessageHandle message { nullptr };
         bool messageNotReceived = true;
-        while (timer.isActive() && messageNotReceived) {
+        while (messageNotReceived) {
             message = ovr_PopMessage();
             if (timer.remainingTime() == 0) {
                 qCDebug(oculusLog) << "user proof timeout after 5 seconds";
@@ -142,25 +144,26 @@ QString OculusAPIPlugin::getUserProof() {
     return "";
 }
 
-QString OculusAPIPlugin::getLoggedInUserID() {
-    if (initialized) {
-        QTimer timer;
-        timer.start(5000);
-        auto request = ovr_User_GetLoggedInUser();
-        ovrMessageHandle message { nullptr };
-        bool messageNotReceived = true;
-        while (messageNotReceived) {
-            if (timer.remainingTime() == 0) {
-                qCDebug(oculusLog) << "login user id timeout after 5 seconds";
-                return "";
-            }
+QString getOculusUserID(ovrID userID) {
+    QTimer timer;
+    timer.start(5000);
+    timer.setSingleShot(true);
+    auto request = ovr_User_Get(userID);
+    bool messageNotReceived = true;
+    while (messageNotReceived) {
+        auto message = ovr_PopMessage();
+        if (timer.remainingTime() == 0) {
+            qCDebug(oculusLog) << "login user id timeout after 5 seconds";
+            return "";
+        }
+        if (message != nullptr) {
             switch (ovr_Message_GetType(message)) {
-                case ovrMessage_User_GetLoggedInUser:
-                    messageNotReceived = false;
+                case ovrMessage_User_Get:
                     if (!ovr_Message_IsError(message)) {
+                        messageNotReceived = false;
                         ovrUserHandle user = ovr_Message_GetUser(message);
                         ovr_FreeMessage(message);
-                        qCDebug(oculusLog) << "UserID: " << ovr_User_GetID(user) << ", Oculus ID: " << QString(ovr_User_GetOculusID(user));
+                        qCDebug(oculusLog) << "UserID: " << userID << "\nOculus ID: " << QString(ovr_User_GetOculusID(user));
                         return QString(ovr_User_GetOculusID(user));
                     } else {
                         qDebug() << "Error getting user id: " << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
@@ -173,6 +176,47 @@ QString OculusAPIPlugin::getLoggedInUserID() {
                     break;
             }
         }
+    }
+}
+
+QString OculusAPIPlugin::getLoggedInUserID() {
+    if (initialized) {
+        QTimer timer;
+        timer.start(5000);
+        timer.setSingleShot(true);
+        auto request = ovr_User_GetLoggedInUser();
+        ovrMessageHandle message { nullptr };
+        ovrID userID = 0;
+        bool messageNotReceived = true;
+        while (messageNotReceived) {
+            message = ovr_PopMessage();
+            if (timer.remainingTime() == 0) {
+                qCDebug(oculusLog) << "login user id timeout after 5 seconds";
+                return "";
+            }
+            if (message != nullptr) {
+                switch (ovr_Message_GetType(message)) {
+                    case ovrMessage_User_GetLoggedInUser:
+                        if (!ovr_Message_IsError(message)) {
+                            messageNotReceived = false;
+                            ovrUserHandle user = ovr_Message_GetUser(message);
+                            ovr_FreeMessage(message);
+                            userID = ovr_User_GetID(user);
+                            break;
+                        } else {
+                            qDebug() << "Error getting user id: " << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                            ovr_FreeMessage(message);
+                            return "";
+                        }
+                        break;
+                    default:
+                        ovr_FreeMessage(message);
+                        break;
+                }
+            }
+        }
+        timer.stop();
+        return getOculusUserID(userID);
     }
     return "";
 }

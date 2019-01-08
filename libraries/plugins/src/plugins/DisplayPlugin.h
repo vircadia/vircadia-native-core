@@ -217,6 +217,9 @@ public:
 
     static const QString& MENU_PATH();
 
+    // for updating plugin-related commands. Mimics the input plugin.
+    virtual void pluginUpdate() = 0;
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);
     void resetSensorsRequested();
