@@ -254,7 +254,8 @@ enum class EntityVersion : PacketVersion {
     GrabTraits,
     MorePropertiesCleanup,
     FixPropertiesFromCleanup,
-    UpdatedPolyLines
+    UpdatedPolyLines,
+    FixProtocolVersionBumpMismatch
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
