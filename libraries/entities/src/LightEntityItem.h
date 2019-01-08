@@ -20,6 +20,8 @@ public:
     static const float DEFAULT_INTENSITY;
     static const float DEFAULT_FALLOFF_RADIUS;
     static const float DEFAULT_EXPONENT;
+    static const float MIN_CUTOFF;
+    static const float MAX_CUTOFF;
     static const float DEFAULT_CUTOFF;
 
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);

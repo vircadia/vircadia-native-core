@@ -2266,6 +2266,12 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
     return result;
 }
 
+const EntityPropertyInfo EntityScriptingInterface::getPropertyInfo(const QString& propertyName) const {
+    EntityPropertyInfo propertyInfo;
+    EntityItemProperties::getPropertyInfo(propertyName, propertyInfo);
+    return propertyInfo;
+}
+
 glm::vec3 EntityScriptingInterface::worldToLocalPosition(glm::vec3 worldPosition, const QUuid& parentID,
                                                          int parentJointIndex, bool scalesWithParent) {
     bool success;

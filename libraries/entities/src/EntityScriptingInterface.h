@@ -1695,6 +1695,16 @@ public slots:
      */
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
 
+    /**jsdoc
+     * Get information about entity properties including a minimum to maximum range for numerical properties 
+     * as well as property enum value.
+     * @function Entities.getPropertyInfo
+     * @param {string} propertyName - The name of the property to get the information for.
+     * @returns {Entities.EntityPropertyInfo} The information data including propertyEnum, minimum, and maximum
+     * if the property can be found, otherwise an empty object.
+     */
+    Q_INVOKABLE const EntityPropertyInfo getPropertyInfo(const QString& propertyName) const;
+
 signals:
     /**jsdoc
      * Triggered on the client that is the physics simulation owner during the collision of two entities. Note: Isn't triggered 

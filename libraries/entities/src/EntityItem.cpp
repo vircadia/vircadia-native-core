@@ -20,6 +20,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <BufferParser.h>
 #include <ByteCountCoding.h>
@@ -1679,15 +1680,57 @@ void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
 }
 
 bool EntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-        bool success;
-        bool result = getAABox(success).contains(point);
-        return result && success;
-    } else {
-        ShapeInfo info;
-        info.setParams(getShapeType(), glm::vec3(0.5f));
-        adjustShapeInfoByRegistration(info);
-        return info.contains(worldToEntity(point));
+    ShapeType shapeType = getShapeType();
+
+    if (shapeType == SHAPE_TYPE_SPHERE) {
+        // SPHERE case is special:
+        // anything with shapeType == SPHERE must collide as a bounding sphere in the world-frame regardless of dimensions
+        // therefore we must do math using an unscaled localPoint relative to sphere center
+        glm::vec3 dimensions = getScaledDimensions();
+        glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint())));
+        const float HALF_SQUARED = 0.25f;
+        return glm::length2(localPoint) < HALF_SQUARED * glm::length2(dimensions);
+    }
+
+    // we transform into the "normalized entity-frame" where the bounding box is centered on the origin
+    // and has dimensions <1,1,1>
+    glm::vec3 localPoint = glm::vec3(glm::inverse(getEntityToWorldMatrix()) * glm::vec4(point, 1.0f));
+
+    const float NORMALIZED_HALF_SIDE = 0.5f;
+    const float NORMALIZED_RADIUS_SQUARED = NORMALIZED_HALF_SIDE * NORMALIZED_HALF_SIDE;
+    switch(shapeType) {
+        case SHAPE_TYPE_NONE:
+            return false;
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_PLANE:
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+        case SHAPE_TYPE_CIRCLE:
+        // the above cases not yet supported --> fall through to BOX case
+        case SHAPE_TYPE_BOX: {
+            localPoint = glm::abs(localPoint);
+            return glm::any(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
+        }
+        case SHAPE_TYPE_ELLIPSOID: {
+            // since we've transformed into the normalized space this is just a sphere-point intersection test
+            return glm::length2(localPoint) <= NORMALIZED_RADIUS_SQUARED;
+        }
+        case SHAPE_TYPE_CYLINDER_X:
+            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+                localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED;
+        case SHAPE_TYPE_CYLINDER_Y:
+            return fabsf(localPoint.y) <= NORMALIZED_HALF_SIDE &&
+                localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED;
+        case SHAPE_TYPE_CYLINDER_Z:
+            return fabsf(localPoint.z) <= NORMALIZED_HALF_SIDE &&
+                localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED;
+        default:
+            return false;
     }
 }
 
@@ -1704,7 +1747,8 @@ float EntityItem::getVolumeEstimate() const {
 void EntityItem::setRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         withWriteLock([&] {
-            _registrationPoint = glm::clamp(value, 0.0f, 1.0f);
+            _registrationPoint = glm::clamp(value, glm::vec3(ENTITY_ITEM_MIN_REGISTRATION_POINT), 
+                                                   glm::vec3(ENTITY_ITEM_MAX_REGISTRATION_POINT));
         });
         dimensionsChanged(); // Registration Point affects the bounding box
         markDirtyFlags(Simulation::DIRTY_SHAPE);
@@ -1869,7 +1913,7 @@ void EntityItem::setVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_damping != clampedDamping) {
             _damping = clampedDamping;
@@ -1924,7 +1968,7 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setAngularDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_angularDamping != clampedDamping) {
             _angularDamping = clampedDamping;
