@@ -25,6 +25,8 @@ const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
 const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
 const float LightEntityItem::DEFAULT_FALLOFF_RADIUS = 0.1f;
 const float LightEntityItem::DEFAULT_EXPONENT = 0.0f;
+const float LightEntityItem::MIN_CUTOFF = 0.0f;
+const float LightEntityItem::MAX_CUTOFF = 90.0f;
 const float LightEntityItem::DEFAULT_CUTOFF = PI / 2.0f;
 
 bool LightEntityItem::_lightsArePickable = false;
@@ -115,7 +117,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
 }
 
 void LightEntityItem::setCutoff(float value) {
-    value = glm::clamp(value, 0.0f, 90.0f);
+    value = glm::clamp(value, MIN_CUTOFF, MAX_CUTOFF);
     if (value == getCutoff()) {
         return;
     }
