@@ -179,8 +179,8 @@ const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
     return steamClientPlugin;
 }
 
-const DisplayPluginPointer PluginManager::getOculusDisplayPlugin() {
-    static DisplayPluginPointer oculusDisplayPlugin;
+const OculusDisplayPluginPointer PluginManager::getOculusDisplayPlugin() {
+    static OculusDisplayPluginPointer oculusDisplayPlugin;
     static std::once_flag once;
     std::call_once(once, [&] {
         // Now grab the display plugins - might break in the main update loop if user unplugs the headset I think?

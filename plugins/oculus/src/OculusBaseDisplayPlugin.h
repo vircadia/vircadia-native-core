@@ -35,9 +35,7 @@ public:
     QVector<glm::vec3> getSensorPositions() override;
 
 signals:
-    void userIDChanged(uint64_t userID);
-    void userChanged(QString user);
-    void nonceChanged(QString nonce);
+    void nonceAndUserIDChanged(QString nonce, QString userID);
 
 protected:
     void customizeContext() override;
@@ -50,6 +48,7 @@ protected:
 protected:
     bool _isViewerEntitled;
     QString _nonce;
+    bool _nonceChanged;
     QString _user;
     ovrID _userID;
     ovrSession _session{ nullptr };

@@ -53,7 +53,6 @@ public:
 
 class OculusPlatformProvider {
 public:
-    virtual ~OculusPlatformProvider() {}
     virtual OculusPlatformPluginPointer getOculusPlatformPlugin() = 0;
 };
 
