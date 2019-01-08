@@ -112,9 +112,27 @@ const GROUPS = [
                 propertyID: "textColor",
             },
             {
+                label: "Text Alpha",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "textAlpha",
+            },
+            {
                 label: "Background Color",
                 type: "color",
                 propertyID: "backgroundColor",
+            },
+            {
+                label: "Background Alpha",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "backgroundAlpha",
             },
             {
                 label: "Line Height",
@@ -131,6 +149,34 @@ const GROUPS = [
                 options: { none: "None", yaw: "Yaw", full: "Full"},
                 propertyID: "textBillboardMode",
                 propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Top Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "topMargin",
+            },
+            {
+                label: "Right Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "rightMargin",
+            },
+            {
+                label: "Bottom Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "bottomMargin",
+            },
+            {
+                label: "Left Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "leftMargin",
             },
         ]
     },
