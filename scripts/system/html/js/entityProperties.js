@@ -9,23 +9,6 @@
 
 /* global alert, augmentSpinButtons, clearTimeout, console, document, Element, 
    EventBridge, JSONEditor, openEventBridge, setTimeout, window, _ $ */
-    
-const ICON_FOR_TYPE = {
-    Box: "V",
-    Sphere: "n",
-    Shape: "n",
-    ParticleEffect: "&#xe004;",
-    Model: "&#xe008;",
-    Web: "q",
-    Image: "&#xe02a;",
-    Text: "l",
-    Light: "p",
-    Zone: "o",
-    PolyVox: "&#xe005;",
-    Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;",
-    Material: "&#xe00b;"
-};  
 
 const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
@@ -44,7 +27,7 @@ const GROUPS = [
             {
                 label: NO_SELECTION,
                 type: "icon",
-                icons: ICON_FOR_TYPE,
+                icons: ENTITY_TYPE_ICON,
                 propertyID: "type",
                 replaceID: "placeholder-property-type",
             },
@@ -665,6 +648,39 @@ const GROUPS = [
                 label: "Material Repeat",
                 type: "bool",
                 propertyID: "materialRepeat",
+            },
+        ]
+    },
+    {
+        id: "grid",
+        addToGroup: "base",
+        properties: [
+            {
+                label: "Color",
+                type: "color",
+                propertyID: "gridColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Follow Camera",
+                type: "bool",
+                propertyID: "followCamera",
+            },
+            {
+                label: "Major Grid Every",
+                type: "number-draggable",
+                min: 0,
+                step: 1,
+                decimals: 0,
+                propertyID: "majorGridEvery",
+            },
+            {
+                label: "Minor Grid Every",
+                type: "number-draggable",
+                min: 0,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "minorGridEvery",
             },
         ]
     },
@@ -1402,6 +1418,7 @@ const GROUPS_PER_TYPE = {
                     'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  Grid: [ 'base', 'grid', 'spatial', 'behavior', 'physics' ],
   Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
 };
 

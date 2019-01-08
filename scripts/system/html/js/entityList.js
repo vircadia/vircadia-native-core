@@ -153,21 +153,8 @@ const FILTER_TYPES = [
     "PolyLine",
     "PolyVox",
     "Text",
+    "Grid",
 ];
-
-const ICON_FOR_TYPE = {
-    Shape: "n",
-    Model: "&#xe008;",
-    Image: "&#xe02a;",
-    Light: "p",
-    Zone: "o",
-    Web: "q",
-    Material: "&#xe00b;",
-    ParticleEffect: "&#xe004;",
-    PolyLine: "&#xe01b;",
-    PolyVox: "&#xe005;",
-    Text: "l",
-};
 
 const DOUBLE_CLICK_TIMEOUT = 300; // ms
 const RENAME_COOLDOWN = 400; // ms
@@ -325,7 +312,7 @@ function loaded() {
             
             let elSpan = document.createElement('span');
             elSpan.setAttribute("class", "typeIcon");
-            elSpan.innerHTML = ICON_FOR_TYPE[type];
+            elSpan.innerHTML = ENTITY_TYPE_ICON[type];
 
             elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
             
