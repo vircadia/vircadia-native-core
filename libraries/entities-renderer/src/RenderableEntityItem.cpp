@@ -159,6 +159,13 @@ Item::Bound EntityRenderer::getBound() {
     return _bound;
 }
 
+ShapeKey EntityRenderer::getShapeKey() {
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        return ShapeKey::Builder().withOwnPipeline().withWireframe();
+    }
+    return ShapeKey::Builder().withOwnPipeline();
+}
+
 render::hifi::Tag EntityRenderer::getTagMask() const {
     return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
 }
@@ -171,6 +178,8 @@ render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
             return render::hifi::LAYER_3D_FRONT;
         case RenderLayer::HUD:
             return render::hifi::LAYER_3D_HUD;
+        default:
+            return render::hifi::LAYER_3D;
     }
 }
 
@@ -423,6 +432,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _visible = entity->getVisible();
         setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
         setRenderLayer(entity->getRenderLayer());
+        setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;

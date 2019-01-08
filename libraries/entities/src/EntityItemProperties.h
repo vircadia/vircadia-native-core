@@ -52,6 +52,7 @@
 #include "MaterialMappingMode.h"
 #include "BillboardMode.h"
 #include "RenderLayer.h"
+#include "PrimitiveMode.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -152,6 +153,7 @@ public:
     DEFINE_PROPERTY(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool, ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW);
     DEFINE_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool, ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA);
     DEFINE_PROPERTY_REF_ENUM(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer, RenderLayer::WORLD);
+    DEFINE_PROPERTY_REF_ENUM(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode, PrimitiveMode::SOLID);
     DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
     // Physics
@@ -251,6 +253,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);
     DEFINE_PROPERTY(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool, ENTITY_ITEM_DEFAULT_RELAY_PARENT_JOINTS);
+    DEFINE_PROPERTY_REF(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool, false);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
 
     // Light

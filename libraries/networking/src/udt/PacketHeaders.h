@@ -255,7 +255,7 @@ enum class EntityVersion : PacketVersion {
     MorePropertiesCleanup,
     FixPropertiesFromCleanup,
     UpdatedPolyLines,
-    RenderLayer,
+    MigrateOverlayRenderProperties,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

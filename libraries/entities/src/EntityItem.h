@@ -296,6 +296,9 @@ public:
     RenderLayer getRenderLayer() const;
     void setRenderLayer(RenderLayer value);
 
+    PrimitiveMode getPrimitiveMode() const;
+    void setPrimitiveMode(PrimitiveMode value);
+
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
@@ -625,6 +628,7 @@ protected:
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
     bool _isVisibleInSecondaryCamera { ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA };
     RenderLayer _renderLayer { RenderLayer::WORLD };
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };

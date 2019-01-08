@@ -72,7 +72,7 @@ protected:
 
     // Implementing the PayloadProxyInterface methods
     virtual ItemKey getKey() override;
-    virtual ShapeKey getShapeKey() override { return ShapeKey::Builder::ownPipeline(); }
+    virtual ShapeKey getShapeKey() override;
     virtual Item::Bound getBound() override;
     virtual void render(RenderArgs* args) override final;
     virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
@@ -105,6 +105,7 @@ protected:
 
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
     virtual void setRenderLayer(RenderLayer value) { _renderLayer = value; }
+    virtual void setPrimitiveMode(PrimitiveMode value) { _primitiveMode = value; }
     
     template <typename F, typename T>
     T withReadLockResult(const std::function<T()>& f) {
@@ -139,6 +140,7 @@ protected:
     bool _isVisibleInSecondaryCamera { false };
     bool _canCastShadow { false };
     RenderLayer _renderLayer { RenderLayer::WORLD };
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _cauterized { false };
     bool _moving { false };
     bool _needsRenderUpdate { false };

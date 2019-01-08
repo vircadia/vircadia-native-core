@@ -37,6 +37,7 @@
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
+#include "PrimitiveMode.h"
 
 // Use dual quaternion skinning!
 // Must match define in Skinning.slh
@@ -162,8 +163,8 @@ public:
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
 
-    void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
-    bool isWireframe() const { return _isWireframe; }
+    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
     void reset();
 
@@ -451,7 +452,7 @@ protected:
 
     virtual void createRenderItemSet();
 
-    bool _isWireframe;
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _useDualQuaternionSkinning { false };
 
     // debug rendering support

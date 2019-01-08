@@ -166,7 +166,11 @@ ItemKey ParticleEffectEntityRenderer::getKey() {
 }
 
 ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
+    auto builder = ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 Item::Bound ParticleEffectEntityRenderer::getBound() {

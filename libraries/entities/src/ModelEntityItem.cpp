@@ -67,6 +67,7 @@ EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& d
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(relayParentJoints, getRelayParentJoints);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(groupCulled, getGroupCulled);
     withReadLock([&] {
         _animationProperties.getProperties(properties);
     });
@@ -88,6 +89,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(relayParentJoints, setRelayParentJoints);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(groupCulled, setGroupCulled);
 
     withWriteLock([&] {
         AnimationPropertyGroup animationProperties = _animationProperties;
@@ -130,6 +132,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
     READ_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
+    READ_ENTITY_PROPERTY(PROP_GROUP_CULLED, bool, setGroupCulled);
 
     // grab a local copy of _animationProperties to avoid multiple locks
     int bytesFromAnimation;
@@ -166,6 +169,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_JOINT_TRANSLATIONS_SET;
     requestedProperties += PROP_JOINT_TRANSLATIONS;
     requestedProperties += PROP_RELAY_PARENT_JOINTS;
+    requestedProperties += PROP_GROUP_CULLED;
     requestedProperties += _animationProperties.getEntityProperties(params);
 
     return requestedProperties;
@@ -192,6 +196,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
     APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, getRelayParentJoints());
+    APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, getGroupCulled());
 
     withReadLock([&] {
         _animationProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
@@ -545,6 +550,18 @@ void ModelEntityItem::setRelayParentJoints(bool relayJoints) {
 bool ModelEntityItem::getRelayParentJoints() const {
     return resultWithReadLock<bool>([&] {
         return _relayParentJoints;
+    });
+}
+
+void ModelEntityItem::setGroupCulled(bool value) {
+    withWriteLock([&] {
+        _groupCulled = value;
+    });
+}
+
+bool ModelEntityItem::getGroupCulled() const {
+    return resultWithReadLock<bool>([&] {
+        return _groupCulled;
     });
 }
 

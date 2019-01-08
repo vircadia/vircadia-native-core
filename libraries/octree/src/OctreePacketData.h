@@ -36,6 +36,7 @@
 #include "MaterialMappingMode.h"
 #include "BillboardMode.h"
 #include "RenderLayer.h"
+#include "PrimitiveMode.h"
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -265,6 +266,7 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, MaterialMappingMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, BillboardMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, RenderLayer& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, PrimitiveMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::u8vec3& result);

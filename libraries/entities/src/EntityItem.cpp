@@ -95,6 +95,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_CAN_CAST_SHADOW;
     // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
     requestedProperties += PROP_RENDER_LAYER;
+    requestedProperties += PROP_PRIMITIVE_MODE;
     withReadLock([&] {
         requestedProperties += _grabProperties.getEntityProperties(params);
     });
@@ -277,6 +278,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
         // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over the wire
         APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
+        APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -841,6 +843,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over the wire
     READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
+    READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -1313,6 +1316,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderLayer, getRenderLayer);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1458,6 +1462,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderLayer, setRenderLayer);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -2904,6 +2909,26 @@ void EntityItem::setRenderLayer(RenderLayer value) {
         if (_renderLayer != value) {
             changed = true;
             _renderLayer = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+PrimitiveMode EntityItem::getPrimitiveMode() const {
+    return resultWithReadLock<PrimitiveMode>([&] {
+        return _primitiveMode;
+    });
+}
+
+void EntityItem::setPrimitiveMode(PrimitiveMode value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_primitiveMode != value) {
+            changed = true;
+            _primitiveMode = value;
         }
     });
 

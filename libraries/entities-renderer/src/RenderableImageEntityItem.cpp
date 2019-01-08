@@ -123,6 +123,10 @@ ShapeKey ImageEntityRenderer::getShapeKey() {
         if (_emissive) {
             builder.withUnlit();
         }
+
+        if (_primitiveMode == PrimitiveMode::LINES) {
+            builder.withWireframe();
+        }
     });
 
     return builder.build();

@@ -59,7 +59,11 @@ ItemKey PolyLineEntityRenderer::getKey() {
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    auto builder = ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 bool PolyLineEntityRenderer::needsRenderUpdate() const {

@@ -1290,6 +1290,10 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {
             return true;
         }
+
+        if (model->isGroupCulled() != entity->getGroupCulled()) {
+            return true;
+        }
     }
 
     return false;
@@ -1435,6 +1439,13 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     {
+        bool groupCulled = entity->getGroupCulled();
+        if (model->isGroupCulled() != groupCulled) {
+            model->setGroupCulled(groupCulled);
+        }
+    }
+
+    {
         DETAILED_PROFILE_RANGE(simulation_physics, "Fixup");
         if (model->needsFixupInScene()) {
             model->removeFromScene(scene, transaction);
@@ -1501,6 +1512,13 @@ void ModelEntityRenderer::setRenderLayer(RenderLayer value) {
     setKey(_didLastVisualGeometryRequestSucceed);
     if (_model) {
         _model->setHifiRenderLayer(getHifiRenderLayer());
+    }
+}
+
+void ModelEntityRenderer::setPrimitiveMode(PrimitiveMode value) {
+    Parent::setPrimitiveMode(value);
+    if (_model) {
+        _model->setPrimitiveMode(_primitiveMode);
     }
 }
 

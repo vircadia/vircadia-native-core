@@ -98,6 +98,10 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
         builder.withUnlit();
     }
 
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+
     return builder.build();
 }
 
