@@ -62,8 +62,6 @@ public:
     virtual QString getName() const override;
     virtual QUuid getSimulatorID() const override;
 
-    void setBoundingBox(const glm::vec3& corner, const glm::vec3& diagonal);
-
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
@@ -76,7 +74,6 @@ public:
 protected:
     void setRigidBody(btRigidBody* body) override;
     void setShape(const btCollisionShape* shape) override;
-    void cacheShapeDiameter();
 
     // the dtor had been made protected to force the compiler to verify that it is only
     // ever called by the Avatar class dtor.

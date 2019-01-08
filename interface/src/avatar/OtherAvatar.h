@@ -46,8 +46,9 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
-    void addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
-    const std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
+    btCollisionShape* OtherAvatar::createDetailedCollisionShapeForJoint(int jointIndex);
+    DetailedMotionState* createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
+    std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
 
     friend AvatarManager;

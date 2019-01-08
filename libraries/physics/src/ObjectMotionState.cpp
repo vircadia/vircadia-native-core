@@ -195,10 +195,14 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
 void ObjectMotionState::setShape(const btCollisionShape* shape) {
     if (_shape != shape) {
         if (_shape) {
-            getShapeManager()->releaseShape(_shape);
+            if (_type == MOTIONSTATE_TYPE_DETAILED) {
+                delete _shape;
+            } else {
+                getShapeManager()->releaseShape(_shape);
+            }
         }
         _shape = shape;
-        if (_body) {
+        if (_body && _type != MOTIONSTATE_TYPE_DETAILED) {
             updateCCDConfiguration();
         }
     }
@@ -292,7 +296,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         if (!isReadyToComputeShape()) {
             return false;
         }
-        const btCollisionShape* newShape = _type != MOTIONSTATE_TYPE_DETAILED ? computeNewShape() : nullptr;
+        const btCollisionShape* newShape = computeNewShape();
         if (!newShape) {
             qCDebug(physics) << "Warning: failed to generate new shape!";
             // failed to generate new shape! --> keep old shape and remove shape-change flag
@@ -309,8 +313,12 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
             if (_shape == newShape) {
                 // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
                 flags &= ~Simulation::DIRTY_SHAPE;
-                // and clear the reference we just created
-                getShapeManager()->releaseShape(_shape);
+                if (_type == MOTIONSTATE_TYPE_DETAILED) {
+                    delete _shape;
+                } else {
+                    // and clear the reference we just created
+                    getShapeManager()->releaseShape(_shape);
+                }            
             } else {
                 _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
                 setShape(newShape);

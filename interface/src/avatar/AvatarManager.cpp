@@ -431,12 +431,13 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 auto& detailedMotionStates = avatar->getDetailedMotionStates();
                 if (detailedMotionStates.size() == 0) {
                     for (int i = 0; i < avatar->getJointCount(); i++) {
-                        avatar->addNewMotionState(avatar, i);
+                        auto dMotionState = avatar->createDetailedMotionStateForJoint(avatar, i);
+                        if (dMotionState) {
+                            detailedMotionStates.push_back(dMotionState);
+                            transaction.objectsToAdd.push_back(dMotionState);
+                        }
                     }
-                    for (auto& mState : detailedMotionStates) {
-                        transaction.objectsToAdd.push_back(mState);
-                    }
-                    qCDebug(animation) << "Creating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
+                    //qCDebug(animation) << "Creating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
                 }
                 if (avatar->_motionState == nullptr || detailedMotionStates.size() == 0) {
                     failedShapeBuilds.insert(avatar);
@@ -450,7 +451,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                     transaction.objectsToChange.push_back(mState);
                 }
             }
-            qCDebug(animation) << "Updating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
+            //qCDebug(animation) << "Updating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
         }
     }
     _avatarsToChangeInPhysics.swap(failedShapeBuilds);

@@ -20,7 +20,6 @@ DetailedMotionState::DetailedMotionState(OtherAvatarPointer avatar, const btColl
     ObjectMotionState(shape), _avatar(avatar), _jointIndex(jointIndex) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_DETAILED;
-    cacheShapeDiameter();
 }
 
 void DetailedMotionState::handleEasyChanges(uint32_t& flags) {
@@ -37,6 +36,9 @@ bool DetailedMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngin
 DetailedMotionState::~DetailedMotionState() {
     assert(_avatar);
     _avatar = nullptr;
+    if (_shape) {
+        delete _shape;
+    }
 }
 
 // virtual
@@ -57,9 +59,8 @@ PhysicsMotionType DetailedMotionState::computePhysicsMotionType() const {
 
 // virtual and protected
 const btCollisionShape* DetailedMotionState::computeNewShape() {
-    ShapeInfo shapeInfo;
-    _avatar->computeShapeInfo(shapeInfo);
-    return getShapeManager()->getShape(shapeInfo);
+    auto shape = _avatar->createDetailedCollisionShapeForJoint(_jointIndex);
+    return shape;
 }
 
 // virtual
@@ -71,37 +72,11 @@ bool DetailedMotionState::isMoving() const {
 void DetailedMotionState::getWorldTransform(btTransform& worldTrans) const {
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(getObjectRotation()));
-    if (_body) {
-        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
-    }
 }
 
 // virtual
 void DetailedMotionState::setWorldTransform(const btTransform& worldTrans) {
-    const float SPRING_TIMESCALE = 0.5f;
-    float tau = PHYSICS_ENGINE_FIXED_SUBSTEP / SPRING_TIMESCALE;
-    btVector3 currentPosition = worldTrans.getOrigin();
-    btVector3 offsetToTarget = glmToBullet(getObjectPosition()) - currentPosition;
-    float distance = offsetToTarget.length();
-    if ((1.0f - tau) * distance > _diameter) {
-        // the avatar body is far from its target --> slam position
-        btTransform newTransform;
-        newTransform.setOrigin(currentPosition + offsetToTarget);
-        newTransform.setRotation(glmToBullet(getObjectRotation()));
-        _body->setWorldTransform(newTransform);
-        _body->setLinearVelocity(glmToBullet(getObjectLinearVelocity()));
-        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
-    } else {
-        // the avatar body is near its target --> slam velocity
-        btVector3 velocity = glmToBullet(getObjectLinearVelocity()) + (1.0f / SPRING_TIMESCALE) * offsetToTarget;
-        _body->setLinearVelocity(velocity);
-        _body->setAngularVelocity(glmToBullet(getObjectAngularVelocity()));
-        // slam its rotation
-        btTransform newTransform = worldTrans;
-        newTransform.setRotation(glmToBullet(getObjectRotation()));
-        _body->setWorldTransform(newTransform);
-    }
+    _body->setWorldTransform(worldTrans);
 }
 
 // These pure virtual methods must be implemented for each MotionState type
@@ -139,20 +114,17 @@ glm::quat DetailedMotionState::getObjectRotation() const {
 
 // virtual
 glm::vec3 DetailedMotionState::getObjectLinearVelocity() const {
-    return _avatar->getWorldVelocity();
+    return glm::vec3(0.0f);
 }
 
 // virtual
 glm::vec3 DetailedMotionState::getObjectAngularVelocity() const {
-    // HACK: avatars use a capusle collision shape and their angularVelocity in the local simulation is unimportant.
-    // Therefore, as optimization toward support for larger crowds we ignore it and return zero.
-    //return _avatar->getWorldAngularVelocity();
     return glm::vec3(0.0f);
 }
 
 // virtual
 glm::vec3 DetailedMotionState::getObjectGravity() const {
-    return _avatar->getAcceleration();
+    return glm::vec3(0.0f);
 }
 
 // virtual
@@ -161,7 +133,7 @@ const QUuid DetailedMotionState::getObjectID() const {
 }
 
 QString DetailedMotionState::getName() const {
-    return _avatar->getName();
+    return _avatar->getName() + "_" + _jointIndex;
 }
 
 // virtual
@@ -171,26 +143,13 @@ QUuid DetailedMotionState::getSimulatorID() const {
 
 // virtual
 void DetailedMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
-    group = BULLET_COLLISION_GROUP_OTHER_AVATAR;
+    group = BULLET_COLLISION_GROUP_DETAILED_AVATAR;
     mask = Physics::getDefaultCollisionMask(group);
 }
 
 // virtual
 float DetailedMotionState::getMass() const {
-    return _avatar->computeMass();
-}
-
-void DetailedMotionState::cacheShapeDiameter() {
-    if (_shape) {
-        // shape is capsuleY
-        btVector3 aabbMin, aabbMax;
-        btTransform transform;
-        transform.setIdentity();
-        _shape->getAabb(transform, aabbMin, aabbMax);
-        _diameter = (aabbMax - aabbMin).getX();
-    } else {
-        _diameter = 0.0f;
-    }
+    return 0.0f;
 }
 
 void DetailedMotionState::setRigidBody(btRigidBody* body) {
@@ -203,5 +162,5 @@ void DetailedMotionState::setRigidBody(btRigidBody* body) {
 
 void DetailedMotionState::setShape(const btCollisionShape* shape) {
     ObjectMotionState::setShape(shape);
-    cacheShapeDiameter();
 }
+

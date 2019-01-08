@@ -117,7 +117,7 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return bytesRead;
 }
 
-void OtherAvatar::addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
+btCollisionShape* OtherAvatar::createDetailedCollisionShapeForJoint(int jointIndex) {
     if (jointIndex > -1 && jointIndex < _multiSphereShapes.size()) {
         auto& data = _multiSphereShapes[jointIndex].getSpheresData();
         std::vector<btVector3> positions;
@@ -127,15 +127,19 @@ void OtherAvatar::addNewMotionState(std::shared_ptr<OtherAvatar> avatar, int joi
             radiuses.push_back(sphere._radius);
         }
         btCollisionShape* shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
-        if (shape) {
-            DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
-            motionState->setMass(computeMass());
-            assert(_detailedMotionStates.size() == jointIndex);
-            _detailedMotionStates.push_back(motionState);
-        } else {
-            _detailedMotionStates.push_back(nullptr);
-        }
+        return shape;
     }
+    return nullptr;
+}
+
+DetailedMotionState* OtherAvatar::createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
+    auto shape = createDetailedCollisionShapeForJoint(jointIndex);
+    if (shape) {
+        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
+        motionState->setMass(computeMass());
+        return motionState;
+    }
+    return nullptr;
 }
 
 void OtherAvatar::resetDetailedMotionStates() {
@@ -161,5 +165,10 @@ bool OtherAvatar::needsPhysicsUpdate() const {
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+    }
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        if (_detailedMotionStates[i]) {
+            _detailedMotionStates[i]->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+        }
     }
 }
