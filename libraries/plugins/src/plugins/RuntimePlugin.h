@@ -60,6 +60,5 @@ public:
 #define SteamClientProvider_iid "com.highfidelity.plugins.steamclient"
 Q_DECLARE_INTERFACE(SteamClientProvider, SteamClientProvider_iid)
 
-
 #define OculusPlatformProvider_iid "com.highfidelity.plugins.oculusplatform"
 Q_DECLARE_INTERFACE(OculusPlatformProvider, OculusPlatformProvider_iid)
