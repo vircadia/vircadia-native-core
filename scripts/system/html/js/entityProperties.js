@@ -1322,6 +1322,24 @@ const GROUPS = [
         ]
     },
     {
+        id: "zone_shape",
+        label: "ZONE SHAPE",
+        properties: [
+            {
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "sphere": "Sphere", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "compound": "Use Compound Shape URL" },
+                propertyID: "shapeType",
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "compoundShapeURL",
+            },
+        ]
+    },
+    {
         id: "physics",
         label: "PHYSICS",
         properties: [
@@ -1417,7 +1435,7 @@ const GROUPS_PER_TYPE = {
   None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
   Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
-  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'collision', 'physics' ],
+  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'zone_shape', 'physics' ],
   Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
   Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],

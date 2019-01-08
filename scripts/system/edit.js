@@ -372,6 +372,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
                 blue: 179
             },
         },
+        shapeType: "box",
         bloomMode: "inherit"
     },
     Model: {
