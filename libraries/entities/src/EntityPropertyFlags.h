@@ -32,13 +32,13 @@ enum EntityPropertyList {
     PROP_REGISTRATION_POINT,
     PROP_CREATED,
     PROP_LAST_EDITED_BY,
-    PROP_ENTITY_HOST_TYPE,            // not sent over wire
-    PROP_OWNING_AVATAR_ID,            // not sent over wire
+    PROP_ENTITY_HOST_TYPE,            // not sent over the wire
+    PROP_OWNING_AVATAR_ID,            // not sent over the wire
     PROP_PARENT_ID,
     PROP_PARENT_JOINT_INDEX,
     PROP_QUERY_AA_CUBE,
     PROP_CAN_CAST_SHADOW,
-    PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over wire
+    PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over the wire
     // Grab
     PROP_GRAB_GRABBABLE,
     PROP_GRAB_KINEMATIC,
@@ -291,6 +291,8 @@ enum EntityPropertyList {
     PROP_STROKE_NORMALS = PROP_DERIVED_2,
     PROP_STROKE_COLORS = PROP_DERIVED_3,
     PROP_IS_UV_MODE_STRETCH = PROP_DERIVED_4,
+    PROP_LINE_GLOW = PROP_DERIVED_5,
+    PROP_LINE_FACE_CAMERA = PROP_DERIVED_6,
 
     // Shape
     PROP_SHAPE = PROP_DERIVED_0,

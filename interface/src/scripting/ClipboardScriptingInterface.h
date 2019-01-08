@@ -63,7 +63,7 @@ public:
      * @param {Uuid[]} entityIDs Array of IDs of the entities to export.
      * @returns {boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
      */
-    Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
+    Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs);
     
     /**jsdoc
     * Export the entities with centers within a cube to a JSON file.
