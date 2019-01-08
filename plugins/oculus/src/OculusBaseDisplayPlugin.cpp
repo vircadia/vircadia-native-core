@@ -14,9 +14,6 @@
 #include <gl/Config.h>
 #include <shared/GlobalAppProperties.h>
 
-#define OVRPL_DISABLED
-#include <OVR_Platform.h>
-
 #include "OculusHelpers.h"
 
 using namespace hifi;

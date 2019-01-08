@@ -13,6 +13,9 @@
 
 #include <OVR_CAPI_GL.h>
 
+#define OVRPL_DISABLED
+#include <OVR_Platform.h>
+
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
@@ -48,7 +51,7 @@ protected:
     bool _isViewerEntitled;
     QString _nonce;
     QString _user;
-    uint64_t _userID;
+    ovrID _userID;
     ovrSession _session{ nullptr };
     ovrGraphicsLuid _luid;
     std::array<ovrEyeRenderDesc, 2> _eyeRenderDescs;
