@@ -66,6 +66,17 @@ const std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT> COMPONENT_MODES = { {
 using vec3Color = glm::vec3;
 using u8vec3Color = glm::u8vec3;
 
+struct EntityPropertyInfo {
+    EntityPropertyInfo(EntityPropertyList propEnum) :
+        propertyEnum(propEnum) {}
+    EntityPropertyInfo(EntityPropertyList propEnum, QVariant min, QVariant max) :
+        propertyEnum(propEnum), minimum(min), maximum(max) {}
+    EntityPropertyInfo() = default;
+    EntityPropertyList propertyEnum;
+    QVariant minimum;
+    QVariant maximum;
+};
+
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
@@ -103,6 +114,8 @@ public:
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
     static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
+
+    static bool getPropertyInfo(const QString& propertyName, EntityPropertyInfo& propertyInfo);
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
@@ -483,6 +496,9 @@ Q_DECLARE_METATYPE(EntityPropertyFlags);
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
 
+Q_DECLARE_METATYPE(EntityPropertyInfo);
+QScriptValue EntityPropertyInfoToScriptValue(QScriptEngine* engine, const EntityPropertyInfo& propertyInfo);
+void EntityPropertyInfoFromScriptValue(const QScriptValue& object, EntityPropertyInfo& propertyInfo);
 
 // define these inline here so the macros work
 inline void EntityItemProperties::setPosition(const glm::vec3& value)

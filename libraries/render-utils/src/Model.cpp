@@ -618,58 +618,11 @@ bool Model::findParabolaIntersectionAgainstSubMeshes(const glm::vec3& origin, co
     return intersectedSomething;
 }
 
-bool Model::convexHullContains(glm::vec3 point) {
-    // if we aren't active, we can't compute that yet...
-    if (!isActive()) {
-        return false;
-    }
-
-    // extents is the entity relative, scaled, centered extents of the entity
-    glm::vec3 position = _translation;
-    glm::mat4 rotation = glm::mat4_cast(_rotation);
-    glm::mat4 translation = glm::translate(position);
-    glm::mat4 modelToWorldMatrix = translation * rotation;
-    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
-
-    Extents modelExtents = getMeshExtents(); // NOTE: unrotated
-
-    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = -(dimensions * _registrationPoint);
-    AABox modelFrameBox(corner, dimensions);
-
-    glm::vec3 modelFramePoint = glm::vec3(worldToModelMatrix * glm::vec4(point, 1.0f));
-
-    // we can use the AABox's contains() by mapping our point into the model frame
-    // and testing there.
-    if (modelFrameBox.contains(modelFramePoint)){
-        QMutexLocker locker(&_mutex);
-
-        if (!_triangleSetsValid) {
-            calculateTriangleSets(getHFMModel());
-        }
-
-        // If we are inside the models box, then consider the submeshes...
-        glm::mat4 meshToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
-        glm::mat4 meshToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation) * meshToModelMatrix;
-        glm::mat4 worldToMeshMatrix = glm::inverse(meshToWorldMatrix);
-        glm::vec3 meshFramePoint = glm::vec3(worldToMeshMatrix * glm::vec4(point, 1.0f));
-
-        for (auto& meshTriangleSets : _modelSpaceMeshTriangleSets) {
-            for (auto &partTriangleSet : meshTriangleSets) {
-                const AABox& box = partTriangleSet.getBounds();
-                if (box.contains(meshFramePoint)) {
-                    if (partTriangleSet.convexHullContains(meshFramePoint)) {
-                        // It's inside this mesh, return true.
-                        return true;
-                    }
-                }
-            }
-        }
-
-
-    }
-    // It wasn't in any mesh, return false.
-    return false;
+glm::mat4 Model::getWorldToHFMMatrix() const {
+    glm::mat4 hfmToModelMatrix = glm::scale(_scale) * glm::translate(_offset);
+    glm::mat4 modelToWorldMatrix = createMatFromQuatAndPos(_rotation, _translation);
+    glm::mat4 worldToHFMMatrix = glm::inverse(modelToWorldMatrix * hfmToModelMatrix);
+    return worldToHFMMatrix;
 }
 
 // TODO: deprecate and remove

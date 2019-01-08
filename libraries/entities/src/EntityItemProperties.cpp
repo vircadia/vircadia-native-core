@@ -113,6 +113,7 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_SIMPLE_HULL);
     addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     addShapeType(SHAPE_TYPE_STATIC_MESH);
+    addShapeType(SHAPE_TYPE_ELLIPSOID);
 }
 
 QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;
@@ -2323,8 +2324,6 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
 
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
-    QScriptValue result = engine->newObject();
-    return result;
 }
 
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
@@ -2337,10 +2336,29 @@ QScriptValue EntityItemProperties::entityPropertyFlagsToScriptValue(QScriptEngin
     return result;
 }
 
-static QHash<QString, EntityPropertyList> _propertyStringsToEnums;
+void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
+    if (object.isString()) {
+        EntityPropertyInfo propertyInfo;
+        if (getPropertyInfo(object.toString(), propertyInfo)) {
+            flags << propertyInfo.propertyEnum;
+        }
+    }
+    else if (object.isArray()) {
+        quint32 length = object.property("length").toInt32();
+        for (quint32 i = 0; i < length; i++) {
+            QString propertyName = object.property(i).toString();
+            EntityPropertyInfo propertyInfo;
+            if (getPropertyInfo(propertyName, propertyInfo)) {
+                flags << propertyInfo.propertyEnum;
+            }
+        }
+    }
+}
+
+static QHash<QString, EntityPropertyInfo> _propertyInfos;
 static QHash<EntityPropertyList, QString> _enumsToPropertyStrings;
 
-void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
+bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPropertyInfo& propertyInfo) {
 
     static std::once_flag initMap;
 
@@ -2354,9 +2372,10 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
         ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, vec3);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DIMENSIONS, Dimensions, dimensions, vec3, ENTITY_ITEM_MIN_DIMENSION, FLT_MAX);
         ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, quat);
-        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3, 
+                                       ENTITY_ITEM_MIN_REGISTRATION_POINT, ENTITY_ITEM_MAX_REGISTRATION_POINT);
         ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
         ADD_PROPERTY_TO_MAP(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid);
         ADD_PROPERTY_TO_MAP(PROP_ENTITY_HOST_TYPE, EntityHostType, entityHostType, entity::HostType);
@@ -2392,15 +2411,20 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         }
 
         // Physics
-        ADD_PROPERTY_TO_MAP(PROP_DENSITY, Density, density, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DENSITY, Density, density, float, 
+                                       ENTITY_ITEM_MIN_DENSITY, ENTITY_ITEM_MAX_DENSITY);
         ADD_PROPERTY_TO_MAP(PROP_VELOCITY, Velocity, velocity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_GRAVITY, Gravity, gravity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ACCELERATION, Acceleration, acceleration, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_DAMPING, Damping, damping, float);
-        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
-        ADD_PROPERTY_TO_MAP(PROP_RESTITUTION, Restitution, restitution, float);
-        ADD_PROPERTY_TO_MAP(PROP_FRICTION, Friction, friction, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DAMPING, Damping, damping, float, 
+                                       ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, 
+                                       ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RESTITUTION, Restitution, restitution, float, 
+                                       ENTITY_ITEM_MIN_RESTITUTION, ENTITY_ITEM_MAX_RESTITUTION);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_FRICTION, Friction, friction, float, 
+                                       ENTITY_ITEM_MIN_FRICTION, ENTITY_ITEM_MAX_FRICTION);
         ADD_PROPERTY_TO_MAP(PROP_LIFETIME, Lifetime, lifetime, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
@@ -2442,46 +2466,71 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3, 
+                                       ENTITY_ITEM_MIN_DIMENSION, FLT_MAX);
 
         // Common
         ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, u8vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA, Alpha, alpha, float, particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
         ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
 
         // Particles
-        ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
-        ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, 
+                                       particle::MINIMUM_MAX_PARTICLES, particle::MAXIMUM_MAX_PARTICLES);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_LIFESPAN, Lifespan, lifespan, float, 
+                                       particle::MINIMUM_LIFESPAN, particle::MAXIMUM_LIFESPAN);
         ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, vec3);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_RATE, EmitRate, emitRate, float, 
+                                       particle::MINIMUM_EMIT_RATE, particle::MAXIMUM_EMIT_RATE);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, vec3, 
+                                       particle::MINIMUM_EMIT_SPEED, particle::MAXIMUM_EMIT_SPEED);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, vec3, 
+                                       particle::MINIMUM_EMIT_SPEED, particle::MAXIMUM_EMIT_SPEED);
         ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, quat);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_POLAR_START, EmitPolarStart, polarStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, vec3, 
+                                       particle::MINIMUM_EMIT_DIMENSION, particle::MAXIMUM_EMIT_DIMENSION);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float, 
+                                       particle::MINIMUM_EMIT_RADIUS_START, particle::MAXIMUM_EMIT_RADIUS_START);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_POLAR_START, EmitPolarStart, polarStart, float, 
+                                       particle::MINIMUM_POLAR, particle::MAXIMUM_POLAR);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float, 
+                                       particle::MINIMUM_POLAR, particle::MAXIMUM_POLAR);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float, 
+                                       particle::MINIMUM_AZIMUTH, particle::MAXIMUM_AZIMUTH);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float, 
+                                       particle::MINIMUM_AZIMUTH, particle::MAXIMUM_AZIMUTH);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, vec3, 
+                                       particle::MINIMUM_EMIT_ACCELERATION, particle::MAXIMUM_EMIT_ACCELERATION);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, vec3, 
+                                       particle::MINIMUM_ACCELERATION_SPREAD, particle::MAXIMUM_ACCELERATION_SPREAD);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RADIUS_START, RadiusStart, radiusStart, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3Color);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3Color);
         ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, 
+                                       particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA_START, AlphaStart, alphaStart, float, 
+                                       particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, 
+                                       particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
         ADD_PROPERTY_TO_MAP(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool);
-        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float);
-        ADD_PROPERTY_TO_MAP(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float);
-        ADD_PROPERTY_TO_MAP(PROP_SPIN_START, SpinStart, spinStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_SPIN_FINISH, SpinFinish, spinFinish, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPIN_START, SpinStart, spinStart, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPIN_FINISH, SpinFinish, spinFinish, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
         ADD_PROPERTY_TO_MAP(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, float);
 
         // Model
@@ -2508,7 +2557,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
         ADD_PROPERTY_TO_MAP(PROP_INTENSITY, Intensity, intensity, float);
         ADD_PROPERTY_TO_MAP(PROP_EXPONENT, Exponent, exponent, float);
-        ADD_PROPERTY_TO_MAP(PROP_CUTOFF, Cutoff, cutoff, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_CUTOFF, Cutoff, cutoff, float, 
+                                       LightEntityItem::MIN_CUTOFF, LightEntityItem::MAX_CUTOFF);
         ADD_PROPERTY_TO_MAP(PROP_FALLOFF_RADIUS, FalloffRadius, falloffRadius, float);
 
         // Text
@@ -2623,20 +2673,27 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float);
     });
 
-    if (object.isString()) {
-        auto enumIter = _propertyStringsToEnums.find(object.toString());
-        if (enumIter != _propertyStringsToEnums.end()) {
-            flags << enumIter.value();
-        }
-    } else if (object.isArray()) {
-        quint32 length = object.property("length").toInt32();
-        for (quint32 i = 0; i < length; i++) {
-            auto enumIter = _propertyStringsToEnums.find(object.property(i).toString());
-            if (enumIter != _propertyStringsToEnums.end()) {
-                flags << enumIter.value();
-            }
-        }
+    auto iter = _propertyInfos.find(propertyName);
+    if (iter != _propertyInfos.end()) {
+        propertyInfo = *iter;
+        return true;
     }
+
+    return false;
+}
+
+QScriptValue EntityPropertyInfoToScriptValue(QScriptEngine* engine, const EntityPropertyInfo& propertyInfo) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("propertyEnum", propertyInfo.propertyEnum);
+    obj.setProperty("minimum", propertyInfo.minimum.toString());
+    obj.setProperty("maximum", propertyInfo.maximum.toString());
+    return obj;
+}
+
+void EntityPropertyInfoFromScriptValue(const QScriptValue& object, EntityPropertyInfo& propertyInfo) {
+    propertyInfo.propertyEnum = (EntityPropertyList)object.property("propertyEnum").toVariant().toUInt();
+    propertyInfo.minimum = object.property("minimum").toVariant();
+    propertyInfo.maximum = object.property("maximum").toVariant();
 }
 
 // TODO: Implement support for edit packets that can span an MTU sized buffer. We need to implement a mechanism for the
