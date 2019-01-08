@@ -653,7 +653,8 @@ const GROUPS = [
             {
                 label: "Color",
                 type: "color",
-                propertyID: "color",
+                propertyID: "gridColor",
+                propertyName: "color", // actual entity property name
             },
             {
                 label: "Follow Camera",

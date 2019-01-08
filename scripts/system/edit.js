@@ -892,12 +892,6 @@ var toolBar = (function () {
         });
 
         addButton("newMaterialButton", createNewEntityDialogButtonCallback("Material"));
-        
-        addButton("newGridButton", function () {
-            createNewEntity({
-                type: "Grid",
-            });
-        });
 
         var deactivateCreateIfDesktopWindowsHidden = function() {
             if (!shouldUseEditTabletApp() && !entityListTool.isVisible() && !createToolsWindow.isVisible()) {
