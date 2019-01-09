@@ -543,9 +543,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     _stats.numDataPacketsSent += numPacketsSent;
     _stats.numDataBytesSent += numAvatarDataBytes;
 
-    // record the bytes sent for other avatar data in the AvatarMixerClientData
-    nodeData->recordSentAvatarData(numAvatarDataBytes);
-
     // close the current traits packet list
     traitsPacketList->closeCurrentPacket();
 
@@ -561,6 +558,10 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     if (identityBytesSent > 0) {
         nodeList->sendPacketList(std::move(identityPacketList), *destinationNode);
     }
+
+    // record the bytes sent for other avatar data in the AvatarMixerClientData
+    nodeData->recordSentAvatarData(numAvatarDataBytes, traitBytesSent);
+
 
     // record the number of avatars held back this frame
     nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
