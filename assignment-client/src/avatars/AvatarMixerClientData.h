@@ -42,6 +42,7 @@ public:
     AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID);
     virtual ~AvatarMixerClientData() {}
     using HRCTime = p_high_resolution_clock::time_point;
+    using PerNodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
 
     int parseData(ReceivedMessage& message) override;
     AvatarData& getAvatar() { return *_avatar; }
@@ -124,6 +125,7 @@ public:
     int processPackets(const SlaveSharedData& slaveSharedData); // returns number of packets processed
 
     void processSetTraitsMessage(ReceivedMessage& message, const SlaveSharedData& slaveSharedData, Node& sendingNode);
+    void processBulkAvatarTraitsAckMessage(ReceivedMessage& message);
     void checkSkeletonURLAgainstWhitelist(const SlaveSharedData& slaveSharedData, Node& sendingNode,
                                           AvatarTraits::TraitVersion traitVersion);
 
@@ -138,7 +140,14 @@ public:
     void setLastOtherAvatarTraitsSendPoint(Node::LocalID otherAvatar, TraitsCheckTimestamp sendPoint)
         { _lastSentTraitsTimestamps[otherAvatar] = sendPoint; }
 
-    AvatarTraits::TraitVersions& getLastSentTraitVersions(Node::LocalID otherAvatar) { return _sentTraitVersions[otherAvatar]; }
+    AvatarTraits::TraitMessageSequence getTraitsMessageSequence() const { return _currentTraitsMessageSequence; }
+    AvatarTraits::TraitMessageSequence nextTraitsMessageSequence() { return ++_currentTraitsMessageSequence; }
+    AvatarTraits::TraitVersions& getPendingTraitVersions(AvatarTraits::TraitMessageSequence seq, Node::LocalID otherId) {
+        return _perNodePendingTraitVersions[seq][otherId];
+    }
+
+    AvatarTraits::TraitVersions& getLastSentTraitVersions(Node::LocalID otherAvatar) { return _perNodeSentTraitVersions[otherAvatar]; }
+    AvatarTraits::TraitVersions& getLastAckedTraitVersions(Node::LocalID otherAvatar) { return _perNodeAckedTraitVersions[otherAvatar]; }
 
     void resetSentTraitData(Node::LocalID nodeID);
 
@@ -183,8 +192,27 @@ private:
     AvatarTraits::TraitVersions _lastReceivedTraitVersions;
     TraitsCheckTimestamp _lastReceivedTraitsChange;
 
+    AvatarTraits::TraitMessageSequence _currentTraitsMessageSequence{ 0 };
+
+    // Cache of trait versions sent in a given packet (indexed by sequence number)
+    // When an ack is received, the sequence number in the ack is used to look up
+    // the sent trait versions and they are copied to _perNodeAckedTraitVersions.
+    // We remember the data in _perNodePendingTraitVersions instead of requiring
+    // the client to return all of the versions for each trait it received in a given packet,
+    // reducing the size of the ack packet.
+    std::unordered_map<AvatarTraits::TraitMessageSequence, PerNodeTraitVersions> _perNodePendingTraitVersions;
+
+    // Versions of traits that have been acked, which will be compared to incoming
+    // trait updates.  Incoming updates going to a given node will be ignored if 
+    // the ack for the previous packet (containing those versions) has not been
+    // received.
+    PerNodeTraitVersions _perNodeAckedTraitVersions;
+
     std::unordered_map<Node::LocalID, TraitsCheckTimestamp> _lastSentTraitsTimestamps;
-    std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions> _sentTraitVersions;
+
+    // cache of traits sent to a node which are compared to incoming traits to 
+    // prevent sending traits that have already been sent.
+    PerNodeTraitVersions _perNodeSentTraitVersions;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
 };

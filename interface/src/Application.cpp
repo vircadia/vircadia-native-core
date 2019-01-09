@@ -2060,7 +2060,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["avatar_ping"] = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
         properties["asset_ping"] = assetServerNode ? assetServerNode->getPingMs() : -1;
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
-        properties["atp_in_kbps"] = messagesMixerNode ? assetServerNode->getInboundKbps() : 0.0f;
+        properties["atp_in_kbps"] = assetServerNode ? assetServerNode->getInboundKbps() : 0.0f;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
 
