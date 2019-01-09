@@ -27,6 +27,7 @@
 #include <SettingHandle.h>
 #include <OffscreenUi.h>
 #include <GLMHelpers.h>
+#include <AvatarConstants.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <ui-plugins/PluginContainer.h>
@@ -1024,7 +1025,16 @@ void ViveControllerManager::InputDevice::handleHeadPoseEvent(const controller::I
     //perform a 180 flip to make the HMD face the +z instead of -z, beacuse the head faces +z
     glm::mat4 matYFlip = mat * Matrices::Y_180;
     controller::Pose pose(extractTranslation(matYFlip), glmExtractRotation(matYFlip), linearVelocity, angularVelocity);
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+
+    glm::mat4 defaultHeadOffset;
+    if (inputCalibrationData.hmdAvatarAlignmentType == controller::HmdAvatarAlignmentType::Eyes) {
+        // align the eyes of the user with the eyes of the avatar
+        defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+    } else {
+        // align the head of the user with the head of the avatar
+        defaultHeadOffset = createMatFromQuatAndPos(Quaternions::IDENTITY, -DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET);
+    }
+
     glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);
 }

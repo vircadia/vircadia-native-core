@@ -36,6 +36,7 @@ Rectangle {
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
     property alias otherAvatarsCollisionsOn: otherAvatarsCollisionsEnabledCheckBox.checked
+    property alias hmdAvatarAlignmentTypeIsEyes: eyesRadioButton.checked
     property alias environmentCollisionsOn: environmentCollisionsEnabledCheckBox.checked
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
@@ -60,6 +61,11 @@ Rectangle {
         }
         if (settings.collisionsEnabled) {
             environmentCollisionsEnabledCheckBox.checked = true;
+        }
+        if (settings.hmdAvatarAlignmentType === 'eyes') {
+            eyesRadioButton.checked = true;
+        } else {
+            headRadioButton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -256,7 +262,7 @@ Rectangle {
                 text: "Right"
                 boxSize: 20
             }
-            
+
             HifiConstants {
                 id: hifi
             }
@@ -294,6 +300,52 @@ Rectangle {
                 Layout.leftMargin: 60
                 colorScheme: hifi.colorSchemes.light
             }
+
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
+                Layout.row: 4
+                Layout.column: 0
+                text: "HMD Alignment"
+            }
+
+            ButtonGroup {
+                id: headEyes
+            }
+
+            HifiControlsUit.RadioButton {
+                id: headRadioButton
+
+                Layout.row: 4
+                Layout.column: 1
+                Layout.leftMargin: -40
+
+                ButtonGroup.group: headEyes
+                checked: true
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Head"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: eyesRadioButton
+
+                Layout.row: 4
+                Layout.column: 2
+                Layout.rightMargin: 20
+
+                ButtonGroup.group: headEyes
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Eyes"
+                boxSize: 20
+            }
+
         }
 
         ColumnLayout {

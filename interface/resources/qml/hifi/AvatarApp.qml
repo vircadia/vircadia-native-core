@@ -254,6 +254,7 @@ Rectangle {
         onSaveClicked: function() {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
+                hmdAvatarAlignmentType : settings.hmdAvatarAlignmentTypeIsEyes ? 'eyes' : 'head',
                 collisionsEnabled : settings.environmentCollisionsOn,
                 otherAvatarsCollisionsEnabled : settings.otherAvatarsCollisionsOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
