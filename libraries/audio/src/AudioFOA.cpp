@@ -695,7 +695,7 @@ static void ifft_radix8_first(complex_t* x, complex_t* y, int n, int p) {
 // n >= 4
 static void rfft_post(complex_t* x, const complex_t* w, int n) {
 
-    size_t t = n/4;
+    int t = n/4;
     assert(t >= 1);
 
     // NOTE: x[n/2].re is packed into x[0].im
@@ -707,7 +707,7 @@ static void rfft_post(complex_t* x, const complex_t* w, int n) {
     complex_t* xp0 = &x[1];
     complex_t* xp1 = &x[n/2 - 1];
 
-    for (size_t i = 0; i < t; i++) {
+    for (int i = 0; i < t; i++) {
 
         float ar = xp0[i].re;
         float ai = xp0[i].im;
@@ -743,7 +743,7 @@ static void rfft_post(complex_t* x, const complex_t* w, int n) {
 // n >= 4
 static void rifft_pre(complex_t* x, const complex_t* w, int n) {
 
-    size_t t = n/4;
+    int t = n/4;
     assert(t >= 1);
 
     // NOTE: x[n/2].re is packed into x[0].im
@@ -755,7 +755,7 @@ static void rifft_pre(complex_t* x, const complex_t* w, int n) {
     complex_t* xp0 = &x[1];
     complex_t* xp1 = &x[n/2 - 1];
 
-    for (size_t i = 0; i < t; i++) {
+    for (int i = 0; i < t; i++) {
 
         float ar = xp0[i].re;
         float ai = xp0[i].im;
