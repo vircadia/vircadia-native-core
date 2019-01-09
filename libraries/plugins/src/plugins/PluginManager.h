@@ -28,7 +28,7 @@ public:
     const InputPluginList& getInputPlugins();
     const CodecPluginList& getCodecPlugins();
     const SteamClientPluginPointer getSteamClientPlugin();
-    const OculusDisplayPluginPointer getOculusDisplayPlugin();
+    const OculusPlatformPluginPointer getOculusPlatformPlugin();
 
     DisplayPluginList getPreferredDisplayPlugins();
     void setPreferredDisplayPlugins(const QStringList& displays);

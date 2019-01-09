@@ -43,7 +43,6 @@ protected:
     bool internalActivate() override;
     void internalDeactivate() override;
     void updatePresentPose() override;
-    void handleOVREvents();
 
 protected:
     bool _isViewerEntitled;

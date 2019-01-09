@@ -18,6 +18,7 @@
 
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/OculusPlatformPlugin.h>
 #include <shared/GlobalAppProperties.h>
 #include <ui/TabletScriptingInterface.h>
 #include <UserActivityLogger.h>
@@ -105,8 +106,8 @@ bool LoginDialog::isSteamRunning() const {
 }
 
 bool LoginDialog::isOculusRunning() const {
-    auto oculusDisplay = PluginManager::getInstance()->getOculusDisplayPlugin();
-    return (oculusDisplay != nullptr);
+    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
+    return (oculusPlatform != nullptr);
 }
 
 void LoginDialog::dismissLoginDialog() {
@@ -124,8 +125,8 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 
 void LoginDialog::loginThroughOculus() {
     qDebug() << "Attempting to login through Oculus";
-    if (auto oculusDisplay = PluginManager::getInstance()->getOculusDisplayPlugin()) {
-        oculusDisplay->requestTicket([this](QString nonce, QString userID) {
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        //oculusPlatform->requestTicket([this](QString nonce, QString userID) {
         //    if (nonce.isEmpty() || userID.isEmpty()) {
         //        emit handleLoginFailed();
         //        return;
@@ -138,8 +139,8 @@ void LoginDialog::loginThroughOculus() {
 
 void LoginDialog::linkOculus() {
     qDebug() << "Attempting to link Oculus account";
-    if (auto oculusDisplay = PluginManager::getInstance()->getOculusDisplayPlugin()) {
-        //oculusDisplay->requestTicket([this](QString nonce, QString userID) {
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        //oculusPlatform->requestTicket([this](QString nonce, QString userID) {
         //    if (nonce.isEmpty() || userID.isEmpty()) {
         //        emit handleLoginFailed();
         //        return;
@@ -165,8 +166,8 @@ void LoginDialog::linkOculus() {
 
 void LoginDialog::createAccountFromOculus(QString username) {
     qDebug() << "Attempting to create account from Oculus info";
-    if (auto oculusDisplay = PluginManager::getInstance()->getOculusDisplayPlugin()) {
-        //oculusDisplay->requestTicket([this, username](QString nonce, QString userID) {
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        //oculusPlatform->requestTicket([this, username](QString nonce, QString userID) {
         //    if (nonce.isEmpty() || userID.isEmpty()) {
         //        emit handleLoginFailed();
         //        return;
