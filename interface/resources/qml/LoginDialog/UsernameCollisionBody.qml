@@ -26,6 +26,10 @@ Item {
     readonly property int textFieldFontSize: 18
     readonly property bool fontBold: true
 
+    readonly property bool withSteam: withSteam
+
+    readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+
     function create() {
         mainTextContainer.visible = false
         loginDialog.createAccountFromSteam(textField.text);
@@ -197,18 +201,40 @@ Item {
         target: loginDialog
         onHandleCreateCompleted: {
             console.log("Create Succeeded");
-            loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false })
+            if (usernameCollisionBody.withSteam) {
+                if (usernameCollisionBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user created a profile with Steam successfully in the username collision screen"
+                    }
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+
+                loginDialog.loginThroughSteam();
+            }
+
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": usernameCollisionBody.withSteam, "linkSteam": false })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)
+            if (usernameCollisionBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user failed to create account from the username collision screen"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
+
 
             mainTextContainer.visible = true
             mainTextContainer.text = "\"" + textField.text + qsTr("\" is invalid or already taken.");
         }
         onHandleLoginCompleted: {
             console.log("Login Succeeded");
-            if (loginDialog.getLoginDialogPoppedUp()) {
+            if (usernameCollisionBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user logged in successfully from the username collision screen"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+
                 loginDialog.dismissLoginDialog();
             }
             root.tryDestroy();
@@ -216,6 +242,13 @@ Item {
 
         onHandleLoginFailed: {
             console.log("Login Failed")
+            if (usernameCollisionBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user failed to log in from the username collision screen"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
+
             mainTextContainer.text = "Login Failed";
         }
 
