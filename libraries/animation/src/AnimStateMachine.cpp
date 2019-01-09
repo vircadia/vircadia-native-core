@@ -22,7 +22,7 @@ AnimStateMachine::~AnimStateMachine() {
 }
 
 const AnimPoseVec& AnimStateMachine::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-
+    qCDebug(animation) << "evaluating state machine";
     float parentDebugAlpha = context.getDebugAlpha(_id);
 
     QString desiredStateID = animVars.lookup(_currentStateVar, _currentState->getID());

@@ -63,6 +63,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::DefaultPose: return "defaultPose";
     case AnimNode::Type::TwoBoneIK: return "twoBoneIK";
+    case AnimNode::Type::SplineIK: return "splineIK";
     case AnimNode::Type::PoleVectorConstraint: return "poleVectorConstraint";
     case AnimNode::Type::NumTypes: return nullptr;
     };
