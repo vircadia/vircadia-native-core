@@ -1,0 +1,95 @@
+//
+//  Created by Wayne Chen on 2019/01/08
+//  Copyright 2019 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "OculusPlatformPlugin.h"
+
+#include <shared/GlobalAppProperties.h>
+
+#include <QMetaObject>
+
+#include "OculusHelpers.h"
+
+const char* OculusAPIPlugin::NAME { "Oculus Rift" };
+
+OculusAPIPlugin::OculusAPIPlugin() {
+    _session = hifi::ovr::acquireRenderSession();
+}
+
+OculusAPIPlugin::~OculusAPIPlugin() {
+    hifi::ovr::releaseRenderSession(_session);
+}
+
+void OculusAPIPlugin::handleOVREvents() {
+#ifdef OCULUS_APP_ID
+    if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
+        // pop messages to see if we got a return for an entitlement check
+        ovrMessageHandle message = ovr_PopMessage();
+
+        while (message) {
+            switch (ovr_Message_GetType(message)) {
+                case ovrMessage_Entitlement_GetIsViewerEntitled: {
+                    if (!ovr_Message_IsError(message)) {
+                        // this viewer is entitled, no need to flag anything
+                        qCDebug(oculusLog) << "Oculus Platform entitlement check succeeded, proceeding normally";
+                    } else {
+                        // we failed the entitlement check, quit
+                        qCDebug(oculusLog) << "Oculus Platform entitlement check failed, app will now quit" << OCULUS_APP_ID;
+                        QMetaObject::invokeMethod(qApp, "quit");
+                    }
+                    break;
+                }
+                case ovrMessage_User_Get: {
+                    if (!ovr_Message_IsError(message)) {
+                        qCDebug(oculusLog) << "Oculus Platform user retrieval succeeded";
+                        ovrUserHandle user = ovr_Message_GetUser(message);
+                        ovr_FreeMessage(message);
+                        _user = ovr_User_GetOculusID(user);
+                    } else {
+                        qCDebug(oculusLog) << "Oculus Platform user retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                        _user = "";
+                    }
+                    break;
+                }
+                case ovrMessage_User_GetLoggedInUser: {
+                    if (!ovr_Message_IsError(message)) {
+                        ovrUserHandle user = ovr_Message_GetUser(message);
+                        ovr_FreeMessage(message);
+                        _userID = ovr_User_GetID(user);
+                    } else {
+                        qCDebug(oculusLog) << "Oculus Platform user ID retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                    }
+                    break;
+                }
+                case ovrMessage_User_GetUserProof: {
+                    _nonceChanged = true;
+                    if (!ovr_Message_IsError(message)) {
+                        ovrUserProofHandle userProof = ovr_Message_GetUserProof(message);
+                        _nonce = ovr_UserProof_GetNonce(userProof);
+                    } else {
+                        qCDebug(oculusLog) << "Oculus Platform nonce retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                        _nonce = "";
+                    }
+                    break;
+                }
+            }
+
+            if (_nonceChanged) {
+                emit nonceAndUserIDChanged(_nonce, _user);
+                _nonce = _user = "";
+                _nonceChanged = false;
+            }
+
+            // free the message handle to cleanup and not leak
+            ovr_FreeMessage(message);
+
+            // pop the next message to check, if there is one
+            message = ovr_PopMessage();
+        }
+    }
+#endif
+}

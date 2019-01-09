@@ -179,19 +179,20 @@ const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
     return steamClientPlugin;
 }
 
-const OculusDisplayPluginPointer PluginManager::getOculusDisplayPlugin() {
-    static OculusDisplayPluginPointer oculusDisplayPlugin;
+const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
+    static OculusPlatformPluginPointer oculusPlatformPlugin;
     static std::once_flag once;
     std::call_once(once, [&] {
-        // Now grab the display plugins - might break in the main update loop if user unplugs the headset I think?
-        for (auto plugin : getDisplayPlugins()) {
-            if (plugin->getName() == "Oculus Rift") {
-                oculusDisplayPlugin = plugin;
+        // Now grab the dynamic plugins
+        for (auto loader : getLoadedPlugins()) {
+            OculusPlatformProvider* oculusPlatformProvider = qobject_cast<OculusPlatformProvider*>(loader->instance());
+            if (oculusPlatformProvider) {
+                oculusPlatformPlugin = oculusPlatformProvider->getOculusPlatformPlugin();
                 break;
             }
         }
     });
-    return oculusDisplayPlugin;
+    return oculusPlatformPlugin;
 }
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {

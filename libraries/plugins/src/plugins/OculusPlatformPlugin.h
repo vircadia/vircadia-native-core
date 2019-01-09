@@ -7,30 +7,21 @@
 //
 #pragma once
 
-#include <QtCore/QByteArray>
+#include <QObject>
 #include <QtCore/QString>
 
 #include <functional>
 
-using OculusTicketRequestCallback = std::function<void(QString, QString)>;
-
-
-class OculusPlatformPlugin {
+class OculusPlatformPlugin : public QObject {
+    Q_OBJECT
 public:
-    virtual ~OculusPlatformPlugin() = default;
+    OculusPlatformPlugin();
+    virtual ~OculusPlatformPlugin();
 
-    virtual bool init() = 0;
-    virtual void shutdown() = 0;
+    virtual const QString getName() const = 0;
 
-    virtual bool isRunning() = 0;
+    virtual void handleOVREvents() = 0;
 
-    virtual void runCallbacks() = 0;
-
-    virtual void requestTicket(OculusTicketRequestCallback callback) = 0;
-
-    virtual QString getUserProof() = 0;
-
-    virtual QString getLoggedInUserID() = 0;
-
-    virtual QString getOculusVRBuildID() = 0;
+signals:
+    void nonceAndUserIDChanged(QString nonce, QString userID);
 };

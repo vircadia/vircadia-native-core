@@ -120,6 +120,7 @@
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/OculusPlatformPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <render/EngineStats.h>
@@ -5947,8 +5948,8 @@ void Application::update(float deltaTime) {
             }
         }
 
-        if (auto oculusPlugin = PluginManager::getInstance()->getOculusDisplayPlugin()) {
-            oculusPlugin->pluginUpdate();
+        if (auto oculusPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+            oculusPlugin->handleOVREvents();
         }
 
         userInputMapper->setInputCalibrationData(calibrationData);

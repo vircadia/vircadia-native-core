@@ -23,7 +23,6 @@ public:
     float getTargetFrameRate() const override;
 
     virtual QJsonObject getHardwareStats() const;
-    void pluginUpdate() override final;
 
 protected:
     QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }

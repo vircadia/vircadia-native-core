@@ -56,10 +56,6 @@ void OculusDisplayPlugin::init() {
     emit deviceConnected(getName());
 }
 
-void OculusDisplayPlugin::pluginUpdate() {
-    handleOVREvents();
-}
-
 void OculusDisplayPlugin::cycleDebugOutput() {
     if (_session) {
         currentDebugMode = static_cast<ovrPerfHudMode>((currentDebugMode + 1) % ovrPerfHud_Count);
