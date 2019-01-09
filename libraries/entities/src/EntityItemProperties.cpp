@@ -393,6 +393,32 @@ void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMo
     }
 }
 
+QHash<QString, WebInputMode> stringToWebInputModeLookup;
+
+void addWebInputMode(WebInputMode mode) {
+    stringToWebInputModeLookup[WebInputModeHelpers::getNameForWebInputMode(mode)] = mode;
+}
+
+void buildStringToWebInputModeLookup() {
+    addWebInputMode(WebInputMode::TOUCH);
+    addWebInputMode(WebInputMode::MOUSE);
+}
+
+QString EntityItemProperties::getInputModeAsString() const {
+    return WebInputModeHelpers::getNameForWebInputMode(_inputMode);
+}
+
+void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
+    if (stringToWebInputModeLookup.empty()) {
+        buildStringToWebInputModeLookup();
+    }
+    auto webInputModeItr = stringToWebInputModeLookup.find(webInputMode.toLower());
+    if (webInputModeItr != stringToWebInputModeLookup.end()) {
+        _inputMode = webInputModeItr.value();
+        _inputModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -419,6 +445,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
     CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
     CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
+    CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -573,6 +600,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     // Web
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_URL, scriptURL);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_FPS, maxFPS);
+    CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -658,6 +688,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
  * @property {RenderLayer} renderLayer="world" - In which layer this entity renders.
  * @property {PrimitiveMode} primitiveMode="solid" - How this entity's geometry is rendered.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the entity.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -1259,6 +1290,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
  *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
  *     you get the resolution in pixels.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web content, in frames/second.
+ * @property {WebInputMode} inputMode="touch" - The user input mode to use.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1467,6 +1501,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1656,6 +1691,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Web) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_URL, scriptURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_FPS, maxFPS);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
     }
 
     // PolyVoxel only
@@ -1851,6 +1889,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(ignorePickIntersection, bool, setIgnorePickIntersection);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -2010,6 +2049,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     // Web
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptURL, QString, setScriptURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxFPS, uint8_t, setMaxFPS);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -2113,6 +2155,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(isVisibleInSecondaryCamera);
     COPY_PROPERTY_IF_CHANGED(renderLayer);
     COPY_PROPERTY_IF_CHANGED(primitiveMode);
+    COPY_PROPERTY_IF_CHANGED(ignorePickIntersection);
     _grab.merge(other._grab);
 
     // Physics
@@ -2267,6 +2310,9 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     // Web
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(dpi);
+    COPY_PROPERTY_IF_CHANGED(scriptURL);
+    COPY_PROPERTY_IF_CHANGED(maxFPS);
+    COPY_PROPERTY_IF_CHANGED(inputMode);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2387,6 +2433,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
         ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
         ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
+        ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2637,6 +2684,9 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         // Web
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t);
+        ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -2819,6 +2869,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, properties.getIsVisibleInSecondaryCamera()); // not sent over the wire
             APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
             APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
+            APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -3002,6 +3053,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             if (properties.getType() == EntityTypes::Web) {
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
+                APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, properties.getScriptURL());
+                APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, properties.getMaxFPS());
+                APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -3263,6 +3317,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera); // not sent over the wire
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3435,6 +3490,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Web) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_URL, QString, setScriptURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_FPS, uint8_t, setMaxFPS);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -3648,6 +3706,7 @@ void EntityItemProperties::markAllChanged() {
     _isVisibleInSecondaryCameraChanged = true;
     _renderLayerChanged = true;
     _primitiveModeChanged = true;
+    _ignorePickIntersectionChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -3795,6 +3854,9 @@ void EntityItemProperties::markAllChanged() {
     // Web
     _sourceUrlChanged = true;
     _dpiChanged = true;
+    _scriptURLChanged = true;
+    _maxFPSChanged = true;
+    _inputModeChanged = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -4026,6 +4088,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (primitiveModeChanged()) {
         out += "primitiveMode";
+    }
+    if (ignorePickIntersectionChanged()) {
+        out += "ignorePickIntersection";
     }
     getGrab().listChangedProperties(out);
 
@@ -4405,6 +4470,15 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (dpiChanged()) {
         out += "dpi";
+    }
+    if (scriptURLChanged()) {
+        out += "scriptURL";
+    }
+    if (maxFPSChanged()) {
+        out += "maxFPS";
+    }
+    if (inputModeChanged()) {
+        out += "inputMode";
     }
 
     // Polyline

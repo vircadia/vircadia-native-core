@@ -30,29 +30,33 @@
 #include <ShapeInfo.h>
 #include <ColorUtils.h>
 
-#include "AnimationPropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
 #include "EntityPsuedoPropertyFlags.h"
-#include "LightEntityItem.h"
-#include "LineEntityItem.h"
-#include "ParticleEffectEntityItem.h"
-#include "PolyVoxEntityItem.h"
 #include "SimulationOwner.h"
+
+#include "TextEntityItem.h"
+#include "WebEntityItem.h"
+#include "ParticleEffectEntityItem.h"
+#include "LineEntityItem.h"
+#include "PolyVoxEntityItem.h"
+#include "GridEntityItem.h"
+#include "LightEntityItem.h"
+#include "ZoneEntityItem.h"
+
+#include "AnimationPropertyGroup.h"
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
 #include "BloomPropertyGroup.h"
-#include "TextEntityItem.h"
-#include "ZoneEntityItem.h"
-#include "GridEntityItem.h"
 
 #include "MaterialMappingMode.h"
 #include "BillboardMode.h"
 #include "RenderLayer.h"
 #include "PrimitiveMode.h"
+#include "WebInputMode.h"
 
 const quint64 UNKNOWN_CREATED_TIME = 0;
 
@@ -167,6 +171,7 @@ public:
     DEFINE_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool, ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA);
     DEFINE_PROPERTY_REF_ENUM(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer, RenderLayer::WORLD);
     DEFINE_PROPERTY_REF_ENUM(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode, PrimitiveMode::SOLID);
+    DEFINE_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool, false);
     DEFINE_PROPERTY_GROUP(Grab, grab, GrabPropertyGroup);
 
     // Physics
@@ -319,8 +324,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
 
     // Web
-    DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
+    DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, WebEntityItem::DEFAULT_SOURCE_URL);
     DEFINE_PROPERTY_REF(PROP_DPI, DPI, dpi, uint16_t, ENTITY_ITEM_DEFAULT_DPI);
+    DEFINE_PROPERTY_REF(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t, WebEntityItem::DEFAULT_MAX_FPS);
+    DEFINE_PROPERTY_REF_ENUM(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode, WebInputMode::TOUCH);
 
     // Polyline
     DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);

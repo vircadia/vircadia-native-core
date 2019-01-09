@@ -13,8 +13,6 @@
 
 class WebEntityItem : public EntityItem {
 public:
-    static const QString DEFAULT_SOURCE_URL;
-
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     WebEntityItem(const EntityItemID& entityItemID);
@@ -54,11 +52,14 @@ public:
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const override;
 
+    static const QString DEFAULT_SOURCE_URL;
     virtual void setSourceUrl(const QString& value);
     QString getSourceUrl() const;
 
     void setDPI(uint16_t value);
     uint16_t getDPI() const;
+
+    static const uint8_t DEFAULT_MAX_FPS;
 
 protected:
     QString _sourceUrl;
