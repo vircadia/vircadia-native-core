@@ -767,6 +767,9 @@ void AvatarMixer::sendStatsPacket() {
 
     float averageOverBudgetAvatars = averageNodes ? aggregateStats.overBudgetAvatars / averageNodes : 0.0f;
     slavesAggregatObject["sent_3_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
+    slavesAggregatObject["sent_4_averageDataBytes"] = TIGHT_LOOP_STAT(aggregateStats.numDataBytesSent);
+    slavesAggregatObject["sent_5_averageAvatarEntityBytes"] = TIGHT_LOOP_STAT(aggregateStats.numTraitsBytesSent);
+    slavesAggregatObject["sent_4_averageIdentityBytes"] = TIGHT_LOOP_STAT(aggregateStats.numIdentityBytesSent);
 
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
@@ -775,7 +778,7 @@ void AvatarMixer::sendStatsPacket() {
     slavesAggregatObject["timing_5_packetSending"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.packetSendingElapsedTime);
     slavesAggregatObject["timing_6_jobElapsedTime"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.jobElapsedTime);
 
-    statsObject["slaves_aggregate"] = slavesAggregatObject;
+    statsObject["slaves_aggregate (per frame)"] = slavesAggregatObject;
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarIdentityPacketElapsedTime = 0;

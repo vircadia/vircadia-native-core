@@ -73,7 +73,8 @@ int AvatarMixerSlave::sendIdentityPacket(NLPacketList& packetList, const AvatarM
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
         packetList.write(individualData);
-        _stats.numIdentityPackets++;
+        _stats.numIdentityPacketsSent++;
+        _stats.numIdentityBytesSent += individualData.size();
         return individualData.size();
     } else {
         return 0;
@@ -109,7 +110,6 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
         while (simpleReceivedIt != lastReceivedVersions.simpleCEnd()) {
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(lastReceivedVersions.simpleCBegin(),
                                                                                 simpleReceivedIt));
-
             auto lastReceivedVersion = *simpleReceivedIt;
             auto& lastSentVersionRef = lastSentVersions[traitType];
 
@@ -191,7 +191,8 @@ int AvatarMixerSlave::sendReplicatedIdentityPacket(const Node& agentNode, const 
         auto identityPacket = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
         identityPacket->write(individualData);
         DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPacket), destinationNode);
-        _stats.numIdentityPackets++;
+        _stats.numIdentityPacketsSent++;
+        _stats.numIdentityBytesSent += individualData.size();
         return individualData.size();
     } else {
         return 0;
@@ -539,8 +540,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         ++numPacketsSent;
     }
 
-    _stats.numPacketsSent += numPacketsSent;
-    _stats.numBytesSent += numAvatarDataBytes;
+    _stats.numDataPacketsSent += numPacketsSent;
+    _stats.numDataBytesSent += numAvatarDataBytes;
 
     // record the bytes sent for other avatar data in the AvatarMixerClientData
     nodeData->recordSentAvatarData(numAvatarDataBytes);
@@ -550,6 +551,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     if (traitsPacketList->getNumPackets() >= 1) {
         // send the traits packet list
+        _stats.numTraitsBytesSent += traitBytesSent;
+        _stats.numTraitsPacketsSent += (int) traitsPacketList->getNumPackets();
         nodeList->sendPacketList(std::move(traitsPacketList), *destinationNode);
     }
 
@@ -685,8 +688,8 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
         // close the current packet so that we're always sending something
         avatarPacketList->closeCurrentPacket(true);
 
-        _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
-        _stats.numBytesSent += numAvatarDataBytes;
+        _stats.numDataPacketsSent += (int)avatarPacketList->getNumPackets();
+        _stats.numDataBytesSent += numAvatarDataBytes;
 
         // send the replicated bulk avatar data
         auto nodeList = DependencyManager::get<NodeList>();
