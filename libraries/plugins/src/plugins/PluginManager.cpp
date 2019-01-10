@@ -47,26 +47,17 @@ PluginManagerPointer PluginManager::getInstance() {
 QString getPluginNameFromMetaData(const QJsonObject& object) {
     static const char* METADATA_KEY = "MetaData";
     static const char* NAME_KEY = "name";
-    if (!object.contains(METADATA_KEY) || !object[METADATA_KEY].isObject()) {
-        return QString();
-    }
     return object[METADATA_KEY][NAME_KEY].toString("");
 }
 
 QString getPluginIIDFromMetaData(const QJsonObject& object) {
     static const char* IID_KEY = "IID";
-    if (!object.contains(IID_KEY) || !object[IID_KEY].isString()) {
-        return QString();
-    }
-    return object[IID_KEY].toString();
+    return object[IID_KEY].toString("");
 }
 
 int getPluginInterfaceVersionFromMetaData(const QJsonObject& object) {
     static const QString METADATA_KEY = "MetaData";
     static const QString NAME_KEY = "version";
-    if (!object.contains(METADATA_KEY) || !object[METADATA_KEY].isObject()) {
-        return 0;
-    }
     return object[METADATA_KEY][NAME_KEY].toInt(0);
 }
 
