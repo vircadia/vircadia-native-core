@@ -724,6 +724,8 @@ const QString TEST_RESULTS_LOCATION_COMMAND{ "--testResultsLocation" };
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
+    qInstallMessageHandler(messageHandler);
+
     // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
     // --allowMultipleInstances
     auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
@@ -974,6 +976,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
+    _logger(new FileLogger(this)),
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
@@ -1062,9 +1065,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-
-    _logger = new FileLogger(this);
-    qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/fontawesome-webfont.ttf");
