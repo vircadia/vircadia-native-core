@@ -71,6 +71,24 @@ QString getPluginIIDFromMetaData(QJsonObject object) {
     return object[IID_KEY].toString();
 }
 
+int getPluginInterfaceVersionFromMetaData(QJsonObject object) {
+    static const char* METADATA_KEY = "MetaData";
+    static const char* NAME_KEY = "version";
+
+    if (!object.contains(METADATA_KEY) || !object[METADATA_KEY].isObject()) {
+        return 0;
+    }
+
+    auto metaDataObject = object[METADATA_KEY].toObject();
+
+    if (!metaDataObject.contains(NAME_KEY) || !metaDataObject[NAME_KEY].isDouble()) {
+        return 0;
+    }
+
+    return (int)(metaDataObject[NAME_KEY].toDouble());
+}
+
+
 QStringList preferredDisplayPlugins;
 QStringList disabledDisplays;
 QStringList disabledInputs;
@@ -122,7 +140,11 @@ const LoaderList& getLoadedPlugins() {
                     continue;
                 }
 
-                if (loader->load()) {
+                if (getPluginInterfaceVersionFromMetaData(loader->metaData()) != HIFI_PLUGIN_INTERFACE_VERSION) {
+                    qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "interface version doesn't match, not loading:"
+                                     << getPluginInterfaceVersionFromMetaData(loader->metaData())
+                                     << "doesn't match" << HIFI_PLUGIN_INTERFACE_VERSION;
+                } else if (loader->load()) {
                     qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "loaded successfully";
                     loadedPlugins.push_back(loader);
                 } else {

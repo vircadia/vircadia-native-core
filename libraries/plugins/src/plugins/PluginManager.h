@@ -61,3 +61,5 @@ private:
     DisplayPluginList _displayPlugins;
     InputPluginList _inputPlugins;
 };
+
+static const int HIFI_PLUGIN_INTERFACE_VERSION = 1;
