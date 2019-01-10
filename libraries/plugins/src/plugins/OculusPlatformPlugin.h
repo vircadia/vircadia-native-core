@@ -15,17 +15,11 @@ using NonceUserIDCallback = std::function<void(QString, QString)>;
 
 class OculusPlatformPlugin {
 public:
-    OculusPlatformPlugin();
-    virtual ~OculusPlatformPlugin();
+    virtual ~OculusPlatformPlugin() = default;
 
     virtual const QString getName() const = 0;
 
     virtual void requestNonceAndUserID(NonceUserIDCallback callback) = 0;
 
     virtual void handleOVREvents() = 0;
-
-signals:
-    void loginReady(QString nonce, QString userID);
-    void linkAccountReady(QString nonce, QString userID);
-    void createAccountReady(QString nonce, QString userID);
 };
