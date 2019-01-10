@@ -24,8 +24,8 @@ OculusAPIPlugin::~OculusAPIPlugin() {
     hifi::ovr::releaseRenderSession(_session);
 }
 
-void OculusAPIPlugin::requestNonceAndUserID(LoginState loginState) {
-    _loginState = loginState;
+void OculusAPIPlugin::requestNonceAndUserID(NonceUserIDCallback callback) {
+    _nonceUserIDCallback = callback;
     ovr_User_GetUserProof();
     ovr_User_GetLoggedInUser();
 }
@@ -91,17 +91,7 @@ void OculusAPIPlugin::handleOVREvents() {
             }
 
             if (_nonceChanged) {
-                switch (_loginState) {
-                    case LoginState::LOGIN:
-                        emit loginReady(_nonce, _user);
-                        break;
-                    case LoginState::LINK_ACCOUNT:
-                        emit linkAccountReady(_nonce, _user);
-                        break;
-                    case LoginState::CREATE_ACCOUNT:
-                        emit createAccountReady(_nonce, _user);
-                        break;
-                }
+                _nonceUserIDCallback(_nonce, _user);`
                 _loginState = LoginState::INVALID_STATE;
                 _nonce = _user = "";
                 _nonceChanged = false;

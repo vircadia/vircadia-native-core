@@ -83,10 +83,6 @@ protected slots:
 
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 
-    void onLoginThroughOculusReady(QString nonce, QString userID);
-    void onLinkOculusReady(QString nonce, QString userID);
-    void onCreateAccountThroughOculusReady(QString nonce, QString userID, QString username);
-
 private:
     bool getIsLogIn() const { return _isLogIn; }
     void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }
