@@ -32,6 +32,7 @@
 #include <shared/ConicalViewFrustum.h>
 
 const QString OUTBOUND_AVATAR_DATA_STATS_KEY = "outbound_av_data_kbps";
+const QString OUTBOUND_AVATAR_TRAITS_STATS_KEY = "outbound_av_traits_kbps";
 const QString INBOUND_AVATAR_DATA_STATS_KEY = "inbound_av_data_kbps";
 
 struct SlaveSharedData;
@@ -86,10 +87,15 @@ public:
     void incrementNumFramesSinceFRDAdjustment() { ++_numFramesSinceAdjustment; }
     void resetNumFramesSinceFRDAdjustment() { _numFramesSinceAdjustment = 0; }
 
-    void recordSentAvatarData(int numBytes) { _avgOtherAvatarDataRate.updateAverage((float) numBytes); }
+    void recordSentAvatarData(int numDataBytes, int numTraitsBytes = 0) {
+        _avgOtherAvatarDataRate.updateAverage(numDataBytes);
+        _avgOtherAvatarTraitsRate.updateAverage(numTraitsBytes);
+    }
 
     float getOutboundAvatarDataKbps() const
         { return _avgOtherAvatarDataRate.getAverageSampleValuePerSecond() / (float) BYTES_PER_KILOBIT; }
+    float getOutboundAvatarTraitsKbps() const
+        { return _avgOtherAvatarTraitsRate.getAverageSampleValuePerSecond() / BYTES_PER_KILOBIT; }
 
     void loadJSONStats(QJsonObject& jsonObject) const;
 
@@ -180,6 +186,7 @@ private:
     int _numOutOfOrderSends = 0;
 
     SimpleMovingAverage _avgOtherAvatarDataRate;
+    SimpleMovingAverage _avgOtherAvatarTraitsRate;
     std::vector<QUuid> _radiusIgnoredOthers;
     ConicalViewFrustums _currentViewFrustums;
 

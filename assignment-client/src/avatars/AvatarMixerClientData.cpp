@@ -375,7 +375,8 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["total_num_out_of_order_sends"] = _numOutOfOrderSends;
 
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
-    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
+    jsonObject[OUTBOUND_AVATAR_TRAITS_STATS_KEY] = getOutboundAvatarTraitsKbps();
+    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float)BYTES_PER_KILOBIT;
 
     jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
     jsonObject["recent_other_av_in_view"] = _recentOtherAvatarsInView;
