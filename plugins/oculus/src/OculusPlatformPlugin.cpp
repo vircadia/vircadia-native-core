@@ -24,6 +24,12 @@ OculusAPIPlugin::~OculusAPIPlugin() {
     hifi::ovr::releaseRenderSession(_session);
 }
 
+void OculusAPIPlugin::requestNonceAndUserID(LoginState loginState) {
+    _loginState = loginState;
+    ovr_User_GetUserProof();
+    ovr_User_GetLoggedInUser();
+}
+
 void OculusAPIPlugin::handleOVREvents() {
 #ifdef OCULUS_APP_ID
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
@@ -47,10 +53,13 @@ void OculusAPIPlugin::handleOVREvents() {
                     if (!ovr_Message_IsError(message)) {
                         qCDebug(oculusLog) << "Oculus Platform user retrieval succeeded";
                         ovrUserHandle user = ovr_Message_GetUser(message);
-                        ovr_FreeMessage(message);
                         _user = ovr_User_GetOculusID(user);
+                        // went all the way through the `requestNonceAndUserID()` pipeline successfully.
+                        _nonceChanged = true;
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform user retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                        // emit the signal so we don't hang for it anywhere else.
+                        _nonceChanged = true;
                         _user = "";
                     }
                     break;
@@ -58,28 +67,42 @@ void OculusAPIPlugin::handleOVREvents() {
                 case ovrMessage_User_GetLoggedInUser: {
                     if (!ovr_Message_IsError(message)) {
                         ovrUserHandle user = ovr_Message_GetUser(message);
-                        ovr_FreeMessage(message);
                         _userID = ovr_User_GetID(user);
+                        ovr_User_Get(_userID);
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform user ID retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
+                        // emit the signal so we don't hang for it anywhere else.
+                        _nonceChanged = true;
                     }
                     break;
                 }
                 case ovrMessage_User_GetUserProof: {
-                    _nonceChanged = true;
                     if (!ovr_Message_IsError(message)) {
                         ovrUserProofHandle userProof = ovr_Message_GetUserProof(message);
                         _nonce = ovr_UserProof_GetNonce(userProof);
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform nonce retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
                         _nonce = "";
+                        // emit the signal so we don't hang for it anywhere else.
+                        _nonceChanged = true;
                     }
                     break;
                 }
             }
 
             if (_nonceChanged) {
-                emit nonceAndUserIDChanged(_nonce, _user);
+                switch (_loginState) {
+                    case LoginState::LOGIN:
+                        emit loginReady(_nonce, _user);
+                        break;
+                    case LoginState::LINK_ACCOUNT:
+                        emit linkAccountReady(_nonce, _user);
+                        break;
+                    case LoginState::CREATE_ACCOUNT:
+                        emit createAccountReady(_nonce, _user);
+                        break;
+                }
+                _loginState = LoginState::INVALID_STATE;
                 _nonce = _user = "";
                 _nonceChanged = false;
             }

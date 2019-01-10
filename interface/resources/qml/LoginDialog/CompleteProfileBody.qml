@@ -26,7 +26,8 @@ Item {
     readonly property int fontSize: 15
     readonly property bool fontBold: true
 
-    readonly property bool withSteam: withSteam
+    property bool withOculus: withOculus
+    property bool withSteam: withSteam
     property string errorString: errorString
 
     QtObject {
@@ -143,7 +144,13 @@ Item {
                     fontBold: completeProfileBody.fontBold
                     onClicked: {
                         loginErrorMessage.visible = false;
-                        loginDialog.createAccountFromSteam();
+                        console.log("withOculus: " + completeProfileBody.withOculus);
+                        if (completeProfileBody.withOculus) {
+                            console.log("creating account through oculus");
+                            loginDialog.createAccountFromOculus();
+                        } else if (completeProfileBody.withSteam) {
+                            loginDialog.createAccountFromSteam();
+                        }
                     }
                 }
             }
@@ -180,7 +187,9 @@ Item {
 
                     onLinkActivated: {
                         loginDialog.isLogIn = true;
-                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "", "withSteam": true, "linkSteam": true });
+                        bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "",
+                            "withSteam": completeProfileBody.withSteam, "linkSteam": completeProfileBody.withSteam, "withOculus": completeProfileBody.withOculus,
+                            "linkOculus": completeProfileBody.withOculus });
                     }
                     Component.onCompleted: {
                         if (additionalTextMetrics.width > root.bannerWidth && root.isTablet) {
@@ -252,14 +261,19 @@ Item {
         target: loginDialog
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
-
-            loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false });
+            if (completeProfileBody.withOculus) {
+                loginDialog.loginThroughOculus();
+            } else if (completeProfileBody.withSteam) {
+                loginDialog.loginThroughSteam();
+            }
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam, "linkSteam": false,
+                "withOculus": completeProfileBody.withOculus, "linkOculus": false });
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);
 
-            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                "withOculus": completeProfileBody.withOculus });
         }
     }
 

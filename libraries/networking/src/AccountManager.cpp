@@ -587,6 +587,7 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
 }
 
 void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QString& userID) {
+    qDebug() << nonce << ", " << userID;
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;

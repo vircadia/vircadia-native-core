@@ -46,6 +46,10 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
             this, &LoginDialog::handleLoginFailed);
     connect(qApp, &Application::loginDialogFocusEnabled, this, &LoginDialog::focusEnabled);
     connect(qApp, &Application::loginDialogFocusDisabled, this, &LoginDialog::focusDisabled);
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        connect(oculusPlatformPlugin.get(), &OculusPlatformPlugin::loginReady, this, &LoginDialog::onLoginThroughOculusReady);
+        connect(oculusPlatformPlugin.get(), &OculusPlatformPlugin::linkAccountReady, this, &LoginDialog::onLinkOculusReady);
+    }
     connect(this, SIGNAL(dismissedLoginDialog()), qApp, SLOT(onDismissedLoginDialog()));
 #endif
 }
@@ -124,74 +128,29 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 }
 
 void LoginDialog::loginThroughOculus() {
-    qDebug() << "Attempting to login through Oculus";
-    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        //oculusPlatform->requestTicket([this](QString nonce, QString userID) {
-        //    if (nonce.isEmpty() || userID.isEmpty()) {
-        //        emit handleLoginFailed();
-        //        return;
-        //    }
-
-        //    DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, userID);
-        //});
+   qDebug() << "Attempting to login through Oculus";
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatformPlugin->requestNonceAndUserID(LoginState::LOGIN);
+        connect(oculusPlatformPlugin.get(), &OculusPlatformPlugin::loginReady, this, [&] (QString nonce, QString userID) {
+            onLoginThroughOculusReady(nonce, userID);
+        });
     }
 }
 
 void LoginDialog::linkOculus() {
     qDebug() << "Attempting to link Oculus account";
-    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        //oculusPlatform->requestTicket([this](QString nonce, QString userID) {
-        //    if (nonce.isEmpty() || userID.isEmpty()) {
-        //        emit handleLoginFailed();
-        //        return;
-        //    }
-
-        //    JSONCallbackParameters callbackParams;
-        //    callbackParams.callbackReceiver = this;
-        //    callbackParams.jsonCallbackMethod = "linkCompleted";
-        //    callbackParams.errorCallbackMethod = "linkFailed";
-        //    const QString LINK_OCULUS_PATH = "api/v1/user/oculus/link";
-
-        //    QJsonObject payload;
-        //    payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
-        //    payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
-
-        //    auto accountManager = DependencyManager::get<AccountManager>();
-        //    accountManager->sendRequest(LINK_OCULUS_PATH, AccountManagerAuth::Required,
-        //                                QNetworkAccessManager::PostOperation, callbackParams,
-        //                                QJsonDocument(payload).toJson());
-        //});
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatformPlugin->requestNonceAndUserID(LoginState::LINK_ACCOUNT);
     }
 }
 
 void LoginDialog::createAccountFromOculus(QString username) {
     qDebug() << "Attempting to create account from Oculus info";
-    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        //oculusPlatform->requestTicket([this, username](QString nonce, QString userID) {
-        //    if (nonce.isEmpty() || userID.isEmpty()) {
-        //        emit handleLoginFailed();
-        //        return;
-        //    }
-
-        //    JSONCallbackParameters callbackParams;
-        //    callbackParams.callbackReceiver = this;
-        //    callbackParams.jsonCallbackMethod = "createCompleted";
-        //    callbackParams.errorCallbackMethod = "createFailed";
-
-        //    const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "api/v1/user/oculus/create";
-
-        //    QJsonObject payload;
-        //    payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
-        //    payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
-        //    if (!username.isEmpty()) {
-        //        payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
-        //    }
-
-        //    auto accountManager = DependencyManager::get<AccountManager>();
-        //    accountManager->sendRequest(CREATE_ACCOUNT_FROM_OCULUS_PATH, AccountManagerAuth::None,
-        //                                QNetworkAccessManager::PostOperation, callbackParams,
-        //                                QJsonDocument(payload).toJson());
-        //});
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatformPlugin->requestNonceAndUserID(LoginState::CREATE_ACCOUNT);
+        connect(oculusPlatformPlugin.get(), &OculusPlatformPlugin::createAccountReady, this, [&] (QString nonce, QString userID) {
+            onCreateAccountThroughOculusReady(nonce, userID, username);
+        });
     }
 }
 
@@ -315,6 +274,60 @@ void LoginDialog::signupCompleted(QNetworkReply* reply) {
 
 bool LoginDialog::getLoginDialogPoppedUp() const {
     return qApp->getLoginDialogPoppedUp();
+}
+
+void LoginDialog::onLoginThroughOculusReady(QString nonce, QString userID) {
+    DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, userID);
+}
+
+void LoginDialog::onLinkOculusReady(QString nonce, QString userID) {
+    if (nonce.isEmpty() || userID.isEmpty()) {
+        emit handleLoginFailed();
+        return;
+    }
+
+    JSONCallbackParameters callbackParams;
+    callbackParams.callbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "linkCompleted";
+    callbackParams.errorCallbackMethod = "linkFailed";
+    const QString LINK_OCULUS_PATH = "api/v1/user/oculus/link";
+
+    QJsonObject payload;
+    payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
+    payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->sendRequest(LINK_OCULUS_PATH, AccountManagerAuth::Required,
+                                QNetworkAccessManager::PostOperation, callbackParams,
+                                QJsonDocument(payload).toJson());
+
+}
+
+void LoginDialog::onCreateAccountThroughOculusReady(QString nonce, QString userID, QString username) {
+        if (nonce.isEmpty() || userID.isEmpty()) {
+            emit handleLoginFailed();
+            return;
+        }
+
+        JSONCallbackParameters callbackParams;
+        callbackParams.callbackReceiver = this;
+        callbackParams.jsonCallbackMethod = "createCompleted";
+        callbackParams.errorCallbackMethod = "createFailed";
+
+        const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "api/v1/user/oculus/create";
+
+        QJsonObject payload;
+        payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
+        payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
+        if (!username.isEmpty()) {
+            payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+        }
+
+        auto accountManager = DependencyManager::get<AccountManager>();
+        accountManager->sendRequest(CREATE_ACCOUNT_FROM_OCULUS_PATH, AccountManagerAuth::None,
+                                    QNetworkAccessManager::PostOperation, callbackParams,
+                                    QJsonDocument(payload).toJson());
+
 }
 
 QString errorStringFromAPIObject(const QJsonValue& apiObject) {

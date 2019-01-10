@@ -26,6 +26,9 @@ Item {
     readonly property int textFieldFontSize: 18
     readonly property bool fontBold: true
 
+    property bool withSteam: withSteam
+    property bool withOculus: withOculus
+    
     function create() {
         mainTextContainer.visible = false
         loginDialog.createAccountFromSteam(textField.text);
@@ -86,12 +89,19 @@ Item {
             font.family: usernameCollisionBody.fontFamily
             font.pixelSize: usernameCollisionBody.fontSize
             font.bold: usernameCollisionBody.fontBold
-            text: qsTr("Your Steam username is not available.");
+            text: qsTr("");
             wrapMode: Text.WordWrap
             color: hifi.colors.redAccent
             lineHeight: 1
             lineHeightMode: Text.ProportionalHeight
             horizontalAlignment: Text.AlignHCenter
+            Component.onCompleted: {
+                if (usernameCollisionBody.withOculus) {
+                    text = qsTr("Your Oculus username is not available.");
+                } else if (usernameCollisionBody.withSteam) {
+                    text = qsTr("Your Steam username is not available.");
+                }
+            }
         }
 
 
@@ -160,7 +170,8 @@ Item {
                 fontSize: usernameCollisionBody.fontSize
                 fontBold: usernameCollisionBody.fontBold
                 onClicked: {
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "" });
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": usernameCollisionBody.withSteam,
+                        "withOculus": usernameCollisionBody.withOculus, "errorString": "" });
                 }
             }
             HifiControlsUit.Button {
@@ -197,8 +208,13 @@ Item {
         target: loginDialog
         onHandleCreateCompleted: {
             console.log("Create Succeeded");
-            loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false })
+            if (usernameCollisionBody.withOculus) {
+                loginDialog.loginThroughOculus();
+            } else if (usernameCollisionBody.withSteam) {
+                loginDialog.loginThroughSteam();
+            }
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": usernameCollisionBody.withSteam,
+                "withOculus": usernameCollisionBody.withOculus, "linkSteam": false, "linkOculus": false })
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error)

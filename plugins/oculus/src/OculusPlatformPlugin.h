@@ -20,12 +20,15 @@ public:
     virtual ~OculusAPIPlugin();
     const QString getName() const { return NAME; }
 
+    virtual void requestNonceAndUserID(LoginState loginState);
+
     virtual void handleOVREvents();
 
 private:
     static const char* NAME;
+    LoginState _loginState{ LoginState::INVALID_STATE };
     QString _nonce;
-    bool _nonceChanged;
+    bool _nonceChanged{ false };
     QString _user;
     ovrID _userID;
     ovrSession _session{ nullptr };

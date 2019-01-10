@@ -4733,6 +4733,10 @@ void Application::idle() {
         steamClient->runCallbacks();
     }
 
+    if (auto oculusPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlugin->handleOVREvents();
+    }
+
     float secondsSinceLastUpdate = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_MSEC / MSECS_PER_SECOND;
     _lastTimeUpdated.start();
 
@@ -5957,10 +5961,6 @@ void Application::update(float deltaTime) {
             } else if (inputPlugin->isActive()) {
                 inputPlugin->pluginUpdate(deltaTime, calibrationData);
             }
-        }
-
-        if (auto oculusPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-            oculusPlugin->handleOVREvents();
         }
 
         userInputMapper->setInputCalibrationData(calibrationData);
