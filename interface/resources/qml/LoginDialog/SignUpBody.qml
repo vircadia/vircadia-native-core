@@ -37,7 +37,6 @@ Item {
     onKeyboardRaisedChanged: d.resize();
 
     property string errorString: errorString
-    property bool linkSteam: linkSteam
     property bool lostFocus: false
 
     QtObject {
@@ -342,7 +341,7 @@ Item {
                 fontSize: signUpBody.fontSize
                 fontBold: signUpBody.fontBold
                 onClicked: {
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": signUpBody.linkSteam });
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
                 }
             }
             HifiControlsUit.Button {

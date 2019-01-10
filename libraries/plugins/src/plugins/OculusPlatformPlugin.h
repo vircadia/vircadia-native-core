@@ -12,6 +12,13 @@
 
 #include <functional>
 
+enum LoginState {
+    INVALID_STATE = 0,
+    LOGIN,
+    LINK_ACCOUNT,
+    CREATE_ACCOUNT
+};
+
 class OculusPlatformPlugin : public QObject {
     Q_OBJECT
 public:
@@ -20,8 +27,12 @@ public:
 
     virtual const QString getName() const = 0;
 
+    virtual void requestNonceAndUserID(LoginState state = LoginState::INVALID_STATE) = 0;
+
     virtual void handleOVREvents() = 0;
 
 signals:
-    void nonceAndUserIDChanged(QString nonce, QString userID);
+    void loginReady(QString nonce, QString userID);
+    void linkAccountReady(QString nonce, QString userID);
+    void createAccountReady(QString nonce, QString userID);
 };

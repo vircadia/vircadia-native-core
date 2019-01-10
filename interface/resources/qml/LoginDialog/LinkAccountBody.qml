@@ -69,7 +69,8 @@ Item {
 
     function login() {
         loginDialog.login(emailField.text, passwordField.text);
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
+            "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus });
     }
 
     function init() {
@@ -77,12 +78,12 @@ Item {
         loginDialog.isLogIn = true;
         loginErrorMessage.text = linkAccountBody.errorString;
         loginErrorMessage.visible = (linkAccountBody.errorString  !== "");
-        loginButton.text = !linkAccountBody.linkSteam ? "Log In" : "Link Account";
+        loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
         loginButton.color = hifi.buttons.blue;
         emailField.placeholderText = "Username or Email";
         var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
         emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
-        if (linkAccountBody.linkSteam) {
+        if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
             steamInfoText.anchors.top = passwordField.bottom;
             keepMeLoggedInCheckbox.anchors.top = steamInfoText.bottom;
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
@@ -286,13 +287,14 @@ Item {
                 fontSize: linkAccountBody.fontSize
                 fontBold: linkAccountBody.fontBold
                 color: hifi.buttons.noneBorderlessWhite;
-                visible: linkAccountBody.linkSteam
+                visible: linkAccountBody.linkSteam || linkAccountBody.linkOculus
                 anchors {
                     top: keepMeLoggedInCheckbox.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
                 }
                 onClicked: {
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "errorString": "" });
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
+                        "withOculus": linkAccountBody.withOculus, "errorString": "" });
                 }
             }
             HifiControlsUit.Button {
@@ -319,7 +321,7 @@ Item {
             Text {
                 id: steamInfoText
                 width: root.bannerWidth
-                visible: linkAccountBody.linkSteam
+                visible: linkAccountBody.linkSteam || linkAccountBody.linkOculus
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
@@ -346,7 +348,7 @@ Item {
             HifiStylesUit.ShortcutText {
                 id: cantAccessText
                 z: 10
-                visible: !linkAccountBody.linkSteam
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
@@ -401,10 +403,10 @@ Item {
                     }
 
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
+                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus });
                 }
                 Component.onCompleted: {
-                    if (linkAccountBody.linkSteam) {
+                    if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
                         continueButton.visible = false;
                         return;
                     }
@@ -467,7 +469,7 @@ Item {
                 onLinkActivated: {
                     Tablet.playSound(TabletEnums.ButtonClick);
                     bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "errorString": "", "linkSteam": linkAccountBody.linkSteam });
+                        "errorString": "" });
                 }
             }
         }
@@ -491,7 +493,7 @@ Item {
             fontFamily: linkAccountBody.fontFamily
             fontSize: linkAccountBody.fontSize
             fontBold: linkAccountBody.fontBold
-            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam;
+            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
             onClicked: {
                 if (loginDialog.getLoginDialogPoppedUp()) {
                     console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
@@ -523,9 +525,6 @@ Item {
                     passwordField.focus = false;
                 });
             }
-        }
-        onLoginFailed: {
-            console.log("login failed");
         }
     }
 
