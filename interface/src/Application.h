@@ -594,7 +594,7 @@ private:
 
     bool _aboutToQuit { false };
 
-    FileLogger* _logger;
+    FileLogger* _logger { nullptr };
 
     bool _previousSessionCrashed;
 
