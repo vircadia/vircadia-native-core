@@ -2964,27 +2964,30 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
                                                MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
-    if (entity && (entity->updateQueryAACube() || force)) {
-        bool success;
-        AACube newCube = entity->getQueryAACube(success);
-        if (success) {
-            moveOperator.addEntityToMoveList(entity, newCube);
-        }
-        // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
-        // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-        if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
-            quint64 now = usecTimestampNow();
-            EntityItemProperties properties = entity->getProperties();
-            properties.setQueryAACubeDirty();
-            properties.setLocationDirty();
-            properties.setLastEdited(now);
+    if (entity) {
+        bool tellServerThis = tellServer && (entity->getEntityHostType() != entity::HostType::AVATAR);
+        if ((entity->updateQueryAACube() || force)) {
+            bool success;
+            AACube newCube = entity->getQueryAACube(success);
+            if (success) {
+                moveOperator.addEntityToMoveList(entity, newCube);
+            }
+            // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
+            // entities as well as for avatar-entities; the packet-sender will route the update accordingly
+            if (tellServerThis && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+                quint64 now = usecTimestampNow();
+                EntityItemProperties properties = entity->getProperties();
+                properties.setQueryAACubeDirty();
+                properties.setLocationDirty();
+                properties.setLastEdited(now);
 
-            packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
-            entity->setLastBroadcast(now); // for debug/physics status icons
-        }
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastBroadcast(now); // for debug/physics status icons
+            }
 
-        entity->markDirtyFlags(Simulation::DIRTY_POSITION);
-        entityChanged(entity);
+            entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+            entityChanged(entity);
+        }
     }
 
     object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
