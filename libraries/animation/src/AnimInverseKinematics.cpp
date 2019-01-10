@@ -237,6 +237,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
         // solve all targets
         for (size_t i = 0; i < targets.size(); i++) {
+            qCDebug(animation) << "target id: " << targets[i].getIndex() << " and type " << (int)targets[i].getType();
             switch (targets[i].getType()) {
             case IKTarget::Type::Unknown:
                 break;
@@ -859,6 +860,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     // don't call this function, call overlay() instead
+    qCDebug(animation) << "called evaluate for inverse kinematics";
     assert(false);
     return _relativePoses;
 }
@@ -869,7 +871,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     // disable IK on android
     return underPoses;
 #endif
-
+    qCDebug(animation) << "called overlay for inverse kinematics";
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
 
