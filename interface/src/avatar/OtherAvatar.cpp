@@ -211,7 +211,7 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
             // Fading in
             _displayNameAlpha = 1.0f - (1.0f - _displayNameAlpha) * coef;
         }
-        _displayNameAlpha = absf(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
+        _displayNameAlpha = glm::abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
     {
