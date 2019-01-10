@@ -64,20 +64,13 @@
 #include "AboutUtil.h"
 #include "ResourceRequestObserver.h"
 
+#include <RenderableWebEntityItem.h>
+
 static int MAX_WINDOW_SIZE = 4096;
 static const float METERS_TO_INCHES = 39.3701f;
 static const float OPAQUE_ALPHA_THRESHOLD = 0.99f;
 
 const QString Web3DOverlay::TYPE = "web3d";
-const QString Web3DOverlay::QML = "Web3DOverlay.qml";
-
-static auto qmlSurfaceDeleter = [](OffscreenQmlSurface* surface) {
-    AbstractViewStateInterface::instance()->sendLambdaEvent([surface] {
-        // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
-        // if the application has already stopped its event loop, delete must be explicit
-        delete surface;
-    });
-};
 
 Web3DOverlay::Web3DOverlay() {
     _touchDevice.setCapabilities(QTouchDevice::Position);
@@ -87,34 +80,23 @@ Web3DOverlay::Web3DOverlay() {
 
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
-    connect(this, &Web3DOverlay::releaseWebSurface, this, &Web3DOverlay::destroyWebSurface);
     connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
 
     //need to be intialized before Tablet 1st open
-    _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
     _cachedWebSurface = true;
-    _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-    _webSurface->getSurfaceContext()->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
-    _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
-    _webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
-    _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+    render::entities::WebEntityRenderer::initializeWebSurface(_webSurface);
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
     Billboard3DOverlay(Web3DOverlay),
     _url(Web3DOverlay->_url),
     _scriptURL(Web3DOverlay->_scriptURL),
-    _dpi(Web3DOverlay->_dpi),
-    _showKeyboardFocusHighlight(Web3DOverlay->_showKeyboardFocusHighlight)
+    _dpi(Web3DOverlay->_dpi)
 {
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Web3DOverlay::~Web3DOverlay() {
-    disconnect(this, &Web3DOverlay::requestWebSurface, this, nullptr);
-    disconnect(this, &Web3DOverlay::releaseWebSurface, this, nullptr);
-    disconnect(this, &Web3DOverlay::resizeWebSurface, this, nullptr);
-
     destroyWebSurface();
     auto geometryCache = DependencyManager::get<GeometryCache>();
     if (geometryCache) {
@@ -128,81 +110,22 @@ void Web3DOverlay::rebuildWebSurface() {
 }
 
 void Web3DOverlay::destroyWebSurface() {
-    if (!_webSurface) {
-        return;
+    if (_webSurface) {
+        render::entities::WebEntityRenderer::releaseWebSurface(_webSurface, _cachedWebSurface, _connections);
     }
-
-    QQuickItem* rootItem = _webSurface->getRootItem();
-
-    if (rootItem && rootItem->objectName() == "tabletRoot") {
-        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        if (tabletScriptingInterface) {
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
-        }
-    }
-
-    // Fix for crash in QtWebEngineCore when rapidly switching domains
-    // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
-    if (rootItem) {
-        // stop loading
-        QMetaObject::invokeMethod(rootItem, "stop");
-    }
-
-    _webSurface->pause();
-
-    QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
-    QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
-
-    // If the web surface was fetched out of the cache, release it back into the cache
-    if (_cachedWebSurface) {
-        // If it's going back into the cache make sure to explicitly set the URL to a blank page
-        // in order to stop any resource consumption or audio related to the page.
-        if (rootItem) {
-            rootItem->setProperty("url", "about:blank");
-        }
-        auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
-        // FIXME prevents crash on shutdown, but we shoudln't have to do this check
-        if (offscreenCache) {
-            offscreenCache->release(QML, _webSurface);
-        }
-        _cachedWebSurface = false;
-    }
-    _webSurface.reset();
 }
 
 void Web3DOverlay::buildWebSurface() {
     if (_webSurface) {
         return;
     }
-    // FIXME the context save here is most likely unecessary since the QML surfaces now render
-    // off the main thread, and all GL context work is done off the main thread (I *think*)
-    gl::withSavedContext([&] {
-        // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces
-        // and the current rendering load)
-        if (_currentMaxFPS != _desiredMaxFPS) {
-            setMaxFPS(_desiredMaxFPS);
-        }
 
-        if (isWebContent()) {
-            _webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(QML);
-            _cachedWebSurface = true;
-            _webSurface->getRootItem()->setProperty("url", _url);
-            _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
-        } else {
-            _webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), qmlSurfaceDeleter);
-            connect(_webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [this](QQmlContext* surfaceContext) {
-                setupQmlSurface(_url == TabletScriptingInterface::QML, _url == OVERLAY_LOGIN_DIALOG.toString());
-            });
-            _webSurface->load(_url);
-            _cachedWebSurface = false;
-        }
-        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getWorldPosition()));
-        onResizeWebSurface();
-        _webSurface->resume();
-    });
+    render::entities::WebEntityRenderer::acquireWebSurface(_url, isWebContent(), _webSurface, _cachedWebSurface);
+    onResizeWebSurface();
+    _webSurface->resume();
 
-    QObject::connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
-    QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
+    _connections.push_back(QObject::connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent));
+    _connections.push_back(QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived));
 }
 
 void Web3DOverlay::update(float deltatime) {
@@ -272,19 +195,16 @@ void Web3DOverlay::setupQmlSurface(bool isTablet, bool isLoginDialog) {
         _webSurface->getSurfaceContext()->setContextProperty("Workload", qApp->getGameWorkload()._engine->getConfiguration().get());
         _webSurface->getSurfaceContext()->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
-        _webSurface->getSurfaceContext()->setContextProperty("Web3DOverlay", this);
         _webSurface->getSurfaceContext()->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
         _webSurface->getSurfaceContext()->setContextProperty("HiFiAbout", AboutUtil::getInstance());
         _webSurface->getSurfaceContext()->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
         _webSurface->getSurfaceContext()->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
-
-        // Override min fps for tablet UI, for silky smooth scrolling
-        setMaxFPS(90);
     }
 }
 
 void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
+    // FIXME, the max FPS could be better managed by being dynamic (based on the number of current surfaces and the current rendering load)
     _desiredMaxFPS = maxFPS;
     if (_webSurface) {
         _webSurface->setMaxFps(_desiredMaxFPS);
@@ -303,14 +223,6 @@ void Web3DOverlay::onResizeWebSurface() {
     }
 
     _webSurface->resize(QSize(dims.x, dims.y));
-}
-
-unsigned int Web3DOverlay::deviceIdByTouchPoint(qreal x, qreal y) {
-    if (_webSurface) {
-        return _webSurface->deviceIdByTouchPoint(x, y);
-    } else {
-        return PointerEvent::INVALID_POINTER_ID;
-    }
 }
 
 void Web3DOverlay::render(RenderArgs* args) {
@@ -506,11 +418,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
         _desiredMaxFPS = maxFPS.toInt();
     }
 
-    auto showKeyboardFocusHighlight = properties["showKeyboardFocusHighlight"];
-    if (showKeyboardFocusHighlight.isValid()) {
-        _showKeyboardFocusHighlight = showKeyboardFocusHighlight.toBool();
-    }
-
     auto inputModeValue = properties["inputMode"];
     if (inputModeValue.isValid()) {
         QString inputModeStr = inputModeValue.toString();
@@ -573,8 +480,6 @@ void Web3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {Vec2} dimensions=1,1 - The size of the overlay to display the Web page on, in meters. Synonyms:
  *     <code>scale</code>, <code>size</code>.
  * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
- * @property {boolean} showKeyboardFocusHighlight=true - If <code>true</code>, the Web overlay is highlighted when it has
- *     keyboard focus.
  * @property {string} inputMode=Touch - The user input mode to use - either <code>"Touch"</code> or <code>"Mouse"</code>.
  */
 QVariant Web3DOverlay::getProperty(const QString& property) {
@@ -589,9 +494,6 @@ QVariant Web3DOverlay::getProperty(const QString& property) {
     }
     if (property == "maxFPS") {
         return _desiredMaxFPS;
-    }
-    if (property == "showKeyboardFocusHighlight") {
-        return _showKeyboardFocusHighlight;
     }
 
     if (property == "inputMode") {

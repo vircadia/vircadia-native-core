@@ -52,18 +52,38 @@ public:
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const override;
 
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
+
+    float getAlpha() const;
+    void setAlpha(float alpha);
+
     static const QString DEFAULT_SOURCE_URL;
-    virtual void setSourceUrl(const QString& value);
+    void setSourceUrl(const QString& value);
     QString getSourceUrl() const;
 
     void setDPI(uint16_t value);
     uint16_t getDPI() const;
 
+    void setScriptURL(const QString& value);
+    QString getScriptURL() const;
+
     static const uint8_t DEFAULT_MAX_FPS;
+    void setMaxFPS(uint8_t value);
+    uint8_t getMaxFPS() const;
+
+    void setInputMode(const WebInputMode& value);
+    WebInputMode getInputMode() const;
 
 protected:
+    glm::u8vec3 _color;
+    float _alpha { 1.0f };
+
     QString _sourceUrl;
     uint16_t _dpi;
+    QString _scriptURL;
+    uint8_t _maxFPS;
+    WebInputMode _inputMode;
 };
 
 #endif // hifi_WebEntityItem_h

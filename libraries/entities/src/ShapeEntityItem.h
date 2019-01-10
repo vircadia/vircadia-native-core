@@ -74,7 +74,7 @@ public:
     void setShape(const entity::Shape& shape);
     void setShape(const QString& shape) { setShape(entity::shapeFromString(shape)); }
 
-    float getAlpha() const { return _alpha; };
+    float getAlpha() const;
     void setAlpha(float alpha);
 
     glm::u8vec3 getColor() const;
@@ -102,9 +102,8 @@ public:
     std::shared_ptr<graphics::Material> getMaterial() { return _material; }
 
 protected:
-
-    float _alpha { 1.0f };
     glm::u8vec3 _color;
+    float _alpha { 1.0f };
     entity::Shape _shape { entity::Shape::Sphere };
 
     //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain

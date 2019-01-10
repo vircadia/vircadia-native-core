@@ -1285,6 +1285,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * The entity has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * @typedef {object} Entities.EntityProperties-Web
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {Color} color=255,255,255 - The color of the web surface.
+ * @property {number} alpha=1 - The alpha of the web surface.
  * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
  *     on the Web entity.
  * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
@@ -1689,6 +1691,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Web only
     if (_type == EntityTypes::Web) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_URL, scriptURL);
@@ -3051,6 +3056,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Web) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
                 APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, properties.getScriptURL());

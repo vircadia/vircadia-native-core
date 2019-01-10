@@ -151,6 +151,7 @@
 #include <trackers/EyeTracker.h>
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
+#include <RenderableWebEntityItem.h>
 #include <model-networking/MaterialCache.h>
 #include "recording/ClipCache.h"
 
@@ -2316,6 +2317,92 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
     });
 
+    render::entities::WebEntityRenderer::setInitializeWebSurfaceOperator([](QSharedPointer<OffscreenQmlSurface> webSurface) {
+        webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(render::entities::WebEntityRenderer::QML);
+        webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+        webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+        webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+    });
+    render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
+        bool isTablet = url == TabletScriptingInterface::QML;
+        if (htmlContent) {
+            // FIXME use the surface cache instead of explicit creation
+            webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), [](OffscreenQmlSurface* webSurface) {
+                AbstractViewStateInterface::instance()->sendLambdaEvent([webSurface] {
+                    // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+                    // if the application has already stopped its event loop, delete must be explicit
+                    delete webSurface;
+                });
+            });
+            webSurface->load(render::entities::WebEntityRenderer::QML, [url](QQmlContext* context, QObject* item) {
+                item->setProperty("url", url);
+            });
+#if 0
+            // This doesn't work for some reason
+            webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(render::entities::WebEntityRenderer::QML);
+            cachedWebSurface = true;
+            connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [url, webSurface](QQmlContext* surfaceContext) {
+                webSurface->getRootItem()->setProperty("url", url);
+            });
+#endif
+        } else {
+            webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), [](OffscreenQmlSurface* webSurface) {
+                AbstractViewStateInterface::instance()->sendLambdaEvent([webSurface] {
+                    // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
+                    // if the application has already stopped its event loop, delete must be explicit
+                    delete webSurface;
+                });
+            });
+            connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [url](QQmlContext* surfaceContext) {
+                //setupQmlSurface(isTablet, url == OVERLAY_LOGIN_DIALOG.toString());
+            });
+            webSurface->load(url);
+            cachedWebSurface = false;
+        }
+        const uint8_t DEFAULT_MAX_FPS = 10;
+        const uint8_t TABLET_FPS = 90;
+        webSurface->setMaxFps(isTablet ? TABLET_FPS : DEFAULT_MAX_FPS);
+    });
+    render::entities::WebEntityRenderer::setReleaseWebSurfaceOperator([](QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface, std::vector<QMetaObject::Connection>& connections) {
+        QQuickItem* rootItem = webSurface->getRootItem();
+        if (rootItem && rootItem->objectName() == "tabletRoot") {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            if (tabletScriptingInterface) {
+                tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
+            }
+        }
+
+        // Fix for crash in QtWebEngineCore when rapidly switching domains
+        // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
+        if (rootItem) {
+            // stop loading
+            QMetaObject::invokeMethod(rootItem, "stop");
+        }
+
+        webSurface->pause();
+
+        for (auto& connection : connections) {
+            QObject::disconnect(connection);
+        }
+        connections.clear();
+
+        // If the web surface was fetched out of the cache, release it back into the cache
+        if (cachedWebSurface) {
+            // If it's going back into the cache make sure to explicitly set the URL to a blank page
+            // in order to stop any resource consumption or audio related to the page.
+            if (rootItem) {
+                rootItem->setProperty("url", "about:blank");
+            }
+            auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+            // FIXME prevents crash on shutdown, but we shoudln't have to do this check
+            if (offscreenCache) {
+                offscreenCache->release(render::entities::WebEntityRenderer::QML, webSurface);
+            }
+            cachedWebSurface = false;
+        }
+        webSurface.reset();
+    });
+
     // Preload Tablet sounds
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
@@ -3012,7 +3099,7 @@ void Application::initializeUi() {
     });
 
     offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
-    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+    offscreenSurfaceCache->reserve(render::entities::WebEntityRenderer::QML, 2);
 #endif
 
     flushMenuUpdates();
