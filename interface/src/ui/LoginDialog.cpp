@@ -46,10 +46,6 @@ LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
             this, &LoginDialog::handleLoginFailed);
     connect(qApp, &Application::loginDialogFocusEnabled, this, &LoginDialog::focusEnabled);
     connect(qApp, &Application::loginDialogFocusDisabled, this, &LoginDialog::focusDisabled);
-    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        connect(oculusPlatformPlugin.get(), &OculusPlatformPlugin::loginReady, this, &LoginDialog::onLoginThroughOculusReady);
-        connect(oculusPlatformPlugin.get(), &OculusPlatformPlugin::linkAccountReady, this, &LoginDialog::onLinkOculusReady);
-    }
     connect(this, SIGNAL(dismissedLoginDialog()), qApp, SLOT(onDismissedLoginDialog()));
 #endif
 }

@@ -91,8 +91,7 @@ void OculusAPIPlugin::handleOVREvents() {
             }
 
             if (_nonceChanged) {
-                _nonceUserIDCallback(_nonce, _user);`
-                _loginState = LoginState::INVALID_STATE;
+                _nonceUserIDCallback(_nonce, _user);
                 _nonce = _user = "";
                 _nonceChanged = false;
             }
