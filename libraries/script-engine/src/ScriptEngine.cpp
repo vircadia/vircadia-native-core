@@ -557,6 +557,10 @@ using ScriptableResourceRawPtr = ScriptableResource*;
 
 static QScriptValue scriptableResourceToScriptValue(QScriptEngine* engine,
                                                     const ScriptableResourceRawPtr& resource) {
+    if (!resource) {
+        return QScriptValue(); // probably shutting down
+    }
+
     // The first script to encounter this resource will track its memory.
     // In this way, it will be more likely to GC.
     // This fails in the case that the resource is used across many scripts, but
