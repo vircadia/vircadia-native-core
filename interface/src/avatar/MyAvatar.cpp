@@ -423,6 +423,16 @@ void MyAvatar::clearIKJointLimitHistory() {
     _skeletonModel->getRig().clearIKJointLimitHistory();
 }
 
+QVariantMap MyAvatar::getBoundingBox() {
+    QVariantMap bbox;
+    auto avatarBBox = getFitBounds();
+    auto center = avatarBBox.calcCenter();
+    auto dimensions = avatarBBox.getDimensions();
+    bbox["center"] = vec3toVariant(center);
+    bbox["dimensions"] = vec3toVariant(dimensions);
+    return bbox;
+}
+
 void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 
     assert(QThread::currentThread() == thread());

@@ -195,11 +195,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
 void ObjectMotionState::setShape(const btCollisionShape* shape) {
     if (_shape != shape) {
         if (_shape) {
-            if (_type == MOTIONSTATE_TYPE_DETAILED) {
-                delete _shape;
-            } else {
-                getShapeManager()->releaseShape(_shape);
-            }
+            getShapeManager()->releaseShape(_shape);
         }
         _shape = shape;
         if (_body && _type != MOTIONSTATE_TYPE_DETAILED) {
@@ -313,12 +309,8 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
             if (_shape == newShape) {
                 // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
                 flags &= ~Simulation::DIRTY_SHAPE;
-                if (_type == MOTIONSTATE_TYPE_DETAILED) {
-                    delete _shape;
-                } else {
-                    // and clear the reference we just created
-                    getShapeManager()->releaseShape(_shape);
-                }            
+                // and clear the reference we just created
+                getShapeManager()->releaseShape(_shape);        
             } else {
                 _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
                 setShape(newShape);

@@ -525,3 +525,16 @@ void MultiSphereShape::setScale(float scale) {
         _scale = scale;
     }
 }
+
+AABox& MultiSphereShape::updateBoundingBox(const glm::vec3& position, const glm::quat& rotation) {
+    _boundingBox = AABox();
+    auto spheres = getSpheresData();
+    for (size_t i = 0; i < spheres.size(); i++) {
+        auto sphere = spheres[i];
+        auto worldPosition = position + rotation * sphere._position;
+        glm::vec3 corner = worldPosition - glm::vec3(sphere._radius);
+        glm::vec3 dimensions = glm::vec3(2.0f * sphere._radius);
+        _boundingBox += AABox(corner, dimensions);
+    }
+    return _boundingBox;
+}

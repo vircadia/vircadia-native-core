@@ -36,9 +36,6 @@ bool DetailedMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngin
 DetailedMotionState::~DetailedMotionState() {
     assert(_avatar);
     _avatar = nullptr;
-    if (_shape) {
-        delete _shape;
-    }
 }
 
 // virtual
@@ -163,4 +160,3 @@ void DetailedMotionState::setRigidBody(btRigidBody* body) {
 void DetailedMotionState::setShape(const btCollisionShape* shape) {
     ObjectMotionState::setShape(shape);
 }
-

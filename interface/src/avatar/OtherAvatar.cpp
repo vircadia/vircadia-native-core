@@ -108,25 +108,15 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
-        for (auto mState : _detailedMotionStates) {
-            if (mState) {
-                mState->addDirtyFlags(Simulation::DIRTY_POSITION);
-            }
-        }
     }
     return bytesRead;
 }
 
 btCollisionShape* OtherAvatar::createDetailedCollisionShapeForJoint(int jointIndex) {
-    if (jointIndex > -1 && jointIndex < _multiSphereShapes.size()) {
-        auto& data = _multiSphereShapes[jointIndex].getSpheresData();
-        std::vector<btVector3> positions;
-        std::vector<btScalar> radiuses;
-        for (auto& sphere : data) {
-            positions.push_back(glmToBullet(sphere._position));
-            radiuses.push_back(sphere._radius);
-        }
-        btCollisionShape* shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
+    ShapeInfo shapeInfo;
+    computeDetailedShapeInfo(shapeInfo, jointIndex);
+    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
+        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
         return shape;
     }
     return nullptr;

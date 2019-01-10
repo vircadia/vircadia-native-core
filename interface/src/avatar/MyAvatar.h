@@ -311,6 +311,8 @@ public:
      */
     Q_INVOKABLE void clearIKJointLimitHistory(); // thread-safe
 
+    Q_INVOKABLE QVariantMap getBoundingBox();
+
     void update(float deltaTime);
     virtual void postUpdate(float deltaTime, const render::ScenePointer& scene) override;
     void preDisplaySide(const RenderArgs* renderArgs);

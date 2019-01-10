@@ -284,6 +284,17 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btSphereShape(radius);
         }
         break;
+        case SHAPE_TYPE_MULTISPHERE: {
+            std::vector<btVector3> positions;
+            std::vector<float> radiuses;
+            auto sphereCollection = info.getSphereCollection();
+            for (auto &sphereData : sphereCollection) {
+                positions.push_back(glmToBullet(sphereData.first));
+                radiuses.push_back(sphereData.second);
+            }
+            shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
+        }
+        break;
         case SHAPE_TYPE_ELLIPSOID: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;

@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <btBulletDynamicsCommon.h>
 #include <GLMHelpers.h>
+#include <AABox.h>
 #include "BulletUtil.h"
 
 
@@ -78,6 +79,7 @@ public:
     const std::vector<SphereShapeData>& getSpheresData() const { return _spheres; }
     const std::vector<std::pair<glm::vec3, glm::vec3>>& getDebugLines() const { return _debugLines; }
     void setScale(float scale);
+    AABox& updateBoundingBox(const glm::vec3& position, const glm::quat& rotation);
 
 private:
     CollisionShapeExtractionMode getExtractionModeByName(const QString& name);
@@ -97,6 +99,7 @@ private:
     CollisionShapeExtractionMode _mode;
     glm::vec3 _midPoint;
     float _scale { 1.0f };
+    AABox _boundingBox;
 };
 
 #endif // hifi_MultiSphereShape_h

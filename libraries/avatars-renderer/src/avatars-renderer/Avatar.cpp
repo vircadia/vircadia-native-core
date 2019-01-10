@@ -956,6 +956,7 @@ void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     }
 
     fixupModelsInScene(scene);
+    updateFitBoundingBox();
 }
 
 void Avatar::render(RenderArgs* renderArgs) {
@@ -1670,7 +1671,7 @@ void Avatar::rigReset() {
 
 void Avatar::computeMultiSphereShapes() {
     const Rig& rig = getSkeletonModel()->getRig();
-    auto scale = extractScale(rig.getGeometryToRigTransform());
+    glm::vec3 scale = extractScale(rig.getGeometryToRigTransform());
     const HFMModel& geometry = getSkeletonModel()->getHFMModel();
     int jointCount = rig.getJointStateCount();
     _multiSphereShapes.clear();
@@ -1688,10 +1689,25 @@ void Avatar::computeMultiSphereShapes() {
         }
         auto jointName = rig.nameOfJoint(i).toUpper();
         MultiSphereShape multiSphereShape;
-        if (multiSphereShape.computeMultiSphereShape(jointName, btPoints, getSensorToWorldScale())) {
+        if (multiSphereShape.computeMultiSphereShape(jointName, btPoints)) {
             multiSphereShape.calculateDebugLines();
-        }
+            multiSphereShape.setScale(getTargetScale());
+;        }
         _multiSphereShapes.push_back(multiSphereShape);
+    }
+}
+
+void Avatar::updateFitBoundingBox() {
+    _fitBoundingBox = AABox();
+    if (getJointCount() == _multiSphereShapes.size()) {
+        for (int i = 0; i < getJointCount(); i++) {
+            auto &shape = _multiSphereShapes[i];
+            glm::vec3 jointPosition;
+            glm::quat jointRotation;
+            _skeletonModel->getJointPositionInWorldFrame(i, jointPosition);
+            _skeletonModel->getJointRotationInWorldFrame(i, jointRotation);
+            _fitBoundingBox += shape.updateBoundingBox(jointPosition, jointRotation);
+        }
     }
 }
 
@@ -1872,6 +1888,19 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
     shapeInfo.setCapsuleY(radius, 0.5f * height);
     glm::vec3 offset = uniformScale * _skeletonModel->getBoundingCapsuleOffset();
     shapeInfo.setOffset(offset);
+}
+
+void Avatar::computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex) {
+    if (jointIndex > -1 && jointIndex < _multiSphereShapes.size()) {
+        auto& data = _multiSphereShapes[jointIndex].getSpheresData();
+        std::vector<glm::vec3> positions;
+        std::vector<btScalar> radiuses;
+        for (auto& sphere : data) {
+            positions.push_back(sphere._position);
+            radiuses.push_back(sphere._radius);
+        }
+        shapeInfo.setMultiSphere(positions, radiuses);
+    }
 }
 
 void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {

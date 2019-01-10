@@ -59,7 +59,6 @@ PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
 const btCollisionShape* AvatarMotionState::computeNewShape() {
     ShapeInfo shapeInfo;
     _avatar->computeShapeInfo(shapeInfo);
-    qDebug() << "Creating new Capsule Shape";
     return getShapeManager()->getShape(shapeInfo);
 }
 

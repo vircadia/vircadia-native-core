@@ -319,6 +319,7 @@ public:
     virtual void rebuildCollisionShape() = 0;
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+    virtual void computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex);
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
     /**jsdoc
@@ -397,6 +398,7 @@ public:
 
     float getBoundingRadius() const;
     AABox getRenderBounds() const; // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
+    AABox getFitBounds() const { return _fitBoundingBox; }
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
@@ -439,6 +441,8 @@ public:
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config);
 
     void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
+
+    const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
 
 signals:
     void targetScaleChanged(float targetScale);
@@ -508,7 +512,7 @@ protected:
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
     void computeMultiSphereShapes();
-    const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
+    void updateFitBoundingBox();
 
     SkeletonModelPointer _skeletonModel;
 
@@ -633,6 +637,7 @@ protected:
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
     
     std::vector<MultiSphereShape> _multiSphereShapes;
+    AABox _fitBoundingBox;
 
     AvatarGrabMap _avatarGrabs;
 };
