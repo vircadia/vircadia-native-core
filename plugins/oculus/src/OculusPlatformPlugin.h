@@ -20,13 +20,13 @@ public:
     virtual ~OculusAPIPlugin();
     const QString getName() const { return NAME; }
 
-    virtual void requestNonceAndUserID(LoginState loginState);
+    virtual void requestNonceAndUserID(NonceUserIDCallback callback);
 
     virtual void handleOVREvents();
 
 private:
     static const char* NAME;
-    LoginState _loginState{ LoginState::INVALID_STATE };
+    NonceUserIDCallback _nonceUserIDCallback;
     QString _nonce;
     bool _nonceChanged{ false };
     QString _user;

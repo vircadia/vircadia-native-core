@@ -7,27 +7,20 @@
 //
 #pragma once
 
-#include <QObject>
 #include <QtCore/QString>
 
 #include <functional>
 
-enum LoginState {
-    INVALID_STATE = 0,
-    LOGIN,
-    LINK_ACCOUNT,
-    CREATE_ACCOUNT
-};
+using NonceUserIDCallback = std::function<void(QString, QString)>;
 
-class OculusPlatformPlugin : public QObject {
-    Q_OBJECT
+class OculusPlatformPlugin {
 public:
     OculusPlatformPlugin();
     virtual ~OculusPlatformPlugin();
 
     virtual const QString getName() const = 0;
 
-    virtual void requestNonceAndUserID(LoginState state = LoginState::INVALID_STATE) = 0;
+    virtual void requestNonceAndUserID(NonceUserIDCallback callback) = 0;
 
     virtual void handleOVREvents() = 0;
 
