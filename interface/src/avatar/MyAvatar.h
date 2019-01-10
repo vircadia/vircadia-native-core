@@ -1186,7 +1186,6 @@ public:
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
-    void updateAvatarEntities() override;
     void prepareAvatarEntityDataForReload();
 
     /**jsdoc
@@ -1619,6 +1618,7 @@ private slots:
     void updateCollisionCapsuleCache();
 
 protected:
+    void handleChangedAvatarEntityData();
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
     virtual void recalculateChildCauterization() const override;
@@ -1630,7 +1630,7 @@ private:
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool inView) override;
     void updateFromTrackers(float deltaTime);
     void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;

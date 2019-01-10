@@ -139,9 +139,8 @@ public:
     typedef render::Payload<AvatarData> Payload;
 
     void init();
-    virtual void updateAvatarEntities();
     void removeAvatarEntitiesFromTree();
-    void simulate(float deltaTime, bool inView);
+    virtual void simulate(float deltaTime, bool inView) = 0;
     virtual void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs);

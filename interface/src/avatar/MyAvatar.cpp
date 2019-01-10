@@ -674,7 +674,7 @@ void MyAvatar::update(float deltaTime) {
 
     _clientTraitsHandler->sendChangedTraitsToMixer();
 
-    simulate(deltaTime);
+    simulate(deltaTime, true);
 
     currentEnergy += energyChargeRate;
     currentEnergy -= getAccelerationEnergy();
@@ -746,7 +746,7 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
     }
 }
 
-void MyAvatar::simulate(float deltaTime) {
+void MyAvatar::simulate(float deltaTime, bool inView) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
 
@@ -890,7 +890,7 @@ void MyAvatar::simulate(float deltaTime) {
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
-    updateAvatarEntities();
+    handleChangedAvatarEntityData();
 
     updateFadingStatus();
 }
@@ -1480,7 +1480,7 @@ void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) 
     properties.markAllChanged();
 }
 
-void MyAvatar::updateAvatarEntities() {
+void MyAvatar::handleChangedAvatarEntityData() {
     // NOTE: this is a per-frame update
     if (getID().isNull() ||
         getID() == AVATAR_SELF_ID ||
@@ -1499,7 +1499,7 @@ void MyAvatar::updateAvatarEntities() {
         return;
     }
 
-    // We collect changes to AvatarEntities and then handle them all in one spot per frame: updateAvatarEntities().
+    // We collect changes to AvatarEntities and then handle them all in one spot per frame: handleChangedAvatarEntityData().
     // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
     // "directions" and the "authoritative source" of each direction is different, so we maintain two distinct sets
     // of transaction lists:

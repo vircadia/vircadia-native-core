@@ -1150,8 +1150,7 @@ public:
     Q_INVOKABLE virtual void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
     virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
-    void insertDetachedEntityID(const QUuid entityID);
-    AvatarEntityIDs getAndClearRecentlyDetachedIDs();
+    AvatarEntityIDs getAndClearRecentlyRemovedIDs();
 
     /**jsdoc
      * @function MyAvatar.getSensorToWorldMatrix
@@ -1338,6 +1337,7 @@ public slots:
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
+    void insertRemovedEntityID(const QUuid entityID);
     void lazyInitHeadData() const;
 
     float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const;
@@ -1466,7 +1466,7 @@ protected:
     AABox _defaultBubbleBox;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
-    AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityIDs _avatarEntityRemoved; // recently removed AvatarEntity ids
     AvatarEntityIDs _avatarEntityForRecording; // create new entities id for avatar recording
     PackedAvatarEntityMap _packedAvatarEntityData;
     bool _avatarEntityDataChanged { false };

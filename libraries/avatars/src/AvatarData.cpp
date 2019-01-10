@@ -2777,7 +2777,7 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
         removedEntity = _packedAvatarEntityData.remove(entityID);
     });
 
-    insertDetachedEntityID(entityID);
+    insertRemovedEntityID(entityID);
 
     if (removedEntity && _clientTraitsHandler) {
         // we have a client traits handler, so we need to mark this removed instance trait as deleted
@@ -2798,18 +2798,18 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     // each QByteArray represents an EntityItemProperties object from JavaScript
 }
 
-void AvatarData::insertDetachedEntityID(const QUuid entityID) {
+void AvatarData::insertRemovedEntityID(const QUuid entityID) {
     _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityDetached.insert(entityID);
+        _avatarEntityRemoved.insert(entityID);
     });
     _avatarEntityDataChanged = true;
 }
 
-AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
+AvatarEntityIDs AvatarData::getAndClearRecentlyRemovedIDs() {
     AvatarEntityIDs result;
     _avatarEntitiesLock.withWriteLock([&] {
-        result = _avatarEntityDetached;
-        _avatarEntityDetached.clear();
+        result = _avatarEntityRemoved;
+        _avatarEntityRemoved.clear();
     });
     return result;
 }
