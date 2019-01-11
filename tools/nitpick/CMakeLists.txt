@@ -73,7 +73,7 @@ elseif (APPLE)
     )
 endif ()
 
-# set the packaged console folder depending on platform, so we can copy it
+# set the packaged nitpick folder depending on platform, so we can copy it
 if (WIN32)
   set(PACKAGED_NITPICK_FOLDER "Release")
 endif ()
@@ -86,7 +86,7 @@ if (WIN32)
     DESTINATION ${NITPICK_INSTALL_DIR}
   )
 
-  # sign the copied server console executable after install
+  # sign the copied nitpick executable after install
   set(EXECUTABLE_PATH "${NITPICK_DESTINATION}/${NITPICK_EXEC_NAME}")
   optional_win_executable_signing()
 endif()
