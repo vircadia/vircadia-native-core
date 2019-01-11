@@ -1671,7 +1671,7 @@ void Avatar::rigReset() {
 
 void Avatar::computeMultiSphereShapes() {
     const Rig& rig = getSkeletonModel()->getRig();
-    glm::vec3 scale = extractScale(rig.getGeometryToRigTransform());
+    glm::vec3 scale = extractScale(rig.getGeometryOffsetPose());
     const HFMModel& geometry = getSkeletonModel()->getHFMModel();
     int jointCount = rig.getJointStateCount();
     _multiSphereShapes.clear();
@@ -1691,8 +1691,8 @@ void Avatar::computeMultiSphereShapes() {
         MultiSphereShape multiSphereShape;
         if (multiSphereShape.computeMultiSphereShape(jointName, btPoints)) {
             multiSphereShape.calculateDebugLines();
-            multiSphereShape.setScale(getTargetScale());
-;        }
+            multiSphereShape.setScale(_targetScale);
+        }
         _multiSphereShapes.push_back(multiSphereShape);
     }
 }

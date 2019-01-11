@@ -4830,3 +4830,7 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
     }
 }
+
+std::shared_ptr<MyAvatar> MyAvatar::getSharedMe() {
+    return DependencyManager::get<AvatarManager>()->getMyAvatar();
+}

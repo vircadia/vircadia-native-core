@@ -159,6 +159,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "avatar/AvatarPackager.h"
+#include "avatar/MyCharacterController.h"
 #include "CrashRecoveryHandler.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
@@ -2635,7 +2636,14 @@ Application::~Application() {
     avatarManager->handleProcessedPhysicsTransaction(transaction);
 
     avatarManager->deleteAllAvatars();
+    
+    auto myCharacterController = getMyAvatar()->getCharacterController();
+    myCharacterController->clearDetailedMotionStates();
 
+    myCharacterController->buildPhysicsTransaction(transaction);
+    _physicsEngine->processTransaction(transaction);
+    myCharacterController->handleProcessedPhysicsTransaction(transaction);
+    
     _physicsEngine->setCharacterController(nullptr);
 
     // the _shapeManager should have zero references
@@ -6123,7 +6131,9 @@ void Application::update(float deltaTime) {
                 avatarManager->buildPhysicsTransaction(transaction);
                 _physicsEngine->processTransaction(transaction);
                 avatarManager->handleProcessedPhysicsTransaction(transaction);
-
+                myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
                 myAvatar->prepareForPhysicsSimulation();
                 _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
                     dynamic->prepareForPhysicsSimulation();

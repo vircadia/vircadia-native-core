@@ -2,8 +2,8 @@
 //  DetailedMotionState.cpp
 //  interface/src/avatar/
 //
-//  Created by Andrew Meadows 2015.05.14
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Luis Cuenca 1/11/2019
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -14,9 +14,10 @@
 #include <PhysicsCollisionGroups.h>
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
+#include "MyAvatar.h"
 
 
-DetailedMotionState::DetailedMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape, int jointIndex) : 
+DetailedMotionState::DetailedMotionState(AvatarPointer avatar, const btCollisionShape* shape, int jointIndex) : 
     ObjectMotionState(shape), _avatar(avatar), _jointIndex(jointIndex) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_DETAILED;
@@ -56,7 +57,14 @@ PhysicsMotionType DetailedMotionState::computePhysicsMotionType() const {
 
 // virtual and protected
 const btCollisionShape* DetailedMotionState::computeNewShape() {
-    auto shape = _avatar->createDetailedCollisionShapeForJoint(_jointIndex);
+    btCollisionShape* shape = nullptr;
+    if (!_avatar->isMyAvatar()) {
+        OtherAvatarPointer otherAvatar = std::static_pointer_cast<OtherAvatar>(_avatar);
+        shape = otherAvatar->createDetailedCollisionShapeForJoint(_jointIndex);
+    } else {
+        std::shared_ptr<MyAvatar> myAvatar = std::static_pointer_cast<MyAvatar>(_avatar);
+        shape = myAvatar->getCharacterController()->createDetailedCollisionShapeForJoint(_jointIndex);
+    }
     return shape;
 }
 
@@ -159,4 +167,10 @@ void DetailedMotionState::setRigidBody(btRigidBody* body) {
 
 void DetailedMotionState::setShape(const btCollisionShape* shape) {
     ObjectMotionState::setShape(shape);
+}
+
+void DetailedMotionState::forceActive() {
+    if (_body) {
+        _body->setActivationState(ACTIVE_TAG);
+    }
 }

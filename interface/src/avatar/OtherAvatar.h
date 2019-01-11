@@ -46,10 +46,11 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
-    btCollisionShape* OtherAvatar::createDetailedCollisionShapeForJoint(int jointIndex);
+    btCollisionShape* createDetailedCollisionShapeForJoint(int jointIndex);
     DetailedMotionState* createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
+
     void updateCollisionGroup(bool myAvatarCollide);
 
     friend AvatarManager;
@@ -64,5 +65,6 @@ protected:
 };
 
 using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;
+using AvatarPointer = std::shared_ptr<Avatar>;
 
 #endif  // hifi_OtherAvatar_h

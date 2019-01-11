@@ -415,7 +415,6 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 }
                 qCDebug(animation) << "Removing " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
                 avatar->resetDetailedMotionStates();
-
             } else {
                 if (avatar->_motionState == nullptr) {
                     ShapeInfo shapeInfo;
@@ -549,7 +548,8 @@ void AvatarManager::deleteAllAvatars() {
         avatar->die();
         if (avatar != _myAvatar) {
             auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
-            assert(!otherAvatar->_motionState && !otherAvatar->_motionState2);
+            assert(!otherAvatar->_motionState);
+            assert(otherAvatar->getDetailedMotionStates().size() == 0);            
         }
     }
 }
@@ -662,83 +662,21 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
         return result;
     }
 
-    // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
-    // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
-    // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
-    // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
-
-    // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
-
-    std::vector<SortedAvatar> sortedAvatars;
-    auto avatarHashCopy = getHashCopy();
-    for (auto avatarData : avatarHashCopy) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
-        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
-            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
-            continue;
-        }
-
-        float distance = FLT_MAX;
-#if 0
-        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
-        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
-        AABox avatarBounds = avatarModel->getRenderableMeshBound();
-        if (avatarBounds.contains(ray.origin)) {
-            distance = 0.0f;
-        } else {
-            float boundDistance = FLT_MAX;
-            BoxFace face;
-            glm::vec3 surfaceNormal;
-            if (avatarBounds.findRayIntersection(ray.origin, ray.direction, boundDistance, face, surfaceNormal)) {
-                distance = boundDistance;
-            }
-        }
-#else
-        glm::vec3 start;
-        glm::vec3 end;
-        float radius;
-        avatar->getCapsule(start, end, radius);
-        findRayCapsuleIntersection(ray.origin, ray.direction, start, end, radius, distance);
-#endif
-
-        if (distance < FLT_MAX) {
-            sortedAvatars.emplace_back(distance, avatar);
-        }
+    float distance = (float)INT_MAX;  // with FLT_MAX bullet rayTest does not return results 
+    BoxFace face = BoxFace::UNKNOWN_FACE;
+    glm::vec3 surfaceNormal;
+    QVariantMap extraInfo;
+    MyCharacterController::RayAvatarResult physicsResult = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(ray.direction), distance, QVector<uint>());
+    if (physicsResult._intersect) {
+        result.intersects = true;
+        result.avatarID = physicsResult._intersectWithAvatar;
+        result.distance = physicsResult._distance;
+        result.surfaceNormal = physicsResult._intersectionNormal;
+        result.jointIndex = physicsResult._intersectWithJoint;
+        result.intersection = physicsResult._intersectionPoint;
+        result.extraInfo = extraInfo;
+        result.face = face;
     }
-
-    if (sortedAvatars.size() > 1) {
-        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
-        std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
-    }
-
-    for (auto it = sortedAvatars.begin(); it != sortedAvatars.end(); ++it) {
-        const SortedAvatar& sortedAvatar = *it;
-        // We can exit once avatarCapsuleDistance > bestDistance
-        if (sortedAvatar.first > result.distance) {
-            break;
-        }
-
-        float distance = FLT_MAX;
-        BoxFace face;
-        glm::vec3 surfaceNormal;
-        QVariantMap extraInfo;
-        SkeletonModelPointer avatarModel = sortedAvatar.second->getSkeletonModel();
-        if (avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, ray.direction, distance, face, surfaceNormal, extraInfo, true)) {
-            if (distance < result.distance) {
-                result.intersects = true;
-                result.avatarID = sortedAvatar.second->getID();
-                result.distance = distance;
-                result.face = face;
-                result.surfaceNormal = surfaceNormal;
-                result.extraInfo = extraInfo;
-            }
-        }
-    }
-
-    if (result.intersects) {
-        result.intersection = ray.origin + ray.direction * result.distance;
-    }
-
     return result;
 }
 
@@ -833,6 +771,42 @@ ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector
         result.distance = glm::distance(pick.origin, result.intersection);
     }
 
+    return result;
+}
+
+RayToAvatarIntersectionResult AvatarManager::findSelfRayIntersection(const PickRay& ray,
+    const QScriptValue& jointIndexesToInclude,
+    const QScriptValue& jointIndexesToDiscard) {
+    QVector<uint> jointsToInclude;
+    QVector<uint> jointsToDiscard;
+    qVectorIntFromScriptValue(jointIndexesToInclude, jointsToInclude);
+    qVectorIntFromScriptValue(jointIndexesToDiscard, jointsToDiscard);
+    return findSelfRayIntersectionVector(ray, jointsToInclude, jointsToDiscard);
+}
+
+RayToAvatarIntersectionResult AvatarManager::findSelfRayIntersectionVector(const PickRay& ray,
+    const QVector<uint>& jointIndexesToInclude,
+    const QVector<uint>& jointIndexesToDiscard) {
+    RayToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findSelfRayIntersectionVector",
+            Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
+            Q_ARG(const PickRay&, ray),
+            Q_ARG(const QVector<uint>&, jointIndexesToInclude),
+            Q_ARG(const QVector<uint>&, jointIndexesToDiscard));
+        return result;
+    }
+    glm::vec3 normDirection = glm::normalize(ray.direction);
+    auto jointCollisionResult = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(normDirection), 1.0f, jointIndexesToDiscard);
+    if (jointCollisionResult._intersectWithJoint > -1 && jointCollisionResult._distance > 0) {
+        result.intersects = true;
+        result.distance = jointCollisionResult._distance;
+        result.jointIndex = jointCollisionResult._intersectWithJoint;
+        result.avatarID = _myAvatar->getID();
+        result.extraInfo = QVariantMap();
+        result.intersection = jointCollisionResult._intersectionPoint;
+        result.surfaceNormal = jointCollisionResult._intersectionNormal;
+    }
     return result;
 }
 

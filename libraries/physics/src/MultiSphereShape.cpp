@@ -254,6 +254,7 @@ bool MultiSphereShape::computeMultiSphereShape(const QString& name, const std::v
     for (size_t i = 0; i < _spheres.size(); i++) {
         _spheres[i]._position += _midPoint;
     }
+    
     return _mode != CollisionShapeExtractionMode::None;
 }
 

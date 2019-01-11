@@ -37,6 +37,7 @@
 class AvatarActionHold;
 class ModelItemID;
 class MyHead;
+class DetailedMotionState;
 
 enum eyeContactTarget {
     LEFT_EYE,
@@ -1205,6 +1206,8 @@ public:
      * @param {Uuid} grabID - id of grabbed thing
      */
     Q_INVOKABLE void releaseGrab(const QUuid& grabID);
+
+    std::shared_ptr<MyAvatar> getSharedMe();
 
 public slots:
 

@@ -2,8 +2,8 @@
 //  DetailedMotionState.h
 //  interface/src/avatar/
 //
-//  Created by Andrew Meadows 2015.05.14
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Luis Cuenca 1/11/2019
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -21,7 +21,7 @@
 
 class DetailedMotionState : public ObjectMotionState {
 public:
-    DetailedMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape, int jointIndex);
+    DetailedMotionState(AvatarPointer avatar, const btCollisionShape* shape, int jointIndex);
 
     virtual void handleEasyChanges(uint32_t& flags) override;
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
@@ -67,6 +67,9 @@ public:
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
     virtual float getMass() const override;
+    void forceActive();
+    QUuid getAvatarID() { return _avatar->getID(); }
+    int getJointIndex() { return _jointIndex; }
 
     friend class AvatarManager;
     friend class Avatar;
@@ -82,7 +85,7 @@ protected:
     virtual bool isReadyToComputeShape() const override { return true; }
     virtual const btCollisionShape* computeNewShape() override;
 
-    OtherAvatarPointer _avatar;
+    AvatarPointer _avatar;
     float _diameter { 0.0f };
 
     uint32_t _dirtyFlags;

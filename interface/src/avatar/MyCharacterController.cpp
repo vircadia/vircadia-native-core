@@ -12,8 +12,10 @@
 #include "MyCharacterController.h"
 
 #include <BulletUtil.h>
+#include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
 
 #include "MyAvatar.h"
+#include "DetailedMotionState.h"
 
 // TODO: make avatars stand on steep slope
 // TODO: make avatars not snag on low ceilings
@@ -44,8 +46,8 @@ void MyCharacterController::setDynamicsWorld(btDynamicsWorld* world) {
 void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
         _pendingFlags &= ~PENDING_FLAG_UPDATE_SHAPE;
-
         if (_radius > 0.0f) {
+            // _pendingFlags |= PENDING_FLAG_RESET_DETAILED_SHAPES;
             // create RigidBody if it doesn't exist
             if (!_rigidBody) {
                 btCollisionShape* shape = computeShape();
@@ -351,4 +353,114 @@ void MyCharacterController::updateMassProperties() {
     btScalar mass = _density * (volumeCylinder + volumeSphere);
 
     _rigidBody->setMassProps(mass, inertia);
+}
+
+btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(int jointIndex) {
+    ShapeInfo shapeInfo;
+    _avatar->computeDetailedShapeInfo(shapeInfo, jointIndex);
+    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
+        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+        return shape;
+    }
+    return nullptr;
+}
+
+DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int jointIndex) {
+    auto shape = createDetailedCollisionShapeForJoint(jointIndex);
+    if (shape) {
+        DetailedMotionState* motionState = new DetailedMotionState(_avatar->getSharedMe(), shape, jointIndex);
+        motionState->setMass(_avatar->computeMass());
+        return motionState;
+    }
+    return nullptr;
+}
+
+void MyCharacterController::resetDetailedMotionStates() {
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        _detailedMotionStates[i] = nullptr;
+    }
+    _detailedMotionStates.clear();
+}
+
+void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        _detailedMotionStates[i]->forceActive();
+    }
+    if (_pendingFlags & PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION) {
+        _pendingFlags &= ~PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
+        for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+            transaction.objectsToRemove.push_back(_detailedMotionStates[i]);
+            _detailedMotionStates[i] = nullptr;
+        }
+        _detailedMotionStates.clear();
+    }
+    if (_pendingFlags & PENDING_FLAG_ADD_DETAILED_TO_SIMULATION) {
+        _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
+        for (int i = 0; i < _avatar->getJointCount(); i++) {
+            auto dMotionState = createDetailedMotionStateForJoint(i);
+            if (dMotionState) {
+                _detailedMotionStates.push_back(dMotionState);
+                transaction.objectsToAdd.push_back(dMotionState);
+            }
+        }
+    } 
+}
+
+void MyCharacterController::handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction) {
+    // things on objectsToRemove are ready for delete
+    for (auto object : transaction.objectsToRemove) {
+        delete object;
+    }
+    transaction.clear();
+}
+
+
+class ClosestDetailed : public btCollisionWorld::AllHitsRayResultCallback {
+public:
+    ClosestDetailed()
+        : btCollisionWorld::AllHitsRayResultCallback(btVector3(0.0f, 0.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f)) {
+        // the RayResultCallback's group and mask must match MY_AVATAR
+        m_collisionFilterGroup = BULLET_COLLISION_GROUP_DETAILED_RAY;
+        m_collisionFilterMask = BULLET_COLLISION_MASK_DETAILED_RAY;
+    }
+
+    virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+        return AllHitsRayResultCallback::addSingleResult(rayResult, normalInWorldSpace);
+    }
+};
+
+MyCharacterController::RayAvatarResult MyCharacterController::rayTest(const btVector3& origin, const btVector3& direction, const btScalar& length,
+                                                                      const QVector<uint>& jointsToExclude) const {
+    RayAvatarResult result;
+    if (_dynamicsWorld) {
+        btVector3 end = origin + length * direction;
+        ClosestDetailed rayCallback = ClosestDetailed();
+        rayCallback.m_flags |= btTriangleRaycastCallback::kF_KeepUnflippedNormal;
+        rayCallback.m_flags |= btTriangleRaycastCallback::kF_UseSubSimplexConvexCastRaytest;
+        _dynamicsWorld->rayTest(origin, end, rayCallback);
+        if (rayCallback.m_hitFractions.size() > 0) {
+            int minIndex = 0;
+            float hitFraction = rayCallback.m_hitFractions[0];
+            for (auto i = 1; i < rayCallback.m_hitFractions.size(); i++) {
+                if (hitFraction > rayCallback.m_hitFractions[i]) {
+                    hitFraction = rayCallback.m_hitFractions[i];
+                    minIndex = i;
+                }
+            }
+            auto object = rayCallback.m_collisionObjects[minIndex];
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(object->getUserPointer());
+            if (motionState && motionState->getType() == MOTIONSTATE_TYPE_DETAILED) {
+                DetailedMotionState* detailedMotionState = dynamic_cast<DetailedMotionState*>(motionState);
+                if (detailedMotionState) {
+                    result._intersect = true;
+                    result._intersectWithAvatar = detailedMotionState->getAvatarID();
+                    result._intersectionPoint = bulletToGLM(rayCallback.m_hitPointWorld[minIndex]);
+                    result._intersectionNormal = bulletToGLM(rayCallback.m_hitNormalWorld[minIndex]);
+                    result._distance = length * hitFraction;
+                    result._intersectWithJoint = detailedMotionState->getJointIndex();
+                }
+            }
+        }
+    }
+    return result;
 }
