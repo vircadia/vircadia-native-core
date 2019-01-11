@@ -341,6 +341,10 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
 void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
     _perNodeSentTraitVersions[nodeLocalID].reset();
+    _perNodeAckedTraitVersions[nodeLocalID].reset();
+    for (auto && pendingTraitVersions : _perNodePendingTraitVersions) {
+        pendingTraitVersions.second[nodeLocalID].reset();
+    }
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {
