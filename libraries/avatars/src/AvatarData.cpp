@@ -1987,9 +1987,9 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
     qint64 bytesWritten = 0;
 
     if (traitType == AvatarTraits::AvatarEntity) {
-        packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        bytesWritten += packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
     } else if (traitType == AvatarTraits::Grab) {
-        packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        bytesWritten += packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
     }
 
     return bytesWritten;
