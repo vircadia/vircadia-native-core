@@ -157,7 +157,7 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                     if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
                         _avatar->processDeletedTraitInstance(traitType, instanceID);
                         // Mixer doesn't need deleted IDs.
-                        _avatar->getAndClearRecentlyDetachedIDs();
+                        _avatar->getAndClearRecentlyRemovedIDs();
 
                         // to track a deleted instance but keep version information
                         // the avatar mixer uses the negative value of the sent version

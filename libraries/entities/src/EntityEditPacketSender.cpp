@@ -39,13 +39,12 @@ void EntityEditPacketSender::adjustEditPacketForClockSkew(PacketType type, QByte
     }
 }
 
-void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
-                                                          EntityTreePointer entityTree,
+void EntityEditPacketSender::queueEditAvatarEntityMessage(EntityTreePointer entityTree,
                                                           EntityItemID entityItemID,
                                                           const EntityItemProperties& properties) {
     assert(_myAvatar);
     if (!entityTree) {
-        qCDebug(entities) << "EntityEditPacketSender::queueEditEntityMessage null entityTree.";
+        qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage null entityTree.";
         return;
     }
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(entityItemID);
@@ -53,32 +52,26 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
         qCDebug(entities) << "EntityEditPacketSender::queueEditAvatarEntityMessage can't find entity: " << entityItemID;
         return;
     }
+    entity->setLastBroadcast(usecTimestampNow());
 
-    // the properties that get serialized into the avatar identity packet should be the entire set
+    // serialize ALL properties in an "AvatarEntity" packet
     // rather than just the ones being edited.
     EntityItemProperties entityProperties = entity->getProperties();
     entityProperties.merge(properties);
 
-    std::lock_guard<std::mutex> lock(_mutex);
-    QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
-    QVariant variantProperties = scriptProperties.toVariant();
-    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+    EncodeBitstreamParams params;
+    EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+    OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
 
-    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
-    QJsonObject jsonObject = jsonProperties.object();
-    if (jsonObject.contains("parentID")) {
-        if (QUuid(jsonObject["parentID"].toString()) == _myAvatar->getID()) {
-            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
-        }
+    if (appendState != OctreeElement::COMPLETED) {
+        // this entity's payload is too big
+        return;
     }
-    jsonProperties = QJsonDocument(jsonObject);
 
-    QByteArray binaryProperties = jsonProperties.toBinaryData();
-    _myAvatar->updateAvatarEntity(entityItemID, binaryProperties);
-
-    entity->setLastBroadcast(usecTimestampNow());
+    QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+    _myAvatar->storeAvatarEntityDataPayload(entityItemID, tempArray);
 }
-
 
 void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
                                                     EntityTreePointer entityTree,
@@ -89,7 +82,7 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit with no myAvatar";
         } else if (properties.getOwningAvatarID() == _myAvatar->getID()) {
             // this is an avatar-based entity --> update our avatar-data rather than sending to the entity-server
-            queueEditAvatarEntityMessage(type, entityTree, entityItemID, properties);
+            queueEditAvatarEntityMessage(entityTree, entityItemID, properties);
         } else {
             qCWarning(entities) << "Suppressing entity edit message: cannot send avatar entity edit for another avatar";
         }

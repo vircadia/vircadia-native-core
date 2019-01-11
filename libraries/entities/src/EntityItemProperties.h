@@ -98,6 +98,9 @@ class EntityItemProperties {
     friend class ZoneEntityItem;
     friend class MaterialEntityItem;
 public:
+    static bool blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties);
+    static void propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob);
+
     EntityItemProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags());
     virtual ~EntityItemProperties() = default;
 
@@ -109,6 +112,7 @@ public:
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime = false,
         bool strictSemantics = false, EntityPsuedoPropertyFlags psueudoPropertyFlags = EntityPsuedoPropertyFlags()) const;
     virtual void copyFromScriptValue(const QScriptValue& object, bool honorReadOnly);
+    void copyFromJSONString(QScriptEngine& scriptEngine, const QString& jsonString);
 
     static QScriptValue entityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags);
     static void entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags);
@@ -134,6 +138,8 @@ public:
     void setLastEdited(quint64 usecTime);
     EntityPropertyFlags getDesiredProperties() { return _desiredProperties; }
     void setDesiredProperties(EntityPropertyFlags properties) {  _desiredProperties = properties; }
+
+    bool constructFromBuffer(const unsigned char* data, int dataLength);
 
     // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type, value) creates the following methods and variables:
     // type getFoo() const;

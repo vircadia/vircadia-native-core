@@ -58,6 +58,10 @@ REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Material)
 
+bool EntityTypes::typeIsValid(EntityType type) {
+    return type > EntityType::Unknown && type <= EntityType::NUM_TYPES;
+}
+
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
     if (matchedTypeName != _typeToNameMap.end()) {
@@ -107,8 +111,7 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
     return newEntityItem;
 }
 
-EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
-            ReadBitstreamToTreeParams& args) {
+void EntityTypes::extractEntityTypeAndID(const unsigned char* data, int dataLength, EntityTypes::EntityType& typeOut, QUuid& idOut) {
 
     // Header bytes
     //    object ID [16 bytes]
@@ -119,28 +122,36 @@ EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, in
     // ~27-35 bytes...
     const int MINIMUM_HEADER_BYTES = 27;
 
-    int bytesRead = 0;
-    if (bytesToRead >= MINIMUM_HEADER_BYTES) {
-        int originalLength = bytesToRead;
-        QByteArray originalDataBuffer((const char*)data, originalLength);
+    if (dataLength >= MINIMUM_HEADER_BYTES) {
+        int bytesRead = 0;
+        QByteArray originalDataBuffer = QByteArray::fromRawData((const char*)data, dataLength);
 
         // id
         QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
-        QUuid actualID = QUuid::fromRfc4122(encodedID);
+        idOut = QUuid::fromRfc4122(encodedID);
         bytesRead += encodedID.size();
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
         ByteCountCoded<quint32> typeCoder = encodedType;
         encodedType = typeCoder; // determine true length
-        bytesRead += encodedType.size();
         quint32 type = typeCoder;
-        EntityTypes::EntityType entityType = (EntityTypes::EntityType)type;
-        
-        EntityItemID tempEntityID(actualID);
-        EntityItemProperties tempProperties;
-        return constructEntityItem(entityType, tempEntityID, tempProperties);
+        typeOut = (EntityTypes::EntityType)type;
     }
-    
-    return NULL;
+}
+
+EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {
+    QUuid id;
+    EntityTypes::EntityType type = EntityTypes::Unknown;
+    extractEntityTypeAndID(data, bytesToRead, type, id);
+    if (type > EntityTypes::Unknown && type <= EntityTypes::NUM_TYPES) {
+        EntityItemID tempEntityID(id);
+        EntityItemProperties tempProperties;
+        return constructEntityItem(type, tempEntityID, tempProperties);
+    }
+    return nullptr;
+}
+
+EntityItemPointer EntityTypes::constructEntityItem(const QUuid& id, const EntityItemProperties& properties) {
+    return constructEntityItem(properties.getType(), id, properties);
 }

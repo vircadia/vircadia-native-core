@@ -2459,6 +2459,9 @@ void Application::updateHeartbeat() const {
 }
 
 void Application::onAboutToQuit() {
+    // quickly save AvatarEntityData before the EntityTree is dismantled
+    getMyAvatar()->saveAvatarEntityDataToSettings();
+
     emit beforeAboutToQuit();
 
     if (getLoginDialogPoppedUp() && _firstRun.get()) {
@@ -6753,8 +6756,10 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
+    // before we delete all entities get MyAvatar's AvatarEntityData ready
+    getMyAvatar()->prepareAvatarEntityDataForReload();
 
-    // if we're about to quit, we really don't need to do any of these things...
+    // if we're about to quit, we really don't need to do the rest of these things...
     if (_aboutToQuit) {
         return;
     }
@@ -6782,8 +6787,6 @@ void Application::clearDomainOctreeDetails() {
     ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
     DependencyManager::get<recording::ClipCache>()->clearUnusedResources();
-
-    getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
 void Application::domainURLChanged(QUrl domainURL) {
