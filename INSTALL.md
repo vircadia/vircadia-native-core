@@ -69,5 +69,13 @@ To produce an executable installer on Windows, the following are required:
     Installer is now available in `build\_CPack_Packages\win64\NSIS`
 
 #### OS X
-
-Run the `package` target to create an Apple Disk Image (.dmg).
+1.   [npm](<https://www.npmjs.com/get-npm>)
+      Install version 10.15.0 LTS
+   
+1.  Perform a clean cmake.
+1.  Perform a Release build of ALL_BUILD
+1.  Perform a Release build of `packaged-server-console` 
+     This will add a folder to `build\server-console\` -  
+     Sandbox-darwin-x64
+1.  Perform a Release build of `package`
+      Installer is now available in `build/_CPack_Packages/Darwin/DragNDrop
