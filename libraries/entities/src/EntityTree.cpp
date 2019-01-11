@@ -70,6 +70,39 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
+void EntityTree::eraseDomainEntities() {
+    emit clearingEntities();
+
+    if (_simulation) {
+        _simulation->clearEntities();
+    }
+    _staleProxies.clear();
+    QHash<EntityItemID, EntityItemPointer> localMap;
+    localMap.swap(_entityMap);
+    QHash<EntityItemID, EntityItemPointer> savedEntities;
+    this->withWriteLock([&] {
+        foreach(EntityItemPointer entity, localMap) {
+            EntityTreeElementPointer element = entity->getElement();
+            if (element) {
+                element->cleanupDomainEntities();
+            }
+
+            if (!entity->isDomainEntity()) {
+                savedEntities[entity->getEntityItemID()] = entity;
+            }
+        }
+    });
+    localMap.clear();
+    _entityMap = savedEntities;
+
+    resetClientEditStats();
+    clearDeletedEntities();
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        _needsParentFixup.clear();
+    }
+}
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 

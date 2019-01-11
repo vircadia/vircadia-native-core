@@ -197,6 +197,14 @@ void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointe
     }
 }
 
+
+void OctreeProcessor::clearDomainEntities() {
+    if (_tree) {
+        _tree->withWriteLock([&] {
+            _tree->eraseDomainEntities();
+        });
+    }
+}
 void OctreeProcessor::clear() {
     if (_tree) {
         _tree->withWriteLock([&] {

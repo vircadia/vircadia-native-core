@@ -149,6 +149,7 @@ public:
 
     OctreeElementPointer getRoot() { return _rootElement; }
 
+    virtual void eraseDomainEntities() { _isDirty = true; };
     virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,  uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args);

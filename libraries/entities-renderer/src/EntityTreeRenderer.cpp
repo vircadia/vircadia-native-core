@@ -197,9 +197,8 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     });
 }
 
-void EntityTreeRenderer::clear() {
-    leaveAllEntities();
-
+void EntityTreeRenderer::stopEntityScripts() {
+     leaveAllEntities();
     // unload and stop the engine
     if (_entitiesScriptEngine) {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
@@ -211,6 +210,42 @@ void EntityTreeRenderer::clear() {
     if (_wantScripts && !_shuttingDown) {
         resetEntitiesScriptEngine();
     }
+}
+
+void EntityTreeRenderer::clearDomainEntities() {
+    stopEntityScripts();
+
+    std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
+    // remove all entities from the scene
+    _space->clear();
+    auto scene = _viewState->getMain3DScene();
+    if (scene) {
+        render::Transaction transaction;
+        for (const auto& entry :  _entitiesInScene) {
+            const auto& renderer = entry.second;
+            const EntityItemPointer& entityItem = renderer->getEntity();
+            if (entityItem->isDomainEntity()) {
+                renderer->removeFromScene(scene, transaction);
+            } else {
+                savedEntities[entry.first] = entry.second;
+            }
+        }
+        scene->enqueueTransaction(transaction);
+    } else {
+        qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
+    }
+    _entitiesInScene.clear();
+    _renderablesToUpdate = savedEntities;
+    _entitiesInScene = savedEntities;
+
+    // reset the zone to the default (while we load the next scene)
+    _layeredZones.clear();
+
+    OctreeProcessor::clearDomainEntities();
+}
+
+void EntityTreeRenderer::clear() {
+    stopEntityScripts();
 
     // remove all entities from the scene
     _space->clear();

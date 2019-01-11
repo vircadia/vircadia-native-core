@@ -86,6 +86,7 @@ public:
     virtual void init() override;
 
     /// clears the tree
+    virtual void clearDomainEntities() override;
     virtual void clear() override;
 
     /// reloads the entity scripts, calling unload and preload
@@ -161,6 +162,7 @@ private:
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
     bool applyLayeredZones();
+    void stopEntityScripts();
 
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);
 
