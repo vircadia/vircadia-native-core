@@ -174,7 +174,7 @@ int EntityTree::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                         addToNeedsParentFixupList(entity);
                     }
                 } else {
-                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
+                    entity = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead);
                     if (entity) {
                         bytesForThisEntity = entity->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
 
@@ -490,7 +490,6 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
 }
 
 EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties, bool isClone) {
-    EntityItemPointer result = NULL;
     EntityItemProperties props = properties;
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -517,12 +516,12 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     if (containingElement) {
         qCWarning(entities) << "EntityTree::addEntity() on existing entity item with entityID=" << entityID
                           << "containingElement=" << containingElement.get();
-        return result;
+        return nullptr;
     }
 
     // construct the instance of the entity
     EntityTypes::EntityType type = props.getType();
-    result = EntityTypes::constructEntityItem(type, entityID, props);
+    EntityItemPointer result = EntityTypes::constructEntityItem(type, entityID, props);
 
     if (result) {
         if (recordCreationTime) {
@@ -531,10 +530,6 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
-        if (!result->getParentID().isNull()) {
-            addToNeedsParentFixupList(result);
-        }
-
         postAddEntity(result);
     }
     return result;
@@ -2969,27 +2964,30 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
                                                MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
-    if (entity && (entity->updateQueryAACube() || force)) {
-        bool success;
-        AACube newCube = entity->getQueryAACube(success);
-        if (success) {
-            moveOperator.addEntityToMoveList(entity, newCube);
-        }
-        // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
-        // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-        if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
-            quint64 now = usecTimestampNow();
-            EntityItemProperties properties = entity->getProperties();
-            properties.setQueryAACubeDirty();
-            properties.setLocationDirty();
-            properties.setLastEdited(now);
+    if (entity) {
+        bool tellServerThis = tellServer && (entity->getEntityHostType() != entity::HostType::AVATAR);
+        if ((entity->updateQueryAACube() || force)) {
+            bool success;
+            AACube newCube = entity->getQueryAACube(success);
+            if (success) {
+                moveOperator.addEntityToMoveList(entity, newCube);
+            }
+            // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
+            // entities as well as for avatar-entities; the packet-sender will route the update accordingly
+            if (tellServerThis && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+                quint64 now = usecTimestampNow();
+                EntityItemProperties properties = entity->getProperties();
+                properties.setQueryAACubeDirty();
+                properties.setLocationDirty();
+                properties.setLastEdited(now);
 
-            packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
-            entity->setLastBroadcast(now); // for debug/physics status icons
-        }
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastBroadcast(now); // for debug/physics status icons
+            }
 
-        entity->markDirtyFlags(Simulation::DIRTY_POSITION);
-        entityChanged(entity);
+            entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+            entityChanged(entity);
+        }
     }
 
     object->forEachDescendant([&](SpatiallyNestablePointer descendant) {

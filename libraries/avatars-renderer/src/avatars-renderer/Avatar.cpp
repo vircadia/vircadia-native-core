@@ -308,171 +308,16 @@ void Avatar::setAvatarEntityDataChanged(bool value) {
     _avatarEntityDataHashes.clear();
 }
 
-void Avatar::updateAvatarEntities() {
-    PerformanceTimer perfTimer("attachments");
-
-    // AVATAR ENTITY UPDATE FLOW
-    // - if queueEditEntityMessage sees avatarEntity flag it does _myAvatar->updateAvatarEntity()
-    // - updateAvatarEntity saves the bytes and flags the trait instance for the entity as updated
-    // - ClientTraitsHandler::sendChangedTraitsToMixer sends the entity bytes to the mixer which relays them to other interfaces
-    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processTraitInstace
-    // - AvatarData::processTraitInstance calls updateAvatarEntity, which sets _avatarEntityDataChanged = true
-    // - (My)Avatar::simulate notices _avatarEntityDataChanged and here we are...
-
-    // AVATAR ENTITY DELETE FLOW
-    // - EntityScriptingInterface::deleteEntity calls _myAvatar->clearAvatarEntity() for deleted avatar entities
-    // - clearAvatarEntity removes the avatar entity and flags the trait instance for the entity as deleted
-    // - ClientTraitsHandler::sendChangedTraitsToMixer sends a deletion to the mixer which relays to other interfaces
-    // - AvatarHashMap::processBulkAvatarTraits on other interfaces calls avatar->processDeletedTraitInstace
-    // - AvatarData::processDeletedTraitInstance calls clearAvatarEntity
-    // - AvatarData::clearAvatarEntity sets _avatarEntityDataChanged = true and adds the ID to the detached list
-    // - Avatar::simulate notices _avatarEntityDataChanged and here we are...
-
-    if (!_avatarEntityDataChanged) {
-        return;
-    }
-
-    if (getID().isNull() ||
-        getID() == AVATAR_SELF_ID ||
-        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
-        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong --
-        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
-        return;
-    }
-
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    if (!entityTree) {
-        return;
-    }
-
-    QScriptEngine scriptEngine;
-    entityTree->withWriteLock([&] {
-        AvatarEntityMap avatarEntities = getAvatarEntityData();
-        AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
-        while (dataItr != avatarEntities.end()) {
-            // compute hash of data.  TODO? cache this?
-            QByteArray data = dataItr.value();
-            uint32_t newHash = qHash(data);
-
-            // check to see if we recognize this hash and whether it was already successfully processed
-            QUuid entityID = dataItr.key();
-            MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
-            if (stateItr != _avatarEntityDataHashes.end()) {
-                if (stateItr.value().success) {
-                    if (newHash == stateItr.value().hash) {
-                        // data hasn't changed --> nothing to do
-                        ++dataItr;
-                        continue;
-                    }
-                } else {
-                    // NOTE: if the data was unsuccessful in producing an entity in the past
-                    // we will try again just in case something changed (unlikely).
-                    // Unfortunately constantly trying to build the entity for this data costs
-                    // CPU cycles that we'd rather not spend.
-                    // TODO? put a maximum number of tries on this?
-                }
-            } else {
-                // remember this hash for the future
-                stateItr = _avatarEntityDataHashes.insert(entityID, AvatarEntityDataHash(newHash));
-            }
-            ++dataItr;
-
-            // see EntityEditPacketSender::queueEditEntityMessage for the other end of this.  unpack properties
-            // and either add or update the entity.
-            QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(data);
-            if (!jsonProperties.isObject()) {
-                qCDebug(avatars_renderer) << "got bad avatarEntity json" << QString(data.toHex());
-                continue;
-            }
-
-            QVariant variantProperties = jsonProperties.toVariant();
-            QVariantMap asMap = variantProperties.toMap();
-            QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
-            EntityItemProperties properties;
-            EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptProperties, properties);
-            properties.setEntityHostType(entity::HostType::AVATAR);
-            properties.setOwningAvatarID(getID());
-
-            if (properties.getParentID() == AVATAR_SELF_ID) {
-                properties.setParentID(getID());
-            }
-
-            // NOTE: if this avatar entity is not attached to us, strip its entity script completely...
-            auto attachedScript = properties.getScript();
-            if (!isMyAvatar() && !attachedScript.isEmpty()) {
-                QString noScript;
-                properties.setScript(noScript);
-            }
-
-            auto specifiedHref = properties.getHref();
-            if (!isMyAvatar() && !specifiedHref.isEmpty()) {
-                qCDebug(avatars_renderer) << "removing entity href from avatar attached entity:" << entityID << "old href:" << specifiedHref;
-                QString noHref;
-                properties.setHref(noHref);
-            }
-
-            // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
-            // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
-            // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
-            // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
-            // and seems safe (per Seth).
-            properties.markAllChanged();
-
-            // try to build the entity
-            EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-            bool success = true;
-            if (entity) {
-                if (entityTree->updateEntity(entityID, properties)) {
-                    entity->updateLastEditedFromRemote();
-                } else {
-                    success = false;
-                }
-            } else {
-                entity = entityTree->addEntity(entityID, properties);
-                if (!entity) {
-                    success = false;
-                }
-            }
-            stateItr.value().success = success;
-        }
-
-        AvatarEntityIDs recentlyDetachedAvatarEntities = getAndClearRecentlyDetachedIDs();
-        if (!recentlyDetachedAvatarEntities.empty()) {
-            // only lock this thread when absolutely necessary
-            AvatarEntityMap avatarEntityData;
-            _avatarEntitiesLock.withReadLock([&] {
-                avatarEntityData = _avatarEntityData;
-            });
-            foreach (auto entityID, recentlyDetachedAvatarEntities) {
-                if (!avatarEntityData.contains(entityID)) {
-                    entityTree->deleteEntity(entityID, true, true);
-                }
-            }
-
-            // remove stale data hashes
-            foreach (auto entityID, recentlyDetachedAvatarEntities) {
-                MapOfAvatarEntityDataHashes::iterator stateItr = _avatarEntityDataHashes.find(entityID);
-                if (stateItr != _avatarEntityDataHashes.end()) {
-                    _avatarEntityDataHashes.erase(stateItr);
-                }
-            }
-        }
-        if (avatarEntities.size() != _avatarEntityForRecording.size()) {
-            createRecordingIDs();
-        }
-    });
-
-    setAvatarEntityDataChanged(false);
-}
-
 void Avatar::removeAvatarEntitiesFromTree() {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
+        QList<QUuid> avatarEntityIDs;
+        _avatarEntitiesLock.withReadLock([&] {
+            avatarEntityIDs = _packedAvatarEntityData.keys();
+        });
         entityTree->withWriteLock([&] {
-            AvatarEntityMap avatarEntities = getAvatarEntityData();
-            for (auto entityID : avatarEntities.keys()) {
+            for (const auto& entityID : avatarEntityIDs) {
                 entityTree->deleteEntity(entityID, true, true);
             }
         });
@@ -645,87 +490,6 @@ void Avatar::relayJointDataToChildren() {
         }
     });
     _reconstructSoftEntitiesJointMap = false;
-}
-
-void Avatar::simulate(float deltaTime, bool inView) {
-    PROFILE_RANGE(simulation, "simulate");
-
-    _globalPosition = _transit.isActive() ? _transit.getCurrentPosition() : _serverPosition;
-    if (!hasParent()) {
-        setLocalPosition(_globalPosition);
-    }
-
-    _simulationRate.increment();
-    if (inView) {
-        _simulationInViewRate.increment();
-    }
-
-    PerformanceTimer perfTimer("simulate");
-    {
-        PROFILE_RANGE(simulation, "updateJoints");
-        if (inView) {
-            Head* head = getHead();
-            if (_hasNewJointData || _transit.isActive()) {
-                _skeletonModel->getRig().copyJointsFromJointData(_jointData);
-                glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
-                _skeletonModel->getRig().computeExternalPoses(rootTransform);
-                _jointDataSimulationRate.increment();
-
-                _skeletonModel->simulate(deltaTime, true);
-
-                locationChanged(); // joints changed, so if there are any children, update them.
-                _hasNewJointData = false;
-
-                glm::vec3 headPosition = getWorldPosition();
-                if (!_skeletonModel->getHeadPosition(headPosition)) {
-                    headPosition = getWorldPosition();
-                }
-                head->setPosition(headPosition);
-            }
-            head->setScale(getModelScale());
-            head->simulate(deltaTime);
-            relayJointDataToChildren();
-        } else {
-            // a non-full update is still required so that the position, rotation, scale and bounds of the skeletonModel are updated.
-            _skeletonModel->simulate(deltaTime, false);
-        }
-        _skeletonModelSimulationRate.increment();
-    }
-
-    // update animation for display name fade in/out
-    if ( _displayNameTargetAlpha != _displayNameAlpha) {
-        // the alpha function is
-        // Fade out => alpha(t) = factor ^ t => alpha(t+dt) = alpha(t) * factor^(dt)
-        // Fade in  => alpha(t) = 1 - factor^t => alpha(t+dt) = 1-(1-alpha(t))*coef^(dt)
-        // factor^(dt) = coef
-        float coef = pow(DISPLAYNAME_FADE_FACTOR, deltaTime);
-        if (_displayNameTargetAlpha < _displayNameAlpha) {
-            // Fading out
-            _displayNameAlpha *= coef;
-        } else {
-            // Fading in
-            _displayNameAlpha = 1 - (1 - _displayNameAlpha) * coef;
-        }
-        _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
-    }
-
-    {
-        PROFILE_RANGE(simulation, "misc");
-        measureMotionDerivatives(deltaTime);
-        simulateAttachments(deltaTime);
-        updatePalms();
-    }
-    {
-        PROFILE_RANGE(simulation, "entities");
-        updateAvatarEntities();
-    }
-
-    {
-        PROFILE_RANGE(simulation, "grabs");
-        updateGrabs();
-    }
-
-    updateFadingStatus();
 }
 
 float Avatar::getSimulationRate(const QString& rateName) const {
@@ -1041,7 +805,6 @@ void Avatar::render(RenderArgs* renderArgs) {
         }
     }
 }
-
 
 void Avatar::setEnableMeshVisible(bool isEnabled) {
     if (_isMeshVisible != isEnabled) {

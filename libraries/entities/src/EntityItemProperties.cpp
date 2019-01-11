@@ -28,6 +28,7 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
+#include <VariantMapToScriptValue.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
@@ -90,6 +91,16 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
+bool EntityItemProperties::constructFromBuffer(const unsigned char* data, int dataLength) {
+    ReadBitstreamToTreeParams args;
+    EntityItemPointer tempEntity = EntityTypes::constructEntityItem(data, dataLength);
+    if (!tempEntity) {
+        return false;
+    }
+    tempEntity->readEntityDataFromBuffer(data, dataLength, args);
+    (*this) = tempEntity->getProperties();
+    return true;
+}
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
@@ -2023,6 +2034,18 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _lastEdited = usecTimestampNow();
 }
 
+void EntityItemProperties::copyFromJSONString(QScriptEngine& scriptEngine, const QString& jsonString) {
+    // DANGER: this method is expensive
+    QJsonDocument propertiesDoc = QJsonDocument::fromJson(jsonString.toUtf8());
+    QJsonObject propertiesObj = propertiesDoc.object();
+    QVariant propertiesVariant(propertiesObj);
+    QVariantMap propertiesMap = propertiesVariant.toMap();
+    QScriptValue propertiesScriptValue = variantMapToScriptValue(propertiesMap, scriptEngine);
+    bool honorReadOnly = true;
+    copyFromScriptValue(propertiesScriptValue, honorReadOnly);
+}
+
+
 void EntityItemProperties::merge(const EntityItemProperties& other) {
     // Core
     COPY_PROPERTY_IF_CHANGED(simulationOwner);
@@ -2251,7 +2274,6 @@ void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &objec
 void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object, true);
 }
-
 
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
@@ -4588,6 +4610,40 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
     setCloneDynamic(ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
     setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
+}
+
+bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
+    // DANGER: this method is NOT efficient.
+    // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
+    QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
+    if (!jsonProperties.isObject()) {
+        qCDebug(entities) << "bad avatarEntityData json" << QString(blob.toHex());
+        return false;
+    }
+    QVariant variant = jsonProperties.toVariant();
+    QVariantMap variantMap = variant.toMap();
+    QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
+    EntityItemPropertiesFromScriptValueHonorReadOnly(scriptValue, properties);
+    // end recipe
+    return true;
+}
+
+void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+    // DANGER: this method is NOT efficient.
+    // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
+    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QVariant variantProperties = scriptValue.toVariant();
+    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+    QJsonObject jsonObject = jsonProperties.object();
+    if (jsonObject.contains("parentID")) {
+        if (QUuid(jsonObject["parentID"].toString()) == myAvatarID) {
+            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+        }
+    }
+    jsonProperties = QJsonDocument(jsonObject);
+    blob = jsonProperties.toBinaryData();
+    // end recipe
 }
 
 QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
