@@ -683,11 +683,11 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
     return foundEntity;
 }
 
-void EntityTreeElement::cleanupDomainEntities() {
+void EntityTreeElement::cleanupNonLocalEntities() {
     withWriteLock([&] {
         EntityItems savedEntities;
         foreach(EntityItemPointer entity, _entityItems) {
-            if (entity->isDomainEntity()) {
+            if (!entity->isLocalEntity()) {
                 entity->preDelete();
                 entity->_element = NULL;
             } else {

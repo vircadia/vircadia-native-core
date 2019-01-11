@@ -70,7 +70,7 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
-void EntityTree::eraseDomainEntities() {
+void EntityTree::eraseNonLocalEntities() {
     emit clearingEntities();
 
     if (_simulation) {
@@ -84,10 +84,10 @@ void EntityTree::eraseDomainEntities() {
         foreach(EntityItemPointer entity, localMap) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
-                element->cleanupDomainEntities();
+                element->cleanupNonLocalEntities();
             }
 
-            if (!entity->isDomainEntity()) {
+            if (entity->isLocalEntity()) {
                 savedEntities[entity->getEntityItemID()] = entity;
             }
         }
@@ -100,7 +100,15 @@ void EntityTree::eraseDomainEntities() {
 
     {
         QWriteLocker locker(&_needsParentFixupLock);
-        _needsParentFixup.clear();
+        QVector<EntityItemWeakPointer> localEntitiesNeedsParentFixup;
+
+        foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
+            if (!entityItem.expired() && entityItem.lock()->isLocalEntity()) {
+                localEntitiesNeedsParentFixup.push_back(entityItem);
+            }
+        }
+
+        _needsParentFixup = localEntitiesNeedsParentFixup;
     }
 }
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {

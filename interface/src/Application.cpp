@@ -6774,8 +6774,7 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
     });
 
     // reset the model renderer
-    qDebug() << "-----> clearAll: " << clearAll;
-    clearAll ? getEntities()->clear() : getEntities()->clearDomainEntities();
+    clearAll ? getEntities()->clear() : getEntities()->clearNonLocalEntities();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 

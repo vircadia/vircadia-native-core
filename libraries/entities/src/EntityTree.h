@@ -75,7 +75,7 @@ public:
     }
 
 
-    virtual void eraseDomainEntities() override;
+    virtual void eraseNonLocalEntities() override;
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,
