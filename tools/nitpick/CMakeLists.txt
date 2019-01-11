@@ -74,11 +74,19 @@ elseif (APPLE)
 endif ()
 
 # set the packaged nitpick folder depending on platform, so we can copy it
-if (WIN32)
+if (APPLE)
+  set(PACKAGED_NITPICK_FOLDER "Release/${NITPICK_EXEC_NAME}")
+elseif (WIN32)
   set(PACKAGED_NITPICK_FOLDER "Release")
 endif ()
 
-if (WIN32)
+if (APPLE)
+  install(
+    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_NITPICK_FOLDER}"
+    USE_SOURCE_PERMISSIONS
+    DESTINATION ${NITPICK_INSTALL_DIR}
+  )
+elseif (WIN32)
   set(NITPICK_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_NITPICK_FOLDER}")
 
   install(
