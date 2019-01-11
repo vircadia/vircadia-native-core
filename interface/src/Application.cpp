@@ -2317,35 +2317,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
     });
 
-    render::entities::WebEntityRenderer::setInitializeWebSurfaceOperator([](QSharedPointer<OffscreenQmlSurface> webSurface) {
-        webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(render::entities::WebEntityRenderer::QML);
-        webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-        webSurface->getSurfaceContext()->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
-        webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-    });
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
         if (htmlContent) {
-            // FIXME use the surface cache instead of explicit creation
-            webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), [](OffscreenQmlSurface* webSurface) {
-                AbstractViewStateInterface::instance()->sendLambdaEvent([webSurface] {
-                    // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
-                    // if the application has already stopped its event loop, delete must be explicit
-                    delete webSurface;
-                });
-            });
-            webSurface->load(render::entities::WebEntityRenderer::QML, [url](QQmlContext* context, QObject* item) {
-                item->setProperty("url", url);
-            });
-#if 0
-            // This doesn't work for some reason
             webSurface = DependencyManager::get<OffscreenQmlSurfaceCache>()->acquire(render::entities::WebEntityRenderer::QML);
             cachedWebSurface = true;
-            connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [url, webSurface](QQmlContext* surfaceContext) {
-                webSurface->getRootItem()->setProperty("url", url);
-            });
-#endif
+            auto rootItemLoadedFunctor = [url, webSurface] {
+                webSurface->getRootItem()->setProperty(render::entities::WebEntityRenderer::URL_PROPERTY, url);
+            };
+            if (webSurface->getRootItem()) {
+                rootItemLoadedFunctor();
+            } else {
+                connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, rootItemLoadedFunctor);
+            }
         } else {
+            // FIXME: the tablet should use the OffscreenQmlSurfaceCache
             webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), [](OffscreenQmlSurface* webSurface) {
                 AbstractViewStateInterface::instance()->sendLambdaEvent([webSurface] {
                     // WebEngineView may run other threads (wasapi), so they must be deleted for a clean shutdown
@@ -2353,9 +2339,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                     delete webSurface;
                 });
             });
-            connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, [url](QQmlContext* surfaceContext) {
-                //setupQmlSurface(isTablet, url == OVERLAY_LOGIN_DIALOG.toString());
-            });
+            auto rootItemLoadedFunctor = [webSurface, url, isTablet] {
+                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == OVERLAY_LOGIN_DIALOG.toString());
+            };
+            if (webSurface->getRootItem()) {
+                rootItemLoadedFunctor();
+            } else {
+                connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, rootItemLoadedFunctor);
+            }
             webSurface->load(url);
             cachedWebSurface = false;
         }
@@ -2394,7 +2385,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 rootItem->setProperty("url", "about:blank");
             }
             auto offscreenCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
-            // FIXME prevents crash on shutdown, but we shoudln't have to do this check
             if (offscreenCache) {
                 offscreenCache->release(render::entities::WebEntityRenderer::QML, webSurface);
             }
@@ -3237,6 +3227,61 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+}
+
+void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties) {
+    surfaceContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+    surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    surfaceContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+    surfaceContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+    surfaceContext->setContextProperty("Vec3", new Vec3());
+    surfaceContext->setContextProperty("Quat", new Quat());
+    surfaceContext->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
+    surfaceContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
+
+    if (setAdditionalContextProperties) {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        auto flags = tabletScriptingInterface->getFlags();
+
+        surfaceContext->setContextProperty("offscreenFlags", flags);
+        surfaceContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+
+        surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
+
+        surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
+        surfaceContext->setContextProperty("AccountServices", AccountServicesScriptingInterface::getInstance());
+
+        // in Qt 5.10.0 there is already an "Audio" object in the QML context
+        // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
+        surfaceContext->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());
+
+        surfaceContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+        surfaceContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+        surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+        surfaceContext->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
+        surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+        surfaceContext->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
+        surfaceContext->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
+        surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+        surfaceContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+        surfaceContext->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
+        surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
+        surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCacheScriptingInterface>().data());
+        surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+        surfaceContext->setContextProperty("Render", AbstractViewStateInterface::instance()->getRenderEngine()->getConfiguration().get());
+        surfaceContext->setContextProperty("Workload", qApp->getGameWorkload()._engine->getConfiguration().get());
+        surfaceContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+        surfaceContext->setContextProperty("Pointers", DependencyManager::get<PointerScriptingInterface>().data());
+        surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+        surfaceContext->setContextProperty("Reticle", qApp->getApplicationCompositor().getReticleInterface());
+        surfaceContext->setContextProperty("HiFiAbout", AboutUtil::getInstance());
+        surfaceContext->setContextProperty("WalletScriptingInterface", DependencyManager::get<WalletScriptingInterface>().data());
+        surfaceContext->setContextProperty("ResourceRequestObserver", DependencyManager::get<ResourceRequestObserver>().data());
+    }
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {

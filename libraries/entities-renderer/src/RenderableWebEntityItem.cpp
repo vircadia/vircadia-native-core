@@ -31,8 +31,8 @@ using namespace render;
 using namespace render::entities;
 
 const QString WebEntityRenderer::QML = "Web3DSurface.qml";
+const char* WebEntityRenderer::URL_PROPERTY = "url";
 
-std::function<void(QSharedPointer<OffscreenQmlSurface>)> WebEntityRenderer::_initializeWebSurfaceOperator = nullptr;
 std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> WebEntityRenderer::_acquireWebSurfaceOperator = nullptr;
 std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> WebEntityRenderer::_releaseWebSurfaceOperator = nullptr;
 
@@ -50,7 +50,6 @@ static uint32_t _currentWebCount { 0 };
 static const uint32_t MAX_CONCURRENT_WEB_VIEWS = 20;
 
 static QTouchDevice _touchDevice;
-static const char* URL_PROPERTY = "url";
 
 WebEntityRenderer::ContentType WebEntityRenderer::getContentType(const QString& urlString) {
     if (urlString.isEmpty()) {
@@ -80,9 +79,14 @@ WebEntityRenderer::WebEntityRenderer(const EntityItemPointer& entity) : Parent(e
     _texture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
     _texture->setSource(__FUNCTION__);
 
-    // need to be intialized early
-    _cachedWebSurface = true;
-    WebEntityRenderer::initializeWebSurface(_webSurface);
+    if (_currentWebCount < MAX_CONCURRENT_WEB_VIEWS) {
+        _currentWebCount++;
+        WebEntityRenderer::acquireWebSurface("", true, _webSurface, _cachedWebSurface);
+        _contentType = ContentType::HtmlContent;
+        _fadeStartTime = usecTimestampNow();
+        _webSurface->resume();
+        qDebug() << "boop" << this << _webSurface << _webSurface->getRootItem();
+    }
 
     _timer.setInterval(MSECS_PER_SECOND);
     connect(&_timer, &QTimer::timeout, this, &WebEntityRenderer::onTimeout);
@@ -149,9 +153,8 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
 }
 
 bool WebEntityRenderer::needsRenderUpdate() const {
-    if (resultWithReadLock<bool>([&] {
-        // If we have rendered recently, and there is no web surface, we're going to create one
-        return !_webSurface;
+    if (resultWithReadLock<bool>([this] {
+        return _prevHasWebSurface != hasWebSurface() || _needsURLUpdate;
     })) {
         return true;
     }
@@ -188,16 +191,21 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         });
 
         if (urlChanged) {
-            if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
-                destroyWebSurface();
-                // If we destroyed the surface, the URL change will be implicitly handled by the re-creation
-                urlChanged = false;
-            }
-
             withWriteLock([&] {
+                _needsURLUpdate = true;
                 _sourceURL = newSourceUrl;
                 _contentType = newContentType;
             });
+
+            if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
+                qDebug() << "boop2" << this << _webSurface << _webSurface->getRootItem();
+                destroyWebSurface();
+                // If we destroyed the surface, the URL change will be implicitly handled by the re-creation
+                urlChanged = false;
+                withWriteLock([&] {
+                    _needsURLUpdate = false;
+                });
+            }
         }
     }
 
@@ -209,17 +217,28 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _alpha = entity->getAlpha();
 
         if (_contentType == ContentType::NoContent) {
+            _prevHasWebSurface = false;
             return;
         }
 
         // This work must be done on the main thread
         // If we couldn't create a new web surface, exit
-        if (!hasWebSurface() && !buildWebSurface(entity)) {
+        if (!_webSurface) {
+            qDebug() << "boop3" << this << _webSurface << _webSurface->getRootItem();
+            buildWebSurface(entity);
+        }
+
+        _prevHasWebSurface = hasWebSurface();
+        if (!_prevHasWebSurface) {
+            qDebug() << "boop4" << this << _webSurface << _webSurface->getRootItem();
             return;
         }
 
-        if (urlChanged && _contentType == ContentType::HtmlContent) {
+        qDebug() << "boop6" << this << _webSurface << _webSurface->getRootItem();
+        if (_needsURLUpdate && _contentType == ContentType::HtmlContent) {
+            qDebug() << "boop7" << this << _webSurface << _webSurface->getRootItem();
             _webSurface->getRootItem()->setProperty(URL_PROPERTY, _sourceURL);
+            _needsURLUpdate = false;
         }
 
         {
@@ -252,7 +271,6 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         void* key = (void*)this;
         AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] () {
             withWriteLock([&] {
-
                 glm::vec2 windowSize = getWindowSize(entity);
                 _webSurface->resize(QSize(windowSize.x, windowSize.y));
                 updateModelTransformAndBound();
@@ -305,16 +323,11 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     batch.setResourceTexture(0, nullptr);
 }
 
-bool WebEntityRenderer::hasWebSurface() {
+bool WebEntityRenderer::hasWebSurface() const {
     return (bool)_webSurface && _webSurface->getRootItem();
 }
 
 bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
-    if (_webSurface && !_webSurface->getRootItem()) {
-        // We're waiting on the root item
-        return false;
-    }
-
     if (_currentWebCount >= MAX_CONCURRENT_WEB_VIEWS) {
         qWarning() << "Too many concurrent web views to create new view";
         return false;
@@ -366,6 +379,7 @@ void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
     if (_inputMode == WebInputMode::MOUSE) {
         handlePointerEvent(event);
     } else if (_webSurface) {
+        qDebug() << "boop5" << this << _webSurface << _webSurface->getRootItem();
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
         _webSurface->hoverBeginEvent(webEvent, _touchDevice);

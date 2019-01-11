@@ -74,13 +74,12 @@ protected:
     Transform evalRenderTransform() override;
 
 private:
-    void setupQmlSurface(bool isTablet, bool isLoginDialog);
     void rebuildWebSurface();
     bool isWebContent() const;
 
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
-    bool _cachedWebSurface{ false };
+    bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;

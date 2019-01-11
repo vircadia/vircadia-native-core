@@ -31,12 +31,7 @@ public:
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
 
     static const QString QML;
-    static void setInitializeWebSurfaceOperator(std::function<void(QSharedPointer<OffscreenQmlSurface>)> initializeWebSurfaceOperator) { _initializeWebSurfaceOperator = initializeWebSurfaceOperator; }
-    static void initializeWebSurface(QSharedPointer<OffscreenQmlSurface> webSurface) {
-        if (_initializeWebSurfaceOperator) {
-            _initializeWebSurfaceOperator(webSurface);
-        }
-    }
+    static const char* URL_PROPERTY;
 
     static void setAcquireWebSurfaceOperator(std::function<void(const QString&, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> acquireWebSurfaceOperator) { _acquireWebSurfaceOperator = acquireWebSurfaceOperator; }
     static void acquireWebSurface(const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
@@ -72,7 +67,7 @@ private:
     void onTimeout();
     bool buildWebSurface(const TypedEntityPointer& entity);
     void destroyWebSurface();
-    bool hasWebSurface();
+    bool hasWebSurface() const;
     glm::vec2 getWindowSize(const TypedEntityPointer& entity) const;
 
     int _geometryId{ 0 };
@@ -84,7 +79,9 @@ private:
     static ContentType getContentType(const QString& urlString);
     ContentType _contentType { ContentType::NoContent };
 
-    QSharedPointer<OffscreenQmlSurface> _webSurface;
+    QSharedPointer<OffscreenQmlSurface> _webSurface { nullptr };
+    bool _prevHasWebSurface { false };
+    bool _needsURLUpdate { false };
     bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
 
@@ -104,7 +101,6 @@ private:
 
     std::vector<QMetaObject::Connection> _connections;
 
-    static std::function<void(QSharedPointer<OffscreenQmlSurface>)> _initializeWebSurfaceOperator;
     static std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> _acquireWebSurfaceOperator;
     static std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> _releaseWebSurfaceOperator;
 
