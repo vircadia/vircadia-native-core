@@ -82,12 +82,17 @@ var selectionManager = SelectionManager;
 var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
 var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
+var ZONE_URL = Script.resourcesPath() + "icons/create-icons/23-zone-01.svg";
 
-var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect', 'Zone'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
     if (properties.type === 'Light') {
         return {
             url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+        };
+    } else if (properties.type === 'Zone') {
+        return {
+            url: ZONE_URL,
         };
     } else {
         return {
@@ -106,11 +111,15 @@ var gridTool = new GridTool({
 });
 gridTool.setVisible(false);
 
+var EntityShapeVisualizer = Script.require('./modules/entityShapeVisualizer.js');
+var entityShapeVisualizer = new EntityShapeVisualizer(["Zone"]);
+
 var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
+    entityShapeVisualizer.updateSelection(selectionManager.selections);
 });
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
@@ -836,7 +845,7 @@ var toolBar = (function () {
                     dialogWindow.fromQml.connect(fromQml);
                 }
             };
-        };
+        }
 
         addButton("newModelButton", createNewEntityDialogButtonCallback("Model"));
 
@@ -1492,6 +1501,7 @@ Script.scriptEnding.connect(function () {
     cleanupModelMenus();
     tooltip.cleanup();
     selectionDisplay.cleanup();
+    entityShapeVisualizer.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
 
     Overlays.deleteOverlay(importingSVOImageOverlay);
