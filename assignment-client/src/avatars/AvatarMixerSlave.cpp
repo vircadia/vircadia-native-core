@@ -112,6 +112,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
     // to see if there is any new traits data for this avatar that we need to send
     auto timeOfLastTraitsSent = listeningNodeData->getLastOtherAvatarTraitsSendPoint(otherNodeLocalID);
     auto timeOfLastTraitsChange = sendingNodeData->getLastReceivedTraitsChange();
+    auto nextTimeOfLastTraitsSent = timeOfLastTraitsChange;
 
     qint64 bytesWritten = 0;
 
@@ -134,16 +135,20 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
             auto& lastAckedVersionRef = lastAckedVersions[traitType];
 
             // hold sending more traits until we've been acked that the last one we sent was received
-            if (lastSentVersionRef == lastAckedVersionRef && lastReceivedVersions[traitType] > lastSentVersionRef) {
-                bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
-                // there is an update to this trait, add it to the traits packet
-                bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
-                // update the last sent version
-                lastSentVersionRef = lastReceivedVersion;
-                // Remember which versions we sent in this particular packet
-                // so we can verify when it's acked.
-                auto& pendingTraitVersions = listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(), otherNodeLocalID);
-                pendingTraitVersions[traitType] = lastReceivedVersion;
+            if (lastSentVersionRef == lastAckedVersionRef) {
+                if (lastReceivedVersion > lastSentVersionRef) {
+                    bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+                    // there is an update to this trait, add it to the traits packet
+                    bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
+                    // update the last sent version
+                    lastSentVersionRef = lastReceivedVersion;
+                    // Remember which versions we sent in this particular packet
+                    // so we can verify when it's acked.
+                    auto& pendingTraitVersions = listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(), otherNodeLocalID);
+                    pendingTraitVersions[traitType] = lastReceivedVersion;
+                }
+            } else {
+                nextTimeOfLastTraitsSent = timeOfLastTraitsSent;
             }
 
             ++simpleReceivedIt;
@@ -182,6 +187,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                 // version to go on, otherwise we drop the received trait
                 if (sentInstanceIt != sentIDValuePairs.end() &&
                     (ackedInstanceIt == ackIDValuePairs.end() || sentInstanceIt->value != ackedInstanceIt->value)) {
+                    nextTimeOfLastTraitsSent = timeOfLastTraitsSent;
                     continue;
                 }
                 if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
@@ -223,10 +229,10 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
         if (bytesWritten) {
             // write a null trait type to mark the end of trait data for this avatar
             bytesWritten += traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
+            // since we send all traits for this other avatar, update the time of last traits sent
+            // to match the time of last traits change
+            listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, nextTimeOfLastTraitsSent);
         }
-        // since we send all traits for this other avatar, update the time of last traits sent
-        // to match the time of last traits change
-        listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, timeOfLastTraitsChange);
     }
 
 
