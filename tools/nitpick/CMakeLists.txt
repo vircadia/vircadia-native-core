@@ -73,12 +73,8 @@ elseif (APPLE)
     )
 endif ()
 
-# set the packaged nitpick folder depending on platform, so we can copy it
-if (APPLE)
-  set(PACKAGED_NITPICK_FOLDER "Release/${NITPICK_EXEC_NAME}")
-elseif (WIN32)
-  set(PACKAGED_NITPICK_FOLDER "Release")
-endif ()
+# set the packaged nitpick folder so we can copy it
+set(PACKAGED_NITPICK_FOLDER "Release")
 
 if (APPLE)
   install(
