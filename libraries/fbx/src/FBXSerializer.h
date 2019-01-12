@@ -86,6 +86,22 @@ public:
     
 };
 
+class MaterialParam {
+public:
+    glm::vec3 translation;
+    glm::vec3 scaling;
+
+    MaterialParam() :
+        translation(0.0),
+        scaling(1.0)
+    {}
+
+    MaterialParam(const MaterialParam& src) :
+        translation(src.translation),
+        scaling(src.scaling)
+    {}
+};
+
 class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
@@ -106,7 +122,7 @@ public:
 
     static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
 
-    HFMTexture getTexture(const QString& textureID);
+    HFMTexture getTexture(const QString& textureID, const QString& materialID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
@@ -133,6 +149,7 @@ public:
     QHash<QString, QString> occlusionTextures;
 
     QHash<QString, HFMMaterial> _hfmMaterials;
+    QHash<QString, MaterialParam> _materialParams;
 
     void consolidateHFMMaterials(const QVariantHash& mapping);
 
