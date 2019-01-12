@@ -102,3 +102,5 @@ tools/unity-avatar-exporter/Logs
 tools/unity-avatar-exporter/Packages
 tools/unity-avatar-exporter/ProjectSettings
 tools/unity-avatar-exporter/Temp
+server-console/package-lock.json
+vcpkg/
