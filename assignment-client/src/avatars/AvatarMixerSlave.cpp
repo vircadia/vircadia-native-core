@@ -231,7 +231,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
             bytesWritten += traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
             // since we send all traits for this other avatar, update the time of last traits sent
             // to match the time of last traits change
-            listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, nextTimeOfLastTraitsSent);
+            listeningNodeData->setLastOtherAvatarTraitsSendPoint(sendingNodeLocalID, nextTimeOfLastTraitsSent);
         }
     }
 
