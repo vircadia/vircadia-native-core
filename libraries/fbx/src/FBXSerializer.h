@@ -37,8 +37,6 @@ class FBXNode;
 
 class TextureParam {
 public:
-    glm::vec2 UVTranslation;
-    glm::vec2 UVScaling;
     glm::vec4 cropping;
     QString UVSet;
 
@@ -63,8 +61,6 @@ public:
     bool isDefault;
 
     TextureParam() :
-        UVTranslation(0.0f),
-        UVScaling(1.0f),
         cropping(0.0f),
         UVSet("map1"),
         translation(0.0f),
@@ -77,8 +73,6 @@ public:
     {}
     
     TextureParam(const TextureParam& src) :
-        UVTranslation(src.UVTranslation),
-        UVScaling(src.UVScaling),
         cropping(src.cropping),
         UVSet(src.UVSet),
         translation(src.translation),
