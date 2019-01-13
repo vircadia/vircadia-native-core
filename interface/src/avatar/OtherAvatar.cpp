@@ -122,10 +122,32 @@ btCollisionShape* OtherAvatar::createDetailedCollisionShapeForJoint(int jointInd
     return nullptr;
 }
 
+btCollisionShape* OtherAvatar::createCapsuleCollisionShape() {
+    ShapeInfo shapeInfo;
+    computeShapeInfo(shapeInfo);
+    shapeInfo.setOffset(glm::vec3(0.0f));
+    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
+        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+        return shape;
+    }
+    return nullptr;
+}
+
 DetailedMotionState* OtherAvatar::createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
     auto shape = createDetailedCollisionShapeForJoint(jointIndex);
     if (shape) {
         DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
+        motionState->setMass(computeMass());
+        return motionState;
+    }
+    return nullptr;
+}
+
+DetailedMotionState* OtherAvatar::createCapsuleMotionState(std::shared_ptr<OtherAvatar> avatar) {
+    auto shape = createCapsuleCollisionShape();
+    if (shape) {
+        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, -1);
+        motionState->setIsAvatarCapsule(true);
         motionState->setMass(computeMass());
         return motionState;
     }
@@ -141,15 +163,42 @@ void OtherAvatar::resetDetailedMotionStates() {
 
 void OtherAvatar::setWorkloadRegion(uint8_t region) {
     _workloadRegion = region;
+    QString printRegion = "";
+    if (region == workload::Region::R1) {
+        printRegion = "R1";
+    } else if (region == workload::Region::R2) {
+        printRegion = "R2";
+    } else if (region == workload::Region::R3) {
+        printRegion = "R3";
+    } else {
+        printRegion = "invalid";
+    }
+    qDebug() << "Setting workload region to " << printRegion;
+    computeShapeLOD();
+}
+
+void OtherAvatar::computeShapeLOD() {
+    auto newBodyLOD = (_workloadRegion < workload::Region::R3 && !isDead()) ? BodyLOD::MultiSphereShapes : BodyLOD::CapsuleShape;
+    if (newBodyLOD != _bodyLOD) {
+        _bodyLOD = newBodyLOD;
+        if (isInPhysicsSimulation()) {
+            qDebug() << "Changing to body LOD " << (_bodyLOD == BodyLOD::MultiSphereShapes ? "MultiSpheres" : "Capsule");
+            _needsReinsertion = true;
+        }
+    }
+}
+
+bool OtherAvatar::isInPhysicsSimulation() const {
+    return _motionState != nullptr && _detailedMotionStates.size() > 0;
 }
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
-    return (_workloadRegion < workload::Region::R3 && !isDead());
+    return !(isInPhysicsSimulation() && _needsReinsertion);
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
     constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION | Simulation::DIRTY_COLLISION_GROUP;
-    return (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST));
+    return (_needsReinsertion || _motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST));
 }
 
 void OtherAvatar::rebuildCollisionShape() {
@@ -175,4 +224,22 @@ void OtherAvatar::updateCollisionGroup(bool myAvatarCollide) {
             _motionState->addDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
         }
     }
+}
+
+void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar){
+    auto& detailedMotionStates = getDetailedMotionStates();
+    if (_bodyLOD == BodyLOD::MultiSphereShapes) {
+        for (int i = 0; i < getJointCount(); i++) {
+            auto dMotionState = createDetailedMotionStateForJoint(avatar, i);
+            if (dMotionState) {
+                detailedMotionStates.push_back(dMotionState);
+            }
+        }
+    } else if (_bodyLOD == BodyLOD::CapsuleShape) {
+        auto dMotionState = createCapsuleMotionState(avatar);
+        if (dMotionState) {
+            detailedMotionStates.push_back(dMotionState);
+        }
+    }
+    _needsReinsertion = false;
 }

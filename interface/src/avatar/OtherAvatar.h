@@ -27,6 +27,11 @@ public:
     explicit OtherAvatar(QThread* thread);
     virtual ~OtherAvatar();
 
+    enum BodyLOD {
+        CapsuleShape,
+        MultiSphereShapes
+    };
+
     virtual void instantiableAvatar() override { };
     virtual void createOrb() override;
     virtual void indicateLoadingStatus(LoadingStatus loadingStatus) override;
@@ -39,7 +44,7 @@ public:
 
     int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    bool isInPhysicsSimulation() const { return _motionState != nullptr && _detailedMotionStates.size() > 0; }
+    bool isInPhysicsSimulation() const;
     void rebuildCollisionShape() override;
 
     void setWorkloadRegion(uint8_t region);
@@ -47,9 +52,14 @@ public:
     bool needsPhysicsUpdate() const;
 
     btCollisionShape* createDetailedCollisionShapeForJoint(int jointIndex);
+    btCollisionShape* createCapsuleCollisionShape();
     DetailedMotionState* createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
+    DetailedMotionState* createCapsuleMotionState(std::shared_ptr<OtherAvatar> avatar);
+    void createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
+    BodyLOD getBodyLOD() { return _bodyLOD; }
+    void computeShapeLOD();
 
     void updateCollisionGroup(bool myAvatarCollide);
 
@@ -62,6 +72,8 @@ protected:
     std::vector<DetailedMotionState*> _detailedMotionStates;
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };
+    BodyLOD _bodyLOD { BodyLOD::CapsuleShape };
+    bool _needsReinsertion { false };
 };
 
 using OtherAvatarPointer = std::shared_ptr<OtherAvatar>;

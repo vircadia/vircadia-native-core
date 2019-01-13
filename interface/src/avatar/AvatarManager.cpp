@@ -413,7 +413,7 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                         transaction.objectsToRemove.push_back(mState);
                     }
                 }
-                qCDebug(animation) << "Removing " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
+                qDebug() << "Removing " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
                 avatar->resetDetailedMotionStates();
             } else {
                 if (avatar->_motionState == nullptr) {
@@ -427,20 +427,16 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                         transaction.objectsToAdd.push_back(motionState);
                     }
                 }
-                auto& detailedMotionStates = avatar->getDetailedMotionStates();
-                if (detailedMotionStates.size() == 0) {
-                    for (int i = 0; i < avatar->getJointCount(); i++) {
-                        auto dMotionState = avatar->createDetailedMotionStateForJoint(avatar, i);
-                        if (dMotionState) {
-                            detailedMotionStates.push_back(dMotionState);
-                            transaction.objectsToAdd.push_back(dMotionState);
-                        }
+                if (avatar->getDetailedMotionStates().size() == 0) {
+                    avatar->createDetailedMotionStates(avatar);
+                    for (auto dMotionState : avatar->getDetailedMotionStates()) {
+                        transaction.objectsToAdd.push_back(dMotionState);
                     }
-                    //qCDebug(animation) << "Creating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
+                    if (avatar->_motionState == nullptr || avatar->getDetailedMotionStates().size() == 0) {
+                        failedShapeBuilds.insert(avatar);
+                    }
                 }
-                if (avatar->_motionState == nullptr || detailedMotionStates.size() == 0) {
-                    failedShapeBuilds.insert(avatar);
-                }
+                qDebug() << "Adding " << avatar->getDetailedMotionStates().size() << " detailed motion states from " << avatar->getSessionUUID();
             }
         } else if (isInPhysics) {
             transaction.objectsToChange.push_back(avatar->_motionState);
@@ -450,7 +446,6 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                     transaction.objectsToChange.push_back(mState);
                 }
             }
-            //qCDebug(animation) << "Updating " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
         }
     }
     _avatarsToChangeInPhysics.swap(failedShapeBuilds);

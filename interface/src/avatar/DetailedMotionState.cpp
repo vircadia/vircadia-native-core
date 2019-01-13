@@ -60,7 +60,13 @@ const btCollisionShape* DetailedMotionState::computeNewShape() {
     btCollisionShape* shape = nullptr;
     if (!_avatar->isMyAvatar()) {
         OtherAvatarPointer otherAvatar = std::static_pointer_cast<OtherAvatar>(_avatar);
-        shape = otherAvatar->createDetailedCollisionShapeForJoint(_jointIndex);
+        if (otherAvatar) {
+            if (_isAvatarCapsule) {
+                shape = otherAvatar->createCapsuleCollisionShape();
+            } else {
+                shape = otherAvatar->createDetailedCollisionShapeForJoint(_jointIndex);
+            }   
+        }
     } else {
         std::shared_ptr<MyAvatar> myAvatar = std::static_pointer_cast<MyAvatar>(_avatar);
         shape = myAvatar->getCharacterController()->createDetailedCollisionShapeForJoint(_jointIndex);
@@ -109,7 +115,7 @@ float DetailedMotionState::getObjectAngularDamping() const {
 
 // virtual
 glm::vec3 DetailedMotionState::getObjectPosition() const {
-    return _avatar->getJointPosition(_jointIndex);
+    return _isAvatarCapsule ? _avatar->getFitBounds().calcCenter() : _avatar->getJointPosition(_jointIndex);
 }
 
 // virtual

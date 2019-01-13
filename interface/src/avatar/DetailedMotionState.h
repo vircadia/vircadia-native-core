@@ -70,6 +70,7 @@ public:
     void forceActive();
     QUuid getAvatarID() { return _avatar->getID(); }
     int getJointIndex() { return _jointIndex; }
+    void setIsAvatarCapsule(bool isAvatarCapsule) { _isAvatarCapsule = isAvatarCapsule; }
 
     friend class AvatarManager;
     friend class Avatar;
@@ -90,6 +91,8 @@ protected:
 
     uint32_t _dirtyFlags;
     int _jointIndex { -1 };
+
+    bool _isAvatarCapsule { false };
 };
 
 #endif // hifi_DetailedMotionState_h
