@@ -30,12 +30,8 @@ add_dependency_external_projects (quazip)
 find_package (QuaZip REQUIRED)
 target_include_directories( ${TARGET_NAME} SYSTEM PUBLIC ${QUAZIP_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${QUAZIP_LIBRARIES})
- 
-package_libraries_for_deployment()
 
 if (APPLE)
-  add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
-
   # make sure the output name for the .app bundle is correct
   # Fix up the rpath so macdeployqt works
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
@@ -43,6 +39,8 @@ if (APPLE)
   # call the fixup_nitpick macro to add required bundling commands for installation
   fixup_nitpick()
 endif ()
+
+package_libraries_for_deployment()
 
 if (WIN32)
     add_paths_to_fixup_libs (${QUAZIP_DLL_PATH})
