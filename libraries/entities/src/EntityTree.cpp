@@ -74,6 +74,8 @@ void EntityTree::eraseNonLocalEntities() {
     emit clearingEntities();
 
     if (_simulation) {
+        // This will clear all entities host types including local entities, because local entities
+        // are not in the physics simulation
         _simulation->clearEntities();
     }
     _staleProxies.clear();

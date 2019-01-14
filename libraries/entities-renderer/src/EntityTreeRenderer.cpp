@@ -203,7 +203,7 @@ void EntityTreeRenderer::stopNonLocalEntityScripts() {
     if (_entitiesScriptEngine) {
         QList<EntityItemID> entitiesWithEntityScripts = _entitiesScriptEngine->getListOfEntityScriptIDs();
 
-        foreach (EntityItemID entityID,  entitiesWithEntityScripts) {
+        foreach (const EntityItemID& entityID,  entitiesWithEntityScripts) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
 
             if (entityItem) {
@@ -664,7 +664,7 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
 void EntityTreeRenderer::leaveNonLocalEntities() {
     if (_tree && !_shuttingDown) {
         QVector<EntityItemID> currentLocalEntitiesInside;
-        foreach (EntityItemID entityID, _currentEntitiesInside) {
+        foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
             if (!entityItem->isLocalEntity()) {
                 emit leaveEntity(entityID);
