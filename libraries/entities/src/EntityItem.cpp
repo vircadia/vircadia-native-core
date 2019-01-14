@@ -3368,7 +3368,8 @@ void EntityItem::addGrab(GrabPointer grab) {
         EntityDynamicType dynamicType;
         QVariantMap arguments;
         int grabParentJointIndex =grab->getParentJointIndex();
-        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX) {
+        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX ||
+            grabParentJointIndex == FARGRAB_MOUSE_INDEX) {
             // add a far-grab action
             dynamicType = DYNAMIC_TYPE_FAR_GRAB;
             arguments["otherID"] = grab->getOwnerID();
