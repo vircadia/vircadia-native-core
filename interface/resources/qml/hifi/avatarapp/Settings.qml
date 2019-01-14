@@ -57,9 +57,13 @@ Rectangle {
         }
         if (settings.otherAvatarsCollisionsEnabled) {
             otherAvatarsCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            otherAvatarsCollisionsDisabledRadiobutton.checked = true;
         }
         if (settings.collisionsEnabled) {
             environmentCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            environmentCollisionsDisabledRadiobutton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -281,7 +285,6 @@ Rectangle {
                 Layout.leftMargin: -20
 
                 ButtonGroup.group: otherAvatarsOnOff
-                checked: true
 
                 colorScheme: hifi.colorSchemes.light
                 fontSize: 17
@@ -326,7 +329,6 @@ Rectangle {
                 Layout.leftMargin: -20
 
                 ButtonGroup.group: worldOnOff
-                checked: true
 
                 colorScheme: hifi.colorSchemes.light
                 fontSize: 17
