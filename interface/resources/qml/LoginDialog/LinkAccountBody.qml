@@ -78,14 +78,18 @@ Item {
         loginDialog.isLogIn = true;
         loginErrorMessage.text = linkAccountBody.errorString;
         loginErrorMessage.visible = (linkAccountBody.errorString  !== "");
+        if (loginErrorMessageTextMetrics.width > emailField.width) {
+            loginErrorMessage.wrapMode = Text.WordWrap;
+            errorContainer.height = (loginErrorMessageTextMetrics.width / emailField.width) * loginErrorMessageTextMetrics.height;
+        }
         loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
         loginButton.color = hifi.buttons.blue;
         emailField.placeholderText = "Username or Email";
         var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
         emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
         if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
-            steamInfoText.anchors.top = passwordField.bottom;
-            keepMeLoggedInCheckbox.anchors.top = steamInfoText.bottom;
+            linkInfoText.anchors.top = passwordField.bottom;
+            keepMeLoggedInCheckbox.anchors.top = linkInfoText.bottom;
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
             loginButton.anchors.right = emailField.right;
         } else {
@@ -111,7 +115,7 @@ Item {
             id: loginContainer
             width: emailField.width
             height: errorContainer.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
-                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height + steamInfoTextMetrics.height
+                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height + linkInfoTextMetrics.height
             anchors {
                 top: parent.top
                 topMargin: root.bannerHeight + 0.25 * parent.height
@@ -121,7 +125,7 @@ Item {
 
             Item {
                 id: errorContainer
-                width: loginErrorMessageTextMetrics.width
+                width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
                     bottom: emailField.top;
@@ -317,12 +321,12 @@ Item {
                 }
             }
             TextMetrics {
-                id: steamInfoTextMetrics
-                font: steamInfoText.font
-                text: steamInfoText.text
+                id: linkInfoTextMetrics
+                font: linkInfoText.font
+                text: linkInfoText.text
             }
             Text {
-                id: steamInfoText
+                id: linkInfoText
                 width: root.bannerWidth
                 visible: linkAccountBody.linkSteam || linkAccountBody.linkOculus
                 anchors {
@@ -334,12 +338,17 @@ Item {
                 font.family: linkAccountBody.fontFamily
                 font.pixelSize: linkAccountBody.textFieldFontSize
                 color: "white"
-                text: qsTr("Your Steam account information will not be exposed to others.");
+                text: qsTr("");
                 verticalAlignment: Text.AlignVCenter
                 horizontalAlignment: Text.AlignHCenter
                 Component.onCompleted: {
-                    if (steamInfoTextMetrics.width > root.bannerWidth) {
-                        steamInfoText.wrapMode = Text.WordWrap;
+                    if (linkAccountBody.linkOculus) {
+                        linkInfoText.text = qsTr("Your Oculus account information will not be exposed to others.");
+                    } else if (linkAccountBody.linkSteam) {
+                        linkInfoText.text = qsTr("Your Steam account information will not be exposed to others.");
+                    }
+                    if (linkInfoTextMetrics.width > root.bannerWidth) {
+                        linkInfoText.wrapMode = Text.WordWrap;
                     }
                 }
             }

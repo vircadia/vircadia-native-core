@@ -28,10 +28,14 @@ Item {
 
     property bool withSteam: withSteam
     property bool withOculus: withOculus
-    
+
     function create() {
         mainTextContainer.visible = false
-        loginDialog.createAccountFromSteam(textField.text);
+        if (usernameCollisionBody.withOculus) {
+            loginDialog.createAccountFromOculus(textField.text);
+        } else if (usernameCollisionBody.withSteam) {
+            loginDialog.createAccountFromSteam(textField.text);
+        }
     }
 
     property bool keyboardEnabled: false
