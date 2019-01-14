@@ -479,6 +479,10 @@ Grabber.prototype.keyPressEvent = function(event) {
 Grabber.prototype.cleanup = function() {
     Pointers.removePointer(this.mouseRayEntities);
     Picks.removePick(this.mouseRayOverlays);
+    if (this.grabID) {
+        MyAvatar.releaseGrab(this.grabID);
+        this.grabID = null;
+    }
 };
 
 var grabber = new Grabber();
