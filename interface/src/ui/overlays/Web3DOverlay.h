@@ -57,7 +57,7 @@ public:
         Mouse
     };
 
-    void buildWebSurface();
+    void buildWebSurface(bool overrideWeb = false);
     void destroyWebSurface();
     void onResizeWebSurface();
 
@@ -68,7 +68,7 @@ signals:
     void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
     void resizeWebSurface();
-    void requestWebSurface();
+    void requestWebSurface(bool overrideWeb);
 
 protected:
     Transform evalRenderTransform() override;

@@ -65,9 +65,8 @@ protected:
 
 private:
     void onTimeout();
-    bool buildWebSurface(const TypedEntityPointer& entity);
+    void buildWebSurface(const EntityItemPointer& entity, const QString& newSourceURL);
     void destroyWebSurface();
-    bool hasWebSurface() const;
     glm::vec2 getWindowSize(const TypedEntityPointer& entity) const;
 
     int _geometryId{ 0 };
@@ -80,8 +79,6 @@ private:
     ContentType _contentType { ContentType::NoContent };
 
     QSharedPointer<OffscreenQmlSurface> _webSurface { nullptr };
-    bool _prevHasWebSurface { false };
-    bool _needsURLUpdate { false };
     bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
 
