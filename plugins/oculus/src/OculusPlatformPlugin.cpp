@@ -80,6 +80,7 @@ void OculusAPIPlugin::handleOVREvents() {
                     if (!ovr_Message_IsError(message)) {
                         ovrUserProofHandle userProof = ovr_Message_GetUserProof(message);
                         _nonce = ovr_UserProof_GetNonce(userProof);
+                        qCDebug(oculusLog) << "Oculus Platform nonce retrieval succeeded: " << _nonce;
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform nonce retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
                         _nonce = "";
