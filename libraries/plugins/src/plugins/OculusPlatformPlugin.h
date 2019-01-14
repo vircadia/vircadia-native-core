@@ -19,6 +19,8 @@ public:
 
     virtual const QString getName() const = 0;
 
+    virtual const bool isRunning() const = 0;
+
     virtual void requestNonceAndUserID(NonceUserIDCallback callback) = 0;
 
     virtual void handleOVREvents() = 0;
