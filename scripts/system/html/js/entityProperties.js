@@ -3317,7 +3317,8 @@ function loaded() {
                             }
                         }
 
-                        let doSelectElement = lastEntityID === '"' + selectedEntityProperties.id + '"';
+                        let hasSelectedEntityChanged = lastEntityID !== '"' + selectedEntityProperties.id + '"';
+                        let doSelectElement = !hasSelectedEntityChanged;
 
                         // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + selectedEntityProperties.id + '"';
@@ -3437,7 +3438,7 @@ function loaded() {
                                     property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
-                                    if ($(property.elColorPicker).attr('active') === 'true') {
+                                    if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
                                         // Set the color picker inactive before setting the color,
                                         // otherwise an update will be sent directly after setting it here.
                                         $(property.elColorPicker).attr('active', 'false');
