@@ -41,6 +41,8 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON_PREFIX "interface")
 
+    set(NITPICK_BUNDLE_NAME "nitpick")
+
     # add definition for this release type
     add_definitions(-DPRODUCTION_BUILD)
 
