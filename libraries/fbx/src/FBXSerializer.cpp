@@ -838,10 +838,10 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                         } else if (subobject.name == "ModelUVScaling" && subobject.properties.length() >= MODEL_UV_SCALING_MIN_SIZE) {
                             auto newScaling = glm::vec3(subobject.properties.at(0).value<double>(), subobject.properties.at(1).value<double>(), 1.0);
                             if (newScaling.x == 0.0f) {
-                                newScaling.x = 0.0f;
+                                newScaling.x = 1.0f;
                             }
                             if (newScaling.y == 0.0f) {
-                                newScaling.y = 0.0f;
+                                newScaling.y = 1.0f;
                             }
                             tex.assign(tex.scaling, tex.scaling * newScaling);
                         } else if (subobject.name == "Cropping" && subobject.properties.length() >= CROPPING_MIN_SIZE) {
@@ -877,13 +877,13 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                                         } else if (property.properties.at(0) == SCALING) {
                                             auto newScaling = getVec3(property.properties, index);
                                             if (newScaling.x == 0.0f) {
-                                                newScaling.x == 1.0f;
+                                                newScaling.x = 1.0f;
                                             }
                                             if (newScaling.y == 0.0f) {
-                                                newScaling.y == 1.0f;
+                                                newScaling.y = 1.0f;
                                             }
                                             if (newScaling.z == 0.0f) {
-                                                newScaling.z == 1.0f;
+                                                newScaling.z = 1.0f;
                                             }
                                             tex.assign(tex.scaling, tex.scaling * newScaling);
                                         }
@@ -1073,14 +1073,14 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                                             } else { // Vector (3d)
                                                 scale = glm::vec3(property.properties.at(3).value<double>(), property.properties.at(4).value<double>(),  property.properties.at(5).value<double>());
                                             }
-                                            if (scale.x == 0.0) {
-                                                scale.x = 1.0;
+                                            if (scale.x == 0.0f) {
+                                                scale.x = 1.0f;
                                             }
-                                            if (scale.y == 0.0) {
-                                                scale.y = 1.0;
+                                            if (scale.y == 0.0f) {
+                                                scale.y = 1.0f;
                                             }
-                                            if (scale.z == 0.0) {
-                                                scale.z = 1.0;
+                                            if (scale.z == 0.0f) {
+                                                scale.z = 1.0f;
                                             }
                                             materialParam.scaling *= scale;
                                         }
