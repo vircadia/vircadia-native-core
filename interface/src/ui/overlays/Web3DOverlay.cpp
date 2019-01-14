@@ -82,8 +82,7 @@ Web3DOverlay::Web3DOverlay() {
     connect(this, &Web3DOverlay::requestWebSurface, this, &Web3DOverlay::buildWebSurface);
     connect(this, &Web3DOverlay::resizeWebSurface, this, &Web3DOverlay::onResizeWebSurface);
 
-    render::entities::WebEntityRenderer::acquireWebSurface("", true, _webSurface, _cachedWebSurface);
-    _webSurface->resume();
+    buildWebSurface(true);
 }
 
 Web3DOverlay::Web3DOverlay(const Web3DOverlay* Web3DOverlay) :
@@ -114,12 +113,12 @@ void Web3DOverlay::destroyWebSurface() {
     }
 }
 
-void Web3DOverlay::buildWebSurface() {
+void Web3DOverlay::buildWebSurface(bool overrideWeb) {
     if (_webSurface) {
         return;
     }
 
-    render::entities::WebEntityRenderer::acquireWebSurface(_url, isWebContent(), _webSurface, _cachedWebSurface);
+    render::entities::WebEntityRenderer::acquireWebSurface(_url, overrideWeb || isWebContent(), _webSurface, _cachedWebSurface);
     onResizeWebSurface();
     _webSurface->resume();
 
@@ -172,7 +171,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     if (!_webSurface) {
-        emit requestWebSurface();
+        emit requestWebSurface(false);
         return;
     }
 

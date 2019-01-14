@@ -79,14 +79,8 @@ WebEntityRenderer::WebEntityRenderer(const EntityItemPointer& entity) : Parent(e
     _texture = gpu::Texture::createExternal(OffscreenQmlSurface::getDiscardLambda());
     _texture->setSource(__FUNCTION__);
 
-    if (_currentWebCount < MAX_CONCURRENT_WEB_VIEWS) {
-        _currentWebCount++;
-        WebEntityRenderer::acquireWebSurface("", true, _webSurface, _cachedWebSurface);
-        _contentType = ContentType::HtmlContent;
-        _fadeStartTime = usecTimestampNow();
-        _webSurface->resume();
-        qDebug() << "boop" << this << _webSurface << _webSurface->getRootItem();
-    }
+    _contentType = ContentType::HtmlContent;
+    buildWebSurface(entity, "");
 
     _timer.setInterval(MSECS_PER_SECOND);
     connect(&_timer, &QTimer::timeout, this, &WebEntityRenderer::onTimeout);
@@ -154,7 +148,7 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
 
 bool WebEntityRenderer::needsRenderUpdate() const {
     if (resultWithReadLock<bool>([this] {
-        return _prevHasWebSurface != hasWebSurface() || _needsURLUpdate;
+        return !_webSurface;
     })) {
         return true;
     }
@@ -181,30 +175,22 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
     // destroy the existing surface (because surfaces don't support changing the root
     // object, so subsequent loads of content just overlap the existing content
     bool urlChanged = false;
+    auto newSourceURL = entity->getSourceUrl();
     {
-        auto newSourceUrl = entity->getSourceUrl();
-        auto newContentType = getContentType(newSourceUrl);
+        auto newContentType = getContentType(newSourceURL);
         ContentType currentContentType;
         withReadLock([&] {
-            urlChanged = _sourceURL != newSourceUrl;
+            urlChanged = _sourceURL != newSourceURL;
             currentContentType = _contentType;
         });
 
         if (urlChanged) {
             withWriteLock([&] {
-                _needsURLUpdate = true;
-                _sourceURL = newSourceUrl;
                 _contentType = newContentType;
             });
 
             if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
-                qDebug() << "boop2" << this << _webSurface << _webSurface->getRootItem();
                 destroyWebSurface();
-                // If we destroyed the surface, the URL change will be implicitly handled by the re-creation
-                urlChanged = false;
-                withWriteLock([&] {
-                    _needsURLUpdate = false;
-                });
             }
         }
     }
@@ -217,67 +203,63 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _alpha = entity->getAlpha();
 
         if (_contentType == ContentType::NoContent) {
-            _prevHasWebSurface = false;
             return;
         }
 
         // This work must be done on the main thread
-        // If we couldn't create a new web surface, exit
         if (!_webSurface) {
-            qDebug() << "boop3" << this << _webSurface << _webSurface->getRootItem();
-            buildWebSurface(entity);
+            buildWebSurface(entity, newSourceURL);
         }
 
-        _prevHasWebSurface = hasWebSurface();
-        if (!_prevHasWebSurface) {
-            qDebug() << "boop4" << this << _webSurface << _webSurface->getRootItem();
-            return;
-        }
-
-        qDebug() << "boop6" << this << _webSurface << _webSurface->getRootItem();
-        if (_needsURLUpdate && _contentType == ContentType::HtmlContent) {
-            qDebug() << "boop7" << this << _webSurface << _webSurface->getRootItem();
-            _webSurface->getRootItem()->setProperty(URL_PROPERTY, _sourceURL);
-            _needsURLUpdate = false;
-        }
-
-        {
-            auto scriptURL = entity->getScriptURL();
-            if (_scriptURL != scriptURL) {
-                _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
-                _scriptURL = scriptURL;
-            }
-        }
-
-        {
-            auto maxFPS = entity->getMaxFPS();
-            if (_maxFPS != maxFPS) {
-                // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
-                // FIXME this doesn't handle redirects or shortened URLs, consider using a signaling method from the web entity
-                if (QUrl(_sourceURL).host().endsWith("youtube.com", Qt::CaseInsensitive)) {
-                    _webSurface->setMaxFps(YOUTUBE_MAX_FPS);
-                } else {
-                    _webSurface->setMaxFps(_maxFPS);
+        if (_webSurface && _webSurface->getRootItem()) {
+            if (_webSurface->getRootItem()) {
+                if (_contentType == ContentType::HtmlContent && urlChanged) {
+                    _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
+                    _sourceURL = newSourceURL;
                 }
-                _maxFPS = maxFPS;
+
+                {
+                    auto scriptURL = entity->getScriptURL();
+                    if (_scriptURL != scriptURL) {
+                        _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
+                        _scriptURL = scriptURL;
+                    }
+                }
+
+                {
+                    auto maxFPS = entity->getMaxFPS();
+                    if (_maxFPS != maxFPS) {
+                        // We special case YouTube URLs since we know they are videos that we should play with at least 30 FPS.
+                        // FIXME this doesn't handle redirects or shortened URLs, consider using a signaling method from the web entity
+                        if (QUrl(_sourceURL).host().endsWith("youtube.com", Qt::CaseInsensitive)) {
+                            _webSurface->setMaxFps(YOUTUBE_MAX_FPS);
+                        } else {
+                            _webSurface->setMaxFps(maxFPS);
+                        }
+                        _maxFPS = maxFPS;
+                    }
+                }
+
+                {
+                    auto contextPosition = entity->getWorldPosition();
+                    if (_contextPosition != contextPosition) {
+                        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(contextPosition));
+                        _contextPosition = contextPosition;
+                    }
+                }
             }
-        }
 
-        if (_contextPosition != entity->getWorldPosition()) {
-            _contextPosition = entity->getWorldPosition();
-            _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(_contextPosition));
-        }
-
-        void* key = (void*)this;
-        AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity] () {
-            withWriteLock([&] {
-                glm::vec2 windowSize = getWindowSize(entity);
-                _webSurface->resize(QSize(windowSize.x, windowSize.y));
-                updateModelTransformAndBound();
-                _renderTransform = getModelTransform();
-                _renderTransform.postScale(entity->getScaledDimensions());
+            void* key = (void*)this;
+            AbstractViewStateInterface::instance()->pushPostUpdateLambda(key, [this, entity]() {
+                withWriteLock([&] {
+                    glm::vec2 windowSize = getWindowSize(entity);
+                    _webSurface->resize(QSize(windowSize.x, windowSize.y));
+                    updateModelTransformAndBound();
+                    _renderTransform = getModelTransform();
+                    _renderTransform.postScale(entity->getScaledDimensions());
+                });
             });
-        });
+        }
     });
 }
 
@@ -323,18 +305,14 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     batch.setResourceTexture(0, nullptr);
 }
 
-bool WebEntityRenderer::hasWebSurface() const {
-    return (bool)_webSurface && _webSurface->getRootItem();
-}
-
-bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
+void WebEntityRenderer::buildWebSurface(const EntityItemPointer& entity, const QString& newSourceURL) {
     if (_currentWebCount >= MAX_CONCURRENT_WEB_VIEWS) {
         qWarning() << "Too many concurrent web views to create new view";
-        return false;
+        return;
     }
 
     ++_currentWebCount;
-    WebEntityRenderer::acquireWebSurface(_sourceURL, _contentType == ContentType::HtmlContent, _webSurface, _cachedWebSurface);
+    WebEntityRenderer::acquireWebSurface(newSourceURL, _contentType == ContentType::HtmlContent, _webSurface, _cachedWebSurface);
     _fadeStartTime = usecTimestampNow();
     _webSurface->resume();
 
@@ -344,8 +322,6 @@ bool WebEntityRenderer::buildWebSurface(const TypedEntityPointer& entity) {
     _connections.push_back(QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, [entityItemID](const QVariant& message) {
         emit DependencyManager::get<EntityScriptingInterface>()->webEventReceived(entityItemID, message);
     }));
-
-    return _webSurface->getRootItem();
 }
 
 void WebEntityRenderer::destroyWebSurface() {
