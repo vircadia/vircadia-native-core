@@ -25,7 +25,7 @@
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
-var FAR_GRAB_JOINT = 65526; // FARGRAB_MOUSE_INDEX
+var MOUSE_GRAB_JOINT = 65526; // FARGRAB_MOUSE_INDEX
 
 var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 
@@ -321,10 +321,10 @@ Grabber.prototype.pressEvent = function(event) {
     nearestPoint = Vec3.multiply(distanceToGrab, pickRay.direction);
     this.pointOnPlane = Vec3.sum(cameraPosition, nearestPoint);
 
-    MyAvatar.setJointTranslation(FAR_GRAB_JOINT, MyAvatar.worldToJointPoint(this.startPosition));
-    MyAvatar.setJointRotation(FAR_GRAB_JOINT, MyAvatar.worldToJointRotation(this.lastRotation));
-
+    // compute the grab offset (points from point of grab to object center)
     this.offset = Vec3.subtract(this.startPosition, this.pointOnPlane); // offset in world-space
+    MyAvatar.setJointTranslation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointPoint(this.startPosition));
+    MyAvatar.setJointRotation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointRotation(this.lastRotation));
 
     this.computeNewGrabPlane();
     this.moveEvent(event);
@@ -337,7 +337,11 @@ Grabber.prototype.pressEvent = function(event) {
         grabbedEntity: this.entityID
     }));
 
-    this.grabID = MyAvatar.grab(this.entityID, FAR_GRAB_JOINT, ZERO_VEC3, IDENTITY_QUAT);
+    if (this.grabID) {
+        MyAvatar.releaseGrab(this.grabID);
+        this.grabID = null;
+    }
+    this.grabID = MyAvatar.grab(this.entityID, MOUSE_GRAB_JOINT, ZERO_VEC3, IDENTITY_QUAT);
 
     // TODO: play sounds again when we aren't leaking AudioInjector threads
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
@@ -373,7 +377,7 @@ Grabber.prototype.releaseEvent = function(event) {
             this.grabID = null;
         }
 
-        MyAvatar.clearJointData(FAR_GRAB_JOINT);
+        MyAvatar.clearJointData(MOUSE_GRAB_JOINT);
 
         // TODO: play sounds again when we aren't leaking AudioInjector threads
         //Audio.playSound(releaseSound, { position: entityProperties.position, volume: VOLUME });
@@ -421,7 +425,7 @@ Grabber.prototype.moveEventProcess = function() {
         var deltaQ = Quat.angleAxis(angle, axis);
 
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
-        MyAvatar.setJointRotation(FAR_GRAB_JOINT, MyAvatar.worldToJointRotation(this.lastRotation));
+        MyAvatar.setJointRotation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointRotation(this.lastRotation));
 
     } else {
         var newPointOnPlane;
@@ -446,7 +450,7 @@ Grabber.prototype.moveEventProcess = function() {
             }
         }
 
-        MyAvatar.setJointTranslation(FAR_GRAB_JOINT, MyAvatar.worldToJointPoint(Vec3.sum(newPointOnPlane, this.offset)));
+        MyAvatar.setJointTranslation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointPoint(Vec3.sum(newPointOnPlane, this.offset)));
     }
 
     this.scheduleMouseMoveProcessor();
