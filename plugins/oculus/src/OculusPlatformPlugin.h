@@ -20,6 +20,8 @@ public:
     virtual ~OculusAPIPlugin();
     const QString getName() const { return NAME; }
 
+    const bool isRunning() const;
+
     virtual void requestNonceAndUserID(NonceUserIDCallback callback);
 
     virtual void handleOVREvents();

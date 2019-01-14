@@ -106,8 +106,8 @@ bool LoginDialog::isSteamRunning() const {
 }
 
 bool LoginDialog::isOculusRunning() const {
-    auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin();
-    return (oculusPlatform != nullptr);
+    auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin();
+    return (oculusPlatformPlugin && oculusPlatformPlugin->isRunning());
 }
 
 void LoginDialog::dismissLoginDialog() {

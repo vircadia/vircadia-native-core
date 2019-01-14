@@ -24,6 +24,10 @@ OculusAPIPlugin::~OculusAPIPlugin() {
     hifi::ovr::releaseRenderSession(_session);
 }
 
+const bool OculusAPIPlugin::isRunning() const {
+    return (qApp->property(hifi::properties::OCULUS_STORE).toBool());
+}
+
 void OculusAPIPlugin::requestNonceAndUserID(NonceUserIDCallback callback) {
     _nonceUserIDCallback = callback;
     ovr_User_GetUserProof();
