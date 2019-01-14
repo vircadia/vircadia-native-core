@@ -207,8 +207,10 @@ void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& m
             // process simple traits
             auto simpleReceivedIt = traitVersions.simpleCBegin();
             while (simpleReceivedIt != traitVersions.simpleCEnd()) {
-                auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
-                _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+                if (*simpleReceivedIt != AvatarTraits::DEFAULT_TRAIT_VERSION) {
+                    auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
+                    _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+                }
                 simpleReceivedIt++;
             }
 
