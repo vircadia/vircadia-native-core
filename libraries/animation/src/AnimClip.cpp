@@ -109,9 +109,6 @@ void AnimClip::copyFromNetworkAnim() {
     jointMap.reserve(animJointCount);
     for (int i = 0; i < animJointCount; i++) {
         int skeletonJoint = _skeleton->nameToJointIndex(animSkeleton.getJointName(i));
-        if (skeletonJoint == -1) {
-            qCWarning(animation) << "animation contains joint =" << animSkeleton.getJointName(i) << " which is not in the skeleton";
-        }
         jointMap.push_back(skeletonJoint);
     }
 
