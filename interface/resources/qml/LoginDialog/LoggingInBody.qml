@@ -67,7 +67,7 @@ Item {
             if (loggingInBody.loginDialogPoppedUp) {
                 loginDialog.dismissLoginDialog();
                 var data = {
-                    "action": "user logged in successfully";
+                    "action": "user logged in successfully"
                 };
                 UserActivityLogger.logAction("encourageLoginDialog", data);
             }
