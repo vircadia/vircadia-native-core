@@ -22,9 +22,12 @@ Item {
     width: root.width
     height: root.height
     readonly property string termsContainerText: qsTr("By creating this user profile, you agree to High Fidelity's Terms of Service")
+    readonly property int textFieldHeight: 31
     readonly property string fontFamily: "Raleway"
     readonly property int fontSize: 15
     readonly property bool fontBold: true
+    readonly property int textFieldFontSize: 18
+    readonly property var passwordImageRatio: 16 / 23
 
     property bool withOculus: withOculus
     property bool withSteam: withSteam
@@ -60,7 +63,12 @@ Item {
 
         Item {
             id: contentItem
-            anchors.fill: parent
+            width: parent.width
+            height: errorContainer.height + fields.height + buttons.height + additionalTextContainer.height +
+                termsContainer.height
+            anchors.top: parent.top
+            anchors.topMargin: root.bannerHeight + 0.25 * parent.height
+            anchors.left: parent.left
 
             Item {
                 id: errorContainer
@@ -95,6 +103,182 @@ Item {
                         loginErrorMessage.horizontalAlignment = Text.AlignLeft;
                         errorContainer.height = 3 * loginErrorMessageTextMetrics.height;
                     }
+                    if (completeProfileBody.withOculus) {
+                        errorContainer.anchors.bottom = fields.top;
+                    }
+                }
+            }
+
+            Item {
+                id: fields
+                width: root.bannerWidth
+                height: 3 * completeProfileBody.textFieldHeight + 2 * hifi.dimensions.contentSpacing.y
+                visible: completeProfileBody.withOculus
+                anchors {
+                    left: parent.left
+                    leftMargin: (parent.width - root.bannerWidth) / 2
+                    bottom: buttons.top
+                    bottomMargin: hifi.dimensions.contentSpacing.y
+                }
+
+                HifiControlsUit.TextField {
+                    id: emailField
+                    width: root.bannerWidth
+                    height: completeProfileBody.textFieldHeight
+                    anchors {
+                        top: parent.top
+                    }
+                    placeholderText: "Email"
+                    font.pixelSize: completeProfileBody.textFieldFontSize
+                    styleRenderType: Text.QtRendering
+                    activeFocusOnPress: true
+                    Keys.onPressed: {
+                        switch (event.key) {
+                            case Qt.Key_Tab:
+                                event.accepted = true;
+                                if (event.modifiers === Qt.ShiftModifier) {
+                                    passwordField.focus = true;
+                                } else {
+                                    usernameField.focus = true;
+                                }
+                                break;
+                            case Qt.Key_Backtab:
+                                event.accepted = true;
+                                usernameField.focus = true;
+                                break;
+                            case Qt.Key_Enter:
+                            case Qt.Key_Return:
+                                event.accepted = true;
+                                completeProfileBody.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                break;
+                        }
+                    }
+                    onFocusChanged: {
+                        root.text = "";
+                        if (focus) {
+                            root.isPassword = false;
+                        }
+                    }
+                }
+
+                HifiControlsUit.TextField {
+                    id: usernameField
+                    width: root.bannerWidth
+                    height: completeProfileBody.textFieldHeight
+                    placeholderText: "Username"
+                    font.pixelSize: completeProfileBody.textFieldFontSize
+                    styleRenderType: Text.QtRendering
+                    anchors {
+                        top: emailField.bottom
+                        topMargin: hifi.dimensions.contentSpacing.y
+                    }
+                    Keys.onPressed: {
+                        if (!usernameField.visible) {
+                            return;
+                        }
+                        switch (event.key) {
+                            case Qt.Key_Tab:
+                                event.accepted = true;
+                                if (event.modifiers === Qt.ShiftModifier) {
+                                    emailField.focus = true;
+                                } else {
+                                    passwordField.focus = true;
+                                }
+                                break;
+                            case Qt.Key_Backtab:
+                                event.accepted = true;
+                                passwordField.focus = true;
+                                break;
+                            case Qt.Key_Enter:
+                            case Qt.Key_Return:
+                                event.accepted = true;
+                                completeProfileBody.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                break;
+                        }
+                    }
+                    onFocusChanged: {
+                        root.text = "";
+                        if (focus) {
+                            root.isPassword = false;
+                        }
+                    }
+                }
+                HifiControlsUit.TextField {
+                    id: passwordField
+                    width: root.bannerWidth
+                    height: completeProfileBody.textFieldHeight
+                    placeholderText: "Password (min. 6 characters)"
+                    font.pixelSize: completeProfileBody.textFieldFontSize
+                    styleRenderType: Text.QtRendering
+                    activeFocusOnPress: true
+                    echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
+                    anchors {
+                        top: usernameField.bottom
+                        topMargin: hifi.dimensions.contentSpacing.y
+                    }
+
+                    onFocusChanged: {
+                        root.text = "";
+                        root.isPassword = focus;
+                    }
+
+                    Item {
+                        id: showPasswordContainer
+                        z: 10
+                        // width + image's rightMargin
+                        width: showPasswordImage.width + 8
+                        height: parent.height
+                        anchors {
+                            right: parent.right
+                        }
+
+                        Image {
+                            id: showPasswordImage
+                            width: passwordField.height * passwordImageRatio
+                            height: passwordField.height * passwordImageRatio
+                            anchors {
+                                right: parent.right
+                                rightMargin: 8
+                                top: parent.top
+                                topMargin: passwordFieldMouseArea.showPassword ? 6 : 8
+                                bottom: parent.bottom
+                                bottomMargin: passwordFieldMouseArea.showPassword ? 5 : 8
+                            }
+                            source: passwordFieldMouseArea.showPassword ?  "../../images/eyeClosed.svg" : "../../images/eyeOpen.svg"
+                            MouseArea {
+                                id: passwordFieldMouseArea
+                                anchors.fill: parent
+                                acceptedButtons: Qt.LeftButton
+                                property bool showPassword: false
+                                onClicked: {
+                                    showPassword = !showPassword;
+                                }
+                            }
+                        }
+                    }
+                    Keys.onPressed: {
+                        switch (event.key) {
+                            case Qt.Key_Tab:
+                                event.accepted = true;
+                                if (event.modifiers === Qt.ShiftModifier) {
+                                    emailField.focus = true;
+                                } else if (usernameField.visible) {
+                                    usernameField.focus = true;
+                                } else {
+                                    emailField.focus = true;
+                                }
+                                break;
+                            case Qt.Key_Backtab:
+                                event.accepted = true;
+                                emailField.focus = true;
+                                break;
+                        case Qt.Key_Enter:
+                        case Qt.Key_Return:
+                            event.accepted = true;
+                            completeProfileBody.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                            break;
+                        }
+                    }
                 }
             }
 
@@ -104,7 +288,7 @@ Item {
                 height: d.minHeightButton
                 anchors {
                     top: parent.top
-                    topMargin: (parent.height - additionalTextContainer.height) / 2 - hifi.dimensions.contentSpacing.y
+                    topMargin: (parent.height - additionalTextContainer.height + fields.height) / 2 - hifi.dimensions.contentSpacing.y
                     left: parent.left
                     leftMargin: (parent.width - root.bannerWidth) / 2
                 }
@@ -144,9 +328,7 @@ Item {
                     fontBold: completeProfileBody.fontBold
                     onClicked: {
                         loginErrorMessage.visible = false;
-                        console.log("withOculus: " + completeProfileBody.withOculus);
                         if (completeProfileBody.withOculus) {
-                            console.log("creating account through oculus");
                             loginDialog.createAccountFromOculus();
                         } else if (completeProfileBody.withSteam) {
                             loginDialog.createAccountFromSteam();
@@ -271,6 +453,20 @@ Item {
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);
+            if (completeProfileBody.withOculus) {
+                loginErrorMessage.visible = true;
+                loginErrorMessage.text = error;
+
+                if (loginErrorMessageTextMetrics.width > root.bannerWidth && root.isTablet) {
+                    loginErrorMessage.wrapMode = Text.WordWrap;
+                    loginErrorMessage.verticalAlignment = Text.AlignLeft;
+                    loginErrorMessage.horizontalAlignment = Text.AlignLeft;
+                    errorContainer.height = (loginErrorMessageTextMetrics.width / root.bannerWidth) * loginErrorMessageTextMetrics.height;
+                } else {
+                    loginErrorMessage.wrapMode = Text.NoWrap;
+                    errorContainer.height = loginErrorMessageTextMetrics.height;
+                }
+            }
 
             bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
                 "withOculus": completeProfileBody.withOculus });
