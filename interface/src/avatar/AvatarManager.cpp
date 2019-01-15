@@ -391,8 +391,15 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     scene->enqueueTransaction(transaction);
 }
 
-AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
+AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
+    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [sessionUUID](OtherAvatar* ptr) {
+        ptr->deleteLater(); 
+        ptr->setSessionUUID(sessionUUID);
+        auto nodeList = DependencyManager::get<NodeList>();
+        if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+            ptr->createOrb();
+        }
+    });
 }
 
 void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {
