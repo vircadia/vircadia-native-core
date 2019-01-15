@@ -126,7 +126,7 @@ void LoginDialog::login(const QString& username, const QString& password) const 
 void LoginDialog::loginThroughOculus() {
    qDebug() << "Attempting to login through Oculus";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString userID) {
+        oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString userID, QString oculusID) {
             DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, userID);
         });
     }
@@ -135,7 +135,7 @@ void LoginDialog::loginThroughOculus() {
 void LoginDialog::linkOculus() {
     qDebug() << "Attempting to link Oculus account";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString userID) {
+        oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString userID, QString oculusID) {
             if (nonce.isEmpty() || userID.isEmpty()) {
                 emit handleLoginFailed();
                 return;
@@ -162,7 +162,7 @@ void LoginDialog::linkOculus() {
 void LoginDialog::createAccountFromOculus(QString username) {
     qDebug() << "Attempting to create account from Oculus info";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
-        oculusPlatformPlugin->requestNonceAndUserID([this, username] (QString nonce, QString userID) {
+        oculusPlatformPlugin->requestNonceAndUserID([this, username] (QString nonce, QString userID, QString oculusID) {
             if (nonce.isEmpty() || userID.isEmpty()) {
                 emit handleLoginFailed();
                 return;
@@ -178,6 +178,7 @@ void LoginDialog::createAccountFromOculus(QString username) {
             QJsonObject payload;
             payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
             payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
+            payload.insert("oculus_id", QJsonValue::fromVariant(QVariant(oculusID)));
             if (!username.isEmpty()) {
                 payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
             }
