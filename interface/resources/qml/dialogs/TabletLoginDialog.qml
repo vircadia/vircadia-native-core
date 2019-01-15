@@ -14,6 +14,8 @@ import QtQuick 2.5
 import controlsUit 1.0 as HifiControlsUit
 import stylesUit 1.0 as HifiStylesUit
 
+import TabletScriptingInterface 1.0
+
 import "../LoginDialog"
 
 FocusScope {
@@ -25,8 +27,7 @@ FocusScope {
     width: parent.width
     height: parent.height
 
-    signal sendToScript(var message);
-    signal canceled();
+    property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
     property bool isHMD: false
     property bool gotoPreviousApp: false;
@@ -52,6 +53,7 @@ FocusScope {
     }
 
     function tryDestroy() {
+        tabletProxy.gotoHomeScreen();
     }
 
     MouseArea {
@@ -76,7 +78,7 @@ FocusScope {
         interval: 200
 
         onTriggered: {
-            if (MenuInterface.isOptionChecked("Use 3D Keyboard")) {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard") && HMD.active) {
                 KeyboardScriptingInterface.raised = true;
             }
         }
@@ -168,7 +170,9 @@ FocusScope {
 
     Component.onDestruction: {
         loginKeyboard.raised = false;
-        KeyboardScriptingInterface.raised = false;
+        if (HMD.active) {
+            KeyboardScriptingInterface.raised = false;
+        }
     }
 
     Component.onCompleted: {
