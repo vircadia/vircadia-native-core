@@ -120,7 +120,13 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type,
     while (encodeResult == OctreeElement::PARTIAL) {
         encodeResult = EntityItemProperties::encodeEntityEditPacket(type, entityItemID, propertiesCopy, bufferOut, requestedProperties, didntFitProperties);
 
-        if (encodeResult != OctreeElement::NONE) {
+        if (encodeResult == OctreeElement::NONE) {
+            // This can happen for two reasons:
+            // 1. One of the properties is too large to fit in a single packet.
+            // 2. The requested properties don't exist in this entity type (e.g., 'modelUrl' in a Zone Entity).
+            // Since case #1 is more likely (and more critical), that's the one we warn about.
+            qCWarning(entities).nospace() << "queueEditEntityMessage: some of the properties don't fit and can't be sent. entityID=" << uuidStringWithoutCurlyBraces(entityItemID);
+        } else {
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "calling queueOctreeEditMessage()...";
                 qCDebug(entities) << "    id:" << entityItemID;
