@@ -279,7 +279,6 @@ Item {
                     "withOculus": loggingInBody.withOculus, "errorString": errorString });
             } else if (loggingInBody.withOculus) {
                 errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
-                console.log("loggingInBody- withOculus: " + loggingInBody.withOculus);
                 bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
                     "withOculus": loggingInBody.withOculus, "errorString": errorString });
             } else {
