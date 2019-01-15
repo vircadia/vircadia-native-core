@@ -104,3 +104,4 @@ tools/unity-avatar-exporter/ProjectSettings
 tools/unity-avatar-exporter/Temp
 server-console/package-lock.json
 vcpkg/
+/tools/nitpick/compiledResources

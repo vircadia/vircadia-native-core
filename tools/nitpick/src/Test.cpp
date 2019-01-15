@@ -19,7 +19,7 @@
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
 
-#include "ui/Nitpick.h"
+#include "Nitpick.h"
 extern Nitpick* nitpick;
 
 #include <math.h>
