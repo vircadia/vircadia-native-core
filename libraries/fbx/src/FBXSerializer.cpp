@@ -1066,34 +1066,42 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                                         material.useOcclusionMap = (bool)property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == MAYA_UV_SCALE) {
-                                        if (property.properties.size() == 6) {
-                                            glm::vec3 scale;
-                                            if (property.properties.at(2).value<QString>() == "Vector2") {
-                                                scale = glm::vec3(property.properties.at(4).value<double>(), property.properties.at(5).value<double>(), 1.0);
-                                            } else { // Vector (3d)
-                                                scale = glm::vec3(property.properties.at(3).value<double>(), property.properties.at(4).value<double>(),  property.properties.at(5).value<double>());
-                                            }
-                                            if (scale.x == 0.0f) {
-                                                scale.x = 1.0f;
-                                            }
-                                            if (scale.y == 0.0f) {
-                                                scale.y = 1.0f;
-                                            }
-                                            if (scale.z == 0.0f) {
-                                                scale.z = 1.0f;
-                                            }
-                                            materialParam.scaling *= scale;
+                                        static const int MAYA_UV_SCALE_PROPERTY_LENGTH_2D = 6;
+                                        static const int MAYA_UV_SCALE_PROPERTY_LENGTH_3D = 7;
+                                        glm::vec3 scale;
+                                        if (property.properties.size() == MAYA_UV_SCALE_PROPERTY_LENGTH_2D) { // Vector2D
+                                            // properties: { "Maya|uv_scale", "Vector2D", "Vector2", nothing, double, double }
+                                            scale = glm::vec3(property.properties.at(4).value<double>(), property.properties.at(5).value<double>(), 1.0);
+                                        } else if (property.properties.size() == MAYA_UV_SCALE_PROPERTY_LENGTH_3D) { // Vector (3d)
+                                            // properties: { "Maya|uv_scale", "Vector3D", "Vector", nothing, double, double, double }
+                                            // (in principle, given how Vector3D is used for other Maya properties in the same area)
+                                            scale = glm::vec3(property.properties.at(4).value<double>(), property.properties.at(5).value<double>(),  property.properties.at(6).value<double>());
+                                        } else {
+                                            scale = glm::vec3(1.0, 1.0, 1.0);
                                         }
+                                        if (scale.x == 0.0f) {
+                                            scale.x = 1.0f;
+                                        }
+                                        if (scale.y == 0.0f) {
+                                            scale.y = 1.0f;
+                                        }
+                                        if (scale.z == 0.0f) {
+                                            scale.z = 1.0f;
+                                        }
+                                        materialParam.scaling *= scale;
                                     } else if (property.properties.at(0) == MAYA_UV_OFFSET) {
-                                        if (property.properties.size() == 6) {
-                                            glm::vec3 translation;
-                                            if (property.properties.at(2).value<QString>() == "Vector2") {
-                                                translation = glm::vec3(property.properties.at(4).value<double>(), property.properties.at(5).value<double>(), 1.0);
-                                            } else { // Vector (3d)
-                                                translation = glm::vec3(property.properties.at(3).value<double>(), property.properties.at(4).value<double>(),  property.properties.at(5).value<double>());
-                                            }
-                                            materialParam.translation += translation;
+                                        static const int MAYA_UV_OFFSET_PROPERTY_LENGTH_2D = 6;
+                                        static const int MAYA_UV_OFFSET_PROPERTY_LENGTH_3D = 7;
+                                        glm::vec3 translation;
+                                        if (property.properties.size() == MAYA_UV_OFFSET_PROPERTY_LENGTH_2D) { // Vector2
+                                            // properties: { "Maya|uv_offset", "Vector2D", "Vector2", nothing, double, double }
+                                            translation = glm::vec3(property.properties.at(4).value<double>(), property.properties.at(5).value<double>(), 1.0);
+                                        } else if (property.properties.size() == MAYA_UV_OFFSET_PROPERTY_LENGTH_3D) { // Vector (3d)
+                                            // properties: { "Maya|uv_offset", "Vector3D", "Vector", nothing, double, double, double }
+                                            // (in principle, given how Vector3D is used  for other Maya properties in the same area)
+                                            translation = glm::vec3(property.properties.at(4).value<double>(), property.properties.at(5).value<double>(),  property.properties.at(6).value<double>());
                                         }
+                                        materialParam.translation += translation;
                                     } else {
                                         const QString propname = property.properties.at(0).toString();
                                         unknowns.push_back(propname.toStdString());
