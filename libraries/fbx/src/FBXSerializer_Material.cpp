@@ -66,8 +66,9 @@ HFMTexture FBXSerializer::getTexture(const QString& textureID, const QString& ma
         }
         texture.texcoordSetName = p.UVSet;
     }
-    if (_materialParams.contains(materialID)) {
-        auto materialParam = _materialParams[materialID];
+    auto materialParamItr = _materialParams.find(materialID);
+    if (materialParamItr != _materialParams.end()) {
+        auto& materialParam = materialParamItr.value();
         texture.transform.postTranslate(materialParam.translation);
         texture.transform.postScale(materialParam.scaling);
     }
