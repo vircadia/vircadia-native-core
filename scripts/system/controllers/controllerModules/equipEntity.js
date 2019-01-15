@@ -6,11 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera, print,
-   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther,
-   Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
-   Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode, getGrabbableData
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera, print, getControllerJointIndex,
+   enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther, Messages, makeDispatcherModuleParameters,
+   makeRunningValues, Settings, entityHasActions, Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic,
+   entityIsCloneable, cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode, getGrabbableData,
+   entityIsEquippable
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -767,7 +767,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var entityProperties = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
             entityProperties.id = entityID;
             var hasEquipData = getWearableData(entityProperties);
-            if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID && !entityIsFarGrabbedByOther(entityID)) {
+            if (hasEquipData && entityIsEquippable(entityProperties)) {
                 entityProperties.id = entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
                 var leftHandPosition = MyAvatar.getJointPosition("LeftHand");

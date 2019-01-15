@@ -257,15 +257,12 @@ Grabber.prototype.pressEvent = function(event) {
     if (isInEditMode() || HMD.active) {
         return;
     }
-
     if (event.button !== "LEFT") {
         return;
     }
-
     if (event.isAlt || event.isMeta) {
         return;
     }
-
     if (Overlays.getOverlayAtPoint(Reticle.position) > 0) {
         // the mouse is pointing at an overlay; don't look for entities underneath the overlay.
         return;
@@ -285,6 +282,10 @@ Grabber.prototype.pressEvent = function(event) {
     var props = Entities.getEntityProperties(pickResults.objectID, DISPATCHER_PROPERTIES);
     if (!entityIsGrabbable(props)) {
         // only grab grabbable objects
+        return;
+    }
+    if (props.grab.equippable) {
+        // don't mouse-grab click-to-equip entities (let equipEntity.js handle these)
         return;
     }
 
