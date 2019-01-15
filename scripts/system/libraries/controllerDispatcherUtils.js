@@ -33,6 +33,7 @@
    getGrabbableData:true,
    isAnothersAvatarEntity:true,
    isAnothersChildEntity:true,
+   entityIsEquippable:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
    getControllerJointIndexCacheTime:true,
@@ -332,10 +333,18 @@ entityIsEquippable = function (eieProps) {
         return false;
     }
     return true;
-}
+};
 
 entityIsGrabbable = function (eigProps) {
-    return entityIsEquippable(eigProps) && !eigProps.locked;
+    var grabbable = getGrabbableData(eigProps).grabbable;
+    if (!grabbable ||
+        eigProps.locked ||
+        isAnothersAvatarEntity(eigProps) ||
+        isAnothersChildEntity(eigProps) ||
+        FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
+        return false;
+    }
+    return true;
 };
 
 clearHighlightedEntities = function() {

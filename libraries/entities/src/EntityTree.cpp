@@ -2982,6 +2982,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
                 properties.setLastEdited(now);
 
                 packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastEdited(now); // so we ignore the echo from the server
                 entity->setLastBroadcast(now); // for debug/physics status icons
             }
 

@@ -3349,7 +3349,8 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
 }
 
 bool EntityItem::isWearable() const {
-    return isVisible() && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
+    return isVisible() &&
+        (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
 
 void EntityItem::addGrab(GrabPointer grab) {
