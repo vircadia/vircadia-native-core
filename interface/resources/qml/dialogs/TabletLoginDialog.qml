@@ -177,6 +177,6 @@ FocusScope {
 
     Component.onCompleted: {
         keyboardTimer.start();
-        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
+        bodyLoader.setSource("../LoginDialog/UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false });
     }
 }

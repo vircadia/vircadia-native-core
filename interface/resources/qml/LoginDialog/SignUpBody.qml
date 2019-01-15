@@ -23,6 +23,7 @@ Item {
     clip: true
     height: root.height
     width: root.width
+    readonly property string termsContainerText: qsTr("By signing up, you agree to High Fidelity's Terms of Service")
     property int textFieldHeight: 31
     property string fontFamily: "Raleway"
     property int fontSize: 15
@@ -363,6 +364,54 @@ Item {
 
                 onClicked: {
                     signUpBody.signup();
+                }
+            }
+            Item {
+                id: termsContainer
+                width: parent.width
+                height: termsTextMetrics.height
+                anchors {
+                    top: signUpButton.bottom
+                    horizontalCenter: parent.horizontalCenter
+                    topMargin: 2 * hifi.dimensions.contentSpacing.y
+                    left: parent.left
+                }
+                TextMetrics {
+                    id: termsTextMetrics
+                    font: termsText.font
+                    text: signUpBody.termsContainerText
+                    Component.onCompleted: {
+                        // with the link.
+                        termsText.text = qsTr("By signing up, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                    }
+                }
+
+                HifiStylesUit.InfoItem {
+                    id: termsText
+                    text: signUpBody.termsContainerText
+                    font.family: signUpBody.fontFamily
+                    font.pixelSize: signUpBody.fontSize
+                    font.bold: signUpBody.fontBold
+                    wrapMode: Text.WordWrap
+                    color: hifi.colors.lightGray
+                    linkColor: hifi.colors.blueAccent
+                    lineHeight: 1
+                    lineHeightMode: Text.ProportionalHeight
+
+                    onLinkActivated: loginDialog.openUrl(link);
+
+                    Component.onCompleted: {
+                        if (termsTextMetrics.width > root.bannerWidth && root.isTablet) {
+                            termsText.width = root.bannerWidth;
+                            termsText.wrapMode = Text.WordWrap;
+                            additionalText.verticalAlignment = Text.AlignLeft;
+                            additionalText.horizontalAlignment = Text.AlignLeft;
+                            termsContainer.height = (termsTextMetrics.width / root.bannerWidth) * termsTextMetrics.height;
+                            termsContainer.anchors.left = buttons.left;
+                        } else {
+                            termsText.anchors.centerIn = termsContainer;
+                        }
+                    }
                 }
             }
         }

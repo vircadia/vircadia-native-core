@@ -19,6 +19,7 @@ import TabletScriptingInterface 1.0
 Item {
     id: usernameCollisionBody
     clip: true
+    readonly property string termsContainerText: qsTr("By creating this user profile, you agree to High Fidelity's Terms of Service")
     width: root.width
     height: root.height
     readonly property string fontFamily: "Raleway"
@@ -195,6 +196,55 @@ Item {
                 fontBold: usernameCollisionBody.fontBold
                 onClicked: {
                     usernameCollisionBody.create();
+                }
+            }
+        }
+        Item {
+            id: termsContainer
+            width: parent.width
+            height: termsTextMetrics.height
+            anchors {
+                top: buttons.bottom
+                horizontalCenter: parent.horizontalCenter
+                topMargin: 2 * hifi.dimensions.contentSpacing.y
+                left: parent.left
+                leftMargin: (parent.width - buttons.width) / 2
+            }
+            TextMetrics {
+                id: termsTextMetrics
+                font: termsText.font
+                text: usernameCollisionBody.termsContainerText
+                Component.onCompleted: {
+                    // with the link.
+                    termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                }
+            }
+
+            HifiStylesUit.InfoItem {
+                id: termsText
+                text: usernameCollisionBody.termsContainerText
+                font.family: usernameCollisionBody.fontFamily
+                font.pixelSize: usernameCollisionBody.fontSize
+                font.bold: usernameCollisionBody.fontBold
+                wrapMode: Text.WordWrap
+                color: hifi.colors.lightGray
+                linkColor: hifi.colors.blueAccent
+                lineHeight: 1
+                lineHeightMode: Text.ProportionalHeight
+
+                onLinkActivated: loginDialog.openUrl(link);
+
+                Component.onCompleted: {
+                    if (termsTextMetrics.width > root.bannerWidth && root.isTablet) {
+                        termsText.width = root.bannerWidth;
+                        termsText.wrapMode = Text.WordWrap;
+                        additionalText.verticalAlignment = Text.AlignLeft;
+                        additionalText.horizontalAlignment = Text.AlignLeft;
+                        termsContainer.height = (termsTextMetrics.width / root.bannerWidth) * termsTextMetrics.height;
+                        termsContainer.anchors.left = buttons.left;
+                    } else {
+                        termsText.anchors.centerIn = termsContainer;
+                    }
                 }
             }
         }

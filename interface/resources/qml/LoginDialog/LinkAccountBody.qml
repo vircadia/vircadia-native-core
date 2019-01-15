@@ -88,8 +88,6 @@ Item {
         var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
         emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
         if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
-            linkInfoText.anchors.top = passwordField.bottom;
-            keepMeLoggedInCheckbox.anchors.top = linkInfoText.bottom;
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
             loginButton.anchors.right = emailField.right;
         } else {
@@ -115,7 +113,7 @@ Item {
             id: loginContainer
             width: emailField.width
             height: errorContainer.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
-                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height + linkInfoTextMetrics.height
+                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
             anchors {
                 top: parent.top
                 topMargin: root.bannerHeight + 0.25 * parent.height
@@ -318,38 +316,6 @@ Item {
                 }
                 onClicked: {
                     linkAccountBody.login()
-                }
-            }
-            TextMetrics {
-                id: linkInfoTextMetrics
-                font: linkInfoText.font
-                text: linkInfoText.text
-            }
-            Text {
-                id: linkInfoText
-                width: root.bannerWidth
-                visible: linkAccountBody.linkSteam || linkAccountBody.linkOculus
-                anchors {
-                    top: loginButton.bottom
-                    topMargin: hifi.dimensions.contentSpacing.y
-                    left: emailField.left
-                }
-
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                color: "white"
-                text: qsTr("");
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                Component.onCompleted: {
-                    if (linkAccountBody.linkOculus) {
-                        linkInfoText.text = qsTr("Your Oculus account information will not be exposed to others.");
-                    } else if (linkAccountBody.linkSteam) {
-                        linkInfoText.text = qsTr("Your Steam account information will not be exposed to others.");
-                    }
-                    if (linkInfoTextMetrics.width > root.bannerWidth) {
-                        linkInfoText.wrapMode = Text.WordWrap;
-                    }
                 }
             }
             TextMetrics {
