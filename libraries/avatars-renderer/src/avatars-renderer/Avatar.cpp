@@ -1440,7 +1440,7 @@ void Avatar::computeMultiSphereShapes() {
         std::vector<btVector3> btPoints;
         int lineCount = (int)shapeInfo.debugLines.size();
         btPoints.reserve(lineCount);
-        for (size_t j = 0; j < lineCount; j++) {
+        for (int j = 0; j < lineCount; j++) {
             const glm::vec3 &point = shapeInfo.debugLines[j];
             auto rigPoint = scale * point;
             btVector3 btPoint = glmToBullet(rigPoint);
@@ -1458,7 +1458,7 @@ void Avatar::computeMultiSphereShapes() {
 
 void Avatar::updateFitBoundingBox() {
     _fitBoundingBox = AABox();
-    if (getJointCount() == _multiSphereShapes.size()) {
+    if (getJointCount() == (int)_multiSphereShapes.size()) {
         for (int i = 0; i < getJointCount(); i++) {
             auto &shape = _multiSphereShapes[i];
             glm::vec3 jointPosition;
@@ -1650,7 +1650,7 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
 }
 
 void Avatar::computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex) {
-    if (jointIndex > -1 && jointIndex < _multiSphereShapes.size()) {
+    if (jointIndex > -1 && jointIndex < (int)_multiSphereShapes.size()) {
         auto& data = _multiSphereShapes[jointIndex].getSpheresData();
         std::vector<glm::vec3> positions;
         std::vector<btScalar> radiuses;

@@ -123,7 +123,10 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
 btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints) {
     ShapeInfo shapeInfo;
     isBound = false;
-    auto jointName = jointIndex > -1 && jointIndex < _multiSphereShapes.size() ? _multiSphereShapes[jointIndex].getJointName() : ""; 
+    QString jointName = ""; 
+    if (jointIndex > -1 && jointIndex < (int)_multiSphereShapes.size()) {
+        jointName = _multiSphereShapes[jointIndex].getJointName();
+    }
     switch (_bodyLOD) {
     case BodyLOD::Sphere:
         shapeInfo.setSphere(0.5f * getFitBounds().getDimensions().y);
@@ -241,7 +244,7 @@ bool OtherAvatar::shouldBeInPhysicsSimulation() const {
 
 bool OtherAvatar::needsPhysicsUpdate() const {
     constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION | Simulation::DIRTY_COLLISION_GROUP;
-    return (_needsReinsertion || _motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST));
+    return (_needsReinsertion || (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST)));
 }
 
 void OtherAvatar::rebuildCollisionShape() {

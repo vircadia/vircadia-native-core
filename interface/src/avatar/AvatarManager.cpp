@@ -689,7 +689,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     auto &multiSpheres = avatar->getMultiSphereShapes();
                     if (multiSpheres.size() > 0) {
                         std::vector<MyCharacterController::RayAvatarResult> boxHits;
-                        for (auto i = 0; i < hit._boundJoints.size(); i++) {
+                        for (size_t i = 0; i < hit._boundJoints.size(); i++) {
                             assert(hit._boundJoints[i] < multiSpheres.size());
                             auto &mSphere = multiSpheres[hit._boundJoints[i]];
                             if (mSphere.isValid()) {

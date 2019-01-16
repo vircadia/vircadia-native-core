@@ -426,16 +426,6 @@ void MyAvatar::clearIKJointLimitHistory() {
     _skeletonModel->getRig().clearIKJointLimitHistory();
 }
 
-QVariantMap MyAvatar::getBoundingBox() {
-    QVariantMap bbox;
-    auto avatarBBox = getFitBounds();
-    auto center = avatarBBox.calcCenter();
-    auto dimensions = avatarBBox.getDimensions();
-    bbox["center"] = vec3toVariant(center);
-    bbox["dimensions"] = vec3toVariant(dimensions);
-    return bbox;
-}
-
 void MyAvatar::reset(bool andRecenter, bool andReload, bool andHead) {
 
     assert(QThread::currentThread() == thread());
@@ -3073,9 +3063,8 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
         if (_skeletonModel && _skeletonModel->isLoaded()) {
             const Rig& rig = _skeletonModel->getRig();
-            const HFMModel& hfmModel = _skeletonModel->getHFMModel();
             int jointCount = rig.getJointStateCount();
-            if (jointCount == _multiSphereShapes.size()) {
+            if (jointCount == (int)_multiSphereShapes.size()) {
                 int count = 0;
                 for (int i = 0; i < jointCount; i++) {
                     AnimPose jointPose;
