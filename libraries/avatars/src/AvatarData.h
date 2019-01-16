@@ -465,8 +465,6 @@ public:
 
     static const QUrl& defaultFullAvatarModelUrl();
 
-    virtual bool isMyAvatar() const { return false; }
-
     const QUuid getSessionUUID() const { return getID(); }
 
     glm::vec3 getHandPosition() const;
