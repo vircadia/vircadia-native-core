@@ -71,7 +71,6 @@ Item {
 
     function init() {
         // going to/from sign in/up dialog.
-        loginDialog.isLogIn = false;
         emailField.placeholderText = "Email";
         emailField.text = "";
         emailField.anchors.top = usernameField.bottom;

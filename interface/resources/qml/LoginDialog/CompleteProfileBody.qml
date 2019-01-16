@@ -149,7 +149,7 @@ Item {
                             case Qt.Key_Enter:
                             case Qt.Key_Return:
                                 event.accepted = true;
-                                completeProfileBody.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
                                 break;
                         }
                     }
@@ -192,7 +192,7 @@ Item {
                             case Qt.Key_Enter:
                             case Qt.Key_Return:
                                 event.accepted = true;
-                                completeProfileBody.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
                                 break;
                         }
                     }
@@ -275,7 +275,7 @@ Item {
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                             event.accepted = true;
-                            completeProfileBody.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                            loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
                             break;
                         }
                     }
@@ -329,7 +329,7 @@ Item {
                     onClicked: {
                         loginErrorMessage.visible = false;
                         if (completeProfileBody.withOculus) {
-                            loginDialog.createAccountFromOculus();
+                            loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
                         } else if (completeProfileBody.withSteam) {
                             loginDialog.createAccountFromSteam();
                         }
@@ -455,7 +455,7 @@ Item {
             console.log("Create Failed: " + error);
             if (completeProfileBody.withOculus) {
                 loginErrorMessage.visible = true;
-                loginErrorMessage.text = error;
+                loginErrorMessage.text = "Make sure email and username fields are filled out.";
 
                 if (loginErrorMessageTextMetrics.width > root.bannerWidth && root.isTablet) {
                     loginErrorMessage.wrapMode = Text.WordWrap;
@@ -466,10 +466,10 @@ Item {
                     loginErrorMessage.wrapMode = Text.NoWrap;
                     errorContainer.height = loginErrorMessageTextMetrics.height;
                 }
+            } else {
+                bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                    "withOculus": completeProfileBody.withOculus });
             }
-
-            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
-                "withOculus": completeProfileBody.withOculus });
         }
     }
 
