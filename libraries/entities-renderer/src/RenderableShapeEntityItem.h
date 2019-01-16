@@ -40,6 +40,7 @@ private:
     Procedural _procedural;
     QString _lastUserData;
     entity::Shape _shape { entity::Sphere };
+    PulsePropertyGroup _pulseProperties;
     std::shared_ptr<graphics::Material> _material;
     glm::vec3 _position;
     glm::vec3 _dimensions;

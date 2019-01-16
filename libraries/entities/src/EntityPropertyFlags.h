@@ -106,12 +106,17 @@ enum EntityPropertyList {
     PROP_LOCAL_VELOCITY,
     PROP_LOCAL_ANGULAR_VELOCITY,
     PROP_LOCAL_DIMENSIONS,
-    
+
     // These properties are used by multiple subtypes but aren't in the base EntityItem
     PROP_SHAPE_TYPE,
     PROP_COMPOUND_SHAPE_URL,
     PROP_COLOR,
     PROP_ALPHA,
+    PROP_PULSE_MIN,
+    PROP_PULSE_MAX,
+    PROP_PULSE_PERIOD,
+    PROP_PULSE_COLOR_MODE,
+    PROP_PULSE_ALPHA_MODE,
     PROP_TEXTURES,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -16,6 +16,7 @@
 #include "EntityItem.h"
 
 #include "ColorUtils.h"
+#include "PulsePropertyGroup.h"
 
 namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
@@ -341,9 +342,11 @@ public:
     virtual bool supportsDetailedIntersection() const override { return false; }
 
     particle::Properties getParticleProperties() const;
+    PulsePropertyGroup getPulseProperties() const;
 
 protected:
     particle::Properties _particleProperties;
+    PulsePropertyGroup _pulseProperties;
     bool _isEmitting { true };
 
     ShapeType _shapeType { SHAPE_TYPE_NONE };

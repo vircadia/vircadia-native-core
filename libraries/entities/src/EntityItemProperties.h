@@ -51,6 +51,7 @@
 #include "SkyboxPropertyGroup.h"
 #include "HazePropertyGroup.h"
 #include "BloomPropertyGroup.h"
+#include "PulsePropertyGroup.h"
 
 #include "MaterialMappingMode.h"
 #include "BillboardMode.h"
@@ -229,6 +230,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, u8vec3Color, particle::DEFAULT_COLOR);
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, particle::DEFAULT_ALPHA);
+    DEFINE_PROPERTY_GROUP(Pulse, pulse, PulsePropertyGroup);
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
 
     // Particles

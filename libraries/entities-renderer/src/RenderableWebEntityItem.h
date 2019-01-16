@@ -84,6 +84,7 @@ private:
 
     glm::u8vec3 _color;
     float _alpha { 1.0f };
+    PulsePropertyGroup _pulseProperties;
 
     QString _sourceURL;
     uint16_t _dpi;

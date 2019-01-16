@@ -98,9 +98,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
-    withReadLock([&] {
-        requestedProperties += _grabProperties.getEntityProperties(params);
-    });
+    requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
     requestedProperties += PROP_DENSITY;

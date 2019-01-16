@@ -97,7 +97,7 @@ WebEntityRenderer::~WebEntityRenderer() {
 
 bool WebEntityRenderer::isTransparent() const {
     float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    return fadeRatio < OPAQUE_ALPHA_THRESHOLD || _alpha < 1.0f;
+    return fadeRatio < OPAQUE_ALPHA_THRESHOLD || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
 bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
@@ -140,6 +140,10 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
     }
 
     if (_inputMode != entity->getInputMode()) {
+        return true;
+    }
+
+    if (_pulseProperties != entity->getPulseProperties()) {
         return true;
     }
 
@@ -201,6 +205,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         _dpi = entity->getDPI();
         _color = entity->getColor();
         _alpha = entity->getAlpha();
+        _pulseProperties = entity->getPulseProperties();
 
         if (_contentType == ContentType::NoContent) {
             return;
@@ -293,6 +298,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     withReadLock([&] {
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         color = glm::vec4(toGlm(_color), _alpha * fadeRatio);
+        color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         batch.setModelTransform(_renderTransform);
     });
     batch.setResourceTexture(0, _texture);

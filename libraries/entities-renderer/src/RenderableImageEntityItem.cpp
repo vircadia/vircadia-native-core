@@ -26,7 +26,7 @@ ImageEntityRenderer::~ImageEntityRenderer() {
 }
 
 bool ImageEntityRenderer::isTransparent() const {
-    return Parent::isTransparent() || (_textureIsLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha()) || _alpha < 1.0f;
+    return Parent::isTransparent() || (_textureIsLoaded && _texture->getGPUTexture() && _texture->getGPUTexture()->getUsage().isAlpha()) || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
 bool ImageEntityRenderer::needsRenderUpdate() const {
@@ -71,6 +71,10 @@ bool ImageEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             return true;
         }
 
+        if (_pulseProperties != entity->getPulseProperties()) {
+            return true;
+        }
+
         return false;
     });
 
@@ -97,6 +101,7 @@ void ImageEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
         _color = entity->getColor();
         _alpha = entity->getAlpha();
+        _pulseProperties = entity->getPulseProperties();
 
         if (!_textureIsLoaded && _texture && _texture->isLoaded()) {
             _textureIsLoaded = true;
@@ -135,13 +140,14 @@ ShapeKey ImageEntityRenderer::getShapeKey() {
 void ImageEntityRenderer::doRender(RenderArgs* args) {
     NetworkTexturePointer texture;
     QRect subImage;
-    glm::u8vec3 color;
+    glm::vec4 color;
     glm::vec3 dimensions;
     Transform transform;
     withReadLock([&] {
         texture = _texture;
         subImage = _subImage;
-        color = _color;
+        color = glm::vec4(toGlm(_color), _alpha);
+        color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         dimensions = _dimensions;
         transform = _renderTransform;
     });
@@ -211,11 +217,9 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth,
                                   (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
 
-    glm::vec4 imageColor(toGlm(color), _alpha);
-
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-        imageColor, _geometryId
+        color, _geometryId
     );
 
     batch->setResourceTexture(0, nullptr);

@@ -412,6 +412,9 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(const EntityPropert
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
@@ -463,6 +466,10 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
@@ -535,6 +542,13 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
     READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
     READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
@@ -586,6 +600,7 @@ EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstrea
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
+    requestedProperties += _pulseProperties.getEntityProperties(params);
     requestedProperties += PROP_TEXTURES;
 
     requestedProperties += PROP_MAX_PARTICLES;
@@ -643,6 +658,10 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
@@ -786,4 +805,10 @@ particle::Properties ParticleEffectEntityItem::getParticleProperties() const {
     }
 
     return result; 
+}
+
+PulsePropertyGroup ParticleEffectEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
+    });
 }
