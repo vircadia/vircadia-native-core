@@ -1605,7 +1605,7 @@ QScriptValue ScriptEngine::newModule(const QString& modulePath, const QScriptVal
     auto closure = newObject();
     auto exports = newObject();
     auto module = newObject();
-    qCDebug(scriptengine_module) << "newModule" << modulePath << parent.property("filename").toString();
+    qCDebug(scriptengine_module) << "newModule" << parent.property("filename").toString();
 
     closure.setProperty("module", module, READONLY_PROP_FLAGS);
 
