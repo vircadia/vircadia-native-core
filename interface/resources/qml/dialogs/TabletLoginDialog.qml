@@ -29,7 +29,7 @@ FocusScope {
 
     property var tabletProxy: Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-    property bool isHMD: false
+    property bool isHMD: HMD.active
     property bool gotoPreviousApp: false;
 
     property bool keyboardEnabled: false
@@ -78,7 +78,7 @@ FocusScope {
         interval: 200
 
         onTriggered: {
-            if (MenuInterface.isOptionChecked("Use 3D Keyboard") && HMD.active) {
+            if (MenuInterface.isOptionChecked("Use 3D Keyboard") && root.isHMD) {
                 KeyboardScriptingInterface.raised = true;
             }
         }
@@ -170,7 +170,7 @@ FocusScope {
 
     Component.onDestruction: {
         loginKeyboard.raised = false;
-        if (HMD.active) {
+        if (root.isHMD) {
             KeyboardScriptingInterface.raised = false;
         }
     }

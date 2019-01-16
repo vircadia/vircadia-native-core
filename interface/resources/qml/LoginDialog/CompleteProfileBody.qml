@@ -461,7 +461,7 @@ Item {
             console.log("Create Failed: " + error);
             if (completeProfileBody.withOculus) {
                 loginErrorMessage.visible = true;
-                loginErrorMessage.text = "Make sure email and username fields are filled out.";
+                loginErrorMessage.text = error;
 
                 if (loginErrorMessageTextMetrics.width > root.bannerWidth && root.isTablet) {
                     loginErrorMessage.wrapMode = Text.WordWrap;
