@@ -771,7 +771,8 @@ float computeGain(float masterListenerGain, const AvatarAudioStream& listeningNo
         }
     }
     // translate the zone setting to gain per log2(distance)
-    float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, EPSILON, 1.0f);
+    const float MIN_ATTENUATION_COEFFICIENT = 0.001f;   // -60dB per log2(distance)
+    float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, MIN_ATTENUATION_COEFFICIENT, 1.0f);
 
     // calculate the attenuation using the distance to this node
     // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
