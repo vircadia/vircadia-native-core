@@ -15,11 +15,11 @@
 #include <QTextEdit>
 #include "ui_Nitpick.h"
 
-#include "../Downloader.h"
-#include "../Test.h"
+#include "Downloader.h"
+#include "Test.h"
 
-#include "../TestRunner.h"
-#include "../AWSInterface.h"
+#include "TestRunner.h"
+#include "AWSInterface.h"
 
 class Nitpick : public QMainWindow {
     Q_OBJECT

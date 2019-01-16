@@ -18,7 +18,7 @@
 
 #include "AWSInterface.h"
 #include "ImageComparer.h"
-#include "ui/MismatchWindow.h"
+#include "MismatchWindow.h"
 #include "TestRailInterface.h"
 
 class Step {

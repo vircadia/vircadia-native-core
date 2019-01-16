@@ -13,7 +13,7 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
 
-#include "ui/Nitpick.h"
+#include "Nitpick.h"
 extern Nitpick* nitpick;
 
 #ifdef Q_OS_WIN
