@@ -368,7 +368,7 @@ btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(in
 DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int jointIndex) {
     auto shape = createDetailedCollisionShapeForJoint(jointIndex);
     if (shape) {
-        DetailedMotionState* motionState = new DetailedMotionState(_avatar->getSharedMe(), shape, jointIndex);
+        DetailedMotionState* motionState = new DetailedMotionState(_avatar->getMyAvatarSharedPointer(), shape, jointIndex);
         motionState->setMass(_avatar->computeMass());
         return motionState;
     }

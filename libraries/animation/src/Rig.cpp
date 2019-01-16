@@ -425,7 +425,6 @@ int Rig::indexOfJoint(const QString& jointName) const {
 
         // This is a content error, so we should issue a warning.
         if (result < 0 && _jointNameWarningCount < MAX_JOINT_NAME_WARNING_COUNT) {
-            qCWarning(animation) << "Rig: Missing joint" << jointName << "in avatar model";
             _jointNameWarningCount++;
         }
         return result;

@@ -328,6 +328,19 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 }
 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    AvatarTraits::TraitMessageSequence seq;
+
+    message->readPrimitive(&seq);
+
+    auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
+    traitsAckPacket->writePrimitive(seq);
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+    if (!avatarMixer.isNull()) {
+        // we have a mixer to send to, acknowledge that we received these
+        // traits.
+        nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
+    }
 
     while (message->getBytesLeftToRead()) {
         // read the avatar ID to figure out which avatar this is for
