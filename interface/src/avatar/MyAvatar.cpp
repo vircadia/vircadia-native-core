@@ -2372,7 +2372,7 @@ bool isWearableEntity(const EntityItemPointer& entity) {
             || entity->getParentID() == AVATAR_SELF_ID);
 }
 
-void MyAvatar::removeAvatarEntity(const EntityItemID& entityID) {
+void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
 
@@ -2391,13 +2391,13 @@ void MyAvatar::removeAvatarEntity(const EntityItemID& entityID) {
     }
 }
 
-void MyAvatar::clearAvatarEntities() {
+void MyAvatar::clearWornAvatarEntities() {
     QList<QUuid> avatarEntityIDs;
     _avatarEntitiesLock.withReadLock([&] {
         avatarEntityIDs = _packedAvatarEntityData.keys();
     });
     for (auto entityID : avatarEntityIDs) {
-        removeAvatarEntity(entityID);
+        removeWornAvatarEntity(entityID);
     }
 }
 
@@ -2803,8 +2803,8 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         newEntitiesProperties.push_back(properties);
     }
 
-    // clear any existing avatar entities
-    clearAvatarEntities();
+    // clear any existing wearables
+    clearWornAvatarEntities();
 
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);

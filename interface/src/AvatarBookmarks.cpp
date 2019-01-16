@@ -171,7 +171,7 @@ void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     // Remove any old entities not in the new list
     for (auto& avatarEntityID : currentAvatarEntities.keys()) {
         if (newAvatarEntities.find(avatarEntityID) == newAvatarEntities.end()) {
-            myAvatar->removeAvatarEntity(avatarEntityID);
+            myAvatar->removeWornAvatarEntity(avatarEntityID);
         }
     }
 }
@@ -197,7 +197,7 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
             EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-            myAvatar->clearAvatarEntities();
+            myAvatar->clearWornAvatarEntities();
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
             qCDebug(interfaceapp) << "Avatar On";
