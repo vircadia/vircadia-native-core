@@ -277,7 +277,8 @@ namespace AvatarDataPacket {
         uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
         SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
         uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
-        SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
+        float maxTranslationDimension;                         // used to normalize fixed point translation values.
+        SixByteTrans translation[numValidTranslations];        // normalized and compressed by packFloatVec3ToSignedTwoByteFixed()
 
         SixByteQuat leftHandControllerRotation;
         SixByteTrans leftHandControllerTranslation;

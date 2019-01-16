@@ -677,7 +677,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         validityPosition = destinationBuffer;
 
 #ifdef WANT_DEBUG
-        int translationSentCount = 0;
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
 
@@ -686,7 +685,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
 
-        float maxTranslationDimension = 0.0;
+        float maxTranslationDimension = 0.0f;
+        const int MAX_NUM_JOINTS = 256;
+
+        assert(numJoints < MAX_NUM_JOINTS);
+        glm::vec3 translationsSentArray[MAX_NUM_JOINTS];  // 3060 bytes allocated on the stack for performance.
+        int translationsSent = 0;
+
         i = sendStatus.translationsSent;
         for (; i < numJoints; ++i) {
             const JointData& data = joints[i];
@@ -697,15 +702,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                     if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
                         || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
                         validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
-#ifdef WANT_DEBUG
-                        translationSentCount++;
-#endif
                         maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
                         maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
                         maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
 
-                        destinationBuffer +=
-                            packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                        translationsSentArray[translationsSent++] = data.translation;
 
                         if (sentJoints) {
                             sentJoints[i].translation = data.translation;
@@ -720,6 +721,16 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 sentJoints[i].translationIsDefaultPose = data.translationIsDefaultPose;
             }
 
+        }
+
+        // AJT: TODO make sure size computation is properly up to date!
+        // Write maxTranslationDimension into packet
+        memcpy(destinationBuffer, &maxTranslationDimension, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        // Write normalized and compressed translations into packet
+        for (i = 0; i < translationsSent; ++i) {
+            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, translationsSentArray[i] / maxTranslationDimension, TRANSLATION_COMPRESSION_RADIX);
         }
         sendStatus.translationsSent = i;
 
@@ -766,7 +777,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 #ifdef WANT_DEBUG
         if (sendAll) {
             qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
-                << "rotations:" << rotationSentCount << "translations:" << translationSentCount
+                << "rotations:" << rotationSentCount << "translations:" << translationsSentCount
                 << "largest:" << maxTranslationDimension
                 << "size:"
                 << (beforeRotations - startPosition) << "+"
@@ -1280,6 +1291,13 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
         } // 1 + bytesOfValidity bytes
 
+
+        // AJT: read maxTranslationDimension
+        float maxTranslationDimension;
+        PACKET_READ_CHECK(MaxTranslationDimension, sizeof(float));
+        memcpy(&maxTranslationDimension, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
         // each joint translation component is stored in 6 bytes.
         const int COMPRESSED_TRANSLATION_SIZE = 6;
         PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
@@ -1288,6 +1306,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             JointData& data = _jointData[i];
             if (validTranslations[i]) {
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                // un-normalize translation
+                data.translation *= maxTranslationDimension;
                 _hasNewJointData = true;
                 data.translationIsDefaultPose = false;
             }
