@@ -67,6 +67,11 @@ AvatarManager::AvatarManager(QObject* parent) :
     connect(nodeList.data(), &NodeList::ignoredNode, this, [this](const QUuid& nodeID, bool enabled) {
         if (enabled) {
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
+        } else {
+            auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(nodeID));
+            if (avatar) {
+                avatar->createOrb();
+            }
         }
     });
 
@@ -392,14 +397,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
-    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [sessionUUID](OtherAvatar* ptr) {
-        ptr->deleteLater(); 
-        ptr->setSessionUUID(sessionUUID);
-        auto nodeList = DependencyManager::get<NodeList>();
-        if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
-            ptr->createOrb();
-        }
-    });
+
+    auto otherAvatar = new OtherAvatar(qApp->thread());
+    otherAvatar->setSessionUUID(sessionUUID);
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+        otherAvatar->createOrb();
+    }
+    return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {
