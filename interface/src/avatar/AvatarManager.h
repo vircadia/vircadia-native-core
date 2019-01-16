@@ -166,28 +166,6 @@ public:
                                                                                   const QVector<EntityItemID>& avatarsToDiscard);
 
     /**jsdoc
-    * @function AvatarManager.findSelfRayIntersection
-    * @param {PickRay} ray
-    * @param {Uuid[]} [jointsToInclude=[]]
-    * @param {Uuid[]} [jointsToDiscard=[]]
-    * @returns {RayToAvatarIntersectionResult}
-    */
-    Q_INVOKABLE RayToAvatarIntersectionResult findSelfRayIntersection(const PickRay& ray,
-        const QScriptValue& jointIndexesToInclude = QScriptValue(),
-        const QScriptValue& jointIndexesToDiscard = QScriptValue());
-
-    /**jsdoc
-    * @function AvatarManager.findSelfRayIntersectionVector
-    * @param {PickRay} ray
-    * @param {Uuid[]} jointsToInclude
-    * @param {Uuid[]} jointsToDiscard
-    * @returns {RayToAvatarIntersectionResult}
-    */
-    Q_INVOKABLE RayToAvatarIntersectionResult findSelfRayIntersectionVector(const PickRay& ray,
-        const QVector<uint>& jointIndexesToInclude,
-        const QVector<uint>& jointIndexesToDiscard);
-
-    /**jsdoc
      * @function AvatarManager.getAvatarSortCoefficient
      * @param {string} name
      * @returns {number}

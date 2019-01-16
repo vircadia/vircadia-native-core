@@ -20,6 +20,7 @@
 DetailedMotionState::DetailedMotionState(AvatarPointer avatar, const btCollisionShape* shape, int jointIndex) : 
     ObjectMotionState(shape), _avatar(avatar), _jointIndex(jointIndex) {
     assert(_avatar);
+    _otherAvatar = std::static_pointer_cast<OtherAvatar>(_avatar);
     _type = MOTIONSTATE_TYPE_DETAILED;
 }
 
@@ -59,13 +60,8 @@ PhysicsMotionType DetailedMotionState::computePhysicsMotionType() const {
 const btCollisionShape* DetailedMotionState::computeNewShape() {
     btCollisionShape* shape = nullptr;
     if (!_avatar->isMyAvatar()) {
-        OtherAvatarPointer otherAvatar = std::static_pointer_cast<OtherAvatar>(_avatar);
-        if (otherAvatar) {
-            if (_isAvatarCapsule) {
-                shape = otherAvatar->createCapsuleCollisionShape();
-            } else {
-                shape = otherAvatar->createDetailedCollisionShapeForJoint(_jointIndex);
-            }   
+        if (_otherAvatar) {
+            shape =  _otherAvatar->createCollisionShape(_jointIndex, _isBound, _boundJoints);
         }
     } else {
         std::shared_ptr<MyAvatar> myAvatar = std::static_pointer_cast<MyAvatar>(_avatar);
@@ -115,7 +111,8 @@ float DetailedMotionState::getObjectAngularDamping() const {
 
 // virtual
 glm::vec3 DetailedMotionState::getObjectPosition() const {
-    return _isAvatarCapsule ? _avatar->getFitBounds().calcCenter() : _avatar->getJointPosition(_jointIndex);
+    auto bodyLOD = _otherAvatar->getBodyLOD();
+    return bodyLOD == OtherAvatar::BodyLOD::Sphere ? _avatar->getFitBounds().calcCenter() : _avatar->getJointPosition(_jointIndex);
 }
 
 // virtual

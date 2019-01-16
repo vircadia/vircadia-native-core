@@ -172,3 +172,45 @@ void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
         }
     }
 }
+
+void ThreadSafeDynamicsWorld::drawConnectedSpheres(btIDebugDraw* drawer, btScalar radius1, btScalar radius2, const btVector3& position1, const btVector3& position2, const btVector3& color) {
+    int stepDegrees = 30;
+    btVector3 direction = position2 - position1;
+    btVector3 xAxis = direction.cross(btVector3(0.0f, 1.0f, 0.0f));
+    xAxis = xAxis.length() < EPSILON ? btVector3(1.0f, 0.0f, 0.0f) : xAxis.normalize();
+    btVector3 zAxis = xAxis.cross(btVector3(0.0f, 1.0f, 0.0f));
+    zAxis = (direction.normalize().getY() < EPSILON) ? btVector3(0.0f, 1.0f, 0.0f) : zAxis.normalize();
+    for (int i = 0; i < 360; i += stepDegrees) {
+        float x1 = btSin(btScalar(i)*SIMD_RADS_PER_DEG) * radius1;
+        float z1 = btCos(btScalar(i)*SIMD_RADS_PER_DEG) * radius1;
+        float x2 = btSin(btScalar(i)*SIMD_RADS_PER_DEG) * radius2;
+        float z2 = btCos(btScalar(i)*SIMD_RADS_PER_DEG) * radius2;
+
+        btVector3 addVector1 = xAxis * x1 + zAxis * z1;
+        btVector3 addVector2 = xAxis * x2 + zAxis * z2;
+        drawer->drawLine(position1 + addVector1, position2 + addVector2, color);
+    }
+}
+
+void ThreadSafeDynamicsWorld::debugDrawObject(const btTransform& worldTransform, const btCollisionShape* shape, const btVector3& color) {
+    btCollisionWorld::debugDrawObject(worldTransform, shape, color);
+    if (shape->getShapeType() == MULTI_SPHERE_SHAPE_PROXYTYPE) {
+        const btMultiSphereShape* multiSphereShape = static_cast<const btMultiSphereShape*>(shape);
+        for (int i = multiSphereShape->getSphereCount() - 1; i >= 0; i--) {
+            btTransform sphereTransform1, sphereTransform2;
+            sphereTransform1.setIdentity();
+            sphereTransform2.setIdentity();
+            int sphereIndex1 = i;
+            int sphereIndex2 = i > 0 ? i - 1 : multiSphereShape->getSphereCount() - 1;
+            sphereTransform1.setOrigin(multiSphereShape->getSpherePosition(sphereIndex1));
+            sphereTransform2.setOrigin(multiSphereShape->getSpherePosition(sphereIndex2));
+            sphereTransform1 = worldTransform * sphereTransform1;
+            sphereTransform2 = worldTransform * sphereTransform2;
+            getDebugDrawer()->drawSphere(multiSphereShape->getSphereRadius(sphereIndex1), sphereTransform1, color);
+            drawConnectedSpheres(getDebugDrawer(), multiSphereShape->getSphereRadius(sphereIndex1), multiSphereShape->getSphereRadius(sphereIndex2), sphereTransform1.getOrigin(), sphereTransform2.getOrigin(), color);
+        }
+    } else {
+        btCollisionWorld::debugDrawObject(worldTransform, shape, color);
+    }
+}
+

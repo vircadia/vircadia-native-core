@@ -28,8 +28,9 @@ public:
     virtual ~OtherAvatar();
 
     enum BodyLOD {
-        CapsuleShape,
-        MultiSphereShapes
+        Sphere = 0,
+        MultiSphereLow, // No finger joints
+        MultiSphereHigh // All joints
     };
 
     virtual void instantiableAvatar() override { };
@@ -51,10 +52,8 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
-    btCollisionShape* createDetailedCollisionShapeForJoint(int jointIndex);
-    btCollisionShape* createCapsuleCollisionShape();
-    DetailedMotionState* createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
-    DetailedMotionState* createCapsuleMotionState(std::shared_ptr<OtherAvatar> avatar);
+    btCollisionShape* createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints);
+    DetailedMotionState* createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex);
     void createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
     void resetDetailedMotionStates();
@@ -72,7 +71,7 @@ protected:
     std::vector<DetailedMotionState*> _detailedMotionStates;
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };
-    BodyLOD _bodyLOD { BodyLOD::CapsuleShape };
+    BodyLOD _bodyLOD { BodyLOD::Sphere };
     bool _needsReinsertion { false };
 };
 

@@ -56,14 +56,16 @@ public:
 
     struct RayAvatarResult {
         bool _intersect { false };
+        bool _isBound { false };
         QUuid _intersectWithAvatar;
         int _intersectWithJoint { -1 };
         float _distance { 0.0f };
         glm::vec3 _intersectionPoint;
         glm::vec3 _intersectionNormal;
+        std::vector<int> _boundJoints;
     };
-    RayAvatarResult rayTest(const btVector3& origin, const btVector3& direction, const btScalar& length,
-                           const QVector<uint>& jointsToExclude) const;
+    std::vector<RayAvatarResult> rayTest(const btVector3& origin, const btVector3& direction, const btScalar& length,
+                                         const QVector<uint>& jointsToExclude) const;
 
 protected:
     void initRayShotgun(const btCollisionWorld* world);

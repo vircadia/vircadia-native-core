@@ -429,9 +429,9 @@ public:
     }
 };
 
-MyCharacterController::RayAvatarResult MyCharacterController::rayTest(const btVector3& origin, const btVector3& direction, const btScalar& length,
-                                                                      const QVector<uint>& jointsToExclude) const {
-    RayAvatarResult result;
+std::vector<MyCharacterController::RayAvatarResult> MyCharacterController::rayTest(const btVector3& origin, const btVector3& direction,
+                                                                                   const btScalar& length, const QVector<uint>& jointsToExclude) const {
+    std::vector<RayAvatarResult> foundAvatars;
     if (_dynamicsWorld) {
         btVector3 end = origin + length * direction;
         ClosestDetailed rayCallback = ClosestDetailed();
@@ -439,28 +439,26 @@ MyCharacterController::RayAvatarResult MyCharacterController::rayTest(const btVe
         rayCallback.m_flags |= btTriangleRaycastCallback::kF_UseSubSimplexConvexCastRaytest;
         _dynamicsWorld->rayTest(origin, end, rayCallback);
         if (rayCallback.m_hitFractions.size() > 0) {
-            int minIndex = 0;
-            float hitFraction = rayCallback.m_hitFractions[0];
-            for (auto i = 1; i < rayCallback.m_hitFractions.size(); i++) {
-                if (hitFraction > rayCallback.m_hitFractions[i]) {
-                    hitFraction = rayCallback.m_hitFractions[i];
-                    minIndex = i;
-                }
-            }
-            auto object = rayCallback.m_collisionObjects[minIndex];
-            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(object->getUserPointer());
-            if (motionState && motionState->getType() == MOTIONSTATE_TYPE_DETAILED) {
-                DetailedMotionState* detailedMotionState = dynamic_cast<DetailedMotionState*>(motionState);
-                if (detailedMotionState) {
+            for (int i = 0; i < rayCallback.m_hitFractions.size(); i++) {
+                auto object = rayCallback.m_collisionObjects[i];
+                ObjectMotionState* motionState = static_cast<ObjectMotionState*>(object->getUserPointer());
+                if (motionState && motionState->getType() == MOTIONSTATE_TYPE_DETAILED) {
+                    DetailedMotionState* detailedMotionState = dynamic_cast<DetailedMotionState*>(motionState);
+                    MyCharacterController::RayAvatarResult result;
                     result._intersect = true;
                     result._intersectWithAvatar = detailedMotionState->getAvatarID();
-                    result._intersectionPoint = bulletToGLM(rayCallback.m_hitPointWorld[minIndex]);
-                    result._intersectionNormal = bulletToGLM(rayCallback.m_hitNormalWorld[minIndex]);
-                    result._distance = length * hitFraction;
+                    result._intersectionPoint = bulletToGLM(rayCallback.m_hitPointWorld[i]);
+                    result._intersectionNormal = bulletToGLM(rayCallback.m_hitNormalWorld[i]);
+                    result._distance = length * rayCallback.m_hitFractions[i];
                     result._intersectWithJoint = detailedMotionState->getJointIndex();
+                    result._isBound = detailedMotionState->getIsBound(result._boundJoints);
+                    foundAvatars.push_back(result);
                 }
             }
+            std::sort(foundAvatars.begin(), foundAvatars.end(), [](const RayAvatarResult& resultA, const RayAvatarResult& resultB) {
+                return resultA._distance < resultB._distance;
+            });
         }
     }
-    return result;
+    return foundAvatars;
 }

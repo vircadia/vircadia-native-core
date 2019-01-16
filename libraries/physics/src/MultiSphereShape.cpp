@@ -126,9 +126,11 @@ void MultiSphereShape::filterUniquePoints(const std::vector<btVector3>& kdop, st
     }
 }
 
-bool MultiSphereShape::computeMultiSphereShape(const QString& name, const std::vector<btVector3>& kdop, float scale) {
+bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& name, const std::vector<btVector3>& kdop, float scale) {
     _scale = scale;
-    _mode = getExtractionModeByName(name);
+    _jointIndex = jointIndex;
+    _name = name;
+    _mode = getExtractionModeByName(_name);
     if (_mode == CollisionShapeExtractionMode::None || kdop.size() < 4 || kdop.size() > 200) {
         return false;
     }

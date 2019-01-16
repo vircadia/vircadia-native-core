@@ -68,9 +68,10 @@ public:
 
     virtual float getMass() const override;
     void forceActive();
-    QUuid getAvatarID() { return _avatar->getID(); }
-    int getJointIndex() { return _jointIndex; }
-    void setIsAvatarCapsule(bool isAvatarCapsule) { _isAvatarCapsule = isAvatarCapsule; }
+    QUuid getAvatarID() const { return _avatar->getID(); }
+    int getJointIndex() const { return _jointIndex; }
+    void setIsBound(bool isBound, std::vector<int> boundJoints) { _isBound = isBound; _boundJoints = boundJoints; }
+    bool getIsBound(std::vector<int>& boundJoints) const { boundJoints = _boundJoints; return _isBound; }
 
     friend class AvatarManager;
     friend class Avatar;
@@ -91,8 +92,9 @@ protected:
 
     uint32_t _dirtyFlags;
     int _jointIndex { -1 };
-
-    bool _isAvatarCapsule { false };
+    OtherAvatarPointer _otherAvatar { nullptr };
+    bool _isBound { false };
+    std::vector<int> _boundJoints;
 };
 
 #endif // hifi_DetailedMotionState_h

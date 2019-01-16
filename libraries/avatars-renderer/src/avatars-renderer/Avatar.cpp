@@ -1689,7 +1689,7 @@ void Avatar::computeMultiSphereShapes() {
         }
         auto jointName = rig.nameOfJoint(i).toUpper();
         MultiSphereShape multiSphereShape;
-        if (multiSphereShape.computeMultiSphereShape(jointName, btPoints)) {
+        if (multiSphereShape.computeMultiSphereShape(i, jointName, btPoints)) {
             multiSphereShape.calculateDebugLines();
             multiSphereShape.setScale(_targetScale);
         }

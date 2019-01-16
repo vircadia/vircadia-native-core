@@ -320,6 +320,7 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
     virtual void computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex);
+
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
     /**jsdoc

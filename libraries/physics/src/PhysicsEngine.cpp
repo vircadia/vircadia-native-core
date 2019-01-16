@@ -328,6 +328,9 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
         if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
             _activeStaticBodies.insert(object->getRigidBody());
         }
+        if (object->getType() == MOTIONSTATE_TYPE_AVATAR) {
+            _dynamicsWorld->updateSingleAabb(object->_body);
+        }        
     }
     // activeStaticBodies have changed (in an Easy way) and need their Aabbs updated
     // but we've configured Bullet to NOT update them automatically (for improved performance)

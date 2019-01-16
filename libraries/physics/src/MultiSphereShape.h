@@ -74,12 +74,16 @@ const std::vector<glm::vec3> CORNER_SIGNS = {
 class MultiSphereShape {
 public:
     MultiSphereShape() {};
-    bool computeMultiSphereShape(const QString& name, const std::vector<btVector3>& points, float scale = 1.0f);
+    bool computeMultiSphereShape(int jointIndex, const QString& name, const std::vector<btVector3>& points, float scale = 1.0f);
     void calculateDebugLines();
     const std::vector<SphereShapeData>& getSpheresData() const { return _spheres; }
     const std::vector<std::pair<glm::vec3, glm::vec3>>& getDebugLines() const { return _debugLines; }
     void setScale(float scale);
     AABox& updateBoundingBox(const glm::vec3& position, const glm::quat& rotation);
+    const AABox& getBoundingBox() const { return _boundingBox; }
+    int getJointIndex() const { return _jointIndex; }
+    QString getJointName() const { return _name; }
+    bool isValid() const { return _spheres.size() > 0; }
 
 private:
     CollisionShapeExtractionMode getExtractionModeByName(const QString& name);
@@ -94,6 +98,9 @@ private:
     void connectEdges(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines, const std::vector<glm::vec3>& edge1, 
                       const std::vector<glm::vec3>& edge2, bool reverse = false);
     void connectSpheres(int index1, int index2, bool onlyEdges = false);
+
+    int _jointIndex { -1 };
+    QString _name;
     std::vector<SphereShapeData> _spheres;
     std::vector<std::pair<glm::vec3, glm::vec3>> _debugLines;
     CollisionShapeExtractionMode _mode;

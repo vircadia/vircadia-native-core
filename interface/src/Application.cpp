@@ -2639,7 +2639,7 @@ Application::~Application() {
     
     auto myCharacterController = getMyAvatar()->getCharacterController();
     myCharacterController->clearDetailedMotionStates();
-
+    
     myCharacterController->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     myCharacterController->handleProcessedPhysicsTransaction(transaction);

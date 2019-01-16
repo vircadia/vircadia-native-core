@@ -112,43 +112,62 @@ int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     return bytesRead;
 }
 
-btCollisionShape* OtherAvatar::createDetailedCollisionShapeForJoint(int jointIndex) {
+btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints) {
     ShapeInfo shapeInfo;
-    computeDetailedShapeInfo(shapeInfo, jointIndex);
+    isBound = false;
+    auto jointName = jointIndex > -1 && jointIndex < _multiSphereShapes.size() ? _multiSphereShapes[jointIndex].getJointName() : ""; 
+    switch (_bodyLOD) {
+    case BodyLOD::Sphere:
+        shapeInfo.setSphere(0.5f * getFitBounds().getDimensions().y);
+        boundJoints.clear();
+        for (auto &spheres : _multiSphereShapes) {
+            if (spheres.isValid()) {
+                boundJoints.push_back(spheres.getJointIndex());
+            }
+        }
+        isBound = true;
+        break;
+    case BodyLOD::MultiSphereLow:
+        if (jointName.contains("RightHand", Qt::CaseInsensitive) || jointName.contains("LeftHand", Qt::CaseInsensitive))  {
+            if (jointName.size() <= QString("RightHand").size()) {
+                AABox handBound;
+                for (auto &spheres : _multiSphereShapes) {
+                    if (spheres.isValid() && spheres.getJointName().contains(jointName, Qt::CaseInsensitive)) {
+                        boundJoints.push_back(spheres.getJointIndex());
+                        handBound += spheres.getBoundingBox();
+                    }
+                }
+                shapeInfo.setSphere(0.5f * handBound.getLargestDimension());
+                glm::vec3 jointPosition;
+                glm::quat jointRotation;
+                _skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPosition);
+                _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRotation);
+                glm::vec3 positionOffset = glm::inverse(jointRotation) * (handBound.calcCenter() - jointPosition);
+                shapeInfo.setOffset(positionOffset);
+                isBound = true;
+            }
+            break;
+        }
+    case BodyLOD::MultiSphereHigh:
+        computeDetailedShapeInfo(shapeInfo, jointIndex);
+        break;
+    default:
+        break;
+    }
     if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-        return shape;
+        return const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
     }
     return nullptr;
 }
 
-btCollisionShape* OtherAvatar::createCapsuleCollisionShape() {
-    ShapeInfo shapeInfo;
-    computeShapeInfo(shapeInfo);
-    shapeInfo.setOffset(glm::vec3(0.0f));
-    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-        return shape;
-    }
-    return nullptr;
-}
-
-DetailedMotionState* OtherAvatar::createDetailedMotionStateForJoint(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
-    auto shape = createDetailedCollisionShapeForJoint(jointIndex);
+DetailedMotionState* OtherAvatar::createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
+    bool isBound = false;
+    std::vector<int> boundJoints;
+    btCollisionShape* shape = createCollisionShape(jointIndex, isBound, boundJoints);
     if (shape) {
         DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
         motionState->setMass(computeMass());
-        return motionState;
-    }
-    return nullptr;
-}
-
-DetailedMotionState* OtherAvatar::createCapsuleMotionState(std::shared_ptr<OtherAvatar> avatar) {
-    auto shape = createCapsuleCollisionShape();
-    if (shape) {
-        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, -1);
-        motionState->setIsAvatarCapsule(true);
-        motionState->setMass(computeMass());
+        motionState->setIsBound(isBound, boundJoints);
         return motionState;
     }
     return nullptr;
@@ -178,11 +197,27 @@ void OtherAvatar::setWorkloadRegion(uint8_t region) {
 }
 
 void OtherAvatar::computeShapeLOD() {
-    auto newBodyLOD = (_workloadRegion < workload::Region::R3 && !isDead()) ? BodyLOD::MultiSphereShapes : BodyLOD::CapsuleShape;
-    if (newBodyLOD != _bodyLOD) {
-        _bodyLOD = newBodyLOD;
+    // auto newBodyLOD = _workloadRegion < workload::Region::R3 ? BodyLOD::MultiSphereShapes : BodyLOD::CapsuleShape;
+    // auto newBodyLOD = BodyLOD::CapsuleShape;
+    BodyLOD newLOD;
+    switch (_workloadRegion) {
+    case workload::Region::R1:
+        newLOD = BodyLOD::MultiSphereHigh;
+        break;
+    case workload::Region::R2:
+        newLOD = BodyLOD::MultiSphereLow;
+        break;
+    case workload::Region::UNKNOWN:
+    case workload::Region::INVALID:
+    case workload::Region::R3:
+    default:
+        newLOD = BodyLOD::Sphere;
+        break;
+    }
+    if (newLOD != _bodyLOD) {
+        _bodyLOD = newLOD;
         if (isInPhysicsSimulation()) {
-            qDebug() << "Changing to body LOD " << (_bodyLOD == BodyLOD::MultiSphereShapes ? "MultiSpheres" : "Capsule");
+            qDebug() << "Changing to body LOD " << newLOD;
             _needsReinsertion = true;
         }
     }
@@ -193,7 +228,7 @@ bool OtherAvatar::isInPhysicsSimulation() const {
 }
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
-    return !(isInPhysicsSimulation() && _needsReinsertion);
+    return !isDead() && !(isInPhysicsSimulation() && _needsReinsertion);
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
@@ -228,17 +263,17 @@ void OtherAvatar::updateCollisionGroup(bool myAvatarCollide) {
 
 void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar){
     auto& detailedMotionStates = getDetailedMotionStates();
-    if (_bodyLOD == BodyLOD::MultiSphereShapes) {
+    if (_bodyLOD == BodyLOD::Sphere) {
+        auto dMotionState = createMotionState(avatar, -1);
+        if (dMotionState) {
+            detailedMotionStates.push_back(dMotionState);
+        }
+    } else {
         for (int i = 0; i < getJointCount(); i++) {
-            auto dMotionState = createDetailedMotionStateForJoint(avatar, i);
+            auto dMotionState = createMotionState(avatar, i);
             if (dMotionState) {
                 detailedMotionStates.push_back(dMotionState);
             }
-        }
-    } else if (_bodyLOD == BodyLOD::CapsuleShape) {
-        auto dMotionState = createCapsuleMotionState(avatar);
-        if (dMotionState) {
-            detailedMotionStates.push_back(dMotionState);
         }
     }
     _needsReinsertion = false;
