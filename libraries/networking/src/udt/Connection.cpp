@@ -33,7 +33,8 @@ using namespace std::chrono;
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
     _parentSocket(parentSocket),
     _destination(destination),
-    _congestionControl(move(congestionControl))
+    _congestionControl(move(congestionControl)),
+    QObject(parentSocket)
 {
     Q_ASSERT_X(parentSocket, "Connection::Connection", "Must be called with a valid Socket*");
     
