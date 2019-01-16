@@ -122,11 +122,60 @@ Item {
                 }
 
                 HifiControlsUit.TextField {
+                    id: usernameField
+                    width: root.bannerWidth
+                    height: completeProfileBody.textFieldHeight
+                    placeholderText: "Username"
+                    font.pixelSize: completeProfileBody.textFieldFontSize
+                    styleRenderType: Text.QtRendering
+                    anchors {
+                        top: parent.top
+                    }
+                    Keys.onPressed: {
+                        if (!usernameField.visible) {
+                            return;
+                        }
+                        switch (event.key) {
+                            case Qt.Key_Tab:
+                                event.accepted = true;
+                                if (event.modifiers === Qt.ShiftModifier) {
+                                    passwordField.focus = true;
+                                } else {
+                                    emailField.focus = true;
+                                }
+                                break;
+                            case Qt.Key_Backtab:
+                                event.accepted = true;
+                                passwordField.focus = true;
+                                break;
+                            case Qt.Key_Enter:
+                            case Qt.Key_Return:
+                                event.accepted = true;
+                                loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                break;
+                        }
+                    }
+                    onFocusChanged: {
+                        root.text = "";
+                        if (focus) {
+                            root.isPassword = false;
+                        }
+                    }
+                    Component.onCompleted: {
+                        var userID = "";
+                        if (completeProfileBody.withOculus) {
+                            userID = loginDialog.oculusUserID();
+                        }
+                        usernameField.text = userID;
+                    }
+                }
+                HifiControlsUit.TextField {
                     id: emailField
                     width: root.bannerWidth
                     height: completeProfileBody.textFieldHeight
                     anchors {
-                        top: parent.top
+                        top: usernameField.bottom
+                        topMargin: hifi.dimensions.contentSpacing.y
                     }
                     placeholderText: "Email"
                     font.pixelSize: completeProfileBody.textFieldFontSize
@@ -137,9 +186,9 @@ Item {
                             case Qt.Key_Tab:
                                 event.accepted = true;
                                 if (event.modifiers === Qt.ShiftModifier) {
-                                    passwordField.focus = true;
-                                } else {
                                     usernameField.focus = true;
+                                } else {
+                                    passwordField.focus = true;
                                 }
                                 break;
                             case Qt.Key_Backtab:
@@ -160,60 +209,17 @@ Item {
                         }
                     }
                 }
-
-                HifiControlsUit.TextField {
-                    id: usernameField
-                    width: root.bannerWidth
-                    height: completeProfileBody.textFieldHeight
-                    placeholderText: "Username"
-                    font.pixelSize: completeProfileBody.textFieldFontSize
-                    styleRenderType: Text.QtRendering
-                    anchors {
-                        top: emailField.bottom
-                        topMargin: hifi.dimensions.contentSpacing.y
-                    }
-                    Keys.onPressed: {
-                        if (!usernameField.visible) {
-                            return;
-                        }
-                        switch (event.key) {
-                            case Qt.Key_Tab:
-                                event.accepted = true;
-                                if (event.modifiers === Qt.ShiftModifier) {
-                                    emailField.focus = true;
-                                } else {
-                                    passwordField.focus = true;
-                                }
-                                break;
-                            case Qt.Key_Backtab:
-                                event.accepted = true;
-                                passwordField.focus = true;
-                                break;
-                            case Qt.Key_Enter:
-                            case Qt.Key_Return:
-                                event.accepted = true;
-                                loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
-                                break;
-                        }
-                    }
-                    onFocusChanged: {
-                        root.text = "";
-                        if (focus) {
-                            root.isPassword = false;
-                        }
-                    }
-                }
                 HifiControlsUit.TextField {
                     id: passwordField
                     width: root.bannerWidth
                     height: completeProfileBody.textFieldHeight
-                    placeholderText: "Password (min. 6 characters)"
+                    placeholderText: "Password (optional)"
                     font.pixelSize: completeProfileBody.textFieldFontSize
                     styleRenderType: Text.QtRendering
                     activeFocusOnPress: true
                     echoMode: passwordFieldMouseArea.showPassword ? TextInput.Normal : TextInput.Password
                     anchors {
-                        top: usernameField.bottom
+                        top: emailField.bottom
                         topMargin: hifi.dimensions.contentSpacing.y
                     }
 

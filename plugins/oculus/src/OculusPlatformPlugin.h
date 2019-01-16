@@ -19,6 +19,7 @@ public:
     OculusAPIPlugin();
     virtual ~OculusAPIPlugin();
     const QString getName() const { return NAME; }
+    const QString getOculusUserID() const { return _user; };
 
     const bool isRunning() const;
 

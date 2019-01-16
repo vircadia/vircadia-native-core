@@ -278,6 +278,9 @@ Item {
                         Settings.setValue("keepMeLoggedIn/savedUsername", "");
                     }
                 }
+                Component.onCompleted: {
+                    keepMeLoggedInCheckbox.checked = !Account.loggedIn;
+                }
             }
             HifiControlsUit.Button {
                 id: cancelButton
