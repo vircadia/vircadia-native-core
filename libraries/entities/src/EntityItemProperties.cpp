@@ -1102,7 +1102,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
  * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
  * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
- * @property {Entities.Pulse} pulse - The pulse-related properties.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -1231,7 +1231,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
  * @property {Color} color=255,255,255 - The color of the entity.
  * @property {number} alpha=1 - The alpha of the shape.
- * @property {Entities.Pulse} pulse - The pulse-related properties.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a cylinder.</caption>
  * var shape = Entities.addEntity({
  *     type: "Shape",
@@ -1271,7 +1271,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} rightMargin=0.0 - The right margin, in meters.
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
- * @property {Entities.Pulse} pulse - The pulse-related properties.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a text entity.</caption>
  * var text = Entities.addEntity({
  *     type: "Text",
@@ -1301,7 +1301,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
  * @property {number} maxFPS=10 - The maximum update rate for the Web content, in frames/second.
  * @property {WebInputMode} inputMode="touch" - The user input mode to use.
- * @property {Entities.Pulse} pulse - The pulse-related properties.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1411,7 +1411,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the full image in that dimension.
  * @property {Color} color=255,255,255 - The color of the image.
  * @property {number} alpha=1 - The alpha of the image.
- * @property {Entities.Pulse} pulse - The pulse-related properties.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a image entity.</caption>
  * var image = Entities.addEntity({
  *     type: "Image",
@@ -1435,7 +1435,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     line. Minimum value = <code>1</code>.
  * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value =
  *     <code>0.001</code>.
- * @property {Entities.Pulse} pulse - The pulse-related properties.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a grid entity.</caption>
  * var grid = Entities.addEntity({
  *     type: "Grid",
