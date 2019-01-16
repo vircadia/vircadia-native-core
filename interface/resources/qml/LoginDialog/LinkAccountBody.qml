@@ -75,7 +75,6 @@ Item {
 
     function init() {
         // going to/from sign in/up dialog.
-        loginDialog.isLogIn = true;
         loginErrorMessage.text = linkAccountBody.errorString;
         loginErrorMessage.visible = (linkAccountBody.errorString  !== "");
         if (loginErrorMessageTextMetrics.width > emailField.width) {

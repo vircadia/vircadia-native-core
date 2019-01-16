@@ -97,7 +97,7 @@ FocusScope {
     Image {
         z: -10
         id: loginDialogBackground
-        source: "../LoginDialog/images/background_tablet.jpg"
+        source: "../LoginDialog/images/background_tablet.png"
         anchors.fill: parent
     }
 
@@ -177,6 +177,6 @@ FocusScope {
 
     Component.onCompleted: {
         keyboardTimer.start();
-        bodyLoader.setSource("../LoginDialog/UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false });
+        bodyLoader.setSource("../LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false, "linkOculus": false });
     }
 }
