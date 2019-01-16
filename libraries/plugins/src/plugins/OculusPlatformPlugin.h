@@ -18,6 +18,7 @@ public:
     virtual ~OculusPlatformPlugin() = default;
 
     virtual const QString getName() const = 0;
+    virtual const QString getOculusUserID() const = 0;
 
     virtual const bool isRunning() const = 0;
 

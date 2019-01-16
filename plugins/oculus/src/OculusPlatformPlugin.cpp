@@ -97,7 +97,6 @@ void OculusAPIPlugin::handleOVREvents() {
 
             if (_nonceChanged) {
                 _nonceUserIDCallback(_nonce, _user, QString::number(_userID));
-                _nonce = _user = "";
                 _nonceChanged = false;
             }
 
