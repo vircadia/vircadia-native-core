@@ -31,10 +31,10 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+    QObject(parentSocket),
     _parentSocket(parentSocket),
     _destination(destination),
-    _congestionControl(move(congestionControl)),
-    QObject(parentSocket)
+    _congestionControl(move(congestionControl))
 {
     Q_ASSERT_X(parentSocket, "Connection::Connection", "Must be called with a valid Socket*");
     
