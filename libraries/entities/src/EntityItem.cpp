@@ -770,7 +770,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto lastEdited = lastEditedFromBufferAdjusted;
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
-    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+        if (stillHasGrabActions()) {
+            return false;
+        }
         bool simulationChanged = lastEdited > updatedTimestamp;
         return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
     };
