@@ -22,7 +22,7 @@ public:
     TransformFilter() = default;
     TransformFilter(glm::mat4 transform) : _transform(transform) {}
 
-    virtual float apply(float value) const override { return value; }
+    virtual AxisValue apply(AxisValue value) const override { return value; }
     virtual Pose apply(Pose value) const override { return value.transform(_transform); }
     virtual bool parseParameters(const QJsonValue& parameters) override { return parseMat4Parameter(parameters, _transform); }
 

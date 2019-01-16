@@ -3178,9 +3178,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
             _bodyYawDelta = 0.0f;
         }
     }
-
     float totalBodyYaw = _bodyYawDelta * deltaTime;
 
+    // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
+    totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
 
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
@@ -3248,7 +3249,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
     } else {
         head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime
+            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
     }
 }

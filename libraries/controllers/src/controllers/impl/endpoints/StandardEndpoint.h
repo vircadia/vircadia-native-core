@@ -25,19 +25,19 @@ public:
     virtual bool writeable() const override { return !_written; }
     virtual bool readable() const override { return !_read; }
     virtual void reset() override {
-        apply(0.0f, Endpoint::Pointer());
+        apply(AxisValue(), Endpoint::Pointer());
         apply(Pose(), Endpoint::Pointer());
         _written = _read = false;
     }
 
-    virtual float value() override {
+    virtual AxisValue value() override {
         _read = true;
         return VirtualEndpoint::value();
     }
 
-    virtual void apply(float value, const Pointer& source) override {
+    virtual void apply(AxisValue value, const Pointer& source) override {
         // For standard endpoints, the first NON-ZERO write counts.
-        if (value != 0.0f) {
+        if (value != AxisValue()) {
             _written = true;
         }
         VirtualEndpoint::apply(value, source);
