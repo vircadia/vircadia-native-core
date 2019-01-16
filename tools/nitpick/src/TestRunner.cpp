@@ -355,7 +355,13 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     }
 
     // Copy an "empty" AppData folder (i.e. no entities)
-    copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
+    QDir canonicalAppDataFolder{ QDir::currentPath() + "/AppDataHighFidelity" };
+    if (canonicalAppDataFolder.exists()) {
+        copyFolder(canonicalAppDataFolder.path(), _appDataFolder.path());
+    } else {
+        QMessageBox::critical(0, "Internal error", "The nitpick AppData folder cannot be found at:\n" + canonicalAppDataFolder.path());
+        exit(-1);
+    }
 }
 
 void TestRunner::createSnapshotFolder() {
