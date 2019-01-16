@@ -43,7 +43,7 @@ find_package(
   ${PLATFORM_QT_COMPONENTS}
 )
 
-# grab the ui files in resources/ui
+# grab the ui files in ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
 source_group("UI Files" FILES ${QT_UI_FILES})
 
@@ -77,7 +77,6 @@ if (APPLE)
   list(APPEND NITPICK_SRCS ${CMAKE_CURRENT_SOURCE_DIR}/icon/${NITPICK_ICON_FILENAME})
 endif()
 
-
 # create the executable, make it a bundle on OS X
 if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${NITPICK_SRCS} ${QM})
@@ -110,12 +109,6 @@ else ()
   add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
 
-
-if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  # require JSDoc to be build before nitpick is deployed
-  add_dependencies(resources jsdoc)
-endif()
-
 add_dependencies(${TARGET_NAME} resources)
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
@@ -125,7 +118,7 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-link_hifi_libraries(entities-renderer ui)
+link_hifi_libraries(entities-renderer)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
