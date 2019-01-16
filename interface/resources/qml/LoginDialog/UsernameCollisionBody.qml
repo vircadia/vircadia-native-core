@@ -227,7 +227,7 @@ Item {
                 font.pixelSize: usernameCollisionBody.fontSize
                 font.bold: usernameCollisionBody.fontBold
                 wrapMode: Text.WordWrap
-                color: hifi.colors.lightGray
+                color: hifi.colors.white
                 linkColor: hifi.colors.blueAccent
                 lineHeight: 1
                 lineHeightMode: Text.ProportionalHeight
@@ -235,7 +235,7 @@ Item {
                 onLinkActivated: loginDialog.openUrl(link);
 
                 Component.onCompleted: {
-                    if (termsTextMetrics.width > root.bannerWidth && root.isTablet) {
+                    if (termsTextMetrics.width > root.bannerWidth) {
                         termsText.width = root.bannerWidth;
                         termsText.wrapMode = Text.WordWrap;
                         additionalText.verticalAlignment = Text.AlignLeft;

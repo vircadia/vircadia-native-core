@@ -22,6 +22,7 @@ Item {
     width: root.width
     height: root.height
     readonly property string termsContainerText: qsTr("By creating this user profile, you agree to High Fidelity's Terms of Service")
+    readonly property string termsContainerOculusText: qsTr("By signing up, you agree to High Fidelity's Terms of Service")
     readonly property int textFieldHeight: 31
     readonly property string fontFamily: "Raleway"
     readonly property int fontSize: 15
@@ -86,8 +87,8 @@ Item {
                 }
                 Text {
                     id: loginErrorMessage;
-                    width: root.bannerWidth
                     color: "red";
+                    width: root.bannerWidth;
                     font.family: completeProfileBody.fontFamily
                     font.pixelSize: 18
                     font.bold: completeProfileBody.fontBold
@@ -97,7 +98,7 @@ Item {
                     visible: true
                 }
                 Component.onCompleted: {
-                    if (loginErrorMessageTextMetrics.width > root.bannerWidth && root.isTablet) {
+                    if (loginErrorMessageTextMetrics.width > root.bannerWidth) {
                         loginErrorMessage.wrapMode = Text.WordWrap;
                         loginErrorMessage.verticalAlignment = Text.AlignLeft;
                         loginErrorMessage.horizontalAlignment = Text.AlignLeft;
@@ -326,7 +327,7 @@ Item {
                     width: (parent.width - hifi.dimensions.contentSpacing.x) / 2
                     height: d.minHeightButton
 
-                    text: qsTr("Create your profile")
+                    text: completeProfileBody.withOculus ? qsTr("Sign Up") : qsTr("Create your profile")
                     color: hifi.buttons.blue
 
                     fontFamily: completeProfileBody.fontFamily
@@ -344,13 +345,66 @@ Item {
             }
 
             Item {
-                id: additionalTextContainer
+                id: termsContainer
                 width: parent.width
-                height: additionalTextMetrics.height
+                height: termsTextMetrics.height
                 anchors {
                     top: buttons.bottom
                     horizontalCenter: parent.horizontalCenter
                     topMargin: hifi.dimensions.contentSpacing.y
+                    left: parent.left
+                }
+                TextMetrics {
+                    id: termsTextMetrics
+                    font: termsText.font
+                    text: completeProfileBody.withOculus ? completeProfileBody.termsContainerOculusText : completeProfileBody.termsContainerText
+                    Component.onCompleted: {
+                        // with the link.
+                        if (completeProfileBody.withOculus) {
+                            termsText.text = qsTr("By signing up, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                        } else {
+                            termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                        }
+                    }
+                }
+
+                HifiStylesUit.InfoItem {
+                    id: termsText
+                    text: completeProfileBody.withOculus ? completeProfileBody.termsContainerOculusText : completeProfileBody.termsContainerText
+                    font.family: completeProfileBody.fontFamily
+                    font.pixelSize: completeProfileBody.fontSize
+                    font.bold: completeProfileBody.fontBold
+                    wrapMode: Text.WordWrap
+                    color: hifi.colors.white
+                    linkColor: hifi.colors.blueAccent
+                    lineHeight: 1
+                    lineHeightMode: Text.ProportionalHeight
+
+                    onLinkActivated: loginDialog.openUrl(link);
+
+                    Component.onCompleted: {
+                        if (termsTextMetrics.width > root.bannerWidth) {
+                            termsText.width = root.bannerWidth;
+                            termsText.wrapMode = Text.WordWrap;
+                            additionalText.verticalAlignment = Text.AlignLeft;
+                            additionalText.horizontalAlignment = Text.AlignLeft;
+                            termsContainer.height = (termsTextMetrics.width / root.bannerWidth) * termsTextMetrics.height;
+                            termsContainer.anchors.left = buttons.left;
+                        } else {
+                            termsText.anchors.centerIn = termsContainer;
+                        }
+                    }
+                }
+            }
+
+            Item {
+                id: additionalTextContainer
+                width: parent.width
+                height: additionalTextMetrics.height
+                anchors {
+                    top: termsContainer.bottom
+                    horizontalCenter: parent.horizontalCenter
+                    topMargin: 2 * hifi.dimensions.contentSpacing.y
                     left: parent.left
                 }
 
@@ -363,7 +417,7 @@ Item {
                 HifiStylesUit.ShortcutText {
                     id: additionalText
                     text: "<a href='https://fake.link'>Already have a High Fidelity profile? Link to an existing profile here.</a>"
-
+                    width: root.bannerWidth;
                     font.family: completeProfileBody.fontFamily
                     font.pixelSize: completeProfileBody.fontSize
                     font.bold: completeProfileBody.fontBold
@@ -380,8 +434,7 @@ Item {
                             "linkOculus": completeProfileBody.withOculus });
                     }
                     Component.onCompleted: {
-                        if (additionalTextMetrics.width > root.bannerWidth && root.isTablet) {
-                            additionalText.width = root.bannerWidth;
+                        if (additionalTextMetrics.width > root.bannerWidth) {
                             additionalText.wrapMode = Text.WordWrap;
                             additionalText.verticalAlignment = Text.AlignLeft;
                             additionalText.horizontalAlignment = Text.AlignLeft;
@@ -389,55 +442,6 @@ Item {
                             additionalTextContainer.anchors.left = buttons.left;
                         } else {
                             additionalText.anchors.centerIn = additionalTextContainer;
-                        }
-                    }
-                }
-            }
-
-            Item {
-                id: termsContainer
-                width: parent.width
-                height: termsTextMetrics.height
-                anchors {
-                    top: additionalTextContainer.bottom
-                    horizontalCenter: parent.horizontalCenter
-                    topMargin: 2 * hifi.dimensions.contentSpacing.y
-                    left: parent.left
-                }
-                TextMetrics {
-                    id: termsTextMetrics
-                    font: termsText.font
-                    text: completeProfileBody.termsContainerText
-                    Component.onCompleted: {
-                        // with the link.
-                        termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
-                    }
-                }
-
-                HifiStylesUit.InfoItem {
-                    id: termsText
-                    text: completeProfileBody.termsContainerText
-                    font.family: completeProfileBody.fontFamily
-                    font.pixelSize: completeProfileBody.fontSize
-                    font.bold: completeProfileBody.fontBold
-                    wrapMode: Text.WordWrap
-                    color: hifi.colors.lightGray
-                    linkColor: hifi.colors.blueAccent
-                    lineHeight: 1
-                    lineHeightMode: Text.ProportionalHeight
-
-                    onLinkActivated: loginDialog.openUrl(link);
-
-                    Component.onCompleted: {
-                        if (termsTextMetrics.width > root.bannerWidth && root.isTablet) {
-                            termsText.width = root.bannerWidth;
-                            termsText.wrapMode = Text.WordWrap;
-                            additionalText.verticalAlignment = Text.AlignLeft;
-                            additionalText.horizontalAlignment = Text.AlignLeft;
-                            termsContainer.height = (termsTextMetrics.width / root.bannerWidth) * termsTextMetrics.height;
-                            termsContainer.anchors.left = buttons.left;
-                        } else {
-                            termsText.anchors.centerIn = termsContainer;
                         }
                     }
                 }
@@ -463,7 +467,7 @@ Item {
                 loginErrorMessage.visible = true;
                 loginErrorMessage.text = error;
 
-                if (loginErrorMessageTextMetrics.width > root.bannerWidth && root.isTablet) {
+                if (loginErrorMessageTextMetrics.width > root.bannerWidth) {
                     loginErrorMessage.wrapMode = Text.WordWrap;
                     loginErrorMessage.verticalAlignment = Text.AlignLeft;
                     loginErrorMessage.horizontalAlignment = Text.AlignLeft;
@@ -487,5 +491,6 @@ Item {
         }
         d.resize();
         root.text = "";
+        usernameField.forceActiveFocus();
     }
 }
