@@ -294,7 +294,6 @@ void LoginDialog::createCompleted(QNetworkReply* reply) {
 void LoginDialog::createFailed(QNetworkReply* reply) {
     if (isOculusRunning()) {
         auto replyData = reply->readAll();
-        qDebug() << replyData;
         QJsonParseError parseError;
         auto doc = QJsonDocument::fromJson(replyData, &parseError);
         if (parseError.error != QJsonParseError::NoError) {
@@ -307,21 +306,42 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
         auto error = data.value("error").toObject();
         auto identity = error.value("identity");
         auto user = error.value("username");
-        qDebug() << user.isArray() << " " << user.isObject() << " " << user.isString() << " " << user.isUndefined() << " " << user.isNull();
+        auto email = error.value("email");
+        QString usernameError;
+        QString emailError;
+        QString identityError;
+        QString errorReply;
         if (!user.isNull() && !user.isUndefined()) {
             QJsonArray arr = user.toArray();
             if (!arr.isEmpty()) {
-                auto firstError = arr.at(0).toString();
-                qDebug() << firstError;
-                emit handleCreateFailed("Username " + firstError);
+                usernameError = "Username " + arr.at(0).toString() + ".";
             }
         }
-        if (!identity.isNull()) {
+        if (!email.isNull() && !email.isUndefined()) {
+            QJsonArray arr = email.toArray();
+            if (!arr.isEmpty()) {
+                emailError = "Email " + arr.at(0).toString() + ".";
+            }
+        }
+        if (!usernameError.isEmpty()) {
+            errorReply = usernameError;
+            if (!emailError.isEmpty()) {
+                errorReply.append(" " + emailError);
+            }
+            emit handleCreateFailed(errorReply);
+            return;
+        }
+        if (!emailError.isEmpty()) {
+            emit handleCreateFailed(emailError);
+            return;
+        }
+
+        if (!identity.isNull() && !identity.isUndefined()) {
             QJsonArray arr = identity.toArray();
             if (!arr.isEmpty()) {
-                auto firstError = arr.at(0).toString();
-                qDebug() << firstError;
-                emit handleCreateFailed(firstError);
+                auto identityError = "Identity " + arr.at(0).toString() + ".";
+                emit handleCreateFailed(identityError);
+                return;
             }
         }
     }

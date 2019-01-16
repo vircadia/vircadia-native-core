@@ -278,7 +278,7 @@ Item {
                 bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
                     "withOculus": loggingInBody.withOculus, "errorString": errorString });
             } else if (loggingInBody.withOculus) {
-                errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
+                errorString = "Your Oculus account is not connected to an existing High Fidelity account. Please create a new one."
                 bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
                     "withOculus": loggingInBody.withOculus, "errorString": errorString });
             } else {
