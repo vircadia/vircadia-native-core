@@ -11,10 +11,6 @@ set(CUSTOM_NITPICK_QRC_PATHS "")
 
 find_npm()
 
-if (BUILD_TOOLS AND NPM_EXECUTABLE)
-  add_custom_qrc_path(CUSTOM_NITPICK_QRC_PATHS "${CMAKE_SOURCE_DIR}/tools/jsdoc/out/hifiJSDoc.json" "auto-complete/hifiJSDoc.json")
-endif ()
-
 set(RESOURCES_QRC ${CMAKE_CURRENT_BINARY_DIR}/resources.qrc)
 set(RESOURCES_RCC ${CMAKE_CURRENT_SOURCE_DIR}/compiledResources/resources.rcc)
 generate_qrc(OUTPUT ${RESOURCES_QRC} PATH ${CMAKE_CURRENT_SOURCE_DIR}/resources CUSTOM_PATHS ${CUSTOM_NITPICK_QRC_PATHS} GLOBS *)
@@ -97,14 +93,14 @@ elseif (WIN32)
   # add an executable that also has the icon itself and the configured rc file as resources
   add_executable(${TARGET_NAME} WIN32 ${NITPICK_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
 
-  if (NOT DEV_BUILD)
-    add_custom_command(
-      TARGET ${TARGET_NAME}
-      POST_BUILD
-      COMMAND "mt.exe" -manifest "${CMAKE_CURRENT_SOURCE_DIR}/nitpick.exe.manifest" -inputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1 -outputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1
-      COMMENT "Adding OS version support manifest to exe"
-    )
-  endif()
+##  if (NOT DEV_BUILD)
+##    add_custom_command(
+##      TARGET ${TARGET_NAME}
+##      POST_BUILD
+##      COMMAND "mt.exe" -manifest "${CMAKE_CURRENT_SOURCE_DIR}/nitpick.exe.manifest" -inputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1 -outputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1
+##      COMMENT "Adding OS version support manifest to exe"
+##    )
+##  endif()
 else ()
   add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
