@@ -12,6 +12,7 @@
 #define hifi_AnimSplineIK_h
 
 #include "AnimNode.h"
+#include "IKTarget.h"
 #include "AnimChain.h"
 
 // Spline IK for the spine
@@ -34,6 +35,8 @@ protected:
         NumTypes
     };
 
+    void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
+
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
@@ -51,6 +54,9 @@ protected:
     int _baseParentJointIndex{ -1 };
     int _baseJointIndex{ -1 };
     int _tipJointIndex{ -1 };
+    int _headIndex{ -1 };
+    int _hipsIndex{ -1 };
+    int _hipsTargetIndex{ -1 };
 
     QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
     QString _enabledVar;  // bool
@@ -66,7 +72,18 @@ protected:
 
     AnimChain _snapshotChain;
 
+    // used to pre-compute information about each joint influeced by a spline IK target.
+    struct SplineJointInfo {
+        int jointIndex;       // joint in the skeleton that this information pertains to.
+        float ratio;          // percentage (0..1) along the spline for this joint.
+        AnimPose offsetPose;  // local offset from the spline to the joint.
+    };
+
     bool _lastEnableDebugDrawIKTargets{ false };
+    void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
+    void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const;
+    const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const;
+    mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 
     // no copies
     AnimSplineIK(const AnimSplineIK&) = delete;
