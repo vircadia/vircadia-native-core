@@ -242,6 +242,9 @@ Item {
                     }
                     onClicked: {
                         root.tryDestroy();
+                        if (loginDialog.getLoginDialogPoppedUp()) {
+                            loginDialog.dismissLoginDialog();
+                        }
                     }
                     visible: false
                 }
