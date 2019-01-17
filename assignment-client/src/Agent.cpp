@@ -196,7 +196,8 @@ void Agent::run() {
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this,  &Agent::nodeKilled);
 
     nodeList->addSetOfNodeTypesToNodeInterestSet({
-        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer, NodeType::MessagesMixer, NodeType::AssetServer
+        NodeType::AudioMixer, NodeType::AvatarMixer, NodeType::EntityServer,
+        NodeType::MessagesMixer, NodeType::AssetServer, NodeType::EntityScriptServer
     });
 }
 
