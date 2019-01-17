@@ -29,7 +29,7 @@ message(STATUS "____________________")
     install(CODE "
       execute_process(COMMAND ${MACDEPLOYQT_COMMAND}\
         \${CMAKE_INSTALL_PREFIX}/${_NITPICK_INSTALL_PATH}/\
-        -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/nitpick/resources/qml/\
+        -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/\
       )"
       COMPONENT ${CLIENT_COMPONENT}
     )
