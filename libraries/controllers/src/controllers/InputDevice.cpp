@@ -26,12 +26,12 @@ namespace controller {
         return 0.0f;
     }
 
-    float InputDevice::getAxis(int channel) const {
+    AxisValue InputDevice::getAxis(int channel) const {
         auto axis = _axisStateMap.find(channel);
         if (axis != _axisStateMap.end()) {
             return (*axis).second;
         } else {
-            return 0.0f;
+            return AxisValue();
         }
     }
 
@@ -68,26 +68,25 @@ namespace controller {
         return Input::NamedPair(makeInput(pose), name);
     }
 
-    float InputDevice::getValue(ChannelType channelType, uint16_t channel) const {
+    AxisValue InputDevice::getValue(ChannelType channelType, uint16_t channel) const {
         switch (channelType) {
             case ChannelType::AXIS:
                 return getAxis(channel);
 
             case ChannelType::BUTTON:
-                return getButton(channel);
+                return { getButton(channel), 0 };
 
             case ChannelType::POSE:
-                return getPose(channel).valid ? 1.0f : 0.0f;
+                return { getPose(channel).valid ? 1.0f : 0.0f, 0 };
 
             default:
                 break;
         }
 
-        return 0.0f;
+        return { 0.0f, 0 };
     }
 
-
-    float InputDevice::getValue(const Input& input) const {
+    AxisValue InputDevice::getValue(const Input& input) const {
         return getValue(input.getType(), input.channel);
     }
 

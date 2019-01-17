@@ -16,6 +16,7 @@
 #include <AnimSkeleton.h>
 #include <AvatarData.h>
 #include <ScriptEngine.h>
+#include <EntityItem.h>
 
 /**jsdoc
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
@@ -185,6 +186,26 @@ public:
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
 
+     /**jsdoc
+     * Potentially Very Expensive.  Do not use.
+     * @function Avatar.getAvatarEntityData
+     * @returns {object}
+     */
+    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
+
+    /**jsdoc
+    * @function MyAvatar.setAvatarEntityData
+    * @param {object} avatarEntityData
+    */
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
+
+    /**jsdoc
+     * @function MyAvatar.updateAvatarEntity
+     * @param {Uuid} entityID
+     * @param {string} entityData
+     */
+    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
+
 public slots:
     void update(float deltatime);
 
@@ -202,6 +223,8 @@ private:
     QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _fstJointNames; ///< in order of depth-first traversal
     QUrl _skeletonFBXURL;
+    mutable QScriptEngine _scriptEngine;
+    std::map<QUuid, EntityItemPointer> _entities;
 
     /// Loads the joint indices, names from the FST file (if any)
     void updateJointMappings();
