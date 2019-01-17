@@ -76,8 +76,8 @@ Item {
                 width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: buttons.top;
-                    bottomMargin: 2 * hifi.dimensions.contentSpacing.y;
+                    bottom: fields.top;
+                    bottomMargin: 1.5 * hifi.dimensions.contentSpacing.y;
                     left: buttons.left;
                 }
                 TextMetrics {
@@ -106,10 +106,6 @@ Item {
                     } else {
                         loginErrorMessage.wrapMode = Text.NoWrap;
                         errorContainer.height = loginErrorMessageTextMetrics.height;
-                    }
-                    if (completeProfileBody.withOculus) {
-                        errorContainer.anchors.bottom = fields.top;
-                        errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
                     }
                 }
             }
