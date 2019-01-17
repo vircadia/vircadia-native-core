@@ -36,9 +36,9 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property bool withSteam: false
+    property bool withSteam: withSteam
     property bool linkSteam: linkSteam
-    property bool withOculus: false
+    property bool withOculus: withOculus
     property bool linkOculus: linkOculus
     property string errorString: errorString
     property bool lostFocus: false

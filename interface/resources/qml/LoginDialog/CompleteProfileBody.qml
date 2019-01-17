@@ -287,6 +287,8 @@ Item {
                         case Qt.Key_Return:
                             event.accepted = true;
                             loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                                "linkSteam": false, "withOculus": completeProfileBody.withOculus, "linkOculus": false, "createOculus": true });
                             break;
                         }
                     }
@@ -434,7 +436,6 @@ Item {
                     linkColor: hifi.colors.blueAccent
 
                     onLinkActivated: {
-                        loginDialog.isLogIn = true;
                         bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": "",
                             "withSteam": completeProfileBody.withSteam, "linkSteam": completeProfileBody.withSteam, "withOculus": completeProfileBody.withOculus,
                             "linkOculus": completeProfileBody.withOculus });
@@ -467,8 +468,10 @@ Item {
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);
-            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
-                "withOculus": completeProfileBody.withOculus });
+            if (!completeProfileBody.withOculus) {
+                bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                    "withOculus": completeProfileBody.withOculus });
+            }
         }
     }
 

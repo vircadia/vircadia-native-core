@@ -21,7 +21,7 @@ public:
     const QString getName() const { return NAME; }
     const QString getOculusUserID() const { return _user; };
 
-    const bool isRunning() const;
+    bool isRunning();
 
     virtual void requestNonceAndUserID(NonceUserIDCallback callback);
 

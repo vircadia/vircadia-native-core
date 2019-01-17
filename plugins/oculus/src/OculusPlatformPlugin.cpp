@@ -24,7 +24,7 @@ OculusAPIPlugin::~OculusAPIPlugin() {
     hifi::ovr::releaseRenderSession(_session);
 }
 
-const bool OculusAPIPlugin::isRunning() const {
+bool OculusAPIPlugin::isRunning() {
     return (qApp->property(hifi::properties::OCULUS_STORE).toBool());
 }
 
@@ -96,7 +96,7 @@ void OculusAPIPlugin::handleOVREvents() {
             }
 
             if (_nonceChanged) {
-                _nonceUserIDCallback(_nonce, _user, QString::number(_userID));
+                _nonceUserIDCallback(_nonce, QString::number(_userID));
                 _nonceChanged = false;
             }
 

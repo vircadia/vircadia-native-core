@@ -11,7 +11,7 @@
 
 #include <functional>
 
-using NonceUserIDCallback = std::function<void(QString, QString, QString)>;
+using NonceUserIDCallback = std::function<void(QString, QString)>;
 
 class OculusPlatformPlugin {
 public:
@@ -20,7 +20,7 @@ public:
     virtual const QString getName() const = 0;
     virtual const QString getOculusUserID() const = 0;
 
-    virtual const bool isRunning() const = 0;
+    virtual bool isRunning() = 0;
 
     virtual void requestNonceAndUserID(NonceUserIDCallback callback) = 0;
 
