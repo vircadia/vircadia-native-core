@@ -46,8 +46,6 @@ AnimTwoBoneIK::~AnimTwoBoneIK() {
 
 const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
-    qCDebug(animation) << "evaluating the 2 bone IK";
-
     assert(_children.size() == 1);
     if (_children.size() != 1) {
         return _poses;

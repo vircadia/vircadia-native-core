@@ -14,6 +14,8 @@
 #include <DebugDraw.h>
 #include "AnimUtil.h"
 
+static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
+
 AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float interpDuration,
     const QString& baseJointName,
     const QString& tipJointName,
@@ -39,7 +41,6 @@ AnimSplineIK::~AnimSplineIK() {
 }
 
 const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-    qCDebug(animation) << "evaluating the spline function";
     assert(_children.size() == 1);
     if (_children.size() != 1) {
         return _poses;
@@ -56,7 +57,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     IKTarget target;
     int jointIndex = _skeleton->nameToJointIndex("Head");
     if (jointIndex != -1) {
-        target.setType(animVars.lookup("HeadType", (int)IKTarget::Type::RotationAndPosition));
+        target.setType(animVars.lookup("headType", (int)IKTarget::Type::RotationAndPosition));
         target.setIndex(jointIndex);
         AnimPose absPose = _skeleton->getAbsolutePose(jointIndex, _poses);
         glm::quat rotation = animVars.lookupRigToGeometry("headRotation", absPose.rot());
@@ -74,15 +75,30 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         }
     }
     if (_poses.size() > 0) {
-    AnimChain jointChain;
-    jointChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
+        AnimChain jointChain;
+        _snapshotChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
+        jointChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
 
-    // for each target solve target with spline
-    
+        // for each target solve target with spline
         solveTargetWithSpline(context, target, absolutePoses, false, jointChain);
-        qCDebug(animation) << "made it past the spline solve code";
+
+        // qCDebug(animation) << "AnimSpline Joint chain length " << jointChain.size();
+        // jointChain.dump();
+        jointChain.outputRelativePoses(_poses);
+
     }
+
+    const float FRAMES_PER_SECOND = 30.0f;
+    _interpAlphaVel = FRAMES_PER_SECOND / _interpDuration;
+    _alpha = _interpAlphaVel * dt;
     // we need to blend the old joint chain with the current joint chain, otherwise known as: _snapShotChain
+    // we blend the chain info then we accumulate it then we assign to relative poses then we return the value.
+    // make the alpha
+    // make the prevchain
+    // interp from the previous chain to the new chain/or underposes if the ik is disabled.
+    // update the relative poses and then we are done
+    
+
     /**/
     return _poses;
 }
@@ -162,14 +178,12 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTar
     if (glm::dot(halfRot * Vectors::UNIT_Z, basePose.rot() * Vectors::UNIT_Z) < 0.0f) {
         tipPose.rot() = -tipPose.rot();
     }
-    qCDebug(animation) << "spot 1";
     // find or create splineJointInfo for this target
     const std::vector<SplineJointInfo>* splineJointInfoVec = findOrCreateSplineJointInfo(context, target);
 
     if (splineJointInfoVec && splineJointInfoVec->size() > 0) {
         const int baseParentIndex = _skeleton->getParentIndex(baseIndex);
         AnimPose parentAbsPose = (baseParentIndex >= 0) ? absolutePoses[baseParentIndex] : AnimPose();
-        qCDebug(animation) << "spot 2";
         // go thru splineJointInfoVec backwards (base to tip)
         for (int i = (int)splineJointInfoVec->size() - 1; i >= 0; i--) {
             const SplineJointInfo& splineJointInfo = (*splineJointInfoVec)[i];

@@ -237,12 +237,19 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
         // solve all targets
         for (size_t i = 0; i < targets.size(); i++) {
-            qCDebug(animation) << "target id: " << targets[i].getIndex() << " and type " << (int)targets[i].getType();
+            // qCDebug(animation) << "target id: " << targets[i].getIndex() << " and type " << (int)targets[i].getType();
             switch (targets[i].getType()) {
             case IKTarget::Type::Unknown:
                 break;
             case IKTarget::Type::Spline:
                 solveTargetWithSpline(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
+                //if (jointChainInfoVec[i].target.getIndex() == _skeleton->nameToJointIndex("Head")) {
+                   // qCDebug(animation) << "AnimIK spline index is " << targets[i].getIndex() << " and chain info size is " << jointChainInfoVec[i].jointInfoVec.size();
+                   for (int w = 0; w < jointChainInfoVec[i].jointInfoVec.size(); w++) {
+                       // qCDebug(animation) << "joint " << jointChainInfoVec[i].jointInfoVec[w].jointIndex << " rotation is " << jointChainInfoVec[i].jointInfoVec[w].rot;
+                       // qCDebug(animation) << "joint " << jointChainInfoVec[i].jointInfoVec[w].jointIndex << " translation is " << jointChainInfoVec[i].jointInfoVec[w].trans;
+                   }
+                //}
                 break;
             default:
                 solveTargetWithCCD(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
@@ -259,6 +266,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
                     // ease in expo
                     alpha = 1.0f - powf(2.0f, -10.0f * alpha);
+                    qCDebug(animation) << "the alpha for joint chains is " << alpha;
 
                     size_t chainSize = std::min(_prevJointChainInfoVec[i].jointInfoVec.size(), jointChainInfoVec[i].jointInfoVec.size());
 
@@ -361,6 +369,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
     // copy jointChainInfoVec into _prevJointChainInfoVec, and update timers
     for (size_t i = 0; i < jointChainInfoVec.size(); i++) {
         _prevJointChainInfoVec[i].timer = _prevJointChainInfoVec[i].timer - dt;
+        //qCDebug(animation) << "the alpha for joint chains is " << _prevJointChainInfoVec[i].timer;
         if (_prevJointChainInfoVec[i].timer <= 0.0f) {
             _prevJointChainInfoVec[i] = jointChainInfoVec[i];
             _prevJointChainInfoVec[i].target = targets[i];
@@ -860,7 +869,6 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     // don't call this function, call overlay() instead
-    qCDebug(animation) << "called evaluate for inverse kinematics";
     assert(false);
     return _relativePoses;
 }
@@ -871,7 +879,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     // disable IK on android
     return underPoses;
 #endif
-    qCDebug(animation) << "called overlay for inverse kinematics";
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
 
