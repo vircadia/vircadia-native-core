@@ -2868,7 +2868,7 @@ void Application::showLoginScreen() {
         dialogsManager->showLoginDialog();
         emit loginDialogFocusEnabled();
         QJsonObject loginData = {};
-        loginData["action"] = "login dialog shown";
+        loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         _window->setWindowTitle("High Fidelity Interface");
     } else {
@@ -6762,7 +6762,7 @@ void Application::updateWindowTitle() const {
     DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
-void Application::clearDomainOctreeDetails() {
+void Application::clearDomainOctreeDetails(bool clearAll) {
     // before we delete all entities get MyAvatar's AvatarEntityData ready
     getMyAvatar()->prepareAvatarEntityDataForReload();
 
@@ -6781,7 +6781,7 @@ void Application::clearDomainOctreeDetails() {
     });
 
     // reset the model renderer
-    getEntities()->clear();
+    clearAll ? getEntities()->clear() : getEntities()->clearNonLocalEntities();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
@@ -6819,7 +6819,7 @@ void Application::goToErrorDomainURL(QUrl errorDomainURL) {
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
 
-    clearDomainOctreeDetails();
+    clearDomainOctreeDetails(false);
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
@@ -6905,7 +6905,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {
         // we lost an entity server, clear all of the domain octree details
-        clearDomainOctreeDetails();
+        clearDomainOctreeDetails(false);
     } else if (node->getType() == NodeType::AssetServer) {
         // asset server going away - check if we have the asset browser showing
 

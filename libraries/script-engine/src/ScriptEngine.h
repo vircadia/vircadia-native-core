@@ -145,6 +145,9 @@ public:
 
     QString getFilename() const;
 
+
+    QList<EntityItemID> getListOfEntityScriptIDs();
+
     /**jsdoc
      * Stop the current script.
      * @function Script.stop

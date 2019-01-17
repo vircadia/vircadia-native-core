@@ -4616,14 +4616,14 @@ bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const Q
     // DANGER: this method is NOT efficient.
     // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
     QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
-    if (!jsonProperties.isObject()) {
+    if (jsonProperties.isEmpty() || jsonProperties.isNull() || !jsonProperties.isObject() || jsonProperties.object().isEmpty()) {
         qCDebug(entities) << "bad avatarEntityData json" << QString(blob.toHex());
         return false;
     }
     QVariant variant = jsonProperties.toVariant();
     QVariantMap variantMap = variant.toMap();
     QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
-    EntityItemPropertiesFromScriptValueHonorReadOnly(scriptValue, properties);
+    EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptValue, properties);
     // end recipe
     return true;
 }

@@ -1610,10 +1610,12 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 skip = true;
             }
         });
-        sanitizeAvatarEntityProperties(properties);
-        entityTree->withWriteLock([&] {
-            entityTree->updateEntity(id, properties);
-        });
+        if (!skip) {
+            sanitizeAvatarEntityProperties(properties);
+            entityTree->withWriteLock([&] {
+                entityTree->updateEntity(id, properties);
+            });
+        }
     }
 
     // DELETE cached blobs
@@ -1810,19 +1812,27 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 
 void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     // NOTE: this is an invokable Script call
-    // TODO: we should handle the case where entityData is corrupt or invalid
-    // BEFORE we store into _cachedAvatarEntityBlobs
-    _needToSaveAvatarEntitySettings = true;
+    bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
-        AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(entityID);
-        if (itr != _cachedAvatarEntityBlobs.end()) {
-            _entitiesToUpdate.push_back(entityID);
-            itr.value() = entityData;
+        auto data = QJsonDocument::fromBinaryData(entityData);
+        if (data.isEmpty() || data.isNull() || !data.isObject() || data.object().isEmpty()) {
+            qDebug() << "ERROR!  Trying to update with invalid avatar entity data.  Skipping." << data;
         } else {
-            _entitiesToAdd.push_back(entityID);
-            _cachedAvatarEntityBlobs.insert(entityID, entityData);
+            auto itr = _cachedAvatarEntityBlobs.find(entityID);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                _entitiesToAdd.push_back(entityID);
+                _cachedAvatarEntityBlobs.insert(entityID, entityData);
+                changed = true;
+            } else {
+                _entitiesToUpdate.push_back(entityID);
+                itr.value() = entityData;
+                changed = true;
+            }
         }
     });
+    if (changed) {
+        _needToSaveAvatarEntitySettings = true;
+    }
 }
 
 void MyAvatar::avatarEntityDataToJson(QJsonObject& root) const {
@@ -2362,49 +2372,35 @@ bool isWearableEntity(const EntityItemPointer& entity) {
             || entity->getParentID() == AVATAR_SELF_ID);
 }
 
-void MyAvatar::clearAvatarEntities() {
+void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
 
-    QList<QUuid> avatarEntityIDs;
-    _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityIDs = _packedAvatarEntityData.keys();
-    });
-    for (const auto& entityID : avatarEntityIDs) {
-        entityTree->withWriteLock([&entityID, &entityTree] {
-            // remove this entity first from the entity tree
-            entityTree->deleteEntity(entityID, true, true);
-        });
-
-        // remove the avatar entity from our internal list
-        // (but indicate it doesn't need to be pulled from the tree)
-        clearAvatarEntity(entityID, false);
-    }
-}
-
-void MyAvatar::removeWearableAvatarEntities() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
-        QList<QUuid> avatarEntityIDs;
-        _avatarEntitiesLock.withReadLock([&] {
-                avatarEntityIDs = _packedAvatarEntityData.keys();
-        });
-        for (const auto& entityID : avatarEntityIDs) {
-            auto entity = entityTree->findEntityByID(entityID);
-            if (entity && isWearableEntity(entity)) {
-                entityTree->withWriteLock([&entityID, &entityTree] {
-                    // remove this entity first from the entity tree
-                    entityTree->deleteEntity(entityID, true, true);
-                });
+        auto entity = entityTree->findEntityByID(entityID);
+        if (entity && isWearableEntity(entity)) {
+            entityTree->withWriteLock([&entityID, &entityTree] {
+                // remove this entity first from the entity tree
+                entityTree->deleteEntity(entityID, true, true);
+            });
 
-                // remove the avatar entity from our internal list
-                // (but indicate it doesn't need to be pulled from the tree)
-                clearAvatarEntity(entityID, false);
-            }
+            // remove the avatar entity from our internal list
+            // (but indicate it doesn't need to be pulled from the tree)
+            clearAvatarEntity(entityID, false);
         }
     }
 }
+
+void MyAvatar::clearWornAvatarEntities() {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (auto entityID : avatarEntityIDs) {
+        removeWornAvatarEntity(entityID);
+    }
+}
+
 
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     // NOTE: this method is NOT efficient
@@ -2428,6 +2424,7 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             desiredProperties += PROP_LOCAL_ROTATION;
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
             QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_myScriptEngine, entityProperties);
+            avatarEntityData["id"] = entityID;
             avatarEntityData["properties"] = scriptProperties.toVariant();
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
@@ -2806,8 +2803,8 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         newEntitiesProperties.push_back(properties);
     }
 
-    // clear any existing avatar entities
-    clearAvatarEntities();
+    // clear any existing wearables
+    clearWornAvatarEntities();
 
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
