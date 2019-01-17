@@ -355,10 +355,11 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     }
 
     // Copy an "empty" AppData folder (i.e. no entities)
+    QDir canonicalAppDataFolder;
 #ifdef Q_OS_WIN
-    QDir canonicalAppDataFolder{ QDir::currentPath() + "/AppDataHighFidelity" };
+    canonicalAppDataFolder = QDir::currentPath() + "/AppDataHighFidelity";
 #elif defined Q_OS_MAC
-    QDir canonicalAppDataFolder{ QCoreApplication::applicationDirPath() + "/AppDataHighFidelity" };
+    canonicalAppDataFolder = QCoreApplication::applicationDirPath() + "/AppDataHighFidelity";
 #endif
     if (canonicalAppDataFolder.exists()) {
         copyFolder(canonicalAppDataFolder.path(), _appDataFolder.path());
