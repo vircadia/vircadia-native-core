@@ -176,6 +176,12 @@ if (APPLE)
   # call the fixup_nitpick macro to add required bundling commands for installation
   fixup_nitpick()
 
+  # add a custom command to copy the empty AppData High Fidelity folder (i.e. - a valid folder with no entities)
+  add_custom_command(
+    TARGET ${TARGET_NAME}
+    POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "$<TARGET_FILE_DIR:${TARGET_NAME}>/AppDataHighFidelity"
+  )
 else()
   set(NITPICK_EXEC_DIR "$<TARGET_FILE_DIR:${TARGET_NAME}>")
   set(RESOURCES_DEV_DIR "${NITPICK_EXEC_DIR}/resources")
