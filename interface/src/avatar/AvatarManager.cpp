@@ -679,8 +679,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
         AvatarPointer avatar = nullptr;
         for (auto &hit : physicsResults) {
             auto avatarID = hit._intersectWithAvatar;
-            bool skipThisAvatar = (avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
-                                  (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID)) && jointIndicesToFilter.size() == 0;
+            bool skipThisAvatar = ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
+                                  (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID))) && jointIndicesToFilter.size() == 0;
             if (skipThisAvatar) {
                 continue;
             }
@@ -734,7 +734,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                                 boxHit._intersectionNormal = surfaceNormal;
                                 boxHit._intersectionPoint = ray.origin + boundDistance * glm::normalize(ray.direction);
                                 boxHit._intersectWithAvatar = avatarID;
-                                boxHit._intersectWithJoint = hit._intersectWithJoint;
+                                boxHit._intersectWithJoint = mSphere.getJointIndex();
                                 boxHits.push_back(boxHit);
                             }
                         }
