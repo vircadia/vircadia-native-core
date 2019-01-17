@@ -347,6 +347,10 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
         return;
     }
 
+    if (_drawMaterials.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
     graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     bool isTranslucent = drawMaterialKey.isTranslucent();

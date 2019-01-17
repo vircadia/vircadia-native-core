@@ -459,6 +459,9 @@ public:
     bool needsUpdate() const { return _needsUpdate; }
     void setNeedsUpdate(bool needsUpdate) { _needsUpdate = needsUpdate; }
 
+    void setTexturesLoading(bool value) { _texturesLoading = value; }
+    bool areTexturesLoading() const { return _texturesLoading; }
+
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
@@ -467,6 +470,7 @@ private:
     gpu::BufferView _schemaBuffer;
     gpu::TextureTablePointer _textureTable { std::make_shared<gpu::TextureTable>() };
     bool _needsUpdate { false };
+    bool _texturesLoading { false };
 
     mutable size_t _textureSize { 0 };
     mutable int _textureCount { 0 };

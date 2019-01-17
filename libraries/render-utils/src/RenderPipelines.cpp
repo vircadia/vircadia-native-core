@@ -376,7 +376,6 @@ void initZPassPipelines(ShapePlumber& shapePlumber, gpu::StatePointer state, con
 void RenderPipelines::bindMaterial(graphics::MaterialPointer& material, gpu::Batch& batch, bool enableTextures) {
     graphics::MultiMaterial multiMaterial;
     multiMaterial.push(graphics::MaterialLayer(material, 0));
-    updateMultiMaterial(multiMaterial);
     bindMaterials(multiMaterial, batch, enableTextures);
 }
 
@@ -388,13 +387,13 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
         return;
     }
 
-    auto textureCache = DependencyManager::get<TextureCache>();
     auto& drawMaterialTextures = multiMaterial.getTextureTable();
+    multiMaterial.setTexturesLoading(false);
 
     // The total list of things we need to look for
     static std::set<uint> allFlags;
     static std::once_flag once;
-    std::call_once(once, [textureCache] {
+    std::call_once(once, [] {
         for (int i = 0; i < graphics::Material::NUM_TOTAL_FLAGS; i++) {
             // The opacity mask/map are derived from the albedo map
             if (i != graphics::MaterialKey::OPACITY_MASK_MAP_BIT &&
@@ -481,9 +480,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::ALBEDO_MAP_BIT:
                     if (materialKey.isAlbedoMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -495,9 +499,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::METALLIC_MAP_BIT:
                     if (materialKey.isMetallicMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::METALLIC_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialMetallic, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -507,9 +516,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::ROUGHNESS_MAP_BIT:
                     if (materialKey.isRoughnessMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::ROUGHNESS_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialRoughness, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -519,9 +533,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::NORMAL_MAP_BIT:
                     if (materialKey.isNormalMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::NORMAL_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialNormal, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -531,9 +550,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::OCCLUSION_MAP_BIT:
                     if (materialKey.isOcclusionMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::OCCLUSION_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialOcclusion, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -543,9 +567,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::SCATTERING_MAP_BIT:
                     if (materialKey.isScatteringMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::SCATTERING_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialScattering, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -556,9 +585,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                     // Lightmap takes precendence over emissive map for legacy reasons
                     if (materialKey.isEmissiveMap() && !materialKey.isLightmapMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::EMISSIVE_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -571,9 +605,14 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                 case graphics::MaterialKey::LIGHTMAP_MAP_BIT:
                     if (materialKey.isLightmapMap()) {
                         auto itr = textureMaps.find(graphics::MaterialKey::LIGHTMAP_MAP);
-                        if (itr != textureMaps.end() && itr->second->isDefined()) {
-                            drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
-                            wasSet = true;
+                        if (itr != textureMaps.end()) {
+                            if (itr->second->isDefined()) {
+                                drawMaterialTextures->setTexture(gr::Texture::MaterialEmissiveLightmap, itr->second->getTextureView());
+                                wasSet = true;
+                            } else {
+                                multiMaterial.setTexturesLoading(true);
+                                forceDefault = true;
+                            }
                         } else {
                             forceDefault = true;
                         }
@@ -627,6 +666,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
         flagsToSetDefault.insert(flagBit);
     }
 
+    auto textureCache = DependencyManager::get<TextureCache>();
     // Handle defaults
     for (auto flag : flagsToSetDefault) {
         switch (flag) {
@@ -696,6 +736,10 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
 void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
     if (multiMaterial.size() == 0) {
         return;
+    }
+
+    if (multiMaterial.needsUpdate() || multiMaterial.areTexturesLoading()) {
+        updateMultiMaterial(multiMaterial);
     }
 
     auto textureCache = DependencyManager::get<TextureCache>();
