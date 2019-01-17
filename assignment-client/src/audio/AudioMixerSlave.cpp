@@ -770,15 +770,29 @@ float computeGain(float masterListenerGain, const AvatarAudioStream& listeningNo
             break;
         }
     }
-    // translate the zone setting to gain per log2(distance)
-    const float MIN_ATTENUATION_COEFFICIENT = 0.001f;   // -60dB per log2(distance)
-    float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, MIN_ATTENUATION_COEFFICIENT, 1.0f);
 
-    // calculate the attenuation using the distance to this node
-    // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
-    float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
-    gain *= fastExp2f(fastLog2f(g) * fastLog2f(d));
-    gain = std::min(gain, ATTN_GAIN_MAX);
+    if (attenuationPerDoublingInDistance < 0.0f) {
+        // translate a negative zone setting to distance limit
+        const float MIN_DISTANCE_LIMIT = ATTN_DISTANCE_REF + 1.0f;  // silent after 1m
+        float distanceLimit = std::max(-attenuationPerDoublingInDistance, MIN_DISTANCE_LIMIT);
+
+        // calculate the LINEAR attenuation using the distance to this node
+        // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
+        float d = distance - ATTN_DISTANCE_REF;
+        gain *= std::max(1.0f - d / (distanceLimit - ATTN_DISTANCE_REF), 0.0f);
+        gain = std::min(gain, ATTN_GAIN_MAX);
+
+    } else {
+        // translate a positive zone setting to gain per log2(distance)
+        const float MIN_ATTENUATION_COEFFICIENT = 0.001f;   // -60dB per log2(distance)
+        float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, MIN_ATTENUATION_COEFFICIENT, 1.0f);
+
+        // calculate the LOGARITHMIC attenuation using the distance to this node
+        // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
+        float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
+        gain *= fastExp2f(fastLog2f(g) * fastLog2f(d));
+        gain = std::min(gain, ATTN_GAIN_MAX);
+    }
 
     return gain;
 }

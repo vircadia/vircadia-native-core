@@ -736,7 +736,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                     float coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
 
 
-                    if (ok && coefficient >= 0.0f && coefficient <= 1.0f &&
+                    if (ok && coefficient <= 1.0f &&
                         itSource != end(_audioZones) &&
                         itListener != end(_audioZones)) {
 
