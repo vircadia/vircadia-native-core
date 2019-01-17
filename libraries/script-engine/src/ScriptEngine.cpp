@@ -2407,6 +2407,11 @@ void ScriptEngine::unloadEntityScript(const EntityItemID& entityID, bool shouldR
     }
 }
 
+QList<EntityItemID> ScriptEngine::getListOfEntityScriptIDs() {
+    QReadLocker locker{ &_entityScriptsLock };
+    return _entityScripts.keys();
+}
+
 void ScriptEngine::unloadAllEntityScripts() {
     if (QThread::currentThread() != thread()) {
 #ifdef THREAD_DEBUGGING
