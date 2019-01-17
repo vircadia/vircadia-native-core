@@ -216,8 +216,16 @@ else()
       TARGET ${TARGET_NAME}
       POST_BUILD
       COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "$<TARGET_FILE_DIR:${TARGET_NAME}>/AppDataHighFidelity"
-      COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "AppDataHighFidelity"
     )
+    
+    if (RELEASE_TYPE STREQUAL "DEV")
+        # This to enable running from the IDE
+        add_custom_command(
+          TARGET ${TARGET_NAME}
+          POST_BUILD
+          COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "AppDataHighFidelity"
+        )
+    endif ()
   endif()
 endif()
 
