@@ -222,7 +222,7 @@ class QtPackager:
                     if (relativeFilename.startswith('qml')):
                         continue
                     filename = os.path.join(self.qtRootPath, relativeFilename)
-                    self.files.extend(hifi_utils.recursiveFileList(filename))
+                    self.files.extend(hifi_utils.recursiveFileList(filename, excludeNamePattern=r"^\."))
                 elif item.tag == 'jar' and 'bundling' in item.attrib and item.attrib['bundling'] == "1":
                     self.files.append(os.path.join(self.qtRootPath, item.attrib['file']))
                 elif item.tag == 'permission':
@@ -247,7 +247,6 @@ class QtPackager:
         qmlImportResults = json.loads(commandResult)
         for item in qmlImportResults:
             if 'path' not in item:
-                print("Warning: QML import could not be resolved in any of the import paths: {}".format(item['name']))
                 continue
             path = os.path.realpath(item['path'])
             if not os.path.exists(path):
@@ -258,7 +257,7 @@ class QtPackager:
             basePath = os.path.normcase(basePath)
             if basePath.startswith(qmlRootPath):
                 continue
-            self.files.extend(hifi_utils.recursiveFileList(path))
+            self.files.extend(hifi_utils.recursiveFileList(path, excludeNamePattern=r"^\."))
 
     def processFiles(self):
         self.files = list(set(self.files))
@@ -271,7 +270,7 @@ class QtPackager:
         for sourceFile in self.files:
             if not os.path.isfile(sourceFile):
                 raise RuntimeError("Unable to find dependency file " + sourceFile)
-            relativePath = os.path.relpath(sourceFile, self.qtRootPath)
+            relativePath = os.path.relpath(sourceFile, self.qtRootPath).replace('\\', '/')
             destinationFile = None
             if relativePath.endswith('.so'):
                 garbledFileName = None
@@ -284,7 +283,7 @@ class QtPackager:
                     libName = m.group(1)
                     ET.SubElement(qtLibsNode, 'item').text = libName
                 else:
-                    garbledFileName = 'lib' + relativePath.replace('\\', '_'[0])
+                    garbledFileName = 'lib' + relativePath.replace('/', '_'[0])
                     value = "{}:{}".format(garbledFileName, relativePath).replace('\\', '/')
                     ET.SubElement(bundledLibsNode, 'item').text = value
                 destinationFile = os.path.join(self.jniPath, garbledFileName)
@@ -337,6 +336,7 @@ class QtPackager:
 
     def bundle(self):
         if not os.path.isfile(self.xmlFile):
+            print("Bundling Qt info into {}".format(self.xmlFile))
             self.copyQtDeps()
             self.scanQmlImports()
             self.processFiles()

@@ -85,7 +85,7 @@ endif()
 
         if self.args.android:
             self.triplet = 'arm64-android'
-            self.androidPackagePath = os.path.join(self.path, 'android')
+            self.androidPackagePath = os.getenv('HIFI_ANDROID_PRECOMPILED', os.path.join(self.path, 'android'))
         else:
             self.triplet = self.hostTriplet
 
@@ -216,7 +216,7 @@ endif()
         if not self.args.android:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
         else:
-            precompiled = os.path.realpath(os.path.join(self.path, 'android'))
+            precompiled = os.path.realpath(self.androidPackagePath)
             qtCmakePrefix = os.path.realpath(os.path.join(precompiled, 'qt/lib/cmake'))
             cmakeTemplate += 'set(HIFI_ANDROID_PRECOMPILED "{}")\n'.format(precompiled)
             cmakeTemplate += 'set(QT_CMAKE_PREFIX_PATH "{}")\n'.format(qtCmakePrefix)

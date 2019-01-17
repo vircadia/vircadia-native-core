@@ -6,6 +6,7 @@ import ssl
 import subprocess
 import sys
 import tarfile
+import re
 import urllib
 import urllib.request
 import zipfile
@@ -23,13 +24,15 @@ def scriptRelative(*paths):
     return result
 
 
-def recursiveFileList(startPath):
+def recursiveFileList(startPath, excludeNamePattern=None ):
     result = []
     if os.path.isfile(startPath):
         result.append(startPath)
     elif os.path.isdir(startPath):
         for dirName, subdirList, fileList in os.walk(startPath):
             for fname in fileList:
+                if excludeNamePattern and re.match(excludeNamePattern, fname):
+                    continue
                 result.append(os.path.realpath(os.path.join(startPath, dirName, fname)))
     result.sort()
     return result
