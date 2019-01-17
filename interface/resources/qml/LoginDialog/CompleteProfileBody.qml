@@ -474,7 +474,7 @@ Item {
     Connections {
         target: loginDialog
         onHandleCreateCompleted: {
-            console.log("Create Succeeded");            
+            console.log("Create Succeeded");
             if (completeProfileBody.withSteam) {
                 if (completeProfileBody.loginDialogPoppedUp) {
                     var data = {
