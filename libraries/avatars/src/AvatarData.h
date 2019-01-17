@@ -63,6 +63,7 @@ using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
 
 using AvatarEntityMap = QMap<QUuid, QByteArray>;
+using PackedAvatarEntityMap = QMap<QUuid, QByteArray>; // similar to AvatarEntityMap, but different internal format
 using AvatarEntityIDs = QSet<QUuid>;
 
 using AvatarGrabDataMap = QMap<QUuid, QByteArray>;
@@ -70,6 +71,8 @@ using AvatarGrabIDs = QSet<QUuid>;
 using AvatarGrabMap = QMap<QUuid, GrabPointer>;
 
 using AvatarDataSequenceNumber = uint16_t;
+
+const int MAX_NUM_AVATAR_ENTITIES = 42;
 
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_ACTION_MOTOR_ENABLED = 1U << 0;
@@ -110,6 +113,7 @@ const int HAND_STATE_FINGER_POINTING_BIT = 7; // 8th bit
 const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
 const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
 const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
+const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
 
 
 const char HAND_STATE_NULL = 0;
@@ -951,19 +955,20 @@ public:
     // FIXME: Can this name be improved? Can it be deprecated?
     Q_INVOKABLE virtual void setAttachmentsVariant(const QVariantList& variant);
 
+    virtual void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload);
 
     /**jsdoc
      * @function MyAvatar.updateAvatarEntity
      * @param {Uuid} entityID
      * @param {string} entityData
      */
-    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
+    Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
 
     /**jsdoc
      * @function MyAvatar.clearAvatarEntity
      * @param {Uuid} entityID
      */
-    Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
+    Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
 
     /**jsdoc
@@ -1124,6 +1129,7 @@ public:
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
     void createRecordingIDs();
+    virtual void avatarEntityDataToJson(QJsonObject& root) const;
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json, bool useFrameSkeleton = true);
 
@@ -1135,17 +1141,16 @@ public:
      * @function MyAvatar.getAvatarEntityData
      * @returns {object} 
      */
-    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
+    Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
 
     /**jsdoc
      * @function MyAvatar.setAvatarEntityData
      * @param {object} avatarEntityData
      */
-    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
+    Q_INVOKABLE virtual void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
     virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
-    void insertDetachedEntityID(const QUuid entityID);
-    AvatarEntityIDs getAndClearRecentlyDetachedIDs();
+    AvatarEntityIDs getAndClearRecentlyRemovedIDs();
 
     /**jsdoc
      * @function MyAvatar.getSensorToWorldMatrix
@@ -1332,6 +1337,7 @@ public slots:
     void resetLastSent() { _lastToByteArray = 0; }
 
 protected:
+    void insertRemovedEntityID(const QUuid entityID);
     void lazyInitHeadData() const;
 
     float getDistanceBasedMinRotationDOT(glm::vec3 viewerPosition) const;
@@ -1460,9 +1466,9 @@ protected:
     AABox _defaultBubbleBox;
 
     mutable ReadWriteLockable _avatarEntitiesLock;
-    AvatarEntityIDs _avatarEntityDetached; // recently detached from this avatar
+    AvatarEntityIDs _avatarEntityRemoved; // recently removed AvatarEntity ids
     AvatarEntityIDs _avatarEntityForRecording; // create new entities id for avatar recording
-    AvatarEntityMap _avatarEntityData;
+    PackedAvatarEntityMap _packedAvatarEntityData;
     bool _avatarEntityDataChanged { false };
 
     mutable ReadWriteLockable _avatarGrabsLock;
@@ -1495,6 +1501,7 @@ protected:
     int _replicaIndex { 0 };
     bool _isNewAvatar { true };
     bool _isClientAvatar { false };
+    bool _collideWithOtherAvatars { true };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler, LaterDeleter> _clientTraitsHandler;

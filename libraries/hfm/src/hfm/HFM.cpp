@@ -189,20 +189,17 @@ bool HFMModel::hasBlendedMeshes() const {
 }
 
 Extents HFMModel::getUnscaledMeshExtents() const {
-    const Extents& extents = meshExtents;
-
     // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
     // is captured in the offset matrix
-    glm::vec3 minimum = glm::vec3(offset * glm::vec4(extents.minimum, 1.0f));
-    glm::vec3 maximum = glm::vec3(offset * glm::vec4(extents.maximum, 1.0f));
+    glm::vec3 minimum = glm::vec3(offset * glm::vec4(meshExtents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(offset * glm::vec4(meshExtents.maximum, 1.0f));
     Extents scaledExtents = { minimum, maximum };
-
     return scaledExtents;
 }
 
 // TODO: Move to graphics::Mesh when Sam's ready
 bool HFMModel::convexHullContains(const glm::vec3& point) const {
-    if (!getUnscaledMeshExtents().containsPoint(point)) {
+    if (!meshExtents.containsPoint(point)) {
         return false;
     }
 

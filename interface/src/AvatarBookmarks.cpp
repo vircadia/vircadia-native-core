@@ -60,7 +60,6 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
         entityProperties.setParentID(myNodeID);
         entityProperties.setEntityHostType(entity::HostType::AVATAR);
         entityProperties.setOwningAvatarID(myNodeID);
-        entityProperties.setSimulationOwner(myNodeID, AVATAR_ENTITY_SIMULATION_PRIORITY);
         entityProperties.markAllChanged();
 
         EntityItemID id = EntityItemID(QUuid::createUuid());

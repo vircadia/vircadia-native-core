@@ -61,12 +61,11 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     // FIXME: calling this here before the zones/lights are drawn during the deferred/forward passes means we're actually using the frames from the previous draw
     // Fetch the current frame stacks from all the stages
     // Starting with the Light Frame  genreated in previous tasks
-    
-    const auto& lightFrame = input.getN<Input>(0);
 
     const auto setupOutput = task.addJob<RenderShadowSetup>("ShadowSetup", input);
     const auto queryResolution = setupOutput.getN<RenderShadowSetup::Output>(1);
     const auto shadowFrame = setupOutput.getN<RenderShadowSetup::Output>(3);
+    const auto currentKeyLight = setupOutput.getN<RenderShadowSetup::Output>(4);
     // Fetch and cull the items from the scene
 
     static const auto shadowCasterReceiverFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered().withTagBits(tagBits, tagMask);
@@ -108,7 +107,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
             antiFrustum = cascadeFrustums[i - 2];
         }
 
-        const auto cullInputs = CullShadowBounds::Inputs(sortedShapes, shadowFilter, antiFrustum, lightFrame, cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(2)).asVarying();
+        const auto cullInputs = CullShadowBounds::Inputs(sortedShapes, shadowFilter, antiFrustum, currentKeyLight, cascadeSetupOutput.getN<RenderShadowCascadeSetup::Outputs>(2)).asVarying();
         sprintf(jobName, "CullShadowCascade%d", i);
         const auto culledShadowItemsAndBounds = task.addJob<CullShadowBounds>(jobName, cullInputs);
 
@@ -356,16 +355,17 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     _shadowFrameCache->_objects.clear();
     output.edit3() = _shadowFrameCache;
 
-    if (!lightingModel->isShadowEnabled() || !lightStage->getCurrentKeyLight(lightFrame) || !lightStage->getCurrentKeyLight(lightFrame)->getCastShadows()) {
+    const auto currentKeyLight = lightStage->getCurrentKeyLight(lightFrame);
+    if (!lightingModel->isShadowEnabled() || !currentKeyLight || !currentKeyLight->getCastShadows()) {
         renderContext->taskFlow.abortTask();
         return;
     }
+    output.edit4() = currentKeyLight;
 
     // Cache old render args
     RenderArgs* args = renderContext->args;
 
     output.edit0() = args->_renderMode;
-    output.edit1() = glm::ivec2(0, 0);
     // Save main camera frustum
     *_cameraFrustum = args->getViewFrustum();
     output.edit2() = _cameraFrustum;
@@ -373,75 +373,72 @@ void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, c
     if (!_globalShadowObject) {
         _globalShadowObject = std::make_shared<LightStage::Shadow>(graphics::LightPointer(), SHADOW_MAX_DISTANCE, SHADOW_CASCADE_COUNT);
     }
-    
-    const auto theGlobalLight = lightStage->getCurrentKeyLight(lightFrame);
-    if (theGlobalLight && theGlobalLight->getCastShadows()) {
-        _globalShadowObject->setLight(theGlobalLight);
-        _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
-        auto& firstCascade = _globalShadowObject->getCascade(0);
-        auto& firstCascadeFrustum = firstCascade.getFrustum();
-        unsigned int cascadeIndex;
+    _globalShadowObject->setLight(currentKeyLight);
+    _globalShadowObject->setKeylightFrustum(args->getViewFrustum(), SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR);
 
-        // Adjust each cascade frustum
-        for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
-            auto& bias = _bias[cascadeIndex];
-            _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
-                                                    SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
-                                                    bias._constant, bias._slope);
-        }
+    auto& firstCascade = _globalShadowObject->getCascade(0);
+    auto& firstCascadeFrustum = firstCascade.getFrustum();
+    unsigned int cascadeIndex;
 
-        _shadowFrameCache->pushShadow(_globalShadowObject);
-
-        // Now adjust coarse frustum bounds
-        auto frustumPosition = firstCascadeFrustum->getPosition();
-        auto farTopLeft = firstCascadeFrustum->getFarTopLeft() - frustumPosition;
-        auto farBottomRight = firstCascadeFrustum->getFarBottomRight() - frustumPosition;
-
-        auto left = glm::dot(farTopLeft, firstCascadeFrustum->getRight());
-        auto right = glm::dot(farBottomRight, firstCascadeFrustum->getRight());
-        auto top = glm::dot(farTopLeft, firstCascadeFrustum->getUp());
-        auto bottom = glm::dot(farBottomRight, firstCascadeFrustum->getUp());
-        auto near = firstCascadeFrustum->getNearClip();
-        auto far = firstCascadeFrustum->getFarClip();
-
-        for (cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
-            auto& cascadeFrustum = _globalShadowObject->getCascade(cascadeIndex).getFrustum();
-
-            farTopLeft = cascadeFrustum->getFarTopLeft() - frustumPosition;
-            farBottomRight = cascadeFrustum->getFarBottomRight() - frustumPosition;
-
-            auto cascadeLeft = glm::dot(farTopLeft, cascadeFrustum->getRight());
-            auto cascadeRight = glm::dot(farBottomRight, cascadeFrustum->getRight());
-            auto cascadeTop = glm::dot(farTopLeft, cascadeFrustum->getUp());
-            auto cascadeBottom = glm::dot(farBottomRight, cascadeFrustum->getUp());
-            auto cascadeNear = cascadeFrustum->getNearClip();
-            auto cascadeFar = cascadeFrustum->getFarClip();
-            left = glm::min(left, cascadeLeft);
-            right = glm::max(right, cascadeRight);
-            bottom = glm::min(bottom, cascadeBottom);
-            top = glm::max(top, cascadeTop);
-            near = glm::min(near, cascadeNear);
-            far = glm::max(far, cascadeFar);
-        }
-
-        _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());
-        _coarseShadowFrustum->setOrientation(firstCascadeFrustum->getOrientation());
-        _coarseShadowFrustum->setProjection(glm::ortho<float>(left, right, bottom, top, near, far));
-        _coarseShadowFrustum->calculate();
-
-        // Push frustum for further culling and selection
-        args->pushViewFrustum(*_coarseShadowFrustum);
-
-        args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
-
-        // We want for the octree query enough resolution to catch the details in the lowest cascade. So compute
-        // the desired resolution for the first cascade frustum and extrapolate it to the coarse frustum.
-        glm::ivec2 queryResolution = firstCascade.framebuffer->getSize();
-        queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
-        queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
-        output.edit1() = queryResolution;
+    // Adjust each cascade frustum
+    for (cascadeIndex = 0; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+        auto& bias = _bias[cascadeIndex];
+        _globalShadowObject->setKeylightCascadeFrustum(cascadeIndex, args->getViewFrustum(),
+                                                SHADOW_FRUSTUM_NEAR, SHADOW_FRUSTUM_FAR,
+                                                bias._constant, bias._slope);
     }
+
+    _shadowFrameCache->pushShadow(_globalShadowObject);
+
+    // Now adjust coarse frustum bounds
+    auto frustumPosition = firstCascadeFrustum->getPosition();
+    auto farTopLeft = firstCascadeFrustum->getFarTopLeft() - frustumPosition;
+    auto farBottomRight = firstCascadeFrustum->getFarBottomRight() - frustumPosition;
+
+    auto left = glm::dot(farTopLeft, firstCascadeFrustum->getRight());
+    auto right = glm::dot(farBottomRight, firstCascadeFrustum->getRight());
+    auto top = glm::dot(farTopLeft, firstCascadeFrustum->getUp());
+    auto bottom = glm::dot(farBottomRight, firstCascadeFrustum->getUp());
+    auto near = firstCascadeFrustum->getNearClip();
+    auto far = firstCascadeFrustum->getFarClip();
+
+    for (cascadeIndex = 1; cascadeIndex < _globalShadowObject->getCascadeCount(); ++cascadeIndex) {
+        auto& cascadeFrustum = _globalShadowObject->getCascade(cascadeIndex).getFrustum();
+
+        farTopLeft = cascadeFrustum->getFarTopLeft() - frustumPosition;
+        farBottomRight = cascadeFrustum->getFarBottomRight() - frustumPosition;
+
+        auto cascadeLeft = glm::dot(farTopLeft, cascadeFrustum->getRight());
+        auto cascadeRight = glm::dot(farBottomRight, cascadeFrustum->getRight());
+        auto cascadeTop = glm::dot(farTopLeft, cascadeFrustum->getUp());
+        auto cascadeBottom = glm::dot(farBottomRight, cascadeFrustum->getUp());
+        auto cascadeNear = cascadeFrustum->getNearClip();
+        auto cascadeFar = cascadeFrustum->getFarClip();
+        left = glm::min(left, cascadeLeft);
+        right = glm::max(right, cascadeRight);
+        bottom = glm::min(bottom, cascadeBottom);
+        top = glm::max(top, cascadeTop);
+        near = glm::min(near, cascadeNear);
+        far = glm::max(far, cascadeFar);
+    }
+
+    _coarseShadowFrustum->setPosition(firstCascadeFrustum->getPosition());
+    _coarseShadowFrustum->setOrientation(firstCascadeFrustum->getOrientation());
+    _coarseShadowFrustum->setProjection(glm::ortho<float>(left, right, bottom, top, near, far));
+    _coarseShadowFrustum->calculate();
+
+    // Push frustum for further culling and selection
+    args->pushViewFrustum(*_coarseShadowFrustum);
+
+    args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+
+    // We want for the octree query enough resolution to catch the details in the lowest cascade. So compute
+    // the desired resolution for the first cascade frustum and extrapolate it to the coarse frustum.
+    glm::ivec2 queryResolution = firstCascade.framebuffer->getSize();
+    queryResolution.x = int(queryResolution.x * _coarseShadowFrustum->getWidth() / firstCascadeFrustum->getWidth());
+    queryResolution.y = int(queryResolution.y * _coarseShadowFrustum->getHeight() / firstCascadeFrustum->getHeight());
+    output.edit1() = queryResolution;
 }
 
 void RenderShadowCascadeSetup::run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output) {
@@ -539,20 +536,20 @@ void CullShadowBounds::run(const render::RenderContextPointer& renderContext, co
     outShapes.clear();
     outBounds = AABox();
 
-    const auto& lightFrame = *inputs.get3();
+    const auto currentKeyLight = inputs.get3();
     auto cullFunctor = inputs.get4();
 
     render::CullFunctor shadowCullFunctor = [cullFunctor](const RenderArgs* args, const AABox& bounds) {
         return cullFunctor(args, bounds);
     };
 
-    if (!filter.selectsNothing()) {
+    if (!filter.selectsNothing() && currentKeyLight) {
         auto& details = args->_details.edit(RenderDetails::SHADOW);
         render::CullTest test(shadowCullFunctor, args, details, antiFrustum);
         auto scene = args->_scene;
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
-        const auto globalLightDir = lightStage->getCurrentKeyLight(lightFrame)->getDirection();
+        const auto globalLightDir = currentKeyLight->getDirection();
         auto castersFilter = render::ItemFilter::Builder(filter).withShadowCaster().build();
         const auto& receiversFilter = filter;
 

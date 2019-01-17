@@ -258,15 +258,15 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
     using namespace controller;
     // Axes
     const auto& inputState = _parent._touchInputState;
-    _axisStateMap[LX] = inputState.Thumbstick[ovrHand_Left].x;
-    _axisStateMap[LY] = inputState.Thumbstick[ovrHand_Left].y;
-    _axisStateMap[LT] = inputState.IndexTrigger[ovrHand_Left];
-    _axisStateMap[LEFT_GRIP] = inputState.HandTrigger[ovrHand_Left];
+    _axisStateMap[LX].value = inputState.Thumbstick[ovrHand_Left].x;
+    _axisStateMap[LY].value = inputState.Thumbstick[ovrHand_Left].y;
+    _axisStateMap[LT].value = inputState.IndexTrigger[ovrHand_Left];
+    _axisStateMap[LEFT_GRIP].value = inputState.HandTrigger[ovrHand_Left];
 
-    _axisStateMap[RX] = inputState.Thumbstick[ovrHand_Right].x;
-    _axisStateMap[RY] = inputState.Thumbstick[ovrHand_Right].y;
-    _axisStateMap[RT] = inputState.IndexTrigger[ovrHand_Right];
-    _axisStateMap[RIGHT_GRIP] = inputState.HandTrigger[ovrHand_Right];
+    _axisStateMap[RX].value = inputState.Thumbstick[ovrHand_Right].x;
+    _axisStateMap[RY].value = inputState.Thumbstick[ovrHand_Right].y;
+    _axisStateMap[RT].value = inputState.IndexTrigger[ovrHand_Right];
+    _axisStateMap[RIGHT_GRIP].value = inputState.HandTrigger[ovrHand_Right];
 
     // Buttons
     for (const auto& pair : BUTTON_MAP) {

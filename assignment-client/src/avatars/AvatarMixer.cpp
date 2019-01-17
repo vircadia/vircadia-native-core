@@ -56,6 +56,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
     packetReceiver.registerListener(PacketType::AvatarIdentityRequest, this, "handleAvatarIdentityRequestPacket");
     packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "queueIncomingPacket");
+    packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -746,65 +747,30 @@ void AvatarMixer::sendStatsPacket() {
 
 
     AvatarMixerSlaveStats aggregateStats;
-    QJsonObject slavesObject;
 
-    float secondsSinceLastStats = (float)(start - _lastStatsTime) / (float)USECS_PER_SECOND;
     // gather stats
-    int slaveNumber = 1;
     _slavePool.each([&](AvatarMixerSlave& slave) {
-        QJsonObject slaveObject;
         AvatarMixerSlaveStats stats;
         slave.harvestStats(stats);
-        slaveObject["recevied_1_nodesProcessed"] = TIGHT_LOOP_STAT(stats.nodesProcessed);
-        slaveObject["received_2_numPacketsReceived"] = TIGHT_LOOP_STAT(stats.packetsProcessed);
-
-        slaveObject["sent_1_nodesBroadcastedTo"] = TIGHT_LOOP_STAT(stats.nodesBroadcastedTo);
-        slaveObject["sent_2_numBytesSent"] = TIGHT_LOOP_STAT(stats.numBytesSent);
-        slaveObject["sent_3_numPacketsSent"] = TIGHT_LOOP_STAT(stats.numPacketsSent);
-        slaveObject["sent_4_numIdentityPackets"] = TIGHT_LOOP_STAT(stats.numIdentityPackets);
-
-        float averageNodes = ((float)stats.nodesBroadcastedTo / (float)tightLoopFrames);
-        float averageOutboundAvatarKbps = averageNodes ? ((stats.numBytesSent / secondsSinceLastStats) / BYTES_PER_KILOBIT) / averageNodes : 0.0f;
-        slaveObject["sent_5_averageOutboundAvatarKbps"] = averageOutboundAvatarKbps;
-
-        float averageOthersIncluded = averageNodes ? stats.numOthersIncluded / averageNodes : 0.0f;
-        slaveObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
-
-        float averageOverBudgetAvatars = averageNodes ? stats.overBudgetAvatars / averageNodes : 0.0f;
-        slaveObject["sent_7_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
-
-        slaveObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(stats.processIncomingPacketsElapsedTime);
-        slaveObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(stats.ignoreCalculationElapsedTime);
-        slaveObject["timing_3_toByteArray"] = TIGHT_LOOP_STAT_UINT64(stats.toByteArrayElapsedTime);
-        slaveObject["timing_4_avatarDataPacking"] = TIGHT_LOOP_STAT_UINT64(stats.avatarDataPackingElapsedTime);
-        slaveObject["timing_5_packetSending"] = TIGHT_LOOP_STAT_UINT64(stats.packetSendingElapsedTime);
-        slaveObject["timing_6_jobElapsedTime"] = TIGHT_LOOP_STAT_UINT64(stats.jobElapsedTime);
-
-        slavesObject[QString::number(slaveNumber)] = slaveObject;
-        slaveNumber++;
-
         aggregateStats += stats;
     });
 
     QJsonObject slavesAggregatObject;
 
-    slavesAggregatObject["recevied_1_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
-    slavesAggregatObject["received_2_numPacketsReceived"] = TIGHT_LOOP_STAT(aggregateStats.packetsProcessed);
+    slavesAggregatObject["received_1_nodesProcessed"] = TIGHT_LOOP_STAT(aggregateStats.nodesProcessed);
 
     slavesAggregatObject["sent_1_nodesBroadcastedTo"] = TIGHT_LOOP_STAT(aggregateStats.nodesBroadcastedTo);
-    slavesAggregatObject["sent_2_numBytesSent"] = TIGHT_LOOP_STAT(aggregateStats.numBytesSent);
-    slavesAggregatObject["sent_3_numPacketsSent"] = TIGHT_LOOP_STAT(aggregateStats.numPacketsSent);
-    slavesAggregatObject["sent_4_numIdentityPackets"] = TIGHT_LOOP_STAT(aggregateStats.numIdentityPackets);
 
     float averageNodes = ((float)aggregateStats.nodesBroadcastedTo / (float)tightLoopFrames);
-    float averageOutboundAvatarKbps = averageNodes ? ((aggregateStats.numBytesSent / secondsSinceLastStats) / BYTES_PER_KILOBIT) / averageNodes : 0.0f;
-    slavesAggregatObject["sent_5_averageOutboundAvatarKbps"] = averageOutboundAvatarKbps;
 
     float averageOthersIncluded = averageNodes ? aggregateStats.numOthersIncluded / averageNodes : 0.0f;
-    slavesAggregatObject["sent_6_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
+    slavesAggregatObject["sent_2_averageOthersIncluded"] = TIGHT_LOOP_STAT(averageOthersIncluded);
 
     float averageOverBudgetAvatars = averageNodes ? aggregateStats.overBudgetAvatars / averageNodes : 0.0f;
-    slavesAggregatObject["sent_7_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
+    slavesAggregatObject["sent_3_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
+    slavesAggregatObject["sent_4_averageDataBytes"] = TIGHT_LOOP_STAT(aggregateStats.numDataBytesSent);
+    slavesAggregatObject["sent_5_averageTraitsBytes"] = TIGHT_LOOP_STAT(aggregateStats.numTraitsBytesSent);
+    slavesAggregatObject["sent_6_averageIdentityBytes"] = TIGHT_LOOP_STAT(aggregateStats.numIdentityBytesSent);
 
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
@@ -813,8 +779,7 @@ void AvatarMixer::sendStatsPacket() {
     slavesAggregatObject["timing_5_packetSending"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.packetSendingElapsedTime);
     slavesAggregatObject["timing_6_jobElapsedTime"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.jobElapsedTime);
 
-    statsObject["slaves_aggregate"] = slavesAggregatObject;
-    statsObject["slaves_individual"] = slavesObject;
+    statsObject["slaves_aggregate (per frame)"] = slavesAggregatObject;
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarIdentityPacketElapsedTime = 0;
@@ -839,8 +804,9 @@ void AvatarMixer::sendStatsPacket() {
         // add the key to ask the domain-server for a username replacement, if it has it
         avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
 
-        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundBandwidth();
-        avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundBandwidth();
+        float outboundAvatarDataKbps = node->getOutboundKbps();
+        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = outboundAvatarDataKbps;
+        avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundKbps();
 
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
         if (clientData) {
@@ -850,7 +816,7 @@ void AvatarMixer::sendStatsPacket() {
 
                 // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
                 avatarStats["delta_full_vs_avatar_data_kbps"] =
-                    avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
+                    (double)outboundAvatarDataKbps - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
             }
         }
 

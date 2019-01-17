@@ -183,9 +183,6 @@ public:
     unsigned int broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes);
     SharedNodePointer soloNodeOfType(NodeType_t nodeType);
 
-    void getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond);
-    void resetPacketStats();
-
     std::unique_ptr<NLPacket> constructPingPacket(const QUuid& nodeId, PingType_t pingType = PingType::Agnostic);
     std::unique_ptr<NLPacket> constructPingReplyPacket(ReceivedMessage& message);
 
@@ -319,6 +316,11 @@ public:
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
 
+    int getInboundPPS() const { return _inboundPPS; }
+    int getOutboundPPS() const { return _outboundPPS; }
+    float getInboundKbps() const { return _inboundKbps; }
+    float getOutboundKbps() const { return _outboundKbps; }
+
 public slots:
     void reset();
     void eraseAllNodes();
@@ -332,10 +334,10 @@ public slots:
 
     bool killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID = NULL_CONNECTION_ID);
 
-signals:
-    void dataSent(quint8 channelType, int bytes);
-    void dataReceived(quint8 channelType, int bytes);
+private slots:
+    void sampleConnectionStats();
 
+signals:
     // QUuid might be zero for non-sourced packet types.
     void packetVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
 
@@ -372,9 +374,6 @@ protected:
 
     qint64 sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                       const HifiSockAddr& overridenSockAddr);
-    qint64 writePacket(const NLPacket& packet, const HifiSockAddr& destinationSockAddr,
-                       const QUuid& connectionSecret = QUuid());
-    void collectPacketStats(const NLPacket& packet);
     void fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth = nullptr);
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
@@ -403,10 +402,6 @@ protected:
 
     PacketReceiver* _packetReceiver;
 
-    std::atomic<int> _numCollectedPackets { 0 };
-    std::atomic<int> _numCollectedBytes { 0 };
-
-    QElapsedTimer _packetStatTimer;
     NodePermissions _permissions;
 
     QPointer<QTimer> _initialSTUNTimer;
@@ -444,6 +439,11 @@ private:
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
     bool _flagTimeForConnectionStep { false }; // only keep track in interface
+
+    int _inboundPPS { 0 };
+    int _outboundPPS { 0 };
+    float _inboundKbps { 0.0f };
+    float _outboundKbps { 0.0f };
 };
 
 #endif // hifi_LimitedNodeList_h

@@ -326,6 +326,10 @@ public:
     void createLoginDialogOverlay();
     void updateLoginDialogOverlayPosition();
 
+    // Check if a headset is connected
+    bool hasRiftControllers();
+    bool hasViveControllers();
+
 #if defined(Q_OS_ANDROID)
     void beforeEnterBackground();
     void enterBackground();
@@ -459,6 +463,8 @@ public slots:
 
     void changeViewAsNeeded(float boomLength);
 
+    QString getGraphicsCardType();
+
 private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
@@ -588,6 +594,8 @@ private:
 
     bool _aboutToQuit { false };
 
+    FileLogger* _logger { nullptr };
+
     bool _previousSessionCrashed;
 
     DisplayPluginPointer _displayPlugin;
@@ -667,8 +675,6 @@ private:
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
     QDir _defaultScriptsLocation;
-
-    FileLogger* _logger;
 
     TouchEvent _lastTouchEvent;
 
@@ -787,6 +793,5 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
-
 };
 #endif // hifi_Application_h

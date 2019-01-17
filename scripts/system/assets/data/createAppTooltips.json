@@ -11,14 +11,33 @@
     "textColor": {
         "tooltip": "The color of the text."
     },
+    "textAlpha": {
+        "tooltip": "The alpha of the text."
+    },
     "backgroundColor": {
         "tooltip": "The color of the background."
+    },
+    "backgroundAlpha": {
+        "tooltip": "The alpha of the background."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
     },
-    "faceCamera": {
-        "tooltip": "If enabled, the entity follows the camera of each user, creating a billboard effect."
+    "textBillboardMode": {
+        "tooltip": "If enabled, determines how the entity will face the camera.",
+        "jsPropertyName": "billboardMode"
+    },
+    "topMargin": {
+        "tooltip": "The top margin, in meters."
+    },
+    "rightMargin": {
+        "tooltip": "The right margin, in meters."
+    },
+    "bottomMargin": {
+        "tooltip": "The bottom margin, in meters."
+    },
+    "leftMargin": {
+        "tooltip": "The left margin, in meters."
     },
     "flyingAllowed": {
         "tooltip": "If enabled, users can fly in the zone."
@@ -149,9 +168,25 @@
     "originalTextures": {
         "tooltip": "A JSON string containing the original texture used on the model."
     },
-    "image": {
-        "tooltip": "The URL for the image source.",
-        "jsPropertyName": "textures"
+    "imageURL": {
+        "tooltip": "The URL for the image source."
+    },
+    "imageColor": {
+        "tooltip": "The tint to be applied to the image.",
+        "jsPropertyName": "color"
+    },
+    "emissive": {
+        "tooltip": "If enabled, the image will display at full brightness."
+    },
+    "subImage": {
+        "tooltip": "The area of the image that is displayed."
+    },
+    "imageBillboardMode": {
+        "tooltip": "If enabled, determines how the entity will face the camera.",
+        "jsPropertyName": "billboardMode"
+    },
+    "keepAspectRatio": {
+        "tooltip": "If enabled, the image will maintain its original aspect ratio."
     },
     "sourceUrl": {
         "tooltip": "The URL for the web page source."
@@ -335,6 +370,15 @@
     },
     "materialMappingRot": {
         "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
+    },
+    "followCamera": {
+        "tooltip": "If enabled, the grid is always visible even as the camera moves to another position."
+    },
+    "majorGridEvery": {
+        "tooltip": "The number of \"Minor Grid Every\" intervals at which to draw a thick grid line."
+    },
+    "minorGridEvery": {
+        "tooltip": "The real number of meters at which to draw thin grid lines."
     },
     "id": {
         "tooltip": "The unique identifier of this entity."

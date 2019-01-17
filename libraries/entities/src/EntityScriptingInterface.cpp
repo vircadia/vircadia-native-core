@@ -492,9 +492,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         propertiesWithSimID.setCollisionless(true);
     }
 
+    // the created time will be set in EntityTree::addEntity by recordCreationTime()
     propertiesWithSimID.setLastEditedBy(sessionID);
-
-    propertiesWithSimID.setActionData(QByteArray());
 
     bool scalesWithParent = propertiesWithSimID.getScalesWithParent();
 
@@ -676,8 +675,6 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ID);
         } else if (extendedPropertyString == "type") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::Type);
-        } else if (extendedPropertyString == "created") {
-            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::Created);
         } else if (extendedPropertyString == "age") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::Age);
         } else if (extendedPropertyString == "ageAsText") {
@@ -692,8 +689,6 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::RenderInfo);
         } else if (extendedPropertyString == "clientOnly") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::ClientOnly);
-        } else if (extendedPropertyString == "owningAvatarID") {
-            psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::OwningAvatarID);
         } else if (extendedPropertyString == "avatarEntity") {
             psuedoPropertyFlags.set(EntityPsuedoPropertyFlag::AvatarEntity);
         } else if (extendedPropertyString == "localEntity") {
@@ -858,8 +853,6 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             properties.setCollisionless(true);
         }
         properties.setOwningAvatarID(entity->getOwningAvatarID());
-
-        properties.setActionData(entity->getDynamicData());
 
         // make sure the properties has a type, so that the encode can know which properties to include
         properties.setType(entity->getType());
@@ -2271,6 +2264,12 @@ bool EntityScriptingInterface::verifyStaticCertificateProperties(const QUuid& en
         });
     }
     return result;
+}
+
+const EntityPropertyInfo EntityScriptingInterface::getPropertyInfo(const QString& propertyName) const {
+    EntityPropertyInfo propertyInfo;
+    EntityItemProperties::getPropertyInfo(propertyName, propertyInfo);
+    return propertyInfo;
 }
 
 glm::vec3 EntityScriptingInterface::worldToLocalPosition(glm::vec3 worldPosition, const QUuid& parentID,

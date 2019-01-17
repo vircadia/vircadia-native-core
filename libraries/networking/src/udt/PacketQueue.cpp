@@ -16,7 +16,8 @@
 using namespace udt;
 
 PacketQueue::PacketQueue(MessageNumber messageNumber) : _currentMessageNumber(messageNumber) {
-    _channels.emplace_back(new std::list<PacketPointer>());
+    _channels.emplace_front(new std::list<PacketPointer>());
+    _currentChannel = _channels.begin();
 }
 
 MessageNumber PacketQueue::getNextMessageNumber() {
@@ -27,21 +28,28 @@ MessageNumber PacketQueue::getNextMessageNumber() {
 
 bool PacketQueue::isEmpty() const {
     LockGuard locker(_packetsLock);
+
     // Only the main channel and it is empty
-    return (_channels.size() == 1) && _channels.front()->empty();
+    return _channels.size() == 1 && _channels.front()->empty();
 }
 
 PacketQueue::PacketPointer PacketQueue::takePacket() {
     LockGuard locker(_packetsLock);
+
     if (isEmpty()) {
         return PacketPointer();
     }
 
-    // Find next non empty channel
-    if (_channels[nextIndex()]->empty()) {
-        nextIndex();
+    // handle the case where we are looking at the first channel and it is empty
+    if (_currentChannel == _channels.begin() && (*_currentChannel)->empty()) {
+        ++_currentChannel;
     }
-    auto& channel = _channels[_currentIndex];
+
+    // at this point the current channel should always not be at the end and should also not be empty
+    Q_ASSERT(_currentChannel != _channels.end());
+
+    auto& channel = *_currentChannel;
+
     Q_ASSERT(!channel->empty());
 
     // Take front packet
@@ -49,18 +57,26 @@ PacketQueue::PacketPointer PacketQueue::takePacket() {
     channel->pop_front();
 
     // Remove now empty channel (Don't remove the main channel)
-    if (channel->empty() && _currentIndex != 0) {
-        channel->swap(*_channels.back());
-        _channels.pop_back();
-        --_currentIndex;
+    if (channel->empty() && _currentChannel != _channels.begin()) {
+        // erase the current channel and slide the iterator to the next channel
+        _currentChannel = _channels.erase(_currentChannel);
+    } else {
+        ++_currentChannel;
+    }
+
+    // push forward our number of channels taken from
+    ++_channelsVisitedCount;
+
+    // check if we need to restart back at the front channel (main)
+    // to respect our capped number of channels considered concurrently
+    static const int MAX_CHANNELS_SENT_CONCURRENTLY = 16;
+
+    if (_currentChannel == _channels.end() || _channelsVisitedCount >= MAX_CHANNELS_SENT_CONCURRENTLY) {
+        _channelsVisitedCount = 0;
+        _currentChannel = _channels.begin();
     }
 
     return packet;
-}
-
-unsigned int PacketQueue::nextIndex() {
-    _currentIndex = (_currentIndex + 1) % _channels.size();
-    return _currentIndex;
 }
 
 void PacketQueue::queuePacket(PacketPointer packet) {

@@ -18,7 +18,6 @@
 #include "../Downloader.h"
 #include "../Test.h"
 
-#include "HelpWindow.h"
 #include "../TestRunner.h"
 #include "../AWSInterface.h"
 
@@ -115,8 +114,6 @@ private:
     int _index{ 0 };
 
     bool _isRunningFromCommandline{ false };
-
-    HelpWindow _helpWindow;
 
     void* _caller;
 };

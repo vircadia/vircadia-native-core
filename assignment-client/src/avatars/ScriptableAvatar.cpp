@@ -21,6 +21,8 @@
 #include <GLMHelpers.h>
 #include <ResourceRequestObserver.h>
 #include <AvatarLogging.h>
+#include <EntityItem.h>
+#include <EntityItemProperties.h>
 
 
 ScriptableAvatar::ScriptableAvatar() {
@@ -248,4 +250,158 @@ void ScriptableAvatar::setHasProceduralEyeFaceMovement(bool hasProceduralEyeFace
 
 void ScriptableAvatar::setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement) {
     _headData->setHasAudioEnabledFaceMovement(hasAudioEnabledFaceMovement);
+}
+
+AvatarEntityMap ScriptableAvatar::getAvatarEntityData() const {
+    // DANGER: Now that we store the AvatarEntityData in packed format this call is potentially Very Expensive!
+    // Avoid calling this method if possible.
+    AvatarEntityMap data;
+    QUuid sessionID = getID();
+    _avatarEntitiesLock.withReadLock([&] {
+        for (const auto& itr : _entities) {
+            QUuid id = itr.first;
+            EntityItemPointer entity = itr.second;
+            EntityItemProperties properties = entity->getProperties();
+            QByteArray blob;
+            EntityItemProperties::propertiesToBlob(_scriptEngine, sessionID, properties, blob);
+            data[id] = blob;
+        }
+    });
+    return data;
+}
+
+void ScriptableAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    // Note: this is an invokable Script call
+    // avatarEntityData is expected to be a map of QByteArrays that represent EntityItemProperties objects from JavaScript
+    //
+    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
+        // the data is suspect
+        qCDebug(avatars) << "discard suspect avatarEntityData with size =" << avatarEntityData.size();
+        return;
+    }
+
+    // convert binary data to EntityItemProperties
+    // NOTE: this operation is NOT efficient
+    std::map<QUuid, EntityItemProperties> newProperties;
+    AvatarEntityMap::const_iterator dataItr = avatarEntityData.begin();
+    while (dataItr != avatarEntityData.end()) {
+        EntityItemProperties properties;
+        const QByteArray& blob = dataItr.value();
+        if (!blob.isNull() && EntityItemProperties::blobToProperties(_scriptEngine, blob, properties)) {
+            newProperties[dataItr.key()] = properties;
+        }
+        ++dataItr;
+    }
+
+    // delete existing entities not found in avatarEntityData
+    std::vector<QUuid> idsToClear;
+    _avatarEntitiesLock.withWriteLock([&] {
+        std::map<QUuid, EntityItemPointer>::iterator entityItr = _entities.begin();
+        while (entityItr != _entities.end()) {
+            QUuid id = entityItr->first;
+            std::map<QUuid, EntityItemProperties>::const_iterator propertiesItr = newProperties.find(id);
+            if (propertiesItr == newProperties.end()) {
+                idsToClear.push_back(id);
+                entityItr = _entities.erase(entityItr);
+            } else {
+                ++entityItr;
+            }
+        }
+    });
+
+    // add or update entities
+    _avatarEntitiesLock.withWriteLock([&] {
+        std::map<QUuid, EntityItemProperties>::const_iterator propertiesItr = newProperties.begin();
+        while (propertiesItr != newProperties.end()) {
+            QUuid id = propertiesItr->first;
+            const EntityItemProperties& properties = propertiesItr->second;
+            std::map<QUuid, EntityItemPointer>::iterator entityItr = _entities.find(id);
+            EntityItemPointer entity;
+            if (entityItr != _entities.end()) {
+                entity = entityItr->second;
+                entity->setProperties(properties);
+            } else {
+                entity = EntityTypes::constructEntityItem(id, properties);
+            }
+            if (entity) {
+                // build outgoing payload
+                OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+                EncodeBitstreamParams params;
+                EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+                OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+
+                if (appendState == OctreeElement::COMPLETED) {
+                    _entities[id] = entity;
+                    QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                    storeAvatarEntityDataPayload(id, tempArray);
+                } else {
+                    // payload doesn't fit
+                    entityItr = _entities.find(id);
+                    if (entityItr != _entities.end()) {
+                        _entities.erase(entityItr);
+                        idsToClear.push_back(id);
+                    }
+
+                }
+            }
+            ++propertiesItr;
+        }
+    });
+
+    // clear deleted traits
+    for (const auto& id : idsToClear) {
+        clearAvatarEntity(id);
+    }
+}
+
+void ScriptableAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+    if (entityData.isNull()) {
+        // interpret this as a DELETE
+        std::map<QUuid, EntityItemPointer>::iterator itr = _entities.find(entityID);
+        if (itr != _entities.end()) {
+            _entities.erase(itr);
+            clearAvatarEntity(entityID);
+        }
+        return;
+    }
+
+    EntityItemPointer entity;
+    EntityItemProperties properties;
+    if (!EntityItemProperties::blobToProperties(_scriptEngine, entityData, properties)) {
+        // entityData is corrupt
+        return;
+    }
+
+    std::map<QUuid, EntityItemPointer>::iterator itr = _entities.find(entityID);
+    if (itr == _entities.end()) {
+        // this is an ADD
+        entity = EntityTypes::constructEntityItem(entityID, properties);
+        if (entity) {
+            OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+            EncodeBitstreamParams params;
+            EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+            OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+
+            if (appendState == OctreeElement::COMPLETED) {
+                _entities[entityID] = entity;
+                QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                storeAvatarEntityDataPayload(entityID, tempArray);
+            }
+        }
+    } else {
+        // this is an UPDATE
+        entity = itr->second;
+        bool somethingChanged = entity->setProperties(properties);
+        if (somethingChanged) {
+            OctreePacketData packetData(false, AvatarTraits::MAXIMUM_TRAIT_SIZE);
+            EncodeBitstreamParams params;
+            EntityTreeElementExtraEncodeDataPointer extra { nullptr };
+            OctreeElement::AppendState appendState = entity->appendEntityData(&packetData, params, extra);
+
+            if (appendState == OctreeElement::COMPLETED) {
+                QByteArray tempArray((const char*)packetData.getUncompressedData(), packetData.getUncompressedSize());
+                storeAvatarEntityDataPayload(entityID, tempArray);
+            }
+        }
+    }
 }

@@ -133,7 +133,7 @@ public:
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
         AudioSoloRequest,
-
+        BulkAvatarTraitsAck,
         NUM_PACKET_TYPE
     };
 
@@ -251,7 +251,11 @@ enum class EntityVersion : PacketVersion {
     ImageEntities,
     GridEntities,
     MissingTextProperties,
-    GrabTraits
+    GrabTraits,
+    MorePropertiesCleanup,
+    FixPropertiesFromCleanup,
+    UpdatedPolyLines,
+    FixProtocolVersionBumpMismatch
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -305,7 +309,10 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     MigrateAvatarEntitiesToTraits,
     FarGrabJointsRedux,
     JointTransScaled,
-    GrabTraits
+    GrabTraits,
+    CollisionFlag,
+    AvatarTraitsAck,
+    FasterAvatarEntities
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

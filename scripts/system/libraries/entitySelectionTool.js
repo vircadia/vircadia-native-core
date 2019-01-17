@@ -599,12 +599,10 @@ SelectionDisplay = (function() {
 
     const STRETCH_CUBE_OFFSET = 0.06;
     const STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
-    const STRETCH_MINIMUM_DIMENSION = 0.001;
     const STRETCH_PANEL_WIDTH = 0.01;
 
     const SCALE_OVERLAY_CAMERA_DISTANCE_MULTIPLE = 0.02;
     const SCALE_DIMENSIONS_CAMERA_DISTANCE_MULTIPLE = 0.5;
-    const SCALE_MINIMUM_DIMENSION = 0.01;
     
     const BOUNDING_EDGE_OFFSET = 0.5;
 
@@ -1543,7 +1541,7 @@ SelectionDisplay = (function() {
             print("    SpaceMode: " + spaceMode);
             print("    DisplayMode: " + getMode());
         }
-
+        
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
             that.clearDebugPickPlane();
@@ -1574,7 +1572,7 @@ SelectionDisplay = (function() {
                 dimensions: dimensions
             };
             var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
-
+            
             // in HMD if outside the bounding box clamp the overlays to the bounding box for now so lasers can hit them
             var maxHandleDimension = 0;
             if (HMD.active && !isCameraInsideBox) {
@@ -2515,7 +2513,7 @@ SelectionDisplay = (function() {
 
                 var newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
 
-                var minimumDimension = STRETCH_MINIMUM_DIMENSION; 
+                var minimumDimension = Entities.getPropertyInfo("dimensions").minimum; 
                 if (newDimensions.x < minimumDimension) {
                     newDimensions.x = minimumDimension;
                     changeInDimensions.x = minimumDimension - initialDimensions.x;
@@ -2634,7 +2632,7 @@ SelectionDisplay = (function() {
                 newDimensions.y = Math.abs(newDimensions.y);
                 newDimensions.z = Math.abs(newDimensions.z);
 
-                var minimumDimension = SCALE_MINIMUM_DIMENSION; 
+                var minimumDimension = Entities.getPropertyInfo("dimensions").minimum; 
                 if (newDimensions.x < minimumDimension) {
                     newDimensions.x = minimumDimension;
                     changeInDimensions.x = minimumDimension - initialDimensions.x;

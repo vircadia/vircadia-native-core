@@ -540,6 +540,10 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         if (_headData->getHasProceduralBlinkFaceMovement()) {
             setAtBit16(flags, PROCEDURAL_BLINK_FACE_MOVEMENT);
         }
+        // avatar collisions enabled
+        if (_collideWithOtherAvatars) {
+            setAtBit16(flags, COLLIDE_WITH_OTHER_AVATARS);
+        }
 
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
@@ -1116,7 +1120,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasAudioEnabledFaceMovement = oneAtBit16(bitItems, AUDIO_ENABLED_FACE_MOVEMENT);
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
-
+        auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
         
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
@@ -1125,7 +1129,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool audioEnableFaceMovementChanged = (_headData->getHasAudioEnabledFaceMovement() != newHasAudioEnabledFaceMovement);
         bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
         bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
-        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged;
+        bool collideWithOtherAvatarsChanged = (_collideWithOtherAvatars != newCollideWithOtherAvatars);
+        bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || 
+                                proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged;
 
         _keyState = newKeyState;
         _handState = newHandState;
@@ -1134,6 +1140,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setHasAudioEnabledFaceMovement(newHasAudioEnabledFaceMovement);
         _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
         _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
+        _collideWithOtherAvatars = newCollideWithOtherAvatars;
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1901,10 +1908,9 @@ qint64 AvatarData::packAvatarEntityTraitInstance(AvatarTraits::TraitType traitTy
 
     // grab a read lock on the avatar entities and check for entity data for the given ID
     QByteArray entityBinaryData;
-
     _avatarEntitiesLock.withReadLock([this, &entityBinaryData, &traitInstanceID] {
-        if (_avatarEntityData.contains(traitInstanceID)) {
-            entityBinaryData = _avatarEntityData[traitInstanceID];
+        if (_packedAvatarEntityData.contains(traitInstanceID)) {
+            entityBinaryData = _packedAvatarEntityData[traitInstanceID];
         }
     });
 
@@ -1980,9 +1986,9 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
     qint64 bytesWritten = 0;
 
     if (traitType == AvatarTraits::AvatarEntity) {
-        packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        bytesWritten += packAvatarEntityTraitInstance(traitType, traitInstanceID, destination, traitVersion);
     } else if (traitType == AvatarTraits::Grab) {
-        packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
+        bytesWritten += packGrabTraitInstance(traitType, traitInstanceID, destination, traitVersion);
     }
 
     return bytesWritten;
@@ -1991,7 +1997,7 @@ qint64 AvatarData::packTraitInstance(AvatarTraits::TraitType traitType, AvatarTr
 void AvatarData::prepareResetTraitInstances() {
     if (_clientTraitsHandler) {
         _avatarEntitiesLock.withReadLock([this]{
-            foreach (auto entityID, _avatarEntityData.keys()) {
+            foreach (auto entityID, _packedAvatarEntityData.keys()) {
                 _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
             }
             foreach (auto grabID, _avatarGrabData.keys()) {
@@ -2012,7 +2018,7 @@ void AvatarData::processTrait(AvatarTraits::TraitType traitType, QByteArray trai
 void AvatarData::processTraitInstance(AvatarTraits::TraitType traitType,
                                       AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData) {
     if (traitType == AvatarTraits::AvatarEntity) {
-        updateAvatarEntity(instanceID, traitBinaryData);
+        storeAvatarEntityDataPayload(instanceID, traitBinaryData);
     } else if (traitType == AvatarTraits::Grab) {
         updateAvatarGrabData(instanceID, traitBinaryData);
     }
@@ -2360,7 +2366,7 @@ void AvatarData::setRecordingBasis(std::shared_ptr<Transform> recordingBasis) {
 void AvatarData::createRecordingIDs() {
     _avatarEntitiesLock.withReadLock([&] {
         _avatarEntityForRecording.clear();
-        for (int i = 0; i < _avatarEntityData.size(); i++) {
+        for (int i = 0; i < _packedAvatarEntityData.size(); i++) {
             _avatarEntityForRecording.insert(QUuid::createUuid());
         }
     });
@@ -2415,6 +2421,10 @@ JointData jointDataFromJsonValue(int version, const QJsonValue& json) {
     return result;
 }
 
+void AvatarData::avatarEntityDataToJson(QJsonObject& root) const {
+    // overridden where needed
+}
+
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
@@ -2426,20 +2436,8 @@ QJsonObject AvatarData::toJson() const {
     if (!getDisplayName().isEmpty()) {
         root[JSON_AVATAR_DISPLAY_NAME] = getDisplayName();
     }
-    _avatarEntitiesLock.withReadLock([&] {
-        if (!_avatarEntityData.empty()) {
-            QJsonArray avatarEntityJson;
-            int entityCount = 0;
-            for (auto entityID : _avatarEntityData.keys()) {
-                QVariantMap entityData;
-                QUuid newId = _avatarEntityForRecording.size() == _avatarEntityData.size() ? _avatarEntityForRecording.values()[entityCount++] : entityID;
-                entityData.insert("id", newId);                
-                entityData.insert("properties", _avatarEntityData.value(entityID).toBase64());
-                avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
-            }
-            root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
-        }
-    });
+
+    avatarEntityDataToJson(root);
 
     auto recordingBasis = getRecordingBasis();
     bool success;
@@ -2561,9 +2559,9 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         for (auto attachmentJson : attachmentsJson) {
             if (attachmentJson.isObject()) {
                 QVariantMap entityData = attachmentJson.toObject().toVariantMap();
-                QUuid entityID = entityData.value("id").toUuid();
-                QByteArray properties = QByteArray::fromBase64(entityData.value("properties").toByteArray());
-                updateAvatarEntity(entityID, properties);
+                QUuid id = entityData.value("id").toUuid();
+                QByteArray data = QByteArray::fromBase64(entityData.value("properties").toByteArray());
+                updateAvatarEntity(id, data);
             }
         }
     }
@@ -2745,17 +2743,15 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
     setAttachmentData(newAttachments);
 }
 
-const int MAX_NUM_AVATAR_ENTITIES = 42;
-
-void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& data) {
     _avatarEntitiesLock.withWriteLock([&] {
-        AvatarEntityMap::iterator itr = _avatarEntityData.find(entityID);
-        if (itr == _avatarEntityData.end()) {
-            if (_avatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
-                _avatarEntityData.insert(entityID, entityData);
+        PackedAvatarEntityMap::iterator itr = _packedAvatarEntityData.find(entityID);
+        if (itr == _packedAvatarEntityData.end()) {
+            if (_packedAvatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
+                _packedAvatarEntityData.insert(entityID, data);
             }
         } else {
-            itr.value() = entityData;
+            itr.value() = data;
         }
     });
 
@@ -2768,15 +2764,20 @@ void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& ent
     }
 }
 
+void AvatarData::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+    // overridden where needed
+    // expects 'entityData' to be a JavaScript EntityItemProperties Object in QByteArray form
+}
+
 void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
 
     bool removedEntity = false;
 
     _avatarEntitiesLock.withWriteLock([this, &removedEntity, &entityID] {
-        removedEntity = _avatarEntityData.remove(entityID);
+        removedEntity = _packedAvatarEntityData.remove(entityID);
     });
 
-    insertDetachedEntityID(entityID);
+    insertRemovedEntityID(entityID);
 
     if (removedEntity && _clientTraitsHandler) {
         // we have a client traits handler, so we need to mark this removed instance trait as deleted
@@ -2786,75 +2787,29 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFr
 }
 
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
-    AvatarEntityMap result;
-    _avatarEntitiesLock.withReadLock([&] {
-        result = _avatarEntityData;
-    });
-    return result;
-}
-
-void AvatarData::insertDetachedEntityID(const QUuid entityID) {
-    _avatarEntitiesLock.withWriteLock([&] {
-        _avatarEntityDetached.insert(entityID);
-    });
-
-    _avatarEntityDataChanged = true;
+    // overridden where needed
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    return AvatarEntityMap();
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
-    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
-        // the data is suspect
-        qCDebug(avatars) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
-        return;
-    }
-
-    std::vector<QUuid> deletedEntityIDs;
-    QList<QUuid> updatedEntityIDs;
-
-    _avatarEntitiesLock.withWriteLock([&] {
-        if (_avatarEntityData != avatarEntityData) {
-
-            // keep track of entities that were attached to this avatar but no longer are
-            AvatarEntityIDs previousAvatarEntityIDs = QSet<QUuid>::fromList(_avatarEntityData.keys());
-
-            _avatarEntityData = avatarEntityData;
-            setAvatarEntityDataChanged(true);
-
-            deletedEntityIDs.reserve(previousAvatarEntityIDs.size());
-
-            foreach (auto entityID, previousAvatarEntityIDs) {
-                if (!_avatarEntityData.contains(entityID)) {
-                    _avatarEntityDetached.insert(entityID);
-                    deletedEntityIDs.push_back(entityID);
-                }
-            }
-
-            updatedEntityIDs = _avatarEntityData.keys();
-        }
-    });
-
-    if (_clientTraitsHandler) {
-        // we have a client traits handler
-
-        // flag removed entities as deleted so that changes are sent next frame
-        for (auto& deletedEntityID : deletedEntityIDs) {
-            _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, deletedEntityID);
-        }
-
-        // flag any updated or created entities so that we send changes for them next frame
-        for (auto& entityID : updatedEntityIDs) {
-            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
-        }
-    }
-
-
+    // overridden where needed
+    // avatarEntityData is expected to be a map of QByteArrays
+    // each QByteArray represents an EntityItemProperties object from JavaScript
 }
 
-AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
+void AvatarData::insertRemovedEntityID(const QUuid entityID) {
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityRemoved.insert(entityID);
+    });
+    _avatarEntityDataChanged = true;
+}
+
+AvatarEntityIDs AvatarData::getAndClearRecentlyRemovedIDs() {
     AvatarEntityIDs result;
     _avatarEntitiesLock.withWriteLock([&] {
-        result = _avatarEntityDetached;
-        _avatarEntityDetached.clear();
+        result = _avatarEntityRemoved;
+        _avatarEntityRemoved.clear();
     });
     return result;
 }
