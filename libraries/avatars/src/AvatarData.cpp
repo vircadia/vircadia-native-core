@@ -2744,23 +2744,28 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
 }
 
 void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& data) {
+    bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
-        PackedAvatarEntityMap::iterator itr = _packedAvatarEntityData.find(entityID);
+        auto itr = _packedAvatarEntityData.find(entityID);
         if (itr == _packedAvatarEntityData.end()) {
             if (_packedAvatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
                 _packedAvatarEntityData.insert(entityID, data);
+                changed = true;
             }
         } else {
             itr.value() = data;
+            changed = true;
         }
     });
 
-    _avatarEntityDataChanged = true;
+    if (changed) {
+        _avatarEntityDataChanged = true;
 
-    if (_clientTraitsHandler) {
-        // we have a client traits handler, so we need to mark this instanced trait as changed
-        // so that changes will be sent next frame
-        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        if (_clientTraitsHandler) {
+            // we have a client traits handler, so we need to mark this instanced trait as changed
+            // so that changes will be sent next frame
+            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        }
     }
 }
 
