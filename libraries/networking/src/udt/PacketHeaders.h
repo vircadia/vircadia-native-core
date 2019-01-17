@@ -312,7 +312,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     GrabTraits,
     CollisionFlag,
     AvatarTraitsAck,
-    FasterAvatarEntities
+    FasterAvatarEntities,
+    SendMaxTranslationDimension
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

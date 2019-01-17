@@ -73,6 +73,7 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) 
     totalSize += validityBitsSize; // Orientations mask
     totalSize += numJoints * sizeof(SixByteQuat); // Orientations
     totalSize += validityBitsSize; // Translations mask
+    totalSize += sizeof(float); // maxTranslationDimension
     totalSize += numJoints * sizeof(SixByteTrans); // Translations
 
     size_t NUM_FAUX_JOINT = 2;
@@ -612,11 +613,22 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
     // Start joints if room for at least the faux joints.
-    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, 1 + 2 * jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE) {
+    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, 1 + 4 + 2 * jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE) {
         // Allow for faux joints + translation bit-vector:
         const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat)
             + jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE;
         auto startSection = destinationBuffer;
+
+        // compute maxTranslationDimension before we send any joint data.
+        float maxTranslationDimension = 0.001f;
+        for (int i = 0; i < numJoints; ++i) {
+            const JointData& data = jointData[i];
+            if (!data.translationIsDefaultPose) {
+                maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
+                maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
+                maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
+            }
+        }
 
         // joint rotation data
         *destinationBuffer++ = (uint8_t)numJoints;
@@ -677,20 +689,18 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         validityPosition = destinationBuffer;
 
 #ifdef WANT_DEBUG
+        int translationSentCount = 0;
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
 
         memset(destinationBuffer, 0, jointBitVectorSize);
         destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
 
+        // write maxTranslationDimension
+        memcpy(destinationBuffer, &maxTranslationDimension, sizeof(float));
+        destinationBuffer += sizeof(float);
+
         float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
-
-        float maxTranslationDimension = 0.0f;
-        const int MAX_NUM_JOINTS = 256;
-
-        assert(numJoints < MAX_NUM_JOINTS);
-        glm::vec3 translationsSentArray[MAX_NUM_JOINTS];  // 3060 bytes allocated on the stack for performance.
-        int translationsSent = 0;
 
         i = sendStatus.translationsSent;
         for (; i < numJoints; ++i) {
@@ -702,11 +712,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                     if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
                         || (cullSmallChanges && glm::distance(data.translation, lastSentJointData[i].translation) > minTranslation)) {
                         validityPosition[i / BITS_IN_BYTE] |= 1 << (i % BITS_IN_BYTE);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
-
-                        translationsSentArray[translationsSent++] = data.translation;
+#ifdef WANT_DEBUG
+                        translationSentCount++;
+#endif
+                        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation / maxTranslationDimension,
+                                                                               TRANSLATION_COMPRESSION_RADIX);
 
                         if (sentJoints) {
                             sentJoints[i].translation = data.translation;
@@ -721,16 +731,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 sentJoints[i].translationIsDefaultPose = data.translationIsDefaultPose;
             }
 
-        }
-
-        // AJT: TODO make sure size computation is properly up to date!
-        // Write maxTranslationDimension into packet
-        memcpy(destinationBuffer, &maxTranslationDimension, sizeof(float));
-        destinationBuffer += sizeof(float);
-
-        // Write normalized and compressed translations into packet
-        for (i = 0; i < translationsSent; ++i) {
-            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, translationsSentArray[i] / maxTranslationDimension, TRANSLATION_COMPRESSION_RADIX);
         }
         sendStatus.translationsSent = i;
 
@@ -777,7 +777,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 #ifdef WANT_DEBUG
         if (sendAll) {
             qCDebug(avatars) << "AvatarData::toByteArray" << cullSmallChanges << sendAll
-                << "rotations:" << rotationSentCount << "translations:" << translationsSentCount
+                << "rotations:" << rotationSentCount << "translations:" << translationSentCount
                 << "largest:" << maxTranslationDimension
                 << "size:"
                 << (beforeRotations - startPosition) << "+"
@@ -796,7 +796,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             outboundDataRateOut->jointDataRate.increment(numBytes);
         }
     }
-    
+
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS, 1 + 2 * jointBitVectorSize) {
         auto startSection = destinationBuffer;
 
@@ -1291,10 +1291,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
         } // 1 + bytesOfValidity bytes
 
-
-        // AJT: read maxTranslationDimension
+        // read maxTranslationDimension
         float maxTranslationDimension;
-        PACKET_READ_CHECK(MaxTranslationDimension, sizeof(float));
+        PACKET_READ_CHECK(JointMaxTranslationDimension, sizeof(float));
         memcpy(&maxTranslationDimension, sourceBuffer, sizeof(float));
         sourceBuffer += sizeof(float);
 
@@ -1306,7 +1305,6 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             JointData& data = _jointData[i];
             if (validTranslations[i]) {
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
-                // un-normalize translation
                 data.translation *= maxTranslationDimension;
                 _hasNewJointData = true;
                 data.translationIsDefaultPose = false;

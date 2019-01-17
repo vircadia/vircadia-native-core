@@ -282,6 +282,9 @@ function decode_avatar_data_packet(buf)
     i = i + num_validity_bytes
     result["valid_translations"] = "Valid Translations: " .. string.format("(%d/%d) {", #indices, num_joints) .. table.concat(indices, ", ") .. "}"
 
+    -- TODO: skip maxTranslationDimension
+    i = i + 4
+
     -- TODO: skip translations for now
     i = i + #indices * 6
 
