@@ -970,8 +970,8 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void clearAvatarEntities();
-    void removeWearableAvatarEntities();
+    void removeWornAvatarEntity(const EntityItemID& entityID);
+    void clearWornAvatarEntities();
 
     /**jsdoc
      * Check whether your avatar is flying or not.

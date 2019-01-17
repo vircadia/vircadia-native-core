@@ -70,9 +70,9 @@ function getMyAvatarSettings() {
     }
 }
 
-function updateAvatarWearables(avatar, callback) {
+function updateAvatarWearables(avatar, callback, wearablesOverride) {
     executeLater(function() {
-        var wearables = getMyAvatarWearables();
+        var wearables = wearablesOverride ? wearablesOverride : getMyAvatarWearables();
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
         sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables})
@@ -210,7 +210,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'adjustWearable':
         if(message.properties.localRotationAngles) {
-            message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles)
+            message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles);
         }
 
         Entities.editEntity(message.entityID, message.properties);
@@ -235,7 +235,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             // revert changes using snapshot of wearables
             if(currentAvatarWearablesBackup !== null) {
                 AvatarBookmarks.updateAvatarEntities(currentAvatarWearablesBackup);
-                updateAvatarWearables(currentAvatar);
+                updateAvatarWearables(currentAvatar, null, currentAvatarWearablesBackup);
             }
         } else {
             sendToQml({'method' : 'updateAvatarInBookmarks'});
