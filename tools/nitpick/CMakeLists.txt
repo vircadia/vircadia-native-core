@@ -92,15 +92,6 @@ elseif (WIN32)
 
   # add an executable that also has the icon itself and the configured rc file as resources
   add_executable(${TARGET_NAME} WIN32 ${NITPICK_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
-
-##  if (NOT DEV_BUILD)
-##    add_custom_command(
-##      TARGET ${TARGET_NAME}
-##      POST_BUILD
-##      COMMAND "mt.exe" -manifest "${CMAKE_CURRENT_SOURCE_DIR}/nitpick.exe.manifest" -inputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1 -outputresource:"$<TARGET_FILE:${TARGET_NAME}>"\;\#1
-##      COMMENT "Adding OS version support manifest to exe"
-##    )
-##  endif()
 else ()
   add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
@@ -185,7 +176,7 @@ if (APPLE)
   # call the fixup_nitpick macro to add required bundling commands for installation
   fixup_nitpick()
 
-  # add a custom command to copy the empty Apps/Data High Fidelity folder (i.e. - a valid folder with no entities)
+  # add a custom command to copy the empty AppData High Fidelity folder (i.e. - a valid folder with no entities)
   add_custom_command(
     TARGET ${TARGET_NAME}
     POST_BUILD
@@ -200,11 +191,6 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${RESOURCES_RCC}"
       "${NITPICK_EXEC_DIR}"
-    # FIXME, the edit script code loads HTML from the scripts folder
-    # which in turn relies on CSS that refers to the fonts.  In theory
-    # we should be able to modify the CSS to reference the QRC path to
-    # the ttf files, but doing so generates a CORS policy violation,
-    # so we have to retain a copy of the fonts outside of the resources binary
   )
 
   # link target to external libraries
@@ -225,7 +211,7 @@ else()
 
     optional_win_executable_signing()
 
-    # add a custom command to copy the empty Apps/Data High Fidelity folder (i.e. - a valid folder with no entities)
+    # add a custom command to copy the empty AppData High Fidelity folder (i.e. - a valid folder with no entities)
     add_custom_command(
       TARGET ${TARGET_NAME}
       POST_BUILD
