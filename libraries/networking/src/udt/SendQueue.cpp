@@ -61,6 +61,9 @@ private:
     Mutex2& _mutex2;
 };
 
+const microseconds SendQueue::MAXIMUM_ESTIMATED_TIMEOUT = seconds(5);
+const microseconds SendQueue::MINIMUM_ESTIMATED_TIMEOUT = milliseconds(10);
+
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
                                              MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
@@ -404,6 +407,7 @@ bool SendQueue::maybeResendPacket() {
                 Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
 
                 auto wireSize = resendPacket.getWireSize();
+                auto payloadSize = resendPacket.getPayloadSize();
                 auto sequenceNumber = it->first;
 
                 if (level != Packet::NoObfuscation) {
@@ -439,7 +443,8 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted(wireSize, sequenceNumber, p_high_resolution_clock::now());
+                emit packetRetransmitted(wireSize, payloadSize, sequenceNumber,
+                                         p_high_resolution_clock::now());
                 
                 // Signal that we did resend a packet
                 return true;
@@ -505,12 +510,8 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
 
                 auto estimatedTimeout = std::chrono::microseconds(_estimatedTimeout);
 
-                // cap our maximum estimated timeout to the already unreasonable 5 seconds
-                const auto MAXIMUM_ESTIMATED_TIMEOUT = std::chrono::seconds(5);
-
-                if (estimatedTimeout > MAXIMUM_ESTIMATED_TIMEOUT) {
-                    estimatedTimeout = MAXIMUM_ESTIMATED_TIMEOUT;
-                }
+                // Clamp timeout beween 10 ms and 5 s
+                estimatedTimeout = std::min(MAXIMUM_ESTIMATED_TIMEOUT, std::max(MINIMUM_ESTIMATED_TIMEOUT, estimatedTimeout));
 
                 // use our condition_variable_any to wait
                 auto cvStatus = _emptyCondition.wait_for(locker, estimatedTimeout);

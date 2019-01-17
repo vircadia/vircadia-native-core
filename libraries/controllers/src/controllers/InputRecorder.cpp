@@ -297,6 +297,13 @@ namespace controller {
         return 0.0f;
     }
 
+    InputRecorder::ActionStates InputRecorder::getActionstates() {
+        if (_actionStateList.size() > 0) {
+            return _actionStateList[_playCount];
+        }
+        return {};
+    }
+
     controller::Pose InputRecorder::getPoseState(const QString& action) {
         if (_poseStateList.size() > 0) {
             return _poseStateList[_playCount][action];

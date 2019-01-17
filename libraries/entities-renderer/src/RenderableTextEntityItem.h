@@ -25,19 +25,33 @@ class TextEntityRenderer : public TypedEntityRenderer<TextEntityItem> {
 public:
     TextEntityRenderer(const EntityItemPointer& entity);
     ~TextEntityRenderer();
+
+    bool isTransparent() const override;
+    ShapeKey getShapeKey() override;
+
 private:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
+
     int _geometryID{ 0 };
     std::shared_ptr<TextRenderer3D> _textRenderer;
-    bool _faceCamera;
-    glm::vec3 _dimensions;
-    glm::vec3 _textColor;
-    glm::vec3 _backgroundColor;
+
     QString _text;
     float _lineHeight;
+    glm::vec3 _textColor;
+    float _textAlpha;
+    glm::vec3 _backgroundColor;
+    float _backgroundAlpha;
+
+    float _leftMargin;
+    float _rightMargin;
+    float _topMargin;
+    float _bottomMargin;
+
+    BillboardMode _billboardMode;
+    glm::vec3 _dimensions;
 };
 
 } }

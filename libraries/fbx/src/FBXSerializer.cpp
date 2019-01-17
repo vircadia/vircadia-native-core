@@ -11,27 +11,13 @@
 
 #include "FBXSerializer.h"
 
-#include <iostream>
 #include <QBuffer>
-#include <QDataStream>
-#include <QIODevice>
-#include <QStringList>
-#include <QTextStream>
-#include <QtDebug>
-#include <QtEndian>
-#include <QFileInfo>
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <FaceshiftConstants.h>
-#include <GeometryUtil.h>
-#include <GLMHelpers.h>
-#include <NumericalConstants.h>
-#include <OctalCode.h>
-#include <gpu/Format.h>
-#include <LogHandler.h>
 
 #include <hfm/ModelFormatLogging.h>
 
@@ -125,26 +111,6 @@ QString getName(const QVariantList& properties) {
 QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
-
-/// The names of the joints in the Maya HumanIK rig
-static const std::array<const char*, 16> HUMANIK_JOINTS = {{
-    "RightHand",
-    "RightForeArm",
-    "RightArm",
-    "Head",
-    "LeftArm",
-    "LeftForeArm",
-    "LeftHand",
-    "Neck",
-    "Spine",
-    "Hips",
-    "RightUpLeg",
-    "LeftUpLeg",
-    "RightLeg",
-    "LeftLeg",
-    "RightFoot",
-    "LeftFoot"
-}};
 
 class FBXModel {
 public:
@@ -478,32 +444,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     std::map<QString, HFMLight> lights;
 
     QVariantHash joints = mapping.value("joint").toHash();
-    QString jointEyeLeftName = "EyeLeft";
-    QString jointEyeRightName = "EyeRight";
-    QString jointNeckName = "Neck";
-    QString jointRootName = "Hips";
-    QString jointLeanName = "Spine";
-    QString jointHeadName = "Head";
-    QString jointLeftHandName = "LeftHand";
-    QString jointRightHandName = "RightHand";
-    QString jointEyeLeftID;
-    QString jointEyeRightID;
-    QString jointNeckID;
-    QString jointRootID;
-    QString jointLeanID;
-    QString jointHeadID;
-    QString jointLeftHandID;
-    QString jointRightHandID;
-    QString jointLeftToeID;
-    QString jointRightToeID;
-
-
-    QVector<QString> humanIKJointNames;
-    for (int i = 0; i <  (int) HUMANIK_JOINTS.size(); i++) {
-        QByteArray jointName = HUMANIK_JOINTS[i];
-        humanIKJointNames.append(processID(getString(joints.value(jointName, jointName))));
-    }
-    QVector<QString> humanIKJointIDs(humanIKJointNames.size());
 
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
 
@@ -600,42 +540,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     QString modelname = name.toLower();
                     if (modelname.startsWith("hifi")) {
                         hifiGlobalNodeID = id;
-                    }
-
-                    if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye" || (hfmModel.hfmToHifiJointNameMapping.contains(jointEyeLeftName) && (name == hfmModel.hfmToHifiJointNameMapping[jointEyeLeftName]))) {
-                        jointEyeLeftID = getID(object.properties);
-
-                    } else if (name == jointEyeRightName || name == "EyeR" || name == "joint_Reye" || (hfmModel.hfmToHifiJointNameMapping.contains(jointEyeRightName) && (name == hfmModel.hfmToHifiJointNameMapping[jointEyeRightName]))) {
-                        jointEyeRightID = getID(object.properties);
-
-                    } else if (name == jointNeckName || name == "NeckRot" || name == "joint_neck" || (hfmModel.hfmToHifiJointNameMapping.contains(jointNeckName) && (name == hfmModel.hfmToHifiJointNameMapping[jointNeckName]))) {
-                        jointNeckID = getID(object.properties);
-
-                    } else if (name == jointRootName || (hfmModel.hfmToHifiJointNameMapping.contains(jointRootName) && (name == hfmModel.hfmToHifiJointNameMapping[jointRootName]))) {
-                        jointRootID = getID(object.properties);
-
-                    } else if (name == jointLeanName || (hfmModel.hfmToHifiJointNameMapping.contains(jointLeanName) && (name == hfmModel.hfmToHifiJointNameMapping[jointLeanName]))) {
-                        jointLeanID = getID(object.properties);
-
-                    } else if ((name == jointHeadName) || (hfmModel.hfmToHifiJointNameMapping.contains(jointHeadName) && (name == hfmModel.hfmToHifiJointNameMapping[jointHeadName]))) {
-                        jointHeadID = getID(object.properties);
-
-                    } else if (name == jointLeftHandName || name == "LeftHand" || name == "joint_L_hand" || (hfmModel.hfmToHifiJointNameMapping.contains(jointLeftHandName) && (name == hfmModel.hfmToHifiJointNameMapping[jointLeftHandName]))) {
-                        jointLeftHandID = getID(object.properties);
-
-                    } else if (name == jointRightHandName || name == "RightHand" || name == "joint_R_hand" || (hfmModel.hfmToHifiJointNameMapping.contains(jointRightHandName) && (name == hfmModel.hfmToHifiJointNameMapping[jointRightHandName]))) {
-                        jointRightHandID = getID(object.properties);
-
-                    } else if (name == "LeftToe" || name == "joint_L_toe" || name == "LeftToe_End" || (hfmModel.hfmToHifiJointNameMapping.contains("LeftToe") && (name == hfmModel.hfmToHifiJointNameMapping["LeftToe"]))) {
-                        jointLeftToeID = getID(object.properties);
-
-                    } else if (name == "RightToe" || name == "joint_R_toe" || name == "RightToe_End" || (hfmModel.hfmToHifiJointNameMapping.contains("RightToe") && (name == hfmModel.hfmToHifiJointNameMapping["RightToe"]))) {
-                        jointRightToeID = getID(object.properties);
-                    }
-
-                    int humanIKJointIndex = humanIKJointNames.indexOf(name);
-                    if (humanIKJointIndex != -1) {
-                        humanIKJointIDs[humanIKJointIndex] = getID(object.properties);
                     }
 
                     glm::vec3 translation;
@@ -1449,28 +1353,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     std::vector<ShapeVertices> shapeVertices;
     shapeVertices.resize(std::max(1, hfmModel.joints.size()) );
 
-    // find our special joints
-    hfmModel.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
-    hfmModel.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
-    hfmModel.neckJointIndex = modelIDs.indexOf(jointNeckID);
-    hfmModel.rootJointIndex = modelIDs.indexOf(jointRootID);
-    hfmModel.leanJointIndex = modelIDs.indexOf(jointLeanID);
-    hfmModel.headJointIndex = modelIDs.indexOf(jointHeadID);
-    hfmModel.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
-    hfmModel.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
-    hfmModel.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
-    hfmModel.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
-
-    foreach (const QString& id, humanIKJointIDs) {
-        hfmModel.humanIKJointIndices.append(modelIDs.indexOf(id));
-    }
-
-    // extract the translation component of the neck transform
-    if (hfmModel.neckJointIndex != -1) {
-        const glm::mat4& transform = hfmModel.joints.at(hfmModel.neckJointIndex).transform;
-        hfmModel.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-    }
-
     hfmModel.bindExtents.reset();
     hfmModel.meshExtents.reset();
 
@@ -1744,14 +1626,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 }
             }
         }
-        buildModelMesh(extracted.mesh, url);
 
         hfmModel.meshes.append(extracted.mesh);
         int meshIndex = hfmModel.meshes.size() - 1;
-        if (extracted.mesh._mesh) {
-            extracted.mesh._mesh->displayName = QString("%1#/mesh/%2").arg(url).arg(meshIndex).toStdString();
-            extracted.mesh._mesh->modelName = modelIDsToNames.value(modelID).toStdString();
-        }
         meshIDsToMeshIndices.insert(it.key(), meshIndex);
     }
 
@@ -1816,22 +1693,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             if (modelIDsToNames.contains(modelID)) {
                 const QString& modelName = modelIDsToNames.value(modelID);
                 hfmModel.meshIndicesToModelNames.insert(meshIndex, modelName);
-            }
-        }
-    }
-    {
-        int i = 0;
-        for (const auto& mesh : hfmModel.meshes) {
-            auto name = hfmModel.getModelNameOfMesh(i++);
-            if (!name.isEmpty()) {
-                if (mesh._mesh) {
-                    mesh._mesh->modelName = name.toStdString();
-                    if (!mesh._mesh->displayName.size()) {
-                        mesh._mesh->displayName = QString("#%1").arg(name).toStdString();
-                    }
-                } else {
-                    qDebug() << "modelName but no mesh._mesh" << name;
-                }
             }
         }
     }

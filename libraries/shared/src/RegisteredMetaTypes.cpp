@@ -24,6 +24,7 @@
 #include <QtNetwork/QAbstractSocket>
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptValueIterator>
+#include <QJsonDocument>
 
 int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 int u8vec3MetaTypeId = qRegisterMetaType<u8vec3>();
@@ -1244,4 +1245,32 @@ void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>
         meshFaceFromScriptValue(array.property(i), meshFace);
         result << meshFace;
     }
+}
+
+QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures) {
+    // If textures are unset, revert to original textures
+    if (textures.isEmpty()) {
+        return defaultTextures;
+    }
+
+    // Legacy: a ,\n-delimited list of filename:"texturepath"
+    if (*textures.cbegin() != '{') {
+        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    }
+
+    QJsonParseError error;
+    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
+    // If textures are invalid, revert to original textures
+    if (error.error != QJsonParseError::NoError) {
+        qWarning() << "Could not evaluate textures property value:" << textures;
+        return defaultTextures;
+    }
+
+    QVariantMap texturesMap = texturesJson.toVariant().toMap();
+    // If textures are unset, revert to original textures
+    if (texturesMap.isEmpty()) {
+        return defaultTextures;
+    }
+
+    return texturesJson.toVariant().toMap();
 }

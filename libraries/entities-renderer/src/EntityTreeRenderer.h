@@ -117,6 +117,11 @@ public:
     // Access the workload Space
     workload::SpacePointer getWorkloadSpace() const { return _space; }
 
+    static void setGetAvatarUpOperator(std::function<glm::vec3()> getAvatarUpOperator) { _getAvatarUpOperator = getAvatarUpOperator; }
+    static glm::vec3 getAvatarUp() { return _getAvatarUpOperator(); }
+
+    EntityEditPacketSender* getPacketSender();
+
 signals:
     void enterEntity(const EntityItemID& entityItemID);
     void leaveEntity(const EntityItemID& entityItemID);
@@ -205,42 +210,28 @@ private:
 
     class LayeredZones : public std::set<LayeredZone> {
     public:
-        LayeredZones(EntityTreeRenderer* parent) : _entityTreeRenderer(parent) {}
+        LayeredZones() {};
         LayeredZones(LayeredZones&& other);
 
         // avoid accidental misconstruction
-        LayeredZones() = delete;
         LayeredZones(const LayeredZones&) = delete;
         LayeredZones& operator=(const LayeredZones&) = delete;
         LayeredZones& operator=(LayeredZones&&) = delete;
 
         void clear();
         std::pair<iterator, bool> insert(const LayeredZone& layer);
-
-        void apply();
         void update(std::shared_ptr<ZoneEntityItem> zone);
-
         bool contains(const LayeredZones& other);
 
         std::shared_ptr<ZoneEntityItem> getZone() { return empty() ? nullptr : begin()->zone; }
 
     private:
-        void applyPartial(iterator layer);
-
         std::map<QUuid, iterator> _map;
-        iterator _skyboxLayer{ end() };
-        EntityTreeRenderer* _entityTreeRenderer;
+        iterator _skyboxLayer { end() };
     };
 
     LayeredZones _layeredZones;
-    QString _zoneUserData;
-    NetworkTexturePointer _ambientTexture;
-    NetworkTexturePointer _skyboxTexture;
-    QString _ambientTextureURL;
-    QString _skyboxTextureURL;
     float _avgRenderableUpdateCost { 0.0f };
-    bool _pendingAmbientTexture { false };
-    bool _pendingSkyboxTexture { false };
 
     uint64_t _lastZoneCheck { 0 };
     const uint64_t ZONE_CHECK_INTERVAL = USECS_PER_MSEC * 100; // ~10hz
@@ -262,6 +253,8 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space{ new workload::Space() };
     workload::Transaction::Updates _spaceUpdates;
+
+    static std::function<glm::vec3()> _getAvatarUpOperator;
 };
 
 

@@ -159,6 +159,7 @@
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
+#include "avatar/AvatarPackager.h"
 #include "CrashRecoveryHandler.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
@@ -171,6 +172,7 @@
 #include "scripting/Audio.h"
 #include "networking/CloseEventSender.h"
 #include "scripting/TestScriptingInterface.h"
+#include "scripting/PlatformInfoScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
@@ -208,6 +210,8 @@
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
+
+#include "avatar/GrabManager.h"
 
 #include <GPUIdent.h>
 #include <gl/GLHelpers.h>
@@ -721,6 +725,8 @@ const QString TEST_RESULTS_LOCATION_COMMAND{ "--testResultsLocation" };
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
+    qInstallMessageHandler(messageHandler);
+
     // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
     // --allowMultipleInstances
     auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
@@ -859,7 +865,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<LODManager>();
     DependencyManager::set<StandAloneJSConsole>();
     DependencyManager::set<DialogsManager>();
-    DependencyManager::set<BandwidthRecorder>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
@@ -919,6 +924,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ResourceRequestObserver>();
     DependencyManager::set<Keyboard>();
     DependencyManager::set<KeyboardScriptingInterface>();
+    DependencyManager::set<GrabManager>();
+    DependencyManager::set<AvatarPackager>();
 
     return previousSessionCrashed;
 }
@@ -969,6 +976,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
+    _logger(new FileLogger(this)),
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
@@ -1058,9 +1066,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
-    _logger = new FileLogger(this);
-    qInstallMessageHandler(messageHandler);
-
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/fontawesome-webfont.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/hifi-glyphs.ttf");
@@ -1078,6 +1083,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->startThread();
+    nodeList->setFlagTimeForConnectionStep(true);
 
     // move the AddressManager to the NodeList thread so that domain resets due to domain changes always occur
     // before we tell MyAvatar to go to a new location in the new domain
@@ -1573,13 +1579,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(onAboutToQuit()));
 
-    // hook up bandwidth estimator
-    QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    connect(nodeList.data(), &LimitedNodeList::dataSent,
-        bandwidthRecorder.data(), &BandwidthRecorder::updateOutboundData);
-    connect(nodeList.data(), &LimitedNodeList::dataReceived,
-        bandwidthRecorder.data(), &BandwidthRecorder::updateInboundData);
-
     // FIXME -- I'm a little concerned about this.
     connect(myAvatar->getSkeletonModel().get(), &SkeletonModel::skeletonLoaded,
         this, &Application::checkSkeleton, Qt::QueuedConnection);
@@ -2045,15 +2044,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["deadlock_watchdog_maxElapsed"] = (int)DeadlockWatchdogThread::_maxElapsed;
         properties["deadlock_watchdog_maxElapsedAverage"] = (int)DeadlockWatchdogThread::_maxElapsedAverage;
 
-        auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-        properties["packet_rate_in"] = bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond();
-        properties["packet_rate_out"] = bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond();
-        properties["kbps_in"] = bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond();
-        properties["kbps_out"] = bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond();
-
-        properties["atp_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
-
         auto nodeList = DependencyManager::get<NodeList>();
+        properties["packet_rate_in"] = nodeList->getInboundPPS();
+        properties["packet_rate_out"] = nodeList->getOutboundPPS();
+        properties["kbps_in"] = nodeList->getInboundKbps();
+        properties["kbps_out"] = nodeList->getOutboundKbps();
+
         SharedNodePointer entityServerNode = nodeList->soloNodeOfType(NodeType::EntityServer);
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
@@ -2064,6 +2060,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["avatar_ping"] = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
         properties["asset_ping"] = assetServerNode ? assetServerNode->getPingMs() : -1;
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
+        properties["atp_in_kbps"] = assetServerNode ? assetServerNode->getInboundKbps() : 0.0f;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
 
@@ -2289,7 +2286,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Setup the mouse ray pick and related operators
     {
-        auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP, PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_INCLUDE_NONCOLLIDABLE()), 0.0f, true);
+        auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP, PickFilter(PickScriptingInterface::PICK_ENTITIES()), 0.0f, true);
         mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
         mouseRayPick->setJointState(PickQuery::JOINT_STATE_MOUSE);
         auto mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
@@ -2313,6 +2310,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([](unsigned int rayPickID, bool value) {
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
+    });
+
+    EntityTreeRenderer::setGetAvatarUpOperator([] {
+        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
     });
 
     // Preload Tablet sounds
@@ -2458,7 +2459,14 @@ void Application::updateHeartbeat() const {
 }
 
 void Application::onAboutToQuit() {
+    // quickly save AvatarEntityData before the EntityTree is dismantled
+    getMyAvatar()->saveAvatarEntityDataToSettings();
+
     emit beforeAboutToQuit();
+
+    if (getLoginDialogPoppedUp() && _firstRun.get()) {
+        _firstRun.set(false);
+    }
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
@@ -2614,6 +2622,7 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<PickManager>();
     DependencyManager::destroy<KeyboardScriptingInterface>();
     DependencyManager::destroy<Keyboard>();
+    DependencyManager::destroy<AvatarPackager>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
 }
@@ -4908,7 +4917,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename,
-                                 const QVector<EntityItemID>& entityIDs,
+                                 const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
@@ -4983,16 +4992,12 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     glm::vec3 minCorner = center - vec3(scale);
     float cubeSize = scale * 2;
     AACube boundingCube(minCorner, cubeSize);
-    QVector<EntityItemPointer> entities;
-    QVector<EntityItemID> ids;
+    QVector<QUuid> entities;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->findEntities(boundingCube, entities);
-        foreach(EntityItemPointer entity, entities) {
-            ids << entity->getEntityItemID();
-        }
+        entityTree->evalEntitiesInCube(boundingCube, PickFilter(), entities);
     });
-    return exportEntities(filename, ids, &center);
+    return exportEntities(filename, entities, &center);
 }
 
 void Application::loadSettings() {
@@ -5257,17 +5262,13 @@ void Application::resumeAfterLoginDialogActionTaken() {
         // this will force the model the look at the correct directory (weird order of operations issue)
         scriptEngines->reloadLocalFiles();
 
-        if (!_defaultScriptsLocation.exists()) {
+        // if the --scripts command-line argument was used.
+        if (!_defaultScriptsLocation.exists() && (arguments().indexOf(QString("--").append(SCRIPTS_SWITCH))) != -1) {
             scriptEngines->loadDefaultScripts();
             scriptEngines->defaultScriptsLocationOverridden(true);
         } else {
             scriptEngines->loadScripts();
         }
-    }
-
-    if (_firstRun.get()) {
-        // not first run anymore since action was taken.
-        _firstRun.set(false);
     }
 
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -5276,28 +5277,19 @@ void Application::resumeAfterLoginDialogActionTaken() {
     // restart domain handler.
     nodeList->getDomainHandler().resetting();
 
-    if (!accountManager->isLoggedIn()) {
+    QVariant testProperty = property(hifi::properties::TEST);
+    if (testProperty.isValid()) {
+        const auto testScript = property(hifi::properties::TEST).toUrl();
+        // Set last parameter to exit interface when the test script finishes, if so requested
+        DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
+        // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
         if (arguments().contains("--url")) {
             auto reply = SandboxUtils::getStatus();
             connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        } else {
-            addressManager->goToEntry();
         }
     } else {
-        QVariant testProperty = property(hifi::properties::TEST);
-        if (testProperty.isValid()) {
-            const auto testScript = property(hifi::properties::TEST).toUrl();
-            // Set last parameter to exit interface when the test script finishes, if so requested
-            DependencyManager::get<ScriptEngines>()->loadScript(testScript, false, false, false, false, quitWhenFinished);
-            // This is done so we don't get a "connection time-out" message when we haven't passed in a URL.
-            if (arguments().contains("--url")) {
-                auto reply = SandboxUtils::getStatus();
-                connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-            }
-        } else {
-            auto reply = SandboxUtils::getStatus();
-            connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
-        }
+        auto reply = SandboxUtils::getStatus();
+        connect(reply, &QNetworkReply::finished, this, [this, reply] { handleSandboxStatus(reply); });
     }
 
     auto menu = Menu::getInstance();
@@ -5980,6 +5972,8 @@ void Application::update(float deltaTime) {
                 if (deltaTime > FLT_EPSILON) {
                     myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
                     myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
+                    myAvatar->setDriveKey(MyAvatar::DELTA_PITCH, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_PITCH));
+                    myAvatar->setDriveKey(MyAvatar::DELTA_YAW, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_YAW));
                     myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
                 }
             }
@@ -6097,6 +6091,9 @@ void Application::update(float deltaTime) {
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
+
+    auto grabManager = DependencyManager::get<GrabManager>();
+    grabManager->simulateGrabs();
 
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
@@ -6701,6 +6698,7 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
     _overlayConductor.centerUI();
+    getActiveDisplayPlugin()->resetSensors();
     getMyAvatar()->reset(true, andReload);
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
@@ -6765,8 +6763,10 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails() {
+    // before we delete all entities get MyAvatar's AvatarEntityData ready
+    getMyAvatar()->prepareAvatarEntityDataForReload();
 
-    // if we're about to quit, we really don't need to do any of these things...
+    // if we're about to quit, we really don't need to do the rest of these things...
     if (_aboutToQuit) {
         return;
     }
@@ -6794,8 +6794,6 @@ void Application::clearDomainOctreeDetails() {
     ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
     DependencyManager::get<recording::ClipCache>()->clearUnusedResources();
-
-    getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
 void Application::domainURLChanged(QUrl domainURL) {
@@ -7004,6 +7002,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
         scriptEngine->registerGlobalObject("Test", TestScriptingInterface::getInstance());
     }
 
+    scriptEngine->registerGlobalObject("PlatformInfo", PlatformInfoScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Rates", new RatesScriptingInterface(this));
 
     // hook our avatar and avatar hash map object into this script engine
@@ -7703,16 +7702,13 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
 
 void Application::addAssetToWorldAddEntity(QString filePath, QString mapping) {
     EntityItemProperties properties;
-    properties.setType(EntityTypes::Model);
     properties.setName(mapping.right(mapping.length() - 1));
     if (filePath.toLower().endsWith(PNG_EXTENSION) || filePath.toLower().endsWith(JPG_EXTENSION)) {
-        QJsonObject textures {
-            {"tex.picture", QString("atp:" + mapping) }
-        };
-        properties.setModelURL("https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx");
-        properties.setTextures(QJsonDocument(textures).toJson(QJsonDocument::Compact));
-        properties.setShapeType(SHAPE_TYPE_BOX);
+        properties.setType(EntityTypes::Image);
+        properties.setImageURL(QString("atp:" + mapping));
+        properties.setKeepAspectRatio(false);
     } else {
+        properties.setType(EntityTypes::Model);
         properties.setModelURL("atp:" + mapping);
         properties.setShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     }
@@ -8724,6 +8720,14 @@ void Application::updateLoginDialogOverlayPosition() {
     }
 }
 
+bool Application::hasRiftControllers() {
+    return PluginUtils::isOculusTouchControllerAvailable();
+}
+
+bool Application::hasViveControllers() {
+    return PluginUtils::isViveControllerAvailable();
+}
+
 void Application::onDismissedLoginDialog() {
     _loginDialogPoppedUp = false;
     loginDialogPoppedUp.set(false);
@@ -8940,6 +8944,10 @@ void Application::copyToClipboard(const QString& text) {
 
     // assume that the address is being copied because the user wants a shareable address
     QApplication::clipboard()->setText(text);
+}
+
+QString Application::getGraphicsCardType() {
+    return GPUIdent::getInstance()->getName();
 }
 
 #if defined(Q_OS_ANDROID)

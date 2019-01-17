@@ -66,6 +66,7 @@ protected:
     EntityItemID _otherID;
     SpatiallyNestableWeakPointer _other;
     SpatiallyNestablePointer getOther();
+    int _otherJointIndex { -1 };
 
 private:
     qint64 getEntityServerClockSkew() const;

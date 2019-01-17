@@ -20,6 +20,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <BufferParser.h>
 #include <ByteCountCoding.h>
@@ -31,12 +32,15 @@
 #include <SharedUtil.h> // usecTimestampNow()
 #include <LogHandler.h>
 #include <Extents.h>
+#include <QVariantGLM.h>
+#include <Grab.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
 #include "EntityTree.h"
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
+
 
 Q_DECLARE_METATYPE(EntityItemPointer);
 int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
@@ -70,33 +74,60 @@ EntityItem::~EntityItem() {
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties;
 
+    // Core
     requestedProperties += PROP_SIMULATION_OWNER;
+    requestedProperties += PROP_VISIBLE;
+    requestedProperties += PROP_NAME;
+    requestedProperties += PROP_LOCKED;
+    requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_HREF;
+    requestedProperties += PROP_DESCRIPTION;
     requestedProperties += PROP_POSITION;
+    requestedProperties += PROP_DIMENSIONS;
     requestedProperties += PROP_ROTATION;
+    requestedProperties += PROP_REGISTRATION_POINT;
+    requestedProperties += PROP_CREATED;
+    requestedProperties += PROP_LAST_EDITED_BY;
+    //requestedProperties += PROP_ENTITY_HOST_TYPE;             // not sent over the wire
+    //requestedProperties += PROP_OWNING_AVATAR_ID;             // not sent over the wire
+    requestedProperties += PROP_PARENT_ID;
+    requestedProperties += PROP_PARENT_JOINT_INDEX;
+    requestedProperties += PROP_QUERY_AA_CUBE;
+    requestedProperties += PROP_CAN_CAST_SHADOW;
+    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
+    withReadLock([&] {
+        requestedProperties += _grabProperties.getEntityProperties(params);
+    });
+
+    // Physics
+    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_VELOCITY;
     requestedProperties += PROP_ANGULAR_VELOCITY;
-    requestedProperties += PROP_ACCELERATION;
-
-    requestedProperties += PROP_DIMENSIONS;
-    requestedProperties += PROP_DENSITY;
     requestedProperties += PROP_GRAVITY;
+    requestedProperties += PROP_ACCELERATION;
     requestedProperties += PROP_DAMPING;
+    requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_RESTITUTION;
     requestedProperties += PROP_FRICTION;
     requestedProperties += PROP_LIFETIME;
-    requestedProperties += PROP_SCRIPT;
-    requestedProperties += PROP_SCRIPT_TIMESTAMP;
-    requestedProperties += PROP_SERVER_SCRIPTS;
-    requestedProperties += PROP_COLLISION_SOUND_URL;
-    requestedProperties += PROP_REGISTRATION_POINT;
-    requestedProperties += PROP_ANGULAR_DAMPING;
-    requestedProperties += PROP_VISIBLE;
-    requestedProperties += PROP_CAN_CAST_SHADOW;
     requestedProperties += PROP_COLLISIONLESS;
     requestedProperties += PROP_COLLISION_MASK;
     requestedProperties += PROP_DYNAMIC;
-    requestedProperties += PROP_LOCKED;
-    requestedProperties += PROP_USER_DATA;
+    requestedProperties += PROP_COLLISION_SOUND_URL;
+    requestedProperties += PROP_ACTION_DATA;
+
+    // Cloning
+    requestedProperties += PROP_CLONEABLE;
+    requestedProperties += PROP_CLONE_LIFETIME;
+    requestedProperties += PROP_CLONE_LIMIT;
+    requestedProperties += PROP_CLONE_DYNAMIC;
+    requestedProperties += PROP_CLONE_AVATAR_ENTITY;
+    requestedProperties += PROP_CLONE_ORIGIN_ID;
+
+    // Scripts
+    requestedProperties += PROP_SCRIPT;
+    requestedProperties += PROP_SCRIPT_TIMESTAMP;
+    requestedProperties += PROP_SERVER_SCRIPTS;
 
     // Certifiable properties
     requestedProperties += PROP_ITEM_NAME;
@@ -110,30 +141,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
     requestedProperties += PROP_STATIC_CERTIFICATE_VERSION;
-
-    requestedProperties += PROP_NAME;
-    requestedProperties += PROP_HREF;
-    requestedProperties += PROP_DESCRIPTION;
-    requestedProperties += PROP_ACTION_DATA;
-    requestedProperties += PROP_PARENT_ID;
-    requestedProperties += PROP_PARENT_JOINT_INDEX;
-    requestedProperties += PROP_QUERY_AA_CUBE;
-
-    requestedProperties += PROP_ENTITY_HOST_TYPE;
-    requestedProperties += PROP_OWNING_AVATAR_ID;
-
-    requestedProperties += PROP_LAST_EDITED_BY;
-
-    requestedProperties += PROP_CLONEABLE;
-    requestedProperties += PROP_CLONE_LIFETIME;
-    requestedProperties += PROP_CLONE_LIMIT;
-    requestedProperties += PROP_CLONE_DYNAMIC;
-    requestedProperties += PROP_CLONE_AVATAR_ENTITY;
-    requestedProperties += PROP_CLONE_ORIGIN_ID;
-
-    withReadLock([&] {
-        requestedProperties += _grabProperties.getEntityProperties(params);
-    });
 
     return requestedProperties;
 }
@@ -171,9 +178,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
-
-    requestedProperties -= PROP_ENTITY_HOST_TYPE;
-    requestedProperties -= PROP_OWNING_AVATAR_ID;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
@@ -240,56 +244,27 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
         propertyFlags -= PROP_LAST_ITEM; // clear the last item for now, we may or may not set it as the actual item
 
+        // NOTE: When we enable partial packing of entity properties, we'll want to pack simulationOwner, transform, and velocity properties near each other
+        // since they will commonly be transmitted together.  simulationOwner must always go first, to avoid race conditions of simulation ownership bids
         // These items would go here once supported....
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
-        APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
-        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getLocalVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
-
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
-        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
-        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
-        APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
-        APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, getRestitution());
-        APPEND_ENTITY_PROPERTY(PROP_FRICTION, getFriction());
-        APPEND_ENTITY_PROPERTY(PROP_LIFETIME, getLifetime());
-        APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
-        APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
-        APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
-        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
-        APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, getCollisionless());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, getCollisionMask());
-        APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
-
-        // Certifiable Properties
-        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
-        APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, getItemName());
-        APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, getItemDescription());
-        APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, getItemCategories());
-        APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, getItemArtist());
-        APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
-        APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
-        APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
-        APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
-        APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
-        APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
-
-        APPEND_ENTITY_PROPERTY(PROP_NAME, getName());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
-        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getDynamicData());
-
+        APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
+        APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
+        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
+        APPEND_ENTITY_PROPERTY(PROP_CREATED, getCreated());
+        APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
+        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, getEntityHostType());  // not sent over the wire
+        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());  // not sent over the wire
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
         if (actualParentID == AVATAR_SELF_ID) {
@@ -297,11 +272,33 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
             actualParentID = nodeList->getSessionUUID();
         }
         APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, actualParentID);
-
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
-        APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
+        APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
+        // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over the wire
+        withReadLock([&] {
+            _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+                propertyFlags, propertiesDidntFit, propertyCount, appendState);
+        });
 
+        // Physics
+        APPEND_ENTITY_PROPERTY(PROP_DENSITY, getDensity());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getLocalVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_GRAVITY, getGravity());
+        APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
+        APPEND_ENTITY_PROPERTY(PROP_DAMPING, getDamping());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
+        APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, getRestitution());
+        APPEND_ENTITY_PROPERTY(PROP_FRICTION, getFriction());
+        APPEND_ENTITY_PROPERTY(PROP_LIFETIME, getLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, getCollisionless());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, getCollisionMask());
+        APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, getCollisionSoundURL());
+        APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, getDynamicData());
+
+        // Cloning
         APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, getCloneable());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, getCloneLifetime());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, getCloneLimit());
@@ -309,10 +306,23 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, getCloneAvatarEntity());
         APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, getCloneOriginID());
 
-        withReadLock([&] {
-            _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
-                                               propertyFlags, propertiesDidntFit, propertyCount, appendState);
-        });
+        // Scripts
+        APPEND_ENTITY_PROPERTY(PROP_SCRIPT, getScript());
+        APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, getScriptTimestamp());
+        APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
+
+        // Certifiable Properties
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, getItemName());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, getItemDescription());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, getItemCategories());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, getItemArtist());
+        APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
+        APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
+        APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
+        APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
+        APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+        APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -673,7 +683,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-    // pack SimulationOwner, transform, and velocity properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
 
@@ -766,6 +775,14 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
     };
 
+    // Core
+    // PROP_SIMULATION_OWNER handled above
+    READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+    READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
+    READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
+    READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
         // we also want to ignore any duplicate packets that have the same "recently updated" values
         // as a packet we've already recieved. This is because we want multiple edits of the same
@@ -778,116 +795,40 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         // Note: duplicate packets are expected and not wrong. They may be sent for any number of
         // reasons and the contract is that the client handles them in an idempotent manner.
-        auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+        auto customUpdatePositionFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value) {
             if (shouldUpdate(_lastUpdatedPositionTimestamp, value != _lastUpdatedPositionValue)) {
                 setPosition(value);
                 _lastUpdatedPositionTimestamp = lastEdited;
                 _lastUpdatedPositionValue = value;
             }
         };
-
-        auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value){
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, customUpdatePositionFromNetwork);
+    }
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setUnscaledDimensions);
+    {   // See comment above
+        auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value) {
             if (shouldUpdate(_lastUpdatedRotationTimestamp, value != _lastUpdatedRotationValue)) {
                 setRotation(value);
                 _lastUpdatedRotationTimestamp = lastEdited;
                 _lastUpdatedRotationValue = value;
             }
         };
-
-        auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
-             if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
-                setVelocity(value);
-                _lastUpdatedVelocityTimestamp = lastEdited;
-                _lastUpdatedVelocityValue = value;
-            }
-        };
-
-        auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
-            if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
-                setAngularVelocity(value);
-                _lastUpdatedAngularVelocityTimestamp = lastEdited;
-                _lastUpdatedAngularVelocityValue = value;
-            }
-        };
-
-        auto customSetAcceleration = [this, shouldUpdate, lastEdited](glm::vec3 value){
-            if (shouldUpdate(_lastUpdatedAccelerationTimestamp, value != _lastUpdatedAccelerationValue)) {
-                setAcceleration(value);
-                _lastUpdatedAccelerationTimestamp = lastEdited;
-                _lastUpdatedAccelerationValue = value;
-            }
-        };
-
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, customUpdatePositionFromNetwork);
         READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, customUpdateRotationFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, customUpdateVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, customUpdateAngularVelocityFromNetwork);
-        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
     }
-
-    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setUnscaledDimensions);
-    READ_ENTITY_PROPERTY(PROP_DENSITY, float, setDensity);
-    READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, setGravity);
-
-    READ_ENTITY_PROPERTY(PROP_DAMPING, float, setDamping);
-    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, setRestitution);
-    READ_ENTITY_PROPERTY(PROP_FRICTION, float, setFriction);
-    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, setLifetime);
-    READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
-    READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-
-    {
-        // We use this scope to work around an issue stopping server script changes
-        // from being received by an entity script server running a script that continously updates an entity.
-
-        // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
-        // that have been made more recently.
-
-        bool overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
-
-        READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
-    }
-
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-
-    READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
-    READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
-    READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
-    READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
-    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
-    READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
-
-    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-    READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
-    READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
-    READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
-    READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
-    READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
-    READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
-    READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
-    READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
-    READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
-    READ_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
-
-    READ_ENTITY_PROPERTY(PROP_NAME, QString, setName);
-    READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
-    READ_ENTITY_PROPERTY(PROP_HREF, QString, setHref);
-    READ_ENTITY_PROPERTY(PROP_DESCRIPTION, QString, setDescription);
-    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setDynamicData);
-
-    {   // parentID and parentJointIndex are also protected by simulation ownership
+    READ_ENTITY_PROPERTY(PROP_CREATED, quint64, setCreated);
+    READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
+    // READ_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, entity::HostType, setEntityHostType); // not sent over the wire
+    // READ_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, QUuuid, setOwningAvatarID);           // not sent over the wire
+    {   // parentID and parentJointIndex are protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
         READ_ENTITY_PROPERTY(PROP_PARENT_ID, QUuid, setParentID);
         READ_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
         overwriteLocalData = oldOverwrite;
     }
-
-
-    {
-        auto customUpdateQueryAACubeFromNetwork = [this, shouldUpdate, lastEdited](AACube value){
+    {   // See comment above
+        auto customUpdateQueryAACubeFromNetwork = [this, shouldUpdate, lastEdited](AACube value) {
             if (shouldUpdate(_lastUpdatedQueryAACubeTimestamp, value != _lastUpdatedQueryAACubeValue)) {
                 setQueryAACube(value);
                 _lastUpdatedQueryAACubeTimestamp = lastEdited;
@@ -896,9 +837,56 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         };
         READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, customUpdateQueryAACubeFromNetwork);
     }
+    READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
+    // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over the wire
+    withWriteLock([&] {
+        int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromGrab;
+        dataAt += bytesFromGrab;
+    });
 
-    READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
+    READ_ENTITY_PROPERTY(PROP_DENSITY, float, setDensity);
+    {
+        auto customUpdateVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value) {
+            if (shouldUpdate(_lastUpdatedVelocityTimestamp, value != _lastUpdatedVelocityValue)) {
+                setVelocity(value);
+                _lastUpdatedVelocityTimestamp = lastEdited;
+                _lastUpdatedVelocityValue = value;
+            }
+        };
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, customUpdateVelocityFromNetwork);
+        auto customUpdateAngularVelocityFromNetwork = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedAngularVelocityTimestamp, value != _lastUpdatedAngularVelocityValue)) {
+                setAngularVelocity(value);
+                _lastUpdatedAngularVelocityTimestamp = lastEdited;
+                _lastUpdatedAngularVelocityValue = value;
+            }
+        };
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, customUpdateAngularVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, setGravity);
+        auto customSetAcceleration = [this, shouldUpdate, lastEdited](glm::vec3 value){
+            if (shouldUpdate(_lastUpdatedAccelerationTimestamp, value != _lastUpdatedAccelerationValue)) {
+                setAcceleration(value);
+                _lastUpdatedAccelerationTimestamp = lastEdited;
+                _lastUpdatedAccelerationValue = value;
+            }
+        };
+        READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, customSetAcceleration);
+    }
+    READ_ENTITY_PROPERTY(PROP_DAMPING, float, setDamping);
+    READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, setAngularDamping);
+    READ_ENTITY_PROPERTY(PROP_RESTITUTION, float, setRestitution);
+    READ_ENTITY_PROPERTY(PROP_FRICTION, float, setFriction);
+    READ_ENTITY_PROPERTY(PROP_LIFETIME, float, setLifetime);
+    READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, setCollisionless);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
+    READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, setDynamic);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
+    READ_ENTITY_PROPERTY(PROP_ACTION_DATA, QByteArray, setDynamicData);
 
+    // Cloning
     READ_ENTITY_PROPERTY(PROP_CLONEABLE, bool, setCloneable);
     READ_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, float, setCloneLifetime);
     READ_ENTITY_PROPERTY(PROP_CLONE_LIMIT, float, setCloneLimit);
@@ -906,13 +894,32 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
     READ_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID);
 
-    withWriteLock([&] {
-        int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
-                                                                             propertyFlags, overwriteLocalData,
-                                                                             somethingChanged);
-        bytesRead += bytesFromGrab;
-        dataAt += bytesFromGrab;
-    });
+    // Scripts
+    READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
+    READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+    {
+        // We use this scope to work around an issue stopping server script changes
+        // from being received by an entity script server running a script that continously updates an entity.
+        // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
+        // that have been made more recently.
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
+        READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
+        overwriteLocalData = oldOverwrite;
+    }
+
+    // Certifiable props
+    READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
+    READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
+    READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
+    READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
+    READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
+    READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
+    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
+    READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+    READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
+    READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
                                                   propertyFlags, overwriteLocalData, somethingChanged);
@@ -1282,34 +1289,60 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
 
     properties._type = getType();
 
+    // Core
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(simulationOwner, getSimulationOwner);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getUnscaledDimensions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(created, getCreated);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityHostType, getEntityHostType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
+    withReadLock([&] {
+        _grabProperties.getProperties(properties);
+    });
+
+    // Physics
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getLocalVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(acceleration, getAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(restitution, getRestitution);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(friction, getFriction);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(created, getCreated);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptTimestamp, getScriptTimestamp);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(serverScripts, getServerScripts);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionMask, getCollisionMask);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getDynamicData);
+
+    // Cloning
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneable, getCloneable);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLifetime, getCloneLifetime);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLimit, getCloneLimit);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneDynamic, getCloneDynamic);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
+
+    // Scripts
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptTimestamp, getScriptTimestamp);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(serverScripts, getServerScripts);
 
     // Certifiable Properties
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(itemName, getItemName);
@@ -1324,31 +1357,13 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(staticCertificateVersion, getStaticCertificateVersion);
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(name, getName);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(actionData, getDynamicData);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
+    // Script local data
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
-
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityHostType, getEntityHostType);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(owningAvatarID, getOwningAvatarID);
-
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lastEditedBy, getLastEditedBy);
-
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneable, getCloneable);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLifetime, getCloneLifetime);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneLimit, getCloneLimit);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneDynamic, getCloneDynamic);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneAvatarEntity, getCloneAvatarEntity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cloneOriginID, getCloneOriginID);
-
-    withReadLock([&] {
-        _grabProperties.getProperties(properties);
-    });
+    // FIXME: are these needed?
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(localVelocity, getLocalVelocity);
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(localAngularVelocity, getLocalAngularVelocity);
+    //COPY_ENTITY_PROPERTY_TO_PROPERTIES(localDimensions, getLocalDimensions);
 
     properties._defaultSettings = false;
 
@@ -1418,42 +1433,61 @@ bool EntityItem::stillWaitingToTakeOwnership(uint64_t timestamp) const {
 bool EntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
 
-    // these affect transform and velocity properties
+    // Core
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(simulationOwner, setSimulationOwner);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setUnscaledDimensions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, setCreated);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityHostType, setEntityHostType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
+    withWriteLock([&] {
+        bool grabPropertiesChanged = _grabProperties.setProperties(properties);
+        somethingChanged |= grabPropertiesChanged;
+    });
+
+    // Physics
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, setDensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(acceleration, setAcceleration);
-
-    // these (along with "position" above) affect tree structure
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setUnscaledDimensions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
-
-    // these (along with all properties above) affect the simulation
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, setDensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(acceleration, setAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(restitution, setRestitution);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, setFriction);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionless, setCollisionless);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionMask, setCollisionMask);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, setDynamic);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, setCreated);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setDynamicData);
 
-    // non-simulation properties below
+    // Cloning
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneable, setCloneable);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLifetime, setCloneLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLimit, setCloneLimit);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
+
+    // Scripts
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptTimestamp, setScriptTimestamp);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(serverScripts, setServerScripts);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
 
     // Certifiable Properties
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(itemName, setItemName);
@@ -1467,31 +1501,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(staticCertificateVersion, setStaticCertificateVersion);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(actionData, setDynamicData);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentID, setParentID);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(parentJointIndex, setParentJointIndex);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityHostType, setEntityHostType);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(owningAvatarID, setOwningAvatarID);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
-
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneable, setCloneable);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLifetime, setCloneLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneLimit, setCloneLimit);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneDynamic, setCloneDynamic);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneAvatarEntity, setCloneAvatarEntity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cloneOriginID, setCloneOriginID);
-
-    withWriteLock([&] {
-        bool grabPropertiesChanged = _grabProperties.setProperties(properties);
-        somethingChanged |= grabPropertiesChanged;
-    });
 
     if (updateQueryAACube()) {
         somethingChanged = true;
@@ -1647,7 +1656,10 @@ AACube EntityItem::getQueryAACube(bool& success) const {
 }
 
 bool EntityItem::shouldPuffQueryAACube() const {
-    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent();
+    bool hasGrabs = _grabsLock.resultWithReadLock<bool>([&] {
+        return _grabs.count() > 0;
+    });
+    return hasActions() || isChildOfMyAvatar() || isMovingRelativeToParent() || hasGrabs;
 }
 
 // TODO: get rid of all users of this function...
@@ -1668,15 +1680,57 @@ void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
 }
 
 bool EntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-        bool success;
-        bool result = getAABox(success).contains(point);
-        return result && success;
-    } else {
-        ShapeInfo info;
-        info.setParams(getShapeType(), glm::vec3(0.5f));
-        adjustShapeInfoByRegistration(info);
-        return info.contains(worldToEntity(point));
+    ShapeType shapeType = getShapeType();
+
+    if (shapeType == SHAPE_TYPE_SPHERE) {
+        // SPHERE case is special:
+        // anything with shapeType == SPHERE must collide as a bounding sphere in the world-frame regardless of dimensions
+        // therefore we must do math using an unscaled localPoint relative to sphere center
+        glm::vec3 dimensions = getScaledDimensions();
+        glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint())));
+        const float HALF_SQUARED = 0.25f;
+        return glm::length2(localPoint) < HALF_SQUARED * glm::length2(dimensions);
+    }
+
+    // we transform into the "normalized entity-frame" where the bounding box is centered on the origin
+    // and has dimensions <1,1,1>
+    glm::vec3 localPoint = glm::vec3(glm::inverse(getEntityToWorldMatrix()) * glm::vec4(point, 1.0f));
+
+    const float NORMALIZED_HALF_SIDE = 0.5f;
+    const float NORMALIZED_RADIUS_SQUARED = NORMALIZED_HALF_SIDE * NORMALIZED_HALF_SIDE;
+    switch(shapeType) {
+        case SHAPE_TYPE_NONE:
+            return false;
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_PLANE:
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+        case SHAPE_TYPE_CIRCLE:
+        // the above cases not yet supported --> fall through to BOX case
+        case SHAPE_TYPE_BOX: {
+            localPoint = glm::abs(localPoint);
+            return glm::any(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
+        }
+        case SHAPE_TYPE_ELLIPSOID: {
+            // since we've transformed into the normalized space this is just a sphere-point intersection test
+            return glm::length2(localPoint) <= NORMALIZED_RADIUS_SQUARED;
+        }
+        case SHAPE_TYPE_CYLINDER_X:
+            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+                localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED;
+        case SHAPE_TYPE_CYLINDER_Y:
+            return fabsf(localPoint.y) <= NORMALIZED_HALF_SIDE &&
+                localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED;
+        case SHAPE_TYPE_CYLINDER_Z:
+            return fabsf(localPoint.z) <= NORMALIZED_HALF_SIDE &&
+                localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED;
+        default:
+            return false;
     }
 }
 
@@ -1693,7 +1747,8 @@ float EntityItem::getVolumeEstimate() const {
 void EntityItem::setRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         withWriteLock([&] {
-            _registrationPoint = glm::clamp(value, 0.0f, 1.0f);
+            _registrationPoint = glm::clamp(value, glm::vec3(ENTITY_ITEM_MIN_REGISTRATION_POINT), 
+                                                   glm::vec3(ENTITY_ITEM_MAX_REGISTRATION_POINT));
         });
         dimensionsChanged(); // Registration Point affects the bounding box
         markDirtyFlags(Simulation::DIRTY_SHAPE);
@@ -1858,7 +1913,7 @@ void EntityItem::setVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_damping != clampedDamping) {
             _damping = clampedDamping;
@@ -1913,7 +1968,7 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setAngularDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_angularDamping != clampedDamping) {
             _angularDamping = clampedDamping;
@@ -2090,6 +2145,35 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
     return result;
 }
 
+void EntityItem::enableNoBootstrap() {
+    if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
+        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            }
+        });
+    }
+}
+
+void EntityItem::disableNoBootstrap() {
+    if (!stillHasGrabActions()) {
+        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        forEachDescendant([&](SpatiallyNestablePointer child) {
+            if (child->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
+                entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+                entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+            }
+        });
+    }
+}
+
+
 bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action) {
     assert(action);
     assert(simulation);
@@ -2111,17 +2195,7 @@ bool EntityItem::addActionInternal(EntitySimulationPointer simulation, EntityDyn
 
         auto actionType = action->getType();
         if (actionType == DYNAMIC_TYPE_HOLD || actionType == DYNAMIC_TYPE_FAR_GRAB) {
-            if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-                _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-                _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-                forEachDescendant([&](SpatiallyNestablePointer child) {
-                    if (child->getNestableType() == NestableType::Entity) {
-                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                        entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                        entity->markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                    }
-                });
-            }
+            enableNoBootstrap();
         }
     } else {
         qCDebug(entities) << "EntityItem::addActionInternal -- serializeActions failed";
@@ -2202,16 +2276,8 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
         action->setIsMine(false);
         _objectActions.remove(actionID);
 
-        if ((removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) && !stillHasGrabActions()) {
-            _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-            _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
-            forEachDescendant([&](SpatiallyNestablePointer child) {
-                if (child->getNestableType() == NestableType::Entity) {
-                    EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
-                    entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-                    entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
-                }
-            });
+        if (removedActionType == DYNAMIC_TYPE_HOLD || removedActionType == DYNAMIC_TYPE_FAR_GRAB) {
+            disableNoBootstrap();
         } else {
             // NO-OP: we assume SPECIAL_FLAGS_NO_BOOTSTRAPPING bits and collision group are correct
             // because they should have been set correctly when the action was added
@@ -2448,6 +2514,14 @@ bool EntityItem::shouldSuppressLocationEdits() const {
         i++;
     }
 
+    i = _grabActions.begin();
+    while (i != _grabActions.end()) {
+        if (i.value()->shouldSuppressLocationEdits()) {
+            return true;
+        }
+        i++;
+    }
+
     // if any of the ancestors are MyAvatar, suppress
     return isChildOfMyAvatar();
 }
@@ -2455,13 +2529,22 @@ bool EntityItem::shouldSuppressLocationEdits() const {
 QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeToGet) const {
     QList<EntityDynamicPointer> result;
 
-    QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
-    while (i != _objectActions.end()) {
+    for (QHash<QUuid, EntityDynamicPointer>::const_iterator i = _objectActions.begin();
+         i != _objectActions.end();
+         i++) {
         EntityDynamicPointer action = i.value();
         if (action->getType() == typeToGet && action->isActive()) {
             result += action;
         }
-        i++;
+    }
+
+    for (QHash<QUuid, EntityDynamicPointer>::const_iterator i = _grabActions.begin();
+         i != _grabActions.end();
+         i++) {
+        EntityDynamicPointer action = i.value();
+        if (action->getType() == typeToGet && action->isActive()) {
+            result += action;
+        }
     }
 
     return result;
@@ -2649,20 +2732,6 @@ QString EntityItem::getDescription() const {
 void EntityItem::setDescription(const QString& value) {
     withWriteLock([&] {
         _description = value;
-    });
-}
-
-float EntityItem::getLocalRenderAlpha() const {
-    float result;
-    withReadLock([&] {
-        result = _localRenderAlpha;
-    });
-    return result;
-}
-
-void EntityItem::setLocalRenderAlpha(float localRenderAlpha) {
-    withWriteLock([&] {
-        _localRenderAlpha = localRenderAlpha;
     });
 }
 
@@ -3281,4 +3350,67 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
 
 bool EntityItem::isWearable() const {
     return isVisible() && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
+}
+
+void EntityItem::addGrab(GrabPointer grab) {
+    enableNoBootstrap();
+    SpatiallyNestable::addGrab(grab);
+
+    if (getDynamic() && getParentID().isNull()) {
+        EntityTreePointer entityTree = getTree();
+        assert(entityTree);
+        EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        assert(simulation);
+
+        auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
+        QUuid actionID = QUuid::createUuid();
+
+        EntityDynamicType dynamicType;
+        QVariantMap arguments;
+        int grabParentJointIndex =grab->getParentJointIndex();
+        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX) {
+            // add a far-grab action
+            dynamicType = DYNAMIC_TYPE_FAR_GRAB;
+            arguments["otherID"] = grab->getOwnerID();
+            arguments["otherJointIndex"] = grabParentJointIndex;
+            arguments["targetPosition"] = vec3ToQMap(grab->getPositionalOffset());
+            arguments["targetRotation"] = quatToQMap(grab->getRotationalOffset());
+            arguments["linearTimeScale"] = 0.05;
+            arguments["angularTimeScale"] = 0.05;
+        } else {
+            // add a near-grab action
+            dynamicType = DYNAMIC_TYPE_HOLD;
+            arguments["holderID"] = grab->getOwnerID();
+            arguments["hand"] = grab->getHand();
+            arguments["timeScale"] = 0.05;
+            arguments["relativePosition"] = vec3ToQMap(grab->getPositionalOffset());
+            arguments["relativeRotation"] = quatToQMap(grab->getRotationalOffset());
+            arguments["kinematic"] = _grabProperties.getGrabKinematic();
+            arguments["kinematicSetVelocity"] = true;
+            arguments["ignoreIK"] = _grabProperties.getGrabFollowsController();
+        }
+        EntityDynamicPointer action = actionFactory->factory(dynamicType, actionID, getThisPointer(), arguments);
+        grab->setActionID(actionID);
+        _grabActions[actionID] = action;
+        simulation->addDynamic(action);
+    }
+}
+
+void EntityItem::removeGrab(GrabPointer grab) {
+    SpatiallyNestable::removeGrab(grab);
+
+    QUuid actionID = grab->getActionID();
+    if (!actionID.isNull()) {
+        EntityDynamicPointer action = _grabActions.value(actionID);
+        if (action) {
+            _grabActions.remove(actionID);
+            EntityTreePointer entityTree = getTree();
+            EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+            if (simulation) {
+                action->removeFromSimulation(simulation);
+                action->removeFromOwner();
+            }
+        }
+    }
+    disableNoBootstrap();
 }

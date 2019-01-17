@@ -67,20 +67,45 @@ public:
     glm::u8vec3 getTextColor() const;
     void setTextColor(const glm::u8vec3& value);
 
+    static const float DEFAULT_TEXT_ALPHA;
+    float getTextAlpha() const;
+    void setTextAlpha(float value);
+
     static const glm::u8vec3 DEFAULT_BACKGROUND_COLOR;
     glm::u8vec3 getBackgroundColor() const;
     void setBackgroundColor(const glm::u8vec3& value);
 
-    static const bool DEFAULT_FACE_CAMERA;
-    bool getFaceCamera() const;
-    void setFaceCamera(bool value);
+    float getBackgroundAlpha() const;
+    void setBackgroundAlpha(float value);
+
+    BillboardMode getBillboardMode() const;
+    void setBillboardMode(BillboardMode value);
+
+    static const float DEFAULT_MARGIN;
+    float getLeftMargin() const;
+    void setLeftMargin(float value);
+
+    float getRightMargin() const;
+    void setRightMargin(float value);
+
+    float getTopMargin() const;
+    void setTopMargin(float value);
+
+    float getBottomMargin() const;
+    void setBottomMargin(float value);
 
 private:
     QString _text;
     float _lineHeight;
     glm::u8vec3 _textColor;
+    float _textAlpha;
     glm::u8vec3 _backgroundColor;
-    bool _faceCamera;
+    float _backgroundAlpha;
+    BillboardMode _billboardMode;
+    float _leftMargin;
+    float _rightMargin;
+    float _topMargin;
+    float _bottomMargin;
 };
 
 #endif // hifi_TextEntityItem_h

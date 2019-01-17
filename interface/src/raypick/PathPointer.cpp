@@ -223,7 +223,7 @@ Pointer::Buttons PathPointer::getPressedButtons(const PickResultPointer& pickRes
         std::string button = trigger.getButton();
         TriggerState& state = _states[button];
         // TODO: right now, LaserPointers don't support axes, only on/off buttons
-        if (trigger.getEndpoint()->peek() >= 1.0f) {
+        if (trigger.getEndpoint()->peek().value >= 1.0f) {
             toReturn.insert(button);
 
             if (_previousButtons.find(button) == _previousButtons.end()) {
@@ -253,12 +253,12 @@ StartEndRenderState::StartEndRenderState(const OverlayID& startID, const Overlay
     _startID(startID), _endID(endID) {
     if (!_startID.isNull()) {
         _startDim = vec3FromVariant(qApp->getOverlays().getProperty(_startID, "dimensions").value);
-        _startIgnoreRays = qApp->getOverlays().getProperty(_startID, "ignoreRayIntersection").value.toBool();
+        _startIgnoreRays = qApp->getOverlays().getProperty(_startID, "ignorePickIntersection").value.toBool();
     }
     if (!_endID.isNull()) {
         _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
         _endRot = quatFromVariant(qApp->getOverlays().getProperty(_endID, "rotation").value);
-        _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignoreRayIntersection").value.toBool();
+        _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignorePickIntersection").value.toBool();
     }
 }
 
@@ -275,13 +275,13 @@ void StartEndRenderState::disable() {
     if (!getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("visible", false);
-        startProps.insert("ignoreRayIntersection", true);
+        startProps.insert("ignorePickIntersection", true);
         qApp->getOverlays().editOverlay(getStartID(), startProps);
     }
     if (!getEndID().isNull()) {
         QVariantMap endProps;
         endProps.insert("visible", false);
-        endProps.insert("ignoreRayIntersection", true);
+        endProps.insert("ignorePickIntersection", true);
         qApp->getOverlays().editOverlay(getEndID(), endProps);
     }
     _enabled = false;
@@ -294,7 +294,7 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
         startProps.insert("position", vec3toVariant(origin));
         startProps.insert("visible", true);
         startProps.insert("dimensions", vec3toVariant(getStartDim() * parentScale));
-        startProps.insert("ignoreRayIntersection", doesStartIgnoreRays());
+        startProps.insert("ignorePickIntersection", doesStartIgnoreRays());
         qApp->getOverlays().editOverlay(getStartID(), startProps);
     }
 
@@ -346,7 +346,7 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
         endProps.insert("position", vec3toVariant(position));
         endProps.insert("rotation", quatToVariant(rotation));
         endProps.insert("visible", true);
-        endProps.insert("ignoreRayIntersection", doesEndIgnoreRays());
+        endProps.insert("ignorePickIntersection", doesEndIgnoreRays());
         qApp->getOverlays().editOverlay(getEndID(), endProps);
     }
     _enabled = true;

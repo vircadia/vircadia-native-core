@@ -96,6 +96,8 @@ class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
 public:
+    virtual ~FBXSerializer() {}
+
     MediaType getMediaType() const override;
     std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
 
@@ -111,9 +113,6 @@ public:
 
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(HFMMesh& extractedMesh, const QString& url);
-
-    static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
 
     HFMTexture getTexture(const QString& textureID);
 

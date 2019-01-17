@@ -15,6 +15,8 @@
 #include <shellapi.h>
 #endif
 
+#include <QDesktopServices>
+
 Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
     _ui.setupUi(this);
 
@@ -36,10 +38,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v1.2");
-
-   // Coming soon to a nitpick near you...
-   //// _helpWindow.textBrowser->setText()
+   setWindowTitle("Nitpick - v1.3.2");
 }
 
 Nitpick::~Nitpick() {
@@ -287,7 +286,7 @@ void Nitpick::about() {
 }
 
 void Nitpick::content() {
-    _helpWindow.show();
+    QDesktopServices::openUrl(QUrl("https://github.com/highfidelity/hifi/blob/master/tools/nitpick/README.md"));
 }
 
 void Nitpick::setUserText(const QString& user) {

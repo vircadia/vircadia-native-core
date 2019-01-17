@@ -139,9 +139,8 @@ public:
     typedef render::Payload<AvatarData> Payload;
 
     void init();
-    void updateAvatarEntities();
     void removeAvatarEntitiesFromTree();
-    void simulate(float deltaTime, bool inView);
+    virtual void simulate(float deltaTime, bool inView) = 0;
     virtual void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs);
@@ -156,9 +155,6 @@ public:
 
     virtual void postUpdate(float deltaTime, const render::ScenePointer& scene);
 
-    //setters
-    void setIsLookAtTarget(const bool isLookAtTarget) { _isLookAtTarget = isLookAtTarget; }
-    bool getIsLookAtTarget() const { return _isLookAtTarget; }
     //getters
     bool isInitialized() const { return _initialized; }
     SkeletonModelPointer getSkeletonModel() { return _skeletonModel; }
@@ -242,8 +238,6 @@ public:
 
     static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                float radius1, float radius2, const glm::vec4& color);
-
-    virtual void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration) { }
 
     /**jsdoc
      * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
@@ -440,6 +434,8 @@ public:
     std::shared_ptr<AvatarTransit> getTransit() { return std::make_shared<AvatarTransit>(_transit); };
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config);
 
+    void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -542,6 +538,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    void updateGrabs();
     void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
@@ -549,6 +546,7 @@ protected:
     glm::vec3 getBodyRightDirection() const { return getWorldOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getWorldOrientation() * IDENTITY_UP; }
     void measureMotionDerivatives(float deltaTime);
+    bool getCollideWithOtherAvatars() const { return _collideWithOtherAvatars; }
 
     float getSkeletonHeight() const;
     float getHeadHeight() const;
@@ -592,7 +590,6 @@ protected:
     int _rightPointerGeometryID { 0 };
     int _nameRectGeometryID { 0 };
     bool _initialized { false };
-    bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
     bool _isFading { false };
@@ -628,6 +625,8 @@ protected:
 
     static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
+
+    AvatarGrabMap _avatarGrabs;
 };
 
 #endif // hifi_Avatar_h

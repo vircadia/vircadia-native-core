@@ -42,7 +42,6 @@ var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
 
-var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
 var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
 var createToolsWindow = new CreateWindow(
@@ -373,6 +372,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
                 blue: 179
             },
         },
+        shapeType: "box",
         bloomMode: "inherit"
     },
     Model: {
@@ -398,8 +398,8 @@ const DEFAULT_ENTITY_PROPERTIES = {
         },
         shapeType: "box",
         collisionless: true,
-        modelURL: IMAGE_MODEL,
-        textures: JSON.stringify({ "tex.picture": "" })
+        keepAspectRatio: false,
+        imageURL: DEFAULT_IMAGE
     },
     Web: {
         dimensions: {
@@ -422,7 +422,6 @@ const DEFAULT_ENTITY_PROPERTIES = {
         emitterShouldTrail: true,
         particleRadius: 0.25,
         radiusStart: 0,
-        radiusFinish: 0.1,
         radiusSpread: 0,
         particleColor: {
             red: 255,
@@ -436,7 +435,6 @@ const DEFAULT_ENTITY_PROPERTIES = {
         },
         alpha: 0,
         alphaStart: 1,
-        alphaFinish: 0,
         alphaSpread: 0,
         emitAcceleration: {
             x: 0,
@@ -449,12 +447,10 @@ const DEFAULT_ENTITY_PROPERTIES = {
             z: 0
         },
         particleSpin: 0,
-        spinStart: 0,
-        spinFinish: 0,
         spinSpread: 0,
         rotateWithEntity: false,
         polarStart: 0,
-        polarFinish: 0,
+        polarFinish: Math.PI,
         azimuthStart: -Math.PI,
         azimuthFinish: Math.PI
     },
@@ -495,9 +491,6 @@ var toolBar = (function () {
         var type = requestedProperties.type;
         if (type === "Box" || type === "Sphere") {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
-        } else if (type === "Image") {
-            requestedProperties.type = "Model";
-            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Image);
         } else {
             applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
         }
@@ -515,7 +508,7 @@ var toolBar = (function () {
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
 
-            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Image", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
 
                 // Adjust position of entity per bounding box prior to creating it.
@@ -2482,6 +2475,15 @@ var PropertiesTool = function (opts) {
                 type: 'tooltipsReply',
                 tooltips: Script.require('./assets/data/createAppTooltips.json'),
                 hmdActive: HMD.active,
+            });
+        } else if (data.type === "propertyRangeRequest") {
+            var propertyRanges = {};
+            data.properties.forEach(function (property) {
+                propertyRanges[property] = Entities.getPropertyInfo(property);
+            });
+            emitScriptEvent({
+                type: 'propertyRangeReply',
+                propertyRanges: propertyRanges,
             });
         }
     };

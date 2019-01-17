@@ -203,7 +203,7 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, con
 
     RenderArgs* args = renderContext->args;
 
-    const auto& lightFrame = inputs;
+    const auto& shadowFrame = inputs;
 
     // Return view frustum
     auto& viewFrustum = output[VIEW_FRUSTUM].edit<ViewFrustumPointer>();
@@ -214,38 +214,18 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, con
     }
 
     // Return shadow frustum
-    auto lightStage = args->_scene->getStage<LightStage>(LightStage::getName());
+    LightStage::ShadowPointer globalShadow;
+    if (shadowFrame && !shadowFrame->_objects.empty() && shadowFrame->_objects[0]) {
+        globalShadow = shadowFrame->_objects[0];
+    }
     for (auto i = 0; i < SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
         auto& shadowFrustum = output[SHADOW_CASCADE0_FRUSTUM+i].edit<ViewFrustumPointer>();
-        if (lightStage) {
-            auto globalShadow = lightStage->getCurrentKeyShadow(*lightFrame);
-
-            if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
-                auto& cascade = globalShadow->getCascade(i);
-                shadowFrustum = cascade.getFrustum();
-            } else {
-                shadowFrustum.reset();
-            }
+        if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
+            auto& cascade = globalShadow->getCascade(i);
+            shadowFrustum = cascade.getFrustum();
         } else {
             shadowFrustum.reset();
         }
     }
 }
 
-void FetchCurrentFrames::run(const render::RenderContextPointer& renderContext, Outputs& outputs) {
-    auto lightStage = renderContext->_scene->getStage<LightStage>();
-    assert(lightStage);
-    outputs.edit0() = std::make_shared<LightStage::Frame>(lightStage->_currentFrame);
-
-    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
-    assert(backgroundStage);
-    outputs.edit1() = std::make_shared<BackgroundStage::Frame>(backgroundStage->_currentFrame);
-
-    auto hazeStage = renderContext->_scene->getStage<HazeStage>();
-    assert(hazeStage);
-    outputs.edit2() = std::make_shared<HazeStage::Frame>(hazeStage->_currentFrame);
-
-    auto bloomStage = renderContext->_scene->getStage<BloomStage>();
-    assert(bloomStage);
-    outputs.edit3() = std::make_shared<BloomStage::Frame>(bloomStage->_currentFrame);
-}

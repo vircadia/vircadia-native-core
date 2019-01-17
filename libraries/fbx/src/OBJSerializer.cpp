@@ -831,9 +831,6 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
             hfmModel.meshExtents.addPoint(vertex);
         }
 
-        // Build the single mesh.
-        FBXSerializer::buildModelMesh(mesh, _url.toString());
-
         // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
         qCDebug(modelformat) << "OBJSerializer fail: " << e.what();

@@ -35,6 +35,7 @@
 #include "assets/ATPAssetMigrator.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "avatar/AvatarPackager.h"
 #include "AvatarBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "MainWindow.h"
@@ -48,6 +49,7 @@
 #include "DeferredLightingEffect.h"
 #include "PickManager.h"
 
+#include "LightingModel.h"
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
 #include "AntialiasingEffect.h"
@@ -143,9 +145,13 @@ Menu::Menu() {
         assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
     }
 
-    // Edit > Package Avatar as .fst...
-    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
-        qApp, SLOT(packageModel()));
+    // Edit > Avatar Packager
+#ifndef Q_OS_ANDROID
+    action = addActionToQMenuAndActionHash(editMenu, MenuOption::AvatarPackager);
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<AvatarPackager>()->open();
+    });
+#endif
 
     // Edit > Reload All Content
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
@@ -393,13 +399,9 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
-            if (mainViewShadowTaskConfig) {
-                if (action->isChecked()) {
-                    mainViewShadowTaskConfig->setPreset("Enabled");
-                } else {
-                    mainViewShadowTaskConfig->setPreset("None");
-                }
+            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+            if (lightingModelConfig) {
+                lightingModelConfig->setShadow(action->isChecked());
             }
         }
     });
@@ -408,15 +410,11 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
-            if (mainViewAmbientOcclusionConfig) {
-                if (action->isChecked()) {
-                    mainViewAmbientOcclusionConfig->setPreset("Enabled");
-                } else {
-                    mainViewAmbientOcclusionConfig->setPreset("None");
-                }
+            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+            if (lightingModelConfig) {
+                lightingModelConfig->setAmbientOcclusion(action->isChecked());
             }
-        }
+         }
     });
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
@@ -651,6 +649,8 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Developer");
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowTrackedObjects, 0, false, qApp, SLOT(setShowTrackedObjects(bool)));
+
+    addActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::PackageModel, 0, qApp, SLOT(packageModel()));
 
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");

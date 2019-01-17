@@ -66,6 +66,9 @@ public:
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
+    void setCollisionGroup(int32_t group) { _collisionGroup = group; }
+    int32_t getCollisionGroup() { return _collisionGroup; }
+
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
     virtual float getMass() const override;
@@ -87,7 +90,7 @@ protected:
 
     OtherAvatarPointer _avatar;
     float _diameter { 0.0f };
-
+    int32_t _collisionGroup;
     uint32_t _dirtyFlags;
 };
 

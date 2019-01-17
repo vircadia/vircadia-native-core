@@ -25,6 +25,8 @@
 #include "RenderableWebEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableMaterialEntityItem.h"
+#include "RenderableImageEntityItem.h"
+#include "RenderableGridEntityItem.h"
 
 
 using namespace render;
@@ -217,20 +219,37 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
     using Type = EntityTypes::EntityType_t;
     auto type = entity->getType();
     switch (type) {
-        case Type::Light:
-            result = make_renderer<LightEntityRenderer>(entity);
-            break;
 
-        case Type::Line:
-            result = make_renderer<LineEntityRenderer>(entity);
+        case Type::Shape:
+        case Type::Box:
+        case Type::Sphere:
+            result = make_renderer<ShapeEntityRenderer>(entity);
             break;
 
         case Type::Model:
             result = make_renderer<ModelEntityRenderer>(entity);
             break;
 
+        case Type::Text:
+            result = make_renderer<TextEntityRenderer>(entity);
+            break;
+
+        case Type::Image:
+            result = make_renderer<ImageEntityRenderer>(entity);
+            break;
+
+        case Type::Web:
+            if (!nsightActive()) {
+                result = make_renderer<WebEntityRenderer>(entity);
+            }
+            break;
+
         case Type::ParticleEffect:
             result = make_renderer<ParticleEffectEntityRenderer>(entity);
+            break;
+
+        case Type::Line:
+            result = make_renderer<LineEntityRenderer>(entity);
             break;
 
         case Type::PolyLine:
@@ -241,20 +260,12 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
             result = make_renderer<PolyVoxEntityRenderer>(entity);
             break;
 
-        case Type::Shape:
-        case Type::Box:
-        case Type::Sphere:
-            result = make_renderer<ShapeEntityRenderer>(entity);
+        case Type::Grid:
+            result = make_renderer<GridEntityRenderer>(entity);
             break;
 
-        case Type::Text:
-            result = make_renderer<TextEntityRenderer>(entity);
-            break;
-
-        case Type::Web:
-            if (!nsightActive()) {
-                result = make_renderer<WebEntityRenderer>(entity);
-            }
+        case Type::Light:
+            result = make_renderer<LightEntityRenderer>(entity);
             break;
 
         case Type::Zone:

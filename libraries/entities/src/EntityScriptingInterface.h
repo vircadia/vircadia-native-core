@@ -24,6 +24,7 @@
 #include <OctreeScriptingInterface.h>
 #include <RegisteredMetaTypes.h>
 #include <PointerEvent.h>
+#include <PickFilter.h>
 
 #include "PolyVoxEntityItem.h"
 #include "LineEntityItem.h"
@@ -56,8 +57,7 @@ private:
 };
 
 /**jsdoc
- * The result of a {@link PickRay} search using {@link Entities.findRayIntersection|findRayIntersection} or 
- * {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}.
+ * The result of a {@link PickRay} search using {@link Entities.findRayIntersection|findRayIntersection}.
  * @typedef {object} Entities.RayToEntityIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected an entity, otherwise 
  *     <code>false</code>.
@@ -119,7 +119,6 @@ public:
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
-
     Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
 
     friend EntityPropertyMetadataRequest;
@@ -144,10 +143,10 @@ public:
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }
 
-    // TODO: expose to script?
-    ParabolaToEntityIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
-        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
-        bool visibleOnly, bool collidableOnly);
+    RayToEntityIntersectionResult evalRayIntersectionVector(const PickRay& ray, PickFilter searchFilter,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
+    ParabolaToEntityIntersectionResult evalParabolaIntersectionVector(const PickParabola& parabola, PickFilter searchFilter,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     /**jsdoc
     * Get the properties of multiple entities.
@@ -394,9 +393,8 @@ public slots:
     Q_INVOKABLE void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, 
         const QStringList& params = QStringList());
 
-
     /**jsdoc
-     * Find the entity with a position closest to a specified point and within a specified radius.
+     * Find the non-local entity with a position closest to a specified point and within a specified radius.
      * @function Entities.findClosestEntity
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
@@ -410,7 +408,7 @@ public slots:
     Q_INVOKABLE QUuid findClosestEntity(const glm::vec3& center, float radius) const;
 
     /**jsdoc
-     * Find all entities that intersect a sphere defined by a center point and radius.
+     * Find all non-local entities that intersect a sphere defined by a center point and radius.
      * @function Entities.findEntities
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
@@ -424,23 +422,23 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntities(const glm::vec3& center, float radius) const;
 
     /**jsdoc
-     * Find all entities whose axis-aligned boxes intersect a search axis-aligned box defined by its minimum coordinates corner
+     * Find all non-local entities whose axis-aligned boxes intersect a search axis-aligned box defined by its minimum coordinates corner
      * and dimensions.
      * @function Entities.findEntitiesInBox
      * @param {Vec3} corner - The corner of the search AA box with minimum co-ordinate values.
      * @param {Vec3} dimensions - The dimensions of the search AA box.
-     * @returns {Uuid[]} An array of entity IDs whose AA boxes intersect the search AA box. The array is empty if no entities 
+     * @returns {Uuid[]} An array of entity IDs whose AA boxes intersect the search AA box. The array is empty if no entities
      *     could be found.
      */
     /// this function will not find any models in script engine contexts which don't have access to models
     Q_INVOKABLE QVector<QUuid> findEntitiesInBox(const glm::vec3& corner, const glm::vec3& dimensions) const;
 
     /**jsdoc
-     * Find all entities whose axis-aligned boxes intersect a search frustum.
+     * Find all non-local entities whose axis-aligned boxes intersect a search frustum.
      * @function Entities.findEntitiesInFrustum
      * @param {ViewFrustum} frustum - The frustum to search in. The <code>position</code>, <code>orientation</code>, 
      *     <code>projection</code>, and <code>centerRadius</code> properties must be specified.
-     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum. The array is empty if no entities 
+     * @returns {Uuid[]} An array of entity IDs axis-aligned boxes intersect the frustum. The array is empty if no entities
      *     could be found.
      * @example <caption>Report the number of entities in view.</caption>
      * var entityIDs = Entities.findEntitiesInFrustum(Camera.frustum);
@@ -450,12 +448,12 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesInFrustum(QVariantMap frustum) const;
 
     /**jsdoc
-     * Find all entities of a particular type that intersect a sphere defined by a center point and radius.
+     * Find all non-local entities of a particular type that intersect a sphere defined by a center point and radius.
      * @function Entities.findEntitiesByType
      * @param {Entities.EntityType} entityType - The type of entity to search for.
      * @param {Vec3} center - The point about which to search.
      * @param {number} radius - The radius within which to search.
-     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if 
+     * @returns {Uuid[]} An array of entity IDs of the specified type that intersect the search sphere. The array is empty if
      *     no entities could be found.
      * @example <caption>Report the number of Model entities within 10m of your avatar.</caption>
      * var entityIDs = Entities.findEntitiesByType("Model", MyAvatar.position, 10);
@@ -465,7 +463,7 @@ public slots:
     Q_INVOKABLE QVector<QUuid> findEntitiesByType(const QString entityType, const glm::vec3& center, float radius) const;
 
     /**jsdoc
-    * Find all entities of a particular name that intersect a sphere defined by a center point and radius.
+    * Find all non-local entities with a particular name that intersect a sphere defined by a center point and radius.
     * @function Entities.findEntitiesByName
     * @param {string} entityName - The name of the entity to search for.
     * @param {Vec3} center - The point about which to search.
@@ -475,13 +473,13 @@ public slots:
     *     if no entities could be found.
     * @example <caption>Report the number of entities with the name, "Light-Target".</caption>
     * var entityIDs = Entities.findEntitiesByName("Light-Target", MyAvatar.position, 10, false);
-    * print("Number of entities with the name "Light-Target": " + entityIDs.length);
+    * print("Number of entities with the name Light-Target: " + entityIDs.length);
     */
-    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, 
-        bool caseSensitiveSearch = false ) const;
+    Q_INVOKABLE QVector<QUuid> findEntitiesByName(const QString entityName, const glm::vec3& center, float radius,
+        bool caseSensitiveSearch = false) const;
 
     /**jsdoc
-     * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
+     * Find the first non-local entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not
      * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable}
      * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
      * @function Entities.findRayIntersection
@@ -512,33 +510,8 @@ public slots:
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
     /// will be false.
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false,
-        const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue(),
-        bool visibleOnly = false, bool collidableOnly = false);
-
-    /// Same as above but with QVectors
-    RayToEntityIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
-        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
-        bool visibleOnly, bool collidableOnly);
-
-    /**jsdoc
-     * Find the first entity intersected by a {@link PickRay}. <code>Light</code> and <code>Zone</code> entities are not 
-     * intersected unless they've been configured as pickable using {@link Entities.setLightsArePickable|setLightsArePickable} 
-     * and {@link Entities.setZonesArePickable|setZonesArePickable}, respectively.<br />
-     * This is a synonym for {@link Entities.findRayIntersection|findRayIntersection}.
-     * @function Entities.findRayIntersectionBlocking
-     * @param {PickRay} pickRay - The PickRay to use for finding entities.
-     * @param {boolean} [precisionPicking=false] - If <code>true</code> and the intersected entity is a <code>Model</code>
-     *     entity, the result's <code>extraInfo</code> property includes more information than it otherwise would.
-     * @param {Uuid[]} [entitiesToInclude=[]] - If not empty then the search is restricted to these entities.
-     * @param {Uuid[]} [entitiesToDiscard=[]] - Entities to ignore during the search.
-     * @deprecated This function is deprecated and will soon be removed. Use 
-     *    {@link Entities.findRayIntersection|findRayIntersection} instead; it blocks and performs the same function.
-     */
-    /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
-    /// order to return an accurate result
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, 
-        const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
-
+            const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue(),
+            bool visibleOnly = false, bool collidableOnly = false) const;
 
     /**jsdoc
      * Reloads an entity's server entity script such that the latest version re-downloaded.
@@ -603,9 +576,7 @@ public slots:
     /**jsdoc
      * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. By default, Light 
      * entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
-     *     {@link Entities.findRayIntersection|findRayIntersection} or 
-     *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
-     *     APIs.
+     *     {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.setLightsArePickable
      * @param {boolean} value - Set <code>true</code> to make ray picks intersect the bounding box of 
      *     {@link Entities.EntityType|Light} entities, otherwise <code>false</code>.
@@ -615,9 +586,7 @@ public slots:
 
     /**jsdoc
      * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Light} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection} or 
-     *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
-     *     APIs.
+     *     done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.getLightsArePickable
      * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of {@link Entities.EntityType|Light} 
      *     entities, otherwise <code>false</code>.
@@ -628,9 +597,7 @@ public slots:
     /**jsdoc
      * Set whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. By default, Light 
      * entities are not intersected. The setting lasts for the Interface session. Ray picks are done using 
-     *     {@link Entities.findRayIntersection|findRayIntersection} or 
-     *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
-     *     APIs.
+     *     {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.setZonesArePickable
      * @param {boolean} value - Set <code>true</code> to make ray picks intersect the bounding box of 
      *     {@link Entities.EntityType|Zone} entities, otherwise <code>false</code>.
@@ -640,9 +607,7 @@ public slots:
 
     /**jsdoc
      * Get whether or not ray picks intersect the bounding box of {@link Entities.EntityType|Zone} entities. Ray picks are 
-     *     done using {@link Entities.findRayIntersection|findRayIntersection} or 
-     *     {@link Entities.findRayIntersectionBlocking|findRayIntersectionBlocking}, or the {@link Picks} and {@link RayPick} 
-     *     APIs.
+     *     done using {@link Entities.findRayIntersection|findRayIntersection}, or the {@link Picks} API.
      * @function Entities.getZonesArePickable
      * @returns {boolean} <code>true</code> if ray picks intersect the bounding box of {@link Entities.EntityType|Zone} 
      *      entities, otherwise <code>false</code>.
@@ -1608,6 +1573,109 @@ public slots:
      * print("Scale: " + JSON.stringify(Mat4.extractScale(transform)));  // { x: 1, y: 1, z: 1 }     */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
+
+    /**jsdoc
+     * @function Entities.worldToLocalPosition
+     * @param {Vec3} worldPosition
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalPosition(glm::vec3 worldPosition, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalRotation
+     * @param {Quat} worldRotation
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Quat}
+     */
+    Q_INVOKABLE glm::quat worldToLocalRotation(glm::quat worldRotation, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalVelocity
+     * @param {Vec3} worldVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalVelocity(glm::vec3 worldVelocity, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalAngularVelocity
+     * @param {Vec3} worldAngularVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalAngularVelocity(glm::vec3 worldAngularVelocity, const QUuid& parentID,
+                                                      int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.worldToLocalDimensions
+     * @param {Vec3} worldDimensions
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 worldToLocalDimensions(glm::vec3 worldDimensions, const QUuid& parentID,
+                                                 int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldPosition
+     * @param {Vec3} localPosition
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldPosition(glm::vec3 localPosition, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldRotation
+     * @param {Quat} localRotation
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Quat}
+     */
+    Q_INVOKABLE glm::quat localToWorldRotation(glm::quat localRotation, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldVelocity
+     * @param {Vec3} localVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldVelocity(glm::vec3 localVelocity, const QUuid& parentID,
+                                               int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldAngularVelocity
+     * @param {Vec3} localAngularVelocity
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldAngularVelocity(glm::vec3 localAngularVelocity, const QUuid& parentID,
+                                                      int parentJointIndex = -1, bool scalesWithParent = false);
+    /**jsdoc
+     * @function Entities.localToWorldDimensions
+     * @param {Vec3} localDimensions
+     * @param {Uuid} parentID
+     * @param {number} parentJointIndex
+     * @param {boolean} scalesWithparent
+     * @returns {Vec3}
+     */
+    Q_INVOKABLE glm::vec3 localToWorldDimensions(glm::vec3 localDimensions, const QUuid& parentID,
+                                                 int parentJointIndex = -1, bool scalesWithParent = false);
+
+
     /**jsdoc
     * Get the static certificate for an entity. The static certificate contains static properties of the item which cannot 
     * be altered.
@@ -1626,6 +1694,16 @@ public slots:
      *     and its value matches the entity's static certificate JSON; otherwise <code>false</code>.
      */
     Q_INVOKABLE bool verifyStaticCertificateProperties(const QUuid& entityID);
+
+    /**jsdoc
+     * Get information about entity properties including a minimum to maximum range for numerical properties 
+     * as well as property enum value.
+     * @function Entities.getPropertyInfo
+     * @param {string} propertyName - The name of the property to get the information for.
+     * @returns {Entities.EntityPropertyInfo} The information data including propertyEnum, minimum, and maximum
+     * if the property can be found, otherwise an empty object.
+     */
+    Q_INVOKABLE const EntityPropertyInfo getPropertyInfo(const QString& propertyName) const;
 
 signals:
     /**jsdoc
@@ -1987,14 +2065,12 @@ private:
 
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
-    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
-        bool visibleOnly = false, bool collidableOnly = false);
+    RayToEntityIntersectionResult evalRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
+        PickFilter searchFilter, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) const;
 
     /// actually does the work of finding the parabola intersection, can be called in locking mode or tryLock mode
-    ParabolaToEntityIntersectionResult findParabolaIntersectionWorker(const PickParabola& parabola, Octree::lockType lockType,
-        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
-        bool visibleOnly = false, bool collidableOnly = false);
+    ParabolaToEntityIntersectionResult evalParabolaIntersectionWorker(const PickParabola& parabola, Octree::lockType lockType,
+        PickFilter searchFilter, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) const;
 
     EntityTreePointer _entityTree;
 

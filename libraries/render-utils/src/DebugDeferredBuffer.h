@@ -46,7 +46,7 @@ public:
                                        AmbientOcclusionFramebufferPointer,
                                        VelocityFramebufferPointer,
                                        DeferredFrameTransformPointer,
-                                       LightStage::FramePointer>;
+                                       LightStage::ShadowFramePointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
 
