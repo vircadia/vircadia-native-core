@@ -773,7 +773,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
             bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
-            if (isChildOfHead) {
+            if (isChildOfHead && !object->hasGrabs()) {
                 // Cauterize or display children of head per head drawing state.
                 updateChildCauterization(object, !_prevShouldDrawHead);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {

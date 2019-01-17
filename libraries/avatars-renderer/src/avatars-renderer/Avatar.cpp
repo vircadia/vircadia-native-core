@@ -385,6 +385,7 @@ void Avatar::updateGrabs() {
                         entityTree->updateEntityQueryAACube(target, packetSender, force, iShouldTellServer);
                     });
                 }
+                _cauterizationNeedsUpdate = true;
             }
             _avatarGrabs.remove(grabID);
             _changedAvatarGrabs.remove(grabID);
@@ -402,6 +403,7 @@ void Avatar::updateGrabs() {
                 target->addGrab(grab);
                 // only clear this entry from the _changedAvatarGrabs if we found the entity.
                 changeItr.remove();
+                _cauterizationNeedsUpdate = true;
             }
         }
     });
