@@ -359,7 +359,7 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
 #ifdef Q_OS_WIN
     canonicalAppDataFolder = QDir::currentPath() + "/AppDataHighFidelity";
 #elif defined Q_OS_MAC
-    ////canonicalAppDataFolder = QCoreApplication::applicationDirPath() + "/AppDataHighFidelity";
+    canonicalAppDataFolder = QCoreApplication::applicationDirPath() + "/AppDataHighFidelity";
 #endif
     if (canonicalAppDataFolder.exists()) {
         copyFolder(canonicalAppDataFolder.path(), _appDataFolder.path());
