@@ -311,7 +311,8 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
         auto user = error.value("username");
         auto uid = error.value("uid");
         auto email = error.value("email");
-        QString usernameError;
+        auto password = error.value("password");
+        QString reply;
         QString emailError;
         if (!uid.isNull() && !uid.isUndefined()) {
             QJsonArray arr = uid.toArray();
@@ -323,28 +324,28 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
         if (!user.isNull() && !user.isUndefined()) {
             QJsonArray arr = user.toArray();
             if (!arr.isEmpty()) {
-                usernameError = "Username " + arr.at(0).toString() + ".";
+                reply = "Username " + arr.at(0).toString() + ".";
             }
         }
         if (!email.isNull() && !email.isUndefined()) {
             QJsonArray arr = email.toArray();
             if (!arr.isEmpty()) {
-                emailError = "Email " + arr.at(0).toString() + ".";
+                reply.append((!reply.isEmpty()) ? " " : "");
+                reply.append("Email " + arr.at(0).toString() + ".");
             }
         }
-        if (!usernameError.isEmpty()) {
-            if (!emailError.isEmpty()) {
-                usernameError.append(" " + emailError);
+        if (!password.isNull() && !password.isUndefined()) {
+            QJsonArray arr = password.toArray();
+            if (!arr.isEmpty()) {
+                reply.append((!reply.isEmpty()) ? " " : "");
+                reply.append("Password " + arr.at(0).toString() + ".");
             }
-            emit handleCreateFailed(usernameError);
-            return;
-        }
-        if (!emailError.isEmpty()) {
-            emit handleCreateFailed(emailError);
-            return;
         }
         if (!oculusError.isNull() && !oculusError.isUndefined()) {
             emit handleCreateFailed("Could not verify token with Oculus. Please try again.");
+            return;
+        } else {
+            emit handleCreateFailed(reply);
             return;
         }
     }
