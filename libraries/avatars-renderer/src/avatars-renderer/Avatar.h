@@ -536,11 +536,9 @@ protected:
     glm::vec3 _worldUpDirection { Vectors::UP };
     bool _moving { false }; ///< set when position is changing
 
-    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
-
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
-    void updateGrabs();
+    bool updateGrabs();
     void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);

@@ -1869,6 +1869,8 @@ private:
     bool _enableDebugDrawIKChains { false };
     bool _enableDebugDrawDetailedCollision { false };
 
+    mutable bool _cauterizationNeedsUpdate; // do we need to scan children and update their "cauterized" state?
+
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
     glm::quat _customListenOrientation;

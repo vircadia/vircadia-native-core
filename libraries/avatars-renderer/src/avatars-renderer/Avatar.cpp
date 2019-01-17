@@ -324,8 +324,8 @@ void Avatar::removeAvatarEntitiesFromTree() {
     }
 }
 
-void Avatar::updateGrabs() {
-
+bool Avatar::updateGrabs() {
+    bool grabAddedOrRemoved = false;
     // update the Grabs according to any changes in _avatarGrabData
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabDataChanged) {
@@ -385,7 +385,7 @@ void Avatar::updateGrabs() {
                         entityTree->updateEntityQueryAACube(target, packetSender, force, iShouldTellServer);
                     });
                 }
-                _cauterizationNeedsUpdate = true;
+                grabAddedOrRemoved = true;
             }
             _avatarGrabs.remove(grabID);
             _changedAvatarGrabs.remove(grabID);
@@ -403,10 +403,11 @@ void Avatar::updateGrabs() {
                 target->addGrab(grab);
                 // only clear this entry from the _changedAvatarGrabs if we found the entity.
                 changeItr.remove();
-                _cauterizationNeedsUpdate = true;
+                grabAddedOrRemoved = true;
             }
         }
     });
+    return grabAddedOrRemoved;
 }
 
 void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators) {

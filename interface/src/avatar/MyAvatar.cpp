@@ -823,7 +823,9 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
-    updateGrabs();
+    if (updateGrabs()) {
+        _cauterizationNeedsUpdate = true;
+    }
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
