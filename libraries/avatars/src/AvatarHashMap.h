@@ -179,7 +179,7 @@ protected:
     AvatarHashMap();
 
     virtual AvatarSharedPointer parseAvatarData(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    virtual AvatarSharedPointer newSharedAvatar();
+    virtual AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID);
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
         bool& isNew);
