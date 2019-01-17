@@ -3833,22 +3833,22 @@ void EntityItemProperties::copySimulationRestrictedProperties(const EntityItemPo
         setParentJointIndex(entity->getParentJointIndex());
     }
     if (!_localPositionChanged && !_positionChanged) {
-        setLocalPosition(entity->getLocalPosition());
+        setPosition(entity->getWorldPosition());
     }
     if (!_localRotationChanged && !_rotationChanged) {
-        setLocalRotation(entity->getLocalOrientation());
+        setRotation(entity->getWorldOrientation());
     }
     if (!_localVelocityChanged && !_velocityChanged) {
-        setLocalVelocity(entity->getLocalVelocity());
+        setVelocity(entity->getWorldVelocity());
     }
     if (!_localAngularVelocityChanged && !_angularVelocityChanged) {
-        setLocalAngularVelocity(entity->getLocalAngularVelocity());
+        setAngularVelocity(entity->getWorldAngularVelocity());
     }
     if (!_accelerationChanged) {
         setAcceleration(entity->getAcceleration());
     }
     if (!_localDimensionsChanged && !_dimensionsChanged) {
-        setLocalDimensions(entity->getUnscaledDimensions());
+        setDimensions(entity->getScaledDimensions());
     }
 }
 
