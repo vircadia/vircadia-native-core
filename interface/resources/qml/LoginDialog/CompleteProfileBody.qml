@@ -77,7 +77,7 @@ Item {
                 height: loginErrorMessageTextMetrics.height
                 anchors {
                     bottom: buttons.top;
-                    bottomMargin: hifi.dimensions.contentSpacing.y;
+                    bottomMargin: 2 * hifi.dimensions.contentSpacing.y;
                     left: buttons.left;
                 }
                 TextMetrics {
@@ -102,10 +102,14 @@ Item {
                         loginErrorMessage.wrapMode = Text.WordWrap;
                         loginErrorMessage.verticalAlignment = Text.AlignLeft;
                         loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                        errorContainer.height = 3 * loginErrorMessageTextMetrics.height;
+                        errorContainer.height = (loginErrorMessageTextMetrics.width / root.bannerWidth) * loginErrorMessageTextMetrics.height;
+                    } else {
+                        loginErrorMessage.wrapMode = Text.NoWrap;
+                        errorContainer.height = loginErrorMessageTextMetrics.height;
                     }
                     if (completeProfileBody.withOculus) {
                         errorContainer.anchors.bottom = fields.top;
+                        errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
                     }
                 }
             }
@@ -153,6 +157,8 @@ Item {
                             case Qt.Key_Return:
                                 event.accepted = true;
                                 loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                                    "linkSteam": false, "withOculus": completeProfileBody.withOculus, "linkOculus": false, "createOculus": true });
                                 break;
                         }
                     }
@@ -200,6 +206,8 @@ Item {
                             case Qt.Key_Return:
                                 event.accepted = true;
                                 loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                                bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                                    "linkSteam": false, "withOculus": completeProfileBody.withOculus, "linkOculus": false, "createOculus": true });
                                 break;
                         }
                     }
@@ -337,6 +345,8 @@ Item {
                         loginErrorMessage.visible = false;
                         if (completeProfileBody.withOculus) {
                             loginDialog.createAccountFromOculus(emailField.text, usernameField.text, passwordField.text);
+                            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                                "linkSteam": false, "withOculus": completeProfileBody.withOculus, "linkOculus": false, "createOculus": true });
                         } else if (completeProfileBody.withSteam) {
                             loginDialog.createAccountFromSteam();
                         }
@@ -452,10 +462,8 @@ Item {
     Connections {
         target: loginDialog
         onHandleCreateCompleted: {
-            console.log("Create Succeeded")
-            if (completeProfileBody.withOculus) {
-                loginDialog.loginThroughOculus();
-            } else if (completeProfileBody.withSteam) {
+            console.log("Create Succeeded");
+            if (completeProfileBody.withSteam) {
                 loginDialog.loginThroughSteam();
             }
             bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam, "linkSteam": false,
@@ -463,23 +471,8 @@ Item {
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);
-            if (completeProfileBody.withOculus) {
-                loginErrorMessage.visible = true;
-                loginErrorMessage.text = error;
-
-                if (loginErrorMessageTextMetrics.width > root.bannerWidth) {
-                    loginErrorMessage.wrapMode = Text.WordWrap;
-                    loginErrorMessage.verticalAlignment = Text.AlignLeft;
-                    loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                    errorContainer.height = (loginErrorMessageTextMetrics.width / root.bannerWidth) * loginErrorMessageTextMetrics.height;
-                } else {
-                    loginErrorMessage.wrapMode = Text.NoWrap;
-                    errorContainer.height = loginErrorMessageTextMetrics.height;
-                }
-            } else {
-                bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
-                    "withOculus": completeProfileBody.withOculus });
-            }
+            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam,
+                "withOculus": completeProfileBody.withOculus });
         }
     }
 
