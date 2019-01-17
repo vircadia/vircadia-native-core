@@ -76,7 +76,7 @@ Item {
                 width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
-                    bottom: fields.top;
+                    bottom: completeProfileBody.withOculus ? fields.top : buttons.top;
                     bottomMargin: 1.5 * hifi.dimensions.contentSpacing.y;
                     left: buttons.left;
                 }
