@@ -30,6 +30,7 @@ Item {
     property bool withOculus: withOculus
     property bool linkSteam: linkSteam
     property bool linkOculus: linkOculus
+    property bool createOculus: createOculus
 
     QtObject {
         id: d
@@ -73,8 +74,12 @@ Item {
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
-
-        if (loggingInBody.linkSteam) {
+        if (loggingInBody.createOculus) {
+            loggingInGlyph.text = hifi.glyphs.oculus;
+            loggingInGlyph.visible = true;
+            loggingInText.text = "Creating account with Oculus";
+            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+        } else if (loggingInBody.linkSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Linking to Steam";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
@@ -243,6 +248,21 @@ Item {
 
     Connections {
         target: loginDialog
+        onHandleCreateCompleted: {
+            console.log("Create Succeeded")
+            if (loggingInBody.withOculus) {
+                loggingInBody.createOculus = false;
+                loggingInText.text = "Account created! Logging in to Oculus";
+                loginDialog.loginThroughOculus();
+            }
+        }
+        onHandleCreateFailed: {
+            console.log("Create Failed: " + error);
+            if (loggingInBody.withOculus) {
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
+                    "withOculus": loggingInBody.withOculus, "errorString": error });
+            }
+        }
         onHandleLinkCompleted: {
             console.log("Link Succeeded");
             loggingInBody.linkSteam = false;

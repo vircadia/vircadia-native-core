@@ -134,7 +134,7 @@ void LoginDialog::loginThroughOculus() {
    qDebug() << "Attempting to login through Oculus";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
         oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString userID, QString oculusID) {
-            DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, userID);
+            DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, userID, oculusID);
         });
     }
 }
@@ -143,7 +143,7 @@ void LoginDialog::linkOculus() {
     qDebug() << "Attempting to link Oculus account";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
         oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString userID, QString oculusID) {
-            if (nonce.isEmpty() || userID.isEmpty()) {
+            if (nonce.isEmpty() || userID.isEmpty() || oculusID.isEmpty()) {
                 emit handleLoginFailed();
                 return;
             }
@@ -157,6 +157,7 @@ void LoginDialog::linkOculus() {
             QJsonObject payload;
             payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
             payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
+            payload.insert("oculus_id", QJsonValue::fromVariant(QVariant(oculusID)));
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(LINK_OCULUS_PATH, AccountManagerAuth::Required,
@@ -170,7 +171,7 @@ void LoginDialog::createAccountFromOculus(QString email, QString username, QStri
     qDebug() << "Attempting to create account from Oculus info";
     if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
         oculusPlatformPlugin->requestNonceAndUserID([this, email, username, password] (QString nonce, QString userID, QString oculusID) {
-            if (nonce.isEmpty() || userID.isEmpty()) {
+            if (nonce.isEmpty() || userID.isEmpty() || oculusID.isEmpty()) {
                 emit handleLoginFailed();
                 return;
             }
@@ -297,7 +298,6 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
         QJsonParseError parseError;
         auto doc = QJsonDocument::fromJson(replyData, &parseError);
         if (parseError.error != QJsonParseError::NoError) {
-            qDebug() << "Failed parsing error " << parseError.error;
             emit handleCreateFailed(reply->errorString());
             return;
         }
@@ -306,11 +306,19 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
         auto error = data.value("error").toObject();
         auto identity = error.value("identity");
         auto user = error.value("username");
+        auto uid = error.value("uid");
         auto email = error.value("email");
         QString usernameError;
         QString emailError;
         QString identityError;
         QString errorReply;
+        if (!uid.isNull() && !uid.isUndefined()) {
+            QJsonArray arr = uid.toArray();
+            if (!arr.isEmpty()) {
+                emit handleCreateFailed("Oculus ID " + arr.at(0).toString() + ".");
+                return;
+            }
+        }
         if (!user.isNull() && !user.isUndefined()) {
             QJsonArray arr = user.toArray();
             if (!arr.isEmpty()) {
