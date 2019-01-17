@@ -216,7 +216,7 @@ private:
 
     void simulateAvatarFades(float deltaTime);
 
-    AvatarSharedPointer newSharedAvatar() override;
+    AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID) override;
 
     // called only from the AvatarHashMap thread - cannot be called while this thread holds the
     // hash lock, since handleRemovedAvatar needs a write lock on the entity tree and the entity tree

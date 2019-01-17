@@ -40,6 +40,8 @@ Item {
     property bool linkSteam: linkSteam
     property bool lostFocus: false
 
+    readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -345,6 +347,12 @@ Item {
                 fontSize: signUpBody.fontSize
                 fontBold: signUpBody.fontBold
                 onClicked: {
+                    if (signUpBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked cancel button at sign up screen"
+                        }
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                    }
                     bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": signUpBody.linkSteam });
                 }
             }
@@ -363,19 +371,14 @@ Item {
                 }
 
                 onClicked: {
+                    if (signUpBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked sign up button"
+                        }
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                    }
                     signUpBody.signup();
                 }
-            }
-        }
-    }
-
-    MouseArea {
-        z: -2
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            if (!usernameField.focus && !emailField.focus && !passwordField.focus) {
-                usernameField.focus = true;
             }
         }
     }
@@ -408,11 +411,25 @@ Item {
         onHandleSignupCompleted: {
             console.log("Sign Up Completed");
 
+            if (signUpBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user signed up successfully"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
+
             loginDialog.login(usernameField.text, passwordField.text);
             bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
         }
         onHandleSignupFailed: {
             console.log("Sign Up Failed")
+
+            if (signUpBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user signed up unsuccessfully"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
 
             if (errorString !== "") {
                 loginErrorMessage.visible = true;
