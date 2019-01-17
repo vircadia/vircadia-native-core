@@ -640,23 +640,27 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
-                                                                 const QScriptValue& avatarIdsToDiscard) {
+                                                                 const QScriptValue& avatarIdsToDiscard,
+                                                                 const QScriptValue& jointIndicesToFilter) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
-
-    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard);
+    QVector<uint> jointsToFilter;
+    qVectorIntFromScriptValue(jointIndicesToFilter, jointsToFilter);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, jointsToFilter);
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
                                                                        const QVector<EntityItemID>& avatarsToInclude,
-                                                                       const QVector<EntityItemID>& avatarsToDiscard) {
+                                                                       const QVector<EntityItemID>& avatarsToDiscard,
+                                                                       const QVector<uint>& jointIndicesToFilter) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
-                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard),
+                                  Q_ARG(const QVector<uint>&, jointIndicesToFilter));
         return result;
     }
     
@@ -672,55 +676,80 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
     if (physicsResults.size() > 0) {
         MyCharacterController::RayAvatarResult rayAvatarResult;
+        AvatarPointer avatar = nullptr;
         for (auto &hit : physicsResults) {
-            if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(hit._intersectWithAvatar)) ||
-                (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(hit._intersectWithAvatar))) {
+            auto avatarID = hit._intersectWithAvatar;
+            bool skipThisAvatar = (avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
+                                  (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID)) && jointIndicesToFilter.size() == 0;
+            if (skipThisAvatar) {
                 continue;
             }
-            if (!hit._isBound) {
-                rayAvatarResult = hit;
-                break;
-            } else {
+            if (!(_myAvatar->getSessionUUID() == avatarID)) {
                 auto avatarMap = getHashCopy();
-                auto avatarID = hit._intersectWithAvatar;
                 AvatarHash::iterator itr = avatarMap.find(avatarID);
                 if (itr != avatarMap.end()) {
-                    const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
-                    auto &multiSpheres = avatar->getMultiSphereShapes();
-                    if (multiSpheres.size() > 0) {
-                        std::vector<MyCharacterController::RayAvatarResult> boxHits;
-                        for (size_t i = 0; i < hit._boundJoints.size(); i++) {
-                            assert(hit._boundJoints[i] < multiSpheres.size());
-                            auto &mSphere = multiSpheres[hit._boundJoints[i]];
-                            if (mSphere.isValid()) {
-                                float boundDistance = FLT_MAX;
-                                BoxFace face;
-                                glm::vec3 surfaceNormal;
-                                auto &bbox = mSphere.getBoundingBox();
-                                if (bbox.findRayIntersection(ray.origin, ray.direction, rayDirectionInv, boundDistance, face, surfaceNormal)) {
-                                    MyCharacterController::RayAvatarResult boxHit;
-                                    boxHit._distance = boundDistance;
-                                    boxHit._intersect = true;
-                                    boxHit._intersectionNormal = surfaceNormal;
-                                    boxHit._intersectionPoint = ray.origin + boundDistance * glm::normalize(ray.direction);
-                                    boxHit._intersectWithAvatar = avatarID;
-                                    boxHit._intersectWithJoint = mSphere.getJointIndex();
-                                    boxHits.push_back(boxHit);
-                                }
-                            }
-                        }
-                        if (boxHits.size() > 0) {
-                            if (boxHits.size() > 1) {
-                                std::sort(boxHits.begin(), boxHits.end(), [](const MyCharacterController::RayAvatarResult& hitA,
-                                                                             const MyCharacterController::RayAvatarResult& hitB) {
-                                    return hitA._distance < hitB._distance;
-                                });
-                            } 
-                            rayAvatarResult = boxHits[0];
-                            break;
+                    avatar = std::static_pointer_cast<Avatar>(*itr);
+                }
+            } else {
+                avatar = _myAvatar;
+            }
+            QVector<int> jointsToDiscard;
+            if (avatar && jointIndicesToFilter.size() > 0) {
+                int jointCount = avatar->getJointCount();
+                if (avatarsToInclude.size() > 0 && avatarsToInclude.contains(avatarID)) {
+                    for (int i = 0; i < jointCount; i++) {
+                        if (!jointIndicesToFilter.contains(i)) {
+                            jointsToDiscard.push_back(i);
                         }
                     }
-                }     
+                } else if (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID)) {
+                    for (int i = 0; i < jointCount; i++) {
+                        if (jointIndicesToFilter.contains(i)) {
+                            jointsToDiscard.push_back(i);
+                        }
+                    }
+                }
+            }
+            if (!hit._isBound) {
+                if (!jointsToDiscard.contains(hit._intersectWithJoint)) {
+                    rayAvatarResult = hit;
+                    break;
+                }
+            } else if (avatar) {
+                auto &multiSpheres = avatar->getMultiSphereShapes();
+                if (multiSpheres.size() > 0) {
+                    std::vector<MyCharacterController::RayAvatarResult> boxHits;
+                    for (size_t i = 0; i < hit._boundJoints.size(); i++) {
+                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        auto &mSphere = multiSpheres[hit._boundJoints[i]];
+                        if (mSphere.isValid() && !jointsToDiscard.contains(hit._boundJoints[i])) {
+                            float boundDistance = FLT_MAX;
+                            BoxFace face;
+                            glm::vec3 surfaceNormal;
+                            auto &bbox = mSphere.getBoundingBox();
+                            if (bbox.findRayIntersection(ray.origin, ray.direction, rayDirectionInv, boundDistance, face, surfaceNormal)) {
+                                MyCharacterController::RayAvatarResult boxHit;
+                                boxHit._distance = boundDistance;
+                                boxHit._intersect = true;
+                                boxHit._intersectionNormal = surfaceNormal;
+                                boxHit._intersectionPoint = ray.origin + boundDistance * glm::normalize(ray.direction);
+                                boxHit._intersectWithAvatar = avatarID;
+                                boxHit._intersectWithJoint = hit._intersectWithJoint;
+                                boxHits.push_back(boxHit);
+                            }
+                        }
+                    }
+                    if (boxHits.size() > 0) {
+                        if (boxHits.size() > 1) {
+                            std::sort(boxHits.begin(), boxHits.end(), [](const MyCharacterController::RayAvatarResult& hitA,
+                                                                            const MyCharacterController::RayAvatarResult& hitB) {
+                                return hitA._distance < hitB._distance;
+                            });
+                        } 
+                        rayAvatarResult = boxHits[0];
+                        break;
+                    }
+                }
             }
         }
         if (rayAvatarResult._intersect) {

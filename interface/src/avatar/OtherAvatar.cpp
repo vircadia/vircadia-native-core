@@ -114,6 +114,9 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
 
 int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        _detailedMotionStates[i]->forceActive();
+    }
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
@@ -166,7 +169,11 @@ btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBoun
         break;
     }
     if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
-        return const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+        auto shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+        if (shape) {
+            shape->setMargin(0.001f);
+        }
+        return shape;
     }
     return nullptr;
 }

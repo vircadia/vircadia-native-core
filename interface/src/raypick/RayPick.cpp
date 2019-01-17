@@ -56,7 +56,7 @@ PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
 }
 
 PickResultPointer RayPick::getAvatarIntersection(const PickRay& pick) {
-    RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
+    RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), QVector<uint>());
     if (avatarRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick, avatarRes.surfaceNormal, avatarRes.extraInfo);
     } else {

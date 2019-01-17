@@ -138,21 +138,25 @@ public:
      * @param {PickRay} ray
      * @param {Uuid[]} [avatarsToInclude=[]]
      * @param {Uuid[]} [avatarsToDiscard=[]]
+     * @param {uint[]} [jointIndicesToFilter=[] - If included/discarded avatars are provided only this joints corresponding to those avatars would be included/discarded. ]
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
-                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue());
+                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue(),
+                                                                  const QScriptValue& jointIndicesToFilter = QScriptValue());
     /**jsdoc
      * @function AvatarManager.findRayIntersectionVector
      * @param {PickRay} ray
      * @param {Uuid[]} avatarsToInclude
      * @param {Uuid[]} avatarsToDiscard
+     * @param {uint[]} [jointIndicesToFilter=[] - If included/discarded avatars are provided only this joints corresponding to those avatars would be included/discarded. ]
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
-                                                                        const QVector<EntityItemID>& avatarsToDiscard);
+                                                                        const QVector<EntityItemID>& avatarsToDiscard,
+                                                                        const QVector<uint>& jointIndicesToFilter);
 
     /**jsdoc
      * @function AvatarManager.findParabolaIntersectionVector

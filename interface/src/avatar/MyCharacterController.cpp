@@ -360,6 +360,9 @@ btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(in
     _avatar->computeDetailedShapeInfo(shapeInfo, jointIndex);
     if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
         btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+        if (shape) {
+            shape->setMargin(0.001f);
+        }
         return shape;
     }
     return nullptr;

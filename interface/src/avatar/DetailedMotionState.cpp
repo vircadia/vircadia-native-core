@@ -182,7 +182,7 @@ void DetailedMotionState::setShape(const btCollisionShape* shape) {
 }
 
 void DetailedMotionState::forceActive() {
-    if (_body) {
+    if (_body && !_body->isActive()) {
         _body->setActivationState(ACTIVE_TAG);
     }
 }
