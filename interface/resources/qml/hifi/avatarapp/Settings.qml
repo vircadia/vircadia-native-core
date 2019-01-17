@@ -110,11 +110,11 @@ Rectangle {
                 size: 17;
                 text: "Avatar Scale"
                 verticalAlignment: Text.AlignVCenter
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             RowLayout {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 Layout.fillWidth: true
 
                 spacing: 0
@@ -124,7 +124,7 @@ Rectangle {
                     text: 'T'
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 HifiControlsUit.Slider {
@@ -142,7 +142,7 @@ Rectangle {
                         }
                     }
 
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     Layout.fillWidth: true
 
                     // TextStyle9
@@ -171,7 +171,7 @@ Rectangle {
                     text: 'T'
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
             }
 
@@ -368,8 +368,7 @@ Rectangle {
             InputTextStyle4 {
                 id: avatarAnimationUrlInputText
                 font.pixelSize: 17
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.fillWidth: true
                 placeholderText: 'user\\ﬁle\\dir'
 
                 onFocusChanged: {
@@ -398,8 +397,7 @@ Rectangle {
             InputTextStyle4 {
                 id: avatarCollisionSoundUrlInputText
                 font.pixelSize: 17
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.fillWidth: true
                 placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
 
                 onFocusChanged: {

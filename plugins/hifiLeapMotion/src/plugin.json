@@ -1,1 +1,4 @@
-{"name":"Leap Motion"}
+{
+    "name":"Leap Motion",
+    "version":1
+}

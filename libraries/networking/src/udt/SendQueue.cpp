@@ -61,6 +61,9 @@ private:
     Mutex2& _mutex2;
 };
 
+const microseconds SendQueue::MAXIMUM_ESTIMATED_TIMEOUT = seconds(5);
+const microseconds SendQueue::MINIMUM_ESTIMATED_TIMEOUT = milliseconds(10);
+
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
                                              MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
@@ -507,12 +510,8 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
 
                 auto estimatedTimeout = std::chrono::microseconds(_estimatedTimeout);
 
-                // cap our maximum estimated timeout to the already unreasonable 5 seconds
-                const auto MAXIMUM_ESTIMATED_TIMEOUT = std::chrono::seconds(5);
-
-                if (estimatedTimeout > MAXIMUM_ESTIMATED_TIMEOUT) {
-                    estimatedTimeout = MAXIMUM_ESTIMATED_TIMEOUT;
-                }
+                // Clamp timeout beween 10 ms and 5 s
+                estimatedTimeout = std::min(MAXIMUM_ESTIMATED_TIMEOUT, std::max(MINIMUM_ESTIMATED_TIMEOUT, estimatedTimeout));
 
                 // use our condition_variable_any to wait
                 auto cvStatus = _emptyCondition.wait_for(locker, estimatedTimeout);
