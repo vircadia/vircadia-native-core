@@ -598,7 +598,6 @@ void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QS
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("oculus_nonce=" + nonce + "&");
-    postData.append("oculus_user_id=" + userID + "&");
     postData.append("oculus_id=" + oculusID + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 

@@ -156,7 +156,6 @@ void LoginDialog::linkOculus() {
 
             QJsonObject payload;
             payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
-            payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
             payload.insert("oculus_id", QJsonValue::fromVariant(QVariant(oculusID)));
 
             auto accountManager = DependencyManager::get<AccountManager>();
@@ -185,7 +184,6 @@ void LoginDialog::createAccountFromOculus(QString email, QString username, QStri
 
             QJsonObject payload;
             payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
-            payload.insert("oculus_user_id", QJsonValue::fromVariant(QVariant(userID)));
             payload.insert("oculus_id", QJsonValue::fromVariant(QVariant(oculusID)));
             if (!email.isEmpty()) {
                 payload.insert("email", QJsonValue::fromVariant(QVariant(email)));
