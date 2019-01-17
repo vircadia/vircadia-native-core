@@ -11,8 +11,6 @@
 
 macro(fixup_nitpick)
   if (APPLE)
-message(STATUS ${QT_DIR})
-message(STATUS "____________________")
     string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${NITPICK_BUNDLE_NAME})
     string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${NITPICK_INSTALL_DIR})
     set(_NITPICK_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
