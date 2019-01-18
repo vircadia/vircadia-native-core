@@ -266,16 +266,16 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]()->bool { return myAvatar->getHandRelativeMovement(); };
-        auto setter = [myAvatar](bool value) { myAvatar->setHandRelativeMovement(value);  };
-        auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
-        preferences->addPreference(preference);
-    }
-    {
         auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
         auto setter = [myAvatar](bool value) { myAvatar->setFlyingHMDPref(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Jumping and flying", getter, setter);
         preference->setIndented(true);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->bool { return myAvatar->getHandRelativeMovement(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setHandRelativeMovement(value);  };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
         preferences->addPreference(preference);
     }
     {
