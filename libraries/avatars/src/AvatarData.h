@@ -1271,12 +1271,12 @@ public slots:
      * @function MyAvatar.sendAvatarDataPacket
      * @param {boolean} [sendAll=false]
      */
-    void sendAvatarDataPacket(bool sendAll = false);
+    virtual int sendAvatarDataPacket(bool sendAll = false);
 
     /**jsdoc
      * @function MyAvatar.sendIdentityPacket
      */
-    void sendIdentityPacket();
+    int sendIdentityPacket();
 
     /**jsdoc
      * @function MyAvatar.setSessionUUID

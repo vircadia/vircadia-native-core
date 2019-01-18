@@ -54,7 +54,6 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
-    packetReceiver.registerListener(PacketType::AvatarIdentityRequest, this, "handleAvatarIdentityRequestPacket");
     packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "queueIncomingPacket");
     packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
 
@@ -580,36 +579,6 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     }
     auto end = usecTimestampNow();
     _handleAvatarIdentityPacketElapsedTime += (end - start);
-}
-
-void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    if (message->getSize() < NUM_BYTES_RFC4122_UUID) {
-        qCDebug(avatars) << "Malformed AvatarIdentityRequest received from" << message->getSenderSockAddr().toString();
-        return;
-    }
-
-    QUuid avatarID(QUuid::fromRfc4122(message->getMessage()) );
-    if (!avatarID.isNull()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        auto requestedNode = nodeList->nodeWithUUID(avatarID);
-
-        if (requestedNode) {
-            AvatarMixerClientData* avatarClientData = static_cast<AvatarMixerClientData*>(requestedNode->getLinkedData());
-            if (avatarClientData) {
-                const AvatarData& avatarData = avatarClientData->getAvatar();
-                QByteArray serializedAvatar = avatarData.identityByteArray();
-                auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-                identityPackets->write(serializedAvatar);
-                nodeList->sendPacketList(std::move(identityPackets), *senderNode);
-                ++_sumIdentityPackets;
-            }
-
-            AvatarMixerClientData* senderData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-            if (senderData) {
-                senderData->resetSentTraitData(requestedNode->getLocalID());
-            }
-        }
-    }
 }
 
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
