@@ -6273,7 +6273,7 @@ void Application::update(float deltaTime) {
         // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
         // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
         // camera should be.
-    //    updateSecondaryCameraViewFrustum();
+        updateSecondaryCameraViewFrustum();
     }
 
     quint64 now = usecTimestampNow();
