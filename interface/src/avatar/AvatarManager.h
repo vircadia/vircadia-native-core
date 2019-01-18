@@ -144,7 +144,8 @@ public:
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue(),
-                                                                  const QScriptValue& jointIndicesToFilter = QScriptValue());
+                                                                  const QScriptValue& jointIndicesToFilter = QScriptValue(),
+                                                                  bool pickAgainstMesh = false);
     /**jsdoc
      * @function AvatarManager.findRayIntersectionVector
      * @param {PickRay} ray
@@ -156,7 +157,8 @@ public:
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard,
-                                                                        const QVector<uint>& jointIndicesToFilter);
+                                                                        const QVector<uint>& jointIndicesToFilter, 
+                                                                        bool pickAgainstMesh);
 
     /**jsdoc
      * @function AvatarManager.findParabolaIntersectionVector

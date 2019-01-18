@@ -223,11 +223,62 @@ public:
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
+
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
+
+    // world-space to avatar-space rigconversion functions
+    /**jsdoc
+    * @function MyAvatar.worldToJointPoint
+    * @param {Vec3} position
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.worldToJointDirection
+    * @param {Vec3} direction
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.worldToJointRotation
+    * @param {Quat} rotation
+    * @param {number} [jointIndex=-1]
+    * @returns {Quat}
+    */
+    Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+
+
+    /**jsdoc
+    * @function MyAvatar.jointToWorldPoint
+    * @param {vec3} position
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.jointToWorldDirection
+    * @param {Vec3} direction
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.jointToWorldRotation
+    * @param {Quat} rotation
+    * @param {number} [jointIndex=-1]
+    * @returns {Quat}
+    */
+    Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;

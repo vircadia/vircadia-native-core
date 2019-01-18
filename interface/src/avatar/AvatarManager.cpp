@@ -43,6 +43,7 @@
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
+#include "DebugDraw.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -641,18 +642,20 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
                                                                  const QScriptValue& avatarIdsToDiscard,
-                                                                 const QScriptValue& jointIndicesToFilter) {
+                                                                 const QScriptValue& jointIndicesToFilter,
+                                                                 bool pickAgainstMesh) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
     QVector<uint> jointsToFilter;
     qVectorIntFromScriptValue(jointIndicesToFilter, jointsToFilter);
-    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, jointsToFilter);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, jointsToFilter, pickAgainstMesh);
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
                                                                        const QVector<EntityItemID>& avatarsToInclude,
                                                                        const QVector<EntityItemID>& avatarsToDiscard,
-                                                                       const QVector<uint>& jointIndicesToFilter) {
+                                                                       const QVector<uint>& jointIndicesToFilter,
+                                                                       bool pickAgainstMesh) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
@@ -660,7 +663,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard),
-                                  Q_ARG(const QVector<uint>&, jointIndicesToFilter));
+                                  Q_ARG(const QVector<uint>&, jointIndicesToFilter),
+                                  Q_ARG(bool, pickAgainstMesh));
         return result;
     }
     
@@ -673,7 +677,9 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
     glm::vec3 surfaceNormal;
     QVariantMap extraInfo;
     std::vector<MyCharacterController::RayAvatarResult> physicsResults = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(ray.direction), distance, QVector<uint>());
-
+    glm::vec3 transformedRayPoint;
+    glm::vec3 transformedRayDirection;
+    
     if (physicsResults.size() > 0) {
         MyCharacterController::RayAvatarResult rayAvatarResult;
         AvatarPointer avatar = nullptr;
@@ -752,13 +758,37 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 }
             }
         }
+
         if (rayAvatarResult._intersect) {
+            if (pickAgainstMesh) {
+                glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
+                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + ray.direction, rayAvatarResult._intersectWithJoint);
+
+                auto avatarOrientation = avatar->getWorldOrientation();
+                auto avatarPosition = avatar->getWorldPosition();
+
+                auto jointOrientation = avatarOrientation * avatar->getAbsoluteDefaultJointRotationInObjectFrame(rayAvatarResult._intersectWithJoint);
+                auto jointPosition = avatarPosition + (avatarOrientation * avatar->getAbsoluteDefaultJointTranslationInObjectFrame(rayAvatarResult._intersectWithJoint));
+                
+                auto defaultFrameRayOrigin = jointPosition + jointOrientation * localRayOrigin;
+                auto defaultFrameRayPoint = jointPosition + jointOrientation * localRayPoint;
+                auto defaultFrameRayDirection = defaultFrameRayPoint - defaultFrameRayOrigin;
+
+                if (avatar->getSkeletonModel()->findRayIntersectionAgainstSubMeshes(defaultFrameRayOrigin, defaultFrameRayDirection, distance, face, surfaceNormal, extraInfo, true, false)) {
+                    auto newDistance = glm::length(vec3FromVariant(extraInfo["worldIntersectionPoint"]) - defaultFrameRayOrigin);
+                    rayAvatarResult._distance = newDistance;
+                    rayAvatarResult._intersectionPoint = ray.origin + newDistance * glm::normalize(ray.direction);
+                    rayAvatarResult._intersectionNormal = surfaceNormal;
+                    extraInfo["worldIntersectionPoint"] = vec3toVariant(rayAvatarResult._intersectionPoint);
+                }
+            }
+
             result.intersects = true;
             result.avatarID = rayAvatarResult._intersectWithAvatar;
             result.distance = rayAvatarResult._distance;
             result.surfaceNormal = rayAvatarResult._intersectionNormal;
             result.jointIndex = rayAvatarResult._intersectWithJoint;
-            result.intersection = rayAvatarResult._intersectionPoint;
+            result.intersection = ray.origin + rayAvatarResult._distance * glm::normalize(ray.direction);
             result.extraInfo = extraInfo;
             result.face = face;
         }
