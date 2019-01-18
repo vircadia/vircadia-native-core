@@ -56,7 +56,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPoseVec absolutePoses2;
     absolutePoses2.resize(_poses.size());
     // do this later 
-    computeAbsolutePoses(absolutePoses2);
+    // computeAbsolutePoses(absolutePoses2);
 
     int jointIndex2 = _skeleton->nameToJointIndex("Spine2");
     AnimPose origSpine2PoseAbs = _skeleton->getAbsolutePose(jointIndex2, _poses);
@@ -93,6 +93,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPose origAbsAfterHeadSpline;
     AnimPose finalSpine2;
     AnimChain jointChain;
+    AnimPose targetSpine2;
     if (_poses.size() > 0) {
         
         _snapshotChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
@@ -109,7 +110,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose originalSpine2Relative = afterSolveSpine1.inverse() * origSpine2PoseAbs;
         glm::quat rotation3 = animVars.lookupRigToGeometry("spine2Rotation", afterSolveSpine2.rot());
         glm::vec3 translation3 = animVars.lookupRigToGeometry("spine2Position", afterSolveSpine2.trans());
-        AnimPose targetSpine2(rotation3, afterSolveSpine2.trans());
+        targetSpine2 = AnimPose(rotation3, afterSolveSpine2.trans());
         finalSpine2 = afterSolveSpine1.inverse() * targetSpine2;
 
         qCDebug(animation) << "relative spine2 after solve" << afterSolveSpine2Rel;
@@ -120,7 +121,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         //qCDebug(animation) << "after head spline";
         //jointChain.dump();
         
-        //computeAbsolutePoses(absolutePoses2);
+        computeAbsolutePoses(absolutePoses2);
         origAbsAfterHeadSpline = _skeleton->getAbsolutePose(jointIndex2, _poses);
         // qCDebug(animation) << "Spine2 trans after head spline: " << origAbsAfterHeadSpline.trans();
         
@@ -137,8 +138,8 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         float weight2 = animVars.lookup("spine2Weight", "2.0");
         qCDebug(animation) << "rig to geometry" << rotation2;
         
-        target2.setPose(rotation2, translation2);
-        target2.setPose(finalSpine2.rot(), finalSpine2.trans());
+        //target2.setPose(rotation2, translation2);
+        target2.setPose(targetSpine2.rot(), targetSpine2.trans());
         target2.setWeight(weight2);
         const float* flexCoefficients2 = new float[3]{ 1.0f, 0.5f, 0.25f };
         target2.setFlexCoefficients(3, flexCoefficients2);
