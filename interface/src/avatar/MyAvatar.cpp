@@ -873,9 +873,13 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
                 collisionlessAllowed = zone->getGhostingAllowed();
             }
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            bool force = false;
-            bool iShouldTellServer = true;
             forEachDescendant([&](SpatiallyNestablePointer object) {
+                // we need to update attached queryAACubes in our own local tree so point-select always works
+                // however we don't want to flood the update pipeline with AvatarEntity updates, so we assume
+                // others have all info required to properly update queryAACube of AvatarEntities on their end
+                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
+                bool iShouldTellServer = !(entity && entity->isAvatarEntity());
+                const bool force = false;
                 entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
             });
         });
