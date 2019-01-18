@@ -2015,7 +2015,6 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     std::vector<glm::quat> rotations;
     rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
-    const glm::vec3 rigToGeometryScale(extractScale(_rigToGeometryTransform));
 
     for (int i = 0; i < numJoints; i++) {
         const JointData& data = jointDataVec.at(i);
