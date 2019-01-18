@@ -961,6 +961,7 @@ public:
     controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
     controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
     controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
+    quat MyAvatar::getDominantHandRotation() const;
 
     bool hasDriveInput() const;
 

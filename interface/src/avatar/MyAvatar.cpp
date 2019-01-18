@@ -2525,6 +2525,12 @@ controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action act
     }
 }
 
+quat MyAvatar::getDominantHandRotation() const {
+    auto hand = (getDominantHand() == DOMINANT_RIGHT_HAND) ? controller::Action::RIGHT_HAND : controller::Action::LEFT_HAND;
+    auto pose = getControllerPoseInAvatarFrame(hand);
+    return pose.rotation;
+}
+
 void MyAvatar::updateMotors() {
     _characterController.clearMotors();
     glm::quat motorRotation;
@@ -3291,10 +3297,24 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     // compute action input
     // Determine if we're head or controller relative...
-    glm::vec3 forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
-    glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
+    glm::vec3 forward, right;
+    if (getHandRelativeMovement()) {
+        // Here we have to get the rotation of the dominant hand and apply that to the direction vector.
+        // If we're on the right hand, we have to flip the x-axis.
+        auto handRotation = getDominantHandRotation();
+        glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
+        glm::vec3 controllerRight((getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f), 0.0f, 0.0f);
+        forward = (getDriveKey(TRANSLATE_Z)) * (handRotation * controllerForward);
+        right = (getDriveKey(TRANSLATE_X)) * (handRotation * controllerRight);
+    }
+    else {
+        forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
+        right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
+    }
 
     glm::vec3 direction = forward + right;
+    
+    // RKNOTE: This may need to be changed later...
     if (state == CharacterController::State::Hover ||
             _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
