@@ -1045,6 +1045,22 @@ public:
 
 
     /**jsdoc
+     * Set your preference for hand-relative movement.
+     * @function MyAvatar.setHandRelativeMovement
+     * @param {boolean} enabled - Set <code>true</code> if you want to enable hand-relative movement, otherwise set to <code>false</code>.
+     *
+    */
+    Q_INVOKABLE void setHandRelativeMovement(bool enabled);
+
+    /**jsdoc
+     * Get your preference for hand-relative movement.
+     * @function MyAvatar.getHandRelativeMovement
+     * @returns {boolean} <code>true</code> if your preference is for user locomotion to be relative to the direction your
+     * controller is pointing, otherwise <code>false</code>.
+    */
+    Q_INVOKABLE bool getHandRelativeMovement();
+
+    /**jsdoc
      * @function MyAvatar.getAvatarScale
      * @returns {number}
      */
@@ -1705,6 +1721,7 @@ private:
     bool _enableFlying { false };
     bool _flyingPrefDesktop { true };
     bool _flyingPrefHMD { false };
+    bool _handRelativeMovement{ false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -1950,6 +1967,7 @@ private:
     Setting::Handle<bool> _useSnapTurnSetting;
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
+    Setting::Handle<bool> _handRelativeMovementSetting;
     Setting::Handle<int> _avatarEntityCountSetting;
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;

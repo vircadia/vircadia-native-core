@@ -106,7 +106,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _characterController(this),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
-                          DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
+        DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _useAdvancedMovementControls("advancedMovementForHandControllersIsChecked", true),
     _showPlayArea("showPlayArea", true),
     _smoothOrientationTimer(std::numeric_limits<float>::max()),
@@ -130,7 +130,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _yawSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "yawSpeed", _yawSpeed),
     _pitchSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "pitchSpeed", _pitchSpeed),
     _fullAvatarURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "fullAvatarURL",
-                          AvatarData::defaultFullAvatarModelUrl()),
+        AvatarData::defaultFullAvatarModelUrl()),
     _fullAvatarModelNameSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "fullAvatarModelName", _fullAvatarModelName),
     _animGraphURLSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "animGraphURL", QUrl("")),
     _displayNameSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "displayName", ""),
@@ -138,6 +138,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
+    _handRelativeMovementSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "handRelativeMovement", _handRelativeMovement),
     _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0)
 {
     _clientTraitsHandler.reset(new ClientTraitsHandler(this));
@@ -1300,6 +1301,7 @@ void MyAvatar::saveData() {
     _useSnapTurnSetting.set(_useSnapTurn);
     _userHeightSetting.set(getUserHeight());
     _flyingHMDSetting.set(getFlyingHMDPref());
+    _handRelativeMovementSetting.set(getHandRelativeMovement());
 
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     saveAvatarEntityDataToSettings();
@@ -1876,6 +1878,7 @@ void MyAvatar::loadData() {
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
     setFlyingHMDPref(firstRunVal.get() ? false : _flyingHMDSetting.get());
+    setHandRelativeMovement(firstRunVal.get() ? false : _handRelativeMovementSetting.get());
     setFlyingEnabled(getFlyingEnabled());
 
     setDisplayName(_displayNameSetting.get());
@@ -3287,6 +3290,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     CharacterController::State state = _characterController.getState();
 
     // compute action input
+    // Determine if we're head or controller relative...
     glm::vec3 forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
     glm::vec3 right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
 
@@ -3814,6 +3818,18 @@ void MyAvatar::setFlyingHMDPref(bool enabled) {
     }
 
     _flyingPrefHMD = enabled;
+}
+
+void MyAvatar::setHandRelativeMovement(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setHandRelativeMovement", Q_ARG(bool, enabled));
+        return;
+    }
+    _handRelativeMovement = enabled;
+}
+
+bool MyAvatar::getHandRelativeMovement() {
+    return _handRelativeMovement;
 }
 
 bool MyAvatar::getFlyingHMDPref() {
