@@ -21,11 +21,7 @@ file(GLOB_RECURSE NITPICK_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
 list(APPEND NITPICK_SRCS ${RESOURCES_RCC})
 
-find_package(
-    Qt5 COMPONENTS
-    Gui Widgets Qml Quick Svg Xml
-    ${PLATFORM_QT_COMPONENTS}
-)
+find_package(Qt5 COMPONENTS Widgets)
 
 # grab the ui files in ui
 file (GLOB_RECURSE QT_UI_FILES ui/*.ui)
@@ -189,10 +185,6 @@ elseif (WIN32)
         PATTERN "*.lib" EXCLUDE
         PATTERN "*.exp" EXCLUDE
     )
-
-    set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
-
-    optional_win_executable_signing()
 endif()
 
 if (WIN32)
