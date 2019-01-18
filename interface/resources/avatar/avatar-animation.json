@@ -159,24 +159,6 @@
                                                                             "poleVectorEnabledVar": "leftHandPoleVectorEnabled",
                                                                             "poleReferenceVectorVar": "leftHandPoleReferenceVector",
                                                                             "poleVectorVar": "leftHandPoleVector"
-                                                                        },
-                                                                        {
-                                                                            "jointName": "Spine2",
-                                                                            "positionVar": "spine2Position",
-                                                                            "rotationVar": "spine2Rotation",
-                                                                            "typeVar": "spine2Type",
-                                                                            "weightVar": "spine2Weight",
-                                                                            "weight": 2.0,
-                                                                            "flexCoefficients": [ 1.0, 0.5, 0.25 ]
-                                                                        },
-                                                                        {
-                                                                            "jointName": "Head",
-                                                                            "positionVar": "headPosition",
-                                                                            "rotationVar": "headRotation",
-                                                                            "typeVar": "spine2Type",
-                                                                            "weightVar": "headWeight",
-                                                                            "weight": 4.0,
-                                                                            "flexCoefficients": [ 1, 0.5, 0.25, 0.2, 0.1 ]
                                                                         }
                                                                     ]
                                                                 },

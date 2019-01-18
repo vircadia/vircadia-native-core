@@ -4679,7 +4679,7 @@ void setupCpuMonitorThread() {
 
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
-
+    qCDebug(interfaceapp) << "idle called";
     // Update the deadlock watchdog
     updateHeartbeat();
 
