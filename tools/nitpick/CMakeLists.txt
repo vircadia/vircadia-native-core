@@ -16,12 +16,6 @@ add_custom_command(
     ARGS ${RESOURCES_QRC} -binary -o ${RESOURCES_RCC}
 )
 
-if (WIN32)
-    set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -bigobj")
-    add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-    add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
-endif()
-
 # grab the implementation and header files from src dirs
 file(GLOB_RECURSE NITPICK_SRCS "src/*.cpp" "src/*.h")
 GroupSources("src")
@@ -29,7 +23,7 @@ list(APPEND NITPICK_SRCS ${RESOURCES_RCC})
 
 find_package(
     Qt5 COMPONENTS
-    Gui Widgets Multimedia Network Qml Quick Script Svg Xml
+    Gui Widgets Qml Quick Svg Xml
     ${PLATFORM_QT_COMPONENTS}
 )
 
@@ -151,9 +145,6 @@ if (UNIX AND NOT ANDROID)
     endif ()
 endif()
 
-# assume we are using a Qt build without bearer management
-add_definitions(-DQT_NO_BEARERMANAGEMENT)
-
 # add a custom command to copy the empty AppData High Fidelity folder (i.e. - a valid folder with no entities)
 if (WIN32)
     add_custom_command(
@@ -205,8 +196,6 @@ elseif (WIN32)
         PATTERN "*.exp" EXCLUDE
     )
 
-    set(SCRIPTS_INSTALL_DIR "${NITPICK_INSTALL_DIR}")
-
     set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
 
     optional_win_executable_signing()
@@ -217,7 +206,6 @@ if (WIN32)
 
     set(TARGET_INSTALL_DIR ${NITPICK_INSTALL_DIR})
     set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
-    manually_install_openssl_for_qt()
 
     package_libraries_for_deployment()
 endif()
