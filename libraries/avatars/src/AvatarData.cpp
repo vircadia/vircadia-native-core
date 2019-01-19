@@ -1144,6 +1144,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
+        if (collideWithOtherAvatarsChanged) {
+            setCollisionWithOtherAvatarsFlags();
+        }
         if (somethingChanged) {
             _additionalFlagsChanged = now;
         }

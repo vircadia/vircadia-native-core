@@ -109,7 +109,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             }
             _dynamicsWorld = nullptr;
         }
-        int32_t collisionGroup = computeCollisionGroup();
+        int32_t collisionMask = computeCollisionMask();
+        int32_t collisionGroup = BULLET_COLLISION_GROUP_MY_AVATAR; 
         if (_rigidBody) {
             updateMassProperties();
         }
@@ -117,7 +118,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             // add to new world
             _dynamicsWorld = world;
             _pendingFlags &= ~PENDING_FLAG_JUMP;
-            _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
+            _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, collisionMask); 
             _dynamicsWorld->addAction(this);
             // restore gravity settings because adding an object to the world overwrites its gravity setting
             _rigidBody->setGravity(_currentGravity * _currentUp);
@@ -127,7 +128,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
             _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
         }
-        _ghost.setCollisionGroupAndMask(collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR & (~ collisionGroup));
+        _ghost.setCollisionGroupAndMask(collisionGroup, collisionMask & (~ collisionGroup)); 
         _ghost.setCollisionWorld(_dynamicsWorld);
         _ghost.setRadiusAndHalfHeight(_radius, _halfHeight);
         if (_rigidBody) {
@@ -384,8 +385,8 @@ static const char* stateToStr(CharacterController::State state) {
 #endif // #ifdef DEBUG_STATE_CHANGE
 
 void CharacterController::updateCurrentGravity() {
-    int32_t collisionGroup = computeCollisionGroup();
-    if (_state == State::Hover || collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+    int32_t collisionMask = computeCollisionMask();
+    if (_state == State::Hover || collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS) {
         _currentGravity = 0.0f;
     } else {
         _currentGravity = _gravity;
@@ -458,28 +459,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
 void CharacterController::setCollisionless(bool collisionless) {
     if (collisionless != _collisionless) {
         _collisionless = collisionless;
-        _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_GROUP;
-    }
-}
-
-int32_t CharacterController::computeCollisionGroup() const {
-    if (_collisionless) {
-        return _collisionlessAllowed ? BULLET_COLLISION_GROUP_COLLISIONLESS : BULLET_COLLISION_GROUP_MY_AVATAR;
-    } else {
-        return BULLET_COLLISION_GROUP_MY_AVATAR;
-    }
-}
-
-void CharacterController::handleChangedCollisionGroup() {
-    if (_pendingFlags & PENDING_FLAG_UPDATE_COLLISION_GROUP) {
-        // ATM the easiest way to update collision groups is to remove/re-add the RigidBody
-        if (_dynamicsWorld) {
-            _dynamicsWorld->removeRigidBody(_rigidBody);
-            int32_t collisionGroup = computeCollisionGroup();
-            _dynamicsWorld->addRigidBody(_rigidBody, collisionGroup, BULLET_COLLISION_MASK_MY_AVATAR);
-        }
-        _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_GROUP;
-        updateCurrentGravity();
+        _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK;
     }
 }
 
@@ -567,8 +547,8 @@ void CharacterController::applyMotor(int index, btScalar dt, btVector3& worldVel
     btScalar angle = motor.rotation.getAngle();
     btVector3 velocity = worldVelocity.rotate(axis, -angle);
 
-    int32_t collisionGroup = computeCollisionGroup();
-    if (collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ||
+    int32_t collisionMask = computeCollisionMask();
+    if (collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS ||
             _state == State::Hover || motor.hTimescale == motor.vTimescale) {
         // modify velocity
         btScalar tau = dt / motor.hTimescale;
@@ -708,8 +688,8 @@ void CharacterController::updateState() {
     btVector3 rayStart = _position;
 
     btScalar rayLength = _radius;
-    int32_t collisionGroup = computeCollisionGroup();
-    if (collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
+    int32_t collisionMask = computeCollisionMask();
+    if (collisionMask == BULLET_COLLISION_MASK_MY_AVATAR) {
         rayLength += _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
     } else {
         rayLength += MIN_HOVER_HEIGHT;
@@ -746,7 +726,7 @@ void CharacterController::updateState() {
 
     // disable normal state transitions while collisionless
     const btScalar MAX_WALKING_SPEED = 2.65f;
-    if (collisionGroup == BULLET_COLLISION_GROUP_MY_AVATAR) {
+    if (collisionMask == BULLET_COLLISION_MASK_MY_AVATAR) {
         switch (_state) {
         case State::Ground:
             if (!rayHasHit && !_hasSupport) {
@@ -866,6 +846,6 @@ void CharacterController::setFlyingAllowed(bool value) {
 void CharacterController::setCollisionlessAllowed(bool value) {
     if (value != _collisionlessAllowed) {
         _collisionlessAllowed = value;
-        _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_GROUP;
+        _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK;
     }
 }

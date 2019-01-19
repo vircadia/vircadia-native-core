@@ -490,10 +490,14 @@ public:
     /// \return true if an error should be logged
     bool shouldLogError(const quint64& now);
 
+    virtual void setCollisionGroupFlag() {}
+
     /// \param packet byte array of data
     /// \param offset number of bytes into packet where data starts
     /// \return number of bytes parsed
     virtual int parseDataFromBuffer(const QByteArray& buffer);
+
+    virtual void setCollisionWithOtherAvatarsFlags() {};
 
     // Body Rotation (degrees)
     float getBodyYaw() const;
