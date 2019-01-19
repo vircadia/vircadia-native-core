@@ -27,7 +27,7 @@ RUN mkdir -p "$ANDROID_HOME" "$ANDROID_SDK_HOME" && \
     unzip sdk.zip && \
     rm sdk.zip && \
     yes | $ANDROID_HOME/tools/bin/sdkmanager --licenses
-
+RUN touch /usr/local/android-sdk-home/.android/repositories.cfg
 # Install Android Build Tool and Libraries
 RUN $ANDROID_HOME/tools/bin/sdkmanager --update
 RUN $ANDROID_HOME/tools/bin/sdkmanager "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
