@@ -31,7 +31,8 @@ if (BUILD_TOOLS)
     add_subdirectory(oven)
     set_target_properties(oven PROPERTIES FOLDER "Tools")
 
-    if (NOT RELEASE_TYPE STREQUAL "PRODUCTION")
+    # No need to build on Android or in a Production build
+    if (NOT ANDROID AND NOT RELEASE_TYPE STREQUAL "PRODUCTION")
         add_subdirectory(nitpick)
         set_target_properties(nitpick PROPERTIES FOLDER "Tools")
     endif()
