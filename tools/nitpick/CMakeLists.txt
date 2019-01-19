@@ -131,7 +131,7 @@ endforeach()
 # include headers for nitpick and NitpickConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src")
 
-if (UNIX AND NOT ANDROID)
+if (UNIX)
     if (CMAKE_SYSTEM_NAME MATCHES "Linux")
         # Linux
         target_link_libraries(${TARGET_NAME} pthread atomic)
