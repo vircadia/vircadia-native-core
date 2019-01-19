@@ -51,12 +51,13 @@ protected:
     QString _baseJointName;
     QString _tipJointName;
 
-    int _baseParentJointIndex{ -1 };
-    int _baseJointIndex{ -1 };
-    int _tipJointIndex{ -1 };
-    int _headIndex{ -1 };
-    int _hipsIndex{ -1 };
-    int _hipsTargetIndex{ -1 };
+    int _baseParentJointIndex { -1 };
+    int _baseJointIndex { -1 };
+    int _tipJointIndex { -1 };
+    int _headIndex { -1 };
+    int _hipsIndex { -1 };
+    int _spine2Index { -1 };
+    int _hipsTargetIndex { -1 };
 
     QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
     QString _enabledVar;  // bool

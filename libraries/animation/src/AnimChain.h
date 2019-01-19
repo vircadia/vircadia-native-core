@@ -82,6 +82,16 @@ public:
         return foundIndex;
     }
 
+    const AnimPose& getRelativePoseAtJointIndex(int jointIndex) const {
+        for (int i = 0; i < _top; i++) {
+            if (_chain[i].jointIndex == jointIndex) {
+                return _chain[i].relativePose;
+            }
+        }
+        return AnimPose::identity;
+    }
+
+
     void buildDirtyAbsolutePoses() {
         // the relative and absolute pose is the same for the base of the chain.
         _chain[_top - 1].absolutePose = _chain[_top - 1].relativePose;
