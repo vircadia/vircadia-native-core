@@ -253,6 +253,9 @@ class MyAvatar : public Avatar {
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
+
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
