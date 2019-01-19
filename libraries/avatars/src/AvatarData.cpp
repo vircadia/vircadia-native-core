@@ -54,7 +54,8 @@ using namespace std;
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
-static const int TRANSLATION_COMPRESSION_RADIX = 12;
+static const int TRANSLATION_COMPRESSION_RADIX = 14;
+static const int FAUX_JOINT_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
 static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
@@ -82,6 +83,23 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) 
     if (hasGrabJoints) {
         totalSize += sizeof(AvatarDataPacket::FarGrabJoints);
     }
+
+    return totalSize;
+}
+
+size_t AvatarDataPacket::minJointDataSize(size_t numJoints) {
+    const size_t validityBitsSize = calcBitVectorSize((int)numJoints);
+
+    size_t totalSize = sizeof(uint8_t); // numJoints
+
+    totalSize += validityBitsSize; // Orientations mask
+    // assume no valid rotations
+    totalSize += validityBitsSize; // Translations mask
+    totalSize += sizeof(float); // maxTranslationDimension
+    // assume no valid translations
+
+    size_t NUM_FAUX_JOINT = 2;
+    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
 
     return totalSize;
 }
@@ -612,8 +630,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     assert(numJoints <= 255);
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
-    // Start joints if room for at least the faux joints.
-    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, 1 + 4 + 2 * jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE) {
+    // include jointData if there is room for the most minimal section. i.e. no translations or rotations.
+    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, AvatarDataPacket::minJointDataSize(numJoints)) {
         // Allow for faux joints + translation bit-vector:
         const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat)
             + jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE;
@@ -621,7 +639,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         // compute maxTranslationDimension before we send any joint data.
         float maxTranslationDimension = 0.001f;
-        for (int i = 0; i < numJoints; ++i) {
+        for (int i = sendStatus.rotationsSent; i < numJoints; ++i) {
             const JointData& data = jointData[i];
             if (!data.translationIsDefaultPose) {
                 maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
@@ -697,8 +715,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
 
         // write maxTranslationDimension
-        memcpy(destinationBuffer, &maxTranslationDimension, sizeof(float));
-        destinationBuffer += sizeof(float);
+        AVATAR_MEMCPY(maxTranslationDimension);
 
         float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
 
@@ -738,12 +755,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerLeftHandTransform.getTranslation(),
-            TRANSLATION_COMPRESSION_RADIX);
+            FAUX_JOINT_COMPRESSION_RADIX);
 
         Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
-            TRANSLATION_COMPRESSION_RADIX);
+            FAUX_JOINT_COMPRESSION_RADIX);
 
         IF_AVATAR_SPACE(PACKET_HAS_GRAB_JOINTS, sizeof (AvatarDataPacket::FarGrabJoints)) {
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
@@ -882,7 +899,7 @@ const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSa
     glm::vec3 position;
     Transform transform;
     sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, orientation);
-    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, TRANSLATION_COMPRESSION_RADIX);
+    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, FAUX_JOINT_COMPRESSION_RADIX);
     transform.setTranslation(position);
     transform.setRotation(orientation);
     matrixCache.set(transform.getMatrix());
