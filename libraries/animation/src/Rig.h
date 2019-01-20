@@ -250,6 +250,9 @@ protected:
                      const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
                      const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo,
                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
+    void updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEnabled,
+                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
+                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
     void updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
                     const AnimPose& leftFootPose, const AnimPose& rightFootPose,
                     const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix);
@@ -413,6 +416,12 @@ protected:
 
     glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
+
+    glm::vec3 _prevRightHandPoleVector { Vectors::UNIT_Z }; // sensor space
+    bool _prevRightHandPoleVectorValid { false };
+
+    glm::vec3 _prevLeftHandPoleVector { Vectors::UNIT_Z }; // sensor space
+    bool _prevLeftHandPoleVectorValid { false };
 
     int _rigId;
     bool _headEnabled { false };

@@ -134,7 +134,7 @@
                                                                     "baseJointName": "RightArm",
                                                                     "midJointName": "RightForeArm",
                                                                     "tipJointName": "RightHand",
-                                                                    "midHingeAxis": [ 1, 0, 0 ],
+                                                                    "midHingeAxis": [ 0, 0, -1 ],
                                                                     "alphaVar": "rightArmIKAlpha",
                                                                     "enabledVar": "rightArmIKEnabled",
                                                                     "endEffectorRotationVarVar": "rightArmIKRotationVar",

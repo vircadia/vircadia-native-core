@@ -90,8 +90,8 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     }
     _enabled = enabled;
 
-    // don't build chains or do IK if we are disbled & not interping.
-    if (_interpType == InterpType::None && !enabled) {
+    // don't build chains or do IK if we are disabled & not interping.
+    if (_interpType == InterpType::None){// && !enabled) {
         _poses = underPoses;
         return _poses;
     }

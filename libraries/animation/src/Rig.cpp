@@ -75,6 +75,20 @@ static const QString RIGHT_FOOT_IK_ROTATION_VAR("rightFootIKRotationVar");
 static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_ROTATION("mainStateMachineRightFootRotation");
 static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_POSITION("mainStateMachineRightFootPosition");
 
+static const QString LEFT_HAND_POSITION("leftHandPosition");
+static const QString LEFT_HAND_ROTATION("leftHandRotation");
+static const QString LEFT_HAND_IK_POSITION_VAR("leftHandIKPositionVar");
+static const QString LEFT_HAND_IK_ROTATION_VAR("leftHandIKRotationVar");
+static const QString MAIN_STATE_MACHINE_LEFT_HAND_POSITION("mainStateMachineLeftHandPosition");
+static const QString MAIN_STATE_MACHINE_LEFT_HAND_ROTATION("mainStateMachineLeftHandRotation");
+
+static const QString RIGHT_HAND_POSITION("rightHandPosition");
+static const QString RIGHT_HAND_ROTATION("rightHandRotation");
+static const QString RIGHT_HAND_IK_POSITION_VAR("rightHandIKPositionVar");
+static const QString RIGHT_HAND_IK_ROTATION_VAR("rightHandIKRotationVar");
+static const QString MAIN_STATE_MACHINE_RIGHT_HAND_ROTATION("mainStateMachineRightHandRotation");
+static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRightHandPosition");
+
 
 Rig::Rig() {
     // Ensure thread-safe access to the rigRegistry.
@@ -1498,6 +1512,103 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     }
 }
 
+void Rig::updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEnabled,
+                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
+                       const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
+
+    int hipsIndex = indexOfJoint("Hips");
+    const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.85f;
+
+    if (headEnabled) {
+        // always do IK if head is enabled
+        _animVars.set("leftHandIKEnabled", true);
+        _animVars.set("rightHandIKEnabled", true);
+    } else {
+        // only do IK if we have a valid foot.
+        _animVars.set("leftHandIKEnabled", leftHandEnabled);
+        _animVars.set("rightHandIKEnabled", rightHandEnabled);
+    }
+
+    if (leftHandEnabled) {
+
+        _animVars.set(LEFT_HAND_POSITION, leftHandPose.trans());
+        _animVars.set(LEFT_HAND_ROTATION, leftHandPose.rot());
+
+        // We want to drive the IK directly from the trackers.
+        _animVars.set(LEFT_HAND_IK_POSITION_VAR, LEFT_HAND_POSITION);
+        _animVars.set(LEFT_HAND_IK_ROTATION_VAR, LEFT_HAND_ROTATION);
+
+        int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
+        int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
+        int shoulderJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
+        glm::vec3 poleVector;
+        bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, shoulderJointIndex, oppositeArmJointIndex, poleVector);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
+
+        // smooth toward desired pole vector from previous pole vector...  to reduce jitter, but in sensor space.
+        if (!_prevLeftHandPoleVectorValid) {
+            _prevLeftHandPoleVectorValid = true;
+            _prevLeftHandPoleVector = sensorPoleVector;
+        }
+        glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, sensorPoleVector);
+        glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+        _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
+
+        _animVars.set("leftHandPoleVectorEnabled", true);
+        _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftFootPoleVector));
+    } else {
+        // We want to drive the IK from the underlying animation.
+        // This gives us the ability to squat while in the HMD, without the feet from dipping under the floor.
+        _animVars.set(LEFT_HAND_IK_POSITION_VAR, MAIN_STATE_MACHINE_LEFT_HAND_POSITION);
+        _animVars.set(LEFT_HAND_IK_ROTATION_VAR, MAIN_STATE_MACHINE_LEFT_HAND_ROTATION);
+
+        // We want to match the animated knee pose as close as possible, so don't use poleVectors
+        _animVars.set("leftHandPoleVectorEnabled", false);
+        _prevLeftHandPoleVectorValid = false;
+    }
+
+    if (rightHandEnabled) {
+
+        _animVars.set(RIGHT_HAND_POSITION, rightHandPose.trans());
+        _animVars.set(RIGHT_HAND_ROTATION, rightHandPose.rot());
+
+        // We want to drive the IK directly from the trackers.
+        _animVars.set(RIGHT_HAND_IK_POSITION_VAR, RIGHT_HAND_POSITION);
+        _animVars.set(RIGHT_HAND_IK_ROTATION_VAR, RIGHT_HAND_ROTATION);
+
+        int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
+        int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
+        int shoulderJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+        glm::vec3 poleVector;
+        bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, shoulderJointIndex, oppositeArmJointIndex, poleVector);
+        glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
+
+        // smooth toward desired pole vector from previous pole vector...  to reduce jitter, but in sensor space.
+        if (!_prevRightHandPoleVectorValid) {
+            _prevRightHandPoleVectorValid = true;
+            _prevRightHandPoleVector = sensorPoleVector;
+        }
+        glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, sensorPoleVector);
+        glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+        _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
+
+        _animVars.set("rightHandPoleVectorEnabled", true);
+        _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightFootPoleVector));
+    } else {
+        // We want to drive the IK from the underlying animation.
+        // This gives us the ability to squat while in the HMD, without the feet from dipping under the floor.
+        _animVars.set(RIGHT_HAND_IK_POSITION_VAR, MAIN_STATE_MACHINE_RIGHT_HAND_POSITION);
+        _animVars.set(RIGHT_HAND_IK_ROTATION_VAR, MAIN_STATE_MACHINE_RIGHT_HAND_ROTATION);
+
+        // We want to match the animated knee pose as close as possible, so don't use poleVectors
+        _animVars.set("rightHandPoleVectorEnabled", false);
+        _prevRightHandPoleVectorValid = false;
+    }
+
+}
+
 void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, bool headEnabled,
                      const AnimPose& leftFootPose, const AnimPose& rightFootPose,
                      const glm::mat4& rigToSensorMatrix, const glm::mat4& sensorToRigMatrix) {
@@ -1749,6 +1860,10 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
                 params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
                 params.rigToSensorMatrix, sensorToRigMatrix);
+
+    updateHands2(leftHandEnabled, rightHandEnabled, _headEnabled,
+                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
+                 params.rigToSensorMatrix, sensorToRigMatrix);
 
     updateFeet(leftFootEnabled, rightFootEnabled, _headEnabled,
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot],
