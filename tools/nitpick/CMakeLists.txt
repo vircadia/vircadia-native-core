@@ -76,6 +76,9 @@ elseif (WIN32)
 
     # add an executable that also has the icon itself and the configured rc file as resources
     add_executable(${TARGET_NAME} WIN32 ${NITPICK_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} ${CONFIGURE_VERSION_INFO_RC_OUTPUT})
+elseif (ANDROID)
+  # on android the target is a library that gets linked/used by the APK shell that qtcreateapk produces
+  add_library(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 else ()
     add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
