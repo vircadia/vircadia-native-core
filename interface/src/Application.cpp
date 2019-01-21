@@ -2911,6 +2911,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageChange.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
+        QUrl{ "hifi/tablet/TabletMenu.qml" },
     }, commerceCallback);
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
         context->setContextProperty("TextToSpeech", DependencyManager::get<TTSScriptingInterface>().data());
