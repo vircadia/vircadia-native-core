@@ -52,11 +52,14 @@ ENV PATH ${PATH}:${ANDROID_NDK_HOME}
 RUN apt-get -y install \
     g++ \
     gcc \
+    sudo \
+    emacs-nox \
     -
 
 # --- Gradle
 ARG BUILD_UID=1001
 RUN useradd -ms /bin/bash -u $BUILD_UID jenkins
+RUN echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 USER jenkins
 WORKDIR /home/jenkins
 
@@ -71,22 +74,21 @@ RUN mkdir "$HIFI_BASE" && \
 
 RUN git clone https://github.com/jherico/hifi.git && \
     cd ~/hifi && \
-    git checkout feature/build/gradle-wrapper 
-
+    git checkout feature/quest_move_interface
 
 WORKDIR /home/jenkins/hifi
 
-RUN touch .test4 && \ 
-    git fetch && git reset origin/feature/build/gradle-wrapper --hard
+RUN touch .test6 && \ 
+    git fetch && git reset origin/feature/quest_move_interface --hard
 
 RUN mkdir build
 
 # Pre-cache the vcpkg managed dependencies
 WORKDIR /home/jenkins/hifi/build
-RUN python3 ../prebuild.py --build-root `pwd` --android
+RUN python3 ../prebuild.py --build-root `pwd` --android interface
 
 # Pre-cache the gradle dependencies
 WORKDIR /home/jenkins/hifi/android
 RUN ./gradlew -m tasks -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED
-RUN ./gradlew extractDependencies -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED 
+#RUN ./gradlew extractDependencies -PHIFI_ANDROID_PRECOMPILED=$HIFI_ANDROID_PRECOMPILED 
 
