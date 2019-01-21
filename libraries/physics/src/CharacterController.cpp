@@ -689,10 +689,10 @@ void CharacterController::updateState() {
 
     btScalar rayLength = _radius;
     int32_t collisionMask = computeCollisionMask();
-    if (collisionMask == BULLET_COLLISION_MASK_MY_AVATAR) {
-        rayLength += _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
-    } else {
+    if (collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS) {
         rayLength += MIN_HOVER_HEIGHT;
+    } else {
+        rayLength += _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT;
     }
     btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
@@ -726,69 +726,7 @@ void CharacterController::updateState() {
 
     // disable normal state transitions while collisionless
     const btScalar MAX_WALKING_SPEED = 2.65f;
-    if (collisionMask == BULLET_COLLISION_MASK_MY_AVATAR) {
-        switch (_state) {
-        case State::Ground:
-            if (!rayHasHit && !_hasSupport) {
-                SET_STATE(State::Hover, "no ground detected");
-            } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
-                _takeoffJumpButtonID = _jumpButtonDownCount;
-                _takeoffToInAirStartTime = now;
-                SET_STATE(State::Takeoff, "jump pressed");
-            } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
-                SET_STATE(State::InAir, "falling");
-            }
-            break;
-        case State::Takeoff:
-            if (!rayHasHit && !_hasSupport) {
-                SET_STATE(State::Hover, "no ground");
-            } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
-                SET_STATE(State::InAir, "takeoff done");
-
-                // compute jumpSpeed based on the scaled jump height for the default avatar in default gravity.
-                const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
-                const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
-                velocity += jumpSpeed * _currentUp;
-                _rigidBody->setLinearVelocity(velocity);
-            }
-            break;
-        case State::InAir: {
-            const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
-            const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
-            if ((velocity.dot(_currentUp) <= (jumpSpeed / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
-                SET_STATE(State::Ground, "hit ground");
-            } else if (_flyingAllowed) {
-                btVector3 desiredVelocity = _targetVelocity;
-                if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
-                    desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
-                }
-                bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
-                if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
-                    SET_STATE(State::Hover, "double jump button");
-                } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
-                    SET_STATE(State::Hover, "jump button held");
-                } else if (_floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT) {
-                    // Transition to hover if we are above the fall threshold
-                    SET_STATE(State::Hover, "above fall threshold");
-                }
-            } else if (!rayHasHit && !_hasSupport) {
-                SET_STATE(State::Hover, "no ground detected");
-            }
-            break;
-        }
-        case State::Hover:
-            btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
-            bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
-            if (!_flyingAllowed && rayHasHit) {
-                SET_STATE(State::InAir, "flying not allowed");
-            } else if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
-                SET_STATE(State::InAir, "near ground");
-            } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
-                SET_STATE(State::Ground, "touching ground");
-            }
-            break;
-        }
-    } else {
+    if (collisionMask == BULLET_COLLISION_MASK_COLLISIONLESS) {
         // when collisionless: only switch between State::Ground and State::Hover
         // and bypass state debugging
         if (rayHasHit) {
@@ -799,6 +737,68 @@ void CharacterController::updateState() {
             }
         } else {
             _state = State::Hover;
+        }
+    } else {
+        switch (_state) {
+            case State::Ground:
+                if (!rayHasHit && !_hasSupport) {
+                    SET_STATE(State::Hover, "no ground detected");
+                } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
+                    _takeoffJumpButtonID = _jumpButtonDownCount;
+                    _takeoffToInAirStartTime = now;
+                    SET_STATE(State::Takeoff, "jump pressed");
+                } else if (rayHasHit && !_hasSupport && _floorDistance > GROUND_TO_FLY_THRESHOLD) {
+                    SET_STATE(State::InAir, "falling");
+                }
+                break;
+            case State::Takeoff:
+                if (!rayHasHit && !_hasSupport) {
+                    SET_STATE(State::Hover, "no ground");
+                } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
+                    SET_STATE(State::InAir, "takeoff done");
+
+                    // compute jumpSpeed based on the scaled jump height for the default avatar in default gravity.
+                    const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+                    const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
+                    velocity += jumpSpeed * _currentUp;
+                    _rigidBody->setLinearVelocity(velocity);
+                }
+                break;
+            case State::InAir: {
+                const float jumpHeight = std::max(_scaleFactor * DEFAULT_AVATAR_JUMP_HEIGHT, DEFAULT_AVATAR_MIN_JUMP_HEIGHT);
+                const float jumpSpeed = sqrtf(2.0f * -DEFAULT_AVATAR_GRAVITY * jumpHeight);
+                if ((velocity.dot(_currentUp) <= (jumpSpeed / 2.0f)) && ((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport)) {
+                    SET_STATE(State::Ground, "hit ground");
+                } else if (_flyingAllowed) {
+                    btVector3 desiredVelocity = _targetVelocity;
+                    if (desiredVelocity.length2() < MIN_TARGET_SPEED_SQUARED) {
+                        desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
+                    }
+                    bool vertTargetSpeedIsNonZero = desiredVelocity.dot(_currentUp) > MIN_TARGET_SPEED;
+                    if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
+                        SET_STATE(State::Hover, "double jump button");
+                    } else if ((jumpButtonHeld || vertTargetSpeedIsNonZero) && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
+                        SET_STATE(State::Hover, "jump button held");
+                    } else if (_floorDistance > _scaleFactor * DEFAULT_AVATAR_FALL_HEIGHT) {
+                        // Transition to hover if we are above the fall threshold
+                        SET_STATE(State::Hover, "above fall threshold");
+                    }
+                } else if (!rayHasHit && !_hasSupport) {
+                    SET_STATE(State::Hover, "no ground detected");
+                }
+                break;
+            }
+            case State::Hover:
+                btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
+                bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
+                if (!_flyingAllowed && rayHasHit) {
+                    SET_STATE(State::InAir, "flying not allowed");
+                } else if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+                    SET_STATE(State::InAir, "near ground");
+                } else if (((_floorDistance < FLY_TO_GROUND_THRESHOLD) || _hasSupport) && !flyingFast) {
+                    SET_STATE(State::Ground, "touching ground");
+                }
+                break;
         }
     }
 }

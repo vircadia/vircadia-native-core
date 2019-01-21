@@ -46,9 +46,6 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
     connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
     connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
     connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
-
-    // add the purple orb
-    createOrb();
 }
 
 OtherAvatar::~OtherAvatar() {
