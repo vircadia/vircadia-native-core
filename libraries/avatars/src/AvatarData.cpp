@@ -2157,7 +2157,7 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
     setAttachmentData(attachmentData);
 }
 
-void AvatarData::sendAvatarDataPacket(bool sendAll) {
+int AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
@@ -2170,16 +2170,14 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
     int maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
 
     if (avatarByteArray.size() > maximumByteArraySize) {
-        qCWarning(avatars) << "toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
         avatarByteArray = toByteArrayStateful(dataDetail, true);
 
         if (avatarByteArray.size() > maximumByteArraySize) {
-            qCWarning(avatars) << "toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
             avatarByteArray = toByteArrayStateful(MinimumData, true);
 
             if (avatarByteArray.size() > maximumByteArraySize) {
                 qCWarning(avatars) << "toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
-                return;
+                return 0;
             }
         }
     }
@@ -2191,18 +2189,20 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
     avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
+    auto packetSize = avatarPacket->getWireSize();
 
     nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
+
+    return packetSize;
 }
 
-void AvatarData::sendIdentityPacket() {
+int AvatarData::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     if (_identityDataChanged) {
         // if the identity data has changed, push the sequence number forwards
         ++_identitySequenceNumber;
     }
-
     QByteArray identityData = identityByteArray();
 
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
@@ -2216,6 +2216,7 @@ void AvatarData::sendIdentityPacket() {
     });
 
     _identityDataChanged = false;
+    return identityData.size();
 }
 
 static const QString JSON_ATTACHMENT_URL = QStringLiteral("modelUrl");

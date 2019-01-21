@@ -668,12 +668,6 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (getWorldPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
-    if (getIdentityDataChanged()) {
-        sendIdentityPacket();
-    }
-
-    _clientTraitsHandler->sendChangedTraitsToMixer();
-
     simulate(deltaTime, true);
 
     currentEnergy += energyChargeRate;
@@ -3101,6 +3095,39 @@ void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
         }
     }
     _prevShouldDrawHead = shouldDrawHead;
+}
+
+int MyAvatar::sendAvatarDataPacket(bool sendAll) {
+    using namespace std::chrono;
+    auto now = Clock::now();
+
+    int MAX_DATA_RATE_MBPS = 3;
+    int maxDataRateBytesPerSeconds = MAX_DATA_RATE_MBPS * BYTES_PER_KILOBYTE * KILO_PER_MEGA / BITS_IN_BYTE;
+    int maxDataRateBytesPerMilliseconds = maxDataRateBytesPerSeconds / MSECS_PER_SECOND;
+
+    auto bytesSent = 0;
+
+    if (now > _nextTraitsSendWindow) {
+        if (getIdentityDataChanged()) {
+            bytesSent += sendIdentityPacket();
+        }
+
+        bytesSent += _clientTraitsHandler->sendChangedTraitsToMixer();
+
+        // Compute the next send window based on how much data we sent and what
+        // data rate we're trying to max at.
+        milliseconds timeUntilNextSend { bytesSent / maxDataRateBytesPerMilliseconds };
+        _nextTraitsSendWindow += timeUntilNextSend;
+
+        // Don't let the next send window lag behind if we're not sending a lot of data.
+        if (_nextTraitsSendWindow < now) {
+            _nextTraitsSendWindow = now;
+        }
+    }
+
+    bytesSent += Avatar::sendAvatarDataPacket(sendAll);
+
+    return bytesSent;
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;

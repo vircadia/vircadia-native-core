@@ -92,7 +92,6 @@ public:
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    void sendIdentityRequest(const QUuid& avatarID) const;
 
     void setMyAvatarDataPacketsPaused(bool puase);
 
@@ -191,7 +190,6 @@ public:
     Q_INVOKABLE QVariantMap getPalData(const QStringList& specificAvatarIdentifiers = QStringList());
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
-    int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
     void queuePhysicsChange(const OtherAvatarPointer& avatar);
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
@@ -241,7 +239,6 @@ private:
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
     bool _myAvatarDataPacketsPaused { false };
-    mutable int _identityRequestsSent { 0 };
 
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;
