@@ -3298,7 +3298,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     // compute action input
     // Determine if we're head or controller relative...
     glm::vec3 forward, right;
-    if (getHandRelativeMovement()) {
+    if (getHandRelativeMovement() && qApp->isHMDMode()) {
         // Here we have to get the rotation of the dominant hand and apply that to the direction vector.
         // If we're on the right hand, we have to flip the x-axis.
         auto handRotation = getDominantHandRotation();
