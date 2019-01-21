@@ -29,9 +29,11 @@ bool OculusAPIPlugin::isRunning() {
 }
 
 void OculusAPIPlugin::requestNonceAndUserID(NonceUserIDCallback callback) {
+#ifdef OCULUS_APP_ID
     _nonceUserIDCallback = callback;
     ovr_User_GetUserProof();
     ovr_User_GetLoggedInUser();
+#endif
 }
 
 void OculusAPIPlugin::handleOVREvents() {
