@@ -232,6 +232,7 @@
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
+#include "commerce/QmlMarketplace.h"
 #include "ResourceRequestObserver.h"
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
@@ -2913,6 +2914,14 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
     }, commerceCallback);
+
+    QmlContextCallback marketplaceCallback = [](QQmlContext* context) {
+        context->setContextProperty("Marketplace", new QmlMarketplace());
+    };
+    OffscreenQmlSurface::addWhitelistContextHandler({
+        QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
+        }, marketplaceCallback);
+
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
         context->setContextProperty("TextToSpeech", DependencyManager::get<TTSScriptingInterface>().data());
     };

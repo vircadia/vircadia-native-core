@@ -769,16 +769,14 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
 
 
 var BUTTON_NAME = "MARKET";
-var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
-// Append "?" if necessary to signal injected script that it's the initial page.
-var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + (MARKETPLACE_URL.indexOf("?") > -1 ? "" : "?");
+var MARKETPLACE_QML_SOURCE = "hifi/commerce/marketplace/Marketplace.qml";
+
 var ui;
 function startup() {
     ui = new AppUi({
         buttonName: BUTTON_NAME,
         sortOrder: 9,
-        inject: MARKETPLACES_INJECT_SCRIPT_URL,
-        home: MARKETPLACE_URL_INITIAL,
+        home: MARKETPLACE_QML_SOURCE,
         onScreenChanged: onTabletScreenChanged,
         onMessage: onQmlMessageReceived
     });
