@@ -83,7 +83,7 @@ void Nitpick::setup() {
     if (_testRunner) {
         delete _testRunner;
     }
-    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
+    _testRunner = new TestRunnerDesktop(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,

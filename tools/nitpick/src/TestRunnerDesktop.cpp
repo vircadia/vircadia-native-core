@@ -1,5 +1,5 @@
 //
-//  TestRunner.cpp
+//  TestRunnerDesktop.cpp
 //
 //  Created by Nissim Hadar on 1 Sept 2018.
 //  Copyright 2013 High Fidelity, Inc.
@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "TestRunner.h"
+#include "TestRunnerDesktop.h"
 
 #include <QThread>
 #include <QtWidgets/QMessageBox>
@@ -24,7 +24,7 @@ extern Nitpick* nitpick;
 // TODO: for debug
 #include <iostream>
 
-TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
+TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
                        QLabel* workingFolderLabel,
@@ -60,7 +60,7 @@ TestRunner::TestRunner(std::vector<QCheckBox*> dayCheckboxes,
     connect(_interfaceWorker, SIGNAL(commandComplete()), this, SLOT(interfaceExecutionComplete()));
 }
 
-TestRunner::~TestRunner() {
+TestRunnerDesktop::~TestRunnerDesktop() {
     delete _installerThread;
     delete _installerWorker;
 
@@ -72,7 +72,7 @@ TestRunner::~TestRunner() {
     }
 }
 
-void TestRunner::setWorkingFolder() {
+void TestRunnerDesktop::setWorkingFolder() {
     // Everything will be written to this folder
     QString previousSelection = _workingFolder;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -181,7 +181,7 @@ void TestRunner::setWorkingFolder() {
 #endif
 }
 
-void TestRunner::run() {
+void TestRunnerDesktop::run() {
     _runNow->setEnabled(false);
 
     _testStartDateTime = QDateTime::currentDateTime();
@@ -211,7 +211,7 @@ void TestRunner::run() {
     // `downloadComplete` will run after download has completed
 }
 
-void TestRunner::downloadComplete() {
+void TestRunnerDesktop::downloadComplete() {
     if (!buildXMLDownloaded) {
         // Download of Build XML has completed
         buildXMLDownloaded = true;
@@ -254,7 +254,7 @@ void TestRunner::downloadComplete() {
     }
 }
 
-void TestRunner::runInstaller() {
+void TestRunnerDesktop::runInstaller() {
     // Qt cannot start an installation process using QProcess::start (Qt Bug 9761)
     // To allow installation, the installer is run using the `system` command
 
@@ -302,7 +302,7 @@ void TestRunner::runInstaller() {
     emit startInstaller();
 }
 
-void TestRunner::installationComplete() {
+void TestRunnerDesktop::installationComplete() {
     verifyInstallationSucceeded();
 
     createSnapshotFolder();
@@ -316,7 +316,7 @@ void TestRunner::installationComplete() {
     runInterfaceWithTestScript();
 }
 
-void TestRunner::verifyInstallationSucceeded() {
+void TestRunnerDesktop::verifyInstallationSucceeded() {
     // Exit if the executables are missing.
     // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
 #ifdef Q_OS_WIN
@@ -331,7 +331,7 @@ void TestRunner::verifyInstallationSucceeded() {
 #endif
 }
 
-void TestRunner::saveExistingHighFidelityAppDataFolder() {
+void TestRunnerDesktop::saveExistingHighFidelityAppDataFolder() {
     QString dataDirectory{ "NOT FOUND" };
 #ifdef Q_OS_WIN
     dataDirectory = qgetenv("USERPROFILE") + "\\AppData\\Roaming";
@@ -369,7 +369,7 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     }
 }
 
-void TestRunner::createSnapshotFolder() {
+void TestRunnerDesktop::createSnapshotFolder() {
     _snapshotFolder = _workingFolder + "/" + SNAPSHOT_FOLDER_NAME;
 
     // Just delete all PNGs from the folder if it already exists
@@ -390,7 +390,7 @@ void TestRunner::createSnapshotFolder() {
     }
 }
 
-void TestRunner::killProcesses() {
+void TestRunnerDesktop::killProcesses() {
 #ifdef Q_OS_WIN
     try {
         QStringList processesToKill = QStringList() << "interface.exe"
@@ -450,7 +450,7 @@ void TestRunner::killProcesses() {
 #endif
 }
 
-void TestRunner::startLocalServerProcesses() {
+void TestRunnerDesktop::startLocalServerProcesses() {
     QString commandLine;
     
 #ifdef Q_OS_WIN
@@ -471,7 +471,7 @@ void TestRunner::startLocalServerProcesses() {
     QThread::sleep(20);
 }
 
-void TestRunner::runInterfaceWithTestScript() {
+void TestRunnerDesktop::runInterfaceWithTestScript() {
     QString url = QString("hifi://localhost");
     if (_runServerless->isChecked()) {
         // Move to an empty area
@@ -562,7 +562,7 @@ void TestRunner::runInterfaceWithTestScript() {
     appendLog(commandLine);
 }
 
-void TestRunner::interfaceExecutionComplete() {
+void TestRunnerDesktop::interfaceExecutionComplete() {
     QFileInfo testCompleted(QDir::toNativeSeparators(_snapshotFolder) +"/tests_completed.txt");
     if (!testCompleted.exists()) {
         QMessageBox::critical(0, "Tests not completed", "Interface seems to have crashed before completion of the test scripts\nExisting images will be evaluated");
@@ -575,12 +575,12 @@ void TestRunner::interfaceExecutionComplete() {
     // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
-void TestRunner::evaluateResults() {
+void TestRunnerDesktop::evaluateResults() {
     updateStatusLabel("Evaluating results");
     nitpick->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
-void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
+void TestRunnerDesktop::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
@@ -606,7 +606,7 @@ void TestRunner::automaticTestRunEvaluationComplete(QString zippedFolder, int nu
     _runNow->setEnabled(true);
 }
 
-void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
+void TestRunnerDesktop::addBuildNumberToResults(QString zippedFolderName) {
     QString augmentedFilename;
     if (!_runLatest->isChecked()) {
         augmentedFilename = zippedFolderName.replace("local", getPRNumberFromURL(_url->text()));
@@ -616,7 +616,7 @@ void TestRunner::addBuildNumberToResults(QString zippedFolderName) {
     QFile::rename(zippedFolderName, augmentedFilename);
 }
 
-void TestRunner::restoreHighFidelityAppDataFolder() {
+void TestRunnerDesktop::restoreHighFidelityAppDataFolder() {
     _appDataFolder.removeRecursively();
 
     if (_savedAppDataFolder != QDir()) {
@@ -625,7 +625,7 @@ void TestRunner::restoreHighFidelityAppDataFolder() {
 }
 
 // Copies a folder recursively
-void TestRunner::copyFolder(const QString& source, const QString& destination) {
+void TestRunnerDesktop::copyFolder(const QString& source, const QString& destination) {
     try {
         if (!QFileInfo(source).isDir()) {
             // just a file copy
@@ -656,7 +656,7 @@ void TestRunner::copyFolder(const QString& source, const QString& destination) {
     }
 }
 
-void TestRunner::checkTime() {
+void TestRunnerDesktop::checkTime() {
     // No processing is done if a test is running
     if (_automatedTestIsRunning) {
         return;
@@ -685,11 +685,11 @@ void TestRunner::checkTime() {
     }
 }
 
-void TestRunner::updateStatusLabel(const QString& message) {
+void TestRunnerDesktop::updateStatusLabel(const QString& message) {
     nitpick->updateStatusLabel(message);
 }
 
-void TestRunner::appendLog(const QString& message) {
+void TestRunnerDesktop::appendLog(const QString& message) {
     if (!_logFile.open(QIODevice::Append | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                               "Could not open the log file");
@@ -703,7 +703,7 @@ void TestRunner::appendLog(const QString& message) {
     nitpick->appendLogWindow(message);
 }
 
-QString TestRunner::getInstallerNameFromURL(const QString& url) {
+QString TestRunnerDesktop::getInstallerNameFromURL(const QString& url) {
     // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
     // On Mac, replace `exe` with `dmg`
     try {
@@ -718,7 +718,7 @@ QString TestRunner::getInstallerNameFromURL(const QString& url) {
     }
 }
 
-QString TestRunner::getPRNumberFromURL(const QString& url) {
+QString TestRunnerDesktop::getPRNumberFromURL(const QString& url) {
     try {
         QStringList urlParts = url.split("/");
         QStringList filenameParts = urlParts[urlParts.size() - 1].split("-");
@@ -739,7 +739,7 @@ QString TestRunner::getPRNumberFromURL(const QString& url) {
     }
 }
 
-void TestRunner::parseBuildInformation() {
+void TestRunnerDesktop::parseBuildInformation() {
     try {
         QDomDocument domDocument;
         QString filename{ _workingFolder + "/" + DEV_BUILD_XML_FILENAME };

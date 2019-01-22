@@ -1,5 +1,5 @@
 //
-//  TestRunner.h
+//  TestRunnerDesktop.h
 //
 //  Created by Nissim Hadar on 1 Sept 2018.
 //  Copyright 2013 High Fidelity, Inc.
@@ -29,10 +29,10 @@ public:
 
 class Worker;
 
-class TestRunner : public QObject {
+class TestRunnerDesktop : public QObject {
     Q_OBJECT
 public:
-    explicit TestRunner(std::vector<QCheckBox*> dayCheckboxes,
+    explicit TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
                         std::vector<QCheckBox*> timeEditCheckboxes,
                         std::vector<QTimeEdit*> timeEdits,
                         QLabel* workingFolderLabel,
@@ -42,7 +42,7 @@ public:
                         QPushButton* runNow,
                         QObject* parent = 0);
 
-    ~TestRunner();
+    ~TestRunnerDesktop();
 
     void setWorkingFolder();
 

@@ -18,7 +18,7 @@
 #include "Downloader.h"
 #include "Test.h"
 
-#include "TestRunner.h"
+#include "TestRunnerDesktop.h"
 #include "AWSInterface.h"
 
 class Nitpick : public QMainWindow {
@@ -96,7 +96,7 @@ private slots:
 private:
     Ui::NitpickClass _ui;
     Test* _test{ nullptr };
-    TestRunner* _testRunner{ nullptr };
+    TestRunnerDesktop* _testRunner{ nullptr };
 
     AWSInterface _awsInterface;
 
