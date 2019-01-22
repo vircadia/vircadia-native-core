@@ -263,7 +263,7 @@ public:
             frontFaceClockwise(false),
             depthClampEnable(false),
             scissorEnable(false),
-            multisampleEnable(false),
+            multisampleEnable(true),
             antialisedLineEnable(true),
             alphaToCoverageEnable(false)
         {}

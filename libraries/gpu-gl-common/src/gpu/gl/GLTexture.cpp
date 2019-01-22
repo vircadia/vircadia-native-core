@@ -60,9 +60,17 @@ GLenum GLTexture::getGLTextureType(const Texture& texture) {
     switch (texture.getType()) {
     case Texture::TEX_2D:
         if (!texture.isArray()) {
-            return GL_TEXTURE_2D;
+            if (!texture.isMultisample()) {
+                return GL_TEXTURE_2D;
+            } else {
+                return GL_TEXTURE_2D_MULTISAMPLE;
+            }
         } else {
-            return GL_TEXTURE_2D_ARRAY;
+            if (!texture.isMultisample()) {
+                return GL_TEXTURE_2D_ARRAY;
+            } else {
+                return GL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+            }
         }
         break;
 
@@ -81,7 +89,9 @@ GLenum GLTexture::getGLTextureType(const Texture& texture) {
 uint8_t GLTexture::getFaceCount(GLenum target) {
     switch (target) {
         case GL_TEXTURE_2D:
+        case GL_TEXTURE_2D_MULTISAMPLE:
         case GL_TEXTURE_2D_ARRAY:
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
             return TEXTURE_2D_NUM_FACES;
         case GL_TEXTURE_CUBE_MAP:
             return TEXTURE_CUBE_NUM_FACES;

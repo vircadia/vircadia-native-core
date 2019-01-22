@@ -118,7 +118,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
 
-    {  // Debug the bounds of the rendered items, still look at the zbuffer
+ /*   {  // Debug the bounds of the rendered items, still look at the zbuffer
 
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawBounds", opaques);
@@ -127,7 +127,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DrawBounds>("DrawZones", zones);
         const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
-    }
+    }*/
 
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
@@ -141,7 +141,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!
-    // task.addJob<Blit>("Blit", framebuffer);
+     task.addJob<Blit>("Blit", framebuffer);
 }
 
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
@@ -157,13 +157,18 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
 
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        auto colorTexture =
+     /*   auto colorTexture =
             gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _framebuffer->setRenderBuffer(0, colorTexture);*/
+        auto colorTexture =
+            gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, 16, defaultSampler);
         _framebuffer->setRenderBuffer(0, colorTexture);
-
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);  // Depth24_Stencil8 texel format
-        auto depthTexture =
+      /*  auto depthTexture =
             gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);*/
+        auto depthTexture =
+            gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, 16, defaultSampler);
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
     }
 
