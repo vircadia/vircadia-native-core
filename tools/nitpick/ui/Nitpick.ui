@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>2</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -420,26 +420,26 @@
        </property>
       </widget>
      </widget>
-     <widget class="QPushButton" name="setWorkingFolderButton">
+     <widget class="QPushButton" name="setWorkingFolderRunOnDesktopButton">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>161</width>
-        <height>28</height>
+        <width>160</width>
+        <height>30</height>
        </rect>
       </property>
       <property name="text">
        <string>Set Working Folder</string>
       </property>
      </widget>
-     <widget class="QLabel" name="workingFolderLabel">
+     <widget class="QLabel" name="workingFolderRunOnDesktopLabel">
       <property name="geometry">
        <rect>
         <x>190</x>
         <y>20</y>
-        <width>321</width>
-        <height>31</height>
+        <width>320</width>
+        <height>30</height>
        </rect>
       </property>
       <property name="text">
@@ -551,6 +551,58 @@
      <attribute name="title">
       <string>Run on Device</string>
      </attribute>
+     <widget class="QPushButton" name="getDeviceButton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>100</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Get Device</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>100</y>
+        <width>230</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>(not detected)</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="setWorkingFolderRunOnMobileButton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Set Working Folder</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderRunOnMobileLabel">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>20</y>
+        <width>320</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>(not set...)</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -882,7 +934,7 @@
   <tabstop>timeEdit2checkBox</tabstop>
   <tabstop>timeEdit3checkBox</tabstop>
   <tabstop>timeEdit4checkBox</tabstop>
-  <tabstop>setWorkingFolderButton</tabstop>
+  <tabstop>setWorkingFolderRunOnDesktopButton</tabstop>
   <tabstop>plainTextEdit</tabstop>
   <tabstop>checkBoxServerless</tabstop>
   <tabstop>checkBoxRunLatest</tabstop>

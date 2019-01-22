@@ -15,7 +15,7 @@
 class TestRunnerMobile : public QObject {
     Q_OBJECT
 public:
-    explicit TestRunnerMobile(QObject* parent);
+    explicit TestRunnerMobile(QObject* parent = 0);
     ~TestRunnerMobile();
 };
 #endif

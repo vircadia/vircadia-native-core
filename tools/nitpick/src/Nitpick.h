@@ -19,6 +19,8 @@
 #include "Test.h"
 
 #include "TestRunnerDesktop.h"
+#include "TestRunnerMobile.h"
+
 #include "AWSInterface.h"
 
 class Nitpick : public QMainWindow {
@@ -71,8 +73,10 @@ private slots:
     void on_createTestRailTestCasesButton_clicked();
     void on_createTestRailRunButton_clicked();
 
-    void on_setWorkingFolderButton_clicked();
+    void on_setWorkingFolderRunOnDesktopButton_clicked();
     void on_runNowButton_clicked();
+
+    void on_setWorkingFolderRunOnMobileButton_clicked();
 
     void on_checkBoxRunLatest_clicked();
 
@@ -96,7 +100,9 @@ private slots:
 private:
     Ui::NitpickClass _ui;
     Test* _test{ nullptr };
-    TestRunnerDesktop* _testRunner{ nullptr };
+
+    TestRunnerDesktop* _testRunnerDesktop{ nullptr };
+    TestRunnerMobile* _testRunnerMobile{ nullptr };
 
     AWSInterface _awsInterface;
 

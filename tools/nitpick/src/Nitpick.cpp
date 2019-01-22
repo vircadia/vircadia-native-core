@@ -48,8 +48,12 @@ Nitpick::~Nitpick() {
         delete _test;
     }
 
-    if (_testRunner) {
-        delete _testRunner;
+    if (_testRunnerDesktop) {
+        delete _testRunnerDesktop;
+    }
+
+    if (_testRunnerMobile) {
+        delete _testRunnerMobile;
     }
 }
 
@@ -80,10 +84,16 @@ void Nitpick::setup() {
     timeEdits.emplace_back(_ui.timeEdit3);
     timeEdits.emplace_back(_ui.timeEdit4);
 
-    if (_testRunner) {
-        delete _testRunner;
+    // Create the two test runners
+    if (_testRunnerDesktop) {
+        delete _testRunnerDesktop;
     }
-    _testRunner = new TestRunnerDesktop(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
+    _testRunnerDesktop = new TestRunnerDesktop(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderRunOnDesktopLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
+
+    if (_testRunnerMobile) {
+        delete _testRunnerMobile;
+    }
+    _testRunnerMobile = new TestRunnerMobile();
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -154,8 +164,8 @@ void Nitpick::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
 }
 
-void Nitpick::on_setWorkingFolderButton_clicked() {
-    _testRunner->setWorkingFolder();
+void Nitpick::on_setWorkingFolderRunOnDesktopButton_clicked() {
+    _testRunnerDesktop->setWorkingFolder();
 }
 
 void Nitpick::enableRunTabControls() {
@@ -165,7 +175,7 @@ void Nitpick::enableRunTabControls() {
 }
 
 void Nitpick::on_runNowButton_clicked() {
-    _testRunner->run();
+    _testRunnerDesktop->run();
 }
 
 void Nitpick::on_checkBoxRunLatest_clicked() {
@@ -173,7 +183,7 @@ void Nitpick::on_checkBoxRunLatest_clicked() {
 }
 
 void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
-    _testRunner->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
+    _testRunnerDesktop->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
 }
 
 void Nitpick::on_updateTestRailRunResultsButton_clicked() {
@@ -273,8 +283,8 @@ void Nitpick::saveFile(int index) {
         disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
         if (_caller == _test) {
             _test->finishTestsEvaluation();
-        } else if (_caller == _testRunner) {
-            _testRunner->downloadComplete();
+        } else if (_caller == _testRunnerDesktop) {
+            _testRunnerDesktop->downloadComplete();
         }
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
@@ -311,4 +321,7 @@ void Nitpick::updateStatusLabel(const QString& status) {
 
 void Nitpick::appendLogWindow(const QString& message) {
     _ui.plainTextEdit->appendPlainText(message);
+}
+
+void Nitpick::on_setWorkingFolderRunOnMobileButton_clicked() {
 }
