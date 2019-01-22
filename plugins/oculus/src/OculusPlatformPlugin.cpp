@@ -17,11 +17,9 @@
 const char* OculusAPIPlugin::NAME { "Oculus Rift" };
 
 OculusAPIPlugin::OculusAPIPlugin() {
-    _session = hifi::ovr::acquireRenderSession();
 }
 
 OculusAPIPlugin::~OculusAPIPlugin() {
-    hifi::ovr::releaseRenderSession(_session);
 }
 
 bool OculusAPIPlugin::isRunning() {

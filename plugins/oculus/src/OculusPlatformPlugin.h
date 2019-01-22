@@ -34,5 +34,4 @@ private:
     bool _nonceChanged{ false };
     QString _user;
     ovrID _userID;
-    ovrSession _session{ nullptr };
 };
