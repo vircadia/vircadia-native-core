@@ -886,7 +886,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
     }
-
+   
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
@@ -973,8 +973,8 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                         ::blend(1, &prevHipsAbsPose, &absPose, alpha, &absPose);
                     }
 
-                    _relativePoses[_hipsIndex] = parentAbsPose.inverse() * absPose;
-                    _relativePoses[_hipsIndex].scale() = glm::vec3(1.0f);
+                    //_relativePoses[_hipsIndex] = parentAbsPose.inverse() * absPose;
+                    //_relativePoses[_hipsIndex].scale() = glm::vec3(1.0f);
                 }
 
                 // if there is an active jointChainInfo for the hips store the post shifted hips into it.
@@ -1041,10 +1041,13 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
                 preconditionRelativePosesToAvoidLimbLock(context, targets);
 
-                solve(context, targets, dt, jointChainInfoVec);
+                //qCDebug(animation) << "hips before ccd" << _relativePoses[_hipsIndex];
+                //solve(context, targets, dt, jointChainInfoVec);
+                //qCDebug(animation) << "hips after ccd" << _relativePoses[_hipsIndex];
+
             }
         }
-
+        
         if (context.getEnableDebugDrawIKConstraints()) {
             debugDrawConstraints(context);
         }

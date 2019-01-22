@@ -79,6 +79,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     // determine if we should interpolate
     bool enabled = animVars.lookup(_enabledVar, _enabled);
+    // qCDebug(animation) << "two bone var " << _enabledVar;
     if (enabled != _enabled) {
         AnimChain poseChain;
         poseChain.buildFromRelativePoses(_skeleton, _poses, _tipJointIndex);
@@ -91,7 +92,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     _enabled = enabled;
 
     // don't build chains or do IK if we are disabled & not interping.
-    if (_interpType == InterpType::None){// && !enabled) {
+    if (_interpType == InterpType::None && !enabled) {
         _poses = underPoses;
         return _poses;
     }
@@ -122,6 +123,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     // First look in the triggers then look in the animVars, so we can follow output joints underneath us in the anim graph
     AnimPose targetPose(tipPose);
     if (triggersOut.hasKey(endEffectorRotationVar)) {
+        qCDebug(animation) << " end effector variable " << endEffectorRotationVar << " is " << triggersOut.lookupRigToGeometry(endEffectorRotationVar, tipPose.rot());
         targetPose.rot() = triggersOut.lookupRigToGeometry(endEffectorRotationVar, tipPose.rot());
     } else if (animVars.hasKey(endEffectorRotationVar)) {
         targetPose.rot() = animVars.lookupRigToGeometry(endEffectorRotationVar, tipPose.rot());

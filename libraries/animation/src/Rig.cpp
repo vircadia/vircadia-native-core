@@ -1541,7 +1541,7 @@ void Rig::updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEna
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
         int shoulderJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
-        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         glm::vec3 poleVector;
         bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, shoulderJointIndex, oppositeArmJointIndex, poleVector);
         glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
@@ -1580,7 +1580,7 @@ void Rig::updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEna
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
         int shoulderJointIndex = _animSkeleton->nameToJointIndex("RightArm");
-        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+        int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         glm::vec3 poleVector;
         bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, shoulderJointIndex, oppositeArmJointIndex, poleVector);
         glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
@@ -1856,10 +1856,10 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 
     updateHead(_headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
-                params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
-                params.rigToSensorMatrix, sensorToRigMatrix);
+    //updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
+    //            params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
+    //            params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
+    //            params.rigToSensorMatrix, sensorToRigMatrix);
 
     updateHands2(leftHandEnabled, rightHandEnabled, _headEnabled,
                  params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
@@ -1940,7 +1940,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     std::shared_ptr<AnimInverseKinematics> ikNode = getAnimInverseKinematicsNode();
     for (int i = 0; i < (int)NumSecondaryControllerTypes; i++) {
         int index = indexOfJoint(secondaryControllerJointNames[i]);
-        if (index >= 0) {
+        if ((index >= 0) && (ikNode)) {
             if (params.secondaryControllerFlags[i] & (uint8_t)ControllerFlags::Enabled) {
                 ikNode->setSecondaryTargetInRigFrame(index, params.secondaryControllerPoses[i]);
             } else {

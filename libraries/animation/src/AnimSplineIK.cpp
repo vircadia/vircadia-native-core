@@ -48,6 +48,22 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     // evalute underPoses
     AnimPoseVec underPoses = _children[0]->evaluate(animVars, context, dt, triggersOut);
     _poses = underPoses;
+
+    // now we override the hips relative pose based on the hips target that has been set.
+    ////////////////////////////////////////////////////
+    if (_poses.size() > 0) {
+        AnimPose hipsUnderPose = _skeleton->getAbsolutePose(_hipsIndex, _poses);
+        glm::quat hipsTargetRotation = animVars.lookupRigToGeometry("hipsRotation", hipsUnderPose.rot());
+        glm::vec3 hipsTargetTranslation = animVars.lookupRigToGeometry("hipsPosition", hipsUnderPose.trans());
+        AnimPose absHipsTargetPose(hipsTargetRotation, hipsTargetTranslation);
+
+        int hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
+        AnimPose hipsParentAbsPose = _skeleton->getAbsolutePose(hipsParentIndex, _poses);
+
+        _poses[_hipsIndex] = hipsParentAbsPose.inverse() * absHipsTargetPose;
+        _poses[_hipsIndex].scale() = glm::vec3(1.0f);
+    }
+    //////////////////////////////////////////////////////////////////////////////////
     
     // check to see if we actually need absolute poses.
     AnimPoseVec absolutePoses;
@@ -65,7 +81,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose origSpine1 = _skeleton->getAbsolutePose(_skeleton->nameToJointIndex("Spine1"),_poses);
         //origSpine2PoseRel = origSpine1.inverse() * origSpine2;
         //qCDebug(animation) << "origSpine2Pose: " << origSpine2Pose.rot();
-        qCDebug(animation) << "original relative spine2  " << origSpine2PoseAbs;
+        //qCDebug(animation) << "original relative spine2  " << origSpine2PoseAbs;
     }
 
    
@@ -116,8 +132,8 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         targetSpine2 = AnimPose(rotation3, afterSolveSpine2.trans());
         finalSpine2 = afterSolveSpine1.inverse() * targetSpine2;
 
-        qCDebug(animation) << "relative spine2 after solve" << afterSolveSpine2Rel;
-        qCDebug(animation) << "relative spine2 orig" << originalSpine2Relative;
+        //qCDebug(animation) << "relative spine2 after solve" << afterSolveSpine2Rel;
+        //qCDebug(animation) << "relative spine2 orig" << originalSpine2Relative;
         AnimPose latestSpine2Relative(originalSpine2Relative.rot(), afterSolveSpine2Rel.trans());
         //jointChain.setRelativePoseAtJointIndex(jointIndex2, finalSpine2);
         jointChain.outputRelativePoses(_poses);
@@ -146,7 +162,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         glm::quat rotation2 = animVars.lookupRigToGeometry("spine2Rotation", absPose2.rot());
         glm::vec3 translation2 = animVars.lookupRigToGeometry("spine2Position", absPose2.trans());
         float weight2 = animVars.lookup("spine2Weight", "2.0");
-        qCDebug(animation) << "rig to geometry" << rotation2;
+        // qCDebug(animation) << "rig to geometry" << rotation2;
 
         //target2.setPose(rotation2, translation2);
         target2.setPose(targetSpine2.rot(), targetSpine2.trans());
