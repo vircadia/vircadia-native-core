@@ -104,10 +104,6 @@ tools/unity-avatar-exporter/Logs
 tools/unity-avatar-exporter/Packages
 tools/unity-avatar-exporter/ProjectSettings
 tools/unity-avatar-exporter/Temp
-<<<<<<< HEAD
-
-=======
 server-console/package-lock.json
 vcpkg/
 /tools/nitpick/compiledResources
->>>>>>> c199654ded854157b9d11b6ede1b867b46356102
