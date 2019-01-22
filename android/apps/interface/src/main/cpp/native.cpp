@@ -149,7 +149,7 @@ void unpackAndroidAssets() {
 
 extern "C" {
 
-JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject instance, jobject asset_mgr) {
+JNIEXPORT void Java_io_highfidelity_hifiinterface_InterfaceActivity_nativeOnCreate(JNIEnv* env, jobject instance, jobject asset_mgr) {
     g_assetManager = AAssetManager_fromJava(env, asset_mgr);
     qRegisterMetaType<QAndroidJniObject>("QAndroidJniObject");
     __interfaceActivity = QAndroidJniObject(instance);

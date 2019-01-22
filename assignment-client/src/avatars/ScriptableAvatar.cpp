@@ -91,6 +91,39 @@ void ScriptableAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     updateJointMappings();
 }
 
+int ScriptableAvatar::sendAvatarDataPacket(bool sendAll) {
+    using namespace std::chrono;
+    auto now = Clock::now();
+
+    int MAX_DATA_RATE_MBPS = 3;
+    int maxDataRateBytesPerSeconds = MAX_DATA_RATE_MBPS * BYTES_PER_KILOBYTE * KILO_PER_MEGA / BITS_IN_BYTE;
+    int maxDataRateBytesPerMilliseconds = maxDataRateBytesPerSeconds / MSECS_PER_SECOND;
+
+    auto bytesSent = 0;
+
+    if (now > _nextTraitsSendWindow) {
+        if (getIdentityDataChanged()) {
+            bytesSent += sendIdentityPacket();
+        }
+
+        bytesSent += _clientTraitsHandler->sendChangedTraitsToMixer();
+
+        // Compute the next send window based on how much data we sent and what
+        // data rate we're trying to max at.
+        milliseconds timeUntilNextSend { bytesSent / maxDataRateBytesPerMilliseconds };
+        _nextTraitsSendWindow += timeUntilNextSend;
+
+        // Don't let the next send window lag behind if we're not sending a lot of data.
+        if (_nextTraitsSendWindow < now) {
+            _nextTraitsSendWindow = now;
+        }
+    }
+
+    bytesSent += AvatarData::sendAvatarDataPacket(sendAll);
+
+    return bytesSent;
+}
+
 static AnimPose composeAnimPose(const HFMJoint& joint, const glm::quat rotation, const glm::vec3 translation) {
     glm::mat4 translationMat = glm::translate(translation);
     glm::mat4 rotationMat = glm::mat4_cast(joint.preRotation * rotation * joint.postRotation);
@@ -161,7 +194,13 @@ void ScriptableAvatar::update(float deltatime) {
         }
     }
 
-    _clientTraitsHandler->sendChangedTraitsToMixer();
+    quint64 now = usecTimestampNow();
+    quint64 dt = now - _lastSendAvatarDataTime;
+
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS) {
+        sendAvatarDataPacket();
+        _lastSendAvatarDataTime = now;
+    }
 }
 
 void ScriptableAvatar::updateJointMappings() {

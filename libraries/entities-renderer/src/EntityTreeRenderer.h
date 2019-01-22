@@ -86,6 +86,7 @@ public:
     virtual void init() override;
 
     /// clears the tree
+    virtual void clearNonLocalEntities() override;
     virtual void clear() override;
 
     /// reloads the entity scripts, calling unload and preload
@@ -161,6 +162,7 @@ private:
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
     bool applyLayeredZones();
+    void stopNonLocalEntityScripts();
 
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);
 
@@ -169,6 +171,7 @@ private:
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     bool checkEnterLeaveEntities();
+    void leaveNonLocalEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 
@@ -219,6 +222,7 @@ private:
         LayeredZones& operator=(LayeredZones&&) = delete;
 
         void clear();
+        void clearNonLocalLayeredZones();
         std::pair<iterator, bool> insert(const LayeredZone& layer);
         void update(std::shared_ptr<ZoneEntityItem> zone);
         bool contains(const LayeredZones& other);
