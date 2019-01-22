@@ -99,13 +99,13 @@ void main(void) {
         position.xyz,
 #endif
         normal,
-        vec3(0.0),
-        DEFAULT_SPECULAR,
-        DEFAULT_EMISSIVE,
-        1.0,
-        DEFAULT_ROUGHNESS,
-        DEFAULT_METALLIC,
-        DEFAULT_OCCLUSION,
+        diffuse,
+        fresnel,
+        emissive,
+        alpha,
+        roughness,
+        metallic,
+        occlusion,
         DEFAULT_SCATTERING
     );
 
