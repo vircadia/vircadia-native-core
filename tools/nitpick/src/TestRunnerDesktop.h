@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_testRunner_h
-#define hifi_testRunner_h
+#ifndef hifi_testRunnerDesktop_h
+#define hifi_testRunnerDesktop_h
 
 #include <QCheckBox>
 #include <QDir>
@@ -156,4 +156,4 @@ signals:
 private:
     QString _commandLine;
 };
-#endif  // hifi_testRunner_h
+#endif

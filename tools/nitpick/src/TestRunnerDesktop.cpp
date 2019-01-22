@@ -21,9 +21,6 @@ extern Nitpick* nitpick;
 #include <tlhelp32.h>
 #endif
 
-// TODO: for debug
-#include <iostream>
-
 TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
                        std::vector<QTimeEdit*> timeEdits,
