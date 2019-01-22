@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
+    <TextView
+        android:id="@+id/avatarName"
+        android:fontFamily="@font/raleway_bold"
+        android:textSize="20sp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="@color/colorButton1" />
+    <ImageView
+        android:id="@+id/avatarPreview"
+        android:layout_width="match_parent"
+        android:layout_height="190dp"
+        android:scaleType="fitCenter"
+        app:layout_constraintTop_toBottomOf="@id/avatarName"/>
+</android.support.constraint.ConstraintLayout>

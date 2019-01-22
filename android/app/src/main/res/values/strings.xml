@@ -43,6 +43,7 @@
     <string name="tagFragmentSignup">tagFragmentSignup</string>
     <string name="tagFragmentPolicy">tagFragmentPolicy</string>
     <string name="tagFragmentPeople">tagFragmentPeople</string>
+    <string name="tagFragmentProfile">tagFragmentProfile</string>
     <string name="tagSettings">tagSettings</string>
     <string name="tagFragmentSignedIn">tagFragmentSignedIn</string>
     <string name="settings">Settings</string>
@@ -54,4 +55,7 @@
     <string name="take_me_in_world">No thanks, take me in-world!</string>
     <string name="be_anywere">BE ANYWHERE, WITH ANYONE \nRIGHT NOW</string>
     <string name="steam_log_in">STEAM LOG IN</string>
+    <string name="displayName">Name to display</string>
+    <string name="ok">OK</string>
+    <string name="profile">Avatar</string>
 </resources>
