@@ -1,0 +1,39 @@
+{
+  "avatars": [
+    {
+      "name": "Anime-Styled Boy",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/46e0fd52-3cff-462f-ba97-927338d88295/thumbnail/hifi-mp-46e0fd52-3cff-462f-ba97-927338d88295.jpg",
+      "url": "http://mpassets.highfidelity.com/46e0fd52-3cff-462f-ba97-927338d88295-v1/AnimeBoy2.fst"
+    },
+    {
+      "name": "Anime-Styled Girl",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/1e7e43f6-1757-44d3-baa4-756827d96311/large/hifi-mp-1e7e43f6-1757-44d3-baa4-756827d96311.jpg",
+      "url": "http://mpassets.highfidelity.com/0dce3426-55c8-4641-8dd5-d76eb575b64a-v1/Anime_F_Outfit.fst"
+    },
+    {
+      "name": "Last Legends: Male Avatar",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/28569047-6f1a-4100-af67-8054ec397cc3/thumbnail/hifi-mp-28569047-6f1a-4100-af67-8054ec397cc3.jpg",
+      "url": "http://mpassets.highfidelity.com/28569047-6f1a-4100-af67-8054ec397cc3-v1/LLMale2.fst"
+    },
+    {
+      "name": "Last Legends: Female Avatar",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/8d823be5-6197-4418-b984-eb94160ed956/thumbnail/hifi-mp-8d823be5-6197-4418-b984-eb94160ed956.jpg",
+      "url": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/46e0fd52-3cff-462f-ba97-927338d88295/thumbnail/hifi-mp-46e0fd52-3cff-462f-ba97-927338d88295.jpg"
+    },
+    {
+      "name": "Matthew: Photo-real avatar",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/b652081b-a199-425e-ae5c-7815721bdc09/thumbnail/hifi-mp-b652081b-a199-425e-ae5c-7815721bdc09.jpg",
+      "url": "http://mpassets.highfidelity.com/b652081b-a199-425e-ae5c-7815721bdc09-v1/matthew.fst"
+    },
+    {
+      "name": "Priscilla: Photo real avatar",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/e7565f93-8bc5-47c2-b6eb-b3b31d4a1339/thumbnail/hifi-mp-e7565f93-8bc5-47c2-b6eb-b3b31d4a1339.jpg",
+      "url": "http://mpassets.highfidelity.com/e7565f93-8bc5-47c2-b6eb-b3b31d4a1339-v1/priscilla.fst"
+    },
+    {
+      "name": "H1-F1 Optical Interpreter bot",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/469c8b66-e3c2-47fb-9820-e306b1dd15c4/large/hifi-mp-469c8b66-e3c2-47fb-9820-e306b1dd15c4.jpg",
+      "url": "http://mpassets.highfidelity.com/469c8b66-e3c2-47fb-9820-e306b1dd15c4-v1/optical_interpreter[1].fst"
+    }
+  ]
+}
