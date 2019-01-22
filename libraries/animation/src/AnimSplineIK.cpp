@@ -40,6 +40,12 @@ AnimSplineIK::~AnimSplineIK() {
 
 }
 
+//virtual
+const AnimPoseVec& AnimSplineIK::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
+    loadPoses(underPoses);
+    return _poses;
+}
+
 const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     assert(_children.size() == 1);
     if (_children.size() != 1) {
@@ -444,4 +450,13 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
     }
 
     _splineJointInfoMap[target.getIndex()] = splineJointInfoVec;
+}
+
+void AnimSplineIK ::loadPoses(const AnimPoseVec& poses) {
+    assert(_skeleton && ((poses.size() == 0) || (_skeleton->getNumJoints() == (int)poses.size())));
+    if (_skeleton->getNumJoints() == (int)poses.size()) {
+        _poses = poses;
+    } else {
+        _poses.clear();
+    }
 }

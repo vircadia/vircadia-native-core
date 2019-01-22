@@ -886,7 +886,8 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
     }
-   
+    loadPoses(underPoses);
+    /*
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
@@ -1054,7 +1055,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     }
 
     processOutputJoints(triggersOut);
-
+    */
     return _relativePoses;
 }
 

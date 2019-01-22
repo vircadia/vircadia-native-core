@@ -25,6 +25,7 @@ public:
 
 	virtual ~AnimSplineIK() override;
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
+    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
 
@@ -36,6 +37,7 @@ protected:
     };
 
     void computeAbsolutePoses(AnimPoseVec& absolutePoses) const;
+    void loadPoses(const AnimPoseVec& poses);
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
