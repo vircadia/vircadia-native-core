@@ -465,8 +465,6 @@ public:
 
     static const QUrl& defaultFullAvatarModelUrl();
 
-    virtual bool isMyAvatar() const { return false; }
-
     const QUuid getSessionUUID() const { return getID(); }
 
     glm::vec3 getHandPosition() const;
@@ -1273,12 +1271,12 @@ public slots:
      * @function MyAvatar.sendAvatarDataPacket
      * @param {boolean} [sendAll=false]
      */
-    void sendAvatarDataPacket(bool sendAll = false);
+    virtual int sendAvatarDataPacket(bool sendAll = false);
 
     /**jsdoc
      * @function MyAvatar.sendIdentityPacket
      */
-    void sendIdentityPacket();
+    int sendIdentityPacket();
 
     /**jsdoc
      * @function MyAvatar.setSessionUUID

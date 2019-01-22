@@ -6,6 +6,7 @@ import ssl
 import subprocess
 import sys
 import tarfile
+import re
 import urllib
 import urllib.request
 import zipfile
@@ -23,13 +24,15 @@ def scriptRelative(*paths):
     return result
 
 
-def recursiveFileList(startPath):
+def recursiveFileList(startPath, excludeNamePattern=None ):
     result = []
     if os.path.isfile(startPath):
         result.append(startPath)
     elif os.path.isdir(startPath):
         for dirName, subdirList, fileList in os.walk(startPath):
             for fname in fileList:
+                if excludeNamePattern and re.match(excludeNamePattern, fname):
+                    continue
                 result.append(os.path.realpath(os.path.join(startPath, dirName, fname)))
     result.sort()
     return result
@@ -97,16 +100,12 @@ def downloadFile(url, hash=None, hasher=hashlib.sha512(), retries=3):
         else:
             tempFileName, headers = urllib.request.urlretrieve(url)
 
-        # for some reason the hash we get back from the downloaded file is sometimes wrong if we check it right away
-        # but if we examine the file later, it is correct.  
-        time.sleep(3)
         downloadHash = hashFile(tempFileName, hasher)
         # Verify the hash
         if hash is not None and hash != downloadHash:
             print("Try {}: Downloaded file {} hash {} does not match expected hash {} for url {}".format(i + 1, tempFileName, downloadHash, hash, url))
             os.remove(tempFileName)
             continue
-
         return tempFileName
 
     raise RuntimeError("Downloaded file hash {} does not match expected hash {} for\n{}".format(downloadHash, hash, url))

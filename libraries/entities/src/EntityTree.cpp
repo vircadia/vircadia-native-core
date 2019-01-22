@@ -70,6 +70,49 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
+void EntityTree::eraseNonLocalEntities() {
+    emit clearingEntities();
+
+    if (_simulation) {
+        // This will clear all entities host types including local entities, because local entities
+        // are not in the physics simulation
+        _simulation->clearEntities();
+    }
+    _staleProxies.clear();
+    QHash<EntityItemID, EntityItemPointer> localMap;
+    localMap.swap(_entityMap);
+    QHash<EntityItemID, EntityItemPointer> savedEntities;
+    this->withWriteLock([&] {
+        foreach(EntityItemPointer entity, localMap) {
+            EntityTreeElementPointer element = entity->getElement();
+            if (element) {
+                element->cleanupNonLocalEntities();
+            }
+
+            if (entity->isLocalEntity()) {
+                savedEntities[entity->getEntityItemID()] = entity;
+            }
+        }
+    });
+    localMap.clear();
+    _entityMap = savedEntities;
+
+    resetClientEditStats();
+    clearDeletedEntities();
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        QVector<EntityItemWeakPointer> localEntitiesNeedsParentFixup;
+
+        foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
+            if (!entityItem.expired() && entityItem.lock()->isLocalEntity()) {
+                localEntitiesNeedsParentFixup.push_back(entityItem);
+            }
+        }
+
+        _needsParentFixup = localEntitiesNeedsParentFixup;
+    }
+}
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
@@ -2982,6 +3025,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
                 properties.setLastEdited(now);
 
                 packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastEdited(now); // so we ignore the echo from the server
                 entity->setLastBroadcast(now); // for debug/physics status icons
             }
 

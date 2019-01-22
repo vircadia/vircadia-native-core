@@ -253,6 +253,9 @@ class MyAvatar : public Avatar {
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
+
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -970,8 +973,8 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void clearAvatarEntities();
-    void removeWearableAvatarEntities();
+    void removeWornAvatarEntity(const EntityItemID& entityID);
+    void clearWornAvatarEntities();
 
     /**jsdoc
      * Check whether your avatar is flying or not.
@@ -1213,6 +1216,7 @@ public:
     void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
     void avatarEntityDataToJson(QJsonObject& root) const override;
+    int sendAvatarDataPacket(bool sendAll = false) override;
 
 public slots:
 
@@ -1936,6 +1940,8 @@ private:
     int _disableHandTouchCount { 0 };
     bool _skeletonModelLoaded { false };
     bool _reloadAvatarEntityDataFromSettings { true };
+
+    TimePoint _nextTraitsSendWindow;
 
     Setting::Handle<QString> _dominantHandSetting;
     Setting::Handle<float> _headPitchSetting;

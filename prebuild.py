@@ -43,8 +43,7 @@ def parse_args():
     defaultPortsPath = hifi_utils.scriptRelative('cmake', 'ports')
     from argparse import ArgumentParser
     parser = ArgumentParser(description='Prepare build dependencies.')
-    parser.add_argument('--android', action='store_true')
-    #parser.add_argument('--android', type=str)
+    parser.add_argument('--android', type=str)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force-bootstrap', action='store_true')
     parser.add_argument('--force-build', action='store_true')
@@ -86,6 +85,17 @@ def main():
         # wipe out the build directories (after writing the tag, since failure 
         # here shouldn't invalidte the vcpkg install)
         pm.cleanBuilds()
+
+        # If we're running in android mode, we also need to grab a bunch of additional binaries
+        # (this logic is all migrated from the old setupDependencies tasks in gradle)
+        if args.android:
+            # Find the target location
+            appPath = hifi_utils.scriptRelative('android/apps/' + args.android)
+            # Copy the non-Qt libraries specified in the config in hifi_android.py
+            hifi_android.copyAndroidLibs(pm.androidPackagePath, appPath)
+            # Determine the Qt package path
+            qtPath = os.path.join(pm.androidPackagePath, 'qt')
+            hifi_android.QtPackager(appPath, qtPath).bundle()
 
         # Write the vcpkg config to the build directory last
         pm.writeConfig()
