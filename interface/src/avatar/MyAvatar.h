@@ -1772,6 +1772,7 @@ private:
 
     // private methods
     void updateOrientation(float deltaTime);
+    glm::vec3 calculateScaledDirection();
     void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);

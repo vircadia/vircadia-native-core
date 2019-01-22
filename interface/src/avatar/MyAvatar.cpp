@@ -3278,21 +3278,7 @@ static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const floa
     return scaledSpeed;
 }
 
-void MyAvatar::updateActionMotor(float deltaTime) {
-    bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
-    bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
-        && _scriptedMotorTimescale < MAX_CHARACTER_MOTOR_TIMESCALE;
-    _isBeingPushed = thrustIsPushing || scriptedMotorIsPushing;
-    if (_isPushing || _isBeingPushed) {
-        // we don't want the motor to brake if a script is pushing the avatar around
-        // (we assume the avatar is driving itself via script)
-        _isBraking = false;
-    } else {
-        float speed = glm::length(_actionMotorVelocity);
-        const float MIN_ACTION_BRAKE_SPEED = 0.1f;
-        _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
-    }
-
+glm::vec3 MyAvatar::calculateScaledDirection(){
     CharacterController::State state = _characterController.getState();
 
     // compute action input
@@ -3313,11 +3299,12 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     }
 
     glm::vec3 direction = forward + right;
-    
+
     // RKNOTE: This may need to be changed later...
     if (state == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+        _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
+        up /= glm::length(up);
         direction += up;
     }
 
@@ -3325,12 +3312,33 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     float directionLength = glm::length(direction);
     _isPushing = directionLength > EPSILON;
 
-    // normalize direction
     if (_isPushing) {
-        direction /= directionLength;
+        direction;
     } else {
         direction = Vectors::ZERO;
     }
+
+    return direction;
+}
+
+void MyAvatar::updateActionMotor(float deltaTime) {
+    bool thrustIsPushing = (glm::length2(_thrust) > EPSILON);
+    bool scriptedMotorIsPushing = (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)
+        && _scriptedMotorTimescale < MAX_CHARACTER_MOTOR_TIMESCALE;
+    _isBeingPushed = thrustIsPushing || scriptedMotorIsPushing;
+    if (_isPushing || _isBeingPushed) {
+        // we don't want the motor to brake if a script is pushing the avatar around
+        // (we assume the avatar is driving itself via script)
+        _isBraking = false;
+    } else {
+        float speed = glm::length(_actionMotorVelocity);
+        const float MIN_ACTION_BRAKE_SPEED = 0.1f;
+        _isBraking = _wasPushing || (_isBraking && speed > MIN_ACTION_BRAKE_SPEED);
+    }
+
+    CharacterController::State state = _characterController.getState();
+
+    glm::vec3 direction = calculateScaledDirection();
 
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
