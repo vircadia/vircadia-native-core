@@ -204,14 +204,12 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
 
 int32_t MyCharacterController::computeCollisionMask() const {
     int32_t collisionMask = BULLET_COLLISION_MASK_MY_AVATAR; 
-    if (_collisionlessAllowed) {
-        if (_collisionless) {
-            collisionMask = BULLET_COLLISION_MASK_COLLISIONLESS;
-        } if (!_collideWithOtherAvatars) {
-            collisionMask &= ~BULLET_COLLISION_GROUP_OTHER_AVATAR;
-        }
+    if (_collisionless && _collisionlessAllowed) {
+        collisionMask = BULLET_COLLISION_MASK_COLLISIONLESS;
+    } else if (!_collideWithOtherAvatars) {
+        collisionMask &= ~BULLET_COLLISION_GROUP_OTHER_AVATAR;
     }
-    return collisionMask; 
+    return collisionMask;
 }
 
 void MyCharacterController::handleChangedCollisionMask() {
