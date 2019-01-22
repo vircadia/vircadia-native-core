@@ -13,7 +13,7 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
 
-#include "ui/Nitpick.h"
+#include "Nitpick.h"
 extern Nitpick* nitpick;
 
 #ifdef Q_OS_WIN
@@ -355,7 +355,18 @@ void TestRunner::saveExistingHighFidelityAppDataFolder() {
     }
 
     // Copy an "empty" AppData folder (i.e. no entities)
-    copyFolder(QDir::currentPath() + "/AppDataHighFidelity", _appDataFolder.path());
+    QDir canonicalAppDataFolder;
+#ifdef Q_OS_WIN
+    canonicalAppDataFolder = QDir::currentPath() + "/AppDataHighFidelity";
+#elif defined Q_OS_MAC
+    canonicalAppDataFolder = QCoreApplication::applicationDirPath() + "/AppDataHighFidelity";
+#endif
+    if (canonicalAppDataFolder.exists()) {
+        copyFolder(canonicalAppDataFolder.path(), _appDataFolder.path());
+    } else {
+        QMessageBox::critical(0, "Internal error", "The nitpick AppData folder cannot be found at:\n" + canonicalAppDataFolder.path());
+        exit(-1);
+    }
 }
 
 void TestRunner::createSnapshotFolder() {
