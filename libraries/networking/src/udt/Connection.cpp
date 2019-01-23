@@ -31,6 +31,7 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+    QObject(parentSocket),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))

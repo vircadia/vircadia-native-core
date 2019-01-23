@@ -33,6 +33,7 @@
    getGrabbableData:true,
    isAnothersAvatarEntity:true,
    isAnothersChildEntity:true,
+   entityIsEquippable:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
    getControllerJointIndexCacheTime:true,
@@ -46,7 +47,7 @@
    makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
-   findGroupParent:true,
+   findGrabbableGroupParent:true,
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
@@ -58,7 +59,6 @@
    NEAR_GRAB_DISTANCE: true,
    distanceBetweenPointAndEntityBoundingBox:true,
    entityIsEquipped:true,
-   entityIsFarGrabbedByOther:true,
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true,
@@ -323,6 +323,18 @@ isAnothersChildEntity = function (iaceProps) {
     return false;
 };
 
+
+entityIsEquippable = function (eieProps) {
+    var grabbable = getGrabbableData(eieProps).grabbable;
+    if (!grabbable ||
+        isAnothersAvatarEntity(eieProps) ||
+        isAnothersChildEntity(eieProps) ||
+        FORBIDDEN_GRAB_TYPES.indexOf(eieProps.type) >= 0) {
+        return false;
+    }
+    return true;
+};
+
 entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
@@ -439,13 +451,16 @@ ensureDynamic = function (entityID) {
     }
 };
 
-findGroupParent = function (controllerData, targetProps) {
+findGrabbableGroupParent = function (controllerData, targetProps) {
     while (targetProps.grab.grabDelegateToParent &&
            targetProps.parentID &&
            targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
+            break;
+        }
+        if (!entityIsGrabbable(parentProps)) {
             break;
         }
         parentProps.id = targetProps.parentID;
@@ -561,27 +576,6 @@ entityIsEquipped = function(entityID) {
     return equippedInRightHand || equippedInLeftHand;
 };
 
-entityIsFarGrabbedByOther = function(entityID) {
-    // by convention, a far grab sets the tag of its action to be far-grab-*owner-session-id*.
-    var actionIDs = Entities.getActionIDs(entityID);
-    var myFarGrabTag = "far-grab-" + MyAvatar.sessionUUID;
-    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-        var actionID = actionIDs[actionIndex];
-        var actionArguments = Entities.getActionArguments(entityID, actionID);
-        var tag = actionArguments.tag;
-        if (tag == myFarGrabTag) {
-            // we see a far-grab-*uuid* shaped tag, but it's our tag, so that's okay.
-            continue;
-        }
-        if (tag.slice(0, 9) == "far-grab-") {
-            // we see a far-grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
-            return true;
-        }
-    }
-    return false;
-};
-
-
 worldPositionToRegistrationFrameMatrix = function(wptrProps, pos) {
     // get world matrix for intersection point
     var intersectionMat = new Xform({ x: 0, y: 0, z:0, w: 1 }, pos);
@@ -614,12 +608,13 @@ if (typeof module !== 'undefined') {
         unhighlightTargetEntity: unhighlightTargetEntity,
         clearHighlightedEntities: clearHighlightedEntities,
         makeRunningValues: makeRunningValues,
-        findGroupParent: findGroupParent,
+        findGrabbableGroupParent: findGrabbableGroupParent,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
         TEAR_AWAY_DISTANCE: TEAR_AWAY_DISTANCE,
         propsArePhysical: propsArePhysical,
+        entityIsEquippable: entityIsEquippable,
         entityIsGrabbable: entityIsGrabbable,
         NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,

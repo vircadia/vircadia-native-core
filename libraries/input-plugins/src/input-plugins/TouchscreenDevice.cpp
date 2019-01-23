@@ -42,24 +42,24 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, const controller::InputCal
     if (_touchPointCount == 1) {
         if (_firstTouchVec.x < _currentTouchVec.x) {
             distanceScaleX = (_currentTouchVec.x - _firstTouchVec.x) / _screenDPIScale.x;
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()] = distanceScaleX;
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_POS).getChannel()].value = distanceScaleX;
         } else if (_firstTouchVec.x > _currentTouchVec.x) {
             distanceScaleX = (_firstTouchVec.x - _currentTouchVec.x) / _screenDPIScale.x;
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()] = distanceScaleX;
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_X_NEG).getChannel()].value = distanceScaleX;
         }
         // Y axis is inverted, positive is pointing up the screen
         if (_firstTouchVec.y > _currentTouchVec.y) {
             distanceScaleY = (_firstTouchVec.y - _currentTouchVec.y) / _screenDPIScale.y;
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()] = distanceScaleY;
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_POS).getChannel()].value = distanceScaleY;
         } else if (_firstTouchVec.y < _currentTouchVec.y) {
             distanceScaleY = (_currentTouchVec.y - _firstTouchVec.y) / _screenDPIScale.y;
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()] = distanceScaleY;
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_AXIS_Y_NEG).getChannel()].value = distanceScaleY;
         }
     } else  if (_touchPointCount == 2) {
         if (_pinchScale > _lastPinchScale && _pinchScale != 0) {
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()] = 1.0f;
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()].value = 1.0f;
         } else if (_pinchScale != 0) {
-            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()] = 1.0f;
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()].value = 1.0;
         }
         _lastPinchScale = _pinchScale;
     }

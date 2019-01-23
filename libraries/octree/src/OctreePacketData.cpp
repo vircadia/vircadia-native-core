@@ -38,7 +38,11 @@ void OctreePacketData::changeSettings(bool enableCompression, unsigned int targe
     _enableCompression = enableCompression;
     _targetSize = targetSize;
     _uncompressedByteArray.resize(_targetSize);
-    _compressedByteArray.resize(_targetSize);
+    if (_enableCompression) {
+        _compressedByteArray.resize(_targetSize);
+    } else {
+        _compressedByteArray.resize(0);
+    }
 
     _uncompressed = (unsigned char*)_uncompressedByteArray.data();
     _compressed = (unsigned char*)_compressedByteArray.data();
@@ -586,13 +590,10 @@ bool OctreePacketData::appendRawData(QByteArray data) {
 AtomicUIntStat OctreePacketData::_compressContentTime { 0 };
 AtomicUIntStat OctreePacketData::_compressContentCalls { 0 };
 
-bool OctreePacketData::compressContent() { 
+bool OctreePacketData::compressContent() {
     PerformanceWarning warn(false, "OctreePacketData::compressContent()", false, &_compressContentTime, &_compressContentCalls);
-    
-    // without compression, we always pass...
-    if (!_enableCompression) {
-        return true;
-    }
+    assert(_dirty);
+    assert(_enableCompression);
 
     _bytesInUseLastCheck = _bytesInUse;
 
@@ -605,13 +606,13 @@ bool OctreePacketData::compressContent() {
 
     QByteArray compressedData = qCompress(uncompressedData, uncompressedSize, MAX_COMPRESSION);
 
-    if (compressedData.size() < (int)MAX_OCTREE_PACKET_DATA_SIZE) {
+    if (compressedData.size() < _compressedByteArray.size()) {
         _compressedBytes = compressedData.size();
         memcpy(_compressed, compressedData.constData(), _compressedBytes);
         _dirty = false;
         success = true;
     } else {
-        qCWarning(octree) << "OctreePacketData::compressContent -- compressedData.size >= MAX_OCTREE_PACKET_DATA_SIZE";
+        qCWarning(octree) << "OctreePacketData::compressContent -- compressedData.size >= " << _compressedByteArray.size();
         assert(false);
     }
     return success;
@@ -644,8 +645,7 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
             memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
         } else {
             memcpy(_uncompressed, data, length);
-            memcpy(_compressed, data, length);
-            _bytesInUse = _compressedBytes = length;
+            _bytesInUse = length;
         }
     } else {
         if (_debug) {

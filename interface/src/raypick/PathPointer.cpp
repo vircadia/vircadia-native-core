@@ -223,7 +223,7 @@ Pointer::Buttons PathPointer::getPressedButtons(const PickResultPointer& pickRes
         std::string button = trigger.getButton();
         TriggerState& state = _states[button];
         // TODO: right now, LaserPointers don't support axes, only on/off buttons
-        if (trigger.getEndpoint()->peek() >= 1.0f) {
+        if (trigger.getEndpoint()->peek().value >= 1.0f) {
             toReturn.insert(button);
 
             if (_previousButtons.find(button) == _previousButtons.end()) {

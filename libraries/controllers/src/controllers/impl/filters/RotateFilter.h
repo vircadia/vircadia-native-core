@@ -22,7 +22,7 @@ public:
     RotateFilter() = default;
     RotateFilter(glm::quat rotation) : _rotation(rotation) {}
 
-    virtual float apply(float value) const override { return value; }
+    virtual AxisValue apply(AxisValue value) const override { return value; }
 
     virtual Pose apply(Pose value) const override {
         return value.transform(glm::mat4(glm::quat(_rotation)));
