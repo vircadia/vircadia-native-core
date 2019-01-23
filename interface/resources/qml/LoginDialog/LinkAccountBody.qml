@@ -317,7 +317,6 @@ Item {
                             "action": "user clicked cancel at link account screen"
                         };
                         UserActivityLogger.logAction("encourageLoginDialog", data);
-                        loginDialog.dismissLoginDialog();
                     }
                     bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
                         "withOculus": linkAccountBody.withOculus, "errorString": "" });
