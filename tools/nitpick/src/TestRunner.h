@@ -12,12 +12,31 @@
 #define hifi_testRunner_h
 
 #include <QLabel>
+#include <QObject>
+
+class Worker;
 
 class TestRunner {
 public:
     void setWorkingFolder(QLabel* workingFolderLabel);
 
-private:
+protected:
     QString _workingFolder;
 };
+
+class Worker : public QObject {
+    Q_OBJECT
+public:
+    void setCommandLine(const QString& commandLine);
+
+public slots:
+    int runCommand();
+
+signals:
+    void commandComplete();
+
+private:
+    QString _commandLine;
+};
+
 #endif

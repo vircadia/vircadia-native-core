@@ -31,4 +31,5 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 }
 
 void TestRunnerMobile::readDevice() {
+
 }

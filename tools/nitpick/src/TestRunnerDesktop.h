@@ -29,7 +29,8 @@ public:
     QString url;
 };
 
-class Worker;
+class InterfaceWorker;
+class InstallerWorker;
 
 class TestRunnerDesktop : public QObject, public TestRunner {
     Q_OBJECT
@@ -109,7 +110,6 @@ private:
     QDir _appDataFolder;
     QDir _savedAppDataFolder;
 
-    QString _workingFolder;
     QString _installationFolder;
     QString _snapshotFolder;
 
@@ -136,26 +136,21 @@ private:
     QThread* _installerThread;
     QThread* _interfaceThread;
 
-    Worker* _installerWorker;
-    Worker* _interfaceWorker;
-    
+    InstallerWorker* _installerWorker;
+    InterfaceWorker* _interfaceWorker;
+
     BuildInformation _buildInformation;
 };
 
-class Worker : public QObject {
+class InstallerWorker : public Worker {
     Q_OBJECT
-public:
-    void setCommandLine(const QString& commandLine);
-
-public slots:
-    int runCommand();
-
 signals:
-    void commandComplete();
     void startInstaller();
+};
+
+class InterfaceWorker : public Worker {
+    Q_OBJECT
+signals:
     void startInterface();
-    
-private:
-    QString _commandLine;
 };
 #endif

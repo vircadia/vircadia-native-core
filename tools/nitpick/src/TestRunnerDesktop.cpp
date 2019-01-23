@@ -41,7 +41,7 @@ TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
     _runNow = runNow;
 
     _installerThread = new QThread();
-    _installerWorker = new Worker();
+    _installerWorker = new InstallerWorker();
         
     _installerWorker->moveToThread(_installerThread);
     _installerThread->start();
@@ -49,7 +49,7 @@ TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
     connect(_installerWorker, SIGNAL(commandComplete()), this, SLOT(installationComplete()));
 
     _interfaceThread = new QThread();
-    _interfaceWorker = new Worker();
+    _interfaceWorker = new InterfaceWorker();
 
     _interfaceThread->start();
     _interfaceWorker->moveToThread(_interfaceThread);
