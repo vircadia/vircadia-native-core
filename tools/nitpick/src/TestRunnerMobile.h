@@ -10,12 +10,19 @@
 
 #ifndef hifi_testRunnerMobile_h
 #define hifi_testRunnerMobile_h
+#include <QLabel>
 #include <QObject>
 
 class TestRunnerMobile : public QObject {
     Q_OBJECT
 public:
-    explicit TestRunnerMobile(QObject* parent = 0);
+    explicit TestRunnerMobile(QLabel* workingFolderLabel, QObject* parent = 0);
     ~TestRunnerMobile();
+
+    void setWorkingFolder();
+
+private:
+    QLabel* _workingFolderLabel;
+    QString _workingFolder;
 };
 #endif

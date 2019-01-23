@@ -16,8 +16,29 @@
 #include "Nitpick.h"
 extern Nitpick* nitpick;
 
-TestRunnerMobile::TestRunnerMobile(QObject* parent) : QObject(parent) {
+TestRunnerMobile::TestRunnerMobile(QLabel* workingFolderLabel, QObject* parent) : QObject(parent) {
+    _workingFolderLabel = workingFolderLabel;
 }
 
 TestRunnerMobile::~TestRunnerMobile() {
+}
+
+void TestRunnerMobile::setWorkingFolder() {
+    // Everything will be written to this folder
+    QString previousSelection = _workingFolder;
+    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
+    if (!parent.isNull() && parent.right(1) != "/") {
+        parent += "/";
+    }
+
+    _workingFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
+        QFileDialog::ShowDirsOnly);
+
+    // If user canceled then restore previous selection and return
+    if (_workingFolder == "") {
+        _workingFolder = previousSelection;
+        return;
+    }
+
+    _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
 }

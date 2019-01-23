@@ -93,7 +93,7 @@ void Nitpick::setup() {
     if (_testRunnerMobile) {
         delete _testRunnerMobile;
     }
-    _testRunnerMobile = new TestRunnerMobile();
+    _testRunnerMobile = new TestRunnerMobile(_ui.workingFolderRunOnMobileLabel);
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -324,4 +324,5 @@ void Nitpick::appendLogWindow(const QString& message) {
 }
 
 void Nitpick::on_setWorkingFolderRunOnMobileButton_clicked() {
+    _testRunnerMobile->setWorkingFolder();
 }
