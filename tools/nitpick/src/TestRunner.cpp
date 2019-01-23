@@ -30,3 +30,14 @@ void TestRunner::setWorkingFolder(QLabel* workingFolderLabel) {
 
     workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
 }
+
+void Worker::setCommandLine(const QString& commandLine) {
+    _commandLine = commandLine;
+}
+
+int Worker::runCommand() {
+    int result = system(_commandLine.toStdString().c_str());
+    emit commandComplete();
+    return result;
+}
+

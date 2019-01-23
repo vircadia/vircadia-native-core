@@ -187,7 +187,7 @@
     </widget>
     <widget class="QWidget" name="tab">
      <attribute name="title">
-      <string>Run on Desktop</string>
+      <string>Test on Desktop</string>
      </attribute>
      <widget class="QPushButton" name="runNowButton">
       <property name="enabled">
@@ -549,31 +549,31 @@
     </widget>
     <widget class="QWidget" name="tab_5">
      <attribute name="title">
-      <string>Run on Device</string>
+      <string>Test on Device</string>
      </attribute>
-     <widget class="QPushButton" name="readDeviceButton">
+     <widget class="QPushButton" name="connectDeviceButton">
       <property name="enabled">
        <bool>false</bool>
       </property>
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>100</y>
+        <y>90</y>
         <width>160</width>
         <height>30</height>
        </rect>
       </property>
       <property name="text">
-       <string>Read Device</string>
+       <string>Connect Device</string>
       </property>
      </widget>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="detectedDeviceLabel">
       <property name="geometry">
        <rect>
         <x>190</x>
-        <y>100</y>
-        <width>230</width>
-        <height>20</height>
+        <y>96</y>
+        <width>320</width>
+        <height>30</height>
        </rect>
       </property>
       <property name="text">
@@ -604,6 +604,32 @@
       </property>
       <property name="text">
        <string>(not set...)</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pullFolderButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>200</x>
+        <y>170</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Pull folder</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="folderLineEdit">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>170</y>
+        <width>161</width>
+        <height>31</height>
+       </rect>
       </property>
      </widget>
     </widget>

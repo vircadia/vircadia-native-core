@@ -803,13 +803,3 @@ void TestRunnerDesktop::parseBuildInformation() {
         exit(-1);
     }
 }
-
-void Worker::setCommandLine(const QString& commandLine) {
-    _commandLine = commandLine;
-}
-
-int Worker::runCommand() {
-    int result = system(_commandLine.toStdString().c_str());
-    emit commandComplete();
-    return result;
-}

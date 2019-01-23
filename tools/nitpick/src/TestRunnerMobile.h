@@ -20,15 +20,27 @@
 class TestRunnerMobile : public QObject, public TestRunner {
     Q_OBJECT
 public:
-    explicit TestRunnerMobile(QLabel* workingFolderLabel, QPushButton *readDeviceButton, QObject* parent = 0);
+    explicit TestRunnerMobile(QLabel* workingFolderLabel, QPushButton *connectDeviceButton, QPushButton *pullFolderButton, QLabel* detectedDeviceLabel, QObject* parent = 0);
     ~TestRunnerMobile();
 
     void setWorkingFolderAndEnableControls();
-    void readDevice();
+    void connectDevice();
+    void pullFolder();
 
 private:
     QLabel* _workingFolderLabel;
-    QString _workingFolder;
-    QPushButton* _readDeviceButton;
+    QPushButton* _connectDeviceButton;
+    QPushButton* _pullFolderButton;
+    QLabel* _detectedDeviceLabel;
+
+#ifdef Q_OS_WIN
+    const QString _adbExe{ "adb.exe" };
+#else
+    // Both Mac and Linux use "adb"
+    const QString _adbExe{ "adb" };
+#endif
+
+    QString _adbCommand;
+
 };
 #endif

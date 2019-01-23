@@ -96,7 +96,8 @@ private slots:
     void content();
 
     void on_setWorkingFolderRunOnMobileButton_clicked();
-    void on_readDeviceButton_clicked();
+    void on_connectDeviceButton_clicked();
+    void on_pullFolderButton_clicked();
 
 private:
     Ui::NitpickClass _ui;

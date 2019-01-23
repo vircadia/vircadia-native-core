@@ -93,7 +93,7 @@ void Nitpick::setup() {
     if (_testRunnerMobile) {
         delete _testRunnerMobile;
     }
-    _testRunnerMobile = new TestRunnerMobile(_ui.workingFolderRunOnMobileLabel, _ui.readDeviceButton);
+    _testRunnerMobile = new TestRunnerMobile(_ui.workingFolderRunOnMobileLabel, _ui.connectDeviceButton, _ui.pullFolderButton, _ui.detectedDeviceLabel);
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -327,6 +327,10 @@ void Nitpick::on_setWorkingFolderRunOnMobileButton_clicked() {
     _testRunnerMobile->setWorkingFolderAndEnableControls();
 }
 
-void Nitpick::on_readDeviceButton_clicked() {
-    _testRunnerMobile->readDevice();
+void Nitpick::on_connectDeviceButton_clicked() {
+    _testRunnerMobile->connectDevice();
+}
+
+void Nitpick::on_pullFolderButton_clicked() {
+    _testRunnerMobile->pullFolder();
 }

@@ -31,7 +31,7 @@ PythonInterface::PythonInterface() {
 #elif defined Q_OS_MAC
     _pythonCommand = "/usr/local/bin/python3";
     if (!QFile::exists(_pythonCommand)) {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
+        QMessageBox::critical(0, "python not found",
                               "python3 not found at " + _pythonCommand);
         exit(-1);
     }
