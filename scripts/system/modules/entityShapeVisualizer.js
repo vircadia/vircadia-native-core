@@ -11,7 +11,6 @@
 //
 
 var SHAPETYPE_TO_SHAPE = {
-    "sphere": "Sphere",
     "box": "Cube",
     "ellipsoid": "Sphere",
     "cylinder-y": "Cylinder",
@@ -23,13 +22,23 @@ function getEntityShapePropertiesForType(properties) {
             if (SHAPETYPE_TO_SHAPE[properties.shapeType]) {
                 return {
                     type: "Shape",
-                    shape: SHAPETYPE_TO_SHAPE[properties.shapeType]
-                }
+                    shape: SHAPETYPE_TO_SHAPE[properties.shapeType],
+                    localDimensions: properties.localDimensions
+                };
             } else if (properties.shapeType === "compound") {
                 return {
                     type: "Model",
-                    modelURL: properties.compoundShapeURL
-                }
+                    modelURL: properties.compoundShapeURL,
+                    localDimensions: properties.localDimensions
+                };
+            } else if (properties.shapeType === "sphere") {
+                var sphereDiameter = Math.max(properties.localDimensions.x, properties.localDimensions.y,
+                    properties.localDimensions.z);
+                return {
+                    type: "Sphere",
+                    modelURL: properties.compoundShapeURL,
+                    localDimensions: {x: sphereDiameter, y: sphereDiameter, z: sphereDiameter}
+                };
             }
             break;
     }
@@ -37,8 +46,9 @@ function getEntityShapePropertiesForType(properties) {
     // Default properties
     return {
         type: "Shape",
-        shape: "Cube"
-    }
+        shape: "Cube",
+        localDimensions: properties.localDimensions
+    };
 }
 
 function getStringifiedEntityShapePropertiesForType(properties) {
@@ -65,17 +75,11 @@ EntityShape.prototype = {
 
         overlayProperties.localPosition = Vec3.ZERO;
         overlayProperties.localRotation = Quat.IDENTITY;
-        overlayProperties.localDimensions = properties.localDimensions;
         overlayProperties.canCastShadows = false;
         overlayProperties.parentID = this.entityID;
         overlayProperties.collisionless = true;
         this.entity = Entities.addEntity(overlayProperties, "local");
-
-        console.warn("created " + this.entity);
-        console.warn("SHAPETYPE = " + properties.shapeType);
-        console.warn("SHAPE = " + Entities.getEntityProperties(this.entity, "shape").shape);
-
-
+        var PROJECTED_MATERIALS = false;
         this.materialEntity = Entities.addEntity({
             type: "Material",
             localPosition: Vec3.ZERO,
@@ -83,39 +87,31 @@ EntityShape.prototype = {
             localDimensions: properties.localDimensions,
             parentID: this.entity,
             priority: 1,
+            materialMappingMode: PROJECTED_MATERIALS ? "projected" : "uv",
             materialURL: "materialData",
             materialData: JSON.stringify({
                 materialVersion: 1,
                 materials: {
                     albedo: [0.0, 0.0, 7.0],
                     unlit: true,
-                    opacity: 0.4
+                    opacity: 0.4,
+                    albedoMap: Script.resolvePath("../assets/images/materials/boxgridpatterncreatezonew.png")
                 }
             }),
         }, "local");
-
     },
-
     update: function() {
         var properties = Entities.getEntityProperties(this.entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES);
         var propertiesForTypeStringified = getStringifiedEntityShapePropertiesForType(properties);
         if (propertiesForTypeStringified !== this.previousPropertiesForTypeStringified) {
             this.previousPropertiesForTypeStringified = propertiesForTypeStringified;
-            console.warn("Clearing old properties");
             this.clear();
             this.initialize(properties, propertiesForTypeStringified);
         } else {
             Entities.editEntity(this.entity, {
-                localDimensions: properties.localDimensions,
+                localDimensions: JSON.parse(propertiesForTypeStringified).localDimensions,
             });
         }
-
-
-
-        //this.previousProperties = Entities.getEntityProperties(this.entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES);
-
-
-        console.warn(JSON.stringify(this.previousProperties));
     },
     clear: function() {
         Entities.deleteEntity(this.materialEntity);
@@ -192,7 +188,6 @@ EntityShapeVisualizer.prototype = {
         });
 
         deleteEntries.forEach(function(entityID) {
-            console.warn("removing " + entityID);
             this.removeEntity(entityID);
         }, this);
 
