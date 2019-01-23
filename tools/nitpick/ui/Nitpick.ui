@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>2</number>
+     <number>3</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -551,7 +551,10 @@
      <attribute name="title">
       <string>Run on Device</string>
      </attribute>
-     <widget class="QPushButton" name="getDeviceButton">
+     <widget class="QPushButton" name="readDeviceButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>10</x>
@@ -561,7 +564,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Get Device</string>
+       <string>Read Device</string>
       </property>
      </widget>
      <widget class="QLabel" name="label">

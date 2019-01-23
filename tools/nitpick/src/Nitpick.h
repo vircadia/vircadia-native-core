@@ -76,8 +76,6 @@ private slots:
     void on_setWorkingFolderRunOnDesktopButton_clicked();
     void on_runNowButton_clicked();
 
-    void on_setWorkingFolderRunOnMobileButton_clicked();
-
     void on_checkBoxRunLatest_clicked();
 
     void on_updateTestRailRunResultsButton_clicked();
@@ -96,6 +94,9 @@ private slots:
 
     void about();
     void content();
+
+    void on_setWorkingFolderRunOnMobileButton_clicked();
+    void on_readDeviceButton_clicked();
 
 private:
     Ui::NitpickClass _ui;
