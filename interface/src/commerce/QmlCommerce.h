@@ -19,7 +19,9 @@
 
 #include <QPixmap>
 
-class QmlCommerce : public QObject {
+#include <DependencyManager.h>
+
+class QmlCommerce : public QObject, public Dependency {
     Q_OBJECT
 
 public:
