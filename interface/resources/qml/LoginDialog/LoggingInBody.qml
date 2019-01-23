@@ -77,6 +77,17 @@ Item {
         }
     }
 
+    Timer {
+        id: oculusSuccessTimer
+        interval: 500;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            loginDialog.loginThroughOculus();
+            init();
+        }
+    }
+
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
@@ -287,14 +298,29 @@ Item {
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
             if (loggingInBody.withOculus) {
+                if (loggingInBody.loginDialogPoppedUp) {
+                    loginDialog.dismissLoginDialog();
+                    var data = {
+                        "action": "user created Oculus account successfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
                 loggingInBody.createOculus = false;
-                loggingInText.text = "Account created! Logging in to Oculus";
-                loginDialog.loginThroughOculus();
+                loggingInText.text = "Account created!";
+                loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+                oculusSuccessTimer.start();
             }
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);
             if (loggingInBody.withOculus) {
+                if (loggingInBody.loginDialogPoppedUp) {
+                    loginDialog.dismissLoginDialog();
+                    var data = {
+                        "action": "user created Oculus account unsuccessfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
                 bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
                     "withOculus": loggingInBody.withOculus, "errorString": error });
             }

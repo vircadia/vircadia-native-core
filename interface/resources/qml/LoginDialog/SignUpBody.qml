@@ -480,15 +480,15 @@ Item {
 
             if (errorString !== "") {
                 loginErrorMessage.visible = true;
+                var errorLength = errorString.split(/\r\n|\r|\n/).length;
                 var errorStringEdited = errorString.replace(/[\n\r]+/g, "\n");
                 loginErrorMessage.text = errorStringEdited;
-                loginErrorMessageTextMetrics.text = errorString;
-                if (loginErrorMessageTextMetrics.width > usernameField.width) {
+                if (errorLength > 1.0) {
                     loginErrorMessage.width = root.bannerWidth;
                     loginErrorMessage.wrapMode = Text.WordWrap;
                     loginErrorMessage.verticalAlignment = Text.AlignLeft;
                     loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                    errorContainer.height = (loginErrorMessageTextMetrics.width / usernameField.width) * loginErrorMessageTextMetrics.height;
+                    errorContainer.height = errorLength * loginErrorMessageTextMetrics.height;
                 }
                 errorContainer.anchors.bottom = usernameField.top;
                 errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;
