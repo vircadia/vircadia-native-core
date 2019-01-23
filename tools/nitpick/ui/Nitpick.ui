@@ -623,6 +623,9 @@
       </property>
      </widget>
      <widget class="QLineEdit" name="folderLineEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="geometry">
        <rect>
         <x>10</x>

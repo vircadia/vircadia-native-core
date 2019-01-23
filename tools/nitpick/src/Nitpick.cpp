@@ -93,7 +93,7 @@ void Nitpick::setup() {
     if (_testRunnerMobile) {
         delete _testRunnerMobile;
     }
-    _testRunnerMobile = new TestRunnerMobile(_ui.workingFolderRunOnMobileLabel, _ui.connectDeviceButton, _ui.pullFolderButton, _ui.detectedDeviceLabel);
+    _testRunnerMobile = new TestRunnerMobile(_ui.workingFolderRunOnMobileLabel, _ui.connectDeviceButton, _ui.pullFolderButton, _ui.detectedDeviceLabel, _ui.folderLineEdit);
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,

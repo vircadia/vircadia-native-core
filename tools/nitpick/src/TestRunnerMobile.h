@@ -12,6 +12,7 @@
 #define hifi_testRunnerMobile_h
 
 #include <QLabel>
+#include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
 
@@ -20,7 +21,14 @@
 class TestRunnerMobile : public QObject, public TestRunner {
     Q_OBJECT
 public:
-    explicit TestRunnerMobile(QLabel* workingFolderLabel, QPushButton *connectDeviceButton, QPushButton *pullFolderButton, QLabel* detectedDeviceLabel, QObject* parent = 0);
+    explicit TestRunnerMobile(
+        QLabel* workingFolderLabel, 
+        QPushButton *connectDeviceButton, 
+        QPushButton *pullFolderButton, 
+        QLabel* detectedDeviceLabel, 
+        QLineEdit *folderLineEdit,
+        QObject* parent = 0
+    );
     ~TestRunnerMobile();
 
     void setWorkingFolderAndEnableControls();
@@ -32,6 +40,7 @@ private:
     QPushButton* _connectDeviceButton;
     QPushButton* _pullFolderButton;
     QLabel* _detectedDeviceLabel;
+    QLineEdit* _folderLineEdit;
 
 #ifdef Q_OS_WIN
     const QString _adbExe{ "adb.exe" };

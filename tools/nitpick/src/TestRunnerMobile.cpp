@@ -16,13 +16,22 @@
 #include "Nitpick.h"
 extern Nitpick* nitpick;
 
-TestRunnerMobile::TestRunnerMobile(QLabel* workingFolderLabel, QPushButton *conectDeviceButton, QPushButton *pullFolderButton, QLabel* detectedDeviceLabel, QObject* parent)
-    : QObject(parent) 
+TestRunnerMobile::TestRunnerMobile(
+    QLabel* workingFolderLabel,
+    QPushButton *connectDeviceButton,
+    QPushButton *pullFolderButton,
+    QLabel* detectedDeviceLabel,
+    QLineEdit *folderLineEdit,
+    QObject* parent
+) : QObject(parent) 
 {
     _workingFolderLabel = workingFolderLabel;
-    _connectDeviceButton = conectDeviceButton;
+    _connectDeviceButton = connectDeviceButton;
     _pullFolderButton = pullFolderButton;
     _detectedDeviceLabel = detectedDeviceLabel;
+    _folderLineEdit = folderLineEdit;
+
+    folderLineEdit->setText("/sdcard/DCIM/TEST");
 }
 
 TestRunnerMobile::~TestRunnerMobile() {
@@ -82,12 +91,14 @@ void TestRunnerMobile::connectDevice() {
             QMessageBox::critical(0, "Too many devices detected", "Tests will run only if a single device is attached");
 
         } else {
-            _pullFolderButton->setEnabled(true);
             _detectedDeviceLabel->setText(line2.remove(DEVICE));
+            _pullFolderButton->setEnabled(true);
+            _folderLineEdit->setEnabled(true);
         }
     }
 }
 
 void TestRunnerMobile::pullFolder() {
-    QString command = _adbCommand + " devices > " + _workingFolder + "/devices.txt";
+    QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + " >" + _workingFolder + "/pullOutput.txt";
+    int result = system(command.toStdString().c_str());
 }
