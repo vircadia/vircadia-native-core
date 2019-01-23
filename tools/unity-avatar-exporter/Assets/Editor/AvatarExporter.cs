@@ -18,7 +18,36 @@ class AvatarExporter : MonoBehaviour {
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
+    static readonly int MAXIMUM_USER_BONE_COUNT = 256;
     static readonly string EMPTY_WARNING_TEXT = "None";
+    
+    static readonly string[] RECOMMENDED_UNITY_VERSIONS = new string[] {
+        "2018.2.12f1",
+        "2018.2.11f1",
+        "2018.2.10f1",
+        "2018.2.9f1",
+        "2018.2.8f1",
+        "2018.2.7f1",
+        "2018.2.6f1",
+        "2018.2.5f1",
+        "2018.2.4f1",
+        "2018.2.3f1",
+        "2018.2.2f1",
+        "2018.2.1f1",
+        "2018.2.0f2",
+        "2018.1.9f2",
+        "2018.1.8f1",
+        "2018.1.7f1",
+        "2018.1.6f1",
+        "2018.1.5f1",
+        "2018.1.4f1",
+        "2018.1.3f1",
+        "2018.1.2f1",
+        "2018.1.1f1",
+        "2018.1.0f2",
+        "2017.4.18f1",
+        "2017.4.17f1",
+    };
    
     static readonly Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
         {"Chest", "Spine1"},
@@ -136,19 +165,19 @@ class AvatarExporter : MonoBehaviour {
     };
     
     // Humanoid mapping name suffixes for each set of appendages
-    static readonly string[] legMappingSuffixes = new string[] {
+    static readonly string[] LEG_MAPPING_SUFFIXES = new string[] {
         "UpperLeg",
         "LowerLeg",
         "Foot",
         "Toes",
     };
-    static readonly string[] armMappingsSuffixes = new string[] {
+    static readonly string[] ARM_MAPPING_SUFFIXES = new string[] {
         "Shoulder",
         "UpperArm",
         "LowerArm",
         "Hand",
     };
-    static readonly string[] handMappingsSuffixes = new string[] {
+    static readonly string[] HAND_MAPPING_SUFFIXES = new string[] {
         " Index Distal",
         " Index Intermediate",
         " Index Proximal",
@@ -167,6 +196,7 @@ class AvatarExporter : MonoBehaviour {
     };
 
     enum BoneRule {
+        RecommendedUnityVersion,
         SingleRoot,
         NoDuplicateMapping,
         NoAsymmetricalLegMapping,
@@ -183,10 +213,11 @@ class AvatarExporter : MonoBehaviour {
         EyesMapped,
         HipsNotOnGround,
         HipsSpineChestNotCoincident,
+        TotalBoneCountUnderLimit,
         BoneRuleEnd,
     };
     // rules that are treated as errors and prevent exporting, otherwise rules will show as warnings
-    static readonly BoneRule[] exportBlockingBoneRules = new BoneRule[] {
+    static readonly BoneRule[] EXPORT_BLOCKING_BONE_RULES = new BoneRule[] {
         BoneRule.HipsMapped,
         BoneRule.SpineMapped,
         BoneRule.ChestMapped,
@@ -280,7 +311,7 @@ class AvatarExporter : MonoBehaviour {
         string boneErrors = "";
         string boneWarnings = "";
         foreach (var failedBoneRule in failedBoneRules) {
-            if (Array.IndexOf(exportBlockingBoneRules, failedBoneRule.Key) >= 0) {
+            if (Array.IndexOf(EXPORT_BLOCKING_BONE_RULES, failedBoneRule.Key) >= 0) {
                 boneErrors += failedBoneRule.Value + "\n\n";
             } else {
                 boneWarnings += failedBoneRule.Value + "\n\n";
@@ -635,6 +666,14 @@ class AvatarExporter : MonoBehaviour {
         // to the failed bone rules map with appropriate error or warning text
         for (BoneRule boneRule = 0; boneRule < BoneRule.BoneRuleEnd; ++boneRule) { 
             switch (boneRule) {
+                case BoneRule.RecommendedUnityVersion:
+                    if (Array.IndexOf(RECOMMENDED_UNITY_VERSIONS, Application.unityVersion) == -1) {
+                        failedBoneRules.Add(boneRule, "The current version of Unity is not one of the recommended Unity " +
+                                                      "versions. If you are using a version of Unity later than 2018.2.12f1, " +
+                                                      "it is recommended to apply Enforce T-Pose under the Pose dropdown " +
+                                                      "in Humanoid configuration.");
+                    }
+                    break;
                 case BoneRule.SingleRoot:
                     // bone rule fails if the root bone node has more than one child bone
                     if (userBoneTree.children.Count > 1) {
@@ -659,13 +698,13 @@ class AvatarExporter : MonoBehaviour {
                     }
                     break;
                 case BoneRule.NoAsymmetricalLegMapping:
-                    CheckAsymmetricalMappingRule(boneRule, legMappingSuffixes, "leg");
+                    CheckAsymmetricalMappingRule(boneRule, LEG_MAPPING_SUFFIXES, "leg");
                     break;
                 case BoneRule.NoAsymmetricalArmMapping:
-                    CheckAsymmetricalMappingRule(boneRule, armMappingsSuffixes, "arm");
+                    CheckAsymmetricalMappingRule(boneRule, ARM_MAPPING_SUFFIXES, "arm");
                     break;
                 case BoneRule.NoAsymmetricalHandMapping:
-                    CheckAsymmetricalMappingRule(boneRule, handMappingsSuffixes, "hand");
+                    CheckAsymmetricalMappingRule(boneRule, HAND_MAPPING_SUFFIXES, "hand");
                     break;
                 case BoneRule.HipsMapped:
                     hipsUserBone = CheckHumanBoneMappingRule(boneRule, "Hips");
@@ -749,6 +788,13 @@ class AvatarExporter : MonoBehaviour {
                                                           "), and the bone mapped to Chest in Humanoid (" + chestUserBone + 
                                                           ") should not be coincidental.");
                         }
+                    }
+                    break;
+                case BoneRule.TotalBoneCountUnderLimit:
+                    int userBoneCount = userBoneInfos.Count;
+                    if (userBoneCount > MAXIMUM_USER_BONE_COUNT) {
+                        failedBoneRules.Add(boneRule, "The total number of bones in the avatar (" + userBoneCount + 
+                                                      ") exceeds the maximum bone limit (" + MAXIMUM_USER_BONE_COUNT + ").");
                     }
                     break;
             }
