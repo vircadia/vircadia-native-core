@@ -69,22 +69,8 @@ TestRunnerDesktop::~TestRunnerDesktop() {
     }
 }
 
-void TestRunnerDesktop::setWorkingFolder() {
-    // Everything will be written to this folder
-    QString previousSelection = _workingFolder;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-
-    _workingFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a temporary folder for installation", parent,
-                                                       QFileDialog::ShowDirsOnly);
-
-    // If user canceled then restore previous selection and return
-    if (_workingFolder == "") {
-        _workingFolder = previousSelection;
-        return;
-    }
+void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
+    setWorkingFolder(_workingFolderLabel);
 
 #ifdef Q_OS_WIN
     _installationFolder = _workingFolder + "/High Fidelity";
@@ -95,7 +81,6 @@ void TestRunnerDesktop::setWorkingFolder() {
     _logFile.setFileName(_workingFolder + "/log.txt");
 
     nitpick->enableRunTabControls();
-    _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
 
     _timer = new QTimer(this);
     connect(_timer, SIGNAL(timeout()), this, SLOT(checkTime()));

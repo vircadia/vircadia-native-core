@@ -21,6 +21,8 @@
 #include <QTimeEdit>
 #include <QTimer>
 
+#include "TestRunner.h"
+
 class BuildInformation {
 public:
     QString build;
@@ -29,7 +31,7 @@ public:
 
 class Worker;
 
-class TestRunnerDesktop : public QObject {
+class TestRunnerDesktop : public QObject, public TestRunner {
     Q_OBJECT
 public:
     explicit TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
@@ -44,7 +46,7 @@ public:
 
     ~TestRunnerDesktop();
 
-    void setWorkingFolder();
+    void setWorkingFolderAndEnableControls();
 
     void run();
 

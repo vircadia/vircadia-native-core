@@ -24,24 +24,8 @@ TestRunnerMobile::TestRunnerMobile(QLabel* workingFolderLabel, QPushButton *read
 TestRunnerMobile::~TestRunnerMobile() {
 }
 
-void TestRunnerMobile::setWorkingFolder() {
-    // Everything will be written to this folder
-    QString previousSelection = _workingFolder;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-
-    _workingFolder = QFileDialog::getExistingDirectory(nullptr, "Please select a working folder for temporary files", parent,
-        QFileDialog::ShowDirsOnly);
-
-    // If user canceled then restore previous selection and return
-    if (_workingFolder == "") {
-        _workingFolder = previousSelection;
-        return;
-    }
-
-    _workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
+void TestRunnerMobile::setWorkingFolderAndEnableControls() {
+    setWorkingFolder(_workingFolderLabel);
 
     _readDeviceButton->setEnabled(true);
 }

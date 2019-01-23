@@ -10,17 +10,20 @@
 
 #ifndef hifi_testRunnerMobile_h
 #define hifi_testRunnerMobile_h
+
 #include <QLabel>
 #include <QObject>
 #include <QPushButton>
 
-class TestRunnerMobile : public QObject {
+#include "TestRunner.h"
+
+class TestRunnerMobile : public QObject, public TestRunner {
     Q_OBJECT
 public:
     explicit TestRunnerMobile(QLabel* workingFolderLabel, QPushButton *readDeviceButton, QObject* parent = 0);
     ~TestRunnerMobile();
 
-    void setWorkingFolder();
+    void setWorkingFolderAndEnableControls();
     void readDevice();
 
 private:

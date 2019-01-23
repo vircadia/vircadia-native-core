@@ -165,7 +165,7 @@ void Nitpick::on_createTestRailRunButton_clicked() {
 }
 
 void Nitpick::on_setWorkingFolderRunOnDesktopButton_clicked() {
-    _testRunnerDesktop->setWorkingFolder();
+    _testRunnerDesktop->setWorkingFolderAndEnableControls();
 }
 
 void Nitpick::enableRunTabControls() {
@@ -324,7 +324,7 @@ void Nitpick::appendLogWindow(const QString& message) {
 }
 
 void Nitpick::on_setWorkingFolderRunOnMobileButton_clicked() {
-    _testRunnerMobile->setWorkingFolder();
+    _testRunnerMobile->setWorkingFolderAndEnableControls();
 }
 
 void Nitpick::on_readDeviceButton_clicked() {
