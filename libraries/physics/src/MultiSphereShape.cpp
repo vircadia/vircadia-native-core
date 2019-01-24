@@ -25,7 +25,7 @@ void SphereRegion::dump(std::vector<std::pair<glm::vec3, glm::vec3>>& outLines) 
 
 void SphereRegion::insertUnique(const glm::vec3& point, std::vector<glm::vec3>& pointSet) {
     auto hit = std::find_if(pointSet.begin(), pointSet.end(), [point](const glm::vec3& pointFromSet) -> bool {
-        return (pointFromSet == point);
+        return (glm::length(pointFromSet-point) < FLT_EPSILON);
     });
     if (hit == pointSet.end()) {
         pointSet.push_back(point);
@@ -107,7 +107,6 @@ CollisionShapeExtractionMode MultiSphereShape::getExtractionModeByName(const QSt
     }
     else if (isSim || isFlow || isEye || isToe) {
         mode = CollisionShapeExtractionMode::None;
-        //qDebug() << "Trying to add " << (int)positions.size() << " spheres for " << jointName << " length: " << maxLength;
     }
     return mode;
 }
@@ -116,9 +115,9 @@ void MultiSphereShape::filterUniquePoints(const std::vector<btVector3>& kdop, st
     for (size_t j = 0; j < kdop.size(); j++) {
         btVector3 btPoint = kdop[j];
         auto hit = std::find_if(uniquePoints.begin(), uniquePoints.end(), [btPoint](const glm::vec3& point) -> bool {
-            return (btPoint.getX() == point.x
-                && btPoint.getY() == point.y
-                && btPoint.getZ() == point.z);
+            return (glm::length(btPoint.getX() - point.x) < FLT_EPSILON
+                && glm::length(btPoint.getY() - point.y) < FLT_EPSILON
+                && glm::length(btPoint.getZ() - point.z) < FLT_EPSILON);
         });
         if (hit == uniquePoints.end()) {
             uniquePoints.push_back(bulletToGLM(btPoint));
@@ -287,9 +286,11 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
                 maxRadius = radius > maxRadius ? radius : maxRadius;
             }
         }
-        averageRadius /= (int)points.size();
-        maxAverageRadius = averageRadius > maxAverageRadius ? averageRadius : maxAverageRadius;
-        minAverageRadius = averageRadius < minAverageRadius ? averageRadius : minAverageRadius;
+        if (points.size() > 0) {
+            averageRadius /= (int)points.size();
+        }
+        maxAverageRadius = glm::max(averageRadius, maxAverageRadius);
+        minAverageRadius = glm::min(averageRadius, minAverageRadius);
         spheres[j]._radius = averageRadius;
     }
     float radiusRatio = maxRadius / maxAverageRadius;
@@ -331,17 +332,17 @@ void MultiSphereShape::connectSpheres(int index1, int index2, bool onlyEdges) {
     auto axis = sphere1._position - sphere2._position;
 
     float angleOffset = glm::asin((sphere1._radius - sphere2._radius) / distance);
-    float percent1 = ((0.5f * PI) + angleOffset) / PI;
-    float percent2 = ((0.5f * PI) - angleOffset) / PI;
+    float ratio1 = ((0.5f * PI) + angleOffset) / PI;
+    float ratio2 = ((0.5f * PI) - angleOffset) / PI;
 
     std::vector<glm::vec3> edge1, edge2;
     if (onlyEdges) {
         std::vector<std::pair<glm::vec3, glm::vec3>> debugLines;
-        calculateSphereLines(debugLines, sphere1._position, sphere1._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(axis), percent1, &edge1);
-        calculateSphereLines(debugLines, sphere2._position, sphere2._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(-axis), percent2, &edge2);
+        calculateSphereLines(debugLines, sphere1._position, sphere1._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(axis), ratio1, &edge1);
+        calculateSphereLines(debugLines, sphere2._position, sphere2._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(-axis), ratio2, &edge2);
     } else {
-        calculateSphereLines(_debugLines, sphere1._position, sphere1._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(axis), percent1, &edge1);
-        calculateSphereLines(_debugLines, sphere2._position, sphere2._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(-axis), percent2, &edge2);
+        calculateSphereLines(_debugLines, sphere1._position, sphere1._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(axis), ratio1, &edge1);
+        calculateSphereLines(_debugLines, sphere2._position, sphere2._radius, DEFAULT_SPHERE_SUBDIVISIONS, glm::normalize(-axis), ratio2, &edge2);
     }
     connectEdges(_debugLines, edge1, edge2);
 }

@@ -47,7 +47,7 @@ public:
     btCollisionShape* createDetailedCollisionShapeForJoint(int jointIndex);
     DetailedMotionState* createDetailedMotionStateForJoint(int jointIndex);
     std::vector<DetailedMotionState*>& getDetailedMotionStates() { return _detailedMotionStates; }
-    void clearDetailedMotionStates() { _pendingFlags |= PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION; }
+    void clearDetailedMotionStates();
     void resetDetailedMotionStates();
 
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
@@ -60,6 +60,8 @@ public:
         QUuid _intersectWithAvatar;
         int _intersectWithJoint { -1 };
         float _distance { 0.0f };
+        float _maxDistance { 0.0f };
+        QVariantMap _extraInfo;
         glm::vec3 _intersectionPoint;
         glm::vec3 _intersectionNormal;
         std::vector<int> _boundJoints;

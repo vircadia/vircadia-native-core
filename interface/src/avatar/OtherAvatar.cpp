@@ -210,7 +210,7 @@ void OtherAvatar::setWorkloadRegion(uint8_t region) {
     } else {
         printRegion = "invalid";
     }
-    qDebug() << "Setting workload region to " << printRegion;
+    qCDebug(avatars) << "Setting workload region to " << printRegion;
     computeShapeLOD();
 }
 
@@ -235,7 +235,7 @@ void OtherAvatar::computeShapeLOD() {
     if (newLOD != _bodyLOD) {
         _bodyLOD = newLOD;
         if (isInPhysicsSimulation()) {
-            qDebug() << "Changing to body LOD " << newLOD;
+            qCDebug(avatars) << "Changing to body LOD " << newLOD;
             _needsReinsertion = true;
         }
     }
@@ -280,6 +280,7 @@ void OtherAvatar::updateCollisionGroup(bool myAvatarCollide) {
 }
 
 void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar) {
+    assert(detailedMotionStates.empty());
     auto& detailedMotionStates = getDetailedMotionStates();
     if (_bodyLOD == BodyLOD::Sphere) {
         auto dMotionState = createMotionState(avatar, -1);

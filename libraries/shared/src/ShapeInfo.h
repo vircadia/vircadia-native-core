@@ -58,7 +58,7 @@ public:
     using PointList = QVector<glm::vec3>;
     using PointCollection = QVector<PointList>;
     using TriangleIndices = QVector<int32_t>;
-    using SphereData = QPair<glm::vec3, float>;
+    using SphereData = glm::vec4;
     using SphereCollection = QVector<SphereData>;
 
     static QString getNameForShapeType(ShapeType type);

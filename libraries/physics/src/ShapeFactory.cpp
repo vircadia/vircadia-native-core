@@ -289,8 +289,8 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             std::vector<float> radiuses;
             auto sphereCollection = info.getSphereCollection();
             for (auto &sphereData : sphereCollection) {
-                positions.push_back(glmToBullet(sphereData.first));
-                radiuses.push_back(sphereData.second);
+                positions.push_back(glmToBullet(glm::vec3(sphereData)));
+                radiuses.push_back(sphereData.w);
             }
             shape = new btMultiSphereShape(positions.data(), radiuses.data(), (int)positions.size());
         }

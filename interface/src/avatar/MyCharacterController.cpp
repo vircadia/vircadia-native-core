@@ -47,7 +47,6 @@ void MyCharacterController::updateShapeIfNecessary() {
     if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
         _pendingFlags &= ~PENDING_FLAG_UPDATE_SHAPE;
         if (_radius > 0.0f) {
-            // _pendingFlags |= PENDING_FLAG_RESET_DETAILED_SHAPES;
             // create RigidBody if it doesn't exist
             if (!_rigidBody) {
                 btCollisionShape* shape = computeShape();
@@ -378,6 +377,12 @@ DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(in
     return nullptr;
 }
 
+void MyCharacterController::clearDetailedMotionStates() {
+    _pendingFlags |= PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION; 
+    // We make sure we don't add them again
+    _pendingFlags &= ~PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
+}
+
 void MyCharacterController::resetDetailedMotionStates() {
     for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
         _detailedMotionStates[i] = nullptr;
@@ -455,6 +460,10 @@ std::vector<MyCharacterController::RayAvatarResult> MyCharacterController::rayTe
                     result._distance = length * rayCallback.m_hitFractions[i];
                     result._intersectWithJoint = detailedMotionState->getJointIndex();
                     result._isBound = detailedMotionState->getIsBound(result._boundJoints);
+                    btVector3 center;
+                    btScalar radius;
+                    detailedMotionState->getShape()->getBoundingSphere(center, radius);
+                    result._maxDistance = (float)radius;
                     foundAvatars.push_back(result);
                 }
             }

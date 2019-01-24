@@ -276,8 +276,8 @@ const HashKey& ShapeInfo::getHash() const {
         _hashKey.hashUint64((uint64_t)_type);
         if (_type == SHAPE_TYPE_MULTISPHERE) {
             for (auto &sphereData : _sphereCollection) {
-                _hashKey.hashVec3(sphereData.first);
-                _hashKey.hashFloat(sphereData.second);
+                _hashKey.hashVec3(glm::vec3(sphereData));
+                _hashKey.hashFloat(sphereData.w);
             }
         } else if (_type != SHAPE_TYPE_SIMPLE_HULL) {
             _hashKey.hashVec3(_halfExtents);

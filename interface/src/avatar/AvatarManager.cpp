@@ -411,11 +411,8 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 
                 auto& detailedMotionStates = avatar->getDetailedMotionStates();
                 for (auto& mState : detailedMotionStates) {
-                    if (mState) {
-                        transaction.objectsToRemove.push_back(mState);
-                    }
+                    transaction.objectsToRemove.push_back(mState);
                 }
-                qDebug() << "Removing " << detailedMotionStates.size() << " detailed motion states from " << avatar->getSessionUUID();
                 avatar->resetDetailedMotionStates();
                 
             } else {
@@ -430,15 +427,12 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 } else {
                     failedShapeBuilds.insert(avatar);
                 }
-
                 if (avatar->getDetailedMotionStates().size() == 0) {
                     avatar->createDetailedMotionStates(avatar);
                     for (auto dMotionState : avatar->getDetailedMotionStates()) {
                         transaction.objectsToAdd.push_back(dMotionState);
                     }
                 }
-                
-                qDebug() << "Adding " << avatar->getDetailedMotionStates().size() << " detailed motion states from " << avatar->getSessionUUID();
             }
         } else if (isInPhysics) {
             transaction.objectsToChange.push_back(avatar->_motionState);
@@ -642,19 +636,17 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
                                                                  const QScriptValue& avatarIdsToDiscard,
-                                                                 const QScriptValue& jointIndicesToFilter,
+                                                                 const QStringList& jointIndicesToFilter,
                                                                  bool pickAgainstMesh) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
-    QVector<uint> jointsToFilter;
-    qVectorIntFromScriptValue(jointIndicesToFilter, jointsToFilter);
-    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, jointsToFilter, pickAgainstMesh);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, jointIndicesToFilter, pickAgainstMesh);
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
                                                                        const QVector<EntityItemID>& avatarsToInclude,
                                                                        const QVector<EntityItemID>& avatarsToDiscard,
-                                                                       const QVector<uint>& jointIndicesToFilter,
+                                                                       const QStringList& jointIndicesToFilter,
                                                                        bool pickAgainstMesh) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
@@ -663,14 +655,10 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard),
-                                  Q_ARG(const QVector<uint>&, jointIndicesToFilter),
+                                  Q_ARG(const QStringList&, jointIndicesToFilter),
                                   Q_ARG(bool, pickAgainstMesh));
         return result;
     }
-    
-    glm::vec3 rayDirectionInv = { ray.direction.x != 0 ? 1.0f / ray.direction.x : INFINITY,
-        ray.direction.y != 0 ? 1.0f / ray.direction.y : INFINITY,
-        ray.direction.z != 0 ? 1.0f / ray.direction.z : INFINITY };
 
     float distance = (float)INT_MAX;  // with FLT_MAX bullet rayTest does not return results 
     BoxFace face = BoxFace::UNKNOWN_FACE;
@@ -681,13 +669,18 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
     glm::vec3 transformedRayDirection;
     
     if (physicsResults.size() > 0) {
+        glm::vec3 rayDirectionInv = { ray.direction.x != 0 ? 1.0f / ray.direction.x : INFINITY,
+            ray.direction.y != 0.0f ? 1.0f / ray.direction.y : INFINITY,
+            ray.direction.z != 0.0f ? 1.0f / ray.direction.z : INFINITY };
+
         MyCharacterController::RayAvatarResult rayAvatarResult;
         AvatarPointer avatar = nullptr;
         for (auto &hit : physicsResults) {
             auto avatarID = hit._intersectWithAvatar;
-            bool skipThisAvatar = ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
-                                  (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID))) && jointIndicesToFilter.size() == 0;
-            if (skipThisAvatar) {
+            bool avatarIsIncluded = avatarsToInclude.contains(avatarID);
+            bool avatarIsDiscarded = avatarsToDiscard.contains(avatarID);
+            if (jointIndicesToFilter.size() == 0 && ((avatarsToInclude.size() > 0 && !avatarIsIncluded) ||
+                                                     (avatarsToDiscard.size() > 0 && avatarIsDiscarded))) {
                 continue;
             }
             if (!(_myAvatar->getSessionUUID() == avatarID)) {
@@ -701,16 +694,16 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             }
             QVector<int> jointsToDiscard;
             if (avatar && jointIndicesToFilter.size() > 0) {
-                int jointCount = avatar->getJointCount();
-                if (avatarsToInclude.size() > 0 && avatarsToInclude.contains(avatarID)) {
-                    for (int i = 0; i < jointCount; i++) {
-                        if (!jointIndicesToFilter.contains(i)) {
+                auto names = avatar->getJointNames();
+                if (avatarIsIncluded) {
+                    for (int i = 0; i < names.size(); i++) {
+                        if (!jointIndicesToFilter.contains(names[i])) {
                             jointsToDiscard.push_back(i);
                         }
                     }
-                } else if (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID)) {
-                    for (int i = 0; i < jointCount; i++) {
-                        if (jointIndicesToFilter.contains(i)) {
+                } else if (avatarIsDiscarded) {
+                    for (int i = 0; i < names.size(); i++) {
+                        if (jointIndicesToFilter.contains(names[i])) {
                             jointsToDiscard.push_back(i);
                         }
                     }
@@ -719,7 +712,6 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             if (!hit._isBound) {
                 if (!jointsToDiscard.contains(hit._intersectWithJoint)) {
                     rayAvatarResult = hit;
-                    break;
                 }
             } else if (avatar) {
                 auto &multiSpheres = avatar->getMultiSphereShapes();
@@ -753,13 +745,9 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                             });
                         } 
                         rayAvatarResult = boxHits[0];
-                        break;
                     }
                 }
             }
-        }
-
-        if (rayAvatarResult._intersect) {
             if (pickAgainstMesh) {
                 glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
                 glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + ray.direction, rayAvatarResult._intersectWithJoint);
@@ -769,7 +757,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
                 auto jointOrientation = avatarOrientation * avatar->getAbsoluteDefaultJointRotationInObjectFrame(rayAvatarResult._intersectWithJoint);
                 auto jointPosition = avatarPosition + (avatarOrientation * avatar->getAbsoluteDefaultJointTranslationInObjectFrame(rayAvatarResult._intersectWithJoint));
-                
+
                 auto defaultFrameRayOrigin = jointPosition + jointOrientation * localRayOrigin;
                 auto defaultFrameRayPoint = jointPosition + jointOrientation * localRayPoint;
                 auto defaultFrameRayDirection = defaultFrameRayPoint - defaultFrameRayOrigin;
@@ -780,9 +768,14 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     rayAvatarResult._intersectionPoint = ray.origin + newDistance * glm::normalize(ray.direction);
                     rayAvatarResult._intersectionNormal = surfaceNormal;
                     extraInfo["worldIntersectionPoint"] = vec3toVariant(rayAvatarResult._intersectionPoint);
+                    break;
                 }
+            } else {
+                break;
             }
+        }
 
+        if (rayAvatarResult._intersect) {
             result.intersects = true;
             result.avatarID = rayAvatarResult._intersectWithAvatar;
             result.distance = rayAvatarResult._distance;
