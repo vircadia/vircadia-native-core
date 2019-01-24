@@ -738,14 +738,6 @@ void Overlays::sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEv
     hoverLeavePointerEvent(overlayID, event);
 }
 
-OverlayID Overlays::getKeyboardFocusOverlay() {
-    return qApp->getKeyboardFocusOverlay();
-}
-
-void Overlays::setKeyboardFocusOverlay(const OverlayID& id) {
-    qApp->setKeyboardFocusOverlay(id);
-}
-
 float Overlays::width() {
     if (QThread::currentThread() != thread()) {
         float result;

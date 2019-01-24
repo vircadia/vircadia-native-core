@@ -28,6 +28,8 @@
 
 #include "PanelAttachable.h"
 
+#include <EntityScriptingInterface.h>
+
 class PickRay;
 
 class OverlayPropertyResult {
@@ -88,9 +90,9 @@ public:
  * @hifi-interface
  * @hifi-client-entity
  *
- * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
- *     If no overlay has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
- *     clear keyboard focus.
+ * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Entities.EntityTypes|Web} local entity that has keyboard focus.
+ *     If no local entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
+ *     clear keyboard focus. Deprecated.
  */
 
 class Overlays : public QObject {
@@ -586,20 +588,20 @@ public slots:
     void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
     /**jsdoc
-     * Get the ID of the Web3D overlay that has keyboard focus.
+     * Get the ID of the Web3D local entity that has keyboard focus. Deprecated.
      * @function Overlays.getKeyboardFocusOverlay
-     * @returns {Uuid} The ID of the {@link Overlays.OverlayType|web3d} overlay that has focus, if any, otherwise 
+     * @returns {Uuid} The ID of the {@link Entities.EntityTypes|Web} overlay that has focus, if any, otherwise 
      *     <code>null</code>.
      */
-    OverlayID getKeyboardFocusOverlay();
+    EntityItemID getKeyboardFocusOverlay() { return DependencyManager::get<EntityScriptingInterface>()->getKeyboardFocusLocalEntity(); }
 
     /**jsdoc
-     * Set the Web3D overlay that has keyboard focus.
+     * Set the Web3D local entity that has keyboard focus. Deprecated.
      * @function Overlays.setKeyboardFocusOverlay
-     * @param {Uuid} overlayID - The ID of the {@link Overlays.OverlayType|web3d} overlay to set keyboard focus to. Use 
+     * @param {Uuid} overlayID - The ID of the {@link Entities.EntityTypes|Web} overlay to set keyboard focus to. Use 
      *     <code>null</code> or {@link Uuid|Uuid.NULL} to unset keyboard focus from an overlay.
      */
-    void setKeyboardFocusOverlay(const OverlayID& id);
+    void Overlays::setKeyboardFocusOverlay(const EntityItemID& id) { DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusLocalEntity(id); }
 
 signals:
     /**jsdoc

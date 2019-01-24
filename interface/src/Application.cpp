@@ -1898,7 +1898,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
         if (event.shouldFocus()) {
             if (getEntities()->wantsKeyboardFocus(entityItemID)) {
-                setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+                setKeyboardFocusLocalEntity(UNKNOWN_OVERLAY_ID);
                 setKeyboardFocusEntity(entityItemID);
             } else {
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
@@ -1990,13 +1990,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
     connect(overlays, &Overlays::overlayDeleted, [this](const OverlayID& overlayID) {
-        if (overlayID == _keyboardFocusedOverlay.get()) {
-            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+        if (overlayID == _keyboardFocusedLocalEntity.get()) {
+            setKeyboardFocusLocalEntity(UNKNOWN_OVERLAY_ID);
         }
     });
 
     connect(this, &Application::aboutToQuit, [this]() {
-        setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+        setKeyboardFocusLocalEntity(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
@@ -3821,12 +3821,12 @@ bool Application::handleKeyEventForFocusedEntityOrOverlay(QEvent* event) {
         }
     }
 
-    if (_keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
+    if (_keyboardFocusedLocalEntity.get() != UNKNOWN_OVERLAY_ID) {
         switch (event->type()) {
             case QEvent::KeyPress:
             case QEvent::KeyRelease: {
-                    // Only Web overlays can have focus.
-                    auto overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                    // Only Web entities can have focus.
+                    auto overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedLocalEntity.get()));
                     if (overlay && overlay->getEventHandler()) {
                         event->setAccepted(false);
                         QCoreApplication::sendEvent(overlay->getEventHandler(), event);
@@ -4923,12 +4923,12 @@ void Application::idle() {
 
     // Update focus highlight for entity or overlay.
     {
-        if (!_keyboardFocusedEntity.get().isInvalidID() || _keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
+        if (!_keyboardFocusedEntity.get().isInvalidID() || _keyboardFocusedLocalEntity.get() != UNKNOWN_OVERLAY_ID) {
             const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
             quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
             if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-                setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+                setKeyboardFocusLocalEntity(UNKNOWN_OVERLAY_ID);
             } else {
                 // update position of highlight overlay
                 if (!_keyboardFocusedEntity.get().isInvalidID()) {
@@ -4940,7 +4940,7 @@ void Application::idle() {
                 } else {
                     // Only Web overlays can have focus.
                     auto overlay =
-                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedLocalEntity.get()));
                     if (overlay && _keyboardFocusHighlight) {
                         _keyboardFocusHighlight->setWorldOrientation(overlay->getWorldOrientation());
                         _keyboardFocusHighlight->setWorldPosition(overlay->getWorldPosition());
@@ -5779,7 +5779,7 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
     if (_keyboardFocusedEntity.get() != entityItemID) {
         _keyboardFocusedEntity.set(entityItemID);
 
-        if (_keyboardFocusHighlight && _keyboardFocusedOverlay.get() == UNKNOWN_OVERLAY_ID) {
+        if (_keyboardFocusHighlight && _keyboardFocusedLocalEntity.get() == UNKNOWN_OVERLAY_ID) {
             _keyboardFocusHighlight->setVisible(false);
         }
 
@@ -5810,12 +5810,12 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
     }
 }
 
-OverlayID Application::getKeyboardFocusOverlay() {
-    return _keyboardFocusedOverlay.get();
+EntityItemID Application::getKeyboardFocusLocalEntity() {
+    return _keyboardFocusedLocalEntity.get();
 }
 
-void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
-    if (overlayID != _keyboardFocusedOverlay.get()) {
+void Application::setKeyboardFocusLocalEntity(const EntityItemID& overlayID) {
+    if (overlayID != _keyboardFocusedLocalEntity.get()) {
         if (qApp->getLoginDialogPoppedUp() && !_loginDialogOverlayID.isNull()) {
             if (overlayID == _loginDialogOverlayID) {
                 emit loginDialogFocusEnabled();
@@ -5825,7 +5825,7 @@ void Application::setKeyboardFocusOverlay(const OverlayID& overlayID) {
             }
         }
 
-        _keyboardFocusedOverlay.set(overlayID);
+        _keyboardFocusedLocalEntity.set(overlayID);
 
         if (_keyboardFocusHighlight && _keyboardFocusedEntity.get() == UNKNOWN_ENTITY_ID) {
             _keyboardFocusHighlight->setVisible(false);
@@ -8802,7 +8802,7 @@ void Application::createLoginDialogOverlay() {
         overlays.editOverlay(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
     }
-    setKeyboardFocusOverlay(_loginDialogOverlayID);
+    setKeyboardFocusLocalEntity(_loginDialogOverlayID);
     emit loginDialogFocusEnabled();
     getApplicationCompositor().getReticleInterface()->setAllowMouseCapture(false);
     getApplicationCompositor().getReticleInterface()->setVisible(false);

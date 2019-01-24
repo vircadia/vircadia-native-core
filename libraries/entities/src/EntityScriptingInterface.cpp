@@ -2118,6 +2118,16 @@ void EntityScriptingInterface::setKeyboardFocusEntity(const EntityItemID& id) {
     QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(EntityItemID, id));
 }
 
+QUuid EntityScriptingInterface::getKeyboardFocusLocalEntity() const {
+    QUuid result;
+    QMetaObject::invokeMethod(qApp, "getKeyboardFocusLocalEntity", Qt::DirectConnection, Q_RETURN_ARG(QUuid, result));
+    return result;
+}
+
+void EntityScriptingInterface::setKeyboardFocusLocalEntity(const EntityItemID& id) {
+    QMetaObject::invokeMethod(qApp, "setKeyboardFocusLocalEntity", Qt::DirectConnection, Q_ARG(EntityItemID, id));
+}
+
 void EntityScriptingInterface::sendMousePressOnEntity(const EntityItemID& id, const PointerEvent& event) {
     emit mousePressOnEntity(id, event);
 }

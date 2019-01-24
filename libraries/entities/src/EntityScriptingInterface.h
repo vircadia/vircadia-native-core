@@ -115,11 +115,15 @@ public:
  * @property {Uuid} keyboardFocusEntity - Get or set the {@link Entities.EntityType|Web} entity that has keyboard focus.
  *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
+ * @property {Uuid} keyboardFocusLocalEntity - Get or set the {@link Entities.EntityType|Web} local entity that has keyboard focus.
+ *     If no local entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to
+ *     clear keyboard focus.
  */
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
     Q_PROPERTY(QUuid keyboardFocusEntity READ getKeyboardFocusEntity WRITE setKeyboardFocusEntity)
+    Q_PROPERTY(QUuid keyboardFocusLocalEntity READ getKeyboardFocusLocalEntity WRITE setKeyboardFocusLocalEntity)
 
     friend EntityPropertyMetadataRequest;
 public:
@@ -1387,6 +1391,20 @@ public slots:
      */
     Q_INVOKABLE void setKeyboardFocusEntity(const EntityItemID& id);
 
+    /**jsdoc
+     * Get the ID of the {@link Entities.EntityType|Web} local entity that has keyboard focus.
+     * @function Entities.getKeyboardFocusEntity
+     * @returns {Uuid} The ID of the {@link Entities.EntityType|Web} local entity that has focus, if any, otherwise <code>null</code>.
+     */
+    Q_INVOKABLE QUuid getKeyboardFocusLocalEntity() const;
+
+    /**jsdoc
+     * Set the {@link Entities.EntityType|Web} local entity that has keyboard focus.
+     * @function Entities.setKeyboardFocusEntity
+     * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Web} local entity to set keyboard focus to. Use 
+     *     <code>null</code> or {@link Uuid|Uuid.NULL} to unset keyboard focus from an entity.
+     */
+    Q_INVOKABLE void setKeyboardFocusLocalEntity(const EntityItemID& id);
 
     /**jsdoc
      * Emit a {@link Entities.mousePressOnEntity|mousePressOnEntity} event.

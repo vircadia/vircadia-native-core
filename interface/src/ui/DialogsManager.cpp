@@ -57,7 +57,7 @@ void DialogsManager::showAddressBar() {
     if (!hmd->getShouldShowTablet()) {
         hmd->openTablet();
     }
-    qApp->setKeyboardFocusOverlay(hmd->getCurrentTabletScreenID());
+    qApp->setKeyboardFocusLocalEntity(hmd->getCurrentTabletScreenID());
     setAddressBarVisible(true);
 }
 
@@ -70,7 +70,7 @@ void DialogsManager::hideAddressBar() {
         tablet->gotoHomeScreen();
         hmd->closeTablet();
     }
-    qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    qApp->setKeyboardFocusLocalEntity(UNKNOWN_OVERLAY_ID);
     setAddressBarVisible(false);
 }
 

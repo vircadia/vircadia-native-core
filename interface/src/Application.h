@@ -439,8 +439,8 @@ public slots:
     QUuid getKeyboardFocusEntity() const;  // thread-safe
     void setKeyboardFocusEntity(const EntityItemID& entityItemID);
 
-    OverlayID getKeyboardFocusOverlay();
-    void setKeyboardFocusOverlay(const OverlayID& overlayID);
+    EntityItemID getKeyboardFocusLocalEntity();
+    void setKeyboardFocusLocalEntity(const EntityItemID& overlayID);
 
     void addAssetToWorldMessageClose();
 
@@ -720,7 +720,7 @@ private:
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     ThreadSafeValueCache<EntityItemID> _keyboardFocusedEntity;
-    ThreadSafeValueCache<OverlayID> _keyboardFocusedOverlay;
+    ThreadSafeValueCache<EntityItemID> _keyboardFocusedLocalEntity;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _isGLInitialized { false };
