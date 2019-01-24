@@ -114,14 +114,9 @@ void ModelOverlay::update(float deltatime) {
         _model->setVisibleInScene(getVisible(), scene);
         metaDirty = true;
     }
-    if (_drawInFrontDirty) {
-        _drawInFrontDirty = false;
-        _model->setLayeredInFront(getDrawInFront(), scene);
-        metaDirty = true;
-    }
-    if (_drawInHUDDirty) {
-        _drawInHUDDirty = false;
-        _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+    if (_renderLayerDirty) {
+        _renderLayerDirty = false;
+        _model->setHifiRenderLayer(_drawHUDLayer ? render::hifi::LAYER_3D_HUD : (_drawInFront ? render::hifi::LAYER_3D_FRONT : render::hifi::LAYER_3D), scene);
         metaDirty = true;
     }
     if (_groupCulledDirty) {
@@ -175,14 +170,14 @@ void ModelOverlay::setVisible(bool visible) {
 void ModelOverlay::setDrawInFront(bool drawInFront) {
     if (drawInFront != getDrawInFront()) {
         Base3DOverlay::setDrawInFront(drawInFront);
-        _drawInFrontDirty = true;
+        _renderLayerDirty = true;
     }
 }
 
 void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
     if (drawHUDLayer != getDrawHUDLayer()) {
         Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
-        _drawInHUDDirty = true;
+        _renderLayerDirty = true;
     }
 }
 
