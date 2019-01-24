@@ -401,6 +401,12 @@ bool Avatar::updateGrabs() {
 
             if (success && target) {
                 target->addGrab(grab);
+                if (isMyAvatar()) {
+                    EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(target);
+                    if (entity) {
+                        entity->upgradeScriptSimulationPriority(PERSONAL_SIMULATION_PRIORITY);
+                    }
+                }
                 // only clear this entry from the _changedAvatarGrabs if we found the entity.
                 changeItr.remove();
                 grabAddedOrRemoved = true;
