@@ -945,12 +945,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  */
 
 /**jsdoc
- * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on
- * {@link Entities.EntityType|Model} entities, {@link Entities.EntityType|Shape} entities (albedo only), 
- * {@link Overlays.OverlayType|model overlays}, and avatars.
+ * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on entities and avatars.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.<br />
- * To apply a material to an entity or overlay, set the material entity's <code>parentID</code> property to the entity or 
- * overlay's ID.
+ * To apply a material to an entity, set the material entity's <code>parentID</code> property to the entity ID.
  * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
  * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
  * by setting the <code>entityHostType</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.

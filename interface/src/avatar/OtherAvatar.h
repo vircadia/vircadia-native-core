@@ -17,7 +17,6 @@
 
 #include "InterfaceLogging.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/overlays/Sphere3DOverlay.h"
 
 class AvatarManager;
 class AvatarMotionState;
@@ -59,8 +58,7 @@ protected:
     void onRemoveAttachedAvatarEntity(const QUuid& id);
 
     std::vector<QUuid> _attachedAvatarEntities;
-    std::shared_ptr<Sphere3DOverlay> _otherAvatarOrbMeshPlaceholder { nullptr };
-    OverlayID _otherAvatarOrbMeshPlaceholderID { UNKNOWN_OVERLAY_ID };
+    QUuid _otherAvatarOrbMeshPlaceholderID { UNKNOWN_ENTITY_ID };
     AvatarMotionState* _motionState { nullptr };
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };

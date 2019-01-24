@@ -23,7 +23,6 @@
 enum IntersectionType {
     NONE = 0,
     ENTITY,
-    OVERLAY,
     AVATAR,
     HUD
 };

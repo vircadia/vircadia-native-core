@@ -111,10 +111,10 @@ public:
      * @function LaserPointers.setLockEndUUID
      * @param {number} id
      * @param {Uuid} itemID
-     * @param {boolean} isOverlay
+     * @param {boolean} isAvatar
      * @param {Mat4} [offsetMat]
      */
-    Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay, offsetMat); }
+    Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isAvatar, offsetMat); }
 
 
     /**jsdoc

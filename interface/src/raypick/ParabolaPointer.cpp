@@ -149,7 +149,7 @@ void ParabolaPointer::setVisualPickResultInternal(PickResultPointer pickResult, 
     }
 }
 
-ParabolaPointer::RenderState::RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
+ParabolaPointer::RenderState::RenderState(const QUuid& startID, const QUuid& endID, const glm::vec3& pathColor, float pathAlpha, float pathWidth,
                                           bool isVisibleInSecondaryCamera, bool drawInFront, bool pathEnabled) :
     StartEndRenderState(startID, endID)
 {
@@ -230,6 +230,7 @@ void ParabolaPointer::RenderState::update(const glm::vec3& origin, const glm::ve
 }
 
 std::shared_ptr<StartEndRenderState> ParabolaPointer::buildRenderState(const QVariantMap& propMap) {
+    // FIXME: we have to keep using the Overlays interface here, because existing scripts use overlay properties to define pointers
     QUuid startID;
     if (propMap["start"].isValid()) {
         QVariantMap startMap = propMap["start"].toMap();
@@ -322,8 +323,6 @@ glm::vec3 ParabolaPointer::findIntersection(const PickedObject& pickedObject, co
     switch (pickedObject.type) {
         case ENTITY:
             //return ParabolaPick::intersectParabolaWithEntityXYPlane(pickedObject.objectID, origin, velocity, acceleration);
-        case OVERLAY:
-            //return ParabolaPick::intersectParabolaWithOverlayXYPlane(pickedObject.objectID, origin, velocity, acceleration);
         default:
             return glm::vec3(NAN);
     }

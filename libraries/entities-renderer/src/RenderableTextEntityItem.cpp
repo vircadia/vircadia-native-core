@@ -199,7 +199,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     geometryCache->bindSimpleProgram(batch, false, backgroundColor.a < 1.0f, false, false, false);
     geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
 
-    // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline for a gpu performance increase.
+    // FIXME: Factor out textRenderer so that text parts can be grouped by pipeline for a gpu performance increase.
     float scale = _lineHeight / _textRenderer->getFontSize();
     transformToTopLeft.setScale(scale); // Scale to have the correct line height
     batch.setModelTransform(transformToTopLeft);

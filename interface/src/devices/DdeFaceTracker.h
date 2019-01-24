@@ -168,7 +168,7 @@ private:
     int _calibrationCount;
     QVector<float> _calibrationValues;
     TextOverlay* _calibrationBillboard;
-    OverlayID _calibrationBillboardID;
+    QUuid _calibrationBillboardID;
     QString _calibrationMessage;
     bool _isCalibrated;
     void addCalibrationDatum();

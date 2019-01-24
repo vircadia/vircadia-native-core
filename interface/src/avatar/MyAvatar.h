@@ -136,7 +136,7 @@ class MyAvatar : public Avatar {
      *     your avatar when rolling your HMD in degrees per second.
      * @property {number} userHeight=1.75 - The height of the user in sensor space.
      * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>
-     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities and overlays in situations 
+     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities in situations 
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
      * @property {number} walkSpeed

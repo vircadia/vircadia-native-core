@@ -19,20 +19,20 @@
 
 struct LockEndObject {
     QUuid id { QUuid() };
-    bool isOverlay { false };
+    bool isAvatar { false };
     glm::mat4 offsetMat { glm::mat4() };
 };
 
 class StartEndRenderState {
 public:
     StartEndRenderState() {}
-    StartEndRenderState(const OverlayID& startID, const OverlayID& endID);
+    StartEndRenderState(const QUuid& startID, const QUuid& endID);
     virtual ~StartEndRenderState() = default;
 
-    const OverlayID& getStartID() const { return _startID; }
-    const OverlayID& getEndID() const { return _endID; }
-    const bool& doesStartIgnoreRays() const { return _startIgnoreRays; }
-    const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
+    const QUuid& getStartID() const { return _startID; }
+    const QUuid& getEndID() const { return _endID; }
+    const bool& doesStartIgnorePicks() const { return _startIgnorePicks; }
+    const bool& doesEndIgnorePicks() const { return _endIgnorePicks; }
 
     void setStartDim(const glm::vec3& startDim) { _startDim = startDim; }
     const glm::vec3& getStartDim() const { return _startDim; }
@@ -51,10 +51,10 @@ public:
     bool isEnabled() const { return _enabled; }
 
 protected:
-    OverlayID _startID;
-    OverlayID _endID;
-    bool _startIgnoreRays;
-    bool _endIgnoreRays;
+    QUuid _startID;
+    QUuid _endID;
+    bool _startIgnorePicks;
+    bool _endIgnorePicks;
 
     glm::vec3 _startDim;
     glm::vec3 _endDim;
@@ -82,7 +82,7 @@ public:
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
     void setLength(float length) override;
-    void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;
+    void setLockEndUUID(const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat = glm::mat4()) override;
 
     void updateVisuals(const PickResultPointer& prevRayPickResult) override;
 

@@ -73,10 +73,10 @@ void PathPointer::setLength(float length) {
     });
 }
 
-void PathPointer::setLockEndUUID(const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat) {
+void PathPointer::setLockEndUUID(const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat) {
     withWriteLock([&] {
         _lockEndObject.id = objectID;
-        _lockEndObject.isOverlay = isOverlay;
+        _lockEndObject.isAvatar = isAvatar;
         _lockEndObject.offsetMat = offsetMat;
     });
 }
@@ -97,12 +97,8 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             glm::quat rot;
             glm::vec3 dim;
             glm::vec3 registrationPoint;
-            if (_lockEndObject.isOverlay) {
-                pos = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "position").value);
-                rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
-                dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
-                registrationPoint = glm::vec3(0.5f);
-            } else {
+            // TODO: use isAvatar
+            {
                 EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
                 glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
@@ -117,7 +113,7 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             distance = glm::distance(origin, endVec);
             glm::vec3 normalizedDirection = glm::normalize(direction);
 
-            type = _lockEndObject.isOverlay ? IntersectionType::OVERLAY : IntersectionType::ENTITY;
+            type = IntersectionType::ENTITY;
             id = _lockEndObject.id;
             intersection = endVec;
             surfaceNormal = -normalizedDirection;
@@ -126,8 +122,6 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             id = getPickedObjectID(pickResult);
             if (type == IntersectionType::ENTITY) {
                 endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(id)[3];
-            } else if (type == IntersectionType::OVERLAY) {
-                endVec = vec3FromVariant(qApp->getOverlays().getProperty(id, "position").value);
             } else if (type == IntersectionType::AVATAR) {
                 endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(id)->getPosition();
             }
@@ -184,8 +178,8 @@ void PathPointer::editRenderState(const std::string& state, const QVariant& star
     withWriteLock([&] {
         auto renderState = _renderStates.find(state);
         if (renderState != _renderStates.end()) {
-            updateRenderStateOverlay(renderState->second->getStartID(), startProps);
-            updateRenderStateOverlay(renderState->second->getEndID(), endProps);
+            updateRenderState(renderState->second->getStartID(), startProps);
+            updateRenderState(renderState->second->getEndID(), endProps);
             QVariant startDim = startProps.toMap()["dimensions"];
             if (startDim.isValid()) {
                 renderState->second->setStartDim(vec3FromVariant(startDim));
@@ -204,7 +198,7 @@ void PathPointer::editRenderState(const std::string& state, const QVariant& star
     });
 }
 
-void PathPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
+void PathPointer::updateRenderState(const QUuid& id, const QVariant& props) {
     if (!id.isNull() && props.isValid()) {
         QVariantMap propMap = props.toMap();
         propMap.remove("visible");

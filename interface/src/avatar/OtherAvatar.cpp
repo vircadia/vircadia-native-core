@@ -54,44 +54,47 @@ OtherAvatar::~OtherAvatar() {
 
 void OtherAvatar::removeOrb() {
     if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
-        qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
-        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_OVERLAY_ID;
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_otherAvatarOrbMeshPlaceholderID);
+        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_ENTITY_ID;
     }
 }
 
 void OtherAvatar::updateOrbPosition() {
-    if (_otherAvatarOrbMeshPlaceholder != nullptr) {
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-        if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
-            _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
-        }
+    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+        EntityItemProperties properties;
+        properties.setPosition(getHead()->getPosition());
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }
 
 void OtherAvatar::createOrb() {
     if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
-        _otherAvatarOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
-        _otherAvatarOrbMeshPlaceholder->setAlpha(1.0f);
-        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
-        _otherAvatarOrbMeshPlaceholder->setIsSolid(false);
-        _otherAvatarOrbMeshPlaceholder->setPulseMin(0.5);
-        _otherAvatarOrbMeshPlaceholder->setPulseMax(1.0);
-        _otherAvatarOrbMeshPlaceholder->setColorPulse(1.0);
-        _otherAvatarOrbMeshPlaceholder->setIgnorePickIntersection(true);
-        _otherAvatarOrbMeshPlaceholder->setDrawInFront(false);
-        _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
-        // Position focus
-        _otherAvatarOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-        _otherAvatarOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
-        _otherAvatarOrbMeshPlaceholder->setVisible(true);
+        EntityItemProperties properties;
+        properties.setType(EntityTypes::Sphere);
+        properties.setAlpha(1.0f);
+        properties.setColor(getLoadingOrbColor(_loadingStatus));
+        properties.setPrimitiveMode(PrimitiveMode::LINES);
+        properties.getPulse().setMin(0.5f);
+        properties.getPulse().setMax(1.0f);
+        properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+        properties.setIgnorePickIntersection(true);
+
+        properties.setPosition(getHead()->getPosition());
+        properties.setRotation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
+        properties.setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
+        properties.setVisible(true);
+
+        _otherAvatarOrbMeshPlaceholderID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, "local");
     }
 }
 
 void OtherAvatar::indicateLoadingStatus(LoadingStatus loadingStatus) {
     Avatar::indicateLoadingStatus(loadingStatus);
-    if (_otherAvatarOrbMeshPlaceholder) {
-        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
+
+    if (_otherAvatarOrbMeshPlaceholderID != UNKNOWN_ENTITY_ID) {
+        EntityItemProperties properties;
+        properties.setColor(getLoadingOrbColor(_loadingStatus));
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }
 
