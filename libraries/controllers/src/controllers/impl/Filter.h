@@ -21,6 +21,7 @@
 
 #include <QtCore/QEasingCurve>
 
+#include "../AxisValue.h"
 #include "../Pose.h"
 
 class QJsonValue;
@@ -37,7 +38,7 @@ namespace controller {
 
         virtual ~Filter() = default;
 
-        virtual float apply(float value) const = 0;
+        virtual AxisValue apply(AxisValue value) const = 0;
         virtual Pose apply(Pose value) const = 0;
 
         // Factory features

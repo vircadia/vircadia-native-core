@@ -504,7 +504,7 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
     float distance = glm::max(glm::length(relativePosition), EPSILON);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
 
-    float gain = 1.0f;
+    float gain = masterListenerGain;
     if (!isSoloing) {
         gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
     }

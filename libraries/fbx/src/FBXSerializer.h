@@ -96,6 +96,8 @@ class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
 public:
+    virtual ~FBXSerializer() {}
+
     MediaType getMediaType() const override;
     std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
 

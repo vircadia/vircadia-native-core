@@ -151,12 +151,15 @@ local packet_types = {
   [96] = "OctreeDataFileReply",
   [97] = "OctreeDataPersist",
   [98] = "EntityClone",
-  [99] = "EntityQueryInitialResultsComplete"
+  [99] = "EntityQueryInitialResultsComplete",
+  [100] = "BulkAvatarTraits"
 }
 
 local unsourced_packet_types = {
   ["DomainList"] = true
 }
+
+local fragments = {}
 
 function p_hfudt.dissector(buf, pinfo, tree)
 
@@ -235,6 +238,10 @@ function p_hfudt.dissector(buf, pinfo, tree)
 
     local payload_offset = 4
 
+    local message_number = 0
+    local message_part_number = 0
+    local message_position = 0
+
     -- if the message bit is set, handle the second word
     if message_bit == 1 then
       payload_offset = 12
@@ -242,7 +249,7 @@ function p_hfudt.dissector(buf, pinfo, tree)
       local second_word = buf(4, 4):le_uint()
 
       -- read message position from upper 2 bits
-      local message_position = bit32.rshift(second_word, 30)
+      message_position = bit32.rshift(second_word, 30)
       local position = subtree:add(f_message_position, message_position)
 
       if message_positions[message_position] ~= nil then
@@ -251,10 +258,12 @@ function p_hfudt.dissector(buf, pinfo, tree)
       end
 
       -- read message number from lower 30 bits
-      subtree:add(f_message_number, bit32.band(second_word, 0x3FFFFFFF))
+      message_number = bit32.band(second_word, 0x3FFFFFFF)
+      subtree:add(f_message_number, message_number)
 
       -- read the message part number
-      subtree:add(f_message_part_number, buf(8, 4):le_uint())
+      message_part_number = buf(8, 4):le_uint()
+      subtree:add(f_message_part_number, message_part_number)
     end
 
     if obfuscation_bits ~= 0 then
@@ -288,25 +297,85 @@ function p_hfudt.dissector(buf, pinfo, tree)
       i = i + 16
     end
 
-    -- Domain packets
-    if packet_type_text == "DomainList" then
-      Dissector.get("hf-domain"):call(buf(i):tvb(), pinfo, tree)
+    local payload_to_dissect = nil
+
+    -- check if we have part of a message that we need to re-assemble
+    -- before it can be dissected
+    if obfuscation_bits == 0 then
+      if message_bit == 1 and message_position ~= 0 then
+        if fragments[message_number] == nil then
+          fragments[message_number] = {}
+        end
+
+        if fragments[message_number][message_part_number] == nil then
+          fragments[message_number][message_part_number] = {}
+        end
+
+        -- set the properties for this fragment
+        fragments[message_number][message_part_number] = {
+          payload = buf(i):bytes()
+        }
+
+        -- if this is the last part, set our maximum part number
+        if message_position == 1 then
+          fragments[message_number].last_part_number = message_part_number
+        end
+
+        -- if we have the last part
+        -- enumerate our parts for this message and see if everything is present
+        if fragments[message_number].last_part_number ~= nil then
+          local i = 0
+          local has_all = true
+
+          local finalMessage = ByteArray.new()
+          local message_complete = true
+
+          while i <= fragments[message_number].last_part_number do
+            if fragments[message_number][i] ~= nil then
+              finalMessage = finalMessage .. fragments[message_number][i].payload
+            else
+              -- missing this part, have to break until we have it
+              message_complete = false
+            end
+
+            i = i + 1
+          end
+
+          if message_complete then
+            debug("Message " .. message_number .. " is " .. finalMessage:len())
+            payload_to_dissect = ByteArray.tvb(finalMessage, message_number)
+          end
+        end
+
+      else
+        payload_to_dissect = buf(i):tvb()
+      end
     end
 
-    -- AvatarData or BulkAvatarDataPacket
-    if packet_type_text == "AvatarData" or packet_type_text == "BulkAvatarData" then
-      Dissector.get("hf-avatar"):call(buf(i):tvb(), pinfo, tree)
+    if payload_to_dissect ~= nil then
+      -- Domain packets
+      if packet_type_text == "DomainList" then
+        Dissector.get("hf-domain"):call(payload_to_dissect, pinfo, tree)
+      end
+
+      -- AvatarData or BulkAvatarDataPacket
+      if packet_type_text == "AvatarData" or
+         packet_type_text == "BulkAvatarData" or
+         packet_type_text == "BulkAvatarTraits" then
+        Dissector.get("hf-avatar"):call(payload_to_dissect, pinfo, tree)
+      end
+
+      if packet_type_text == "EntityEdit" then
+        Dissector.get("hf-entity"):call(payload_to_dissect, pinfo, tree)
+      end
+
+      if packet_types[packet_type] == "MicrophoneAudioNoEcho" or
+         packet_types[packet_type] == "MicrophoneAudioWithEcho" or
+         packet_types[packet_type] == "SilentAudioFrame" then
+        Dissector.get("hf-audio"):call(payload_to_dissect, pinfo, tree)
+      end
     end
 
-    if packet_type_text == "EntityEdit" then
-      Dissector.get("hf-entity"):call(buf(i):tvb(), pinfo, tree)
-    end
-
-    if packet_types[packet_type] == "MicrophoneAudioNoEcho" or
-       packet_types[packet_type] == "MicrophoneAudioWithEcho" or
-       packet_types[packet_type] == "SilentAudioFrame" then
-      Dissector.get("hf-audio"):call(buf(i):tvb(), pinfo, tree)
-    end
   end
 
   -- return the size of the header

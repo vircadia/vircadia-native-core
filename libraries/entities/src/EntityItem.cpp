@@ -776,7 +776,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto lastEdited = lastEditedFromBufferAdjusted;
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
-    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+        if (stillHasGrabActions()) {
+            return false;
+        }
         bool simulationChanged = lastEdited > updatedTimestamp;
         return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
     };
@@ -3416,7 +3419,8 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
 }
 
 bool EntityItem::isWearable() const {
-    return isVisible() && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
+    return isVisible() &&
+        (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
 
 void EntityItem::addGrab(GrabPointer grab) {
@@ -3435,7 +3439,8 @@ void EntityItem::addGrab(GrabPointer grab) {
         EntityDynamicType dynamicType;
         QVariantMap arguments;
         int grabParentJointIndex =grab->getParentJointIndex();
-        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX) {
+        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX ||
+            grabParentJointIndex == FARGRAB_MOUSE_INDEX) {
             // add a far-grab action
             dynamicType = DYNAMIC_TYPE_FAR_GRAB;
             arguments["otherID"] = grab->getOwnerID();

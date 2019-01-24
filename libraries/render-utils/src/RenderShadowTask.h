@@ -104,7 +104,7 @@ signals:
 class RenderShadowSetup {
 public:
     using Input = RenderShadowTask::Input;
-    using Output = render::VaryingSet4<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer, LightStage::ShadowFramePointer>;
+    using Output = render::VaryingSet5<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer, LightStage::ShadowFramePointer, graphics::LightPointer>;
     using Config = RenderShadowSetupConfig;
     using JobModel = render::Job::ModelIO<RenderShadowSetup, Input, Output, Config>;
 
@@ -161,7 +161,7 @@ public:
 
 class CullShadowBounds {
 public:
-    using Inputs = render::VaryingSet5<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer, LightStage::FramePointer, RenderShadowTask::CullFunctor>;
+    using Inputs = render::VaryingSet5<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer, graphics::LightPointer, RenderShadowTask::CullFunctor>;
     using Outputs = render::VaryingSet2<render::ShapeBounds, AABox>;
     using JobModel = render::Job::ModelIO<CullShadowBounds, Inputs, Outputs>;
 

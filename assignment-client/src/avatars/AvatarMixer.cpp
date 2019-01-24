@@ -54,8 +54,8 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeIgnoreRequest, this, "handleNodeIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RadiusIgnoreRequest, this, "handleRadiusIgnoreRequestPacket");
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
-    packetReceiver.registerListener(PacketType::AvatarIdentityRequest, this, "handleAvatarIdentityRequestPacket");
     packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "queueIncomingPacket");
+    packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -581,36 +581,6 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     _handleAvatarIdentityPacketElapsedTime += (end - start);
 }
 
-void AvatarMixer::handleAvatarIdentityRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
-    if (message->getSize() < NUM_BYTES_RFC4122_UUID) {
-        qCDebug(avatars) << "Malformed AvatarIdentityRequest received from" << message->getSenderSockAddr().toString();
-        return;
-    }
-
-    QUuid avatarID(QUuid::fromRfc4122(message->getMessage()) );
-    if (!avatarID.isNull()) {
-        auto nodeList = DependencyManager::get<NodeList>();
-        auto requestedNode = nodeList->nodeWithUUID(avatarID);
-
-        if (requestedNode) {
-            AvatarMixerClientData* avatarClientData = static_cast<AvatarMixerClientData*>(requestedNode->getLinkedData());
-            if (avatarClientData) {
-                const AvatarData& avatarData = avatarClientData->getAvatar();
-                QByteArray serializedAvatar = avatarData.identityByteArray();
-                auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-                identityPackets->write(serializedAvatar);
-                nodeList->sendPacketList(std::move(identityPackets), *senderNode);
-                ++_sumIdentityPackets;
-            }
-
-            AvatarMixerClientData* senderData = static_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
-            if (senderData) {
-                senderData->resetSentTraitData(requestedNode->getLocalID());
-            }
-        }
-    }
-}
-
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     auto start = usecTimestampNow();
     handleAvatarKilled(node);
@@ -767,6 +737,9 @@ void AvatarMixer::sendStatsPacket() {
 
     float averageOverBudgetAvatars = averageNodes ? aggregateStats.overBudgetAvatars / averageNodes : 0.0f;
     slavesAggregatObject["sent_3_averageOverBudgetAvatars"] = TIGHT_LOOP_STAT(averageOverBudgetAvatars);
+    slavesAggregatObject["sent_4_averageDataBytes"] = TIGHT_LOOP_STAT(aggregateStats.numDataBytesSent);
+    slavesAggregatObject["sent_5_averageTraitsBytes"] = TIGHT_LOOP_STAT(aggregateStats.numTraitsBytesSent);
+    slavesAggregatObject["sent_6_averageIdentityBytes"] = TIGHT_LOOP_STAT(aggregateStats.numIdentityBytesSent);
 
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
@@ -775,7 +748,7 @@ void AvatarMixer::sendStatsPacket() {
     slavesAggregatObject["timing_5_packetSending"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.packetSendingElapsedTime);
     slavesAggregatObject["timing_6_jobElapsedTime"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.jobElapsedTime);
 
-    statsObject["slaves_aggregate"] = slavesAggregatObject;
+    statsObject["slaves_aggregate (per frame)"] = slavesAggregatObject;
 
     _handleViewFrustumPacketElapsedTime = 0;
     _handleAvatarIdentityPacketElapsedTime = 0;
@@ -800,7 +773,8 @@ void AvatarMixer::sendStatsPacket() {
         // add the key to ask the domain-server for a username replacement, if it has it
         avatarStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidStringWithoutCurlyBraces(node->getUUID());
 
-        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = node->getOutboundKbps();
+        float outboundAvatarDataKbps = node->getOutboundKbps();
+        avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY] = outboundAvatarDataKbps;
         avatarStats[NODE_INBOUND_KBPS_STAT_KEY] = node->getInboundKbps();
 
         AvatarMixerClientData* clientData = static_cast<AvatarMixerClientData*>(node->getLinkedData());
@@ -811,7 +785,7 @@ void AvatarMixer::sendStatsPacket() {
 
                 // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
                 avatarStats["delta_full_vs_avatar_data_kbps"] =
-                    avatarStats[NODE_OUTBOUND_KBPS_STAT_KEY].toDouble() - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
+                    (double)outboundAvatarDataKbps - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
             }
         }
 

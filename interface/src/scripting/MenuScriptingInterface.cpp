@@ -43,7 +43,7 @@ bool MenuScriptingInterface::menuExists(const QString& menu) {
     if (QThread::currentThread() == qApp->thread()) {
         return Menu::getInstance()->menuExists(menu);
     }
-    bool result;
+    bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuExists",
                 Q_RETURN_ARG(bool, result), 
                 Q_ARG(const QString&, menu));
@@ -86,7 +86,7 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
     if (QThread::currentThread() == qApp->thread()) {
         return Menu::getInstance()->menuItemExists(menu, menuitem);
     }
-    bool result;
+    bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuItemExists",
         Q_RETURN_ARG(bool, result),
         Q_ARG(const QString&, menu),
@@ -98,7 +98,7 @@ bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
     if (QThread::currentThread() == qApp->thread()) {
         return Menu::getInstance()->isOptionChecked(menuOption);
     }
-    bool result;
+    bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isOptionChecked",
                 Q_RETURN_ARG(bool, result), 
                 Q_ARG(const QString&, menuOption));
@@ -115,7 +115,7 @@ bool MenuScriptingInterface::isMenuEnabled(const QString& menuOption) {
     if (QThread::currentThread() == qApp->thread()) {
         return Menu::getInstance()->isOptionChecked(menuOption);
     }
-    bool result;
+    bool result { false };
     BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isMenuEnabled",
         Q_RETURN_ARG(bool, result),
         Q_ARG(const QString&, menuOption));

@@ -44,32 +44,23 @@ PluginManagerPointer PluginManager::getInstance() {
     return DependencyManager::get<PluginManager>();
 }
 
-QString getPluginNameFromMetaData(QJsonObject object) {
+QString getPluginNameFromMetaData(const QJsonObject& object) {
     static const char* METADATA_KEY = "MetaData";
     static const char* NAME_KEY = "name";
-
-    if (!object.contains(METADATA_KEY) || !object[METADATA_KEY].isObject()) {
-        return QString();
-    }
-
-    auto metaDataObject = object[METADATA_KEY].toObject();
-
-    if (!metaDataObject.contains(NAME_KEY) || !metaDataObject[NAME_KEY].isString()) {
-        return QString();
-    }
-
-    return metaDataObject[NAME_KEY].toString();
+    return object[METADATA_KEY][NAME_KEY].toString("");
 }
 
-QString getPluginIIDFromMetaData(QJsonObject object) {
+QString getPluginIIDFromMetaData(const QJsonObject& object) {
     static const char* IID_KEY = "IID";
-
-    if (!object.contains(IID_KEY) || !object[IID_KEY].isString()) {
-        return QString();
-    }
-
-    return object[IID_KEY].toString();
+    return object[IID_KEY].toString("");
 }
+
+int getPluginInterfaceVersionFromMetaData(const QJsonObject& object) {
+    static const QString METADATA_KEY = "MetaData";
+    static const QString NAME_KEY = "version";
+    return object[METADATA_KEY][NAME_KEY].toInt(0);
+}
+
 
 QStringList preferredDisplayPlugins;
 QStringList disabledDisplays;
@@ -117,8 +108,14 @@ const LoaderList& getLoadedPlugins() {
                 QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
 
                 if (isDisabled(loader->metaData())) {
-                    qWarning() << "Plugin" << qPrintable(plugin) << "is disabled";
+                    qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "is disabled";
                     // Skip this one, it's disabled
+                    continue;
+                }
+                if (getPluginInterfaceVersionFromMetaData(loader->metaData()) != HIFI_PLUGIN_INTERFACE_VERSION) {
+                    qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "interface version doesn't match, not loading:"
+                                       << getPluginInterfaceVersionFromMetaData(loader->metaData())
+                                       << "doesn't match" << HIFI_PLUGIN_INTERFACE_VERSION;
                     continue;
                 }
 

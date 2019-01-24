@@ -108,7 +108,8 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         return nullptr;
     }
 
-    if (parent && parent->getID() == parentID) {
+    if (parent && (parent->getID() == parentID ||
+                   (parentID == AVATAR_SELF_ID && parent->isMyAvatar()))) {
         // parent pointer is up-to-date
         if (!_parentKnowsMe) {
             SpatialParentTree* parentTree = parent->getParentTree();
