@@ -211,6 +211,7 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     }
     if (_entity->isMovingRelativeToParent() ||
         _entity->hasActions() ||
+        _entity->hasGrabs() ||
         _entity->hasAncestorOfType(NestableType::Avatar)) {
         return MOTION_TYPE_KINEMATIC;
     }
@@ -767,6 +768,7 @@ bool EntityMotionState::shouldSendBid() const {
     // NOTE: this method is only ever called when the entity's simulation is NOT locally owned
     return _body->isActive()
         && (_region == workload::Region::R1)
+        && _ownershipState != EntityMotionState::OwnershipState::Unownable
         && glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority()
         && !_entity->getLocked();
 }
