@@ -2,7 +2,7 @@
     "name": "Standard to Action",
     "channels": [
         { "from": "Standard.LY",
-		  "when": "Application.LeftHandDominant",
+		  "when": ["Application.LeftHandDominant", "!Standard.RY"],
 		  "to": "Actions.TranslateZ"
 		},
 
@@ -59,7 +59,7 @@
 		},
 		
         { "from": "Standard.RY",
-		  "when": "Application.RightHandDominant",
+		  "when": ["Application.RightHandDominant", "!Standard.LY"],
 		  "to": "Actions.TranslateZ"
 		},
 
