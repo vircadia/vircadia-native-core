@@ -402,11 +402,15 @@
                 purchaseButton.attr('href', '#');
                 var cost = $('.item-cost').text();
                 var costInt = parseInt(cost, 10);
+                // One of 'invalidated', 'not for sale', 'sold out', or 'available'
                 var availability = $.trim($('.item-availability').text());
                 if (limitedCommerce && (costInt > 0)) {
                     availability = '';
                 }
-                if (availability === 'available') {
+                var isUpdating = window.location.href.indexOf('edition=') > -1;
+                // NFS only shows for artist stocking inventory
+                var isBuyEnabled = ('available' === availability) || isUpdating || ('not for sale' === availability);
+                if (isBuyEnabled) {
                     purchaseButton.css({
                         "background": "linear-gradient(#00b4ef, #0093C5)",
                         "color": "#FFF",
@@ -422,11 +426,11 @@
                     });
                 }
 
-                var type = $('.item-type').text();
-                var isUpdating = window.location.href.indexOf('edition=') > -1;
                 var urlParams = new URLSearchParams(window.location.search);
                 if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
+                } else if (availability == 'not for sale') {
+                    purchaseButton.html("Free artist's stock to inventory");
                 } else if (availability !== 'available') {
                     purchaseButton.html('UNAVAILABLE ' + (availability ? ('(' + availability + ')') : ''));
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
@@ -435,7 +439,7 @@
                 }
 
                 purchaseButton.on('click', function () {
-                    if ('available' === availability || isUpdating) {
+                    if (isBuyEnabled) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
                             "itemPage",
                             urlParams.get('edition'));
