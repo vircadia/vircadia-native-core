@@ -298,28 +298,6 @@ OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
     return thisID;
 }
 
-OverlayID Overlays::cloneOverlay(OverlayID id) {
-    if (_shuttingDown) {
-        return UNKNOWN_OVERLAY_ID;
-    }
-
-    if (QThread::currentThread() != thread()) {
-        OverlayID result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(OverlayID, id));
-        return result;
-    }
-
-    Overlay::Pointer thisOverlay = getOverlay(id);
-
-    if (thisOverlay) {
-        OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
-        return cloneId;
-    }
-
-    return UNKNOWN_OVERLAY_ID;  // Not found
-}
-
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
     if (_shuttingDown) {
         return false;
@@ -378,30 +356,12 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
     return success;
 }
 
-void Overlays::deleteOverlay(OverlayID id) {
+void Overlays::deleteOverlay(EntityItemID id) {
     if (_shuttingDown) {
         return;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(OverlayID, id));
-        return;
-    }
-
-    Overlay::Pointer overlayToDelete;
-
-    {
-        QMutexLocker locker(&_mutex);
-        if (_overlaysHUD.contains(id)) {
-            overlayToDelete = _overlaysHUD.take(id);
-        } else if (_overlaysWorld.contains(id)) {
-            overlayToDelete = _overlaysWorld.take(id);
-        } else {
-            return;
-        }
-    }
-
-    _overlaysToDelete.push_back(overlayToDelete);
+    DependencyManager::get<EntityScriptingInterface>()->deleteEntity(id);
     emit overlayDeleted(id);
 }
 
@@ -1043,38 +1003,15 @@ void Overlays::mouseMovePointerEvent(const OverlayID& overlayID, const PointerEv
 }
 
 QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
+
     QVector<QUuid> result;
-    //if (QThread::currentThread() != thread()) {
-    //    PROFILE_RANGE(script, __FUNCTION__);
-    //    BLOCKING_INVOKE_METHOD(this, "findOverlays", Q_RETURN_ARG(QVector<QUuid>, result), Q_ARG(glm::vec3, center), Q_ARG(float, radius));
-    //    return result;
-    //}
-
-    QMutexLocker locker(&_mutex);
-    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
-    int checked = 0;
-    while (i.hasNext()) {
-        checked++;
-        i.next();
-        OverlayID thisID = i.key();
-        auto overlay = std::dynamic_pointer_cast<Volume3DOverlay>(i.value());
-
-        if (overlay && overlay->getVisible() && overlay->isLoaded()) {
-            // get AABox in frame of overlay
-            glm::vec3 dimensions = overlay->getDimensions();
-            glm::vec3 low = dimensions * -0.5f;
-            AABox overlayFrameBox(low, dimensions);
-
-            Transform overlayToWorldMatrix = overlay->getTransform();
-            overlayToWorldMatrix.setScale(1.0f);  // ignore inherited scale factor from parents
-            glm::mat4 worldToOverlayMatrix = glm::inverse(overlayToWorldMatrix.getMatrix());
-            glm::vec3 overlayFrameSearchPosition = glm::vec3(worldToOverlayMatrix * glm::vec4(center, 1.0f));
-            glm::vec3 penetration;
-            if (overlayFrameBox.findSpherePenetration(overlayFrameSearchPosition, radius, penetration)) {
-                result.append(thisID);
-            }
-        }
+    auto entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
+    if (entityTree) {
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES);
+        entityTree->withReadLock([&] {
+            entityTree->evalEntitiesInSphere(center, radius, PickFilter(searchFilter), result);
+        });
     }
-
     return result;
 }

@@ -83,7 +83,7 @@ public:
 };
 
 /**jsdoc
- * The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
+ * Deprecated.  Use local entities instead.  The Overlays API provides facilities to create and interact with overlays. Overlays are 2D and 3D objects visible only to
  * yourself and that aren't persisted to the domain. They are used for UI.
  * @namespace Overlays
  *
@@ -92,7 +92,7 @@ public:
  *
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Entities.EntityTypes|Web} local entity that has keyboard focus.
  *     If no local entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
- *     clear keyboard focus. Deprecated.
+ *     clear keyboard focus.
  */
 
 class Overlays : public QObject {
@@ -150,26 +150,12 @@ public slots:
     OverlayID addOverlay(const QString& type, const QVariant& properties);
 
     /**jsdoc
-     * Create a clone of an existing overlay.
+     * Create a clone of an existing entity.
      * @function Overlays.cloneOverlay
-     * @param {Uuid} overlayID - The ID of the overlay to clone.
-     * @returns {Uuid} The ID of the new overlay if successful, otherwise {@link Uuid|Uuid.NULL}.
-     * @example <caption>Add an overlay in front of your avatar, clone it, and move the clone to be above the 
-     *     original.</caption>
-     * var position = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 }));
-     * var original = Overlays.addOverlay("cube", {
-     *     position: position,
-     *     rotation: MyAvatar.orientation,
-     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
-     *     solid: true
-     * });
-     *
-     * var clone = Overlays.cloneOverlay(original);
-     * Overlays.editOverlay(clone, {
-     *     position: Vec3.sum({ x: 0, y: 0.5, z: 0}, position)
-     * });
+     * @param {Uuid} id - The ID of the entity to clone.
+     * @returns {Uuid} The ID of the new entity if successful, otherwise {@link Uuid|Uuid.NULL}.
      */
-    OverlayID cloneOverlay(OverlayID id);
+    EntityItemID cloneOverlay(EntityItemID id) { return DependencyManager::get<EntityScriptingInterface>()->cloneEntity(id); }
 
     /**jsdoc
      * Edit an overlay's properties.
@@ -222,20 +208,11 @@ public slots:
     bool editOverlays(const QVariant& propertiesById);
 
     /**jsdoc
-     * Delete an overlay.
+     * Delete an entity.
      * @function Overlays.deleteOverlay
-     * @param {Uuid} overlayID - The ID of the overlay to delete.
-     * @example <caption>Create an overlay in front of your avatar then delete it.</caption>
-     * var overlay = Overlays.addOverlay("cube", {
-     *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -3 })),
-     *     rotation: MyAvatar.orientation,
-     *     dimensions: { x: 0.3, y: 0.3, z: 0.3 },
-     *     solid: true
-     * });
-     * print("Overlay: " + overlay);
-     * Overlays.deleteOverlay(overlay);
+     * @param {Uuid} id - The ID of the entity to delete.
      */
-    void deleteOverlay(OverlayID id);
+    void deleteOverlay(EntityItemID id);
 
     /**jsdoc
      * Get the type of an overlay.
@@ -421,12 +398,12 @@ public slots:
                                                        bool collidableOnly = false);
 
     /**jsdoc
-     * Return a list of 3D overlays with bounding boxes that touch a search sphere.
+     * Return a list of local entities with bounding boxes that touch a search sphere.
      * @function Overlays.findOverlays
      * @param {Vec3} center - The center of the search sphere.
      * @param {number} radius - The radius of the search sphere.
-     * @returns {Uuid[]} An array of overlay IDs with bounding boxes that touch a search sphere.
-     * @example <caption>Create two cube overlays in front of your avatar then search for overlays near your avatar.</caption>
+     * @returns {Uuid[]} An array of entity IDs with bounding boxes that touch a search sphere.
+     * @example <caption>Create two cube entities in front of your avatar then search for entities near your avatar.</caption>
      * var overlayA = Overlays.addOverlay("cube", {
      *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: -0.3, y: 0, z: -3 })),
      *     rotation: MyAvatar.orientation,
@@ -588,7 +565,7 @@ public slots:
     void sendHoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
     /**jsdoc
-     * Get the ID of the Web3D local entity that has keyboard focus. Deprecated.
+     * Get the ID of the Web3D local entity that has keyboard focus.
      * @function Overlays.getKeyboardFocusOverlay
      * @returns {Uuid} The ID of the {@link Entities.EntityTypes|Web} overlay that has focus, if any, otherwise 
      *     <code>null</code>.
@@ -596,7 +573,7 @@ public slots:
     EntityItemID getKeyboardFocusOverlay() { return DependencyManager::get<EntityScriptingInterface>()->getKeyboardFocusLocalEntity(); }
 
     /**jsdoc
-     * Set the Web3D local entity that has keyboard focus. Deprecated.
+     * Set the Web3D local entity that has keyboard focus.
      * @function Overlays.setKeyboardFocusOverlay
      * @param {Uuid} overlayID - The ID of the {@link Entities.EntityTypes|Web} overlay to set keyboard focus to. Use 
      *     <code>null</code> or {@link Uuid|Uuid.NULL} to unset keyboard focus from an overlay.
