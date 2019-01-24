@@ -98,6 +98,9 @@ void TestRunnerMobile::connectDevice() {
     }
 }
 
+void TestRunnerMobile::downloadAPK() {
+}
+
 void TestRunnerMobile::pullFolder() {
     QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + " >" + _workingFolder + "/pullOutput.txt";
     int result = system(command.toStdString().c_str());

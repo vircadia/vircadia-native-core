@@ -501,7 +501,7 @@
        <bool>false</bool>
       </property>
      </widget>
-     <widget class="QCheckBox" name="checkBoxRunLatest">
+     <widget class="QCheckBox" name="runLatestOnDesktopCheckBox">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -533,7 +533,7 @@
        <string>URL</string>
       </property>
      </widget>
-     <widget class="QLineEdit" name="urlLineEdit">
+     <widget class="QLineEdit" name="urlOnDesktopLineEdit">
       <property name="enabled">
        <bool>false</bool>
       </property>
@@ -549,7 +549,7 @@
     </widget>
     <widget class="QWidget" name="tab_5">
      <attribute name="title">
-      <string>Test on Device</string>
+      <string>Test on Mobile</string>
      </attribute>
      <widget class="QPushButton" name="connectDeviceButton">
       <property name="enabled">
@@ -613,7 +613,7 @@
       <property name="geometry">
        <rect>
         <x>200</x>
-        <y>170</y>
+        <y>350</y>
         <width>160</width>
         <height>30</height>
        </rect>
@@ -629,10 +629,58 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>170</y>
+        <y>350</y>
         <width>161</width>
         <height>31</height>
        </rect>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="urlOnMobileLineEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>170</y>
+        <width>451</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="runLatestOnMobileCheckBox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>170</y>
+        <width>120</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Run Latest</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="downloadAPKButton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>210</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Download APK</string>
       </property>
      </widget>
     </widget>
@@ -969,8 +1017,8 @@
   <tabstop>setWorkingFolderRunOnDesktopButton</tabstop>
   <tabstop>plainTextEdit</tabstop>
   <tabstop>checkBoxServerless</tabstop>
-  <tabstop>checkBoxRunLatest</tabstop>
-  <tabstop>urlLineEdit</tabstop>
+  <tabstop>runLatestOnDesktopCheckBox</tabstop>
+  <tabstop>urlOnDesktopLineEdit</tabstop>
   <tabstop>checkBoxInteractiveMode</tabstop>
   <tabstop>evaluateTestsButton</tabstop>
   <tabstop>updateTestRailRunResultsButton</tabstop>

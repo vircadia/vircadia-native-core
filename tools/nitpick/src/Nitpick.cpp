@@ -38,7 +38,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
    _ui.statusLabel->setText("");
    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v2.0.0");
+   setWindowTitle("Nitpick - v2.0.1");
 }
 
 Nitpick::~Nitpick() {
@@ -88,7 +88,7 @@ void Nitpick::setup() {
     if (_testRunnerDesktop) {
         delete _testRunnerDesktop;
     }
-    _testRunnerDesktop = new TestRunnerDesktop(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderRunOnDesktopLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
+    _testRunnerDesktop = new TestRunnerDesktop(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderRunOnDesktopLabel, _ui.checkBoxServerless, _ui.runLatestOnDesktopCheckBox, _ui.urlOnDesktopLineEdit, _ui.runNowButton);
 
     if (_testRunnerMobile) {
         delete _testRunnerMobile;
@@ -178,8 +178,8 @@ void Nitpick::on_runNowButton_clicked() {
     _testRunnerDesktop->run();
 }
 
-void Nitpick::on_checkBoxRunLatest_clicked() {
-    _ui.urlLineEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
+void Nitpick::on_runLatestOnDesktopCheckBox_clicked() {
+    _ui.urlOnDesktopLineEdit->setEnabled(!_ui.runLatestOnDesktopCheckBox->isChecked());
 }
 
 void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
@@ -323,12 +323,21 @@ void Nitpick::appendLogWindow(const QString& message) {
     _ui.plainTextEdit->appendPlainText(message);
 }
 
+// Test on Mobile
 void Nitpick::on_setWorkingFolderRunOnMobileButton_clicked() {
     _testRunnerMobile->setWorkingFolderAndEnableControls();
 }
 
 void Nitpick::on_connectDeviceButton_clicked() {
     _testRunnerMobile->connectDevice();
+}
+
+void Nitpick::on_runLatestOnMobileCheckBox_clicked() {
+    _ui.urlOnMobileLineEdit->setEnabled(!_ui.runLatestOnMobileCheckBox->isChecked());
+}
+
+void Nitpick::on_downloadAPKButton_clicked() {
+    _testRunnerMobile->downloadAPK();
 }
 
 void Nitpick::on_pullFolderButton_clicked() {

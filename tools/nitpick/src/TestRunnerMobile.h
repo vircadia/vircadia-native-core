@@ -33,6 +33,7 @@ public:
 
     void setWorkingFolderAndEnableControls();
     void connectDevice();
+    void downloadAPK();
     void pullFolder();
 
 private:

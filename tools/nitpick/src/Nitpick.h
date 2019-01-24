@@ -55,6 +55,8 @@ public:
     void appendLogWindow(const QString& message);
 
 private slots:
+    void on_closeButton_clicked();
+
     void on_tabWidget_currentChanged(int index);
 
     void on_evaluateTestsButton_clicked();
@@ -76,7 +78,7 @@ private slots:
     void on_setWorkingFolderRunOnDesktopButton_clicked();
     void on_runNowButton_clicked();
 
-    void on_checkBoxRunLatest_clicked();
+    void on_runLatestOnDesktopCheckBox_clicked();
 
     void on_updateTestRailRunResultsButton_clicked();
 
@@ -88,15 +90,16 @@ private slots:
 
     void on_createWebPagePushButton_clicked();
 
-    void on_closeButton_clicked();
-
     void saveFile(int index);
 
     void about();
     void content();
 
+    // Run on Mobile controls
     void on_setWorkingFolderRunOnMobileButton_clicked();
     void on_connectDeviceButton_clicked();
+    void on_runLatestOnMobileCheckBox_clicked();
+    void on_downloadAPKButton_clicked();
     void on_pullFolderButton_clicked();
 
 private:
