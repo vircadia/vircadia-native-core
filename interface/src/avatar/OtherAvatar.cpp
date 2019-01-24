@@ -280,8 +280,8 @@ void OtherAvatar::updateCollisionGroup(bool myAvatarCollide) {
 }
 
 void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar) {
-    assert(detailedMotionStates.empty());
     auto& detailedMotionStates = getDetailedMotionStates();
+    assert(detailedMotionStates.empty());
     if (_bodyLOD == BodyLOD::Sphere) {
         auto dMotionState = createMotionState(avatar, -1);
         if (dMotionState) {
