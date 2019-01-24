@@ -3008,8 +3008,8 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
-        bool tellServerThis = tellServer && (entity->getEntityHostType() != entity::HostType::AVATAR);
-        if ((entity->updateQueryAACube() || force)) {
+        // NOTE: we rely on side-effects of the entity->updateQueryAACube() call in the following if() conditional:
+        if (entity->updateQueryAACube() || force) {
             bool success;
             AACube newCube = entity->getQueryAACube(success);
             if (success) {
@@ -3017,7 +3017,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             }
             // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
             // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-            if (tellServerThis && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+            if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
                 quint64 now = usecTimestampNow();
                 EntityItemProperties properties = entity->getProperties();
                 properties.setQueryAACubeDirty();
