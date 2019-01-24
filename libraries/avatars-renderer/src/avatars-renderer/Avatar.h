@@ -14,6 +14,9 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <map>
+#include <set>
+#include <vector>
 
 #include <QtCore/QUuid>
 
@@ -23,10 +26,12 @@
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
+#include <Grab.h>
+#include <ThreadSafeValueCache.h>
+
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
-#include <ThreadSafeValueCache.h>
 
 #include "MetaModelPayload.h"
 
@@ -625,8 +630,15 @@ protected:
 
     static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
+    void clearAvatarGrabData(const QUuid& grabID) override;
 
-    AvatarGrabMap _avatarGrabs;
+    using SetOfIDs = std::set<QUuid>;
+    using VectorOfIDs = std::vector<QUuid>;
+    using MapOfGrabs = std::map<QUuid, GrabPointer>;
+
+    MapOfGrabs _avatarGrabs;
+    SetOfIDs _changedAvatarGrabs; // updated grab IDs -- changes needed to entities or physics
+    VectorOfIDs _deletedAvatarGrabs; // deleted grab IDs -- changes needed to entities or physics
 };
 
 #endif // hifi_Avatar_h

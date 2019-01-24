@@ -331,19 +331,18 @@ bool Avatar::updateGrabs() {
     }
 
     bool grabAddedOrRemoved = false;
-    // update the Grabs according to any changes in _avatarGrabData
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabDataChanged) {
+            // collect changes in _avatarGrabData
             foreach (auto grabID, _avatarGrabData.keys()) {
-                AvatarGrabMap::iterator grabItr = _avatarGrabs.find(grabID);
-                if (grabItr == _avatarGrabs.end()) {
+                MapOfGrabs::iterator itr = _avatarGrabs.find(grabID);
+                if (itr == _avatarGrabs.end()) {
                     GrabPointer grab = std::make_shared<Grab>();
                     grab->fromByteArray(_avatarGrabData.value(grabID));
                     _avatarGrabs[grabID] = grab;
                     _changedAvatarGrabs.insert(grabID);
                 } else {
-                    GrabPointer grab = grabItr.value();
-                    bool changed = grab->fromByteArray(_avatarGrabData.value(grabID));
+                    bool changed = itr->second->fromByteArray(_avatarGrabData.value(grabID));
                     if (changed) {
                         _changedAvatarGrabs.insert(grabID);
                     }
@@ -352,40 +351,38 @@ bool Avatar::updateGrabs() {
             _avatarGrabDataChanged = false;
         }
 
-        QMutableSetIterator<QUuid> delItr(_deletedAvatarGrabs);
-        while (delItr.hasNext()) {
-            QUuid grabID = delItr.next();
-            GrabPointer grab = _avatarGrabs[grabID];
-            if (!grab) {
-                delItr.remove();
+        // delete _avatarGrabs
+        VectorOfIDs undeleted;
+        for (const auto& id : _deletedAvatarGrabs) {
+            MapOfGrabs::iterator itr = _avatarGrabs.find(id);
+            if (itr == _avatarGrabs.end()) {
                 continue;
             }
 
             bool success;
+            const GrabPointer& grab = itr->second;
             SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
-
-            // only clear this entry from the _deletedAvatarGrabs if we found the entity.
             if (success && target) {
                 target->removeGrab(grab);
-                delItr.remove();
+                _avatarGrabs.erase(itr);
                 grabAddedOrRemoved = true;
+            } else {
+                undeleted.push_back(id);
             }
-            _avatarGrabs.remove(grabID);
-            _changedAvatarGrabs.remove(grabID);
         }
+        _deletedAvatarGrabs = std::move(undeleted);
 
-        QMutableSetIterator<QUuid> changeItr(_changedAvatarGrabs);
-        while (changeItr.hasNext()) {
-            QUuid grabID = changeItr.next();
-            GrabPointer& grab = _avatarGrabs[grabID];
-            if (!grab) {
-                changeItr.remove();
+        // change _avatarGrabs and add Actions to target
+        SetOfIDs unchanged;
+        for (const auto& id : _changedAvatarGrabs) {
+            MapOfGrabs::iterator itr = _avatarGrabs.find(id);
+            if (itr == _avatarGrabs.end()) {
                 continue;
             }
 
             bool success;
+            const GrabPointer& grab = itr->second;
             SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
-
             if (success && target) {
                 target->addGrab(grab);
                 if (isMyAvatar()) {
@@ -394,11 +391,12 @@ bool Avatar::updateGrabs() {
                         entity->upgradeScriptSimulationPriority(PERSONAL_SIMULATION_PRIORITY);
                     }
                 }
-                // only clear this entry from the _changedAvatarGrabs if we found the entity.
-                changeItr.remove();
                 grabAddedOrRemoved = true;
+            } else {
+                unchanged.insert(id);
             }
         }
+        _changedAvatarGrabs = std::move(unchanged);
     });
     return grabAddedOrRemoved;
 }
@@ -406,8 +404,8 @@ bool Avatar::updateGrabs() {
 void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators) {
     // relay avatar's joint position to grabbed target in a way that allows for averaging
     _avatarGrabsLock.withReadLock([&] {
-        foreach (auto grabID, _avatarGrabs.keys()) {
-            const GrabPointer& grab = _avatarGrabs.value(grabID);
+        for (const auto& entry : _avatarGrabs) {
+            const GrabPointer& grab = entry.second;
 
             if (!grab || !grab->getActionID().isNull()) {
                 continue; // the accumulated value isn't used, in this case.
@@ -1921,4 +1919,13 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel() {
         result.appendMaterials(_materials);
     }
     return result;
+}
+
+void Avatar::clearAvatarGrabData(const QUuid& id) {
+    AvatarData::clearAvatarGrabData(id);
+    _avatarGrabsLock.withWriteLock([&] {
+        if (_avatarGrabs.find(id) == _avatarGrabs.end()) {
+            _deletedAvatarGrabs.push_back(id);
+        }
+    });
 }

@@ -2997,7 +2997,6 @@ void AvatarData::clearAvatarGrabData(const QUuid& grabID) {
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabData.remove(grabID)) {
             _avatarGrabDataChanged = true;
-            _deletedAvatarGrabs.insert(grabID);
         }
     });
 }

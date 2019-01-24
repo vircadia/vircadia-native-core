@@ -5310,7 +5310,7 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
 
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabData.remove(grabID)) {
-            _deletedAvatarGrabs.insert(grabID);
+            _deletedAvatarGrabs.push_back(grabID);
             tellHandler = true;
         }
     });
