@@ -325,6 +325,11 @@ void Avatar::removeAvatarEntitiesFromTree() {
 }
 
 bool Avatar::updateGrabs() {
+    if (!_avatarGrabDataChanged && _changedAvatarGrabs.empty() && _deletedAvatarGrabs.empty()) {
+        // early exit for most common case: nothing to do
+        return false;
+    }
+
     bool grabAddedOrRemoved = false;
     // update the Grabs according to any changes in _avatarGrabData
     _avatarGrabsLock.withWriteLock([&] {
@@ -347,11 +352,6 @@ bool Avatar::updateGrabs() {
             _avatarGrabDataChanged = false;
         }
 
-        auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-        auto entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-        EntityEditPacketSender* packetSender = treeRenderer ? treeRenderer->getPacketSender() : nullptr;
-        auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
-
         QMutableSetIterator<QUuid> delItr(_deletedAvatarGrabs);
         while (delItr.hasNext()) {
             QUuid grabID = delItr.next();
@@ -366,25 +366,8 @@ bool Avatar::updateGrabs() {
 
             // only clear this entry from the _deletedAvatarGrabs if we found the entity.
             if (success && target) {
-                bool iShouldTellServer = target->getEditSenderID() == sessionID;
-
-                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(target);
-                if (entity && entity->isAvatarEntity() && (entity->getOwningAvatarID() == sessionID ||
-                                                           entity->getOwningAvatarID() == AVATAR_SELF_ID)) {
-                    // this is our own avatar-entity, so we always tell the server about the release
-                    iShouldTellServer = true;
-                }
-
                 target->removeGrab(grab);
                 delItr.remove();
-                // in case this is the last grab on an entity, we need to shrink the queryAACube and tell the server
-                // about the final position.
-                if (entityTree) {
-                    bool force = true;
-                    entityTree->withWriteLock([&] {
-                        entityTree->updateEntityQueryAACube(target, packetSender, force, iShouldTellServer);
-                    });
-                }
                 grabAddedOrRemoved = true;
             }
             _avatarGrabs.remove(grabID);
@@ -395,6 +378,10 @@ bool Avatar::updateGrabs() {
         while (changeItr.hasNext()) {
             QUuid grabID = changeItr.next();
             GrabPointer& grab = _avatarGrabs[grabID];
+            if (!grab) {
+                changeItr.remove();
+                continue;
+            }
 
             bool success;
             SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
