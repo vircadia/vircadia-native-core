@@ -15,6 +15,7 @@
         android:textColor="@color/colorButton1" />
     <ImageView
         android:id="@+id/avatarPreview"
+        android:background="@color/backgroundDark"
         android:layout_width="match_parent"
         android:layout_height="190dp"
         android:scaleType="fitCenter"

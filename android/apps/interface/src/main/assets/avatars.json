@@ -1,6 +1,11 @@
 {
   "avatars": [
     {
+      "name": "Default",
+      "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/7fe80a1e-f445-4800-9e89-40e677b03bee/large/hifi-mp-7fe80a1e-f445-4800-9e89-40e677b03bee.jpg",
+      "url": "qrc:////meshes/defaultAvatar_full.fst"
+    },
+    {
       "name": "Anime-Styled Boy",
       "preview_image": "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/46e0fd52-3cff-462f-ba97-927338d88295/thumbnail/hifi-mp-46e0fd52-3cff-462f-ba97-927338d88295.jpg",
       "url": "http://mpassets.highfidelity.com/46e0fd52-3cff-462f-ba97-927338d88295-v1/AnimeBoy2.fst"
