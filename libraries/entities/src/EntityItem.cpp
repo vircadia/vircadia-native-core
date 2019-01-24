@@ -3360,7 +3360,7 @@ void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();
     SpatiallyNestable::addGrab(grab);
 
-    if (getDynamic() && getParentID().isNull()) {
+    if (_physicsInfo && getParentID().isNull()) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
         EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
@@ -3398,11 +3398,14 @@ void EntityItem::addGrab(GrabPointer grab) {
         grab->setActionID(actionID);
         _grabActions[actionID] = action;
         simulation->addDynamic(action);
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
+        simulation->changeEntity(getThisPointer());
     }
 }
 
 void EntityItem::removeGrab(GrabPointer grab) {
     SpatiallyNestable::removeGrab(grab);
+    markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
 
     QUuid actionID = grab->getActionID();
     if (!actionID.isNull()) {
