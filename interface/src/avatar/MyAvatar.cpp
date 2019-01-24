@@ -3289,7 +3289,7 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
         // If we're on the right hand, we have to flip the x-axis.
         auto handRotation = getDominantHandRotation();
         glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
-        glm::vec3 controllerRight((getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f), 0.0f, 0.0f);
+        glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f));
         forward = (getDriveKey(TRANSLATE_Z)) * (handRotation * controllerForward);
         right = (getDriveKey(TRANSLATE_X)) * (handRotation * controllerRight);
     }
