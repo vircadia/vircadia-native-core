@@ -56,11 +56,11 @@ namespace baker {
 
             blendshapesPerMeshOut = blendshapesPerMeshIn;
 
-            for (int i = 0; i < blendshapesPerMeshOut.size(); i++) {
+            for (int i = 0; i < (int)blendshapesPerMeshOut.size(); i++) {
                 const auto& normalsPerBlendshape = normalsPerBlendshapePerMesh[i];
                 const auto& tangentsPerBlendshape = tangentsPerBlendshapePerMesh[i];
                 auto& blendshapesOut = blendshapesPerMeshOut[i];
-                for (int j = 0; j < blendshapesOut.size(); j++) {
+                for (int j = 0; j < (int)blendshapesOut.size(); j++) {
                     const auto& normals = normalsPerBlendshape[j];
                     const auto& tangents = tangentsPerBlendshape[j];
                     auto& blendshape = blendshapesOut[j];

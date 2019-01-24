@@ -18,7 +18,7 @@ void CalculateMeshNormalsTask::run(const baker::BakeContextPointer& context, con
     auto& normalsPerMeshOut = output;
 
     normalsPerMeshOut.reserve(meshes.size());
-    for (int i = 0; i < meshes.size(); i++) {
+    for (int i = 0; i < (int)meshes.size(); i++) {
         const auto& mesh = meshes[i];
         normalsPerMeshOut.emplace_back();
         auto& normalsOut = normalsPerMeshOut[normalsPerMeshOut.size()-1];
