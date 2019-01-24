@@ -19,7 +19,7 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
     const auto& normalsPerBlendshapePerMesh = input.get0();
     const auto& blendshapesPerMesh = input.get1();
     const auto& meshes = input.get2();
-    const hfm::Model& model = *input.get3();
+    const auto& materials = input.get3();
     auto& tangentsPerBlendshapePerMeshOut = output;
     
     tangentsPerBlendshapePerMeshOut.reserve(normalsPerBlendshapePerMesh.size());
@@ -33,8 +33,8 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
         // Check if we actually need to calculate the tangents, or just append empty arrays
         bool needTangents = false;
         for (const auto& meshPart : mesh.parts) {
-            auto materialIt = model.materials.find(meshPart.materialID);
-            if (materialIt != model.materials.end() && (*materialIt).needTangentSpace()) {
+            auto materialIt = materials.find(meshPart.materialID);
+            if (materialIt != materials.end() && (*materialIt).needTangentSpace()) {
                 needTangents = true;
                 break;
             }

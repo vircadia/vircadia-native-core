@@ -16,7 +16,7 @@
 void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& normalsPerMesh = input.get0();
     const std::vector<hfm::Mesh>& meshes = input.get1();
-    const hfm::Model& model = *input.get2();
+    const auto& materials = input.get2();
     auto& tangentsPerMeshOut = output;
 
     tangentsPerMeshOut.reserve(meshes.size());
@@ -42,8 +42,8 @@ void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, co
         // Check if we actually need to calculate the tangents
         bool needTangents = false;
         for (const auto& meshPart : mesh.parts) {
-            auto materialIt = model.materials.find(meshPart.materialID);
-            if (materialIt != model.materials.end() && (*materialIt).needTangentSpace()) {
+            auto materialIt = materials.find(meshPart.materialID);
+            if (materialIt != materials.end() && (*materialIt).needTangentSpace()) {
                 needTangents = true;
                 break;
             }
