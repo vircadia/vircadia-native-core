@@ -19,7 +19,9 @@
 
 #include <QPixmap>
 
-class QmlCommerce : public QObject {
+#include <DependencyManager.h>
+
+class QmlCommerce : public QObject, public Dependency {
     Q_OBJECT
 
 public:
@@ -98,7 +100,7 @@ protected:
     Q_INVOKABLE void updateItem(const QString& certificateId);
 
 private:
-    QString _appsPath;
+    const QString _appsPath;
 };
 
 #endif // hifi_QmlCommerce_h

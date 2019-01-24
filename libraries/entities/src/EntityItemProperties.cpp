@@ -841,10 +841,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
- * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
- *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
- *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
- *     parsed to <code>0</code>.
+ * @property {string} parentMaterialName="0" - Selects the mesh part or parts within the parent to which to apply the material.
+ *     If in the format <code>"mat::string"</code>, all mesh parts with material name <code>"string"</code> are replaced.
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh part index to modify.  If <code>"all"</code>,
+ *     all mesh parts will be replaced.  If an array (starts with <code>"["</code> and ends with <code>"]"</code>), the string will be
+ *     split at each <code>","</code> and each element will be parsed as either a number or a string if it starts with
+ *     <code>"mat::"</code>.  In other words, <code>"[0,1,mat::string,mat::string2]"</code> will replace mesh parts 0 and 1, and any
+ *     mesh parts with material <code>"string"</code> or <code>"string2"</code>.  Do not put spaces around the commas.  Invalid values
+ *     are parsed to <code>0</code>.
  * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
  *     <code>"projected"</code>. In "uv" mode, the material will be evaluated within the UV space of the mesh it is applied to.  In
  *     "projected" mode, the 3D transform of the Material Entity will be used to evaluate the texture coordinates for the material.
