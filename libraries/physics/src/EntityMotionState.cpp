@@ -81,7 +81,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     setShape(shape);
 
     if (_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
-        // avatar entities entities are always thus, so we cache this fact in _ownershipState
+        // avatar entities are always thus, so we cache this fact in _ownershipState
         _ownershipState = EntityMotionState::OwnershipState::Unownable;
     }
 
