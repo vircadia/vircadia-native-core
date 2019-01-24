@@ -29,6 +29,8 @@ public:
     bool isTransparent() const override;
     ShapeKey getShapeKey() override;
 
+    QSizeF textSize(const QString& text) const;
+
 private:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;

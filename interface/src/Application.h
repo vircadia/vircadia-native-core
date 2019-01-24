@@ -297,10 +297,10 @@ public:
 
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
-    OverlayID getTabletScreenID() const;
-    OverlayID getTabletHomeButtonID() const;
-    QUuid getTabletFrameID() const; // may be an entity or an overlay
-    QVector<QUuid> getTabletIDs() const; // In order of most important IDs first.
+    QUuid getTabletScreenID() const;
+    QUuid getTabletHomeButtonID() const;
+    QUuid getTabletFrameID() const;
+    QVector<QUuid> getTabletIDs() const;
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
@@ -323,8 +323,8 @@ public:
     void setOtherAvatarsReplicaCount(int count) { DependencyManager::get<AvatarHashMap>()->setReplicaCount(count); }
 
     bool getLoginDialogPoppedUp() const { return _loginDialogPoppedUp; }
-    void createLoginDialogOverlay();
-    void updateLoginDialogOverlayPosition();
+    void createLoginDialog();
+    void updateLoginDialogPosition();
 
     // Check if a headset is connected
     bool hasRiftControllers();
@@ -440,7 +440,7 @@ public slots:
     void setKeyboardFocusEntity(const EntityItemID& entityItemID);
 
     EntityItemID getKeyboardFocusLocalEntity();
-    void setKeyboardFocusLocalEntity(const EntityItemID& overlayID);
+    void setKeyboardFocusLocalEntity(const EntityItemID& id);
 
     void addAssetToWorldMessageClose();
 
@@ -531,7 +531,7 @@ private:
     void init();
     void pauseUntilLoginDetermined();
     void resumeAfterLoginDialogActionTaken();
-    bool handleKeyEventForFocusedEntityOrOverlay(QEvent* event);
+    bool handleKeyEventForFocusedEntity(QEvent* event);
     bool handleFileOpenEvent(QFileOpenEvent* event);
     void cleanupBeforeQuit();
 
@@ -702,7 +702,7 @@ private:
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
     CameraMode _previousCameraMode;
-    OverlayID _loginDialogOverlayID;
+    QUuid _loginDialogID;
     LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;

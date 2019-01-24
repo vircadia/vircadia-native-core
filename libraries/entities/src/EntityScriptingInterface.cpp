@@ -571,7 +571,7 @@ QUuid EntityScriptingInterface::addModelEntity(const QString& name, const QStrin
     return addEntity(properties);
 }
 
-QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
+QUuid EntityScriptingInterface::cloneEntity(const QUuid& entityIDToClone) {
     EntityItemID newEntityID;
     EntityItemProperties properties = getEntityProperties(entityIDToClone);
     bool cloneAvatarEntity = properties.getCloneAvatarEntity();
@@ -596,12 +596,12 @@ QUuid EntityScriptingInterface::cloneEntity(QUuid entityIDToClone) {
     }
 }
 
-EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid entityID) {
+EntityItemProperties EntityScriptingInterface::getEntityProperties(const QUuid& entityID) {
     const EntityPropertyFlags noSpecificProperties;
     return getEntityProperties(entityID, noSpecificProperties);
 }
 
-EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid entityID, EntityPropertyFlags desiredProperties) {
+EntityItemProperties EntityScriptingInterface::getEntityProperties(const QUuid& entityID, EntityPropertyFlags desiredProperties) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     bool scalesWithParent { false };
@@ -775,7 +775,7 @@ QScriptValue EntityScriptingInterface::getMultipleEntityPropertiesInternal(QScri
     return finalResult;
 }
 
-QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
+QUuid EntityScriptingInterface::editEntity(const QUuid& id, const EntityItemProperties& scriptSideProperties) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     _activityTracking.editedEntityCount++;
@@ -960,7 +960,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     return id;
 }
 
-void EntityScriptingInterface::deleteEntity(QUuid id) {
+void EntityScriptingInterface::deleteEntity(const QUuid& id) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     _activityTracking.deletedEntityCount++;
@@ -1005,12 +1005,49 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
     }
 }
 
+QString EntityScriptingInterface::getEntityType(const QUuid& entityID) {
+    QString toReturn;
+    _entityTree->withReadLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+        if (entity) {
+            toReturn = EntityTypes::getEntityTypeName(entity->getType());
+        }
+    });
+    return toReturn;
+}
+
+QObject* EntityScriptingInterface::getEntityObject(const QUuid& id) {
+    QObject* toReturn { nullptr };
+    _entityTree->withReadLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(id);
+        if (entity) {
+            toReturn = qobject_cast<QObject*>(&(*entity));
+        }
+    });
+    return toReturn;
+}
+
+bool EntityScriptingInterface::isLoaded(const QUuid& id) {
+    bool toReturn = false;
+    _entityTree->withReadLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(id);
+        if (entity) {
+            toReturn = entity->isVisuallyReady();
+        }
+    });
+    return toReturn;
+}
+
+QSizeF EntityScriptingInterface::textSize(const QUuid& id, const QString& text) {
+    return EntityTree::textSize(id, text);
+}
+
 void EntityScriptingInterface::setEntitiesScriptEngine(QSharedPointer<EntitiesScriptEngineProvider> engine) {
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
     _entitiesScriptEngine = engine;
 }
 
-void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method, const QStringList& params) {
+void EntityScriptingInterface::callEntityMethod(const QUuid& id, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     std::lock_guard<std::recursive_mutex> lock(_entitiesScriptEngineLock);
@@ -1020,12 +1057,12 @@ void EntityScriptingInterface::callEntityMethod(QUuid id, const QString& method,
     }
 }
 
-void EntityScriptingInterface::callEntityServerMethod(QUuid id, const QString& method, const QStringList& params) {
+void EntityScriptingInterface::callEntityServerMethod(const QUuid& id, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
     DependencyManager::get<EntityScriptClient>()->callEntityServerMethod(id, method, params);
 }
 
-void EntityScriptingInterface::callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, const QStringList& params) {
+void EntityScriptingInterface::callEntityClientMethod(const QUuid& clientSessionID, const QUuid& entityID, const QString& method, const QStringList& params) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
     auto scriptServerServices = DependencyManager::get<EntityScriptServerServices>();
 
@@ -1262,7 +1299,7 @@ ParabolaToEntityIntersectionResult EntityScriptingInterface::evalParabolaInterse
     return result;
 }
 
-bool EntityScriptingInterface::reloadServerScripts(QUuid entityID) {
+bool EntityScriptingInterface::reloadServerScripts(const QUuid& entityID) {
     auto client = DependencyManager::get<EntityScriptClient>();
     return client->reloadServerScript(entityID);
 }
@@ -1335,7 +1372,7 @@ bool EntityPropertyMetadataRequest::serverScripts(EntityItemID entityID, QScript
     return true;
 }
 
-bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName) {
+bool EntityScriptingInterface::queryPropertyMetadata(const QUuid& entityID, QScriptValue property, QScriptValue scopeOrCallback, QScriptValue methodOrName) {
     auto name = property.toString();
     auto handler = makeScopedHandlerObject(scopeOrCallback, methodOrName);
     QPointer<BaseScriptEngine> engine = dynamic_cast<BaseScriptEngine*>(handler.engine());
@@ -1379,7 +1416,7 @@ bool EntityScriptingInterface::queryPropertyMetadata(QUuid entityID, QScriptValu
     }
 }
 
-bool EntityScriptingInterface::getServerScriptStatus(QUuid entityID, QScriptValue callback) {
+bool EntityScriptingInterface::getServerScriptStatus(const QUuid& entityID, QScriptValue callback) {
     auto client = DependencyManager::get<EntityScriptClient>();
     auto request = client->createScriptStatusRequest(entityID);
     connect(request, &GetScriptStatusRequest::finished, callback.engine(), [callback](GetScriptStatusRequest* request) mutable {
@@ -1518,14 +1555,14 @@ bool EntityScriptingInterface::setPoints(QUuid entityID, std::function<bool(Line
     return success;
 }
 
-bool EntityScriptingInterface::setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value) {
+bool EntityScriptingInterface::setVoxelSphere(const QUuid& entityID, const glm::vec3& center, float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
     return polyVoxWorker(entityID, [center, radius, value](PolyVoxEntityItem& polyVoxEntity) {
         return polyVoxEntity.setSphere(center, radius, value);
     });
 }
 
-bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
+bool EntityScriptingInterface::setVoxelCapsule(const QUuid& entityID,
                                                const glm::vec3& start, const glm::vec3& end,
                                                float radius, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
@@ -1535,7 +1572,7 @@ bool EntityScriptingInterface::setVoxelCapsule(QUuid entityID,
     });
 }
 
-bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& position, int value) {
+bool EntityScriptingInterface::setVoxel(const QUuid& entityID, const glm::vec3& position, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return polyVoxWorker(entityID, [position, value](PolyVoxEntityItem& polyVoxEntity) {
@@ -1543,7 +1580,7 @@ bool EntityScriptingInterface::setVoxel(QUuid entityID, const glm::vec3& positio
     });
 }
 
-bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
+bool EntityScriptingInterface::setAllVoxels(const QUuid& entityID, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     return polyVoxWorker(entityID, [value](PolyVoxEntityItem& polyVoxEntity) {
@@ -1551,7 +1588,7 @@ bool EntityScriptingInterface::setAllVoxels(QUuid entityID, int value) {
     });
 }
 
-bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition,
+bool EntityScriptingInterface::setVoxelsInCuboid(const QUuid& entityID, const glm::vec3& lowPosition,
                                                  const glm::vec3& cuboidSize, int value) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
@@ -1560,7 +1597,7 @@ bool EntityScriptingInterface::setVoxelsInCuboid(QUuid entityID, const glm::vec3
     });
 }
 
-bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::vec3>& points) {
+bool EntityScriptingInterface::setAllPoints(const QUuid& entityID, const QVector<glm::vec3>& points) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
@@ -1580,7 +1617,7 @@ bool EntityScriptingInterface::setAllPoints(QUuid entityID, const QVector<glm::v
     return false;
 }
 
-bool EntityScriptingInterface::appendPoint(QUuid entityID, const glm::vec3& point) {
+bool EntityScriptingInterface::appendPoint(const QUuid& entityID, const glm::vec3& point) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));
@@ -2040,7 +2077,7 @@ QVector<QUuid> EntityScriptingInterface::getChildrenIDs(const QUuid& parentID) {
     return result;
 }
 
-bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
+bool EntityScriptingInterface::isChildOfParent(const QUuid& childID, const QUuid& parentID) {
     bool isChild = false;
 
     if (!_entityTree) {
@@ -2062,7 +2099,7 @@ bool EntityScriptingInterface::isChildOfParent(QUuid childID, QUuid parentID) {
     return isChild;
 }
 
-QString EntityScriptingInterface::getNestableType(QUuid id) {
+QString EntityScriptingInterface::getNestableType(const QUuid& id) {
     QSharedPointer<SpatialParentFinder> parentFinder = DependencyManager::get<SpatialParentFinder>();
     if (!parentFinder) {
         return "unknown";
@@ -2164,7 +2201,7 @@ void EntityScriptingInterface::sendHoverLeaveEntity(const EntityItemID& id, cons
     emit hoverLeaveEntity(id, event);
 }
 
-bool EntityScriptingInterface::wantsHandControllerPointerEvents(QUuid id) {
+bool EntityScriptingInterface::wantsHandControllerPointerEvents(const QUuid& id) {
     bool result = false;
     if (_entityTree) {
         _entityTree->withReadLock([&] {
@@ -2196,7 +2233,7 @@ bool EntityScriptingInterface::AABoxIntersectsCapsule(const glm::vec3& low, cons
     return aaBox.findCapsulePenetration(start, end, radius, penetration);
 }
 
-void EntityScriptingInterface::getMeshes(QUuid entityID, QScriptValue callback) {
+void EntityScriptingInterface::getMeshes(const QUuid& entityID, QScriptValue callback) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     EntityItemPointer entity = static_cast<EntityItemPointer>(_entityTree->findEntityByEntityItemID(entityID));

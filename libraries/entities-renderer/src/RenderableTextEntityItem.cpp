@@ -23,6 +23,9 @@ using namespace render;
 using namespace render::entities;
 
 static const int FIXED_FONT_POINT_SIZE = 40;
+const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 92.0f; // Determined through experimentation to fit font to line 
+                                                                    // height.
+const float LINE_SCALE_RATIO = 1.2f;
 
 TextEntityRenderer::TextEntityRenderer(const EntityItemPointer& entity) :
     Parent(entity),
@@ -204,4 +207,13 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     glm::vec2 bounds = glm::vec2(dimensions.x - (_leftMargin + _rightMargin),
                                  dimensions.y - (_topMargin + _bottomMargin));
     _textRenderer->draw(batch, _leftMargin / scale, -_topMargin / scale, _text, textColor, bounds / scale);
+}
+
+QSizeF TextEntityRenderer::textSize(const QString& text) const {
+    auto extents = _textRenderer->computeExtent(text);
+
+    float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
+    float pointToWorldScale = (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
+
+    return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }

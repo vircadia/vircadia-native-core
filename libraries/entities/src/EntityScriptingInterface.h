@@ -296,7 +296,7 @@ public slots:
      * @param {Uuid} entityID - The ID of the entity to clone.
      * @returns {Uuid} The ID of the new entity if successfully cloned, otherwise {@link Uuid|Uuid.NULL}.
      */
-    Q_INVOKABLE QUuid cloneEntity(QUuid entityIDToClone);
+    Q_INVOKABLE QUuid cloneEntity(const QUuid& entityID);
 
     /**jsdoc
      * Get the properties of an entity.
@@ -315,8 +315,8 @@ public slots:
      * var properties = Entities.getEntityProperties(entityID, ["color"]);
      * print("Entity color: " + JSON.stringify(properties.color));
      */
-    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID);
-    Q_INVOKABLE EntityItemProperties getEntityProperties(QUuid entityID, EntityPropertyFlags desiredProperties);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(const QUuid& entityID);
+    Q_INVOKABLE EntityItemProperties getEntityProperties(const QUuid& entityID, EntityPropertyFlags desiredProperties);
 
     /**jsdoc
      * Update an entity with specified properties.
@@ -340,7 +340,7 @@ public slots:
      * properties = Entities.getEntityProperties(entityID, ["color"]);
      * print("Entity color: " + JSON.stringify(properties.color));
      */
-    Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
+    Q_INVOKABLE QUuid editEntity(const QUuid& entityID, const EntityItemProperties& properties);
 
     /**jsdoc
      * Delete an entity.
@@ -358,8 +358,50 @@ public slots:
      *     Entities.deleteEntity(entityID);
      * }, 3000);
      */
-    Q_INVOKABLE void deleteEntity(QUuid entityID);
+    Q_INVOKABLE void deleteEntity(const QUuid& entityID);
 
+    /**jsdoc
+     * Get an entities type as a string.
+     * @function Entities.deleteEntity
+     * @param {Uuid} id - The id of the entity to get the type of.
+     */
+    Q_INVOKABLE QString getEntityType(const QUuid& entityID);
+
+    /**jsdoc
+     * Get the entity script object. In particular, this is useful for accessing the event bridge for a <code>Web</code> 
+     * entity.
+     * @function Entities.getEntityObject
+     * @param {Uuid} id - The ID of the entity to get the script object of.
+     * @returns {object} The script object for the entity if found.
+     */
+    Q_INVOKABLE QObject* getEntityObject(const QUuid& id);
+
+    /**jsdoc
+     * Check whether an entities's assets have been loaded. For example, for an <code>Model</code> entity the result indicates
+     * whether its textures have been loaded.
+     * @function Entities.isLoaded
+     * @param {Uuid} id - The ID of the entity to check.
+     * @returns {boolean} <code>true</code> if the entity's assets have been loaded, otherwise <code>false</code>.
+     */
+    Q_INVOKABLE bool isLoaded(const QUuid& id);
+
+    /**jsdoc
+     * Check if there is an object of a given ID.
+     * @function Entities.isAddedEntity
+     * @param {Uuid} id - The ID to check.
+     * @returns {boolean} <code>true</code> if an object with the given ID exists, <code>false</code> otherwise.
+     */
+    Q_INVOKABLE bool isAddedEntity(const QUuid& id);
+
+    /**jsdoc
+     * Calculates the size of the given text in the specified object if it is a text entity.
+     * @function Entities.textSize
+     * @param {Uuid} id - The ID of the entity to use for calculation.
+     * @param {string} text - The string to calculate the size of.
+     * @returns {Size} The size of the <code>text</code> in meters if the object is a text entity, otherwise
+     *     <code>{ height: 0, width : 0 }</code>.
+     */
+    Q_INVOKABLE QSizeF textSize(const QUuid& id, const QString& text);
 
     /**jsdoc
      * Call a method in a client entity script from a client script or client entity script, or call a method in a server 
@@ -371,7 +413,7 @@ public slots:
      * @param {string} method - The name of the method to call.
      * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
      */
-    Q_INVOKABLE void callEntityMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
+    Q_INVOKABLE void callEntityMethod(const QUuid& entityID, const QString& method, const QStringList& params = QStringList());
 
     /**jsdoc
      * Call a method in a server entity script from a client script or client entity script. The entity script method must be 
@@ -383,7 +425,7 @@ public slots:
      * @param {string} method - The name of the method to call.
      * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
      */
-    Q_INVOKABLE void callEntityServerMethod(QUuid entityID, const QString& method, const QStringList& params = QStringList());
+    Q_INVOKABLE void callEntityServerMethod(const QUuid& entityID, const QString& method, const QStringList& params = QStringList());
 
     /**jsdoc
      * Call a method in a specific user's client entity script from a server entity script. The entity script method must be 
@@ -394,7 +436,7 @@ public slots:
      * @param {string} method - The name of the method to call.
      * @param {string[]} [parameters=[]] - The parameters to call the specified method with.
      */
-    Q_INVOKABLE void callEntityClientMethod(QUuid clientSessionID, QUuid entityID, const QString& method, 
+    Q_INVOKABLE void callEntityClientMethod(const QUuid& clientSessionID, const QUuid& entityID, const QString& method,
         const QStringList& params = QStringList());
 
     /**jsdoc
@@ -524,7 +566,7 @@ public slots:
      * @returns {boolean} <code>true</code> if the reload request was successfully sent to the server, otherwise 
      *     <code>false</code>.
      */
-    Q_INVOKABLE bool reloadServerScripts(QUuid entityID);
+    Q_INVOKABLE bool reloadServerScripts(const QUuid& entityID);
 
     /**jsdoc
      * Gets the status of server entity script attached to an entity
@@ -543,7 +585,7 @@ public slots:
      * @param {string} errorInfo - <code>""</code> if there is a server entity script running, otherwise it may contain extra 
      *     information on the error.
      */
-    Q_INVOKABLE bool getServerScriptStatus(QUuid entityID, QScriptValue callback);
+    Q_INVOKABLE bool getServerScriptStatus(const QUuid& entityID, QScriptValue callback);
 
     /**jsdoc
     * Get metadata for certain entity properties such as <code>script</code> and <code>serverScripts</code>.
@@ -573,7 +615,7 @@ public slots:
     * @param {object} result - The metadata for the requested entity property if there was no error, otherwise
     *     <code>undefined</code>.
     */
-    Q_INVOKABLE bool queryPropertyMetadata(QUuid entityID, QScriptValue property, QScriptValue scopeOrCallback,
+    Q_INVOKABLE bool queryPropertyMetadata(const QUuid& entityID, QScriptValue property, QScriptValue scopeOrCallback,
         QScriptValue methodOrName = QScriptValue());
 
 
@@ -657,7 +699,7 @@ public slots:
      * Entities.setVoxelSphere(polyVox, position, 0.9, 255);
      */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE bool setVoxelSphere(QUuid entityID, const glm::vec3& center, float radius, int value);
+    Q_INVOKABLE bool setVoxelSphere(const QUuid& entityID, const glm::vec3& center, float radius, int value);
     
     /**jsdoc
      * Set the values of all voxels in a capsule-shaped portion of a {@link Entities.EntityType|PolyVox} entity.
@@ -681,7 +723,7 @@ public slots:
      * Entities.setVoxelCapsule(polyVox, startPosition, endPosition, 0.5, 255);
      */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE bool setVoxelCapsule(QUuid entityID, const glm::vec3& start, const glm::vec3& end, float radius, int value);
+    Q_INVOKABLE bool setVoxelCapsule(const QUuid& entityID, const glm::vec3& start, const glm::vec3& end, float radius, int value);
 
     /**jsdoc
      * Set the value of a particular voxels in a {@link Entities.EntityType|PolyVox} entity.
@@ -703,7 +745,7 @@ public slots:
      * Entities.setVoxel(entity, { x: 0, y: 0, z: 0 }, 0);
      */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE bool setVoxel(QUuid entityID, const glm::vec3& position, int value);
+    Q_INVOKABLE bool setVoxel(const QUuid& entityID, const glm::vec3& position, int value);
 
     /**jsdoc
      * Set the values of all voxels in a {@link Entities.EntityType|PolyVox} entity.
@@ -721,7 +763,7 @@ public slots:
      * Entities.setAllVoxels(entity, 1);
      */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE bool setAllVoxels(QUuid entityID, int value);
+    Q_INVOKABLE bool setAllVoxels(const QUuid& entityID, int value);
 
     /**jsdoc
      * Set the values of all voxels in a cubic portion of a {@link Entities.EntityType|PolyVox} entity.
@@ -746,7 +788,7 @@ public slots:
      * Entities.setVoxelsInCuboid(polyVox, cuboidPosition, cuboidSize, 0);
      */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE bool setVoxelsInCuboid(QUuid entityID, const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int value);
+    Q_INVOKABLE bool setVoxelsInCuboid(const QUuid& entityID, const glm::vec3& lowPosition, const glm::vec3& cuboidSize, int value);
 
     /**jsdoc
      * Convert voxel coordinates in a {@link Entities.EntityType|PolyVox} entity to world coordinates. Voxel coordinates are 
@@ -862,7 +904,7 @@ public slots:
      *     ]);
      * }, 2000);
      */
-    Q_INVOKABLE bool setAllPoints(QUuid entityID, const QVector<glm::vec3>& points);
+    Q_INVOKABLE bool setAllPoints(const QUuid& entityID, const QVector<glm::vec3>& points);
     
     /**jsdoc
      * Append a point to a {@link Entities.EntityType|Line} entity.
@@ -890,7 +932,7 @@ public slots:
      * // Add a third point to create a "V".
      * Entities.appendPoint(entity, { x: 1, y: 1, z: 0 });
      */
-    Q_INVOKABLE bool appendPoint(QUuid entityID, const glm::vec3& point);
+    Q_INVOKABLE bool appendPoint(const QUuid& entityID, const glm::vec3& point);
 
     /**jsdoc
      * Dumps debug information about all entities in Interface's local in-memory tree of entities it knows about to the program log.
@@ -1355,7 +1397,7 @@ public slots:
      *
      * print("grandChild has root as parent: " + Entities.isChildOfParent(grandChild, root));  // true
      */
-    Q_INVOKABLE bool isChildOfParent(QUuid childID, QUuid parentID);
+    Q_INVOKABLE bool isChildOfParent(const QUuid& childID, const QUuid& parentID);
 
     /**jsdoc
      * Get the type &mdash; entity, overlay, or avatar &mdash; of an in-world item.
@@ -1374,7 +1416,7 @@ public slots:
      * print(Entities.getNestableType(entity));  // "entity"
      * print(Entities.getNestableType(Uuid.generate()));  // "unknown"
      */
-    Q_INVOKABLE QString getNestableType(QUuid entityID);
+    Q_INVOKABLE QString getNestableType(const QUuid& entityID);
 
     /**jsdoc
      * Get the ID of the {@link Entities.EntityType|Web} entity that has keyboard focus.
@@ -1486,7 +1528,7 @@ public slots:
      * @returns {boolean} <code>true</code> if the entity can be found and it wants hand controller pointer events, otherwise 
      *     <code>false</code>.
      */
-    Q_INVOKABLE bool wantsHandControllerPointerEvents(QUuid id);
+    Q_INVOKABLE bool wantsHandControllerPointerEvents(const QUuid& id);
 
     /**jsdoc
      * Send a script event over a {@link Entities.EntityType|Web} entity's <code>EventBridge</code> to the Web page's scripts.
@@ -1527,7 +1569,7 @@ public slots:
       * @deprecated Use the {@link Graphics} API instead.
       */
     // FIXME move to a renderable entity interface
-    Q_INVOKABLE void getMeshes(QUuid entityID, QScriptValue callback);
+    Q_INVOKABLE void getMeshes(const QUuid& entityID, QScriptValue callback);
 
     /**jsdoc
      * Get the object to world transform, excluding scale, of an entity.
