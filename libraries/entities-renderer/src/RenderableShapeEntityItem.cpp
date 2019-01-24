@@ -186,6 +186,10 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
             builder.withUnlit();
         }
 
+        if (_primitiveMode == PrimitiveMode::LINES) {
+            builder.withWireframe();
+        }
+
         return builder.build();
     } else {
         ShapeKey::Builder builder;
@@ -197,6 +201,10 @@ ShapeKey ShapeEntityRenderer::getShapeKey() {
         }
         if (isTransparent()) {
             builder.withTranslucent();
+        }
+
+        if (_primitiveMode == PrimitiveMode::LINES) {
+            builder.withWireframe();
         }
         return builder.build();
     }
@@ -241,8 +249,13 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     } else if (!useMaterialPipeline()) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        auto pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
+        render::ShapePipelinePointer pipeline;
+        if (_renderLayer == RenderLayer::WORLD) {
+            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        } else {
+            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
+        }
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);

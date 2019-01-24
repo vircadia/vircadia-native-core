@@ -49,6 +49,9 @@ ShapeKey TextEntityRenderer::getShapeKey() {
     if (isTransparent()) {
         builder.withTranslucent();
     }
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
     return builder.build();
 }
 

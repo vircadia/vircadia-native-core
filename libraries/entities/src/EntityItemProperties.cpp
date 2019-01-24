@@ -340,14 +340,67 @@ QString EntityItemProperties::getBillboardModeAsString() const {
     return BillboardModeHelpers::getNameForBillboardMode(_billboardMode);
 }
 
-void EntityItemProperties::setBillboardModeFromString(const QString& materialMappingMode) {
+void EntityItemProperties::setBillboardModeFromString(const QString& billboardMode) {
     if (stringToBillboardModeLookup.empty()) {
         buildStringToBillboardModeLookup();
     }
-    auto billboardModeItr = stringToBillboardModeLookup.find(materialMappingMode.toLower());
+    auto billboardModeItr = stringToBillboardModeLookup.find(billboardMode.toLower());
     if (billboardModeItr != stringToBillboardModeLookup.end()) {
         _billboardMode = billboardModeItr.value();
         _billboardModeChanged = true;
+    }
+}
+
+QHash<QString, RenderLayer> stringToRenderLayerLookup;
+
+void addRenderLayer(RenderLayer mode) {
+    stringToRenderLayerLookup[RenderLayerHelpers::getNameForRenderLayer(mode)] = mode;
+}
+
+void buildStringToRenderLayerLookup() {
+    addRenderLayer(RenderLayer::WORLD);
+    addRenderLayer(RenderLayer::FRONT);
+    addRenderLayer(RenderLayer::HUD);
+}
+
+QString EntityItemProperties::getRenderLayerAsString() const {
+    return RenderLayerHelpers::getNameForRenderLayer(_renderLayer);
+}
+
+void EntityItemProperties::setRenderLayerFromString(const QString& renderLayer) {
+    if (stringToRenderLayerLookup.empty()) {
+        buildStringToRenderLayerLookup();
+    }
+    auto renderLayerItr = stringToRenderLayerLookup.find(renderLayer.toLower());
+    if (renderLayerItr != stringToRenderLayerLookup.end()) {
+        _renderLayer = renderLayerItr.value();
+        _renderLayerChanged = true;
+    }
+}
+
+QHash<QString, PrimitiveMode> stringToPrimitiveModeLookup;
+
+void addPrimitiveMode(PrimitiveMode mode) {
+    stringToPrimitiveModeLookup[PrimitiveModeHelpers::getNameForPrimitiveMode(mode)] = mode;
+}
+
+void buildStringToPrimitiveModeLookup() {
+    addPrimitiveMode(PrimitiveMode::SOLID);
+    addPrimitiveMode(PrimitiveMode::LINES);
+}
+
+QString EntityItemProperties::getPrimitiveModeAsString() const {
+    return PrimitiveModeHelpers::getNameForPrimitiveMode(_primitiveMode);
+}
+
+void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMode) {
+    if (stringToPrimitiveModeLookup.empty()) {
+        buildStringToPrimitiveModeLookup();
+    }
+    auto primitiveModeItr = stringToPrimitiveModeLookup.find(primitiveMode.toLower());
+    if (primitiveModeItr != stringToPrimitiveModeLookup.end()) {
+        _primitiveMode = primitiveModeItr.value();
+        _primitiveModeChanged = true;
     }
 }
 
@@ -375,6 +428,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
     CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
+    CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -474,6 +529,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS, jointTranslations);
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+    CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
     changedProperties += _animation.getChangedProperties();
 
     // Light
@@ -579,15 +635,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
  * @property {EntityHostType} entityHostType="domain" - How this entity will behave, including if and how it is sent to other people.
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
- *     {@link Entities.addEntity}.
+ *     {@link Entities.addEntity}.  Read-only.
  * @property {boolean} avatarEntity=false - If <code>true</code> then the entity is an avatar entity;  An avatar entity follows you to each domain you visit,
  *     rendering at the same world coordinates unless it's parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in 
- *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.
+ *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.  Read-only.
  * @property {boolean} localEntity=false - If <code>true</code> then the entity is a local entity;  Local entities only render for you and are not sent over the wire.
  *     <em>Value cannot be changed after the entity is created.</em><br />
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
- *     {@link Entities.addEntity}.
+ *     {@link Entities.addEntity}.  Read-only.
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is 
  *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
  *
@@ -611,6 +667,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
  * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
+ * @property {RenderLayer} renderLayer="world" - In which layer this entity renders.
+ * @property {PrimitiveMode} primitiveMode="solid" - How this entity's geometry is rendered.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -929,6 +987,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.getJointIndex|getJointIndex}.
  * @property {boolean} relayParentJoints=false - If <code>true</code> and the entity is parented to an avatar, then the 
  *     avatar's joint rotations are applied to the entity's joints.
+ * @property {boolean} groupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
+ *     If <code>false</code>, separate mesh parts will be LOD culled individually.
  *
  * @example <caption>Rez a Vive tracker puck.</caption>
  * var entity = Entities.addEntity({
@@ -1420,6 +1480,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1536,6 +1598,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
@@ -1801,6 +1864,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube); // TODO: should scripts be able to set this?
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -1905,6 +1970,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
     _animation.copyFromScriptValue(object, _defaultSettings);
 
     // Light
@@ -2072,6 +2138,8 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(queryAACube);
     COPY_PROPERTY_IF_CHANGED(canCastShadow);
     COPY_PROPERTY_IF_CHANGED(isVisibleInSecondaryCamera);
+    COPY_PROPERTY_IF_CHANGED(renderLayer);
+    COPY_PROPERTY_IF_CHANGED(primitiveMode);
     _grab.merge(other._grab);
 
     // Physics
@@ -2171,6 +2239,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
     COPY_PROPERTY_IF_CHANGED(jointTranslations);
     COPY_PROPERTY_IF_CHANGED(relayParentJoints);
+    COPY_PROPERTY_IF_CHANGED(groupCulled);
     _animation.merge(other._animation);
 
     // Light
@@ -2342,6 +2411,8 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube);
         ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
+        ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2495,6 +2566,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
         { // Animation
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -2771,6 +2843,8 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, properties.getQueryAACube());
             APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
             // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, properties.getIsVisibleInSecondaryCamera()); // not sent over the wire
+            APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
+            APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -2877,6 +2951,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
                 APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
+                APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -3212,6 +3287,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera); // not sent over the wire
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3316,6 +3393,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<vec3>, setJointTranslations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
@@ -3594,6 +3672,8 @@ void EntityItemProperties::markAllChanged() {
     _queryAACubeChanged = true;
     _canCastShadowChanged = true;
     _isVisibleInSecondaryCameraChanged = true;
+    _renderLayerChanged = true;
+    _primitiveModeChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -3686,6 +3766,7 @@ void EntityItemProperties::markAllChanged() {
     _jointTranslationsSetChanged = true;
     _jointTranslationsChanged = true;
     _relayParentJointsChanged = true;
+    _groupCulledChanged = true;
     _animation.markAllChanged();
 
     // Light
@@ -3966,6 +4047,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (isVisibleInSecondaryCameraChanged()) {
         out += "isVisibleInSecondaryCamera";
     }
+    if (renderLayerChanged()) {
+        out += "renderLayer";
+    }
+    if (primitiveModeChanged()) {
+        out += "primitiveMode";
+    }
     getGrab().listChangedProperties(out);
 
     // Physics
@@ -4211,6 +4298,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (relayParentJointsChanged()) {
         out += "relayParentJoints";
+    }
+    if (groupCulledChanged()) {
+        out += "groupCulled";
     }
     getAnimation().listChangedProperties(out);
 

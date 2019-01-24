@@ -159,20 +159,40 @@ Item::Bound EntityRenderer::getBound() {
     return _bound;
 }
 
+ShapeKey EntityRenderer::getShapeKey() {
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        return ShapeKey::Builder().withOwnPipeline().withWireframe();
+    }
+    return ShapeKey::Builder().withOwnPipeline();
+}
+
 render::hifi::Tag EntityRenderer::getTagMask() const {
     return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
 }
 
+render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
+    switch (_renderLayer) {
+        case RenderLayer::WORLD:
+            return render::hifi::LAYER_3D;
+        case RenderLayer::FRONT:
+            return render::hifi::LAYER_3D_FRONT;
+        case RenderLayer::HUD:
+            return render::hifi::LAYER_3D_HUD;
+        default:
+            return render::hifi::LAYER_3D;
+    }
+}
+
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     }
 
     // This allows shapes to cast shadows
     if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster().withLayer(getHifiRenderLayer());
     } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask());
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     }
 }
 
@@ -411,6 +431,8 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
         setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
+        setRenderLayer(entity->getRenderLayer());
+        setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;
