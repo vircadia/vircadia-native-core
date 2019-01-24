@@ -120,7 +120,7 @@ bool isDisabled(QJsonObject metaData) {
                 }
 
                 if (!_pluginFilter(pluginMetaData)) {
-                    qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "doesn't pass provided filter";
+                    qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "doesn't pass provided filter";
                     continue;
                 }
 
