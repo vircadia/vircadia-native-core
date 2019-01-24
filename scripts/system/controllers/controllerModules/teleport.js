@@ -129,6 +129,8 @@ Script.include("/~/system/libraries/controllers.js");
         this.init = false;
         this.hand = hand;
         this.buttonValue = 0;
+        this.standardAxisLY = 0.0;
+        this.standardAxisRY = 0.0;
         this.disabled = false; // used by the 'Hifi-Teleport-Disabler' message handler
         this.active = false;
         this.state = TELEPORTER_STATES.IDLE;
@@ -690,6 +692,43 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
+        this.getStandardLY = function (value) {
+            _this.standardAxisLY = value;
+        };
+
+        this.getStandardRY = function (value) {
+            _this.standardAxisRY = value;
+        };
+
+        // Return value for the getDominantY and getOffhandY functions has to be inverted.
+        this.getDominantY = function () {
+            return (MyAvatar.getDominantHand() === "left") ? -(_this.standardAxisLY) : -(_this.standardAxisRY);
+        };
+
+        this.getOffhandY = function () {
+            return (MyAvatar.getDominantHand() === "left") ? -(_this.standardAxisRY) : -(_this.standardAxisLY);
+        };
+
+        this.getDominantHand = function () {
+            return (MyAvatar.getDominantHand() === "left") ? LEFT_HAND : RIGHT_HAND;
+        }
+
+        this.getOffHand = function () {
+            return (MyAvatar.getDominantHand() === "left") ? RIGHT_HAND : LEFT_HAND;
+        }
+
+        this.showReticle = function () {
+            return (_this.getOffhandY() > TELEPORT_DEADZONE) ? true : false;
+        };
+
+        this.shouldTeleport = function () {
+            return (_this.getDominantY() > TELEPORT_DEADZONE && _this.getOffhandY() > TELEPORT_DEADZONE) ? true : false;
+        };
+
+        this.shouldCancel = function () {
+            return (_this.getDominantY() < -TELEPORT_DEADZONE || _this.getOffhandY() < -TELEPORT_DEADZONE) ? true : false;
+        };
+
         this.parameters = makeDispatcherModuleParameters(
             80,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
@@ -706,7 +745,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             var otherModule = this.getOtherModule();
-            if (!this.disabled && this.buttonValue !== 0 && !otherModule.active) {
+            if (!this.disabled && this.showReticle() && !otherModule.active && this.hand === this.getOffHand()) {
                 this.active = true;
                 this.enterTeleport();
                 return makeRunningValues(true, [], []);
@@ -715,6 +754,12 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function(controllerData, deltaTime) {
+            // Kill condition:
+            if (this.shouldCancel()) {
+                this.disableLasers();
+                this.active = false;
+                return makeRunningValues(false, [], []);
+            }
 
             // Get current hand pose information to see if the pose is valid
             var pose = Controller.getPoseValue(handInfo[(_this.hand === RIGHT_HAND) ? 'right' : 'left'].controllerInput);
@@ -778,7 +823,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.teleport = function(newResult, target) {
             var result = newResult;
             this.teleportedPosition = newResult.intersection;
-            if (_this.buttonValue !== 0) {
+            if (!_this.shouldTeleport()) {
                 return makeRunningValues(true, [], []);
             }
 
@@ -982,6 +1027,10 @@ Script.include("/~/system/libraries/controllers.js");
         // Teleport actions.
         teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftTeleporter.buttonPress);
         teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
+        teleportMapping.from(Controller.Standard.LY).peek().to(leftTeleporter.getStandardLY);
+        teleportMapping.from(Controller.Standard.RY).peek().to(leftTeleporter.getStandardRY);
+        teleportMapping.from(Controller.Standard.LY).peek().to(rightTeleporter.getStandardLY);
+        teleportMapping.from(Controller.Standard.RY).peek().to(rightTeleporter.getStandardRY);
     }
 
     var leftTeleporter = new Teleporter(LEFT_HAND);
