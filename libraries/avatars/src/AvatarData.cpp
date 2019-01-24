@@ -639,7 +639,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
         // compute maxTranslationDimension before we send any joint data.
         float maxTranslationDimension = 0.001f;
-        for (int i = sendStatus.rotationsSent; i < numJoints; ++i) {
+        for (int i = sendStatus.translationsSent; i < numJoints; ++i) {
             const JointData& data = jointData[i];
             if (!data.translationIsDefaultPose) {
                 maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
@@ -2428,7 +2428,8 @@ static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
 enum class JsonAvatarFrameVersion : int {
     JointRotationsInRelativeFrame = 0,
     JointRotationsInAbsoluteFrame,
-    JointDefaultPoseBits
+    JointDefaultPoseBits,
+    JointUnscaledTranslations,
 };
 
 QJsonValue toJsonValue(const JointData& joint) {
@@ -2445,7 +2446,16 @@ JointData jointDataFromJsonValue(int version, const QJsonValue& json) {
     if (json.isArray()) {
         QJsonArray array = json.toArray();
         result.rotation = quatFromJsonValue(array[0]);
+
         result.translation = vec3FromJsonValue(array[1]);
+
+        // In old recordings, translations are scaled by _geometryOffset.  Undo that scaling.
+        if (version < (int)JsonAvatarFrameVersion::JointUnscaledTranslations) {
+            // because we don't have access to the actual _geometryOffset used. we have to guess.
+            // most avatar FBX files were authored in centimeters.
+            const float METERS_TO_CENTIMETERS = 100.0f;
+            result.translation *= METERS_TO_CENTIMETERS;
+        }
         if (version >= (int)JsonAvatarFrameVersion::JointDefaultPoseBits) {
             result.rotationIsDefaultPose = array[2].toBool();
             result.translationIsDefaultPose = array[3].toBool();
@@ -2464,7 +2474,7 @@ void AvatarData::avatarEntityDataToJson(QJsonObject& root) const {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointDefaultPoseBits;
+    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointUnscaledTranslations;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
