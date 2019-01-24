@@ -42,6 +42,7 @@ KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 GrabPropertyGroup EntityItemProperties::_staticGrab;
 PulsePropertyGroup EntityItemProperties::_staticPulse;
+RingGizmoPropertyGroup EntityItemProperties::_staticRing;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -420,6 +421,31 @@ void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
     }
 }
 
+QHash<QString, GizmoType> stringToGizmoTypeLookup;
+
+void addGizmoType(GizmoType mode) {
+    stringToGizmoTypeLookup[GizmoTypeHelpers::getNameForGizmoType(mode)] = mode;
+}
+
+void buildStringToGizmoTypeLookup() {
+    addGizmoType(GizmoType::RING);
+}
+
+QString EntityItemProperties::getGizmoTypeAsString() const {
+    return GizmoTypeHelpers::getNameForGizmoType(_gizmoType);
+}
+
+void EntityItemProperties::setGizmoTypeFromString(const QString& gizmoType) {
+    if (stringToGizmoTypeLookup.empty()) {
+        buildStringToGizmoTypeLookup();
+    }
+    auto gizmoTypeItr = stringToGizmoTypeLookup.find(gizmoType.toLower());
+    if (gizmoTypeItr != stringToGizmoTypeLookup.end()) {
+        _gizmoType = gizmoTypeItr.value();
+        _gizmoTypeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -640,6 +666,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
     CHECK_PROPERTY_CHANGE(PROP_MINOR_GRID_EVERY, minorGridEvery);
 
+    // Gizmo
+    CHECK_PROPERTY_CHANGE(PROP_GIZMO_TYPE, gizmoType);
+    changedProperties += _ring.getChangedProperties();
+
     return changedProperties;
 }
 
@@ -833,6 +863,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
  * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
  * @see {@link Entities.EntityProperties-Grid|EntityProperties-Grid}
+ * @see {@link Entities.EntityProperties-Gizmo|EntityProperties-Gizmo}
  * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
  * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
@@ -1446,6 +1477,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     minorGridEvery: 0.5,
  *     lifetime: 300  // Delete after 5 minutes.
  * });
+
+/**jsdoc
+ * The <code>"Gizmo"</code> {@link Entities.EntityType|EntityType} displays an entity that could be used as UI.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Gizmo
+ * @property {GizmoType} gizmoType="ring" - The gizmo type of the entity.
+ * @property {Entities.RingGizmo} ring - The ring gizmo properties.
  */
 
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime,
@@ -1667,9 +1705,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT, text);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_TEXT_COLOR, textColor, getTextColor(), u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_TEXT_COLOR, textColor, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT_ALPHA, textAlpha);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, getBackgroundColor(), u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BACKGROUND_ALPHA, backgroundAlpha);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LEFT_MARGIN, leftMargin);
@@ -1797,6 +1835,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRID_FOLLOW_CAMERA, followCamera);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MINOR_GRID_EVERY, minorGridEvery);
+    }
+
+    // Gizmo only
+    if (_type == EntityTypes::Gizmo) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_GIZMO_TYPE, gizmoType, getGizmoTypeAsString());
+        _ring.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
     /**jsdoc
@@ -2109,6 +2153,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(majorGridEvery, uint32_t, setMajorGridEvery);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(minorGridEvery, float, setMinorGridEvery);
 
+    // Gizmo
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(gizmoType, GizmoType);
+    _ring.copyFromScriptValue(object, _defaultSettings);
+
     // Handle conversions from old 'textures' property to "imageURL"
     {
         QScriptValue V = object.property("textures");
@@ -2370,6 +2418,10 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(followCamera);
     COPY_PROPERTY_IF_CHANGED(majorGridEvery);
     COPY_PROPERTY_IF_CHANGED(minorGridEvery);
+
+    // Gizmo
+    COPY_PROPERTY_IF_CHANGED(gizmoType);
+    _ring.merge(other._ring);
 
     _lastEdited = usecTimestampNow();
 }
@@ -2751,6 +2803,32 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_GRID_FOLLOW_CAMERA, FollowCamera, followCamera, bool);
         ADD_PROPERTY_TO_MAP(PROP_MAJOR_GRID_EVERY, MajorGridEvery, majorGridEvery, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float);
+
+        // Gizmo
+        ADD_PROPERTY_TO_MAP(PROP_GIZMO_TYPE, GizmoType, gizmoType, GizmoType);
+        { // RingGizmo
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_START_ANGLE, Ring, ring, StartAngle, startAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_END_ANGLE, Ring, ring, EndAngle, endAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_RADIUS, Ring, ring, InnerRadius, innerRadius, RingGizmoPropertyGroup::MIN_RADIUS, RingGizmoPropertyGroup::MAX_RADIUS);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_INNER_START_COLOR, Ring, ring, InnerStartColor, innerStartColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_INNER_END_COLOR, Ring, ring, InnerEndColor, innerEndColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_OUTER_START_COLOR, Ring, ring, OuterStartColor, outerStartColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_OUTER_END_COLOR, Ring, ring, OuterEndColor, outerEndColor);
+
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_START_ALPHA, Ring, ring, InnerStartAlpha, innerStartAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_END_ALPHA, Ring, ring, InnerEndAlpha, innerEndAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_OUTER_START_ALPHA, Ring, ring, OuterStartAlpha, outerStartAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_OUTER_END_ALPHA, Ring, ring, OuterEndAlpha, outerEndAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAS_TICK_MARKS, Ring, ring, HasTickMarks, hasTickMarks);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_MAJOR_TICK_MARKS_ANGLE, Ring, ring, MajorTickMarksAngle, majorTickMarksAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_MINOR_TICK_MARKS_ANGLE, Ring, ring, MinorTickMarksAngle, minorTickMarksAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MAJOR_TICK_MARKS_LENGTH, Ring, ring, MajorTickMarksLength, majorTickMarksLength);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MINOR_TICK_MARKS_LENGTH, Ring, ring, MinorTickMarksLength, minorTickMarksLength);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MAJOR_TICK_MARKS_COLOR, Ring, ring, MajorTickMarksColor, majorTickMarksColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MINOR_TICK_MARKS_COLOR, Ring, ring, MinorTickMarksColor, minorTickMarksColor);
+        }
     });
 
     auto iter = _propertyInfos.find(propertyName);
@@ -3172,6 +3250,13 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, properties.getFollowCamera());
                 APPEND_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, properties.getMajorGridEvery());
                 APPEND_ENTITY_PROPERTY(PROP_MINOR_GRID_EVERY, properties.getMinorGridEvery());
+            }
+
+            if (properties.getType() == EntityTypes::Gizmo) {
+                APPEND_ENTITY_PROPERTY(PROP_GIZMO_TYPE, (uint32_t)properties.getGizmoType());
+                _staticRing.setProperties(properties);
+                _staticRing.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
             }
         }
 
@@ -3622,6 +3707,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MINOR_GRID_EVERY, float, setMinorGridEvery);
     }
 
+    if (properties.getType() == EntityTypes::Gizmo) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GIZMO_TYPE, GizmoType, setGizmoType);
+        properties.getRing().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+    }
+
     return valid;
 }
 
@@ -3955,6 +4045,10 @@ void EntityItemProperties::markAllChanged() {
     _followCameraChanged = true;
     _majorGridEveryChanged = true;
     _minorGridEveryChanged = true;
+
+    // Gizmo
+    _gizmoTypeChanged = true;
+    _ring.markAllChanged();
 }
 
 // The minimum bounding box for the entity.
@@ -4627,6 +4721,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (minorGridEveryChanged()) {
         out += "minorGridEvery";
     }
+
+    // Gizmo
+    if (gizmoTypeChanged()) {
+        out += "gizmoType";
+    }
+    getRing().listChangedProperties(out);
 
     return out;
 }
