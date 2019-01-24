@@ -1544,6 +1544,7 @@ void Rig::updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEna
         int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         glm::vec3 poleVector;
         bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, shoulderJointIndex, oppositeArmJointIndex, poleVector);
+        //glm::vec3 poleVector = calculateKneePoleVector(handJointIndex, elbowJointIndex, shoulderJointIndex, hipsIndex, rightHandPose);
         glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter, but in sensor space.
@@ -1556,7 +1557,7 @@ void Rig::updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEna
         _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
 
         _animVars.set("leftHandPoleVectorEnabled", true);
-        _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftFootPoleVector));
+        _animVars.set("leftHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevLeftHandPoleVector));
     } else {
         // We want to drive the IK from the underlying animation.
         // This gives us the ability to squat while in the HMD, without the feet from dipping under the floor.
@@ -1595,7 +1596,7 @@ void Rig::updateHands2(bool leftHandEnabled, bool rightHandEnabled, bool headEna
         _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
 
         _animVars.set("rightHandPoleVectorEnabled", true);
-        _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightFootPoleVector));
+        _animVars.set("rightHandPoleVector", transformVectorFast(sensorToRigMatrix, _prevRightHandPoleVector));
     } else {
         // We want to drive the IK from the underlying animation.
         // This gives us the ability to squat while in the HMD, without the feet from dipping under the floor.
@@ -1856,14 +1857,14 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 
     updateHead(_headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    //updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
-    //            params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-    //            params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
-    //            params.rigToSensorMatrix, sensorToRigMatrix);
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
+                params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
+                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
+                params.rigToSensorMatrix, sensorToRigMatrix);
 
-    updateHands2(leftHandEnabled, rightHandEnabled, _headEnabled,
-                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-                 params.rigToSensorMatrix, sensorToRigMatrix);
+    //updateHands2(leftHandEnabled, rightHandEnabled, _headEnabled,
+    //             params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
+    //             params.rigToSensorMatrix, sensorToRigMatrix);
 
     updateFeet(leftFootEnabled, rightFootEnabled, _headEnabled,
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot],

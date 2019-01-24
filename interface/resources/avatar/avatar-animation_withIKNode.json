@@ -119,7 +119,7 @@
                                                 "type": "poleVectorConstraint",
                                                 "data": {
                                                     "enabled": false,
-                                                    "referenceVector": [ 0, 0, 1 ],
+                                                    "referenceVector": [ -1, 0, 0 ],
                                                     "baseJointName": "RightArm",
                                                     "midJointName": "RightForeArm",
                                                     "tipJointName": "RightHand",
@@ -149,7 +149,7 @@
                                                                 "type": "poleVectorConstraint",
                                                                 "data": {
                                                                     "enabled": false,
-                                                                    "referenceVector": [ 0, 0, 1 ],
+                                                                    "referenceVector": [ 1, 0, 0 ],
                                                                     "baseJointName": "LeftArm",
                                                                     "midJointName": "LeftForeArm",
                                                                     "tipJointName": "LeftHand",
