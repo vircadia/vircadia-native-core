@@ -299,7 +299,6 @@ Item {
             console.log("Create Succeeded")
             if (loggingInBody.withOculus) {
                 if (loggingInBody.loginDialogPoppedUp) {
-                    loginDialog.dismissLoginDialog();
                     var data = {
                         "action": "user created Oculus account successfully"
                     };
@@ -315,7 +314,6 @@ Item {
             console.log("Create Failed: " + error);
             if (loggingInBody.withOculus) {
                 if (loggingInBody.loginDialogPoppedUp) {
-                    loginDialog.dismissLoginDialog();
                     var data = {
                         "action": "user created Oculus account unsuccessfully"
                     };

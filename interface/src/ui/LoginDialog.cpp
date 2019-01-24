@@ -330,14 +330,14 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
         if (!email.isNull() && !email.isUndefined()) {
             QJsonArray arr = email.toArray();
             if (!arr.isEmpty()) {
-                reply.append((!reply.isEmpty()) ? " " : "");
+                reply.append((!reply.isEmpty()) ? "\n" : "");
                 reply.append("Email " + arr.at(0).toString() + ".");
             }
         }
         if (!password.isNull() && !password.isUndefined()) {
             QJsonArray arr = password.toArray();
             if (!arr.isEmpty()) {
-                reply.append((!reply.isEmpty()) ? " " : "");
+                reply.append((!reply.isEmpty()) ? "\n" : "");
                 reply.append("Password " + arr.at(0).toString() + ".");
             }
         }

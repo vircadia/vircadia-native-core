@@ -75,7 +75,7 @@ Item {
 
             Item {
                 id: errorContainer
-                width: parent.width
+                width: root.bannerWidth
                 height: loginErrorMessageTextMetrics.height
                 anchors {
                     bottom: completeProfileBody.withOculus ? fields.top : buttons.top;
@@ -98,16 +98,11 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     text: completeProfileBody.errorString
                     visible: true
-                }
-                Component.onCompleted: {
-                    if (loginErrorMessageTextMetrics.width > root.bannerWidth) {
-                        loginErrorMessage.wrapMode = Text.WordWrap;
-                        loginErrorMessage.verticalAlignment = Text.AlignLeft;
-                        loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                        errorContainer.height = (loginErrorMessageTextMetrics.width / root.bannerWidth) * loginErrorMessageTextMetrics.height;
-                    } else {
-                        loginErrorMessage.wrapMode = Text.NoWrap;
-                        errorContainer.height = loginErrorMessageTextMetrics.height;
+                    onTextChanged: {
+                        mainContainer.recalculateErrorMessage();
+                    }
+                    Component.onCompleted: {
+                        mainContainer.recalculateErrorMessage();
                     }
                 }
             }
@@ -466,6 +461,30 @@ Item {
                             additionalText.anchors.centerIn = additionalTextContainer;
                         }
                     }
+                }
+            }
+        }
+        function recalculateErrorMessage() {
+            if (completeProfileBody.errorString !== "") {
+                loginErrorMessage.visible = true;
+                var errorLength = completeProfileBody.errorString.split(/\r\n|\r|\n/).length;
+                var errorStringEdited = completeProfileBody.errorString.replace(/[\n\r]+/g, "\n");
+                loginErrorMessage.text = errorStringEdited;
+                if (errorLength > 1.0) {
+                    loginErrorMessage.wrapMode = Text.WordWrap;
+                    loginErrorMessage.verticalAlignment = Text.AlignLeft;
+                    loginErrorMessage.horizontalAlignment = Text.AlignLeft;
+                    errorContainer.height = errorLength * loginErrorMessageTextMetrics.height;
+                } else if (loginErrorMessageTextMetrics.width > root.bannerWidth) {
+                    loginErrorMessage.wrapMode = Text.WordWrap;
+                    loginErrorMessage.verticalAlignment = Text.AlignLeft;
+                    loginErrorMessage.horizontalAlignment = Text.AlignLeft;
+                    errorContainer.height = (loginErrorMessageTextMetrics.width / root.bannerWidth) * loginErrorMessageTextMetrics.height;
+                } else {
+                    loginErrorMessage.wrapMode = Text.NoWrap;
+                    loginErrorMessage.verticalAlignment = Text.AlignVCenter;
+                    loginErrorMessage.horizontalAlignment = Text.AlignHCenter;
+                    errorContainer.height = loginErrorMessageTextMetrics.height;
                 }
             }
         }
