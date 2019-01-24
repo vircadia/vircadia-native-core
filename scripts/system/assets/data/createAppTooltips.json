@@ -11,8 +11,14 @@
     "textColor": {
         "tooltip": "The color of the text."
     },
+    "textAlpha": {
+        "tooltip": "The alpha of the text."
+    },
     "backgroundColor": {
         "tooltip": "The color of the background."
+    },
+    "backgroundAlpha": {
+        "tooltip": "The alpha of the background."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
@@ -20,6 +26,18 @@
     "textBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
         "jsPropertyName": "billboardMode"
+    },
+    "topMargin": {
+        "tooltip": "The top margin, in meters."
+    },
+    "rightMargin": {
+        "tooltip": "The right margin, in meters."
+    },
+    "bottomMargin": {
+        "tooltip": "The bottom margin, in meters."
+    },
+    "leftMargin": {
+        "tooltip": "The left margin, in meters."
     },
     "flyingAllowed": {
         "tooltip": "If enabled, users can fly in the zone."

@@ -35,8 +35,8 @@ Rectangle {
 
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
-    property alias otherAvatarsCollisionsOn: otherAvatarsCollisionsEnabledCheckBox.checked
-    property alias environmentCollisionsOn: environmentCollisionsEnabledCheckBox.checked
+    property alias otherAvatarsCollisionsOn: otherAvatarsCollisionsEnabledRadiobutton.checked
+    property alias environmentCollisionsOn: environmentCollisionsEnabledRadiobutton.checked
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -56,10 +56,14 @@ Rectangle {
             rightHandRadioButton.checked = true;
         }
         if (settings.otherAvatarsCollisionsEnabled) {
-            otherAvatarsCollisionsEnabledCheckBox.checked = true;
+            otherAvatarsCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            otherAvatarsCollisionsDisabledRadiobutton.checked = true;
         }
         if (settings.collisionsEnabled) {
-            environmentCollisionsEnabledCheckBox.checked = true;
+            environmentCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            environmentCollisionsDisabledRadiobutton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -104,11 +108,11 @@ Rectangle {
                 size: 17;
                 text: "Avatar Scale"
                 verticalAlignment: Text.AlignVCenter
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             RowLayout {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 Layout.fillWidth: true
 
                 spacing: 0
@@ -118,7 +122,7 @@ Rectangle {
                     text: 'T'
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 HifiControlsUit.Slider {
@@ -136,7 +140,7 @@ Rectangle {
                         }
                     }
 
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     Layout.fillWidth: true
 
                     // TextStyle9
@@ -165,7 +169,7 @@ Rectangle {
                     text: 'T'
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
             }
 
@@ -229,7 +233,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 1
-                Layout.leftMargin: -40
+                Layout.leftMargin: -20
 
                 ButtonGroup.group: leftRight
                 checked: true
@@ -245,8 +249,8 @@ Rectangle {
                 id: rightHandRadioButton
 
                 Layout.row: 0
-                Layout.column: 2
-                Layout.rightMargin: 20
+                Layout.column: 3
+                Layout.rightMargin: -15
 
                 ButtonGroup.group: leftRight
 
@@ -266,16 +270,43 @@ Rectangle {
                 size: 17;
                 Layout.row: 1
                 Layout.column: 0
-                text: "Avatar collides with other avatars"
+                text: "Avatar to avatar collision"
+            }
+            
+            ButtonGroup {
+                id: otherAvatarsOnOff
+            }
+            
+            HifiControlsUit.RadioButton {
+                id: otherAvatarsCollisionsEnabledRadiobutton
+
+                Layout.row: 1
+                Layout.column: 1
+                Layout.leftMargin: -20
+
+                ButtonGroup.group: otherAvatarsOnOff
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "On"
+                boxSize: 20
             }
 
-            HifiControlsUit.CheckBox {
-                id: otherAvatarsCollisionsEnabledCheckBox;
-                boxSize: 20;
+            HifiControlsUit.RadioButton {
+                id: otherAvatarsCollisionsDisabledRadiobutton
+
                 Layout.row: 1
-                Layout.column: 2
-                Layout.leftMargin: 60
+                Layout.column: 3
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: otherAvatarsOnOff
+
                 colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Off"
+                boxSize: 20
             }
 
             // TextStyle9
@@ -283,16 +314,43 @@ Rectangle {
                 size: 17;
                 Layout.row: 2
                 Layout.column: 0
-                text: "Avatar collides with environment"
+                text: "Avatar to environment collision"
             }
 
-            HifiControlsUit.CheckBox {
-                id: environmentCollisionsEnabledCheckBox;
-                boxSize: 20;
+            ButtonGroup {
+                id: worldOnOff
+            }
+            
+            HifiControlsUit.RadioButton {
+                id: environmentCollisionsEnabledRadiobutton
+
                 Layout.row: 2
-                Layout.column: 2
-                Layout.leftMargin: 60
+                Layout.column: 1
+                Layout.leftMargin: -20
+
+                ButtonGroup.group: worldOnOff
+
                 colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "On"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: environmentCollisionsDisabledRadiobutton
+
+                Layout.row: 2
+                Layout.column: 3
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: worldOnOff
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Off"
+                boxSize: 20
             }
         }
 
@@ -316,8 +374,7 @@ Rectangle {
             InputTextStyle4 {
                 id: avatarAnimationUrlInputText
                 font.pixelSize: 17
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.fillWidth: true
                 placeholderText: 'user\\ﬁle\\dir'
 
                 onFocusChanged: {
@@ -346,8 +403,7 @@ Rectangle {
             InputTextStyle4 {
                 id: avatarCollisionSoundUrlInputText
                 font.pixelSize: 17
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.fillWidth: true
                 placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
 
                 onFocusChanged: {

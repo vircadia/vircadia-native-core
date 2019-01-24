@@ -469,7 +469,7 @@ private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
-    void clearDomainOctreeDetails();
+    void clearDomainOctreeDetails(bool clearAll = true);
     void onAboutToQuit();
     void onPresent(quint32 frameCount);
 
@@ -596,6 +596,8 @@ private:
 
     bool _aboutToQuit { false };
 
+    FileLogger* _logger { nullptr };
+
     bool _previousSessionCrashed;
 
     DisplayPluginPointer _displayPlugin;
@@ -675,8 +677,6 @@ private:
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
     QDir _defaultScriptsLocation;
-
-    FileLogger* _logger;
 
     TouchEvent _lastTouchEvent;
 

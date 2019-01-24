@@ -21,7 +21,7 @@ public:
     PulseFilter() = default;
     PulseFilter(float interval) : _interval(interval) {}
 
-    virtual float apply(float value) const override;
+    virtual AxisValue apply(AxisValue value) const override;
 
     virtual Pose apply(Pose value) const override { return value; }
 

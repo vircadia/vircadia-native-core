@@ -691,6 +691,23 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
     return foundEntity;
 }
 
+void EntityTreeElement::cleanupNonLocalEntities() {
+    withWriteLock([&] {
+        EntityItems savedEntities;
+        foreach(EntityItemPointer entity, _entityItems) {
+            if (!entity->isLocalEntity()) {
+                entity->preDelete();
+                entity->_element = NULL;
+            } else {
+                savedEntities.push_back(entity);
+            }
+        }
+
+        _entityItems = savedEntities;
+    });
+    bumpChangedContent();
+}
+
 void EntityTreeElement::cleanupEntities() {
     withWriteLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {

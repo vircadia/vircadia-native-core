@@ -61,3 +61,12 @@ private:
     DisplayPluginList _displayPlugins;
     InputPluginList _inputPlugins;
 };
+
+// TODO: we should define this value in CMake, and then use CMake
+// templating to generate the individual plugin.json files, so that we
+// don't have to update every plugin.json file whenever we update this
+// value.  The value should match "version" in
+//   plugins/*/src/plugin.json
+//   plugins/oculus/src/oculus.json
+//   etc
+static const int HIFI_PLUGIN_INTERFACE_VERSION = 1;

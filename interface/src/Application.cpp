@@ -725,6 +725,8 @@ const QString TEST_RESULTS_LOCATION_COMMAND{ "--testResultsLocation" };
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
+    qInstallMessageHandler(messageHandler);
+
     // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
     // --allowMultipleInstances
     auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
@@ -918,6 +920,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Wallet>();
     DependencyManager::set<WalletScriptingInterface>();
     DependencyManager::set<TTSScriptingInterface>();
+    DependencyManager::set<QmlCommerce>();
 
     DependencyManager::set<FadeEffect>();
     DependencyManager::set<ResourceRequestObserver>();
@@ -975,6 +978,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
+    _logger(new FileLogger(this)),
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
@@ -1063,9 +1067,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #ifdef Q_OS_WIN
     installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
-
-    _logger = new FileLogger(this);
-    qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/fontawesome-webfont.ttf");
@@ -1201,6 +1202,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        if (tabletScriptingInterface) {
+            tabletScriptingInterface->setQmlTabletRoot(SYSTEM_TABLET, nullptr);
+        }
         getOverlays().deleteOverlay(getTabletScreenID());
         getOverlays().deleteOverlay(getTabletHomeButtonID());
         getOverlays().deleteOverlay(getTabletFrameID());
@@ -2061,7 +2066,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["avatar_ping"] = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
         properties["asset_ping"] = assetServerNode ? assetServerNode->getPingMs() : -1;
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
-        properties["atp_in_kbps"] = messagesMixerNode ? assetServerNode->getInboundKbps() : 0.0f;
+        properties["atp_in_kbps"] = assetServerNode ? assetServerNode->getInboundKbps() : 0.0f;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
 
@@ -2202,7 +2207,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
-        properties["avatar_identity_requests_sent"] = DependencyManager::get<AvatarManager>()->getIdentityRequestsSent();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -2356,12 +2360,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     render::entities::WebEntityRenderer::setReleaseWebSurfaceOperator([this](QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface, std::vector<QMetaObject::Connection>& connections) {
         QQuickItem* rootItem = webSurface->getRootItem();
-        if (rootItem && rootItem->objectName() == "tabletRoot") {
-            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            if (tabletScriptingInterface) {
-                tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
-            }
-        }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
         // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
@@ -2536,6 +2534,9 @@ void Application::updateHeartbeat() const {
 }
 
 void Application::onAboutToQuit() {
+    // quickly save AvatarEntityData before the EntityTree is dismantled
+    getMyAvatar()->saveAvatarEntityDataToSettings();
+
     emit beforeAboutToQuit();
 
     if (getLoginDialogPoppedUp() && _firstRun.get()) {
@@ -2673,6 +2674,7 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<ContextOverlayInterface>(); // Must be destroyed before TabletScriptingInterface
 
     // stop QML
+    DependencyManager::destroy<QmlCommerce>();
     DependencyManager::destroy<TabletScriptingInterface>();
     DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
@@ -2941,7 +2943,7 @@ void Application::showLoginScreen() {
         dialogsManager->showLoginDialog();
         emit loginDialogFocusEnabled();
         QJsonObject loginData = {};
-        loginData["action"] = "login dialog shown";
+        loginData["action"] = "login dialog popped up";
         UserActivityLogger::getInstance().logAction("encourageLoginDialog", loginData);
         _window->setWindowTitle("High Fidelity Interface");
     } else {
@@ -2961,7 +2963,7 @@ void Application::initializeUi() {
     Tooltip::registerType();
     UpdateDialog::registerType();
     QmlContextCallback commerceCallback = [](QQmlContext* context) {
-        context->setContextProperty("Commerce", new QmlCommerce());
+        context->setContextProperty("Commerce", DependencyManager::get<QmlCommerce>().data());
     };
     OffscreenQmlSurface::addWhitelistContextHandler({
         QUrl{ "hifi/commerce/checkout/Checkout.qml" },
@@ -2986,6 +2988,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageChange.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
+        QUrl{ "hifi/tablet/TabletMenu.qml" },
     }, commerceCallback);
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
         context->setContextProperty("TextToSpeech", DependencyManager::get<TTSScriptingInterface>().data());
@@ -6096,6 +6099,8 @@ void Application::update(float deltaTime) {
                 if (deltaTime > FLT_EPSILON) {
                     myAvatar->setDriveKey(MyAvatar::PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
                     myAvatar->setDriveKey(MyAvatar::YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
+                    myAvatar->setDriveKey(MyAvatar::DELTA_PITCH, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_PITCH));
+                    myAvatar->setDriveKey(MyAvatar::DELTA_YAW, -1.0f * userInputMapper->getActionState(controller::Action::DELTA_YAW));
                     myAvatar->setDriveKey(MyAvatar::STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
                 }
             }
@@ -6401,7 +6406,7 @@ void Application::update(float deltaTime) {
         // TODO: Fix this by modeling the way the secondary camera works on how the main camera works
         // ie. Use a camera object stored in the game logic and informs the Engine on where the secondary
         // camera should be.
-    //    updateSecondaryCameraViewFrustum();
+        updateSecondaryCameraViewFrustum();
     }
 
     quint64 now = usecTimestampNow();
@@ -6884,9 +6889,11 @@ void Application::updateWindowTitle() const {
     DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
-void Application::clearDomainOctreeDetails() {
+void Application::clearDomainOctreeDetails(bool clearAll) {
+    // before we delete all entities get MyAvatar's AvatarEntityData ready
+    getMyAvatar()->prepareAvatarEntityDataForReload();
 
-    // if we're about to quit, we really don't need to do any of these things...
+    // if we're about to quit, we really don't need to do the rest of these things...
     if (_aboutToQuit) {
         return;
     }
@@ -6901,7 +6908,7 @@ void Application::clearDomainOctreeDetails() {
     });
 
     // reset the model renderer
-    getEntities()->clear();
+    clearAll ? getEntities()->clear() : getEntities()->clearNonLocalEntities();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
@@ -6914,8 +6921,6 @@ void Application::clearDomainOctreeDetails() {
     ShaderCache::instance().clearUnusedResources();
     DependencyManager::get<TextureCache>()->clearUnusedResources();
     DependencyManager::get<recording::ClipCache>()->clearUnusedResources();
-
-    getMyAvatar()->setAvatarEntityDataChanged(true);
 }
 
 void Application::domainURLChanged(QUrl domainURL) {
@@ -6941,7 +6946,7 @@ void Application::goToErrorDomainURL(QUrl errorDomainURL) {
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
 
-    clearDomainOctreeDetails();
+    clearDomainOctreeDetails(false);
 }
 
 void Application::nodeAdded(SharedNodePointer node) const {
@@ -7027,7 +7032,7 @@ void Application::nodeKilled(SharedNodePointer node) {
         QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "audioMixerKilled");
     } else if (node->getType() == NodeType::EntityServer) {
         // we lost an entity server, clear all of the domain octree details
-        clearDomainOctreeDetails();
+        clearDomainOctreeDetails(false);
     } else if (node->getType() == NodeType::AssetServer) {
         // asset server going away - check if we have the asset browser showing
 
@@ -8142,8 +8147,7 @@ void Application::openUrl(const QUrl& url) const {
         if (url.scheme() == URL_SCHEME_HIFI) {
             DependencyManager::get<AddressManager>()->handleLookupString(url.toString());
         } else if (url.scheme() == URL_SCHEME_HIFIAPP) {
-            QmlCommerce commerce;
-            commerce.openSystemApp(url.path());
+            DependencyManager::get<QmlCommerce>()->openSystemApp(url.path());
         } else {
             // address manager did not handle - ask QDesktopServices to handle
             QDesktopServices::openUrl(url);
