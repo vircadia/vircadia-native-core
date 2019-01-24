@@ -441,6 +441,8 @@ public:
 
     void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
 
+    void tearDownGrabs();
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -543,7 +545,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
-    bool updateGrabs();
+    bool applyGrabChanges();
     void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
@@ -637,8 +639,8 @@ protected:
     using MapOfGrabs = std::map<QUuid, GrabPointer>;
 
     MapOfGrabs _avatarGrabs;
-    SetOfIDs _changedAvatarGrabs; // updated grab IDs -- changes needed to entities or physics
-    VectorOfIDs _deletedAvatarGrabs; // deleted grab IDs -- changes needed to entities or physics
+    SetOfIDs _grabsToChange; // updated grab IDs -- changes needed to entities or physics
+    VectorOfIDs _grabsToDelete; // deleted grab IDs -- changes needed to entities or physics
 };
 
 #endif // hifi_Avatar_h

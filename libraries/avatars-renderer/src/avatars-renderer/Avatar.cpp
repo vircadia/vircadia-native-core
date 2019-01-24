@@ -324,8 +324,8 @@ void Avatar::removeAvatarEntitiesFromTree() {
     }
 }
 
-bool Avatar::updateGrabs() {
-    if (!_avatarGrabDataChanged && _changedAvatarGrabs.empty() && _deletedAvatarGrabs.empty()) {
+bool Avatar::applyGrabChanges() {
+    if (!_avatarGrabDataChanged && _grabsToChange.empty() && _grabsToDelete.empty()) {
         // early exit for most common case: nothing to do
         return false;
     }
@@ -340,11 +340,11 @@ bool Avatar::updateGrabs() {
                     GrabPointer grab = std::make_shared<Grab>();
                     grab->fromByteArray(_avatarGrabData.value(grabID));
                     _avatarGrabs[grabID] = grab;
-                    _changedAvatarGrabs.insert(grabID);
+                    _grabsToChange.insert(grabID);
                 } else {
                     bool changed = itr->second->fromByteArray(_avatarGrabData.value(grabID));
                     if (changed) {
-                        _changedAvatarGrabs.insert(grabID);
+                        _grabsToChange.insert(grabID);
                     }
                 }
             }
@@ -353,7 +353,7 @@ bool Avatar::updateGrabs() {
 
         // delete _avatarGrabs
         VectorOfIDs undeleted;
-        for (const auto& id : _deletedAvatarGrabs) {
+        for (const auto& id : _grabsToDelete) {
             MapOfGrabs::iterator itr = _avatarGrabs.find(id);
             if (itr == _avatarGrabs.end()) {
                 continue;
@@ -370,11 +370,11 @@ bool Avatar::updateGrabs() {
                 undeleted.push_back(id);
             }
         }
-        _deletedAvatarGrabs = std::move(undeleted);
+        _grabsToDelete = std::move(undeleted);
 
         // change _avatarGrabs and add Actions to target
         SetOfIDs unchanged;
-        for (const auto& id : _changedAvatarGrabs) {
+        for (const auto& id : _grabsToChange) {
             MapOfGrabs::iterator itr = _avatarGrabs.find(id);
             if (itr == _avatarGrabs.end()) {
                 continue;
@@ -396,7 +396,7 @@ bool Avatar::updateGrabs() {
                 unchanged.insert(id);
             }
         }
-        _changedAvatarGrabs = std::move(unchanged);
+        _grabsToChange = std::move(unchanged);
     });
     return grabAddedOrRemoved;
 }
@@ -421,6 +421,20 @@ void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& g
             grabLocationAccumulator.accumulate(extractTranslation(worldTransform), extractRotation(worldTransform));
         }
     });
+}
+
+void Avatar::tearDownGrabs() {
+    _avatarGrabsLock.withWriteLock([&] {
+        for (const auto& entry : _avatarGrabs) {
+            _grabsToDelete.push_back(entry.first);
+        }
+        _grabsToChange.clear();
+    });
+    applyGrabChanges();
+    if (!_grabsToDelete.empty()) {
+        // some grabs failed to delete, which is a possible "leak", so we log about it
+        qWarning() << "Failed to tearDown" << _grabsToDelete.size() << "grabs for Avatar" << getID();
+    }
 }
 
 void Avatar::relayJointDataToChildren() {
@@ -1925,7 +1939,7 @@ void Avatar::clearAvatarGrabData(const QUuid& id) {
     AvatarData::clearAvatarGrabData(id);
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabs.find(id) == _avatarGrabs.end()) {
-            _deletedAvatarGrabs.push_back(id);
+            _grabsToDelete.push_back(id);
         }
     });
 }
