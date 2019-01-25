@@ -14,6 +14,11 @@
 #include <QtCore/QDebug>
 #include <QtCore/QPluginLoader>
 
+//#define HIFI_PLUGINMANAGER_DEBUG
+#if defined(HIFI_PLUGINMANAGER_DEBUG)
+#include <QJsonDocument>
+#endif
+
 #include <DependencyManager.h>
 #include <UserActivityLogger.h>
 
@@ -79,10 +84,7 @@ bool isDisabled(QJsonObject metaData) {
     return false;
 }
 
-using Loader = QSharedPointer<QPluginLoader>;
-using LoaderList = QList<Loader>;
-
-const LoaderList& getLoadedPlugins() {
+ auto PluginManager::getLoadedPlugins() const -> const LoaderList& {
     static std::once_flag once;
     static LoaderList loadedPlugins;
     std::call_once(once, [&] {
@@ -106,15 +108,25 @@ const LoaderList& getLoadedPlugins() {
             for (auto plugin : candidates) {
                 qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
                 QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
-
-                if (isDisabled(loader->metaData())) {
+                const QJsonObject pluginMetaData = loader->metaData();
+#if defined(HIFI_PLUGINMANAGER_DEBUG)
+                QJsonDocument metaDataDoc(pluginMetaData);
+                qCInfo(plugins) << "Metadata for " << qPrintable(plugin) << ": " << QString(metaDataDoc.toJson());
+#endif
+                if (isDisabled(pluginMetaData)) {
                     qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "is disabled";
                     // Skip this one, it's disabled
                     continue;
                 }
-                if (getPluginInterfaceVersionFromMetaData(loader->metaData()) != HIFI_PLUGIN_INTERFACE_VERSION) {
+
+                if (!_pluginFilter(pluginMetaData)) {
+                    qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "doesn't pass provided filter";
+                    continue;
+                }
+
+                if (getPluginInterfaceVersionFromMetaData(pluginMetaData) != HIFI_PLUGIN_INTERFACE_VERSION) {
                     qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "interface version doesn't match, not loading:"
-                                       << getPluginInterfaceVersionFromMetaData(loader->metaData())
+                                       << getPluginInterfaceVersionFromMetaData(pluginMetaData)
                                        << "doesn't match" << HIFI_PLUGIN_INTERFACE_VERSION;
                     continue;
                 }
