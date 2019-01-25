@@ -189,7 +189,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPose beforeSolveChestNeck;
     if (_poses.size() > 0) {
 
-
+        // fix this to deal with no neck AA
         beforeSolveChestNeck = _skeleton->getAbsolutePose(_skeleton->nameToJointIndex("Neck"), _poses);
 
         secondaryJointChain.buildFromRelativePoses(_skeleton, _poses, secondaryTarget.getIndex());
@@ -205,12 +205,13 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose secondaryTargetPose(target2.getRotation(), target2.getTranslation());
         AnimPose secondaryTargetRelativePose = _skeleton->getAbsolutePose(secondaryTargetParent, _poses).inverse() * secondaryTargetPose;
         _poses[_secondaryTargetIndex] = secondaryTargetRelativePose;
-
-        
-        AnimPose neckAbsolute = _skeleton->getAbsolutePose(tipParent, _poses);
-        AnimPose finalNeckAbsolute = AnimPose(safeLerp(target2.getRotation(), target.getRotation(), 1.0f),neckAbsolute.trans());
-        _poses[headParent] = spine2Target.inverse() * beforeSolveChestNeck;
         */
+
+        AnimPose secondaryTargetPose(secondaryTarget.getRotation(), secondaryTarget.getTranslation());
+        AnimPose neckAbsolute = _skeleton->getAbsolutePose(tipParent, _poses);
+        //AnimPose finalNeckAbsolute = AnimPose(safeLerp(target2.getRotation(), target.getRotation(), 1.0f),neckAbsolute.trans());
+        _poses[tipParent] = secondaryTargetPose.inverse() * beforeSolveChestNeck;
+        
         AnimPose tipTarget(target.getRotation(),target.getTranslation());
         AnimPose tipRelativePose = _skeleton->getAbsolutePose(tipParent,_poses).inverse() * tipTarget;
         _poses[_tipJointIndex] = tipRelativePose;
