@@ -246,6 +246,7 @@ void AssetsBackupHandler::createBackup(const QString& backupName, QuaZip& zip) {
 
     if (_assetServerEnabled && _lastMappingsRefresh.time_since_epoch().count() == 0) {
         qCWarning(asset_backup) << "Current mappings not yet loaded.";
+        _backups.emplace_back(backupName, AssetUtils::Mappings(), true);
         return;
     }
 

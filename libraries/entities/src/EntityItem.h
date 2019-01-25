@@ -299,6 +299,9 @@ public:
     PrimitiveMode getPrimitiveMode() const;
     void setPrimitiveMode(PrimitiveMode value);
 
+    bool getIgnorePickIntersection() const;
+    void setIgnorePickIntersection(bool value);
+
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
@@ -630,6 +633,7 @@ protected:
     RenderLayer _renderLayer { RenderLayer::WORLD };
     PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
+    bool _ignorePickIntersection { false };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
