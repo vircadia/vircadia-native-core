@@ -21,16 +21,20 @@
 #include "Nitpick.h"
 extern Nitpick* nitpick;
 
-TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
-                       std::vector<QCheckBox*> timeEditCheckboxes,
-                       std::vector<QTimeEdit*> timeEdits,
-                       QLabel* workingFolderLabel,
-                       QCheckBox* runServerless,
-                       QCheckBox* runLatest,
-                       QLineEdit* url,
-                       QPushButton* runNow,
-                       QObject* parent) :
-    QObject(parent) {
+TestRunnerDesktop::TestRunnerDesktop(
+    std::vector<QCheckBox*> dayCheckboxes,
+    std::vector<QCheckBox*> timeEditCheckboxes,
+    std::vector<QTimeEdit*> timeEdits,
+    QLabel* workingFolderLabel,
+    QCheckBox* runServerless,
+    QCheckBox* runLatest,
+    QLineEdit* url,
+    QPushButton* runNow,
+    QLabel* statusLabel,
+
+    QObject* parent
+) : QObject(parent) 
+{
     _dayCheckboxes = dayCheckboxes;
     _timeEditCheckboxes = timeEditCheckboxes;
     _timeEdits = timeEdits;
@@ -39,6 +43,7 @@ TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
     _runLatest = runLatest;
     _url = url;
     _runNow = runNow;
+    _statusLabel = statusLabel;
 
     _installerThread = new QThread();
     _installerWorker = new InstallerWorker();
@@ -176,7 +181,7 @@ void TestRunnerDesktop::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
-    updateStatusLabel("Downloading Build XML");
+    _statusLabel->setText("Downloading Build XML");
     downloadBuildXml((void*)this);
 
     // `downloadComplete` will run after download has completed
@@ -204,7 +209,7 @@ void TestRunnerDesktop::downloadComplete() {
             filenames << _installerFilename;
         }
 
-        updateStatusLabel("Downloading installer");
+        _statusLabel->setText("Downloading installer");
 
         nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
@@ -216,7 +221,7 @@ void TestRunnerDesktop::downloadComplete() {
                   QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
                   _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
 
-        updateStatusLabel("Installing");
+        _statusLabel->setText("Installing");
 
         // Kill any existing processes that would interfere with installation
         killProcesses();
@@ -278,7 +283,7 @@ void TestRunnerDesktop::installationComplete() {
 
     createSnapshotFolder();
 
-    updateStatusLabel("Running tests");
+    _statusLabel->setText("Running tests");
 
     if (!_runServerless->isChecked()) {
         startLocalServerProcesses();
@@ -547,7 +552,7 @@ void TestRunnerDesktop::interfaceExecutionComplete() {
 }
 
 void TestRunnerDesktop::evaluateResults() {
-    updateStatusLabel("Evaluating results");
+    _statusLabel->setText("Evaluating results");
     nitpick->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
@@ -555,7 +560,7 @@ void TestRunnerDesktop::automaticTestRunEvaluationComplete(QString zippedFolder,
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
-    updateStatusLabel("Testing complete");
+    _statusLabel->setText("Testing complete");
 
     QDateTime currentDateTime = QDateTime::currentDateTime();
 
@@ -656,10 +661,6 @@ void TestRunnerDesktop::checkTime() {
     }
 }
 
-void TestRunnerDesktop::updateStatusLabel(const QString& message) {
-    nitpick->updateStatusLabel(message);
-}
-
 void TestRunnerDesktop::appendLog(const QString& message) {
     if (!_logFile.open(QIODevice::Append | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -674,21 +675,6 @@ void TestRunnerDesktop::appendLog(const QString& message) {
     nitpick->appendLogWindow(message);
 }
 
-QString TestRunnerDesktop::getInstallerNameFromURL(const QString& url) {
-    // An example URL: https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe
-    // On Mac, replace `exe` with `dmg`
-    try {
-        QStringList urlParts = url.split("/");
-        return urlParts[urlParts.size() - 1];
-    } catch (QString errorMessage) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
-        exit(-1);
-    } catch (...) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
-        exit(-1);
-    }
-}
-
 QString TestRunnerDesktop::getPRNumberFromURL(const QString& url) {
     try {
         QStringList urlParts = url.split("/");
@@ -701,89 +687,6 @@ QString TestRunnerDesktop::getPRNumberFromURL(const QString& url) {
 #endif
         }
         return filenameParts[filenameParts.size() - 2];
-    } catch (QString errorMessage) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
-        exit(-1);
-    } catch (...) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
-        exit(-1);
-    }
-}
-
-void TestRunnerDesktop::parseBuildInformation() {
-    try {
-        QDomDocument domDocument;
-        QString filename{ _workingFolder + "/" + DEV_BUILD_XML_FILENAME };
-        QFile file(filename);
-        if (!file.open(QIODevice::ReadOnly) || !domDocument.setContent(&file)) {
-            throw QString("Could not open " + filename);
-        }
-
-        QString platformOfInterest;
-#ifdef Q_OS_WIN
-        platformOfInterest = "windows";
-#elif defined(Q_OS_MAC)
-        platformOfInterest = "mac";
-#endif
-
-        QDomElement element = domDocument.documentElement();
-
-        // Verify first element is "projects"
-        if (element.tagName() != "projects") {
-            throw("File seems to be in wrong format");
-        }
-
-        element = element.firstChild().toElement();
-        if (element.tagName() != "project") {
-            throw("File seems to be in wrong format");
-        }
-
-        if (element.attribute("name") != "interface") {
-            throw("File is not from 'interface' build");
-        }
-
-        // Now loop over the platforms, looking for ours
-        bool platformFound{ false };
-        element = element.firstChild().toElement();
-        while (!element.isNull()) {
-            if (element.attribute("name") == platformOfInterest) {
-                platformFound = true;
-                break;
-            }
-            element = element.nextSibling().toElement();
-        }
-
-        if (!platformFound) {
-            throw("File seems to be in wrong format - platform " + platformOfInterest + " not found");
-        }
-
-        element = element.firstChild().toElement();
-        if (element.tagName() != "build") {
-            throw("File seems to be in wrong format");
-        }
-
-        // Next element should be the version
-        element = element.firstChild().toElement();
-        if (element.tagName() != "version") {
-            throw("File seems to be in wrong format");
-        }
-
-        // Add the build number to the end of the filename
-        _buildInformation.build = element.text();
-
-        // First sibling should be stable_version
-        element = element.nextSibling().toElement();
-        if (element.tagName() != "stable_version") {
-            throw("File seems to be in wrong format");
-        }
-
-        // Next sibling should be url
-        element = element.nextSibling().toElement();
-        if (element.tagName() != "url") {
-            throw("File seems to be in wrong format");
-        }
-        _buildInformation.url = element.text();
-
     } catch (QString errorMessage) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), errorMessage);
         exit(-1);

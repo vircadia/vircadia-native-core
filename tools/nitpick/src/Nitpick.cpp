@@ -35,8 +35,10 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
     _ui.tabWidget->removeTab(1);
 #endif
 
-   _ui.statusLabel->setText("");
-   _ui.plainTextEdit->setReadOnly(true);
+    _ui.statusLabelOnDesktop->setText("");
+    _ui.statusLabelOnMobile->setText("");
+ 
+    _ui.plainTextEdit->setReadOnly(true);
 
    setWindowTitle("Nitpick - v2.0.1");
 }
@@ -96,7 +98,8 @@ void Nitpick::setup() {
         _ui.checkBoxServerless, 
         _ui.runLatestOnDesktopCheckBox, 
         _ui.urlOnDesktopLineEdit, 
-        _ui.runNowPushbutton
+        _ui.runNowPushbutton,
+        _ui.statusLabelOnDesktop
     );
 
     if (_testRunnerMobile) {
@@ -108,7 +111,9 @@ void Nitpick::setup() {
         _ui.pullFolderPushbutton, 
         _ui.detectedDeviceLabel, 
         _ui.folderLineEdit,
-        _ui.downloadAPKPushbutton
+        _ui.downloadAPKPushbutton,
+        _ui.runLatestOnMobileCheckBox,
+        _ui.urlOnMobileLineEdit
     );
 }
 
@@ -333,10 +338,6 @@ void Nitpick::setBranchText(const QString& branch) {
 
 QString Nitpick::getSelectedBranch() {
     return _ui.branchLineEdit->text();
-}
-
-void Nitpick::updateStatusLabel(const QString& status) {
-    _ui.statusLabel->setText(status);
 }
 
 void Nitpick::appendLogWindow(const QString& message) {

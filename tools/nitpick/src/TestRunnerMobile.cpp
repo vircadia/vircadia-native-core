@@ -23,6 +23,9 @@ TestRunnerMobile::TestRunnerMobile(
     QLabel* detectedDeviceLabel,
     QLineEdit *folderLineEdit,
     QPushButton* downloadAPKPushbutton,
+    QCheckBox* runLatest,
+    QLineEdit* url,
+
     QObject* parent
 ) : QObject(parent) 
 {
@@ -32,6 +35,8 @@ TestRunnerMobile::TestRunnerMobile(
     _detectedDeviceLabel = detectedDeviceLabel;
     _folderLineEdit = folderLineEdit;
     _downloadAPKPushbutton = downloadAPKPushbutton;
+    _runLatest = runLatest;
+    _url = url;
 
     folderLineEdit->setText("/sdcard/DCIM/TEST");
 }
@@ -111,10 +116,44 @@ void TestRunnerMobile::downloadComplete() {
         // Download of Build XML has completed
         buildXMLDownloaded = true;
 
-        // Download the High Fidelity APK
-        int df = 546;
+        // Download the High Fidelity installer
+        QStringList urls;
+        QStringList filenames;
+        if (_runLatest->isChecked()) {
+            parseBuildInformation();
+
+            _installerFilename = INSTALLER_FILENAME_LATEST;
+
+            urls << _buildInformation.url;
+            filenames << _installerFilename;
+        } else {
+            QString urlText = _url->text();
+            urls << urlText;
+            _installerFilename = getInstallerNameFromURL(urlText);
+            filenames << _installerFilename;
+        }
+
+       _statusLabel->setText("Downloading installer");
+
+       //// nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+
+        // `downloadComplete` will run again after download has completed
+
+    } else {
+        // Download of Installer has completed
+////        appendLog(QString("Tests started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
+////            QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
+////            _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
+
+        _statusLabel->setText("Installing");
+
+        // Kill any existing processes that would interfere with installation
+////        killProcesses();
+
+////        runInstaller();
     }
 }
+
 void TestRunnerMobile::pullFolder() {
     QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + " >" + _workingFolder + "/pullOutput.txt";
     system(command.toStdString().c_str());

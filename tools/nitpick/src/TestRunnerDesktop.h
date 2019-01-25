@@ -11,10 +11,8 @@
 #ifndef hifi_testRunnerDesktop_h
 #define hifi_testRunnerDesktop_h
 
-#include <QCheckBox>
 #include <QDir>
 #include <QLabel>
-#include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
 #include <QThread>
@@ -23,27 +21,25 @@
 
 #include "TestRunner.h"
 
-class BuildInformation {
-public:
-    QString build;
-    QString url;
-};
-
 class InterfaceWorker;
 class InstallerWorker;
 
 class TestRunnerDesktop : public QObject, public TestRunner {
     Q_OBJECT
 public:
-    explicit TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
-                        std::vector<QCheckBox*> timeEditCheckboxes,
-                        std::vector<QTimeEdit*> timeEdits,
-                        QLabel* workingFolderLabel,
-                        QCheckBox* runServerless,
-                        QCheckBox* runLatest,
-                        QLineEdit* url,
-                        QPushButton* runNow,
-                        QObject* parent = 0);
+    explicit TestRunnerDesktop(
+        std::vector<QCheckBox*> dayCheckboxes,
+        std::vector<QCheckBox*> timeEditCheckboxes,
+        std::vector<QTimeEdit*> timeEdits,
+        QLabel* workingFolderLabel,
+        QCheckBox* runServerless,
+        QCheckBox* runLatest,
+        QLineEdit* url,
+        QPushButton* runNow,
+        QLabel* statusLabel,
+
+        QObject* parent = 0
+    );
 
     ~TestRunnerDesktop();
 
@@ -71,13 +67,9 @@ public:
 
     void copyFolder(const QString& source, const QString& destination);
 
-    void updateStatusLabel(const QString& message);
     void appendLog(const QString& message);
 
-    QString getInstallerNameFromURL(const QString& url);
     QString getPRNumberFromURL(const QString& url);
-
-    void parseBuildInformation();
 
 private slots:
     void checkTime();
@@ -91,14 +83,6 @@ signals:
     
 private:
     bool _automatedTestIsRunning{ false };
-
-#ifdef Q_OS_WIN
-    const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.exe" };
-#elif defined(Q_OS_MAC)
-    const QString INSTALLER_FILENAME_LATEST{ "HighFidelity-Beta-latest-dev.dmg" };
-#else
-    const QString INSTALLER_FILENAME_LATEST{ "" };
-#endif
 
     QString _installerURL;
     QString _installerFilename;
@@ -120,8 +104,6 @@ private:
     std::vector<QTimeEdit*> _timeEdits;
     QLabel* _workingFolderLabel;
     QCheckBox* _runServerless;
-    QCheckBox* _runLatest;
-    QLineEdit* _url;
     QPushButton* _runNow;
     QTimer* _timer;
 
@@ -134,8 +116,6 @@ private:
 
     InstallerWorker* _installerWorker;
     InterfaceWorker* _interfaceWorker;
-
-    BuildInformation _buildInformation;
 };
 
 class InstallerWorker : public Worker {

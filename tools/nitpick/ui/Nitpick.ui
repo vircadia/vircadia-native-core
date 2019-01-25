@@ -469,7 +469,7 @@
        <string>Status:</string>
       </property>
      </widget>
-     <widget class="QLabel" name="statusLabel">
+     <widget class="QLabel" name="statusLabelOnDesktop">
       <property name="geometry">
        <rect>
         <x>350</x>
@@ -681,6 +681,32 @@
       </property>
       <property name="text">
        <string>Download APK</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderLabel_4">
+      <property name="geometry">
+       <rect>
+        <x>290</x>
+        <y>20</y>
+        <width>41</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Status:</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="statusLabelOnMobile">
+      <property name="geometry">
+       <rect>
+        <x>340</x>
+        <y>20</y>
+        <width>271</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>#######</string>
       </property>
      </widget>
     </widget>

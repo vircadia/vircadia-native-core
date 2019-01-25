@@ -12,7 +12,6 @@
 #define hifi_testRunnerMobile_h
 
 #include <QLabel>
-#include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
 
@@ -22,12 +21,15 @@ class TestRunnerMobile : public QObject, public TestRunner {
     Q_OBJECT
 public:
     explicit TestRunnerMobile(
-        QLabel* workingFolderLabel, 
-        QPushButton *connectDeviceButton, 
-        QPushButton *pullFolderButton, 
-        QLabel* detectedDeviceLabel, 
-        QLineEdit* folderLineEdit,
+        QLabel* workingFolderLabel,
+        QPushButton *connectDeviceButton,
+        QPushButton *pullFolderButton,
+        QLabel* detectedDeviceLabel,
+        QLineEdit *folderLineEdit,
         QPushButton* downloadAPKPushbutton,
+        QCheckBox* runLatest,
+        QLineEdit* url,
+
         QObject* parent = 0
     );
     ~TestRunnerMobile();
@@ -39,7 +41,6 @@ public:
     void pullFolder();
 
 private:
-    QLabel* _workingFolderLabel;
     QPushButton* _connectDeviceButton;
     QPushButton* _pullFolderButton;
     QLabel* _detectedDeviceLabel;
@@ -52,6 +53,8 @@ private:
     // Both Mac and Linux use "adb"
     const QString _adbExe{ "adb" };
 #endif
+
+    QString _installerFilename;
 
     QString _adbCommand;
 
