@@ -297,6 +297,8 @@ public:
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
 
+    void setCollisionWithOtherAvatarsFlags() override;
+
     /**jsdoc
      * @function MyAvatar.resetSensorsAndBody
      */
@@ -1732,7 +1734,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    int32_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
+    int32_t _previousCollisionMask { BULLET_COLLISION_MASK_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;

@@ -496,6 +496,8 @@ public:
     /// \return number of bytes parsed
     virtual int parseDataFromBuffer(const QByteArray& buffer);
 
+    virtual void setCollisionWithOtherAvatarsFlags() {};
+
     // Body Rotation (degrees)
     float getBodyYaw() const;
     void setBodyYaw(float bodyYaw);
