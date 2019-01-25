@@ -29,6 +29,7 @@ public:
         QPushButton* downloadAPKPushbutton,
         QCheckBox* runLatest,
         QLineEdit* url,
+        QLabel* statusLabel,
 
         QObject* parent = 0
     );

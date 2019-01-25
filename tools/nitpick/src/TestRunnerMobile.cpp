@@ -25,6 +25,7 @@ TestRunnerMobile::TestRunnerMobile(
     QPushButton* downloadAPKPushbutton,
     QCheckBox* runLatest,
     QLineEdit* url,
+    QLabel* statusLabel,
 
     QObject* parent
 ) : QObject(parent) 
@@ -37,6 +38,7 @@ TestRunnerMobile::TestRunnerMobile(
     _downloadAPKPushbutton = downloadAPKPushbutton;
     _runLatest = runLatest;
     _url = url;
+    _statusLabel = statusLabel;
 
     folderLineEdit->setText("/sdcard/DCIM/TEST");
 }
@@ -124,6 +126,11 @@ void TestRunnerMobile::downloadComplete() {
 
             _installerFilename = INSTALLER_FILENAME_LATEST;
 
+
+            // Replace the `exe` extension with `apk`
+            _installerFilename = _installerFilename.replace(_installerFilename.length() - 3, 3, "apk");
+            _buildInformation.url = _buildInformation.url.replace(_buildInformation.url.length() - 3, 3, "apk");
+
             urls << _buildInformation.url;
             filenames << _installerFilename;
         } else {
@@ -135,7 +142,7 @@ void TestRunnerMobile::downloadComplete() {
 
        _statusLabel->setText("Downloading installer");
 
-       //// nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+        nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
         // `downloadComplete` will run again after download has completed
 

@@ -113,7 +113,8 @@ void Nitpick::setup() {
         _ui.folderLineEdit,
         _ui.downloadAPKPushbutton,
         _ui.runLatestOnMobileCheckBox,
-        _ui.urlOnMobileLineEdit
+        _ui.urlOnMobileLineEdit,
+        _ui.statusLabelOnMobile
     );
 }
 
