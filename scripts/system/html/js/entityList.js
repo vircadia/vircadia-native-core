@@ -672,17 +672,14 @@ function loaded() {
                         let valueB = entityB[currentSortColumnID];
 
                         if (valueA === valueB) {
-                            if (entityA.id < entityB.id) {
-                                return -1;
-                            }
-                            return 1;
+                            return entityA.id < entityB.id ? -1 : 1;
                         }
 
                         if (isNullOrEmpty(valueA)) {
-                            return (isDefaultSort && isAscendingSort) ? 1 : -1;
+                            return (isDefaultSort ? 1 : -1) * (isAscendingSort ? 1 : -1);
                         }
                         if (isNullOrEmpty(valueB)) {
-                            return (isDefaultSort && isAscendingSort) ? -1 : 1;
+                            return (isDefaultSort ? -1 : 1) * (isAscendingSort ? 1 : -1);
                         }
                         return valueA < valueB ? -1 : 1;
                     });
