@@ -125,8 +125,8 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose afterSolveSecondaryTarget = _skeleton->getAbsolutePose(_secondaryTargetIndex, _poses);
         glm::quat secondaryTargetRotation = animVars.lookupRigToGeometry(_secondaryTargetRotationVar, afterSolveSecondaryTarget.rot());
         
-        // updatedSecondaryTarget = AnimPose(secondaryTargetRotation, afterSolveSpine2.trans());  
-        updatedSecondaryTarget = AnimPose(afterSolveSecondaryTarget.rot(), afterSolveSecondaryTarget.trans());
+        updatedSecondaryTarget = AnimPose(secondaryTargetRotation, afterSolveSecondaryTarget.trans());  
+        //updatedSecondaryTarget = AnimPose(afterSolveSecondaryTarget.rot(), afterSolveSecondaryTarget.trans());
     }
 
     
@@ -141,10 +141,10 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         secondaryTarget.setPose(updatedSecondaryTarget.rot(), updatedSecondaryTarget.trans());
         secondaryTarget.setWeight(weight2);
         
-        const float* flexCoefficients2 = new float[3]{ 1.0f, 1.0f, 1.0f };
+        const float* flexCoefficients2 = new float[3]{ 1.0f, 0.5f, 0.25f };
         secondaryTarget.setFlexCoefficients(3, flexCoefficients2);
     }
-    /*
+    
     AnimChain secondaryJointChain;
     AnimPose beforeSolveChestNeck;
     if (_poses.size() > 0) {
@@ -157,7 +157,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         secondaryJointChain.outputRelativePoses(_poses);
     }
     
-    */
+    
     
     const float FRAMES_PER_SECOND = 30.0f;
     _interpAlphaVel = FRAMES_PER_SECOND / _interpDuration;
@@ -183,9 +183,9 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose finalNeckAbsolute = AnimPose(safeLerp(target2.getRotation(), target.getRotation(), 1.0f),neckAbsolute.trans());
         _poses[headParent] = spine2Target.inverse() * beforeSolveChestNeck;
         */
-        //AnimPose tipTarget(target.getRotation(),target.getTranslation());
-        //AnimPose tipRelativePose = _skeleton->getAbsolutePose(tipParent,_poses).inverse() * headTarget;
-        //_poses[_tipJointIndex] = tipHeadRelativePose;
+        AnimPose tipTarget(target.getRotation(),target.getTranslation());
+        AnimPose tipRelativePose = _skeleton->getAbsolutePose(tipParent,_poses).inverse() * tipTarget;
+        _poses[_tipJointIndex] = tipRelativePose;
     }
 
     // debug render ik targets
