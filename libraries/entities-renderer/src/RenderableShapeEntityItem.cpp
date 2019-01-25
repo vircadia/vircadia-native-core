@@ -42,10 +42,23 @@ ShapeEntityRenderer::ShapeEntityRenderer(const EntityItemPointer& entity) : Pare
     // TODO: move into Procedural.cpp
     PrepareStencil::testMaskDrawShape(*_procedural._opaqueState);
     PrepareStencil::testMask(*_procedural._transparentState);
+
+    addMaterial(graphics::MaterialLayer(_material, 0), "0");
 }
 
 bool ShapeEntityRenderer::needsRenderUpdate() const {
-    if (_procedural.isEnabled() && _procedural.isFading()) {
+    if (resultWithReadLock<bool>([&] {
+        if (_procedural.isEnabled() && _procedural.isFading()) {
+            return true;
+        }
+
+        auto mat = _materials.find("0");
+        if (mat != _materials.end() && mat->second.needsUpdate()) {
+            return true;
+        }
+
+        return false;
+    })) {
         return true;
     }
 
@@ -56,7 +69,11 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
     if (_lastUserData != entity->getUserData()) {
         return true;
     }
-    if (_material != entity->getMaterial()) {
+
+    if (_color != entity->getColor()) {
+        return true;
+    }
+    if (_alpha != entity->getAlpha()) {
         return true;
     }
 
@@ -78,10 +95,6 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             _lastUserData = userData;
             _procedural.setProceduralData(ProceduralData::parse(_lastUserData));
         }
-
-        removeMaterial(_material, "0");
-        _material = entity->getMaterial();
-        addMaterial(graphics::MaterialLayer(_material, 0), "0");
 
         _shape = entity->getShape();
     });
@@ -111,6 +124,20 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
             _procedural.setIsFading(isFading);
         }
     });
+
+    glm::u8vec3 color = entity->getColor();
+    float alpha = entity->getAlpha();
+    if (_color != color || _alpha != alpha) {
+        _color = color;
+        _alpha = alpha;
+        _material->setAlbedo(toGlm(_color));
+        _material->setOpacity(_alpha);
+
+        auto materials = _materials.find("0");
+        if (materials != _materials.end()) {
+            materials->second.setNeedsUpdate(true);
+        }
+    }
 }
 
 bool ShapeEntityRenderer::isTransparent() const {
@@ -120,18 +147,15 @@ bool ShapeEntityRenderer::isTransparent() const {
 
     auto mat = _materials.find("0");
     if (mat != _materials.end()) {
-        if (mat->second.top().material) {
-            auto matKey = mat->second.top().material->getKey();
-            if (matKey.isTranslucent()) {
-                return true;
-            }
+        if (mat->second.getMaterialKey().isTranslucent()) {
+            return true;
         }
     }
 
     return Parent::isTransparent();
 }
 
-bool ShapeEntityRenderer::useMaterialPipeline() const {
+bool ShapeEntityRenderer::useMaterialPipeline(const graphics::MultiMaterial& materials) const {
     bool proceduralReady = resultWithReadLock<bool>([&] {
         return _procedural.isReady();
     });
@@ -139,12 +163,7 @@ bool ShapeEntityRenderer::useMaterialPipeline() const {
         return false;
     }
 
-    graphics::MaterialKey drawMaterialKey;
-    auto mat = _materials.find("0");
-    if (mat != _materials.end() && mat->second.top().material) {
-        drawMaterialKey = mat->second.top().material->getKey();
-    }
-
+    graphics::MaterialKey drawMaterialKey = materials.getMaterialKey();
     if (drawMaterialKey.isEmissive() || drawMaterialKey.isUnlit() || drawMaterialKey.isMetallic() || drawMaterialKey.isScattering()) {
         return true;
     }
@@ -159,11 +178,13 @@ bool ShapeEntityRenderer::useMaterialPipeline() const {
 }
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
-    if (useMaterialPipeline()) {
-        graphics::MaterialKey drawMaterialKey;
-        if (_materials["0"].top().material) {
-            drawMaterialKey = _materials["0"].top().material->getKey();
-        }
+    auto mat = _materials.find("0");
+    if (mat != _materials.end() && mat->second.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(mat->second);
+    }
+
+    if (mat != _materials.end() && useMaterialPipeline(mat->second)) {
+        graphics::MaterialKey drawMaterialKey = mat->second.getMaterialKey();
 
         bool isTranslucent = drawMaterialKey.isTranslucent();
         bool hasTangents = drawMaterialKey.isNormalMap();
@@ -216,7 +237,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
 
-    std::shared_ptr<graphics::Material> mat;
+    graphics::MultiMaterial materials;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape;
     bool proceduralRender = false;
@@ -224,21 +245,16 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     withReadLock([&] {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
-        mat = _materials["0"].top().material;
-        if (mat) {
-            outColor = glm::vec4(mat->getAlbedo(), mat->getOpacity());
-            if (_procedural.isReady()) {
-                outColor = _procedural.getColor(outColor);
-                outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
-                _procedural.prepare(batch, _position, _dimensions, _orientation, ProceduralProgramKey(outColor.a < 1.0f));
-                proceduralRender = true;
-            }
+        materials = _materials["0"];
+        auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
+        outColor = glm::vec4(schema._albedo, schema._opacity);
+        if (_procedural.isReady()) {
+            outColor = _procedural.getColor(outColor);
+            outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
+            _procedural.prepare(batch, _position, _dimensions, _orientation, ProceduralProgramKey(outColor.a < 1.0f));
+            proceduralRender = true;
         }
     });
-
-    if (!mat) {
-        return;
-    }
 
     if (proceduralRender) {
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
@@ -246,7 +262,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         } else {
             geometryCache->renderShape(batch, geometryShape, outColor);
         }
-    } else if (!useMaterialPipeline()) {
+    } else if (!useMaterialPipeline(materials)) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline;
@@ -262,7 +278,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         }
     } else {
         if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-            RenderPipelines::bindMaterial(mat, batch, args->_enableTexturing);
+            RenderPipelines::bindMaterials(materials, batch, args->_enableTexturing);
             args->_details._materialSwitches++;
         }
 
@@ -281,8 +297,9 @@ scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel()  {
     {
         std::lock_guard<std::mutex> lock(_materialsLock);
         result.appendMaterials(_materials);
-        if (_materials["0"].top().material) {
-            vertexColor = _materials["0"].top().material->getAlbedo();
+        auto materials = _materials.find("0");
+        if (materials != _materials.end()) {
+            vertexColor = materials->second.getSchemaBuffer().get<graphics::MultiMaterial::Schema>()._albedo;
         }
     }
     if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {
