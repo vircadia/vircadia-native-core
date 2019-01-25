@@ -367,17 +367,17 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     @Override
     public void onCancelProfileEdit() {
-        getFragmentManager().popBackStack();
+        loadHomeFragment(false);
     }
 
     @Override
     public void onCompleteProfileEdit() {
-        getFragmentManager().popBackStack();
+        loadHomeFragment(false);
     }
 
     @Override
     public void onAvatarChosen() {
-        getFragmentManager().popBackStack();
+        loadHomeFragment(false);
     }
 
     private class RoundProfilePictureCallback implements Callback {
