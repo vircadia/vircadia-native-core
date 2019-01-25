@@ -232,6 +232,12 @@ void ShapeEntityItem::setAlpha(float alpha) {
     });
 }
 
+float ShapeEntityItem::getAlpha() const {
+    return resultWithReadLock<float>([&] {
+        return _alpha;
+    });
+}
+
 void ShapeEntityItem::setUnscaledDimensions(const glm::vec3& value) {
     const float MAX_FLAT_DIMENSION = 0.0001f;
     if ((_shape == entity::Shape::Circle || _shape == entity::Shape::Quad) && value.y > MAX_FLAT_DIMENSION) {
