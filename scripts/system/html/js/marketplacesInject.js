@@ -258,12 +258,13 @@
                 priceElement.text() === 'not for sale') {
                 available = false;
                 priceElement.css({
-                    "padding": "3px 5px 10px 5px",
+                    "padding": "3px 5px",
                     "height": "40px",
+                    "width": "100px",
                     "background": "linear-gradient(#a2a2a2, #fefefe)",
                     "color": "#000",
                     "font-weight": "600",
-                    "line-height": "34px"
+                    "line-height": "20px"
                 });
             } else {
                 priceElement.css({
