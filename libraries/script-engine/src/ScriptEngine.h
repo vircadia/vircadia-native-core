@@ -145,6 +145,9 @@ public:
 
     QString getFilename() const;
 
+
+    QList<EntityItemID> getListOfEntityScriptIDs();
+
     /**jsdoc
      * Stop the current script.
      * @function Script.stop
@@ -563,6 +566,8 @@ public:
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
     bool hasEntityScriptDetails(const EntityItemID& entityID) const;
 
+    void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
+
 public slots:
 
     /**jsdoc
@@ -814,6 +819,8 @@ protected:
     static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
 
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
+
+    QWeakPointer<ScriptEngines> _scriptEngines;
 };
 
 ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,

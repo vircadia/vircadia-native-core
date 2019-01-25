@@ -1333,8 +1333,12 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
                 } else if (injector->isStereo()) {
 
+                    // calculate distance, gain
+                    glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                    float distance = glm::max(glm::length(relativePosition), EPSILON);
+                    float gain = gainForSource(distance, injector->getVolume());
+
                     // stereo gets directly mixed into mixBuffer
-                    float gain = injector->getVolume();
                     for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
                         mixBuffer[i] += convertToFloat(_localScratchBuffer[i]) * gain;
                     }

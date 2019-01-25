@@ -439,7 +439,6 @@ int Rig::indexOfJoint(const QString& jointName) const {
 
         // This is a content error, so we should issue a warning.
         if (result < 0 && _jointNameWarningCount < MAX_JOINT_NAME_WARNING_COUNT) {
-            qCWarning(animation) << "Rig: Missing joint" << jointName << "in avatar model";
             _jointNameWarningCount++;
         }
         return result;
@@ -2026,11 +2025,10 @@ void Rig::copyJointsIntoJointData(QVector<JointData>& jointDataVec) const {
             data.rotation = !_sendNetworkNode ? _internalPoseSet._absolutePoses[i].rot() : _networkPoseSet._absolutePoses[i].rot();
             data.rotationIsDefaultPose = isEqual(data.rotation, defaultAbsRot);
 
-            // translations are in relative frame but scaled so that they are in meters,
-            // instead of model units.
+            // translations are in relative frame.
             glm::vec3 defaultRelTrans = _animSkeleton->getRelativeDefaultPose(i).trans();
             glm::vec3 currentRelTrans = _sendNetworkNode ? _networkPoseSet._relativePoses[i].trans() : _internalPoseSet._relativePoses[i].trans();
-            data.translation = geometryToRigScale * currentRelTrans;
+            data.translation = currentRelTrans;
             data.translationIsDefaultPose = isEqual(currentRelTrans, defaultRelTrans);
         } else {
             data.translationIsDefaultPose = true;
@@ -2057,7 +2055,6 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
     std::vector<glm::quat> rotations;
     rotations.reserve(numJoints);
     const glm::quat rigToGeometryRot(glmExtractRotation(_rigToGeometryTransform));
-    const glm::vec3 rigToGeometryScale(extractScale(_rigToGeometryTransform));
 
     for (int i = 0; i < numJoints; i++) {
         const JointData& data = jointDataVec.at(i);
@@ -2083,8 +2080,8 @@ void Rig::copyJointsFromJointData(const QVector<JointData>& jointDataVec) {
         if (data.translationIsDefaultPose) {
             _internalPoseSet._relativePoses[i].trans() = relativeDefaultPoses[i].trans();
         } else {
-            // JointData translations are in scaled relative-frame so we scale back to regular relative-frame
-            _internalPoseSet._relativePoses[i].trans() = rigToGeometryScale * data.translation;
+            // JointData translations are in relative-frame
+            _internalPoseSet._relativePoses[i].trans() = data.translation;
         }
     }
 }

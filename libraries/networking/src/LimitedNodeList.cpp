@@ -113,8 +113,6 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     // handle when a socket connection has its receiver side reset - might need to emit clientConnectionToNodeReset
     connect(&_nodeSocket, &udt::Socket::clientHandshakeRequestComplete, this, &LimitedNodeList::clientConnectionToSockAddrReset);
 
-    _packetStatTimer.start();
-
     if (_stunSockAddr.getAddress().isNull()) {
         // we don't know the stun server socket yet, add it to unfiltered once known
         connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNHandlerToUnfiltered);
@@ -378,12 +376,6 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
     return false;
 }
 
-void LimitedNodeList::collectPacketStats(const NLPacket& packet) {
-    // stat collection for packets
-    ++_numCollectedPackets;
-    _numCollectedBytes += packet.getDataSize();
-}
-
 void LimitedNodeList::fillPacketHeader(const NLPacket& packet, HMACAuth* hmacAuth) {
     if (!PacketTypeEnum::getNonSourcedPackets().contains(packet.getType())) {
         packet.writeSourceID(getSessionLocalID());
@@ -414,7 +406,6 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
 
-    collectPacketStats(packet);
     fillPacketHeader(packet, hmacAuth);
 
     return _nodeSocket.writePacket(packet, sockAddr);
@@ -436,7 +427,6 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
                                    HMACAuth* hmacAuth) {
     Q_ASSERT(!packet->isPartOfMessage());
     if (packet->isReliable()) {
-        collectPacketStats(*packet);
         fillPacketHeader(*packet, hmacAuth);
 
         auto size = packet->getDataSize();
@@ -490,7 +480,6 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 
     for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
         NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
-        collectPacketStats(*nlPacket);
         fillPacketHeader(*nlPacket);
     }
 
@@ -505,7 +494,6 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 
         for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
             NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
-            collectPacketStats(*nlPacket);
             fillPacketHeader(*nlPacket, destinationNode.getAuthenticateHash());
         }
 
@@ -830,23 +818,6 @@ SharedNodePointer LimitedNodeList::soloNodeOfType(NodeType_t nodeType) {
     return nodeMatchingPredicate([&](const SharedNodePointer& node){
         return node->getType() == nodeType;
     });
-}
-
-void LimitedNodeList::getPacketStats(float& packetsInPerSecond, float& bytesInPerSecond, float& packetsOutPerSecond, float& bytesOutPerSecond) {
-    packetsInPerSecond = (float) getPacketReceiver().getInPacketCount() / ((float) _packetStatTimer.elapsed() / 1000.0f);
-    bytesInPerSecond = (float) getPacketReceiver().getInByteCount() / ((float) _packetStatTimer.elapsed() / 1000.0f);
-
-    packetsOutPerSecond = (float) _numCollectedPackets / ((float) _packetStatTimer.elapsed() / 1000.0f);
-    bytesOutPerSecond = (float) _numCollectedBytes / ((float) _packetStatTimer.elapsed() / 1000.0f);
-}
-
-void LimitedNodeList::resetPacketStats() {
-    getPacketReceiver().resetCounters();
-
-    _numCollectedPackets = 0;
-    _numCollectedBytes = 0;
-
-    _packetStatTimer.restart();
 }
 
 void LimitedNodeList::removeSilentNodes() {

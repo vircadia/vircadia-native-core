@@ -131,6 +131,7 @@ public:
     glm::vec3 geometricTranslation;
     glm::quat geometricRotation;
     glm::vec3 geometricScaling;
+    bool isLimbNode;  // is this FBXModel transform is a "LimbNode" i.e. a joint
 };
 
 glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParentMap,
@@ -559,9 +560,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     glm::vec3 geometricRotation;
 
                     glm::vec3 rotationMin, rotationMax;
+
+                    bool isLimbNode = object.properties.size() >= 3 && object.properties.at(2) == "LimbNode";
                     FBXModel fbxModel = { name, -1, glm::vec3(), glm::mat4(), glm::quat(), glm::quat(), glm::quat(),
-                                       glm::mat4(), glm::vec3(), glm::vec3(),
-                                       false, glm::vec3(), glm::quat(), glm::vec3(1.0f) };
+                                          glm::mat4(), glm::vec3(), glm::vec3(),
+                                          false, glm::vec3(), glm::quat(), glm::vec3(1.0f), isLimbNode };
                     ExtractedMesh* mesh = NULL;
                     QVector<ExtractedBlendshape> blendshapes;
                     foreach (const FBXNode& subobject, object.children) {
@@ -1258,6 +1261,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     // convert the models to joints
     QVariantList freeJoints = mapping.values("freeJoint");
     hfmModel.hasSkeletonJoints = false;
+
     foreach (const QString& modelID, modelIDs) {
         const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
@@ -1288,6 +1292,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         joint.geometricTranslation = fbxModel.geometricTranslation;
         joint.geometricRotation = fbxModel.geometricRotation;
         joint.geometricScaling = fbxModel.geometricScaling;
+        joint.isSkeletonJoint = fbxModel.isLimbNode;
+        hfmModel.hasSkeletonJoints = (hfmModel.hasSkeletonJoints || joint.isSkeletonJoint);
 
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
 
@@ -1310,14 +1316,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         if (hfmModel.hfmToHifiJointNameMapping.contains(hfmModel.hfmToHifiJointNameMapping.key(joint.name))) {
            // qCDebug(modelformat) << "joint name " << joint.name << " hifi name " << hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
             joint.name = hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
-        }
-
-        foreach (const QString& childID, _connectionChildMap.values(modelID)) {
-            QString type = typeFlags.value(childID);
-            if (!type.isEmpty()) {
-                hfmModel.hasSkeletonJoints |= (joint.isSkeletonJoint = type.toLower().contains("Skeleton"));
-                break;
-            }
         }
 
         joint.bindTransformFoundInCluster = false;

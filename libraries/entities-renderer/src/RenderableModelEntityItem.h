@@ -122,7 +122,7 @@ private:
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
     bool readyToAnimate() const;
-    void getCollisionGeometryResource();
+    void fetchCollisionGeometryResource();
 
     GeometryResource::Pointer _compoundShapeResource;
     std::vector<int> _jointMap;
@@ -169,6 +169,8 @@ protected:
     render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
+    void setRenderLayer(RenderLayer value) override;
+    void setPrimitiveMode(PrimitiveMode value) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
@@ -179,7 +181,6 @@ private:
 
     bool _hasModel { false };
     ModelPointer _model;
-    GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
     bool _texturesLoaded { false };
     int _lastKnownCurrentFrame { -1 };

@@ -546,22 +546,3 @@ void ZoneEntityRenderer::setProceduralUserData(const QString& userData) {
     }
 }
 
-#if 0
-bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() != SHAPE_TYPE_COMPOUND) {
-        return EntityItem::contains(point);
-    }
-    const_cast<RenderableZoneEntityItem*>(this)->updateGeometry();
-
-    if (_model && _model->isActive() && EntityItem::contains(point)) {
-        return _model->convexHullContains(point);
-    }
-
-    return false;
-}
-
-void RenderableZoneEntityItem::notifyBoundChanged() {
-    notifyChangedRenderItem();
-}
-
-#endif

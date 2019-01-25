@@ -19,219 +19,208 @@
 #include <PerfStat.h>
 #include <shaders/Shaders.h>
 
-//#define POLYLINE_ENTITY_USE_FADE_EFFECT
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-#   include <FadeEffect.h>
-#endif
+#include "paintStroke_Shared.slh"
 
 using namespace render;
 using namespace render::entities;
 
-static uint8_t CUSTOM_PIPELINE_NUMBER { 0 };
-static const int32_t PAINTSTROKE_TEXTURE_SLOT { 0 };
-static gpu::Stream::FormatPointer polylineFormat;
-static gpu::PipelinePointer polylinePipeline;
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-static gpu::PipelinePointer polylineFadePipeline;
-#endif
+gpu::PipelinePointer PolyLineEntityRenderer::_pipeline = nullptr;
 
-static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key, gpu::Batch& batch) {
-    if (!polylinePipeline) {
-        gpu::ShaderPointer program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-        auto fadeVS = gpu::Shader::createVertex(std::string(paintStroke_fade_vert));
-        auto fadePS = gpu::Shader::createPixel(std::string(paintStroke_fade_frag));
-        gpu::ShaderPointer fadeProgram = gpu::Shader::createProgram(fadeVS, fadePS);
-#endif
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        PrepareStencil::testMask(*state);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        polylinePipeline = gpu::Pipeline::create(program, state);
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-        _fadePipeline = gpu::Pipeline::create(fadeProgram, state);
-#endif
-    }
-
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-    if (key.isFaded()) {
-        auto fadeEffect = DependencyManager::get<FadeEffect>();
-        return std::make_shared<render::ShapePipeline>(_fadePipeline, nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
-    } else {
-#endif
-        return std::make_shared<render::ShapePipeline>(polylinePipeline, nullptr, nullptr, nullptr);
-#ifdef POLYLINE_ENTITY_USE_FADE_EFFECT
-    }
-#endif
-}
+static const QUrl DEFAULT_POLYLINE_TEXTURE = PathUtils::resourcesUrl("images/paintStroke.png");
 
 PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
-        polylineFormat.reset(new gpu::Stream::Format());
-        polylineFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), offsetof(Vertex, position));
-        polylineFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), offsetof(Vertex, normal));
-        polylineFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), offsetof(Vertex, uv));
-        polylineFormat->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB), offsetof(Vertex, color));
-    });
+    _texture = DependencyManager::get<TextureCache>()->getTexture(DEFAULT_POLYLINE_TEXTURE);
 
-    _verticesBuffer = std::make_shared<gpu::Buffer>();
+    { // Initialize our buffers
+        _polylineDataBuffer = std::make_shared<gpu::Buffer>();
+        _polylineDataBuffer->resize(sizeof(PolylineData));
+        PolylineData data { glm::vec2(_faceCamera, _glow), glm::vec2(0.0f) };
+        _polylineDataBuffer->setSubData(0, data);
+
+        _polylineGeometryBuffer = std::make_shared<gpu::Buffer>();
+    }
+}
+
+void PolyLineEntityRenderer::buildPipeline() {
+    // FIXME: opaque pipeline
+    gpu::ShaderPointer program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+    state->setCullMode(gpu::State::CullMode::CULL_NONE);
+    state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    PrepareStencil::testMask(*state);
+    state->setBlendFunction(true,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    _pipeline = gpu::Pipeline::create(program, state);
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
+    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).build();
+    auto builder = ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
+}
+
+bool PolyLineEntityRenderer::needsRenderUpdate() const {
+    bool textureLoadedChanged = resultWithReadLock<bool>([&] {
+        return (!_textureLoaded && _texture && _texture->isLoaded());
+    });
+
+    if (textureLoadedChanged) {
+        return true;
+    }
+
+    return Parent::needsRenderUpdate();
 }
 
 bool PolyLineEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     return (
         entity->pointsChanged() ||
-        entity->strokeWidthsChanged() ||
+        entity->widthsChanged() ||
         entity->normalsChanged() ||
         entity->texturesChanged() ||
-        entity->strokeColorsChanged()
+        entity->colorsChanged() ||
+        _isUVModeStretch != entity->getIsUVModeStretch() ||
+        _glow != entity->getGlow() ||
+        _faceCamera != entity->getFaceCamera()
     );
 }
 
-void PolyLineEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
-    static const QUrl DEFAULT_POLYLINE_TEXTURE = QUrl(PathUtils::resourcesPath() + "images/paintStroke.png");
-    QUrl entityTextures = DEFAULT_POLYLINE_TEXTURE;
+void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
+    auto pointsChanged = entity->pointsChanged();
+    auto widthsChanged = entity->widthsChanged();
+    auto normalsChanged = entity->normalsChanged();
+    auto colorsChanged = entity->colorsChanged();
+
+    bool isUVModeStretch = entity->getIsUVModeStretch();
+    bool glow = entity->getGlow();
+    bool faceCamera = entity->getFaceCamera();
+
+    entity->resetPolyLineChanged();
+
+    // Transform
+    updateModelTransformAndBound();
+    _renderTransform = getModelTransform();
+
+    // Textures
     if (entity->texturesChanged()) {
         entity->resetTexturesChanged();
+        QUrl entityTextures = DEFAULT_POLYLINE_TEXTURE;
         auto textures = entity->getTextures();
         if (!textures.isEmpty()) {
             entityTextures = QUrl(textures);
         }
         _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
+        _textureAspectRatio = 1.0f;
+        _textureLoaded = false;
     }
-    
-    
-    if (!_texture) {
-        _texture = DependencyManager::get<TextureCache>()->getTexture(entityTextures);
+
+    bool textureChanged = false;
+    if (!_textureLoaded && _texture && _texture->isLoaded()) {
+        textureChanged = true;
+        _textureAspectRatio = (float)_texture->getOriginalHeight() / (float)_texture->getOriginalWidth();
+        _textureLoaded = true;
     }
-}
 
-void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    auto pointsChanged = entity->pointsChanged();
-    auto strokeWidthsChanged = entity->strokeWidthsChanged();
-    auto normalsChanged = entity->normalsChanged();
-    auto strokeColorsChanged = entity->strokeColorsChanged();
-    
+    // Data
+    if (faceCamera != _faceCamera || glow != _glow) {
+        _faceCamera = faceCamera;
+        _glow = glow;
+        updateData();
+    }
 
-    bool isUVModeStretch = entity->getIsUVModeStretch();
-    entity->resetPolyLineChanged();
-
-    _polylineTransform = Transform();
-    _polylineTransform.setTranslation(entity->getWorldPosition());
-    _polylineTransform.setRotation(entity->getWorldOrientation());
-
+    // Geometry
     if (pointsChanged) {
-        _lastPoints = entity->getLinePoints();
+        _points = entity->getLinePoints();
     }
-    if (strokeWidthsChanged) {
-        _lastStrokeWidths = entity->getStrokeWidths();
+    if (widthsChanged) {
+        _widths = entity->getStrokeWidths();
     }
     if (normalsChanged) {
-        _lastNormals = entity->getNormals();
+        _normals = entity->getNormals();
     }
-    if (strokeColorsChanged) {
-        _lastStrokeColors = entity->getStrokeColors();
-        _lastStrokeColors = _lastNormals.size() == _lastStrokeColors.size() ? _lastStrokeColors : QVector<glm::vec3>({ toGlm(entity->getColor()) });
+    if (colorsChanged) {
+        _colors = entity->getStrokeColors();
+        _color = toGlm(entity->getColor());
     }
-    if (pointsChanged || strokeWidthsChanged || normalsChanged || strokeColorsChanged) {
-        _empty = std::min(_lastPoints.size(), std::min(_lastNormals.size(), _lastStrokeWidths.size())) < 2;
-        if (!_empty) {
-            updateGeometry(updateVertices(_lastPoints, _lastNormals, _lastStrokeWidths, _lastStrokeColors, isUVModeStretch, _textureAspectRatio));
-        }
+    if (_isUVModeStretch != isUVModeStretch || pointsChanged || widthsChanged || normalsChanged || colorsChanged || textureChanged) {
+        _isUVModeStretch = isUVModeStretch;
+        updateGeometry();
     }
 }
 
-void PolyLineEntityRenderer::updateGeometry(const std::vector<Vertex>& vertices) {
-    _numVertices = (uint32_t)vertices.size();
-    auto bufferSize = _numVertices * sizeof(Vertex);
-    if (bufferSize > _verticesBuffer->getSize()) {
-        _verticesBuffer->resize(bufferSize);
-    }
-    _verticesBuffer->setSubData(0, vertices);
-}
+void PolyLineEntityRenderer::updateGeometry() {
+    int maxNumVertices = std::min(_points.length(), _normals.length());
 
-std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertices(const QVector<glm::vec3>& points,
-                                                                                   const QVector<glm::vec3>& normals,
-                                                                                   const QVector<float>& strokeWidths, 
-                                                                                   const QVector<glm::vec3>& strokeColors,
-                                                                                   const bool isUVModeStretch,
-                                                                                   const float textureAspectRatio) {
-    // Calculate the minimum vector size out of normals, points, and stroke widths
-    int size = std::min(points.size(), std::min(normals.size(), strokeWidths.size()));
-
-    std::vector<Vertex> vertices;
-
-    // Guard against an empty polyline
-    if (size <= 0) {
-        return vertices;
-    }
-
-    float uCoordInc = 1.0f / size;
-    float uCoord = 0.0f;
-    int finalIndex = size - 1;
-    glm::vec3 binormal;
-    float accumulatedDistance = 0.0f;
-    float distanceToLastPoint = 0.0f;
-    float accumulatedStrokeWidth = 0.0f;
-    float strokeWidth = 0.0f;
     bool doesStrokeWidthVary = false;
-
-
-    for (int i = 1; i < strokeWidths.size(); i++) {
-        if (strokeWidths[i] != strokeWidths[i - 1]) {
-            doesStrokeWidthVary = true;
-            break;
+    if (_widths.size() >= 0) {
+        for (int i = 1; i < maxNumVertices; i++) {
+            float width = PolyLineEntityItem::DEFAULT_LINE_WIDTH;
+            if (i < _widths.length()) {
+                width = _widths[i];
+            }
+            if (width != _widths[i - 1]) {
+                doesStrokeWidthVary = true;
+                break;
+            }
         }
     }
 
-    for (int i = 0; i <= finalIndex; i++) {
-        const float& width = strokeWidths.at(i);
-        const auto& point = points.at(i);
-        const auto& normal = normals.at(i);
-        const auto& color = strokeColors.size() == normals.size() ? strokeColors.at(i) : strokeColors.at(0);
-        int vertexIndex = i * 2;
-        
+    float uCoordInc = 1.0f / maxNumVertices;
+    float uCoord = 0.0f;
+    float accumulatedDistance = 0.0f;
+    float accumulatedStrokeWidth = 0.0f;
+    glm::vec3 binormal;
 
-        if (!isUVModeStretch && i >= 1) {
-            distanceToLastPoint = glm::distance(points.at(i), points.at(i - 1));
-            accumulatedDistance += distanceToLastPoint;
-            strokeWidth = 2 * strokeWidths[i];
+    std::vector<PolylineVertex> vertices;
+    vertices.reserve(maxNumVertices);
+    for (int i = 0; i < maxNumVertices; i++) {
+        // Position
+        glm::vec3 point = _points[i];
 
-            if (doesStrokeWidthVary) {
-                //If the stroke varies along the line the texture will stretch more or less depending on the speed
-                //because it looks better than using the same method as below
-                accumulatedStrokeWidth += strokeWidth;
-                float increaseValue = 1;
-                if (accumulatedStrokeWidth != 0) {
-                    float newUcoord = glm::ceil(((1.0f / textureAspectRatio) * accumulatedDistance) / (accumulatedStrokeWidth / i));
-                    increaseValue = newUcoord - uCoord;
+        // uCoord
+        float width = i < _widths.size() ? _widths[i] : PolyLineEntityItem::DEFAULT_LINE_WIDTH;
+        if (i > 0) { // First uCoord is 0.0f
+            if (!_isUVModeStretch) {
+                accumulatedDistance += glm::distance(point, _points[i - 1]);
+
+                if (doesStrokeWidthVary) {
+                    //If the stroke varies along the line the texture will stretch more or less depending on the speed
+                    //because it looks better than using the same method as below
+                    accumulatedStrokeWidth += width;
+                    float increaseValue = 1;
+                    if (accumulatedStrokeWidth != 0) {
+                        float newUcoord = glm::ceil((_textureAspectRatio * accumulatedDistance) / (accumulatedStrokeWidth / i));
+                        increaseValue = newUcoord - uCoord;
+                    }
+
+                    increaseValue = increaseValue > 0 ? increaseValue : 1;
+                    uCoord += increaseValue;
+                } else {
+                    // If the stroke width is constant then the textures should keep the aspect ratio along the line
+                    uCoord = (_textureAspectRatio * accumulatedDistance) / width;
                 }
-
-                increaseValue = increaseValue > 0 ? increaseValue : 1;
-                uCoord += increaseValue;
             } else {
-                //If the stroke width is constant then the textures should keep the aspect ratio along the line
-                uCoord = ((1.0f / textureAspectRatio) * accumulatedDistance) / strokeWidth;
+                uCoord += uCoordInc;
             }
-        } else if (vertexIndex >= 2) {
-            uCoord += uCoordInc;
         }
 
+        // Color
+        glm::vec3 color = i < _colors.length() ? _colors[i] : _color;
+
+        // Normal
+        glm::vec3 normal = _normals[i];
+
+        // Binormal
         // For last point we can assume binormals are the same since it represents the last two vertices of quad
-        if (i < finalIndex) {
-            const auto tangent = points.at(i + 1) - point;
-            binormal = glm::normalize(glm::cross(tangent, normal)) * width;
+        if (i < maxNumVertices - 1) {
+            glm::vec3 tangent = _points[i + 1] - point;
+            binormal = glm::normalize(glm::cross(tangent, normal));
 
             // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
             if (binormal.x != binormal.x) {
@@ -239,54 +228,36 @@ std::vector<PolyLineEntityRenderer::Vertex> PolyLineEntityRenderer::updateVertic
             }
         }
 
-        const auto v1 = points.at(i) + binormal;
-        const auto v2 = points.at(i) - binormal;
-        vertices.emplace_back(v1, normal, vec2(uCoord, 0.0f), color);
-        vertices.emplace_back(v2, normal, vec2(uCoord, 1.0f), color);
+        PolylineVertex vertex = { glm::vec4(point, uCoord), glm::vec4(color, 1.0f), glm::vec4(normal, 0.0f), glm::vec4(binormal, 0.5f * width) };
+        vertices.push_back(vertex);
     }
 
-    return vertices;
+    _numVertices = vertices.size();
+    _polylineGeometryBuffer->setData(vertices.size() * sizeof(PolylineVertex), (const gpu::Byte*) vertices.data());
 }
 
-scriptable::ScriptableModelBase PolyLineEntityRenderer::getScriptableModel() {
-    // TODO: adapt polyline into a triangles mesh...
-    return EntityRenderer::getScriptableModel();
+void PolyLineEntityRenderer::updateData() {
+    PolylineData data { glm::vec2(_faceCamera, _glow), glm::vec2(0.0f) };
+    _polylineDataBuffer->setSubData(0, data);
 }
 
 void PolyLineEntityRenderer::doRender(RenderArgs* args) {
-    if (_empty) {
+    if (_numVertices < 2) {
         return;
     }
 
     PerformanceTimer perfTimer("RenderablePolyLineEntityItem::render");
     Q_ASSERT(args->_batch);
-
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(_polylineTransform);
 
-    if (_texture && _texture->isLoaded()) {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
-    } else {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, DependencyManager::get<TextureCache>()->getWhiteTexture());
+    if (!_pipeline) {
+        buildPipeline();
     }
 
-    float textureWidth = (float)_texture->getOriginalWidth();
-    float textureHeight = (float)_texture->getOriginalHeight();
-    if (textureWidth != 0 && textureHeight != 0) {
-        _textureAspectRatio = textureWidth / textureHeight;
-    }
-
-    batch.setInputFormat(polylineFormat);
-    batch.setInputBuffer(0, _verticesBuffer, 0, sizeof(Vertex));
-
-#ifndef POLYLINE_ENTITY_USE_FADE_EFFECT
-    // glColor4f must be called after setInputFormat if it must be taken into account
-    if (_isFading) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
-    } else {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    }
-#endif
-
-    batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
+    batch.setPipeline(_pipeline);
+    batch.setModelTransform(_renderTransform);
+    batch.setResourceTexture(0, _textureLoaded ? _texture->getGPUTexture() : DependencyManager::get<TextureCache>()->getWhiteTexture());
+    batch.setResourceBuffer(0, _polylineGeometryBuffer);
+    batch.setUniformBuffer(0, _polylineDataBuffer);
+    batch.draw(gpu::TRIANGLE_STRIP, (gpu::uint32)(2 * _numVertices), 0);
 }

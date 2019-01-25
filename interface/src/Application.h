@@ -469,7 +469,7 @@ private slots:
     void onDesktopRootItemCreated(QQuickItem* qmlContext);
     void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
-    void clearDomainOctreeDetails();
+    void clearDomainOctreeDetails(bool clearAll = true);
     void onAboutToQuit();
     void onPresent(quint32 frameCount);
 
@@ -589,10 +589,14 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
 
+    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
     bool _aboutToQuit { false };
+
+    FileLogger* _logger { nullptr };
 
     bool _previousSessionCrashed;
 
@@ -673,8 +677,6 @@ private:
     QPointer<LogDialog> _logDialog;
     QPointer<EntityScriptServerLogDialog> _entityScriptServerLogDialog;
     QDir _defaultScriptsLocation;
-
-    FileLogger* _logger;
 
     TouchEvent _lastTouchEvent;
 

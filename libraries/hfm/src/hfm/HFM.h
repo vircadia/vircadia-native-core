@@ -310,6 +310,7 @@ public:
 
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
+    const Extents& getMeshExtents() const { return meshExtents; }
 
     bool convexHullContains(const glm::vec3& point) const;
 

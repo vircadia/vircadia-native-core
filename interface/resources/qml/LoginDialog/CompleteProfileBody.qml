@@ -29,6 +29,8 @@ Item {
     readonly property bool withSteam: withSteam
     property string errorString: errorString
 
+    readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -123,6 +125,13 @@ Item {
                     fontSize: completeProfileBody.fontSize
                     fontBold: completeProfileBody.fontBold
                     onClicked: {
+                        if (completeProfileBody.loginDialogPoppedUp) {
+                            var data = {
+                                "action": "user clicked cancel on the complete profile screen"
+                            }
+                            UserActivityLogger.logAction("encourageLoginDialog", data);
+                        }
+
                         bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
                     }
                 }
@@ -142,6 +151,12 @@ Item {
                     fontSize: completeProfileBody.fontSize
                     fontBold: completeProfileBody.fontBold
                     onClicked: {
+                        if (completeProfileBody.loginDialogPoppedUp) {
+                            var data = {
+                                "action": "user clicked create profile"
+                            }
+                            UserActivityLogger.logAction("encourageLoginDialog", data);
+                        }
                         loginErrorMessage.visible = false;
                         loginDialog.createAccountFromSteam();
                     }
@@ -253,13 +268,29 @@ Item {
         onHandleCreateCompleted: {
             console.log("Create Succeeded")
 
-            loginDialog.loginThroughSteam();
-            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": true, "linkSteam": false });
+            if (completeProfileBody.withSteam) {
+                if (completeProfileBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user created a profile with Steam successfully from the complete profile screen"
+                    }
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+                loginDialog.loginThroughSteam();
+            }
+            bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam, "linkSteam": false });
         }
         onHandleCreateFailed: {
             console.log("Create Failed: " + error);
+            if (completeProfileBody.withSteam) {
+                if (completeProfileBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user failed to create a profile with Steam from the complete profile screen"
+                    }
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+            }
 
-            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+            bodyLoader.setSource("UsernameCollisionBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": completeProfileBody.withSteam });
         }
     }
 

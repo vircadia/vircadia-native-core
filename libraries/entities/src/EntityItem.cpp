@@ -20,6 +20,7 @@
 #include <QtNetwork/QNetworkRequest>
 
 #include <glm/gtx/transform.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <BufferParser.h>
 #include <ByteCountCoding.h>
@@ -85,15 +86,18 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DIMENSIONS;
     requestedProperties += PROP_ROTATION;
     requestedProperties += PROP_REGISTRATION_POINT;
-    // TODO: handle PROP_CREATED?
+    requestedProperties += PROP_CREATED;
     requestedProperties += PROP_LAST_EDITED_BY;
-    requestedProperties += PROP_ENTITY_HOST_TYPE;
-    requestedProperties += PROP_OWNING_AVATAR_ID;
+    //requestedProperties += PROP_ENTITY_HOST_TYPE;             // not sent over the wire
+    //requestedProperties += PROP_OWNING_AVATAR_ID;             // not sent over the wire
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
     requestedProperties += PROP_CAN_CAST_SHADOW;
-    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over wire
+    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
+    requestedProperties += PROP_RENDER_LAYER;
+    requestedProperties += PROP_PRIMITIVE_MODE;
+    requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
     withReadLock([&] {
         requestedProperties += _grabProperties.getEntityProperties(params);
     });
@@ -178,9 +182,6 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
 
-    requestedProperties -= PROP_ENTITY_HOST_TYPE;
-    requestedProperties -= PROP_OWNING_AVATAR_ID;
-
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
@@ -263,10 +264,10 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
-        // TODO: handle created?
+        APPEND_ENTITY_PROPERTY(PROP_CREATED, getCreated());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
-        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, getEntityHostType());  // not sent over wire
-        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());  // not sent over wire
+        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, (uint32_t)getEntityHostType());  // not sent over the wire
+        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());            // not sent over the wire
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
         if (actualParentID == AVATAR_SELF_ID) {
@@ -277,7 +278,10 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, getParentJointIndex());
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
-        // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over wire
+        // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over the wire
+        APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
+        APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
+        APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -314,13 +318,13 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, getServerScripts());
 
         // Certifiable Properties
-        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, getItemName());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, getItemDescription());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, getItemCategories());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, getItemArtist());
         APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, getItemLicense());
         APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, getLimitedRun());
+        APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
         APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
@@ -772,7 +776,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto lastEdited = lastEditedFromBufferAdjusted;
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
-    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+        if (stillHasGrabActions()) {
+            return false;
+        }
         bool simulationChanged = lastEdited > updatedTimestamp;
         return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
     };
@@ -818,10 +825,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, customUpdateRotationFromNetwork);
     }
     READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    // READ_ENTITY_PROPERTY(PROP_CREATED, quint64, setCreated);                          // not sent over wire
+    READ_ENTITY_PROPERTY(PROP_CREATED, quint64, setCreated);
     READ_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
-    // READ_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, entity::HostType, setEntityHostType); // not sent over wire
-    // READ_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, QUuuid, setOwningAvatarID);           // not sent over wire
+    // READ_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, entity::HostType, setEntityHostType); // not sent over the wire
+    // READ_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, QUuuid, setOwningAvatarID);           // not sent over the wire
     {   // parentID and parentJointIndex are protected by simulation ownership
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
@@ -840,7 +847,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, AACube, customUpdateQueryAACubeFromNetwork);
     }
     READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
-    // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over wire
+    // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over the wire
+    READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
+    READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -904,18 +914,20 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // from being received by an entity script server running a script that continously updates an entity.
         // Basically, we'll allow recent changes to the server scripts even if there are local changes to other properties
         // that have been made more recently.
-        bool overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
+        bool oldOverwrite = overwriteLocalData;
+        overwriteLocalData = !ignoreServerPacket || (lastEditedFromBufferAdjusted > _serverScriptsChangedTimestamp);
         READ_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, QString, setServerScripts);
+        overwriteLocalData = oldOverwrite;
     }
 
     // Certifiable props
-    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY(PROP_ITEM_NAME, QString, setItemName);
     READ_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
     READ_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, QString, setItemCategories);
     READ_ENTITY_PROPERTY(PROP_ITEM_ARTIST, QString, setItemArtist);
     READ_ENTITY_PROPERTY(PROP_ITEM_LICENSE, QString, setItemLicense);
     READ_ENTITY_PROPERTY(PROP_LIMITED_RUN, quint32, setLimitedRun);
+    READ_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
     READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
@@ -1309,7 +1321,10 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
-    // COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, getIsVisibleInSecondaryCamera); // not sent over wire
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderLayer, getRenderLayer);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1454,6 +1469,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderLayer, setRenderLayer);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -1680,15 +1698,57 @@ void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
 }
 
 bool EntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-        bool success;
-        bool result = getAABox(success).contains(point);
-        return result && success;
-    } else {
-        ShapeInfo info;
-        info.setParams(getShapeType(), glm::vec3(0.5f));
-        adjustShapeInfoByRegistration(info);
-        return info.contains(worldToEntity(point));
+    ShapeType shapeType = getShapeType();
+
+    if (shapeType == SHAPE_TYPE_SPHERE) {
+        // SPHERE case is special:
+        // anything with shapeType == SPHERE must collide as a bounding sphere in the world-frame regardless of dimensions
+        // therefore we must do math using an unscaled localPoint relative to sphere center
+        glm::vec3 dimensions = getScaledDimensions();
+        glm::vec3 localPoint = point - (getWorldPosition() + getWorldOrientation() * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint())));
+        const float HALF_SQUARED = 0.25f;
+        return glm::length2(localPoint) < HALF_SQUARED * glm::length2(dimensions);
+    }
+
+    // we transform into the "normalized entity-frame" where the bounding box is centered on the origin
+    // and has dimensions <1,1,1>
+    glm::vec3 localPoint = glm::vec3(glm::inverse(getEntityToWorldMatrix()) * glm::vec4(point, 1.0f));
+
+    const float NORMALIZED_HALF_SIDE = 0.5f;
+    const float NORMALIZED_RADIUS_SQUARED = NORMALIZED_HALF_SIDE * NORMALIZED_HALF_SIDE;
+    switch(shapeType) {
+        case SHAPE_TYPE_NONE:
+            return false;
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_PLANE:
+        case SHAPE_TYPE_COMPOUND:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+        case SHAPE_TYPE_CIRCLE:
+        // the above cases not yet supported --> fall through to BOX case
+        case SHAPE_TYPE_BOX: {
+            localPoint = glm::abs(localPoint);
+            return glm::any(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
+        }
+        case SHAPE_TYPE_ELLIPSOID: {
+            // since we've transformed into the normalized space this is just a sphere-point intersection test
+            return glm::length2(localPoint) <= NORMALIZED_RADIUS_SQUARED;
+        }
+        case SHAPE_TYPE_CYLINDER_X:
+            return fabsf(localPoint.x) <= NORMALIZED_HALF_SIDE &&
+                localPoint.y * localPoint.y + localPoint.z * localPoint.z <= NORMALIZED_RADIUS_SQUARED;
+        case SHAPE_TYPE_CYLINDER_Y:
+            return fabsf(localPoint.y) <= NORMALIZED_HALF_SIDE &&
+                localPoint.z * localPoint.z + localPoint.x * localPoint.x <= NORMALIZED_RADIUS_SQUARED;
+        case SHAPE_TYPE_CYLINDER_Z:
+            return fabsf(localPoint.z) <= NORMALIZED_HALF_SIDE &&
+                localPoint.x * localPoint.x + localPoint.y * localPoint.y <= NORMALIZED_RADIUS_SQUARED;
+        default:
+            return false;
     }
 }
 
@@ -1705,7 +1765,8 @@ float EntityItem::getVolumeEstimate() const {
 void EntityItem::setRegistrationPoint(const glm::vec3& value) {
     if (value != _registrationPoint) {
         withWriteLock([&] {
-            _registrationPoint = glm::clamp(value, 0.0f, 1.0f);
+            _registrationPoint = glm::clamp(value, glm::vec3(ENTITY_ITEM_MIN_REGISTRATION_POINT), 
+                                                   glm::vec3(ENTITY_ITEM_MAX_REGISTRATION_POINT));
         });
         dimensionsChanged(); // Registration Point affects the bounding box
         markDirtyFlags(Simulation::DIRTY_SHAPE);
@@ -1870,7 +1931,7 @@ void EntityItem::setVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_damping != clampedDamping) {
             _damping = clampedDamping;
@@ -1925,7 +1986,7 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
 }
 
 void EntityItem::setAngularDamping(float value) {
-    auto clampedDamping = glm::clamp(value, 0.0f, 1.0f);
+    auto clampedDamping = glm::clamp(value, ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
     withWriteLock([&] {
         if (_angularDamping != clampedDamping) {
             _angularDamping = clampedDamping;
@@ -2888,6 +2949,58 @@ void EntityItem::setIsVisibleInSecondaryCamera(bool value) {
     }
 }
 
+RenderLayer EntityItem::getRenderLayer() const {
+    return resultWithReadLock<RenderLayer>([&] {
+        return _renderLayer;
+    });
+}
+
+void EntityItem::setRenderLayer(RenderLayer value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_renderLayer != value) {
+            changed = true;
+            _renderLayer = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+PrimitiveMode EntityItem::getPrimitiveMode() const {
+    return resultWithReadLock<PrimitiveMode>([&] {
+        return _primitiveMode;
+    });
+}
+
+void EntityItem::setPrimitiveMode(PrimitiveMode value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_primitiveMode != value) {
+            changed = true;
+            _primitiveMode = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+bool EntityItem::getIgnorePickIntersection() const {
+    return resultWithReadLock<bool>([&] {
+        return _ignorePickIntersection;
+    });
+}
+
+void EntityItem::setIgnorePickIntersection(bool value) {
+    withWriteLock([&] {
+        _ignorePickIntersection = value;
+    });
+}
+
 bool EntityItem::getCanCastShadow() const {
     bool result;
     withReadLock([&] {
@@ -3306,7 +3419,8 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
 }
 
 bool EntityItem::isWearable() const {
-    return isVisible() && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
+    return isVisible() &&
+        (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
 
 void EntityItem::addGrab(GrabPointer grab) {
@@ -3325,7 +3439,8 @@ void EntityItem::addGrab(GrabPointer grab) {
         EntityDynamicType dynamicType;
         QVariantMap arguments;
         int grabParentJointIndex =grab->getParentJointIndex();
-        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX) {
+        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX ||
+            grabParentJointIndex == FARGRAB_MOUSE_INDEX) {
             // add a far-grab action
             dynamicType = DYNAMIC_TYPE_FAR_GRAB;
             arguments["otherID"] = grab->getOwnerID();

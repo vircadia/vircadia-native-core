@@ -195,21 +195,22 @@ int AvatarHashMap::numberOfAvatarsInRange(const glm::vec3& position, float range
     return count;
 }
 
-AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
-    return std::make_shared<AvatarData>();
+AvatarSharedPointer AvatarHashMap::newSharedAvatar(const QUuid& sessionUUID) {
+    auto avatarData = std::make_shared<AvatarData>();
+    avatarData->setSessionUUID(sessionUUID);
+    return avatarData;
 }
 
 AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
 
-    auto avatar = newSharedAvatar();
+    auto avatar = newSharedAvatar(sessionUUID);
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
     // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
     _avatarHash.insert(sessionUUID, avatar);
     emit avatarAddedEvent(sessionUUID);
-
     return avatar;
 }
 
@@ -328,6 +329,19 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
 }
 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    AvatarTraits::TraitMessageSequence seq;
+
+    message->readPrimitive(&seq);
+
+    auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
+    traitsAckPacket->writePrimitive(seq);
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+    if (!avatarMixer.isNull()) {
+        // we have a mixer to send to, acknowledge that we received these
+        // traits.
+        nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
+    }
 
     while (message->getBytesLeftToRead()) {
         // read the avatar ID to figure out which avatar this is for

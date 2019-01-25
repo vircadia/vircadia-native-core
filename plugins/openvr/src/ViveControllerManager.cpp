@@ -928,8 +928,8 @@ void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxi
     const float CENTER_DEADBAND = 0.6f;
     const float DIAGONAL_DIVIDE_IN_RADIANS = PI / 4.0f;
     if (_buttonPressedMap.find(sButton) != _buttonPressedMap.end()) {
-        float absX = abs(_axisStateMap[xAxis]);
-        float absY = abs(_axisStateMap[yAxis]);
+        float absX = abs(_axisStateMap[xAxis].value);
+        float absY = abs(_axisStateMap[yAxis].value);
         glm::vec2 cartesianQuadrantI(absX, absY);
         float angle = glm::atan(cartesianQuadrantI.y / cartesianQuadrantI.x);
         float radius = glm::length(cartesianQuadrantI);
@@ -956,10 +956,10 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         } else {
             stick = _filteredRightStick.process(deltaTime, stick);
         }
-        _axisStateMap[isLeftHand ? LX : RX] = stick.x;
-        _axisStateMap[isLeftHand ? LY : RY] = stick.y;
+        _axisStateMap[isLeftHand ? LX : RX].value = stick.x;
+        _axisStateMap[isLeftHand ? LY : RY].value = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
-        _axisStateMap[isLeftHand ? LT : RT] = x;
+        _axisStateMap[isLeftHand ? LT : RT].value = x;
         // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0,
         // so we can expose that as an additional button
         if (x >= 1.0f) {
@@ -1000,7 +1000,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         if (button == vr::k_EButton_ApplicationMenu) {
             _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
         } else if (button == vr::k_EButton_Grip) {
-            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 1.0f;
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP].value = 1.0f;
         } else if (button == vr::k_EButton_SteamVR_Trigger) {
             _buttonPressedMap.insert(isLeftHand ? LT : RT);
         } else if (button == vr::k_EButton_SteamVR_Touchpad) {
@@ -1008,7 +1008,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         }
     } else {
         if (button == vr::k_EButton_Grip) {
-            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 0.0f;
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP].value = 0.0f;
         }
     }
 

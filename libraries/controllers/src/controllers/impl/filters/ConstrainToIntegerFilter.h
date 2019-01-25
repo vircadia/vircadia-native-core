@@ -19,8 +19,8 @@ class ConstrainToIntegerFilter : public Filter {
 public:
     ConstrainToIntegerFilter() = default;
 
-    virtual float apply(float value) const override {
-        return glm::sign(value);
+    virtual AxisValue apply(AxisValue value) const override {
+        return { glm::sign(value.value), value.timestamp };
     }
 
     virtual Pose apply(Pose value) const override { return value; }

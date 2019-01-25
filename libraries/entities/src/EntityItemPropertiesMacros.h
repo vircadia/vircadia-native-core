@@ -13,8 +13,6 @@
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
-#include <QDateTime>
-
 #include "EntityItemID.h"
 #include <RegisteredMetaTypes.h>
 
@@ -234,14 +232,6 @@ inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isVal
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 
-
-inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = true;
-    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
-    // result.setTimeSpec(Qt::OffsetFromUTC);
-    return result;
-}
-
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     QString b64 = v.toVariant().toString().trimmed();
@@ -411,12 +401,32 @@ inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
-        _propertyStringsToEnums[#n] = P; \
-        _enumsToPropertyStrings[P] = #n;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #n; \
+    }
+
+#define ADD_PROPERTY_TO_MAP_WITH_RANGE(P, N, n, T, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #n; \
+    }
 
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
-        _propertyStringsToEnums[#g "." #n] = P; \
-        _enumsToPropertyStrings[P] = #g "." #n;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #g "." #n; \
+    }
+
+#define ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(P, G, g, N, n, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #g "." #n; \
+    }
 
 #define DEFINE_CORE(N, n, T, V) \
     public: \

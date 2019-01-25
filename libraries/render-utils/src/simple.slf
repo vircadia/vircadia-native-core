@@ -91,14 +91,14 @@ void main(void) {
         position.xyz,
 #endif
         normal,
-        vec3(0.0),
+        diffuse,
         DEFAULT_SPECULAR,
-        DEFAULT_EMISSIVE,
+        emissive,
         1.0,
-        DEFAULT_ROUGHNESS,
-        DEFAULT_METALLIC,
-        DEFAULT_OCCLUSION,
-        DEFAULT_SCATTERING
+        roughness,
+        metallic,
+        occlusion,
+        scattering
     );
 
 #if defined(PROCEDURAL_V3)

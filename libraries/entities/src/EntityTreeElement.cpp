@@ -187,6 +187,10 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
+        if (entity->getIgnorePickIntersection()) {
+            return;
+        }
+
         // use simple line-sphere for broadphase check
         // (this is faster and more likely to cull results than the filter check below so we do it first)
         bool success;
@@ -327,6 +331,10 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
+        if (entity->getIgnorePickIntersection()) {
+            return;
+        }
+
         // use simple line-sphere for broadphase check
         // (this is faster and more likely to cull results than the filter check below so we do it first)
         bool success;
@@ -681,6 +689,23 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
         }
     });
     return foundEntity;
+}
+
+void EntityTreeElement::cleanupNonLocalEntities() {
+    withWriteLock([&] {
+        EntityItems savedEntities;
+        foreach(EntityItemPointer entity, _entityItems) {
+            if (!entity->isLocalEntity()) {
+                entity->preDelete();
+                entity->_element = NULL;
+            } else {
+                savedEntities.push_back(entity);
+            }
+        }
+
+        _entityItems = savedEntities;
+    });
+    bumpChangedContent();
 }
 
 void EntityTreeElement::cleanupEntities() {

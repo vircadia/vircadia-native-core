@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         SetAvatarTraits,
-        AvatarIdentityRequest,
+        UNUSED_PACKET_TYPE,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -133,7 +133,7 @@ public:
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
         AudioSoloRequest,
-
+        BulkAvatarTraitsAck,
         NUM_PACKET_TYPE
     };
 
@@ -252,7 +252,16 @@ enum class EntityVersion : PacketVersion {
     GridEntities,
     MissingTextProperties,
     GrabTraits,
-    MorePropertiesCleanup
+    MorePropertiesCleanup,
+    FixPropertiesFromCleanup,
+    UpdatedPolyLines,
+    FixProtocolVersionBumpMismatch,
+    MigrateOverlayRenderProperties,
+    MissingWebEntityProperties,
+
+    // Add new versions above here
+    NUM_PACKET_TYPE,
+    LAST_PACKET_TYPE = NUM_PACKET_TYPE - 1
 };
 
 enum class EntityScriptCallMethodVersion : PacketVersion {
@@ -306,7 +315,11 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     MigrateAvatarEntitiesToTraits,
     FarGrabJointsRedux,
     JointTransScaled,
-    GrabTraits
+    GrabTraits,
+    CollisionFlag,
+    AvatarTraitsAck,
+    FasterAvatarEntities,
+    SendMaxTranslationDimension
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

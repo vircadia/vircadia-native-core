@@ -279,7 +279,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
         face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
-void RenderableModelEntityItem::getCollisionGeometryResource() {
+void RenderableModelEntityItem::fetchCollisionGeometryResource() {
     QUrl hullURL(getCollisionShapeURL());
     QUrlQuery queryArgs(hullURL);
     queryArgs.addQueryItem("collision-hull", "");
@@ -289,7 +289,7 @@ void RenderableModelEntityItem::getCollisionGeometryResource() {
 
 bool RenderableModelEntityItem::computeShapeFailedToLoad() {
     if (!_compoundShapeResource) {
-        getCollisionGeometryResource();
+        fetchCollisionGeometryResource();
     }
 
     return (_compoundShapeResource && _compoundShapeResource->isFailed());
@@ -300,7 +300,7 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
     auto shapeType = getShapeType();
     if (shapeType == SHAPE_TYPE_COMPOUND || shapeType == SHAPE_TYPE_SIMPLE_COMPOUND) {
         if (!_compoundShapeResource && !getCollisionShapeURL().isEmpty()) {
-            getCollisionGeometryResource();
+            fetchCollisionGeometryResource();
         }
     } else if (_compoundShapeResource && !getCompoundShapeURL().isEmpty()) {
         // the compoundURL has been set but the shapeType does not agree
@@ -317,7 +317,7 @@ void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
     ModelEntityItem::setCompoundShapeURL(url);
     if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {
         if (getShapeType() == SHAPE_TYPE_COMPOUND) {
-            getCollisionGeometryResource();
+            fetchCollisionGeometryResource();
         }
     }
 }
@@ -340,7 +340,7 @@ bool RenderableModelEntityItem::isReadyToComputeShape() const {
 
         if (model->isLoaded()) {
             if (!shapeURL.isEmpty() && !_compoundShapeResource) {
-                const_cast<RenderableModelEntityItem*>(this)->getCollisionGeometryResource();
+                const_cast<RenderableModelEntityItem*>(this)->fetchCollisionGeometryResource();
             }
 
             if (_compoundShapeResource && _compoundShapeResource->isLoaded()) {
@@ -367,8 +367,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
     const uint32_t QUAD_STRIDE = 4;
 
     ShapeType type = getShapeType();
-    glm::vec3 dimensions = getScaledDimensions();
-    auto model = getModel();
     if (type == SHAPE_TYPE_COMPOUND) {
         updateModelBounds();
 
@@ -450,6 +448,11 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         // to the visual model and apply them to the collision model (without regard for the
         // collision model's extents).
 
+        auto model = getModel();
+        // assert we never fall in here when model not fully loaded
+        assert(model && model->isLoaded());
+
+        glm::vec3 dimensions = getScaledDimensions();
         glm::vec3 scaleToFit = dimensions / model->getHFMModel().getUnscaledMeshExtents().size();
         // multiply each point by scale before handing the point-set off to the physics engine.
         // also determine the extents of the collision model.
@@ -461,11 +464,12 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             }
         }
         shapeInfo.setParams(type, dimensions, getCompoundShapeURL());
+        adjustShapeInfoByRegistration(shapeInfo);
     } else if (type >= SHAPE_TYPE_SIMPLE_HULL && type <= SHAPE_TYPE_STATIC_MESH) {
-        // TODO: assert we never fall in here when model not fully loaded
-        // assert(_model && _model->isLoaded());
-
         updateModelBounds();
+        auto model = getModel();
+        // assert we never fall in here when model not fully loaded
+        assert(model && model->isLoaded());
         model->updateGeometry();
 
         // compute meshPart local transforms
@@ -473,6 +477,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         const HFMModel& hfmModel = model->getHFMModel();
         int numHFMMeshes = hfmModel.meshes.size();
         int totalNumVertices = 0;
+        glm::vec3 dimensions = getScaledDimensions();
         glm::mat4 invRegistraionOffset = glm::translate(dimensions * (getRegistrationPoint() - ENTITY_ITEM_DEFAULT_REGISTRATION_POINT));
         for (int i = 0; i < numHFMMeshes; i++) {
             const HFMMesh& mesh = hfmModel.meshes.at(i);
@@ -695,12 +700,10 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
         }
 
         shapeInfo.setParams(type, 0.5f * dimensions, getModelURL());
+        adjustShapeInfoByRegistration(shapeInfo);
     } else {
-        ModelEntityItem::computeShapeInfo(shapeInfo);
-        shapeInfo.setParams(type, 0.5f * dimensions);
+        EntityItem::computeShapeInfo(shapeInfo);
     }
-    // finally apply the registration offset to the shapeInfo
-    adjustShapeInfoByRegistration(shapeInfo);
 }
 
 void RenderableModelEntityItem::setJointMap(std::vector<int> jointMap) {
@@ -726,7 +729,9 @@ int RenderableModelEntityItem::avatarJointIndex(int modelJointIndex) {
 bool RenderableModelEntityItem::contains(const glm::vec3& point) const {
     auto model = getModel();
     if (EntityItem::contains(point) && model && _compoundShapeResource && _compoundShapeResource->isLoaded()) {
-        return _compoundShapeResource->getHFMModel().convexHullContains(worldToEntity(point));
+        glm::mat4 worldToHFMMatrix = model->getWorldToHFMMatrix();
+        glm::vec3 hfmPoint = worldToHFMMatrix * glm::vec4(point, 1.0f);
+        return _compoundShapeResource->getHFMModel().convexHullContains(hfmPoint);
     }
 
     return false;
@@ -1069,10 +1074,16 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 }
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
+    auto builder = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (_model && _model->isGroupCulled()) {
+        builder.withMetaCullGroup();
+    }
+
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask());
+        _itemKey = builder.build();
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask());
+        _itemKey = builder.withTypeShape().build();
     }
 }
 
@@ -1290,6 +1301,10 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {
             return true;
         }
+
+        if (model->isGroupCulled() != entity->getGroupCulled()) {
+            return true;
+        }
     }
 
     return false;
@@ -1346,6 +1361,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
+            _model->setTagMask(getTagMask());
+            _model->setHifiRenderLayer(getHifiRenderLayer());
             emit requestRenderUpdate();
             if(didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
@@ -1433,6 +1450,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     {
+        bool groupCulled = entity->getGroupCulled();
+        if (model->isGroupCulled() != groupCulled) {
+            model->setGroupCulled(groupCulled);
+            setKey(_didLastVisualGeometryRequestSucceed);
+        }
+    }
+
+    {
         DETAILED_PROFILE_RANGE(simulation_physics, "Fixup");
         if (model->needsFixupInScene()) {
             model->removeFromScene(scene, transaction);
@@ -1489,6 +1514,24 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {
     Parent::setIsVisibleInSecondaryCamera(value);
     setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setTagMask(getTagMask());
+    }
+}
+
+void ModelEntityRenderer::setRenderLayer(RenderLayer value) {
+    Parent::setRenderLayer(value);
+    setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setHifiRenderLayer(getHifiRenderLayer());
+    }
+}
+
+void ModelEntityRenderer::setPrimitiveMode(PrimitiveMode value) {
+    Parent::setPrimitiveMode(value);
+    if (_model) {
+        _model->setPrimitiveMode(_primitiveMode);
+    }
 }
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items

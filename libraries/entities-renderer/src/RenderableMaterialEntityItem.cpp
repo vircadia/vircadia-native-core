@@ -55,7 +55,7 @@ void MaterialEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& 
 
 ItemKey MaterialEntityRenderer::getKey() {
     ItemKey::Builder builder;
-    builder.withTypeShape().withTagBits(getTagMask());
+    builder.withTypeShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 
     if (!_visible) {
         builder.withInvisible();
@@ -96,6 +96,10 @@ ShapeKey MaterialEntityRenderer::getShapeKey() {
     }
     if (isUnlit) {
         builder.withUnlit();
+    }
+
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
     }
 
     return builder.build();
