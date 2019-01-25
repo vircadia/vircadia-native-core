@@ -3360,7 +3360,19 @@ void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();
     SpatiallyNestable::addGrab(grab);
 
-    if (_physicsInfo && getParentID().isNull()) {
+    if (!getParentID().isNull()) {
+        return;
+    }
+
+    int jointIndex = grab->getParentJointIndex();
+    bool isFarGrab = jointIndex == FARGRAB_RIGHTHAND_INDEX
+        || jointIndex == FARGRAB_LEFTHAND_INDEX
+        || jointIndex == FARGRAB_MOUSE_INDEX;
+
+    // GRAB HACK: FarGrab doesn't work on non-dynamic things yet, but we really really want NearGrab
+    // (aka Hold) to work for such ojects, hence we filter the useAction case like so:
+    bool useAction = getDynamic() || (_physicsInfo && !isFarGrab);
+    if (useAction) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
         EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
@@ -3371,13 +3383,11 @@ void EntityItem::addGrab(GrabPointer grab) {
 
         EntityDynamicType dynamicType;
         QVariantMap arguments;
-        int grabParentJointIndex =grab->getParentJointIndex();
-        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX ||
-            grabParentJointIndex == FARGRAB_MOUSE_INDEX) {
+        if (isFarGrab) {
             // add a far-grab action
             dynamicType = DYNAMIC_TYPE_FAR_GRAB;
             arguments["otherID"] = grab->getOwnerID();
-            arguments["otherJointIndex"] = grabParentJointIndex;
+            arguments["otherJointIndex"] = jointIndex;
             arguments["targetPosition"] = vec3ToQMap(grab->getPositionalOffset());
             arguments["targetRotation"] = quatToQMap(grab->getRotationalOffset());
             arguments["linearTimeScale"] = 0.05;
@@ -3404,7 +3414,16 @@ void EntityItem::addGrab(GrabPointer grab) {
 }
 
 void EntityItem::removeGrab(GrabPointer grab) {
+    int oldNumGrabs = _grabs.size();
     SpatiallyNestable::removeGrab(grab);
+    if (!getDynamic() && _grabs.size() != oldNumGrabs) {
+        // GRAB HACK: the expected behavior is for non-dynamic grabbed things to NOT be throwable
+        // so we slam the velocities to zero here whenever the number of grabs change.
+        // NOTE: if there is still another grab in effect this shouldn't interfere with the object's motion
+        // because that grab will slam the position+velocities next frame.
+        setLocalVelocity(glm::vec3(0.0f));
+        setAngularVelocity(glm::vec3(0.0f));
+    }
     markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
 
     QUuid actionID = grab->getActionID();

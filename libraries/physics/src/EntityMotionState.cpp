@@ -236,11 +236,19 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     assert(entityTreeIsLocked());
     if (_motionType == MOTION_TYPE_KINEMATIC) {
         BT_PROFILE("kinematicIntegration");
+        uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
+        if (hasInternalKinematicChanges()) {
+            // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK: This kinematic body was moved by an Action
+            // and doesn't require transform update because the body is authoritative and its transform
+            // has already been copied out --> do no kinematic integration.
+            clearInternalKinematicChanges();
+            _lastKinematicStep = thisStep;
+            return;
+        }
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
         _entity->setAcceleration(_entity->getGravity());
 
-        uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _lastKinematicStep = thisStep;
         _entity->stepKinematicMotion(dt);
