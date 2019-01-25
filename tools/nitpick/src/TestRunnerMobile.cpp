@@ -70,7 +70,7 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 void TestRunnerMobile::connectDevice() {
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbCommand + " devices > " + devicesFullFilename;
-    int result = system(command.toStdString().c_str());
+    system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
         QMessageBox::critical(0, "Internal error", "devicesFullFilename not found");
@@ -103,5 +103,5 @@ void TestRunnerMobile::downloadAPK() {
 
 void TestRunnerMobile::pullFolder() {
     QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + " >" + _workingFolder + "/pullOutput.txt";
-    int result = system(command.toStdString().c_str());
+    system(command.toStdString().c_str());
 }
