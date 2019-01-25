@@ -105,7 +105,6 @@ std::string State::getKey() const {
     key += ":" + hex(_values.stencilTestBack.getRaw());
     key += ":" + hex(_values.blendFunction.getRaw());
     key += ":" + hex(_values.sampleMask);
-    key += ":" + hex(_values.sampleMask);
     // fillMode, cullMode, colorMaskWrite and the flags consume 32 bits alltogether
     static_assert(0 == offsetof(State::Data, fillMode) % 4, "Validate fillMode offset");
     key += ":" + hex(*(int*)&_values.fillMode);

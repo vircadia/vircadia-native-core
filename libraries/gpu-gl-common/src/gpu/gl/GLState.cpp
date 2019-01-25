@@ -44,7 +44,7 @@ const GLState::Commands makeResetStateCommands() {
     // and we have a 50/50 chance that State::DEFAULT is not yet initialized.
     // Since State::DEFAULT = State::Data() it is much easier to not use the actual State::DEFAULT
     // but another State::Data object with a default initialization.
-    const State::Data& DEFAULT = State::DEFAULT;
+    const State::Data DEFAULT = State::Data();
 
     auto depthBiasCommand = std::make_shared<CommandDepthBias>(&GLBackend::do_setStateDepthBias,
         Vec2(DEFAULT.depthBias, DEFAULT.depthBiasSlopeScale));

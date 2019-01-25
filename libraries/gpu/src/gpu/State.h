@@ -262,7 +262,7 @@ public:
 
     static_assert(sizeof(Flags) == sizeof(uint8), "Flags size check");
 
-        // The Data class is the full explicit description of the State class fields value.
+    // The Data class is the full explicit description of the State class fields value.
     // Useful for having one const static called Default for reference or for the gpu::Backend to keep track of the current value
     class Data {
     public:
@@ -273,13 +273,11 @@ public:
         StencilActivation stencilActivation;
         StencilTest stencilTestFront;
         StencilTest stencilTestBack;
-        BlendFunction blendFunction;
-
         uint32 sampleMask = 0xFFFFFFFF;
-
-        FillMode fillMode = FILL_FACE;
-        CullMode cullMode = CULL_NONE;
-        ColorMask colorWriteMask = WRITE_ALL;
+        BlendFunction blendFunction;
+        FillMode fillMode{ FILL_FACE };
+        CullMode cullMode{ CULL_NONE };
+        ColorMask colorWriteMask{ WRITE_ALL };
 
         Flags flags;
     };
@@ -290,14 +288,13 @@ public:
     static_assert(offsetof(Data, stencilActivation) == 12, "Data offsets");
     static_assert(offsetof(Data, stencilTestFront) == 16, "Data offsets");
     static_assert(offsetof(Data, stencilTestBack) == 20, "Data offsets");
-    static_assert(offsetof(Data, blendFunction) == 24, "Data offsets");
-    static_assert(offsetof(Data, sampleMask) == 28, "Data offsets");
+    static_assert(offsetof(Data, sampleMask) == 24, "Data offsets");
+    static_assert(offsetof(Data, blendFunction) == 28, "Data offsets");
     static_assert(offsetof(Data, fillMode) == 32, "Data offsets");
     static_assert(offsetof(Data, cullMode) == 33, "Data offsets");
     static_assert(offsetof(Data, colorWriteMask) == 34, "Data offsets");
     static_assert(offsetof(Data, flags) == 35, "Data offsets");
     static_assert(sizeof(Data) == 36, "Data Size Check");
-
 
     std::string getKey() const;
 
@@ -310,7 +307,7 @@ public:
     CullMode getCullMode() const { return _values.cullMode; }
 
     const Flags& getFlags() const { return _values.flags; }
-    
+
     void setFrontFaceClockwise(bool isClockwise) { SET_FIELD(FRONT_FACE_CLOCKWISE, flags.frontFaceClockwise, isClockwise); }
     bool isFrontFaceClockwise() const { return _values.flags.frontFaceClockwise; }
 

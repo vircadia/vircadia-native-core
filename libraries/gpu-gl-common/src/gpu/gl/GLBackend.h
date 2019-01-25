@@ -54,28 +54,6 @@
 #define GPU_STEREO_CAMERA_BUFFER
 #endif
 
-//
-// GL Backend pointer storage mechanism
-// One of the following three defines must be defined.
-// GPU_POINTER_STORAGE_SHARED
-
-// The platonic ideal, use references to smart pointers.
-// However, this produces artifacts because there are too many places in the code right now that
-// create temporary values (undesirable smart pointer duplications) and then those temp variables
-// get passed on and have their reference taken, and then invalidated
-// GPU_POINTER_STORAGE_REF
-
-// Raw pointer manipulation.  Seems more dangerous than the reference wrappers,
-// but in practice, the danger of grabbing a reference to a temporary variable
-// is causing issues
-// GPU_POINTER_STORAGE_RAW
-
-#if defined(USE_GLES)
-#define GPU_POINTER_STORAGE_SHARED
-#else
-#define GPU_POINTER_STORAGE_RAW
-#endif
-
 namespace gpu { namespace gl {
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
