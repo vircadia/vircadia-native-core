@@ -14,7 +14,7 @@
 
 #include "OculusHelpers.h"
 
-const char* OculusAPIPlugin::NAME { "Oculus Rift" };
+QString OculusAPIPlugin::NAME { "Oculus Rift" };
 
 OculusAPIPlugin::OculusAPIPlugin() {
     _session = hifi::ovr::acquireRenderSession();
@@ -40,9 +40,10 @@ void OculusAPIPlugin::handleOVREvents() {
 #ifdef OCULUS_APP_ID
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
         // pop messages to see if we got a return for an entitlement check
-        ovrMessageHandle message = ovr_PopMessage();
+        ovrMessageHandle message { nullptr };
 
-        while (message) {
+        // pop the next message to check, if there is one
+        while ((message = ovr_PopMessage())) {
             switch (ovr_Message_GetType(message)) {
                 case ovrMessage_Entitlement_GetIsViewerEntitled: {
                     if (!ovr_Message_IsError(message)) {
@@ -104,9 +105,6 @@ void OculusAPIPlugin::handleOVREvents() {
 
             // free the message handle to cleanup and not leak
             ovr_FreeMessage(message);
-
-            // pop the next message to check, if there is one
-            message = ovr_PopMessage();
         }
     }
 #endif

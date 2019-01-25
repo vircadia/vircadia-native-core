@@ -160,8 +160,8 @@ void LoginDialog::linkOculus() {
             const QString LINK_OCULUS_PATH = "api/v1/user/oculus/link";
 
             QJsonObject payload;
-            payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
-            payload.insert("oculus_id", QJsonValue::fromVariant(QVariant(oculusID)));
+            payload["oculus_nonce"] = nonce;
+            payload["oculus_id"] = oculusID;
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(LINK_OCULUS_PATH, AccountManagerAuth::Required,
@@ -188,16 +188,16 @@ void LoginDialog::createAccountFromOculus(QString email, QString username, QStri
             const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "api/v1/user/oculus/create";
 
             QJsonObject payload;
-            payload.insert("oculus_nonce", QJsonValue::fromVariant(QVariant(nonce)));
-            payload.insert("oculus_id", QJsonValue::fromVariant(QVariant(oculusID)));
+            payload["oculus_nonce"] = nonce;
+            payload["oculus_id"] = oculusID;
             if (!email.isEmpty()) {
-                payload.insert("email", QJsonValue::fromVariant(QVariant(email)));
+                payload["email"] = email;
             }
             if (!username.isEmpty()) {
-                payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+                payload["username"] = username;
             }
             if (!password.isEmpty()) {
-                payload.insert("password", QJsonValue::fromVariant(QVariant(password)));
+                payload["password"] = password;
             }
 
             auto accountManager = DependencyManager::get<AccountManager>();
@@ -239,7 +239,7 @@ void LoginDialog::linkSteam() {
             const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
 
             QJsonObject payload;
-            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
@@ -266,9 +266,9 @@ void LoginDialog::createAccountFromSteam(QString username) {
             const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
 
             QJsonObject payload;
-            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
             if (!username.isEmpty()) {
-                payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+                payload["username"] = username;
             }
 
             auto accountManager = DependencyManager::get<AccountManager>();
@@ -305,40 +305,35 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
             return;
         }
         auto root = doc.object();
-        auto data = root.value("data").toObject();
-        auto error = data.value("error").toObject();
-        auto oculusError = data.value("oculus");
-        auto user = error.value("username");
-        auto uid = error.value("uid");
-        auto email = error.value("email");
-        auto password = error.value("password");
+        auto data = root["data"].toObject();
+        auto error = data["error"].toObject();
+        auto oculusError = data["oculus"];
+        auto user = error["username"].toArray();
+        auto uid = error["uid"].toArray();
+        auto email = error["email"].toArray();
+        auto password = error["password"].toArray();
         QString reply;
-        QString emailError;
-        if (!uid.isNull() && !uid.isUndefined()) {
-            QJsonArray arr = uid.toArray();
-            if (!arr.isEmpty()) {
-                emit handleCreateFailed("Oculus ID " + arr.at(0).toString() + ".");
+        if (!uid.isEmpty()) {
+            if (uid[0].isString()) {
+                emit handleCreateFailed("Oculus ID " + uid[0].toString() + ".");
                 return;
             }
         }
-        if (!user.isNull() && !user.isUndefined()) {
-            QJsonArray arr = user.toArray();
-            if (!arr.isEmpty()) {
-                reply = "Username " + arr.at(0).toString() + ".";
+        if (!user.isEmpty()) {
+            if (user[0].isString()) {
+                reply = "Username " + user[0].toString() + ".";
             }
         }
-        if (!email.isNull() && !email.isUndefined()) {
-            QJsonArray arr = email.toArray();
-            if (!arr.isEmpty()) {
+        if (!email.isEmpty()) {
+            if (email[0].isString()) {
                 reply.append((!reply.isEmpty()) ? "\n" : "");
-                reply.append("Email " + arr.at(0).toString() + ".");
+                reply.append("Email " + email[0].toString() + ".");
             }
         }
-        if (!password.isNull() && !password.isUndefined()) {
-            QJsonArray arr = password.toArray();
-            if (!arr.isEmpty()) {
+        if (!password.isEmpty()) {
+            if (password[0].isString()) {
                 reply.append((!reply.isEmpty()) ? "\n" : "");
-                reply.append("Password " + arr.at(0).toString() + ".");
+                reply.append("Password " + password[0].toString() + ".");
             }
         }
         if (!oculusError.isNull() && !oculusError.isUndefined()) {

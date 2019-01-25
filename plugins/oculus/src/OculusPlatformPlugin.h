@@ -18,8 +18,8 @@ class OculusAPIPlugin : public OculusPlatformPlugin {
 public:
     OculusAPIPlugin();
     virtual ~OculusAPIPlugin();
-    const QString getName() const { return NAME; }
-    const QString getOculusUserID() const { return _user; };
+    QString getName() { return NAME; }
+    QString getOculusUserID() { return _user; };
 
     bool isRunning();
 
@@ -28,7 +28,7 @@ public:
     virtual void handleOVREvents();
 
 private:
-    static const char* NAME;
+    static QString NAME;
     NonceUserIDCallback _nonceUserIDCallback;
     QString _nonce;
     bool _nonceChanged{ false };
