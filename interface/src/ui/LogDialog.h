@@ -55,6 +55,7 @@ protected:
 
 private:
     QCheckBox* _extraDebuggingBox;
+    QCheckBox* _keepOnTopBox;
     QPushButton* _revealLogButton;
     QPushButton* _allLogsButton;
     QCheckBox* _debugPrintBox;

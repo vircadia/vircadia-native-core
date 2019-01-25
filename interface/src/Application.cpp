@@ -8107,7 +8107,8 @@ void Application::toggleLogDialog() {
         return;
     }
     if (! _logDialog) {
-        _logDialog = new LogDialog(nullptr, getLogger());
+        bool shouldSetParent = _keepLogWindowOnTop.get();
+        _logDialog = new LogDialog(shouldSetParent ? qApp->getWindow() : nullptr, getLogger());
     }
 
     if (_logDialog->isVisible()) {
@@ -8116,6 +8117,19 @@ void Application::toggleLogDialog() {
         _logDialog->show();
     }
 }
+
+ void Application::recreateLogWindow(int keepOnTop) {
+     _keepLogWindowOnTop.set(keepOnTop != 0);
+     if (_logDialog) {
+         bool toggle = _logDialog->isVisible();
+         _logDialog->close();
+         _logDialog = nullptr;
+
+         if (toggle) {
+             toggleLogDialog();
+         }
+     }
+ }
 
 void Application::toggleEntityScriptServerLogDialog() {
     if (! _entityScriptServerLogDialog) {

@@ -217,6 +217,7 @@ public:
     void setDesktopTabletScale(float desktopTabletScale);
 
     bool getDesktopTabletBecomesToolbarSetting() { return _desktopTabletBecomesToolbarSetting.get(); }
+    bool getLogWindowOnTopSetting() { return _keepLogWindowOnTop.get(); }
     void setDesktopTabletBecomesToolbarSetting(bool value);
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
@@ -365,6 +366,7 @@ public slots:
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
+    void recreateLogWindow(int);
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
@@ -654,6 +656,7 @@ private:
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
     Setting::Handle<bool> _miniTabletEnabledSetting;
+    Setting::Handle<bool> _keepLogWindowOnTop { "keepLogWindowOnTop", false };
 
     float _scaleMirror;
     float _mirrorYawOffset;
