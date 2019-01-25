@@ -49,6 +49,7 @@ protected:
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     void lookUpIndices();
+    void beginInterp(InterpType interpType, const AnimChain& chain);
 
     AnimPoseVec _poses;
 

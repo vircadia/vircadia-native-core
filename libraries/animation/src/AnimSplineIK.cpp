@@ -15,6 +15,7 @@
 #include "AnimUtil.h"
 
 static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
+static const float FRAMES_PER_SECOND = 30.0f;
 
 AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float interpDuration,
     const QString& baseJointName,
@@ -66,9 +67,49 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     if (_children.size() != 1) {
         return _poses;
     }
+
+    const float MIN_ALPHA = 0.0f;
+    const float MAX_ALPHA = 1.0f;
+    float alpha = glm::clamp(animVars.lookup(_alphaVar, _alpha), MIN_ALPHA, MAX_ALPHA);
+
     // evaluate underPoses
     AnimPoseVec underPoses = _children[0]->evaluate(animVars, context, dt, triggersOut);
+
+    // if we don't have a skeleton, or jointName lookup failed.
+    if (!_skeleton || _baseJointIndex == -1 || _tipJointIndex == -1 || alpha == 0.0f || underPoses.size() == 0) {
+        // pass underPoses through unmodified.
+        _poses = underPoses;
+        return _poses;
+    }
+
+    // guard against size changes
+    if (underPoses.size() != _poses.size()) {
+        _poses = underPoses;
+    }
+
+    // determine if we should interpolate
+    bool enabled = animVars.lookup(_enabledVar, _enabled);
+    if (enabled != _enabled) {
+        AnimChain poseChain;
+        poseChain.buildFromRelativePoses(_skeleton, _poses, _tipJointIndex);
+        if (enabled) {
+            beginInterp(InterpType::SnapshotToSolve, poseChain);
+        } else {
+            beginInterp(InterpType::SnapshotToUnderPoses, poseChain);
+        }
+    }
+    _enabled = enabled;
+
     _poses = underPoses;
+
+    // don't build chains or do IK if we are disabled & not interping.
+    if (_interpType == InterpType::None && !enabled) {
+        return _poses;
+    }
+
+    // compute under chain for possible interpolation
+    AnimChain underChain;
+    underChain.buildFromRelativePoses(_skeleton, underPoses, _tipJointIndex);
 
     glm::quat hipsTargetRotation;
     glm::vec3 hipsTargetTranslation;
@@ -113,8 +154,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPoseVec absolutePoses2;
     absolutePoses2.resize(_poses.size());
     if (_poses.size() > 0) {
-        
-        //_snapshotChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
+
         jointChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
         solveTargetWithSpline(context, target, absolutePoses, false, jointChain);
         jointChain.buildDirtyAbsolutePoses();
@@ -149,25 +189,13 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPose beforeSolveChestNeck;
     if (_poses.size() > 0) {
 
-        
+
         beforeSolveChestNeck = _skeleton->getAbsolutePose(_skeleton->nameToJointIndex("Neck"), _poses);
 
         secondaryJointChain.buildFromRelativePoses(_skeleton, _poses, secondaryTarget.getIndex());
         solveTargetWithSpline(context, secondaryTarget, absolutePoses2, false, secondaryJointChain);
         secondaryJointChain.outputRelativePoses(_poses);
     }
-    
-    
-    
-    const float FRAMES_PER_SECOND = 30.0f;
-    _interpAlphaVel = FRAMES_PER_SECOND / _interpDuration;
-    _alpha = _interpAlphaVel * dt;
-    // we need to blend the old joint chain with the current joint chain, otherwise known as: _snapShotChain
-    // we blend the chain info then we accumulate it then we assign to relative poses then we return the value.
-    // make the alpha
-    // make the prevchain
-    // interp from the previous chain to the new chain/or underposes if the ik is disabled.
-    // update the relative poses and then we are done
 
     // set the tip/head rotation to match the absolute rotation of the target.
     int tipParent = _skeleton->getParentIndex(_tipJointIndex);
@@ -186,6 +214,46 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose tipTarget(target.getRotation(),target.getTranslation());
         AnimPose tipRelativePose = _skeleton->getAbsolutePose(tipParent,_poses).inverse() * tipTarget;
         _poses[_tipJointIndex] = tipRelativePose;
+    }
+
+    // compute chain
+    AnimChain ikChain;
+    ikChain.buildFromRelativePoses(_skeleton, _poses, _tipJointIndex);
+    // blend with the underChain
+    ikChain.blend(underChain, alpha);
+
+    // apply smooth interpolation when turning ik on and off
+    if (_interpType != InterpType::None) {
+        _interpAlpha += _interpAlphaVel * dt;
+
+        // ease in expo
+        float easeInAlpha = 1.0f - powf(2.0f, -10.0f * _interpAlpha);
+
+        if (_interpAlpha < 1.0f) {
+            AnimChain interpChain;
+            if (_interpType == InterpType::SnapshotToUnderPoses) {
+                interpChain = underChain;
+                interpChain.blend(_snapshotChain, easeInAlpha);
+            } else if (_interpType == InterpType::SnapshotToSolve) {
+                interpChain = ikChain;
+                interpChain.blend(_snapshotChain, easeInAlpha);
+            }
+            // copy interpChain into _poses
+            interpChain.outputRelativePoses(_poses);
+        } else {
+            // interpolation complete
+            _interpType = InterpType::None;
+        }
+    }
+
+    if (_interpType == InterpType::None) {
+        if (enabled) {
+            // copy chain into _poses
+            ikChain.outputRelativePoses(_poses);
+        } else {
+            // copy under chain into _poses
+            underChain.outputRelativePoses(_poses);
+        }
     }
 
     // debug render ik targets
@@ -497,4 +565,13 @@ void AnimSplineIK::setTargetVars(const QString& jointName, const QString& positi
         _targetVarVec.push_back(targetVar);
     }
     */
+}
+
+void AnimSplineIK::beginInterp(InterpType interpType, const AnimChain& chain) {
+    // capture the current poses in a snapshot.
+    _snapshotChain = chain;
+
+    _interpType = interpType;
+    _interpAlphaVel = FRAMES_PER_SECOND / _interpDuration;
+    _interpAlpha = 0.0f;
 }
