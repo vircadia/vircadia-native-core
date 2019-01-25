@@ -353,45 +353,50 @@ void setupPreferences() {
         auto getter = [myAvatar]()->float { return myAvatar->getDriveGear1(); };
         auto setter = [myAvatar](float value) { myAvatar->setDriveGear1(value); };
         auto preference = new SpinnerPreference(ACCEL_CURVE, "Gear 1", getter, setter);
-        preference->setMin(1);
-        preference->setMax(5);
+        preference->setMin(0.0f);
+        preference->setMax(1.0f);
         preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->float { return myAvatar->getDriveGear2(); };
         auto setter = [myAvatar](float value) { myAvatar->setDriveGear2(value); };
         auto preference = new SpinnerPreference(ACCEL_CURVE, "Gear 2", getter, setter);
-        preference->setMin(1);
-        preference->setMax(5);
+        preference->setMin(0.0f);
+        preference->setMax(1.0f);
         preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->float { return myAvatar->getDriveGear3(); };
         auto setter = [myAvatar](float value) { myAvatar->setDriveGear3(value); };
         auto preference = new SpinnerPreference(ACCEL_CURVE, "Gear 3", getter, setter);
-        preference->setMin(1);
-        preference->setMax(5);
+        preference->setMin(0.0f);
+        preference->setMax(1.0f);
         preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->float { return myAvatar->getDriveGear4(); };
         auto setter = [myAvatar](float value) { myAvatar->setDriveGear4(value); };
         auto preference = new SpinnerPreference(ACCEL_CURVE, "Gear 4", getter, setter);
-        preference->setMin(1);
-        preference->setMax(5);
+        preference->setMin(0.0f);
+        preference->setMax(1.0f);
         preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
     {
         auto getter = [myAvatar]()->float { return myAvatar->getDriveGear5(); };
         auto setter = [myAvatar](float value) { myAvatar->setDriveGear5(value); };
         auto preference = new SpinnerPreference(ACCEL_CURVE, "Gear 5", getter, setter);
-        preference->setMin(1);
-        preference->setMax(5);
+        preference->setMin(0.0f);
+        preference->setMax(1.0f);
         preference->setStep(1);
+        preference->setDecimals(2);
         preferences->addPreference(preference);
     }
 

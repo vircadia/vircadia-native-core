@@ -1814,15 +1814,6 @@ private:
     float _driveGear4 { DEFAULT_GEAR_4 };
     float _driveGear5 { DEFAULT_GEAR_5 };
 
-    int _controlSchemeIndex;
-
-    //Setting::Handle<float> _driveGear1Setting;
-    //Setting::Handle<float> _driveGear2Setting;
-    //Setting::Handle<float> _driveGear3Setting;
-    //Setting::Handle<float> _driveGear4Setting;
-    //Setting::Handle<float> _driveGear5Setting;
-    //Setting::Handle<int> controlSchemeIndex;
-
     glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
     glm::vec3 _actionMotorVelocity; // target local-frame velocity of avatar (default controller actions)
@@ -2067,7 +2058,6 @@ private:
     Setting::Handle<float> _driveGear3Setting;
     Setting::Handle<float> _driveGear4Setting;
     Setting::Handle<float> _driveGear5Setting;
-    Setting::Handle<int> controlSchemeIndexSetting;
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
 
