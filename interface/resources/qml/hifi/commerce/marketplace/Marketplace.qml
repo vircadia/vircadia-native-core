@@ -24,18 +24,21 @@ import "../common/sendAsset"
 import "../.." as HifiCommon
 
 Rectangle {
-    HifiConstants { id: hifi; }
+    HifiConstants {
+        id: hifi
+    }
 
-    id: root;
+    id: root
 
-    property string activeView: "initialize";
-    property bool keyboardRaised: false;
-    property int currentSortIndex: 0;
-    property string sortString: "";
-    property string categoryString: "";
-    property string searchString: "";
- 
-    anchors.fill: (typeof parent === undefined) ? undefined : parent;
+    property string activeView: "initialize"
+    property int currentSortIndex: 0
+    property string sortString: ""
+    property string categoryString: ""
+    property string searchString: ""
+    property bool keyboardEnabled: HMD.active
+    property bool keyboardRaised: false
+    
+    anchors.fill: (typeof parent === undefined) ? undefined : parent
 
     function getMarketplaceItems() {
         marketplaceItemView.visible = false;
@@ -44,11 +47,11 @@ Rectangle {
     }
     
     Component.onDestruction: {
-        KeyboardScriptingInterface.raised = false;
+        keyboard.raised = false;
     }
     
     Connections {
-        target: MarketplaceScriptingInterface;
+        target: MarketplaceScriptingInterface
 
         onGetMarketplaceCategoriesResult: {
             if (result.status !== 'success') {
@@ -66,7 +69,7 @@ Rectangle {
                     });
                 });
             }
-            getMarketplaceItems();            
+            getMarketplaceItems();
         }
         onGetMarketplaceItemsResult: {
             marketBrowseModel.handlePage(result.status !== "success" && result.message, result);
@@ -77,7 +80,6 @@ Rectangle {
                 console.log("Failed to get Marketplace Item", result.data.message);
             } else {
             
-                console.log(JSON.stringify(result.data));
                 marketplaceItem.item_id = result.data.id;
                 marketplaceItem.image_url = result.data.thumbnail_url;
                 marketplaceItem.name = result.data.title;
@@ -91,7 +93,6 @@ Rectangle {
                 marketplaceItem.license = result.data.license;
                 marketplaceItem.available = result.data.availability == "available";
                 marketplaceItem.created_at = result.data.created_at;
-                console.log("HEIGHT: " + marketplaceItemContent.height);
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
@@ -100,196 +101,194 @@ Rectangle {
     }
 
     HifiCommerceCommon.CommerceLightbox {
-        id: lightboxPopup;
-        visible: false;
-        anchors.fill: parent;
+        id: lightboxPopup
+        visible: false
+        anchors.fill: parent
     }
 
     //
     // HEADER BAR START
     //
     
-    
     Rectangle {
-        id: headerShadowBase;
-        anchors.fill: header;
-        color: "white";
+        id: headerShadowBase
+        anchors.fill: header
+        color: "white"
     }
     DropShadow {
-        anchors.fill: headerShadowBase;
-        source: headerShadowBase;
-        verticalOffset: 4;
-        horizontalOffset: 4;
-        radius: 6;
-        samples: 9;
-        color: hifi.colors.baseGrayShadow;
-        z:5;
-    }    
+        anchors.fill: headerShadowBase
+        source: headerShadowBase
+        verticalOffset: 4
+        horizontalOffset: 4
+        radius: 6
+        samples: 9
+        color: hifi.colors.baseGrayShadow
+        z:5
+    }
     Rectangle {
         id: header;
-        visible: true;
-        anchors.left: parent.left;
-        anchors.top: parent.top;
-        anchors.right: parent.right;
-        anchors.topMargin: -1;
-        anchors.leftMargin: -1;
-        anchors.rightMargin: -1;
-        height: childrenRect.height+5;
-        z: 5;
+
+        visible: true
+        anchors {
+            left: parent.left
+            top: parent.top
+            right: parent.right
+        }
+
+        height: childrenRect.height+5
+        z: 5
     
         Rectangle {
-            id: titleBarContainer;
-            visible: true;
-            // Size
-            width: parent.width;
-            height: 50;
-            // Anchors
-            anchors.left: parent.left;
-            anchors.top: parent.top;
-              
-            
-            // Marketplace icon
+            id: titleBarContainer
+
+            anchors.left: parent.left
+            anchors.top: parent.top
+            width: parent.width
+            height: 50
+            visible: true
+
             Image {
-                id: marketplaceIcon;
-                source: "../../../../images/hifi-logo-blackish.svg";
+                id: marketplaceIcon
+
+                anchors {
+                    left: parent.left
+                    leftMargin: 8
+                    verticalCenter: parent.verticalCenter
+                }
                 height: 20
-                width: marketplaceIcon.height;
-                anchors.left: parent.left;
-                anchors.leftMargin: 8;
-                anchors.verticalCenter: parent.verticalCenter;
-                visible: true;
+                width: marketplaceIcon.height
+                source: "../../../../images/hifi-logo-blackish.svg"
+                visible: true
             }
 
-            // Title Bar text
             RalewaySemiBold {
-                id: titleBarText;
-                text: "Marketplace";
-                // Text size
-                size: hifi.fontSizes.overlayTitle;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: marketplaceIcon.right;
-                anchors.leftMargin: 6;
-                anchors.bottom: parent.bottom;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.black;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: titleBarText
+
+                anchors {
+                    top: parent.top
+                    left: marketplaceIcon.right
+                    bottom: parent.bottom
+                    leftMargin: 6
+                }
+                width: paintedWidth
+
+                text: "Marketplace"
+                size: hifi.fontSizes.overlayTitle
+                color: hifi.colors.black
+                verticalAlignment: Text.AlignVCenter
             }
         }
 
         Rectangle {
-            id: searchBarContainer;
-            visible: true;
-            clip: false;
-            // Size
-            width: parent.width;
-            anchors.top: titleBarContainer.bottom;
-            height: 50;
+            id: searchBarContainer
 
+            anchors.top: titleBarContainer.bottom
+            width: parent.width
+            height: 50
+            
+            visible: true
+            clip: false
 
-           Rectangle {
-                id: categoriesButton;
-                anchors.left: parent.left;
-                anchors.leftMargin: 10;
-                anchors.verticalCenter: parent.verticalCenter;
-                height: 34;
-                width: categoriesText.width + 25;
-                color: hifi.colors.white;
-                radius: 4;
-                border.width: 1;
-                border.color: hifi.colors.lightGrayText;
-                
+            //
+            // TODO: Possibly change this to be a combo box
+            //
+            Rectangle {
+                id: categoriesButton
 
-                // Categories Text
-                RalewayRegular {
-                    id: categoriesText;
-                    text: "Categories";
-                    // Text size
-                    size: 14;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    elide: Text.ElideRight;
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    width: Math.min(textMetrics.width + 25, 110);
-                    // Anchors
-                    anchors.centerIn: parent;
-                    rightPadding: 10;
+                anchors {
+                    left: parent.left
+                    leftMargin: 10
+                    verticalCenter: parent.verticalCenter
                 }
+                height: 34
+                width: categoriesText.width + 25
+
+                color: hifi.colors.white
+                radius: 4
+                border.width: 1
+                border.color: hifi.colors.lightGrayText
+                
+                RalewayRegular {
+                    id: categoriesText
+
+                    anchors.centerIn: parent
+
+                    text: "Categories"
+                    size: 14
+                    color: hifi.colors.lightGrayText
+                    elide: Text.ElideRight
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    rightPadding: 10
+                }
+
                 HiFiGlyphs {
-                    id: categoriesDropdownIcon;
-                    text: hifi.glyphs.caratDn;
-                    // Size
-                    size: 34;
-                    // Anchors
-                    anchors.right: parent.right;
-                    anchors.rightMargin: -8;
-                    anchors.verticalCenter: parent.verticalCenter;
-                    horizontalAlignment: Text.AlignHCenter;
-                    // Style
-                    color: hifi.colors.baseGray;
+                    id: categoriesDropdownIcon
+
+                    anchors {
+                        right: parent.right
+                        rightMargin: -8
+                        verticalCenter: parent.verticalCenter
+                    }
+
+                    text: hifi.glyphs.caratDn
+                    size: 34
+                    horizontalAlignment: Text.AlignHCenter
+                    color: hifi.colors.baseGray
                 }
 
                 MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: enabled;
+                    anchors.fill: parent
+
+                    hoverEnabled: enabled
                     onClicked: {
                         categoriesDropdown.visible = !categoriesDropdown.visible;
                         categoriesButton.color = categoriesDropdown.visible ? hifi.colors.lightGray : hifi.colors.white;
                         categoriesDropdown.forceActiveFocus();
                     }
-                    onEntered: categoriesText.color = hifi.colors.baseGrayShadow;
-                    onExited: categoriesText.color = hifi.colors.baseGray;
+                    onEntered: categoriesText.color = hifi.colors.baseGrayShadow
+                    onExited: categoriesText.color = hifi.colors.baseGray
                 }
 
                 Component.onCompleted: {
-                    console.log("Getting Marketplace Categories");
                     MarketplaceScriptingInterface.getMarketplaceCategories();
                 }                
             }
                 
             // or
             RalewayRegular {
-                id: orText;
-                text: "or";
-                // Text size
+                id: orText
+
+                anchors.left: categoriesButton.right
+                anchors.verticalCenter: parent.verticalCenter
+                width: 25
+
+                text: "or"
                 size: 18;
-                // Style
-                color: hifi.colors.baseGray;
-                elide: Text.ElideRight;
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
-                width: Math.min(textMetrics.width + 25, 110);
-                // Anchors
-                anchors.left: categoriesButton.right;
-                rightPadding: 10;
-                leftPadding: 10;
-                anchors.verticalCenter: parent.verticalCenter;            
+                color: hifi.colors.baseGray
+                elide: Text.ElideRight
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                rightPadding: 10
+                leftPadding: 10
             }
+
             HifiControlsUit.TextField {
-                id: searchField;
-                anchors.verticalCenter: parent.verticalCenter;
-                anchors.right: parent.right;
-                anchors.left: orText.right;
-                anchors.rightMargin: 10;
-                height: 34;
-                isSearchField: true;
-                colorScheme: hifi.colorSchemes.faintGray;
-                
+                id: searchField
 
-                font.family: "Fira Sans"
-                font.pixelSize: hifi.fontSizes.textFieldInput;
-
-                placeholderText: "Search Marketplace";
-                            
-                TextMetrics {
-                    id: primaryFilterTextMetrics;
-                    font.family: "FiraSans Regular";
-                    font.pixelSize: hifi.fontSizes.textFieldInput;
-                    font.capitalization: Font.AllUppercase;
+                anchors {
+                    verticalCenter: parent.verticalCenter
+                    right: parent.right
+                    left: orText.right
+                    rightMargin: 10
                 }
+                height: 34
+
+                isSearchField: true
+                colorScheme: hifi.colorSchemes.faintGray
+                font.family: "Fira Sans"
+                font.pixelSize: hifi.fontSizes.textFieldInput
+                placeholderText: "Search Marketplace"
 
                 // workaround for https://bugreports.qt.io/browse/QTBUG-49297
                 Keys.onPressed: {
@@ -311,7 +310,7 @@ Rectangle {
                         break;
                     }
                 }
-                onTextChanged: root.searchString = text;
+                onTextChanged: root.searchString = text
                 onAccepted: {
                     root.searchString = searchField.text;
                     getMarketplaceItems();
@@ -319,15 +318,12 @@ Rectangle {
                 }
 
                 onActiveFocusChanged: {
-                    if (!activeFocus) {
-                        dropdownContainer.visible = false;
-                    }
+                    root.keyboardRaised = activeFocus;
                 }
  
             }
         }
     }
-    
     //
     // HEADER BAR END
     //
@@ -336,14 +332,15 @@ Rectangle {
     // CATEGORIES LIST START
     //    
     Item {
-        id: categoriesDropdown;    
+        id: categoriesDropdown
+
         anchors.fill: parent;
-        visible: false;
-        z: 10;
-        
+
+        visible: false
+        z: 10
         MouseArea {
-            anchors.fill: parent;
-            propagateComposedEvents: true;
+            anchors.fill: parent
+            propagateComposedEvents: true
             onClicked: {
                 categoriesDropdown.visible = false;
                 categoriesButton.color = hifi.colors.white;
@@ -351,57 +348,72 @@ Rectangle {
         }
         
         Rectangle {
-            anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
-            anchors.top: parent.top;
-            anchors.topMargin: 100;
-            width: parent.width/3;
-            color: hifi.colors.white;
+            anchors {
+                left: parent.left;
+                bottom: parent.bottom;
+                top: parent.top;
+                topMargin: 100;
+            }
+            width: parent.width/3
+
+            color: hifi.colors.white
             
             ListModel {
-                id: categoriesModel;
+                id: categoriesModel
             }
 
             ListView {
                 id: categoriesListView;
-                anchors.fill: parent;
-                anchors.rightMargin: 10;
-                width: parent.width;
-                clip: true;
+
+                anchors.fill: parent
+                anchors.rightMargin: 10
+                width: parent.width
+
+                clip: true
                 
-                model: categoriesModel;
+                model: categoriesModel
                 delegate: ItemDelegate {
-                    height: 34;
-                    width: parent.width;
-                    clip: true;
+                    height: 34
+                    width: parent.width
+
+                    clip: true
                     contentItem: Rectangle {
-                        id: categoriesItem;
-                        anchors.fill: parent;
-                        color: hifi.colors.white;
-                        visible: true;
+                        id: categoriesItem
+
+                        anchors.fill: parent
+
+                        color: hifi.colors.white
+                        visible: true
 
                         RalewayRegular {
-                            id: categoriesItemText;
-                            text: model.name;
-                            anchors.leftMargin: 15;
-                            anchors.fill:parent;
-                            color: ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.baseGray;
-                            horizontalAlignment: Text.AlignLeft;
-                            verticalAlignment: Text.AlignVCenter;
-                            size: 14;
+                            id: categoriesItemText
+
+                            anchors.leftMargin: 15
+                            anchors.fill:parent
+ 
+                            text: model.name
+                            color: ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.baseGray
+                            horizontalAlignment: Text.AlignLeft
+                            verticalAlignment: Text.AlignVCenter
+                            size: 14
                         }
                     }
+
                     MouseArea {
-                        anchors.fill: parent;
-                        hoverEnabled: true;
-                        propagateComposedEvents: false;
-                        z: 10;
+                        anchors.fill: parent
+                        z: 10
+
+                        hoverEnabled: true
+                        propagateComposedEvents: false
+
                         onEntered: {
                             categoriesItem.color = ListView.isCurrentItem ? hifi.colors.white : hifi.colors.lightBlueHighlight;
                         }
+
                         onExited: {
                             categoriesItem.color = ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.white;
                         }
+
                         onClicked: {
                             categoriesListView.currentIndex = index;
                             categoriesText.text = categoriesItemText.text;
@@ -413,12 +425,17 @@ Rectangle {
                     }
                     
                 }
+
                 ScrollBar.vertical: ScrollBar {
-                    parent: categoriesListView.parent;
-                    anchors.top: categoriesListView.top;
-                    anchors.bottom: categoriesListView.bottom;
-                    anchors.left: categoriesListView.right;
-                    contentItem.opacity: 1;
+                    parent: categoriesListView.parent
+
+                    anchors {
+                        top: categoriesListView.top;
+                        bottom: categoriesListView.bottom;
+                        left: categoriesListView.right;
+                    }
+
+                    contentItem.opacity: 1
                 }
             }
         }
@@ -431,19 +448,24 @@ Rectangle {
     // ITEMS LIST START
     //
     Item {
-        id: itemsList;
-        anchors.fill: parent;
-        anchors.topMargin: 100;
-        anchors.bottomMargin: 50;
+        id: itemsList
+
+        anchors {
+            fill: parent
+            topMargin: 100
+            bottomMargin: 50
+        }
+
         visible: true;
         
         HifiModels.PSFListModel {
-            id: marketBrowseModel;
-            itemsPerPage: 7;
-            listModelName: 'marketBrowse';
-            listView: marketBrowseList;
-            getPage: function () {
+            id: marketBrowseModel
 
+            itemsPerPage: 7
+            listModelName: 'marketBrowse'
+            listView: marketBrowseList
+
+            getPage: function () {
                 MarketplaceScriptingInterface.getMarketplaceItems(
                     root.searchString == "" ? undefined : root.searchString,
                     "",
@@ -456,90 +478,98 @@ Rectangle {
                     marketBrowseModel.itemsPerPage
                 );
             }
+
             processPage: function(data) {
-                console.log(JSON.stringify(data));
-                data.items.forEach(function (item) {
-                    console.log(JSON.stringify(item));
-                });
                 return data.items;
             }
         }
         ListView {
-            id: marketBrowseList;
-            model: marketBrowseModel;
-            // Anchors
-            anchors.fill: parent;
-            anchors.rightMargin: 10;
-            orientation: ListView.Vertical;
-            focus: true;
-            clip: true;            
+            id: marketBrowseList
+
+            anchors.fill: parent
+            anchors.rightMargin: 10
+
+            model: marketBrowseModel
+
+            orientation: ListView.Vertical
+            focus: true
+            clip: true
             
             delegate: MarketplaceListItem {
-                item_id: model.id;
-                image_url:model.thumbnail_url;
-                name: model.title;
-                likes: model.likes;
-                liked: model.has_liked;
-                creator: model.creator;
-                category: model.primary_category;
-                price: model.cost;
-                available: model.availability == "available";
-                anchors.topMargin: 10;
-                
-                
-                Component.onCompleted: {
-                    console.log("Rendering marketplace list item " + model.id);
-                    console.log(marketBrowseModel.count);
-                }
-                
+                item_id: model.id
+
+                anchors.topMargin: 10
+
+                image_url:model.thumbnail_url
+                name: model.title
+                likes: model.likes
+                liked: model.has_liked
+                creator: model.creator
+                category: model.primary_category
+                price: model.cost
+                available: model.availability == "available"
+
                 onShowItem: {
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }
-                
+
                 onBuy: {
                     sendToScript({method: 'marketplace_checkout', itemId: item_id});
                 }
-                
+
                 onCategoryClicked: {
                     root.categoryString = category;
                     categoriesText.text = category;                    
                     getMarketplaceItems();
                 }
-                
+
                 onRequestReload: getMarketplaceItems();
             }
+
             ScrollBar.vertical: ScrollBar {
-                parent: marketBrowseList.parent;
-                anchors.top: marketBrowseList.top;
-                anchors.bottom: marketBrowseList.bottom;
-                anchors.left: marketBrowseList.right;
-                contentItem.opacity: 1;
-            }            
-            headerPositioning: ListView.InlineHeader;
+                parent: marketBrowseList.parent
+
+                anchors {
+                    top: marketBrowseList.top
+                    bottom: marketBrowseList.bottom
+                    left: marketBrowseList.right
+                }
+
+                contentItem.opacity: 1
+            }
+            
+            headerPositioning: ListView.InlineHeader
+
             header: Item {
-                id: itemsHeading;
+                id: itemsHeading
                 
-                height: childrenRect.height;
-                width: parent.width;
+                height: childrenRect.height
+                width: parent.width
                 
                 Item {
-                    id: breadcrumbs;
-                    anchors.left: parent.left;
-                    anchors.right: parent.right;
-                    height: 34;
-                    visible: categoriesListView.currentIndex >= 0;
+                    id: breadcrumbs
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 34
+                    visible: categoriesListView.currentIndex >= 0
+
                     RalewayRegular {
-                        id: categoriesItemText;
-                        text: "Home /";
-                        anchors.leftMargin: 15;
-                        anchors.fill:parent;
-                        color: hifi.colors.blueHighlight;
-                        horizontalAlignment: Text.AlignLeft;
-                        verticalAlignment: Text.AlignVCenter;
-                        size: 18;
+                        id: categoriesItemText
+
+                        anchors.leftMargin: 15
+                        anchors.fill:parent
+
+                        text: "Home /"
+                        color: hifi.colors.blueHighlight
+                        horizontalAlignment: Text.AlignLeft
+                        verticalAlignment: Text.AlignVCenter
+                        size: 18
                     }
+
                     MouseArea {
-                        anchors.fill: parent;
+                        anchors.fill: parent
+                        
                         onClicked: {
                             categoriesListView.currentIndex = -1;
                             categoriesText.text = "Categories";
@@ -550,72 +580,91 @@ Rectangle {
                 }
                 
                 Item {
-                    id: searchScope;
-                    anchors.top: breadcrumbs.bottom;
-                    anchors.left: parent.left;
-                    anchors.right: parent.right;
-                    height: 50;
+                    id: searchScope
+                    
+                    anchors {
+                        top: breadcrumbs.bottom
+                        left: parent.left
+                        right: parent.right
+                    }
+                    height: 50
                     
                     RalewaySemiBold {
                         id: searchScopeText;
+
+                        anchors {
+                            leftMargin: 15
+                            fill:parent
+                            topMargin: 10
+                        }
+
                         text: "Featured";
-                        anchors.leftMargin: 15;
-                        anchors.fill:parent;
-                        anchors.topMargin: 10;
-                        color: hifi.colors.baseGray;
-                        horizontalAlignment: Text.AlignLeft;
-                        verticalAlignment: Text.AlignVCenter;
-                        size: 22;
+                        color: hifi.colors.baseGray
+                        horizontalAlignment: Text.AlignLeft
+                        verticalAlignment: Text.AlignVCenter
+                        size: 22
                     }
                 }
                 Item {
-                    id: sort;
-                    anchors.top: searchScope.bottom;
-                    anchors.left: parent.left;
-                    anchors.right: parent.right;
-                    anchors.topMargin: 10;
-                    anchors.leftMargin: 15;
-                    height: childrenRect.height;
+                    id: sort
+
+                    anchors {
+                        top: searchScope.bottom;
+                        left: parent.left;
+                        right: parent.right;
+                        topMargin: 10;
+                        leftMargin: 15;
+                    }
+                    height: childrenRect.height
+
                     RalewayRegular {
-                        id: sortText;
-                        text: "Sort:";
-                        anchors.leftMargin: 15;
-                        anchors.rightMargin: 20;
-                        height: 34;
-                        color: hifi.colors.lightGrayText;
-                        horizontalAlignment: Text.AlignLeft;
-                        verticalAlignment: Text.AlignVCenter;
-                        size: 14;
+                        id: sortText
+
+                        anchors.leftMargin: 15
+                        anchors.rightMargin: 20
+                        height: 34
+
+                        text: "Sort:"
+                        color: hifi.colors.lightGrayText
+                        horizontalAlignment: Text.AlignLeft
+                        verticalAlignment: Text.AlignVCenter
+                        size: 14
                     }
                     
                     Rectangle {
-                        radius: 4;
-                        border.width: 1;
-                        border.color: hifi.colors.faintGray;
-                        anchors.left: sortText.right;
-                        anchors.top: parent.top;
-                        width: 322;
-                        height: 36;
-                        anchors.leftMargin: 20;
-                        
-                        
+                        anchors {
+                            left: sortText.right
+                            top: parent.top
+                            leftMargin: 20
+                        }
+                        width: 322
+                        height: 36
+
+                        radius: 4
+                        border.width: 1
+                        border.color: hifi.colors.faintGray
+
                         ListModel {
-                            id: sortModel;
+                            id: sortModel
+
                             ListElement {
                                 name: "Name";
-                                glyph: ";";
-                                sortString: "alpha";
+                                glyph: ";"
+                                sortString: "alpha"
                             }
+
                             ListElement {
                                 name: "Date";
                                 glyph: ";";
                                 sortString: "recent";
                             }
+
                             ListElement {
                                 name: "Popular";
                                 glyph: ";";
                                 sortString: "likes";
                             }
+
                             ListElement {
                                 name: "My Likes";
                                 glyph: ";";
@@ -624,30 +673,34 @@ Rectangle {
                         }
                     
                         ListView {
-                            id: sortListView;
-                            anchors.top: parent.top;
-                            anchors.bottom: parent.bottom;
-                            anchors.left: parent.left;
-                            anchors.topMargin:1;
-                            anchors.bottomMargin:1;
-                            anchors.leftMargin:1;
-                            anchors.rightMargin:1;
-                            width: childrenRect.width;
-                            height: 34;
-                            orientation: ListView.Horizontal;
-                            focus: true;
-                            clip: true;
-                            highlightFollowsCurrentItem: false;
+                            id: sortListView
+
+                            anchors {
+                                top: parent.top
+                                bottom: parent.bottom
+                                left: parent.left
+                                topMargin:1
+                                bottomMargin:1
+                                leftMargin:1
+                                rightMargin:1
+                            }
+                            width: childrenRect.width
+                            height: 34
+
+                            orientation: ListView.Horizontal
+                            focus: true
+                            clip: true
+                            highlightFollowsCurrentItem: false
                             
                             delegate: SortButton {
-                                width: 80;
-                                height: parent.height;
-                                glyph: model.glyph;
-                                text: model.name;
+                                width: 80
+                                height: parent.height
+
+                                glyph: model.glyph
+                                text: model.name
                                 
-                                checked: {
-                                    ListView.isCurrentItem;
-                                }
+                                checked: ListView.isCurrentItem
+
                                 onClicked: {
                                     root.currentSortIndex = index;
                                     sortListView.positionViewAtIndex(index, ListView.Beginning);
@@ -657,12 +710,14 @@ Rectangle {
                                 }                            
                             }
                             highlight: Rectangle {
-                                width: 80;
-                                height: parent.height;
-                                color: hifi.colors.faintGray;
-                                x: sortListView.currentItem.x;
+                                width: 80
+                                height: parent.height
+
+                                color: hifi.colors.faintGray
+                                x: sortListView.currentItem.x
                             }
-                            model: sortModel;
+
+                            model: sortModel
                         } 
                     }
                 }
@@ -678,57 +733,62 @@ Rectangle {
     // ITEM START
     //     
     Item {
-        id: marketplaceItemView;
-        anchors.fill: parent;
-        width: parent.width;
-        anchors.topMargin: 120;
-        visible: false;
+        id: marketplaceItemView
+
+        anchors.fill: parent
+        anchors.topMargin: 120
+        width: parent.width
+
+        visible: false
         
         ScrollView {
-            id: marketplaceItemScrollView;
+            id: marketplaceItemScrollView
+
             anchors.fill: parent;
 
-            clip: true;
-            ScrollBar.vertical.policy: ScrollBar.AlwaysOn;
-            contentWidth: parent.width;
+            clip: true
+            ScrollBar.vertical.policy: ScrollBar.AlwaysOn
+            contentWidth: parent.width
 
             Rectangle {
-                id: marketplaceItemContent;
-                width: parent.width;
-                height: childrenRect.height + 100;
+                id: marketplaceItemContent
+
+                width: parent.width
+                height: childrenRect.height + 100
                 
-                // Title Bar text
                 RalewaySemiBold {
-                    id: backText;
-                    text: "Back";
-                    // Text size
-                    size: hifi.fontSizes.overlayTitle;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: parent.left
-                    anchors.leftMargin: 15;
-                    anchors.bottomMargin: 10;
-                    width: paintedWidth;
-                    height: paintedHeight;
-                    // Style
-                    color: hifi.colors.blueHighlight;
-                    // Alignment
-                    verticalAlignment: Text.AlignVCenter;
+                    id: backText
+
+                    anchors {
+                        top: parent.top
+                        left: parent.left
+                        leftMargin: 15
+                        bottomMargin: 10
+                    }
+                    width: paintedWidth
+                    height: paintedHeight
+
+                    text: "Back"
+                    size: hifi.fontSizes.overlayTitle
+                    color: hifi.colors.blueHighlight
+                    verticalAlignment: Text.AlignVCenter
                 }
+
                 MouseArea {
-                    anchors.fill: backText;
+                    anchors.fill: backText
                     
                     onClicked: {
                         getMarketplaceItems();
                     }
                 }
-                
+
                 MarketplaceItem {
-                    id: marketplaceItem;
-                    anchors.top: backText.bottom;
-                    width: parent.width;
-                    height: childrenRect.height;
-                    anchors.topMargin: 15;
+                    id: marketplaceItem
+
+                    anchors.topMargin: 15
+                    anchors.top: backText.bottom
+                    width: parent.width
+                    height: childrenRect.height
                     
                     onBuy: {
                         sendToScript({method: 'marketplace_checkout', itemId: item_id});
@@ -756,68 +816,77 @@ Rectangle {
     //
     
     Rectangle {
-        id: footer;
-        anchors.bottom: parent.bottom;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        height: 50;
+        id: footer
+
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+        height: 50
         
-        color: hifi.colors.blueHighlight;
+        color: hifi.colors.blueHighlight
 
         Item {
-            anchors.fill: parent;
-            anchors.rightMargin: 15;
-            anchors.leftMargin: 15;
-        
+            anchors {
+                fill: parent
+                rightMargin: 15
+                leftMargin: 15
+            }
+
             HiFiGlyphs {
-                id: footerGlyph;
-                text: hifi.glyphs.info;
-                // Size
-                size: 34;
-                // Anchors
-                anchors.left: parent.left;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                
-                anchors.rightMargin: 10;
-                // Style
-                color: hifi.colors.white;
-                // Alignment
-                horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;
+                id: footerGlyph
+
+                anchors {
+                    left: parent.left
+                    top: parent.top
+                    bottom: parent.bottom
+                    rightMargin: 10
+                }
+
+                text: hifi.glyphs.info
+                size: 34
+                color: hifi.colors.white
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
             }
 
             RalewaySemiBold {
-                id: footerInfo;
-                text: "Get items from Clara.io!";
-                anchors.left: footerGlyph.right;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                color: hifi.colors.white;
-                horizontalAlignment: Text.AlignLeft;
-                verticalAlignment: Text.AlignVCenter;
-                size: 18;
+                id: footerInfo
+
+                anchors {
+                    left: footerGlyph.right
+                    top: parent.top
+                    bottom: parent.bottom
+                }
+
+                text: "Get items from Clara.io!"
+                color: hifi.colors.white
+                horizontalAlignment: Text.AlignLeft
+                verticalAlignment: Text.AlignVCenter
+                size: 18
             }
             
             HifiControlsUit.Button {
-                text: "SEE ALL MARKETS";
-                anchors.right: parent.right;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.topMargin: 10;
-                anchors.bottomMargin: 10;
-                anchors.leftMargin: 10;
-                anchors.rightMargin: 10;
-                width: 180;
-                
+                anchors {
+                    right: parent.right
+                    top: parent.top
+                    bottom: parent.bottom
+                    topMargin: 10
+                    bottomMargin: 10
+                    leftMargin: 10
+                    rightMargin: 10
+                }
+
+                text: "SEE ALL MARKETS"
+                width: 180
+
                 onClicked: {
                     sendToScript({method: 'marketplace_marketplaces'});
                 }
-            }   
+            }
         }  
     }
-    
-    
     //
     // FOOTER END
     //
@@ -827,46 +896,57 @@ Rectangle {
     // LICENSE START
     //    
     Rectangle {
-        id: licenseInfo;
-        anchors.fill: root;
-        anchors.topMargin: 100;
-        anchors.bottomMargin: 0;
-        visible: false;
-        
-        
-        HifiControlsUit.WebView {
-            id: licenseInfoWebView;
-            anchors.bottomMargin: 1;
-            anchors.topMargin: 50;
-            anchors.leftMargin: 1;
-            anchors.rightMargin: 1;
-            anchors.fill: parent;
+        id: licenseInfo
+
+        anchors {
+            fill: root
+            topMargin: 100
+            bottomMargin: 0
         }
-        Item {
-            id: licenseClose;
-            anchors.top: parent.top;
-            anchors.right: parent.right;
-            anchors.topMargin: 10;
-            anchors.rightMargin: 10;
+
+        visible: false;
+
+        HifiControlsUit.WebView {
+            id: licenseInfoWebView
             
-            width: 30;
-            height: 30;
+            anchors {
+                bottomMargin: 1
+                topMargin: 50
+                leftMargin: 1
+                rightMargin: 1
+                fill: parent
+            }
+        }
+
+        Item {
+            id: licenseClose
+
+            anchors {
+                top: parent.top
+                right: parent.right
+                topMargin: 10
+                rightMargin: 10
+            }
+            width: 30
+            height: 30
+
             HiFiGlyphs {
-                anchors.fill: parent;
-                height: 30;
-                text: hifi.glyphs.close;
-                // Size
-                size: 34;
-                // Anchors
-                anchors.rightMargin: 0;
-                anchors.verticalCenter: parent.verticalCenter;
-                horizontalAlignment: Text.AlignHCenter;
-                // Style
-                color: hifi.colors.baseGray;
+                anchors {
+                    fill: parent
+                    rightMargin: 0
+                    verticalCenter: parent.verticalCenter
+                }
+                height: 30
+
+                text: hifi.glyphs.close
+                size: 34
+                horizontalAlignment: Text.AlignHCenter
+                color: hifi.colors.baseGray
             }
             
             MouseArea {
-                anchors.fill: licenseClose;
+                anchors.fill: licenseClose
+
                 onClicked: licenseInfo.visible = false;
             }
         }
@@ -875,6 +955,19 @@ Rectangle {
     // LICENSE END
     //        
 
+    HifiControlsUit.Keyboard {
+        id: keyboard
+
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+        }
+
+        raised: parent.keyboardEnabled && parent.keyboardRaised
+        numeric: false
+    }
+    
     //
     // Function Name: fromScript()
     //
@@ -890,7 +983,6 @@ Rectangle {
     //
 
     function fromScript(message) {
-        console.log("FROM SCRIPT " + JSON.stringify(message));
         switch (message.method) {
             case 'updateMarketplaceQMLItem':
                 if (!message.params.itemId) {

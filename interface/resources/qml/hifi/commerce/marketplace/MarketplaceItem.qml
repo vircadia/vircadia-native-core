@@ -25,37 +25,39 @@ import "../.." as HifiCommon
 
 Rectangle {
     id: root;
-    property string item_id: "";
-    property string image_url: "";
-    property string name: "";
-    property int likes: 0;
-    property bool liked: false;
-    property string creator: "";
-    property var categories: [];
-    property int price: 0;
-    property var attributions: [];
-    property string description: "";
-    property string license: "";
-    property string posted: "";
-    property bool available: false;
-    property string created_at: "";
+
+    property string item_id: ""
+    property string image_url: ""
+    property string name: ""
+    property int likes: 0
+    property bool liked: false
+    property string creator: ""
+    property var categories: []
+    property int price: 0
+    property var attributions: []
+    property string description: ""
+    property string license: ""
+    property string posted: ""
+    property bool available: false
+    property string created_at: ""
     
     onCategoriesChanged: {
         categoriesListModel.clear();
         categories.forEach(function(category) {
-        console.log("category is " + category);
             categoriesListModel.append({"category":category});
         });
     }
 
-    signal buy();
-    signal categoryClicked(string category);
-    signal showLicense(string url);
+    signal buy()
+    signal categoryClicked(string category)
+    signal showLicense(string url)
     
-    HifiConstants { id: hifi; }
+    HifiConstants {
+        id: hifi 
+    }
     
     Connections {
-        target: MarketplaceScriptingInterface;
+        target: MarketplaceScriptingInterface
 
         onMarketplaceItemLikeResult: {
             if (result.status !== 'success') {
@@ -95,80 +97,91 @@ Rectangle {
         return a.toDateString() + " " + drawnHour + ':' + min + amOrPm;
     }
     
-    anchors.left: parent.left;
-    anchors.right: parent.right;
-    anchors.leftMargin: 15;
-    anchors.rightMargin: 15;
+    anchors {
+        left: parent.left;
+        right: parent.right;
+        leftMargin: 15;
+        rightMargin: 15;
+    }
     height: childrenRect.height;
-    
-    
+
     Rectangle {
-        id: header;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: parent.top;
+        id: header
         
+        anchors {
+            left: parent.left;
+            right: parent.right;
+            top: parent.top;
+        }
         height: 50;
         
         RalewaySemiBold {
-            id: nameText;
-            text: root.name;
-            // Text size
-            size: 24;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.bottom: parent.bottom;
-            width: paintedWidth;
-            // Style
-            color: hifi.colors.baseGray;
-            // Alignment
-            verticalAlignment: Text.AlignVCenter;
+            id: nameText
+
+            anchors {
+                top: parent.top
+                left: parent.left
+                bottom: parent.bottom
+            }
+            width: paintedWidth
+            
+            text: root.name
+            size: 24
+            color: hifi.colors.baseGray
+            verticalAlignment: Text.AlignVCenter
         }
+
         Item {
-            id: likes;
-            anchors.top: parent.top;
-            anchors.right: parent.right;
-            anchors.bottom: parent.bottom;
-            anchors.rightMargin: 5;
-            
+            id: likes
+
+            anchors {
+                top: parent.top;
+                right: parent.right;
+                bottom: parent.bottom;
+                rightMargin: 5;
+            }
+
             RalewaySemiBold {
-                id: heart;
-                text: "\u2665";
-                // Size
-                size: 20;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.right: parent.right;
-                anchors.rightMargin: 0;
-                anchors.verticalCenter: parent.verticalCenter;
-                horizontalAlignment: Text.AlignHCenter;
-                // Style
-                color: root.liked ? hifi.colors.redAccent  : hifi.colors.lightGrayText;
+                id: heart
+
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                    rightMargin: 0
+                    verticalCenter: parent.verticalCenter
+                }
+                
+                text: "\u2665"
+                size: 20
+                horizontalAlignment: Text.AlignHCenter
+                color: root.liked ? hifi.colors.redAccent  : hifi.colors.lightGrayText
             }
             
             RalewaySemiBold {
-                id: likesText;
-                text: root.likes;
-                // Text size
-                size: hifi.fontSizes.overlayTitle;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.right: heart.left;
-                anchors.rightMargin: 5;
-                anchors.leftMargin: 15;
-                anchors.bottom: parent.bottom;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.baseGray;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: likesText
+
+                anchors {
+                    top: parent.top
+                    right: heart.left
+                    rightMargin: 5
+                    leftMargin: 15
+                    bottom: parent.bottom
+                }
+                width: paintedWidth
+
+                text: root.likes
+                size: hifi.fontSizes.overlayTitle
+                color: hifi.colors.baseGray
+                verticalAlignment: Text.AlignVCenter
             }
+
             MouseArea {
-                anchors.left: likesText.left;
-                anchors.right: heart.right;
-                anchors.top: likesText.top;
-                anchors.bottom: likesText.bottom;
+                anchors {
+                    left: likesText.left
+                    right: heart.right
+                    top: likesText.top
+                    bottom: likesText.bottom
+                }
                 
                 onClicked: {
                     MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, !root.liked);
@@ -176,178 +189,195 @@ Rectangle {
             }                
         }
     }
+
     Image {
-        id: itemImage;
-        source: root.image_url;
-        anchors.top: header.bottom;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
+        id: itemImage
+
+        anchors {
+            top: header.bottom
+            left: parent.left
+            right: parent.right
+        }
         height: width*0.5625
+
+        source: root.image_url
         fillMode: Image.PreserveAspectCrop;
     }
+
     Item {
-        id: footer;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: itemImage.bottom;
-        height: childrenRect.height;
+        id: footer
+
+        anchors {
+            left: parent.left;
+            right: parent.right;
+            top: itemImage.bottom;
+        }
+        height: childrenRect.height
         
         HifiControlsUit.Button {
-            id: buyButton;
-            text: root.available ? (root.price ? root.price : "FREE") : "UNAVAILABLE (not for sale)";
-            enabled: root.available;
-            buttonGlyph: root.available ? (root.price ? hifi.glyphs.hfc : "") : "";
-            anchors.right: parent.right;
-            anchors.top: parent.top;
-            anchors.left: parent.left;
-            anchors.topMargin: 15;
-            height: 50;
-            color: hifi.buttons.blue;
+            id: buyButton
+
+            anchors {
+                right: parent.right
+                top: parent.top
+                left: parent.left
+                topMargin: 15
+            }
+            height: 50 
+
+            text: root.available ? (root.price ? root.price : "FREE") : "UNAVAILABLE (not for sale)"
+            enabled: root.available
+            buttonGlyph: root.available ? (root.price ? hifi.glyphs.hfc : "") : ""
+            color: hifi.buttons.blue
             
             onClicked: root.buy();
         }        
         
         Item {
-            id: creatorItem;
-            anchors.top: buyButton.bottom;
-            anchors.leftMargin: 15;
-            anchors.topMargin: 15;
-            width: parent.width;
-            height: childrenRect.height;
+            id: creatorItem
+
+            anchors {
+                top: buyButton.bottom
+                leftMargin: 15
+                topMargin: 15
+            }
+            width: parent.width
+            height: childrenRect.height
             
             RalewaySemiBold {
-                id: creatorLabel;
-                text: "CREATOR:";
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: creatorLabel
+                
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+                
+                text: "CREATOR:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
             }
             
             RalewaySemiBold {
-                id: creatorText;
-                text: root.creator;
-                // Text size
-                size: 18;
-                // Anchors
-                anchors.top: creatorLabel.bottom;
-                anchors.left: parent.left;
-                anchors.topMargin: 10;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.blueHighlight;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: creatorText
+                
+                anchors {
+                    top: creatorLabel.bottom
+                    left: parent.left
+                    topMargin: 10
+                }
+                width: paintedWidth              
+                text: root.creator
+
+                size: 18
+                color: hifi.colors.blueHighlight
+                verticalAlignment: Text.AlignVCenter
             }
         }
         
         Item {
-            id: posted;
-            anchors.top: creatorItem.bottom;
-            anchors.leftMargin: 15;
-            anchors.topMargin: 15;
-            width: parent.width;
-            height: childrenRect.height;
-            RalewaySemiBold {
-                id: postedLabel;
-                text: "POSTED:";
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
+            id: posted
+            
+            anchors {
+                top: creatorItem.bottom
+                leftMargin: 15
+                topMargin: 15
+            }
+            width: parent.width
+            height: childrenRect.height
 
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+            RalewaySemiBold {
+                id: postedLabel
+
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+                
+                text: "POSTED:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
             }
             
             RalewaySemiBold {
-                id: created_at;
+                id: created_at
+
+                anchors {
+                    top: postedLabel.bottom
+                    left: parent.left
+                    right: parent.right
+                    topMargin: 10
+                }
+
                 text: { getFormattedDate(root.created_at); }
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: postedLabel.bottom;
-                anchors.left: parent.left;
-                anchors.right: parent.right;
-                anchors.topMargin: 10;
-                // Style
-                color: hifi.colors.lightGray;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                size: 14
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
             }           
         }
         
         Rectangle {
-            anchors.top: posted.bottom;
-            anchors.leftMargin: 15;
-            anchors.topMargin: 15;
+            anchors {
+                top: posted.bottom;
+                leftMargin: 15;
+                topMargin: 15;
+            }
             width: parent.width;
             height: 1;
+
             color: hifi.colors.lightGray;
         }
 
         Item {
             id: licenseItem;
-            anchors.top: posted.bottom;
-            anchors.left: parent.left;
-            anchors.topMargin: 30;
-            width: parent.width;  
-            height: childrenRect.height;
+            
+            anchors {
+                top: posted.bottom
+                left: parent.left
+                topMargin: 30
+            }
+            width: parent.width
+            height: childrenRect.height
+
             RalewaySemiBold {
-                id: licenseLabel;
-                text: "SHARED UNDER:";
-                // Text size
-                size: 14;
-                // Anchors
+                id: licenseLabel
+
                 anchors.top: parent.top;
                 anchors.left: parent.left;
                 width: paintedWidth;
-                // Style
+
+                text: "SHARED UNDER:";
+                size: 14;
                 color: hifi.colors.lightGrayText;
-                // Alignment
                 verticalAlignment: Text.AlignVCenter;
             }
-            
+
             RalewaySemiBold {
-                id: licenseText;
-                text: root.license;
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: licenseLabel.bottom;
-                anchors.left: parent.left;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGray;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: licenseText
+                
+                anchors.top: licenseLabel.bottom
+                anchors.left: parent.left
+                width: paintedWidth
+
+                text: root.license
+                size: 14
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
             }
+
             RalewaySemiBold {
-                id: licenseHelp;
-                text: "More about this license";
-                // Text size
-                size: 14;
-                // Anchors
+                id: licenseHelp
+
                 anchors.top: licenseText.bottom;
                 anchors.left: parent.left;
                 width: paintedWidth;
-                // Style
-                color: hifi.colors.blueHighlight;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+
+                text: "More about this license"
+                size: 14
+                color: hifi.colors.blueHighlight
+                verticalAlignment: Text.AlignVCenter
                 
                 MouseArea {
-                    anchors.fill: parent;
+                    anchors.fill: parent
                     
                     onClicked: { 
                         licenseInfo.visible = true;
@@ -371,7 +401,6 @@ Rectangle {
                         }
                         if(url) {
                             licenseInfoWebView.url = url;
-                            
                         }
                     }
                 }
@@ -379,91 +408,97 @@ Rectangle {
         }
 
         Item {
-            id: descriptionItem;
-            anchors.top: licenseItem.bottom;
-            anchors.topMargin: 15;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            height: childrenRect.height;            
-            RalewaySemiBold {
-                id: descriptionLabel;
-                text: "DESCRIPTION:";
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+            id: descriptionItem
+
+            anchors {
+                top: licenseItem.bottom
+                topMargin: 15
+                left: parent.left
+                right: parent.right
             }
+            height: childrenRect.height
+
             RalewaySemiBold {
-                id: descriptionText;
-                text: root.description;
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: descriptionLabel.bottom;
-                anchors.left: parent.left;
-                width: parent.width;
-                // Style
-                color: hifi.colors.lightGray;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
-                wrapMode: Text.Wrap;
+                id: descriptionLabel
+                
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+
+                text: "DESCRIPTION:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
+            }
+
+            RalewaySemiBold {
+                id: descriptionText
+                
+                anchors.top: descriptionLabel.bottom
+                anchors.left: parent.left
+                width: parent.width
+
+                text: root.description
+                size: 14
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.Wrap
             }
         }
         
         Item {
-            id: categoriesList;
-            anchors.top: descriptionItem.bottom;
-            anchors.topMargin: 15;
-            anchors.left: parent.left;
-            anchors.right: parent.right;            
-            width: parent.width;
-            height: childrenRect.height;
+            id: categoriesList
+
+            anchors {
+                top: descriptionItem.bottom
+                topMargin: 15
+                left: parent.left
+                right: parent.right
+            }
+            width: parent.width
+            height: childrenRect.height
+
             RalewaySemiBold {
-                id: categoryLabel;
-                text: "IN:";
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: categoryLabel
+                
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+
+                text: "IN:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
             }
             ListModel {
-                id: categoriesListModel;
+                id: categoriesListModel
             }
             
             ListView {
-                anchors.left: parent.left;
-                anchors.right: parent.right;
-                anchors.top: categoryLabel.bottom;
-                model: categoriesListModel;
-                height: 20*model.count;
+                anchors {
+                    left: parent.left;
+                    right: parent.right;
+                    top: categoryLabel.bottom;
+                }
+
+                height: 20*model.count
+
+                model: categoriesListModel
                 delegate: RalewaySemiBold {
-                    id: categoryText;
-                    text: model.category;
-                    // Text size
-                    size: 14;
-                    // Anchors
-                    anchors.leftMargin: 15;
-                    width: paintedWidth;
-                    height: 20;
-                    // Style
-                    color: hifi.colors.blueHighlight;
-                    // Alignment
-                    verticalAlignment: Text.AlignVCenter;
+                    id: categoryText
+
+                    anchors.leftMargin: 15
+                    width: paintedWidth
+
+                    text: model.category
+                    size: 14
+                    height: 20
+                    color: hifi.colors.blueHighlight
+                    verticalAlignment: Text.AlignVCenter
                     
                     MouseArea {
-                        anchors.fill: categoryText;
+                        anchors.fill: categoryText
+
                         onClicked: root.categoryClicked(model.category);
                     }
                 }

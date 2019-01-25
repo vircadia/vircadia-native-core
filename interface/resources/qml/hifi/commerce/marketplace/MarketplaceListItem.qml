@@ -24,98 +24,115 @@ import "../common/sendAsset"
 import "../.." as HifiCommon
 
 Rectangle {
-    id: root;
-    property string item_id: "";
-    property string image_url: "";
-    property string name: "";
-    property int likes: 0;
-    property bool liked: false;
-    property string creator: "";
-    property string category: "";
-    property int price: 0;
-    property bool available: false;
+    id: root
 
-    signal buy();
-    signal showItem();
-    signal categoryClicked(string category);
-    signal requestReload();
+    property string item_id: ""
+    property string image_url: ""
+    property string name: ""
+    property int likes: 0
+    property bool liked: false
+    property string creator: ""
+    property string category: ""
+    property int price: 0
+    property bool available: false
+
+    signal buy()
+    signal showItem()
+    signal categoryClicked(string category)
+    signal requestReload()
     
-    HifiConstants { id: hifi; }
+    HifiConstants { id: hifi }
 
-    width: parent.width;
-    height: childrenRect.height+50;
+    width: parent.width
+    height: childrenRect.height+50
     
     DropShadow {
-        anchors.fill: shadowBase;
-        source: shadowBase;
-        verticalOffset: 4;
-        horizontalOffset: 4;
-        radius: 6;
-        samples: 9;
-        color: hifi.colors.baseGrayShadow;
+        anchors.fill: shadowBase
+
+        source: shadowBase
+        verticalOffset: 4
+        horizontalOffset: 4
+        radius: 6
+        samples: 9
+        color: hifi.colors.baseGrayShadow
     }
     
     Rectangle {
-        id: shadowBase;
-        anchors.fill: itemRect;
-        color: "white";
+        id: shadowBase
+
+        anchors.fill: itemRect
+
+        color: "white"
     }
     
     Rectangle {
-        id: itemRect;
-        height: childrenRect.height;
-        anchors.left: parent.left;
-        anchors.right: parent.right;
-        anchors.top: parent.top;
-        anchors.topMargin: 20;
-        anchors.bottomMargin: 10;
-        anchors.leftMargin: 15;
-        anchors.rightMargin: 15;        
+        id: itemRect
         
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+            topMargin: 20
+            bottomMargin: 10
+            leftMargin: 15
+            rightMargin: 15
+        }
+        height: childrenRect.height
+
         MouseArea {
-            anchors.fill: parent;
+            anchors.fill: parent
+
+            hoverEnabled: true
+
             onClicked: root.showItem();
-            onEntered: { hoverRect.visible = true; console.log("entered"); }
-            onExited: { hoverRect.visible = false; console.log("exited"); }
-            hoverEnabled: true           
+            onEntered: hoverRect.visible = true;
+            onExited: hoverRect.visible = false;
+       
         }
         
         Rectangle {
-            id: header;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            anchors.top: parent.top;
-            
-            height: 50;
+            id: header
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+            }
+            height: 50
             
             RalewaySemiBold {
-                id: nameText;
-                text: root.name;
-                // Text size
-                size: hifi.fontSizes.overlayTitle;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                anchors.right: parent.right;
-                anchors.rightMargin: 50;
-                anchors.leftMargin: 15;
-                anchors.bottom: parent.bottom;
-                elide: Text.ElideRight;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.blueHighlight;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: nameText
+
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    right: parent.right
+                    rightMargin: 50
+                    leftMargin: 15
+                    bottom: parent.bottom
+                }
+                width: paintedWidth
+
+                text: root.name
+                size: hifi.fontSizes.overlayTitle
+                elide: Text.ElideRight
+                color: hifi.colors.blueHighlight
+                verticalAlignment: Text.AlignVCenter
             }
+
             Item {
-                id: likes;
-                anchors.top: parent.top;
-                anchors.right: parent.right;
-                anchors.rightMargin: 15;
-                anchors.bottom: parent.bottom;
-                width: childrenRect.width;
+                id: likes
+
+                anchors {
+                    top: parent.top
+                    right: parent.right
+                    rightMargin: 15
+                    bottom: parent.bottom
+                }
+                width: heart.width + likesText.width
+
                 Connections {
-                    target: MarketplaceScriptingInterface;
+                    target: MarketplaceScriptingInterface
 
                     onMarketplaceItemLikeResult: {
                         if (result.status !== 'success') {
@@ -126,41 +143,47 @@ Rectangle {
                 }                
                 
                 RalewaySemiBold {
-                    id: heart;
-                    text: "\u2665";
-                    // Size
-                    size: 20;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 0;
-                    anchors.verticalCenter: parent.verticalCenter;
+                    id: heart
+                    
+                    anchors {
+                        top: parent.top
+                        right: parent.right
+                        rightMargin: 0
+                        verticalCenter: parent.verticalCenter
+                    }
+                    
+                    text: "\u2665"
+                    size: 20
                     horizontalAlignment: Text.AlignHCenter;
-                    // Style
-                    color: root.liked ? hifi.colors.redAccent  : hifi.colors.lightGrayText;
+                    color: root.liked ? hifi.colors.redAccent  : hifi.colors.lightGrayText
                 }
                 
                 RalewaySemiBold {
-                    id: likesText;
-                    text: root.likes;
-                    // Text size
-                    size: hifi.fontSizes.overlayTitle;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.right: heart.left;
-                    anchors.rightMargin: 5;
-                    anchors.leftMargin: 15;
-                    anchors.bottom: parent.bottom;
-                    width: paintedWidth;
-                    // Style
-                    color: hifi.colors.baseGray;
-                    // Alignment
-                    verticalAlignment: Text.AlignVCenter;
+                    id: likesText
+                    
+                    anchors {
+                        top: parent.top
+                        right: heart.left
+                        rightMargin: 5
+                        leftMargin: 15
+                        bottom: parent.bottom
+                    }
+                    width: paintedWidth
+
+                    text: root.likes
+                    size: hifi.fontSizes.overlayTitle
+                    color: hifi.colors.baseGray
+                    verticalAlignment: Text.AlignVCenter
                 }
+
                 MouseArea {
-                    anchors.fill: parent;
+                    anchors {
+                        left: likesText.left
+                        right: heart.right
+                        top: parent.top
+                        bottom: parent.bottom
+                    }
                     onClicked: {
-                        console.log("like " + root.item_id);
                         root.liked = !root.liked;
                         root.likes = root.liked ? root.likes + 1 : root.likes - 1;
                         MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, root.liked);
@@ -168,111 +191,128 @@ Rectangle {
                 }                
             }
         }
+
         Image {
-            id: itemImage;
-            source: root.image_url;
-            anchors.top: header.bottom;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
+            id: itemImage
+            
+            anchors {
+                top: header.bottom
+                left: parent.left
+                right: parent.right
+            }
             height: width*0.5625
-            fillMode: Image.PreserveAspectCrop;
+
+            source: root.image_url
+            fillMode: Image.PreserveAspectCrop
         }
+
         Item {
-            id: footer;
-            anchors.left: parent.left;
-            anchors.right: parent.right;
-            anchors.top: itemImage.bottom;
-            height: 60;
+            id: footer
+
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: itemImage.bottom
+            }
+            height: 60
             
             RalewaySemiBold {
-                id: creatorLabel;
-                text: "CREATOR:";
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.left: parent.left;
-                anchors.leftMargin: 15;
-                width: paintedWidth;
-                // Style
-                color: hifi.colors.lightGrayText;
-                // Alignment
-                verticalAlignment: Text.AlignVCenter;
+                id: creatorLabel
+                
+                anchors {
+                    top: parent.top
+                    left: parent.left
+                    leftMargin: 15
+                }
+                width: paintedWidth
+                
+                text: "CREATOR:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
             }
             
             RalewaySemiBold {
-                id: creatorText;
+                id: creatorText
+
+                anchors {
+                    top: creatorLabel.top;
+                    left: creatorLabel.right;
+                    leftMargin: 15;
+                }
+                width: paintedWidth;
+
                 text: root.creator;
-                // Text size
                 size: 14;
-                // Anchors
-                anchors.top: creatorLabel.top;
-                anchors.left: creatorLabel.right;
-                anchors.leftMargin: 15;
-                width: paintedWidth;
-                // Style
                 color: hifi.colors.lightGray;
-                // Alignment
                 verticalAlignment: Text.AlignVCenter;
             }
+
             RalewaySemiBold {
-                id: categoryLabel;
+                id: categoryLabel
+                
+                anchors {
+                    top: creatorLabel.bottom
+                    left: parent.left
+                    leftMargin: 15
+                }
+                width: paintedWidth;      
+
                 text: "IN:";
-                // Text size
                 size: 14;
-                // Anchors
-                anchors.top: creatorLabel.bottom;
-                anchors.left: parent.left;
-                anchors.leftMargin: 15;
-                width: paintedWidth;
-                // Style
                 color: hifi.colors.lightGrayText;
-                // Alignment
                 verticalAlignment: Text.AlignVCenter;
             }
-            
+
             RalewaySemiBold {
-                id: categoryText;
-                text: root.category;
-                // Text size
-                size: 14;
-                // Anchors
-                anchors.top: categoryLabel.top;
-                anchors.left: categoryLabel.right;
-                anchors.leftMargin: 15;
-                width: paintedWidth;
-                // Style
+                id: categoryText
+
+                anchors {
+                    top: categoryLabel.top
+                    left: categoryLabel.right
+                    leftMargin: 15
+                }
+                width: paintedWidth
+
+                text: root.category
+                size: 14
                 color: hifi.colors.blueHighlight;
-                // Alignment
                 verticalAlignment: Text.AlignVCenter;
                 
                 MouseArea {
-                    anchors.fill: parent;
+                    anchors.fill: parent
+
                     onClicked: root.categoryClicked(root.category);
                 }
             }
 
             HifiControlsUit.Button {
-                text: root.price ? root.price : "FREE";
-                buttonGlyph: root.price ? hifi.glyphs.hfc : "";
-                anchors.right: parent.right;
-                anchors.top: parent.top;
-                anchors.bottom: parent.bottom;
-                anchors.rightMargin: 15;
-                anchors.topMargin:10;
-                anchors.bottomMargin: 10;
+                anchors {
+                    right: parent.right
+                    top: parent.top
+                    bottom: parent.bottom
+                    rightMargin: 15
+                    topMargin:10
+                    bottomMargin: 10
+                }
+
+                text: root.price ? root.price : "FREE"
+                buttonGlyph: root.price ? hifi.glyphs.hfc : ""
                 color: hifi.buttons.blue;
-                
+
                 onClicked: root.buy();
             }
         }
+
         Rectangle {
-            id: hoverRect;
-            anchors.fill: parent;
-            border.color: hifi.colors.blueHighlight;
-            border.width: 2;
-            color: "#00000000";
-            visible: false;
+            id: hoverRect
+
+            anchors.fill: parent
+
+            border.color: hifi.colors.blueHighlight
+            border.width: 2
+            color: "#00000000"
+            visible: false
         }        
     }
 }
