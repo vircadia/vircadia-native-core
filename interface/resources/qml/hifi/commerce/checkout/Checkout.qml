@@ -440,7 +440,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: itemPreviewImage.right;
                 anchors.leftMargin: 12;
-                anchors.right: itemPriceContainer.left;
+                anchors.right: parent.right;
                 anchors.rightMargin: 8;
                 height: 30;
                 // Style
@@ -455,10 +455,11 @@ Rectangle {
             Item {
                 id: itemPriceContainer;
                 // Anchors
-                anchors.top: parent.top;
-                anchors.right: parent.right;
+                anchors.top: itemNameText.bottom;
+                anchors.topMargin: 8;
+                anchors.left: itemNameText.left;
                 height: 30;
-                width: itemPriceTextLabel.width + itemPriceText.width + 20;
+                width: itemPriceText.width + 20;
 
                 // "HFC" label
                 HiFiGlyphs {
