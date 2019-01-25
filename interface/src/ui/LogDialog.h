@@ -34,6 +34,7 @@ public slots:
 private slots:
     void handleRevealButton();
     void handleExtraDebuggingCheckbox(int);
+    void handleKeepWindowOnTop(int);
     void handleDebugPrintBox(int);
     void handleInfoPrintBox(int);
     void handleCriticalPrintBox(int);

@@ -154,7 +154,11 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _keepOnTopBox = new QCheckBox(" Keep window on top", this);
     bool isOnTop = qApp-> getLogWindowOnTopSetting();
     _keepOnTopBox->setCheckState(isOnTop ? Qt::Checked : Qt::Unchecked);
+#ifdef Q_OS_WIN
     connect(_keepOnTopBox, &QCheckBox::stateChanged, qApp, &Application::recreateLogWindow);
+#else
+    connect(_keepOnTopBox, &QCheckBox::stateChanged, this, &LogDialog::handleKeepWindowOnTop);
+#endif
     _keepOnTopBox->show();
 
     _extraDebuggingBox = new QCheckBox("Extra debugging", this);
@@ -246,6 +250,23 @@ void LogDialog::handleDebugPrintBox(int state) {
 void LogDialog::handleInfoPrintBox(int state) {
     _logger->setInfoPrint(state != 0);
     printLogFile();
+}
+
+void LogDialog::handleKeepWindowOnTop(int state) {
+    bool keepOnTop = (state != 0);
+
+    Qt::WindowFlags flags = windowFlags();
+
+    if (keepOnTop) {
+        flags |= Qt::Tool;
+    } else {
+        flags &= ~Qt::Tool;
+    }
+
+    setWindowFlags(flags);
+    qApp->setLogWindowOnTopSetting(keepOnTop);
+
+    show();
 }
 
 void LogDialog::handleCriticalPrintBox(int state) {

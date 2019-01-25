@@ -8107,8 +8107,18 @@ void Application::toggleLogDialog() {
         return;
     }
     if (! _logDialog) {
-        bool shouldSetParent = _keepLogWindowOnTop.get();
-        _logDialog = new LogDialog(shouldSetParent ? qApp->getWindow() : nullptr, getLogger());
+
+        bool keepOnTop =_keepLogWindowOnTop.get();
+#ifdef Q_OS_WIN
+        _logDialog = new LogDialog(keepOnTop ? qApp->getWindow() : nullptr, getLogger());
+#else
+        _logDialog = new LogDialog(nullptr, getLogger());
+
+        if (keepOnTop) {
+            Qt::WindowFlags flags = _logDialog->windowFlags() | Qt::Tool;
+            _logDialog->setWindowFlags(flags);
+        }
+#endif
     }
 
     if (_logDialog->isVisible()) {
