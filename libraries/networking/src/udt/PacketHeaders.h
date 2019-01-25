@@ -257,6 +257,7 @@ enum class EntityVersion : PacketVersion {
     UpdatedPolyLines,
     FixProtocolVersionBumpMismatch,
     MigrateOverlayRenderProperties,
+    MissingWebEntityProperties,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

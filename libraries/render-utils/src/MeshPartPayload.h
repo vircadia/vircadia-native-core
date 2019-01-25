@@ -66,18 +66,15 @@ public:
     graphics::Mesh::Part _drawPart;
 
     size_t getVerticesCount() const { return _drawMesh ? _drawMesh->getNumVertices() : 0; }
-    size_t getMaterialTextureSize() { return topMaterialExists() ? _drawMaterials.top().material->getTextureSize() : 0; }
-    int getMaterialTextureCount() { return topMaterialExists() ? _drawMaterials.top().material->getTextureCount() : 0; }
-    bool hasTextureInfo() const { return topMaterialExists() ? _drawMaterials.top().material->hasTextureInfo() : false; }
+    size_t getMaterialTextureSize() { return _drawMaterials.getTextureSize(); }
+    int getMaterialTextureCount() { return _drawMaterials.getTextureCount(); }
+    bool hasTextureInfo() const { return _drawMaterials.hasTextureInfo(); }
 
     void addMaterial(graphics::MaterialLayer material);
     void removeMaterial(graphics::MaterialPointer material);
 
 protected:
-    static const graphics::MaterialPointer DEFAULT_MATERIAL;
     render::ItemKey _itemKey{ render::ItemKey::Builder::opaqueShape().build() };
-
-    bool topMaterialExists() const { return !_drawMaterials.empty() && _drawMaterials.top().material; }
 };
 
 namespace render {
