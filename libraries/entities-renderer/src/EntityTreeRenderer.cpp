@@ -197,9 +197,57 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     });
 }
 
+void EntityTreeRenderer::stopNonLocalEntityScripts() {
+    leaveNonLocalEntities();
+    // unload and stop the engine
+    if (_entitiesScriptEngine) {
+        QList<EntityItemID> entitiesWithEntityScripts = _entitiesScriptEngine->getListOfEntityScriptIDs();
+
+        foreach (const EntityItemID& entityID,  entitiesWithEntityScripts) {
+            EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
+
+            if (entityItem) {
+                if (!entityItem->isLocalEntity()) {
+                    _entitiesScriptEngine->unloadEntityScript(entityID, true);
+                }
+            }
+        }
+    }
+}
+
+void EntityTreeRenderer::clearNonLocalEntities() {
+    stopNonLocalEntityScripts();
+
+    std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
+    // remove all entities from the scene
+    _space->clear();
+    auto scene = _viewState->getMain3DScene();
+    if (scene) {
+        render::Transaction transaction;
+        for (const auto& entry :  _entitiesInScene) {
+            const auto& renderer = entry.second;
+            const EntityItemPointer& entityItem = renderer->getEntity();
+            if (!entityItem->isLocalEntity()) {
+                renderer->removeFromScene(scene, transaction);
+            } else {
+                savedEntities[entry.first] = entry.second;
+            }
+        }
+        scene->enqueueTransaction(transaction);
+    } else {
+        qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
+    }
+
+    _renderablesToUpdate = savedEntities;
+    _entitiesInScene = savedEntities;
+
+    _layeredZones.clearNonLocalLayeredZones();
+
+    OctreeProcessor::clearNonLocalEntities();
+}
+
 void EntityTreeRenderer::clear() {
     leaveAllEntities();
-
     // unload and stop the engine
     if (_entitiesScriptEngine) {
         // do this here (instead of in deleter) to avoid marshalling unload signals back to this thread
@@ -211,8 +259,8 @@ void EntityTreeRenderer::clear() {
     if (_wantScripts && !_shuttingDown) {
         resetEntitiesScriptEngine();
     }
-
     // remove all entities from the scene
+
     _space->clear();
     auto scene = _viewState->getMain3DScene();
     if (scene) {
@@ -507,8 +555,7 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
         auto entityTree = std::static_pointer_cast<EntityTree>(_tree);
 
         // FIXME - if EntityTree had a findEntitiesContainingPoint() this could theoretically be a little faster
-        entityTree->evalEntitiesInSphere(_avatarPosition, radius,
-            PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES)), entityIDs);
+        entityTree->evalEntitiesInSphere(_avatarPosition, radius, PickFilter(), entityIDs);
 
         LayeredZones oldLayeredZones(std::move(_layeredZones));
         _layeredZones.clear();
@@ -612,6 +659,26 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
         }
     }
     return didUpdate;
+}
+
+void EntityTreeRenderer::leaveNonLocalEntities() {
+    if (_tree && !_shuttingDown) {
+        QVector<EntityItemID> currentLocalEntitiesInside;
+        foreach (const EntityItemID& entityID, _currentEntitiesInside) {
+            EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
+            if (!entityItem->isLocalEntity()) {
+                emit leaveEntity(entityID);
+                if (_entitiesScriptEngine) {
+                    _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
+                }
+            } else {
+                currentLocalEntitiesInside.push_back(entityID);
+            }
+        }
+
+        _currentEntitiesInside = currentLocalEntitiesInside;
+        forceRecheckEntities();
+    }
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
@@ -1134,6 +1201,29 @@ EntityTreeRenderer::LayeredZones::LayeredZones(LayeredZones&& other) {
     if (!isSkyboxLayerValid) {
         _skyboxLayer = end();
     }
+}
+
+void EntityTreeRenderer::LayeredZones::clearNonLocalLayeredZones() {
+    std::set<LayeredZone> localLayeredZones;
+    std::map<QUuid, iterator> newMap;
+
+    for (auto iter = begin(); iter != end(); iter++) {
+        LayeredZone layeredZone = *iter;
+
+        if (layeredZone.zone->isLocalEntity()) {
+            bool success;
+            iterator it;
+            std::tie(it, success) = localLayeredZones.insert(layeredZone);
+
+            if (success) {
+                newMap.emplace(layeredZone.id, it);
+            }
+        }
+    }
+
+    std::set<LayeredZone>::operator=(localLayeredZones);
+    _map = newMap;
+    _skyboxLayer = empty() ? end() : begin();
 }
 
 void EntityTreeRenderer::LayeredZones::clear() {

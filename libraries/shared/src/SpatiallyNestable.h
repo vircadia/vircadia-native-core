@@ -47,6 +47,8 @@ public:
     virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
 
+    virtual bool isMyAvatar() const { return false; }
+
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex);
 
