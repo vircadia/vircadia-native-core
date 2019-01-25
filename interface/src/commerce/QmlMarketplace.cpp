@@ -55,50 +55,54 @@ void QmlMarketplace::getMarketplaceItems(
     const int& perPage) {
 
     QString endpoint = "items";
-    QJsonObject request;
-    request["q"] = q;
-    request["view"] = view;
-    request["category"] = category;
-    request["adminFilter"] = adminFilter;
-    request["adminFilterCost"] = adminFilterCost;
-    request["sort"] = sort;
-    request["isFree"] = isFree;
-    request["page"] = page;
-    request["perPage"] = perPage;
+    QUrlQuery request;
+    request.addQueryItem("q", q);
+    request.addQueryItem("view", view);
+    request.addQueryItem("category", category);
+    request.addQueryItem("adminFilter", adminFilter);
+    request.addQueryItem("adminFilterCost", adminFilterCost);
+    request.addQueryItem("sort", sort);
+    if (isFree) {
+        request.addQueryItem("isFree", "true");
+    }
+    request.addQueryItem("page", QString::number(page));
+    request.addQueryItem("perPage", QString::number(perPage));
     send(endpoint, "getMarketplaceItemsSuccess", "getMarketplaceItemsFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::Optional, request);
 }
 
 void QmlMarketplace::getMarketplaceItem(const QString& marketplaceItemId) {
     QString endpoint = QString("items/") + marketplaceItemId;
-    QJsonObject request;
+    QUrlQuery request;
     send(endpoint, "getMarketplaceItemSuccess", "getMarketplaceItemFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::Optional, request);
 }
 
 void QmlMarketplace::marketplaceItemLike(const QString& marketplaceItemId, const bool like) {
     QString endpoint = QString("items/") + marketplaceItemId + "/like";
-    QJsonObject request;
-    send(endpoint, "marketplaceItemLikeSuccess", "marketplaceItemLikeFailure", like ? QNetworkAccessManager::PutOperation : QNetworkAccessManager::DeleteOperation, AccountManagerAuth::Required, request);
+    QUrlQuery request;
+    send(endpoint, "marketplaceItemLikeSuccess", "marketplaceItemLikeFailure", like ? QNetworkAccessManager::PostOperation : QNetworkAccessManager::DeleteOperation, AccountManagerAuth::Required, request);
 }
 
 void QmlMarketplace::getMarketplaceCategories() {
     QString endpoint = "categories";
-    QJsonObject request;
+    QUrlQuery request;
     send(endpoint, "getMarketplaceCategoriesSuccess", "getMarketplaceCategoriesFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::None, request);
 }
 
 
-void QmlMarketplace::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, QJsonObject request) {
+void QmlMarketplace::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, const QUrlQuery & request) {
     auto accountManager = DependencyManager::get<AccountManager>();
     const QString URL = "/api/v1/marketplace/";
     JSONCallbackParameters callbackParams(this, success, fail);
-#if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
-    qCInfo(commerce) << "Sending" << QJsonDocument(request).toJson(QJsonDocument::Compact);
-#endif
+
     accountManager->sendRequest(URL + endpoint,
         authType,
         method,
         callbackParams,
-        QJsonDocument(request).toJson());
+        QByteArray(),
+        NULL,
+        QVariantMap(),
+        request);
+
 }
 
 QJsonObject QmlMarketplace::apiResponse(const QString& label, QNetworkReply* reply) {

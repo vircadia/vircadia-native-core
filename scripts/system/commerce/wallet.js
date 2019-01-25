@@ -379,21 +379,16 @@ function deleteSendMoneyParticleEffect() {
 function onUsernameChanged() {
 }    
 
-var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-var METAVERSE_SERVER_URL = Account.metaverseServerURL;
-var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.
-function openMarketplace(optionalItemOrUrl) {
-    // This is a bit of a kluge, but so is the whole file.
-    // If given a whole path, use it with no cta.
-    // If given an id, build the appropriate url and use the id as the cta.
-    // Otherwise, use home and 'marketplace cta'.
-    // AND... if call onMarketplaceOpen to setupWallet if we need to.
-    var url = optionalItemOrUrl || MARKETPLACE_URL_INITIAL;
-    // If optionalItemOrUrl contains the metaverse base, then it's a url, not an item id.
-    if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
-        url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
+var MARKETPLACE_QML_PATH = "hifi/commerce/marketplace/Marketplace.qml";
+function openMarketplace(optionalItem) {
+    ui.open(MARKETPLACE_QML_PATH);
+    
+    if (optionalItem) {
+        ui.tablet.sendToQml({
+            method: 'updateMarketplaceQMLItem',
+            params: { itemId: optionalItem }
+        });
     }
-    ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
 function setCertificateInfo(itemCertificateId) {

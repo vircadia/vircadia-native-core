@@ -19,6 +19,7 @@
     var CLARA_IO_CANCEL_DOWNLOAD = "CLARA.IO CANCEL DOWNLOAD";
     var CLARA_IO_CANCELLED_DOWNLOAD = "CLARA.IO CANCELLED DOWNLOAD";
     var GOTO_DIRECTORY = "GOTO_DIRECTORY";
+    var GOTO_MARKETPLACE = "GOTO_MARKETPLACE";
     var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
     var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
     var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
@@ -72,7 +73,13 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
+            if (document.referrer !== "") {
+                window.history.back();
+            } else {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: GOTO_MARKETPLACE
+                }));
+            }
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(JSON.stringify({
@@ -93,7 +100,9 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = marketplaceBaseURL + "/marketplace?";
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: GOTO_MARKETPLACE
+            }));
         });
     }
 

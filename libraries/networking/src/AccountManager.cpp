@@ -208,7 +208,7 @@ void AccountManager::setSessionID(const QUuid& sessionID) {
     }
 }
 
-QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::Type authType) {
+QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::Type authType, const QUrlQuery & query) {
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
@@ -227,6 +227,7 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
     } else {
         requestURL.setPath("/" + path);
     }
+    requestURL.setQuery(query);
 
     if (authType != AccountManagerAuth::None ) {
         if (hasValidAccessToken()) {
@@ -263,13 +264,14 @@ void AccountManager::sendRequest(const QString& path,
                                   Q_ARG(const JSONCallbackParameters&, callbackParams),
                                   Q_ARG(const QByteArray&, dataByteArray),
                                   Q_ARG(QHttpMultiPart*, dataMultiPart),
-                                  Q_ARG(QVariantMap, propertyMap));
+                                  Q_ARG(QVariantMap, propertyMap),
+                                  Q_ARG(QUrlQuery, query));
         return;
     }
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QNetworkRequest networkRequest = createRequest(path, authType);
+    QNetworkRequest networkRequest = createRequest(path, authType, query);
 
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
         qCDebug(networking) << "Making a request to" << qPrintable(networkRequest.url().toString());

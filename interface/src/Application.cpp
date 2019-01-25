@@ -2916,7 +2916,7 @@ void Application::initializeUi() {
     }, commerceCallback);
 
     QmlContextCallback marketplaceCallback = [](QQmlContext* context) {
-        context->setContextProperty("Marketplace", new QmlMarketplace());
+        context->setContextProperty("MarketplaceScriptingInterface", new QmlMarketplace());
     };
     OffscreenQmlSurface::addWhitelistContextHandler({
         QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },

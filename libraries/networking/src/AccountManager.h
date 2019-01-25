@@ -61,7 +61,7 @@ class AccountManager : public QObject, public Dependency {
 public:
     AccountManager(UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
 
-    QNetworkRequest createRequest(QString path, AccountManagerAuth::Type authType);
+    QNetworkRequest createRequest(QString path, AccountManagerAuth::Type authType, const QUrlQuery & query = QUrlQuery());
     Q_INVOKABLE void sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
                                  QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
