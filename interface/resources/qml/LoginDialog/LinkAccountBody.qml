@@ -42,6 +42,8 @@ Item {
     property string errorString: errorString
     property bool lostFocus: false
 
+    readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -68,6 +70,20 @@ Item {
 
     function login() {
         loginDialog.login(emailField.text, passwordField.text);
+        if (linkAccountBody.loginDialogPoppedUp) {
+            var data;
+            if (linkAccountBody.linkSteam) {
+                data = {
+                    "action": "user linking hifi account with Steam"
+                };
+            } else {
+                data = {
+                    "action": "user logging in"
+                };
+            }
+            UserActivityLogger.logAction("encourageLoginDialog", data);
+        }
+
         bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
     }
 
@@ -294,6 +310,14 @@ Item {
                     topMargin: hifi.dimensions.contentSpacing.y
                 }
                 onClicked: {
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked cancel at link account screen"
+                        };
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                        loginDialog.dismissLoginDialog();
+                    }
+
                     bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "errorString": "" });
                 }
             }
@@ -310,7 +334,7 @@ Item {
                     topMargin: hifi.dimensions.contentSpacing.y
                 }
                 onClicked: {
-                    linkAccountBody.login()
+                    linkAccountBody.login();
                 }
             }
             TextMetrics {
@@ -373,7 +397,12 @@ Item {
                         lightboxPopup.visible = false;
                     }
                     lightboxPopup.visible = true;
-                    // bodyLoader.setSource("CantAccessBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader });
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked can't access account"
+                        };
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                    }
                 }
             }
             HifiControlsUit.Button {
@@ -401,6 +430,19 @@ Item {
                     if (loginDialog.isSteamRunning()) {
                         linkAccountBody.withSteam = true;
                         loginDialog.loginThroughSteam();
+                    }
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data;
+                        if (linkAccountBody.withOculus) {
+                            data = {
+                                "action": "user clicked login through Oculus"
+                            };
+                        } else if (linkAccountBody.withSteam) {
+                            data = {
+                                "action": "user clicked login through Steam"
+                            };
+                        }
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
                     }
 
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
@@ -470,6 +512,12 @@ Item {
                 linkColor: hifi.colors.blueAccent
                 onLinkActivated: {
                     Tablet.playSound(TabletEnums.ButtonClick);
+                    if (linkAccountBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked sign up button"
+                        };
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                    }
                     bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
                         "errorString": "", "linkSteam": linkAccountBody.linkSteam });
                 }
@@ -495,10 +543,9 @@ Item {
             fontFamily: linkAccountBody.fontFamily
             fontSize: linkAccountBody.fontSize
             fontBold: linkAccountBody.fontBold
-            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam;
+            visible: linkAccountBody.loginDialogPoppedUp && !linkAccountBody.linkSteam;
             onClicked: {
-                if (loginDialog.getLoginDialogPoppedUp()) {
-                    console.log("[ENCOURAGELOGINDIALOG]: user dismissed login screen")
+                if (linkAccountBody.loginDialogPoppedUp) {
                     var data = {
                         "action": "user dismissed login screen"
                     };

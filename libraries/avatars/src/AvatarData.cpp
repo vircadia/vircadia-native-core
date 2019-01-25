@@ -54,7 +54,8 @@ using namespace std;
 
 const QString AvatarData::FRAME_NAME = "com.highfidelity.recording.AvatarData";
 
-static const int TRANSLATION_COMPRESSION_RADIX = 12;
+static const int TRANSLATION_COMPRESSION_RADIX = 14;
+static const int FAUX_JOINT_COMPRESSION_RADIX = 12;
 static const int SENSOR_TO_WORLD_SCALE_RADIX = 10;
 static const float AUDIO_LOUDNESS_SCALE = 1024.0f;
 static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
@@ -73,6 +74,7 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) 
     totalSize += validityBitsSize; // Orientations mask
     totalSize += numJoints * sizeof(SixByteQuat); // Orientations
     totalSize += validityBitsSize; // Translations mask
+    totalSize += sizeof(float); // maxTranslationDimension
     totalSize += numJoints * sizeof(SixByteTrans); // Translations
 
     size_t NUM_FAUX_JOINT = 2;
@@ -81,6 +83,23 @@ size_t AvatarDataPacket::maxJointDataSize(size_t numJoints, bool hasGrabJoints) 
     if (hasGrabJoints) {
         totalSize += sizeof(AvatarDataPacket::FarGrabJoints);
     }
+
+    return totalSize;
+}
+
+size_t AvatarDataPacket::minJointDataSize(size_t numJoints) {
+    const size_t validityBitsSize = calcBitVectorSize((int)numJoints);
+
+    size_t totalSize = sizeof(uint8_t); // numJoints
+
+    totalSize += validityBitsSize; // Orientations mask
+    // assume no valid rotations
+    totalSize += validityBitsSize; // Translations mask
+    totalSize += sizeof(float); // maxTranslationDimension
+    // assume no valid translations
+
+    size_t NUM_FAUX_JOINT = 2;
+    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
 
     return totalSize;
 }
@@ -611,12 +630,23 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     assert(numJoints <= 255);
     const int jointBitVectorSize = calcBitVectorSize(numJoints);
 
-    // Start joints if room for at least the faux joints.
-    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, 1 + 2 * jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE) {
+    // include jointData if there is room for the most minimal section. i.e. no translations or rotations.
+    IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, AvatarDataPacket::minJointDataSize(numJoints)) {
         // Allow for faux joints + translation bit-vector:
         const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat)
             + jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE;
         auto startSection = destinationBuffer;
+
+        // compute maxTranslationDimension before we send any joint data.
+        float maxTranslationDimension = 0.001f;
+        for (int i = sendStatus.translationsSent; i < numJoints; ++i) {
+            const JointData& data = jointData[i];
+            if (!data.translationIsDefaultPose) {
+                maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
+                maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
+                maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
+            }
+        }
 
         // joint rotation data
         *destinationBuffer++ = (uint8_t)numJoints;
@@ -684,9 +714,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         memset(destinationBuffer, 0, jointBitVectorSize);
         destinationBuffer += jointBitVectorSize; // Move pointer past the validity bytes
 
+        // write maxTranslationDimension
+        AVATAR_MEMCPY(maxTranslationDimension);
+
         float minTranslation = (distanceAdjust && cullSmallChanges) ? getDistanceBasedMinTranslationDistance(viewerPosition) : AVATAR_MIN_TRANSLATION;
 
-        float maxTranslationDimension = 0.0;
         i = sendStatus.translationsSent;
         for (; i < numJoints; ++i) {
             const JointData& data = joints[i];
@@ -700,12 +732,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 #ifdef WANT_DEBUG
                         translationSentCount++;
 #endif
-                        maxTranslationDimension = glm::max(fabsf(data.translation.x), maxTranslationDimension);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
-                        maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
-
-                        destinationBuffer +=
-                            packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                        destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation / maxTranslationDimension,
+                                                                               TRANSLATION_COMPRESSION_RADIX);
 
                         if (sentJoints) {
                             sentJoints[i].translation = data.translation;
@@ -727,12 +755,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerLeftHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerLeftHandTransform.getTranslation(),
-            TRANSLATION_COMPRESSION_RADIX);
+            FAUX_JOINT_COMPRESSION_RADIX);
 
         Transform controllerRightHandTransform = Transform(getControllerRightHandMatrix());
         destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, controllerRightHandTransform.getRotation());
         destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, controllerRightHandTransform.getTranslation(),
-            TRANSLATION_COMPRESSION_RADIX);
+            FAUX_JOINT_COMPRESSION_RADIX);
 
         IF_AVATAR_SPACE(PACKET_HAS_GRAB_JOINTS, sizeof (AvatarDataPacket::FarGrabJoints)) {
             // the far-grab joints may range further than 3 meters, so we can't use packFloatVec3ToSignedTwoByteFixed etc
@@ -785,7 +813,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             outboundDataRateOut->jointDataRate.increment(numBytes);
         }
     }
-    
+
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DEFAULT_POSE_FLAGS, 1 + 2 * jointBitVectorSize) {
         auto startSection = destinationBuffer;
 
@@ -871,7 +899,7 @@ const unsigned char* unpackFauxJoint(const unsigned char* sourceBuffer, ThreadSa
     glm::vec3 position;
     Transform transform;
     sourceBuffer += unpackOrientationQuatFromSixBytes(sourceBuffer, orientation);
-    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, TRANSLATION_COMPRESSION_RADIX);
+    sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, position, FAUX_JOINT_COMPRESSION_RADIX);
     transform.setTranslation(position);
     transform.setRotation(orientation);
     matrixCache.set(transform.getMatrix());
@@ -1144,6 +1172,9 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
+        if (collideWithOtherAvatarsChanged) {
+            setCollisionWithOtherAvatarsFlags();
+        }
         if (somethingChanged) {
             _additionalFlagsChanged = now;
         }
@@ -1280,6 +1311,12 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             }
         } // 1 + bytesOfValidity bytes
 
+        // read maxTranslationDimension
+        float maxTranslationDimension;
+        PACKET_READ_CHECK(JointMaxTranslationDimension, sizeof(float));
+        memcpy(&maxTranslationDimension, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
         // each joint translation component is stored in 6 bytes.
         const int COMPRESSED_TRANSLATION_SIZE = 6;
         PACKET_READ_CHECK(JointTranslation, numValidJointTranslations * COMPRESSED_TRANSLATION_SIZE);
@@ -1288,6 +1325,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
             JointData& data = _jointData[i];
             if (validTranslations[i]) {
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+                data.translation *= maxTranslationDimension;
                 _hasNewJointData = true;
                 data.translationIsDefaultPose = false;
             }
@@ -2157,7 +2195,7 @@ void AvatarData::detachAll(const QString& modelURL, const QString& jointName) {
     setAttachmentData(attachmentData);
 }
 
-void AvatarData::sendAvatarDataPacket(bool sendAll) {
+int AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // about 2% of the time, we send a full update (meaning, we transmit all the joint data), even if nothing has changed.
@@ -2170,16 +2208,14 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
     int maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
 
     if (avatarByteArray.size() > maximumByteArraySize) {
-        qCWarning(avatars) << "toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
         avatarByteArray = toByteArrayStateful(dataDetail, true);
 
         if (avatarByteArray.size() > maximumByteArraySize) {
-            qCWarning(avatars) << "toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
             avatarByteArray = toByteArrayStateful(MinimumData, true);
 
             if (avatarByteArray.size() > maximumByteArraySize) {
                 qCWarning(avatars) << "toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
-                return;
+                return 0;
             }
         }
     }
@@ -2191,18 +2227,20 @@ void AvatarData::sendAvatarDataPacket(bool sendAll) {
     auto avatarPacket = NLPacket::create(PacketType::AvatarData, avatarByteArray.size() + sizeof(sequenceNumber));
     avatarPacket->writePrimitive(sequenceNumber++);
     avatarPacket->write(avatarByteArray);
+    auto packetSize = avatarPacket->getWireSize();
 
     nodeList->broadcastToNodes(std::move(avatarPacket), NodeSet() << NodeType::AvatarMixer);
+
+    return packetSize;
 }
 
-void AvatarData::sendIdentityPacket() {
+int AvatarData::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     if (_identityDataChanged) {
         // if the identity data has changed, push the sequence number forwards
         ++_identitySequenceNumber;
     }
-
     QByteArray identityData = identityByteArray();
 
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
@@ -2216,6 +2254,7 @@ void AvatarData::sendIdentityPacket() {
     });
 
     _identityDataChanged = false;
+    return identityData.size();
 }
 
 static const QString JSON_ATTACHMENT_URL = QStringLiteral("modelUrl");
@@ -2392,7 +2431,8 @@ static const QString JSON_AVATAR_VERSION = QStringLiteral("version");
 enum class JsonAvatarFrameVersion : int {
     JointRotationsInRelativeFrame = 0,
     JointRotationsInAbsoluteFrame,
-    JointDefaultPoseBits
+    JointDefaultPoseBits,
+    JointUnscaledTranslations,
 };
 
 QJsonValue toJsonValue(const JointData& joint) {
@@ -2409,7 +2449,16 @@ JointData jointDataFromJsonValue(int version, const QJsonValue& json) {
     if (json.isArray()) {
         QJsonArray array = json.toArray();
         result.rotation = quatFromJsonValue(array[0]);
+
         result.translation = vec3FromJsonValue(array[1]);
+
+        // In old recordings, translations are scaled by _geometryOffset.  Undo that scaling.
+        if (version < (int)JsonAvatarFrameVersion::JointUnscaledTranslations) {
+            // because we don't have access to the actual _geometryOffset used. we have to guess.
+            // most avatar FBX files were authored in centimeters.
+            const float METERS_TO_CENTIMETERS = 100.0f;
+            result.translation *= METERS_TO_CENTIMETERS;
+        }
         if (version >= (int)JsonAvatarFrameVersion::JointDefaultPoseBits) {
             result.rotationIsDefaultPose = array[2].toBool();
             result.translationIsDefaultPose = array[3].toBool();
@@ -2428,7 +2477,7 @@ void AvatarData::avatarEntityDataToJson(QJsonObject& root) const {
 QJsonObject AvatarData::toJson() const {
     QJsonObject root;
 
-    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointDefaultPoseBits;
+    root[JSON_AVATAR_VERSION] = (int)JsonAvatarFrameVersion::JointUnscaledTranslations;
 
     if (!getSkeletonModelURL().isEmpty()) {
         root[JSON_AVATAR_BODY_MODEL] = getSkeletonModelURL().toString();
@@ -2744,23 +2793,28 @@ void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
 }
 
 void AvatarData::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& data) {
+    bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
-        PackedAvatarEntityMap::iterator itr = _packedAvatarEntityData.find(entityID);
+        auto itr = _packedAvatarEntityData.find(entityID);
         if (itr == _packedAvatarEntityData.end()) {
             if (_packedAvatarEntityData.size() < MAX_NUM_AVATAR_ENTITIES) {
                 _packedAvatarEntityData.insert(entityID, data);
+                changed = true;
             }
         } else {
             itr.value() = data;
+            changed = true;
         }
     });
 
-    _avatarEntityDataChanged = true;
+    if (changed) {
+        _avatarEntityDataChanged = true;
 
-    if (_clientTraitsHandler) {
-        // we have a client traits handler, so we need to mark this instanced trait as changed
-        // so that changes will be sent next frame
-        _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        if (_clientTraitsHandler) {
+            // we have a client traits handler, so we need to mark this instanced trait as changed
+            // so that changes will be sent next frame
+            _clientTraitsHandler->markInstancedTraitUpdated(AvatarTraits::AvatarEntity, entityID);
+        }
     }
 }
 

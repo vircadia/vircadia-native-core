@@ -135,8 +135,8 @@ glm::vec2 TouchscreenVirtualPadDevice::clippedPointInCircle(float radius, glm::v
 void TouchscreenVirtualPadDevice::processInputDeviceForMove(VirtualPad::Manager& virtualPadManager) {
     vec2 clippedPoint = clippedPointInCircle(_fixedRadiusForCalc, _moveRefTouchPoint, _moveCurrentTouchPoint);
 
-    _inputDevice->_axisStateMap[controller::LX] = (clippedPoint.x - _moveRefTouchPoint.x) / _fixedRadiusForCalc;
-    _inputDevice->_axisStateMap[controller::LY] = (clippedPoint.y - _moveRefTouchPoint.y) / _fixedRadiusForCalc;
+    _inputDevice->_axisStateMap[controller::LX].value = (clippedPoint.x - _moveRefTouchPoint.x) / _fixedRadiusForCalc;
+    _inputDevice->_axisStateMap[controller::LY].value = (clippedPoint.y - _moveRefTouchPoint.y) / _fixedRadiusForCalc;
 
     virtualPadManager.getLeftVirtualPad()->setFirstTouch(_moveRefTouchPoint);
     virtualPadManager.getLeftVirtualPad()->setCurrentTouch(clippedPoint);
@@ -148,8 +148,10 @@ void TouchscreenVirtualPadDevice::processInputDeviceForView() {
     // We use average across how many times we've got touchUpdate events.
     // Using the average instead of the full deltaX and deltaY, makes deltaTime in MyAvatar dont't accelerate rotation when there is a low touchUpdate rate (heavier domains).
     // (Because it multiplies this input value by deltaTime (with a coefficient)).
-    _inputDevice->_axisStateMap[controller::RX] = _viewTouchUpdateCount == 0 ? 0 : (_viewCurrentTouchPoint.x - _viewRefTouchPoint.x) / _viewTouchUpdateCount;
-    _inputDevice->_axisStateMap[controller::RY] = _viewTouchUpdateCount == 0 ? 0 : (_viewCurrentTouchPoint.y - _viewRefTouchPoint.y) / _viewTouchUpdateCount;
+    _inputDevice->_axisStateMap[controller::RX].value = 
+        _viewTouchUpdateCount == 0 ? 0 : (_viewCurrentTouchPoint.x - _viewRefTouchPoint.x) / _viewTouchUpdateCount;
+    _inputDevice->_axisStateMap[controller::RY].value = 
+        _viewTouchUpdateCount == 0 ? 0 : (_viewCurrentTouchPoint.y - _viewRefTouchPoint.y) / _viewTouchUpdateCount;
 
     // after use, save last touch point as ref
     _viewRefTouchPoint = _viewCurrentTouchPoint;
@@ -442,8 +444,8 @@ void TouchscreenVirtualPadDevice::moveTouchUpdate(glm::vec2 touchPoint) {
 void TouchscreenVirtualPadDevice::moveTouchEnd() {
     if (_moveHasValidTouch) { // do stuff once
         _moveHasValidTouch = false;
-        _inputDevice->_axisStateMap[controller::LX] = 0;
-        _inputDevice->_axisStateMap[controller::LY] = 0;
+        _inputDevice->_axisStateMap[controller::LX].value = 0;
+        _inputDevice->_axisStateMap[controller::LY].value = 0;
     }
 }
 
@@ -465,8 +467,8 @@ void TouchscreenVirtualPadDevice::viewTouchUpdate(glm::vec2 touchPoint) {
 void TouchscreenVirtualPadDevice::viewTouchEnd() {
     if (_viewHasValidTouch) { // do stuff once
         _viewHasValidTouch = false;
-        _inputDevice->_axisStateMap[controller::RX] = 0;
-        _inputDevice->_axisStateMap[controller::RY] = 0;
+        _inputDevice->_axisStateMap[controller::RX].value = 0;
+        _inputDevice->_axisStateMap[controller::RY].value = 0;
     }
 }
 

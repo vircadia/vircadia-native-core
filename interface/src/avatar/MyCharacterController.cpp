@@ -203,6 +203,29 @@ bool MyCharacterController::testRayShotgun(const glm::vec3& position, const glm:
     return result.hitFraction < 1.0f;
 }
 
+int32_t MyCharacterController::computeCollisionMask() const {
+    int32_t collisionMask = BULLET_COLLISION_MASK_MY_AVATAR; 
+    if (_collisionless && _collisionlessAllowed) {
+        collisionMask = BULLET_COLLISION_MASK_COLLISIONLESS;
+    } else if (!_collideWithOtherAvatars) {
+        collisionMask &= ~BULLET_COLLISION_GROUP_OTHER_AVATAR;
+    }
+    return collisionMask;
+}
+
+void MyCharacterController::handleChangedCollisionMask() {
+    if (_pendingFlags & PENDING_FLAG_UPDATE_COLLISION_MASK) {
+        // ATM the easiest way to update collision groups/masks is to remove/re-add the RigidBody
+        if (_dynamicsWorld) {
+            _dynamicsWorld->removeRigidBody(_rigidBody);
+            int32_t collisionMask = computeCollisionMask();
+            _dynamicsWorld->addRigidBody(_rigidBody, BULLET_COLLISION_GROUP_MY_AVATAR, collisionMask);
+        }
+        _pendingFlags &= ~PENDING_FLAG_UPDATE_COLLISION_MASK;
+        updateCurrentGravity();
+    }
+}
+
 btConvexHullShape* MyCharacterController::computeShape() const {
     // HACK: the avatar collides using convex hull with a collision margin equal to
     // the old capsule radius.  Two points define a capsule and additional points are

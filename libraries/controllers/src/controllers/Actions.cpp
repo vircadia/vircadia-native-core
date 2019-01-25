@@ -52,11 +52,17 @@ namespace controller {
      *     <tr><td><code>TranslateZ</code></td><td>number</td><td>number</td><td>Move the user's avatar in the direction of its 
      *       z-axis, if the camera isn't in independent or mirror modes.</td></tr>
      *     <tr><td><code>Pitch</code></td><td>number</td><td>number</td><td>Rotate the user's avatar head and attached camera 
-     *       about its negative x-axis (i.e., positive values pitch down), if the camera isn't in HMD, independent, or mirror 
-     *       modes.</td></tr>
-     *     <tr><td><code>Yaw</code></td><td>number</td><td>number</td><td>Rotate the user's avatar about its y-axis, if the 
-     *       camera isn't in independent or mirror modes.</td></tr>
+     *       about its negative x-axis (i.e., positive values pitch down) at a rate proportional to the control value, if the 
+     *       camera isn't in HMD, independent, or mirror modes.</td></tr>
+     *     <tr><td><code>Yaw</code></td><td>number</td><td>number</td><td>Rotate the user's avatar about its y-axis at a rate 
+     *       proportional to the control value, if the camera isn't in independent or mirror modes.</td></tr>
      *     <tr><td><code>Roll</code></td><td>number</td><td>number</td><td>No action.</td></tr>
+     *     <tr><td><code>DeltaPitch</code></td><td>number</td><td>number</td><td>Rotate the user's avatar head and attached 
+     *       camera about its negative x-axis (i.e., positive values pitch down) by an amount proportional to the control value, 
+     *       if the camera isn't in HMD, independent, or mirror modes.</td></tr>
+     *     <tr><td><code>DeltaYaw</code></td><td>number</td><td>number</td><td>Rotate the user's avatar about its y-axis by an 
+     *       amount proportional to the control value, if the camera isn't in independent or mirror modes.</td></tr>
+     *     <tr><td><code>DeltaRoll</code></td><td>number</td><td>number</td><td>No action.</td></tr>
      *     <tr><td><code>StepTranslateX</code></td><td>number</td><td>number</td><td>No action.</td></tr>
      *     <tr><td><code>StepTranslateY</code></td><td>number</td><td>number</td><td>No action.</td></tr>
      *     <tr><td><code>StepTranslateZ</code></td><td>number</td><td>number</td><td>No action.</td></tr>
@@ -318,6 +324,9 @@ namespace controller {
             makeAxisPair(Action::ROLL, "Roll"),
             makeAxisPair(Action::PITCH, "Pitch"),
             makeAxisPair(Action::YAW, "Yaw"),
+            makeAxisPair(Action::DELTA_YAW, "DeltaYaw"),
+            makeAxisPair(Action::DELTA_PITCH, "DeltaPitch"),
+            makeAxisPair(Action::DELTA_ROLL, "DeltaRoll"),
             makeAxisPair(Action::STEP_YAW, "StepYaw"),
             makeAxisPair(Action::STEP_PITCH, "StepPitch"),
             makeAxisPair(Action::STEP_ROLL, "StepRoll"),

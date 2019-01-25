@@ -68,6 +68,13 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     // hash the available codecs (on the mixer)
     _availableCodecs.clear(); // Make sure struct is clean
     auto pluginManager = DependencyManager::set<PluginManager>();
+    // Only load codec plugins; for now assume codec plugins have 'codec' in their name.
+    auto codecPluginFilter = [](const QJsonObject& metaData) {
+        QJsonValue nameValue = metaData["MetaData"]["name"];
+        return nameValue.toString().contains("codec", Qt::CaseInsensitive);
+    };
+    pluginManager->setPluginFilter(codecPluginFilter);
+
     auto codecPlugins = pluginManager->getCodecPlugins();
     for_each(codecPlugins.cbegin(), codecPlugins.cend(),
         [&](const CodecPluginPointer& codec) {

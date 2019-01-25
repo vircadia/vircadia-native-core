@@ -13,7 +13,7 @@ const char* materialMappingModeNames[] = {
     "projected"
 };
 
-static const size_t MATERIAL_MODE_NAMES = (sizeof(materialMappingModeNames) / sizeof((materialMappingModeNames)[0]));
+static const size_t MATERIAL_MODE_NAMES = (sizeof(materialMappingModeNames) / sizeof(materialMappingModeNames[0]));
 
 QString MaterialMappingModeHelpers::getNameForMaterialMappingMode(MaterialMappingMode mode) {
     if (((int)mode <= 0) || ((int)mode >= (int)MATERIAL_MODE_NAMES)) {

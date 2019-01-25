@@ -123,6 +123,10 @@
 
 class ScriptableAvatar : public AvatarData, public Dependency {
     Q_OBJECT
+
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
+
 public:
 
     ScriptableAvatar();
@@ -177,6 +181,8 @@ public:
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
 
+    int sendAvatarDataPacket(bool sendAll = false) override;
+
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
 
     void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
@@ -228,6 +234,10 @@ private:
 
     /// Loads the joint indices, names from the FST file (if any)
     void updateJointMappings();
+
+    quint64 _lastSendAvatarDataTime { 0 };
+
+    TimePoint _nextTraitsSendWindow;
 };
 
 #endif // hifi_ScriptableAvatar_h

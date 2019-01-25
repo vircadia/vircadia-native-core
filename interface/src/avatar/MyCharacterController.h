@@ -69,6 +69,12 @@ public:
     std::vector<RayAvatarResult> rayTest(const btVector3& origin, const btVector3& direction, const btScalar& length,
                                          const QVector<uint>& jointsToExclude) const;
 
+    int32_t computeCollisionMask() const override;
+    void handleChangedCollisionMask() override;
+
+    bool _collideWithOtherAvatars{ true };
+    void setCollideWithOtherAvatars(bool collideWithOtherAvatars) { _collideWithOtherAvatars = collideWithOtherAvatars; }
+
 protected:
     void initRayShotgun(const btCollisionWorld* world);
     void updateMassProperties() override;

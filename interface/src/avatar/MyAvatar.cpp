@@ -205,12 +205,12 @@ MyAvatar::MyAvatar(QThread* thread) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
-            _previousCollisionGroup = _characterController.computeCollisionGroup();
+            _previousCollisionMask = _characterController.computeCollisionMask();
             _characterController.setCollisionless(true);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
-            if (_previousCollisionGroup != BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            if (_previousCollisionMask != BULLET_COLLISION_MASK_COLLISIONLESS) {
                 _characterController.setCollisionless(false);
             }
         }
@@ -668,12 +668,6 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (getWorldPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
-    if (getIdentityDataChanged()) {
-        sendIdentityPacket();
-    }
-
-    _clientTraitsHandler->sendChangedTraitsToMixer();
-
     simulate(deltaTime, true);
 
     currentEnergy += energyChargeRate;
@@ -773,7 +767,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
             bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
-            if (isChildOfHead) {
+            if (isChildOfHead && !object->hasGrabs()) {
                 // Cauterize or display children of head per head drawing state.
                 updateChildCauterization(object, !_prevShouldDrawHead);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
@@ -823,7 +817,9 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
-    updateGrabs();
+    if (updateGrabs()) {
+        _cauterizationNeedsUpdate = true;
+    }
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -879,9 +875,13 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
                 collisionlessAllowed = zone->getGhostingAllowed();
             }
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            bool force = false;
-            bool iShouldTellServer = true;
             forEachDescendant([&](SpatiallyNestablePointer object) {
+                // we need to update attached queryAACubes in our own local tree so point-select always works
+                // however we don't want to flood the update pipeline with AvatarEntity updates, so we assume
+                // others have all info required to properly update queryAACube of AvatarEntities on their end
+                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
+                bool iShouldTellServer = !(entity && entity->isAvatarEntity());
+                const bool force = false;
                 entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
             });
         });
@@ -1539,10 +1539,12 @@ void MyAvatar::handleChangedAvatarEntityData() {
                 skip = true;
             }
         });
-        sanitizeAvatarEntityProperties(properties);
-        entityTree->withWriteLock([&] {
-            entityTree->updateEntity(id, properties);
-        });
+        if (!skip) {
+            sanitizeAvatarEntityProperties(properties);
+            entityTree->withWriteLock([&] {
+                entityTree->updateEntity(id, properties);
+            });
+        }
     }
 
     // DELETE cached blobs
@@ -1739,19 +1741,27 @@ void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 
 void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
     // NOTE: this is an invokable Script call
-    // TODO: we should handle the case where entityData is corrupt or invalid
-    // BEFORE we store into _cachedAvatarEntityBlobs
-    _needToSaveAvatarEntitySettings = true;
+    bool changed = false;
     _avatarEntitiesLock.withWriteLock([&] {
-        AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(entityID);
-        if (itr != _cachedAvatarEntityBlobs.end()) {
-            _entitiesToUpdate.push_back(entityID);
-            itr.value() = entityData;
+        auto data = QJsonDocument::fromBinaryData(entityData);
+        if (data.isEmpty() || data.isNull() || !data.isObject() || data.object().isEmpty()) {
+            qDebug() << "ERROR!  Trying to update with invalid avatar entity data.  Skipping." << data;
         } else {
-            _entitiesToAdd.push_back(entityID);
-            _cachedAvatarEntityBlobs.insert(entityID, entityData);
+            auto itr = _cachedAvatarEntityBlobs.find(entityID);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                _entitiesToAdd.push_back(entityID);
+                _cachedAvatarEntityBlobs.insert(entityID, entityData);
+                changed = true;
+            } else {
+                _entitiesToUpdate.push_back(entityID);
+                itr.value() = entityData;
+                changed = true;
+            }
         }
     });
+    if (changed) {
+        _needToSaveAvatarEntitySettings = true;
+    }
 }
 
 void MyAvatar::avatarEntityDataToJson(QJsonObject& root) const {
@@ -2291,49 +2301,35 @@ bool isWearableEntity(const EntityItemPointer& entity) {
             || entity->getParentID() == AVATAR_SELF_ID);
 }
 
-void MyAvatar::clearAvatarEntities() {
+void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
 
-    QList<QUuid> avatarEntityIDs;
-    _avatarEntitiesLock.withReadLock([&] {
-            avatarEntityIDs = _packedAvatarEntityData.keys();
-    });
-    for (const auto& entityID : avatarEntityIDs) {
-        entityTree->withWriteLock([&entityID, &entityTree] {
-            // remove this entity first from the entity tree
-            entityTree->deleteEntity(entityID, true, true);
-        });
-
-        // remove the avatar entity from our internal list
-        // (but indicate it doesn't need to be pulled from the tree)
-        clearAvatarEntity(entityID, false);
-    }
-}
-
-void MyAvatar::removeWearableAvatarEntities() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
-        QList<QUuid> avatarEntityIDs;
-        _avatarEntitiesLock.withReadLock([&] {
-                avatarEntityIDs = _packedAvatarEntityData.keys();
-        });
-        for (const auto& entityID : avatarEntityIDs) {
-            auto entity = entityTree->findEntityByID(entityID);
-            if (entity && isWearableEntity(entity)) {
-                entityTree->withWriteLock([&entityID, &entityTree] {
-                    // remove this entity first from the entity tree
-                    entityTree->deleteEntity(entityID, true, true);
-                });
+        auto entity = entityTree->findEntityByID(entityID);
+        if (entity && isWearableEntity(entity)) {
+            entityTree->withWriteLock([&entityID, &entityTree] {
+                // remove this entity first from the entity tree
+                entityTree->deleteEntity(entityID, true, true);
+            });
 
-                // remove the avatar entity from our internal list
-                // (but indicate it doesn't need to be pulled from the tree)
-                clearAvatarEntity(entityID, false);
-            }
+            // remove the avatar entity from our internal list
+            // (but indicate it doesn't need to be pulled from the tree)
+            clearAvatarEntity(entityID, false);
         }
     }
 }
+
+void MyAvatar::clearWornAvatarEntities() {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (auto entityID : avatarEntityIDs) {
+        removeWornAvatarEntity(entityID);
+    }
+}
+
 
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     // NOTE: this method is NOT efficient
@@ -2357,6 +2353,7 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             desiredProperties += PROP_LOCAL_ROTATION;
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
             QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_myScriptEngine, entityProperties);
+            avatarEntityData["id"] = entityID;
             avatarEntityData["properties"] = scriptProperties.toVariant();
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
@@ -2466,7 +2463,7 @@ void MyAvatar::updateMotors() {
     float verticalMotorTimescale;
 
     if (_characterController.getState() == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
     } else {
@@ -2476,7 +2473,7 @@ void MyAvatar::updateMotors() {
 
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
-                _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
             motorRotation = getMyHead()->getHeadOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
@@ -2531,7 +2528,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
         qDebug() << "Warning: getParentVelocity failed" << getID();
         parentVelocity = glm::vec3();
     }
-    _characterController.handleChangedCollisionGroup();
+    _characterController.handleChangedCollisionMask();
     _characterController.setParentVelocity(parentVelocity);
     _characterController.setScaleFactor(getSensorToWorldScale());
 
@@ -2735,8 +2732,8 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         newEntitiesProperties.push_back(properties);
     }
 
-    // clear any existing avatar entities
-    clearAvatarEntities();
+    // clear any existing wearables
+    clearWornAvatarEntities();
 
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
@@ -3034,6 +3031,39 @@ void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
+int MyAvatar::sendAvatarDataPacket(bool sendAll) {
+    using namespace std::chrono;
+    auto now = Clock::now();
+
+    int MAX_DATA_RATE_MBPS = 3;
+    int maxDataRateBytesPerSeconds = MAX_DATA_RATE_MBPS * BYTES_PER_KILOBYTE * KILO_PER_MEGA / BITS_IN_BYTE;
+    int maxDataRateBytesPerMilliseconds = maxDataRateBytesPerSeconds / MSECS_PER_SECOND;
+
+    auto bytesSent = 0;
+
+    if (now > _nextTraitsSendWindow) {
+        if (getIdentityDataChanged()) {
+            bytesSent += sendIdentityPacket();
+        }
+
+        bytesSent += _clientTraitsHandler->sendChangedTraitsToMixer();
+
+        // Compute the next send window based on how much data we sent and what
+        // data rate we're trying to max at.
+        milliseconds timeUntilNextSend { bytesSent / maxDataRateBytesPerMilliseconds };
+        _nextTraitsSendWindow += timeUntilNextSend;
+
+        // Don't let the next send window lag behind if we're not sending a lot of data.
+        if (_nextTraitsSendWindow < now) {
+            _nextTraitsSendWindow = now;
+        }
+    }
+
+    bytesSent += Avatar::sendAvatarDataPacket(sendAll);
+
+    return bytesSent;
+}
+
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
@@ -3106,9 +3136,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
             _bodyYawDelta = 0.0f;
         }
     }
-
     float totalBodyYaw = _bodyYawDelta * deltaTime;
 
+    // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
+    totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
 
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
@@ -3176,7 +3207,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
     } else {
         head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
+            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
     }
 }
@@ -3221,7 +3253,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     glm::vec3 direction = forward + right;
     if (state == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
@@ -3777,7 +3809,7 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
 bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
-    return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+    return _characterController.computeCollisionMask() != BULLET_COLLISION_MASK_COLLISIONLESS;
 }
 
 void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
@@ -3786,12 +3818,21 @@ void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
         QMetaObject::invokeMethod(this, "setOtherAvatarsCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
+    bool change = _collideWithOtherAvatars != enabled;
     _collideWithOtherAvatars = enabled;
+    if (change) {
+        setCollisionWithOtherAvatarsFlags();
+    }
     emit otherAvatarsCollisionsEnabledChanged(enabled);
 }
 
 bool MyAvatar::getOtherAvatarsCollisionsEnabled() {
     return _collideWithOtherAvatars;
+}
+
+void MyAvatar::setCollisionWithOtherAvatarsFlags() {
+    _characterController.setCollideWithOtherAvatars(_collideWithOtherAvatars);
+    _characterController.setPendingFlagsUpdateCollisionMask();
 }
 
 void MyAvatar::updateCollisionCapsuleCache() {
