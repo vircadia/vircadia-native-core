@@ -26,7 +26,8 @@ public:
         QPushButton *connectDeviceButton, 
         QPushButton *pullFolderButton, 
         QLabel* detectedDeviceLabel, 
-        QLineEdit *folderLineEdit,
+        QLineEdit* folderLineEdit,
+        QPushButton* downloadAPKPushbutton,
         QObject* parent = 0
     );
     ~TestRunnerMobile();
@@ -34,6 +35,7 @@ public:
     void setWorkingFolderAndEnableControls();
     void connectDevice();
     void downloadAPK();
+    void downloadComplete();
     void pullFolder();
 
 private:
@@ -42,6 +44,7 @@ private:
     QPushButton* _pullFolderButton;
     QLabel* _detectedDeviceLabel;
     QLineEdit* _folderLineEdit;
+    QPushButton* _downloadAPKPushbutton;
 
 #ifdef Q_OS_WIN
     const QString _adbExe{ "adb.exe" };

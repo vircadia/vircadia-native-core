@@ -22,6 +22,7 @@ TestRunnerMobile::TestRunnerMobile(
     QPushButton *pullFolderButton,
     QLabel* detectedDeviceLabel,
     QLineEdit *folderLineEdit,
+    QPushButton* downloadAPKPushbutton,
     QObject* parent
 ) : QObject(parent) 
 {
@@ -30,6 +31,7 @@ TestRunnerMobile::TestRunnerMobile(
     _pullFolderButton = pullFolderButton;
     _detectedDeviceLabel = detectedDeviceLabel;
     _folderLineEdit = folderLineEdit;
+    _downloadAPKPushbutton = downloadAPKPushbutton;
 
     folderLineEdit->setText("/sdcard/DCIM/TEST");
 }
@@ -41,6 +43,7 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
     setWorkingFolder(_workingFolderLabel);
 
     _connectDeviceButton->setEnabled(true);
+    _downloadAPKPushbutton->setEnabled(true);
 
     // Find ADB (Android Debugging Bridge) before continuing
 #ifdef Q_OS_WIN
@@ -70,7 +73,7 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 void TestRunnerMobile::connectDevice() {
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbCommand + " devices > " + devicesFullFilename;
-    int result = system(command.toStdString().c_str());
+    system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
         QMessageBox::critical(0, "Internal error", "devicesFullFilename not found");
@@ -99,9 +102,20 @@ void TestRunnerMobile::connectDevice() {
 }
 
 void TestRunnerMobile::downloadAPK() {
+    downloadBuildXml((void*)this);
 }
 
+
+void TestRunnerMobile::downloadComplete() {
+    if (!buildXMLDownloaded) {
+        // Download of Build XML has completed
+        buildXMLDownloaded = true;
+
+        // Download the High Fidelity APK
+        int df = 546;
+    }
+}
 void TestRunnerMobile::pullFolder() {
     QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + " >" + _workingFolder + "/pullOutput.txt";
-    int result = system(command.toStdString().c_str());
+    system(command.toStdString().c_str());
 }

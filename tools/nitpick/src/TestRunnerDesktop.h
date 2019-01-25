@@ -102,10 +102,6 @@ private:
 
     QString _installerURL;
     QString _installerFilename;
-    const QString DEV_BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
-    const QString DEV_BUILD_XML_FILENAME{ "dev-builds.xml" };
-
-    bool buildXMLDownloaded;
 
     QDir _appDataFolder;
     QDir _savedAppDataFolder;

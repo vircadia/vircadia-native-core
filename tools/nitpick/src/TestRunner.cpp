@@ -11,6 +11,9 @@
 
 #include <QFileDialog>
 
+#include "Nitpick.h"
+extern Nitpick* nitpick;
+
 void TestRunner::setWorkingFolder(QLabel* workingFolderLabel) {
     // Everything will be written to this folder
     QString previousSelection = _workingFolder;
@@ -29,6 +32,21 @@ void TestRunner::setWorkingFolder(QLabel* workingFolderLabel) {
     }
 
     workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
+}
+
+void TestRunner::downloadBuildXml(void* caller) {
+    // Download the latest High Fidelity build XML.
+    //      Note that this is not needed for PR builds (or whenever `Run Latest` is unchecked)
+    //      It is still downloaded, to simplify the flow
+    buildXMLDownloaded = false;
+
+    QStringList urls;
+    QStringList filenames;
+
+    urls << DEV_BUILD_XML_URL;
+    filenames << DEV_BUILD_XML_FILENAME;
+
+    nitpick->downloadFiles(urls, _workingFolder, filenames, caller);
 }
 
 void Worker::setCommandLine(const QString& commandLine) {

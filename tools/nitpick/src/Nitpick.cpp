@@ -88,12 +88,28 @@ void Nitpick::setup() {
     if (_testRunnerDesktop) {
         delete _testRunnerDesktop;
     }
-    _testRunnerDesktop = new TestRunnerDesktop(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderRunOnDesktopLabel, _ui.checkBoxServerless, _ui.runLatestOnDesktopCheckBox, _ui.urlOnDesktopLineEdit, _ui.runNowPushbutton);
+    _testRunnerDesktop = new TestRunnerDesktop(
+        dayCheckboxes, 
+        timeEditCheckboxes, 
+        timeEdits, 
+        _ui.workingFolderRunOnDesktopLabel, 
+        _ui.checkBoxServerless, 
+        _ui.runLatestOnDesktopCheckBox, 
+        _ui.urlOnDesktopLineEdit, 
+        _ui.runNowPushbutton
+    );
 
     if (_testRunnerMobile) {
         delete _testRunnerMobile;
     }
-    _testRunnerMobile = new TestRunnerMobile(_ui.workingFolderRunOnMobileLabel, _ui.connectDevicePushbutton, _ui.pullFolderPushbutton, _ui.detectedDeviceLabel, _ui.folderLineEdit);
+    _testRunnerMobile = new TestRunnerMobile(
+        _ui.workingFolderRunOnMobileLabel, 
+        _ui.connectDevicePushbutton, 
+        _ui.pullFolderPushbutton, 
+        _ui.detectedDeviceLabel, 
+        _ui.folderLineEdit,
+        _ui.downloadAPKPushbutton
+    );
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -285,7 +301,11 @@ void Nitpick::saveFile(int index) {
             _test->finishTestsEvaluation();
         } else if (_caller == _testRunnerDesktop) {
             _testRunnerDesktop->downloadComplete();
+        } else if (_caller == _testRunnerMobile) {
+            _testRunnerMobile->downloadComplete();
         }
+
+        _ui.progressBar->setVisible(false);
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
     }

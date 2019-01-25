@@ -13,13 +13,13 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
 
-#include "Nitpick.h"
-extern Nitpick* nitpick;
-
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <tlhelp32.h>
 #endif
+
+#include "Nitpick.h"
+extern Nitpick* nitpick;
 
 TestRunnerDesktop::TestRunnerDesktop(std::vector<QCheckBox*> dayCheckboxes,
                        std::vector<QCheckBox*> timeEditCheckboxes,
@@ -176,19 +176,8 @@ void TestRunnerDesktop::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
-    // Download the latest High Fidelity build XML.
-    //      Note that this is not needed for PR builds (or whenever `Run Latest` is unchecked)
-    //      It is still downloaded, to simplify the flow
-    QStringList urls;
-    QStringList filenames;
-
-    urls << DEV_BUILD_XML_URL;
-    filenames << DEV_BUILD_XML_FILENAME;
-
     updateStatusLabel("Downloading Build XML");
-
-    buildXMLDownloaded = false;
-    nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+    downloadBuildXml((void*)this);
 
     // `downloadComplete` will run after download has completed
 }

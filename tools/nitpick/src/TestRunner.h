@@ -19,9 +19,15 @@ class Worker;
 class TestRunner {
 public:
     void setWorkingFolder(QLabel* workingFolderLabel);
+    void downloadBuildXml(void* caller);
 
 protected:
     QString _workingFolder;
+
+    const QString DEV_BUILD_XML_URL{ "https://highfidelity.com/dev-builds.xml" };
+    const QString DEV_BUILD_XML_FILENAME{ "dev-builds.xml" };
+
+    bool buildXMLDownloaded;
 };
 
 class Worker : public QObject {
