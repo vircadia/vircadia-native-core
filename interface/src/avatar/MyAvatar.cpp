@@ -103,7 +103,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _scriptedMotorMode(SCRIPTED_MOTOR_SIMPLE_MODE),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _characterController(this),
+    _characterController(std::shared_ptr<MyAvatar>(this)),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -2994,14 +2994,13 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
             const Rig& rig = _skeletonModel->getRig();
             int jointCount = rig.getJointStateCount();
             if (jointCount == (int)_multiSphereShapes.size()) {
-                int count = 0;
                 for (int i = 0; i < jointCount; i++) {
                     AnimPose jointPose;
                     rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
                     const AnimPose pose = rigToWorldPose * jointPose;
                     auto &multiSphere = _multiSphereShapes[i];
                     auto debugLines = multiSphere.getDebugLines();
-                    DebugDraw::getInstance().drawRays(debugLines, DEBUG_COLORS[count++ % NUM_DEBUG_COLORS], pose.trans(), pose.rot());
+                    DebugDraw::getInstance().drawRays(debugLines, DEBUG_COLORS[i % NUM_DEBUG_COLORS], pose.trans(), pose.rot());
                 }
             }
         }
@@ -5218,6 +5217,3 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     }
 }
 
-std::shared_ptr<MyAvatar> MyAvatar::getMyAvatarSharedPointer() {
-    return DependencyManager::get<AvatarManager>()->getMyAvatar();
-}

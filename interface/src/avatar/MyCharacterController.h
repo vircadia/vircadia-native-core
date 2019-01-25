@@ -23,7 +23,7 @@ class DetailedMotionState;
 
 class MyCharacterController : public CharacterController {
 public:
-    explicit MyCharacterController(MyAvatar* avatar);
+    explicit MyCharacterController(std::shared_ptr<MyAvatar> avatar);
     ~MyCharacterController ();
 
     void setDynamicsWorld(btDynamicsWorld* world) override;
@@ -77,7 +77,7 @@ private:
     btConvexHullShape* computeShape() const;
 
 protected:
-    MyAvatar* _avatar { nullptr };
+    std::shared_ptr<MyAvatar> _avatar { nullptr };
 
     // shotgun scan data
     btAlignedObjectArray<btVector3> _topPoints;

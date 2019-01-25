@@ -26,7 +26,7 @@ void MyCharacterController::RayShotgunResult::reset() {
     walkable = true;
 }
 
-MyCharacterController::MyCharacterController(MyAvatar* avatar) {
+MyCharacterController::MyCharacterController(std::shared_ptr<MyAvatar> avatar) {
 
     assert(avatar);
     _avatar = avatar;
@@ -370,7 +370,7 @@ btCollisionShape* MyCharacterController::createDetailedCollisionShapeForJoint(in
 DetailedMotionState* MyCharacterController::createDetailedMotionStateForJoint(int jointIndex) {
     auto shape = createDetailedCollisionShapeForJoint(jointIndex);
     if (shape) {
-        DetailedMotionState* motionState = new DetailedMotionState(_avatar->getMyAvatarSharedPointer(), shape, jointIndex);
+        DetailedMotionState* motionState = new DetailedMotionState(_avatar, shape, jointIndex);
         motionState->setMass(_avatar->computeMass());
         return motionState;
     }
@@ -384,9 +384,6 @@ void MyCharacterController::clearDetailedMotionStates() {
 }
 
 void MyCharacterController::resetDetailedMotionStates() {
-    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
-        _detailedMotionStates[i] = nullptr;
-    }
     _detailedMotionStates.clear();
 }
 
@@ -398,7 +395,6 @@ void MyCharacterController::buildPhysicsTransaction(PhysicsEngine::Transaction& 
         _pendingFlags &= ~PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
         for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
             transaction.objectsToRemove.push_back(_detailedMotionStates[i]);
-            _detailedMotionStates[i] = nullptr;
         }
         _detailedMotionStates.clear();
     }
@@ -423,9 +419,9 @@ void MyCharacterController::handleProcessedPhysicsTransaction(PhysicsEngine::Tra
 }
 
 
-class ClosestDetailed : public btCollisionWorld::AllHitsRayResultCallback {
+class DetailedRayResultCallback : public btCollisionWorld::AllHitsRayResultCallback {
 public:
-    ClosestDetailed()
+    DetailedRayResultCallback()
         : btCollisionWorld::AllHitsRayResultCallback(btVector3(0.0f, 0.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f)) {
         // the RayResultCallback's group and mask must match MY_AVATAR
         m_collisionFilterGroup = BULLET_COLLISION_GROUP_DETAILED_RAY;
@@ -442,11 +438,12 @@ std::vector<MyCharacterController::RayAvatarResult> MyCharacterController::rayTe
     std::vector<RayAvatarResult> foundAvatars;
     if (_dynamicsWorld) {
         btVector3 end = origin + length * direction;
-        ClosestDetailed rayCallback = ClosestDetailed();
+        DetailedRayResultCallback rayCallback = DetailedRayResultCallback();
         rayCallback.m_flags |= btTriangleRaycastCallback::kF_KeepUnflippedNormal;
         rayCallback.m_flags |= btTriangleRaycastCallback::kF_UseSubSimplexConvexCastRaytest;
         _dynamicsWorld->rayTest(origin, end, rayCallback);
         if (rayCallback.m_hitFractions.size() > 0) {
+            foundAvatars.reserve(rayCallback.m_hitFractions.size());
             for (int i = 0; i < rayCallback.m_hitFractions.size(); i++) {
                 auto object = rayCallback.m_collisionObjects[i];
                 ObjectMotionState* motionState = static_cast<ObjectMotionState*>(object->getUserPointer());

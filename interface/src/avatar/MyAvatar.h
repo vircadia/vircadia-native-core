@@ -1158,8 +1158,6 @@ public:
      */
     Q_INVOKABLE void releaseGrab(const QUuid& grabID);
 
-    std::shared_ptr<MyAvatar> getMyAvatarSharedPointer();
-
     AvatarEntityMap getAvatarEntityData() const override;
     void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;

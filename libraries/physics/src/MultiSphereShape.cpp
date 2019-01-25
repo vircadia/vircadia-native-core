@@ -48,12 +48,10 @@ void SphereRegion::extractEdges(bool reverseY) {
         if (vec.z == 0.0f) {
             insertUnique(p1, _edgesX);
             insertUnique(p2, _edgesX);
-        }
-        else if (vec.y == 0.0f && p1.y == yVal && p2.y == yVal) {
+        } else if (vec.y == 0.0f && p1.y == yVal && p2.y == yVal) {
             insertUnique(p1, _edgesY);
             insertUnique(p2, _edgesY);
-        }
-        else if (vec.x == 0.0f) {
+        } else if (vec.x == 0.0f) {
             insertUnique(p1, _edgesZ);
             insertUnique(p2, _edgesZ);
         }
@@ -104,8 +102,7 @@ CollisionShapeExtractionMode MultiSphereShape::getExtractionModeByName(const QSt
         mode = CollisionShapeExtractionMode::SphereCollapse;
     } else if (isRightHand || isLeftHand) {
         mode = CollisionShapeExtractionMode::SpheresXY;
-    }
-    else if (isSim || isFlow || isEye || isToe) {
+    } else if (isSim || isFlow || isEye || isToe) {
         mode = CollisionShapeExtractionMode::None;
     }
     return mode;
@@ -174,17 +171,13 @@ bool MultiSphereShape::computeMultiSphereShape(int jointIndex, const QString& na
 
     if (xyDif < 0.5f * xyEpsilon && xzDif < 0.5f * xzEpsilon && yzDif < 0.5f * yzEpsilon) {
         applyMode = CollisionShapeExtractionMode::Sphere;
-    }
-    else if (xzDif < xzEpsilon) {
+    } else if (xzDif < xzEpsilon) {
         applyMode = dimensions.y > dimensions.z ? CollisionShapeExtractionMode::SpheresY : CollisionShapeExtractionMode::SpheresXZ;
-    }
-    else if (xyDif < xyEpsilon) {
+    } else if (xyDif < xyEpsilon) {
         applyMode = dimensions.z > dimensions.y ? CollisionShapeExtractionMode::SpheresZ : CollisionShapeExtractionMode::SpheresXY;
-    }
-    else if (yzDif < yzEpsilon) {
+    } else if (yzDif < yzEpsilon) {
         applyMode = dimensions.x > dimensions.y ? CollisionShapeExtractionMode::SpheresX : CollisionShapeExtractionMode::SpheresYZ;
-    }
-    else {
+    } else {
         applyMode = CollisionShapeExtractionMode::SpheresXYZ;
     }
 
@@ -473,8 +466,7 @@ void MultiSphereShape::calculateSphereLines(std::vector<std::pair<glm::vec3, glm
         }
         if ((vAxis.z == 0 && vAxis.x < 0) || (vAxis.x == 0 && vAxis.z < 0)) {
             vAxis = -vAxis;
-        }
-        else if (vAxis.x < 0) {
+        } else if (vAxis.x < 0) {
             vAxis = -vAxis;
         }
     }

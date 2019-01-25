@@ -1727,6 +1727,8 @@ void Avatar::computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex) {
         auto& data = _multiSphereShapes[jointIndex].getSpheresData();
         std::vector<glm::vec3> positions;
         std::vector<btScalar> radiuses;
+        positions.reserve(data.size());
+        radiuses.reserve(data.size());
         for (auto& sphere : data) {
             positions.push_back(sphere._position);
             radiuses.push_back(sphere._radius);

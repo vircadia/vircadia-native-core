@@ -138,26 +138,26 @@ public:
      * @param {PickRay} ray
      * @param {Uuid[]} [avatarsToInclude=[]]
      * @param {Uuid[]} [avatarsToDiscard=[]]
-     * @param {string[]} [jointIndicesToFilter=[] - If included/discarded avatars are provided only this joints corresponding to those avatars would be included/discarded. ]
+     * @param {string[]} [jointNamesToFilter=[] - If included avatars are provided only this joints corresponding to those avatars would be included ]
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue(),
-                                                                  const QStringList& jointIndicesToFilter = QStringList(),
+                                                                  const QStringList& jointNamesToFilter = QStringList(),
                                                                   bool pickAgainstMesh = true);
     /**jsdoc
      * @function AvatarManager.findRayIntersectionVector
      * @param {PickRay} ray
      * @param {Uuid[]} avatarsToInclude
      * @param {Uuid[]} avatarsToDiscard
-     * @param {string[]} [jointIndicesToFilter=[] - If included/discarded avatars are provided only this joints corresponding to those avatars would be included/discarded. ]
+     * @param {string[]} [jointNamesToFilter=[] - If included avatars are provided only this joints corresponding to those avatars would be included ]
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard,
-                                                                        const QStringList& jointIndicesToFilter,
+                                                                        const QStringList& jointNamesToFilter,
                                                                         bool pickAgainstMesh);
 
     /**jsdoc
