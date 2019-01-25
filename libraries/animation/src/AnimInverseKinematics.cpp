@@ -237,7 +237,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
         // solve all targets
         for (size_t i = 0; i < targets.size(); i++) {
-            // qCDebug(animation) << "target id: " << targets[i].getIndex() << " and type " << (int)targets[i].getType();
             switch (targets[i].getType()) {
             case IKTarget::Type::Unknown:
                 break;
@@ -259,7 +258,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
                     // ease in expo
                     alpha = 1.0f - powf(2.0f, -10.0f * alpha);
-                    qCDebug(animation) << "the alpha for joint chains is " << alpha;
 
                     size_t chainSize = std::min(_prevJointChainInfoVec[i].jointInfoVec.size(), jointChainInfoVec[i].jointInfoVec.size());
 
@@ -322,10 +320,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
             }
         }
 
-        //qCDebug(animation) << "joint chain pose for head animIK " << jointChainInfoVec[4].jointInfoVec[w].trans << " " << jointChainInfoVec[4].jointInfoVec[w].rot;
-        qCDebug(animation) << "absolute pose for head animIK " << absolutePoses[_skeleton->nameToJointIndex("Head")];
-        qCDebug(animation) << "target pose for   head animIK " << targets[4].getTranslation() << " " << targets[4].getRotation();
-
         // compute maxError
         maxError = 0.0f;
         for (size_t i = 0; i < targets.size(); i++) {
@@ -366,7 +360,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
     // copy jointChainInfoVec into _prevJointChainInfoVec, and update timers
     for (size_t i = 0; i < jointChainInfoVec.size(); i++) {
         _prevJointChainInfoVec[i].timer = _prevJointChainInfoVec[i].timer - dt;
-        //qCDebug(animation) << "the alpha for joint chains is " << _prevJointChainInfoVec[i].timer;
         if (_prevJointChainInfoVec[i].timer <= 0.0f) {
             _prevJointChainInfoVec[i] = jointChainInfoVec[i];
             _prevJointChainInfoVec[i].target = targets[i];
@@ -830,9 +823,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
 
-            
             bool constrained = false;
-            /*
             if (splineJointInfo.jointIndex != _hipsIndex) {
                 // constrain the amount the spine can stretch or compress
                 float length = glm::length(relPose.trans());
@@ -853,7 +844,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
                     relPose.trans() = glm::vec3(0.0f);
                 }
             }
-            */
+
             jointChainInfoOut.jointInfoVec[i] = { relPose.rot(), relPose.trans(), splineJointInfo.jointIndex, constrained };
 
             parentAbsPose = flexedAbsPose;
@@ -878,6 +869,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     // disable IK on android
     return underPoses;
 #endif
+
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
 
@@ -885,7 +877,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
     }
-    
+
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
@@ -1040,20 +1032,17 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
                 preconditionRelativePosesToAvoidLimbLock(context, targets);
 
-                //qCDebug(animation) << "hips before ccd" << _relativePoses[_hipsIndex];
                 solve(context, targets, dt, jointChainInfoVec);
-                //qCDebug(animation) << "hips after ccd" << _relativePoses[_hipsIndex];
-
             }
         }
-        
+
         if (context.getEnableDebugDrawIKConstraints()) {
             debugDrawConstraints(context);
         }
     }
 
     processOutputJoints(triggersOut);
-    
+
     return _relativePoses;
 }
 

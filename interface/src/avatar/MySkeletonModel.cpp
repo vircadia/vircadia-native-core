@@ -199,7 +199,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     // if hips are not under direct control, estimate the hips position.
     if (avatarHeadPose.isValid() && !(params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] & (uint8_t)Rig::ControllerFlags::Enabled)) {
         bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
-        
+
         // timescale in seconds
         const float TRANS_HORIZ_TIMESCALE = 0.15f;
         const float TRANS_VERT_TIMESCALE = 0.01f; // We want the vertical component of the hips to follow quickly to prevent spine squash/stretch.
@@ -255,9 +255,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
                 AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
                 currentSpine2Pose.rot() = safeLerp(currentSpine2Pose.rot(), newSpinePose.rot(), SPINE2_ROTATION_FILTER);
                 params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentSpine2Pose;
-                qCDebug(interfaceapp) << "finding the spine 2 azimuth";
-                qCDebug(interfaceapp) << currentSpine2Pose;
-
                 params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
             }
         }

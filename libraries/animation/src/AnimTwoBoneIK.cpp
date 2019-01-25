@@ -50,7 +50,6 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     if (_children.size() != 1) {
         return _poses;
     }
-    
 
     // evalute underPoses
     AnimPoseVec underPoses = _children[0]->evaluate(animVars, context, dt, triggersOut);
@@ -79,7 +78,6 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     // determine if we should interpolate
     bool enabled = animVars.lookup(_enabledVar, _enabled);
-    // qCDebug(animation) << "two bone var " << _enabledVar;
     if (enabled != _enabled) {
         AnimChain poseChain;
         poseChain.buildFromRelativePoses(_skeleton, _poses, _tipJointIndex);
@@ -123,7 +121,6 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     // First look in the triggers then look in the animVars, so we can follow output joints underneath us in the anim graph
     AnimPose targetPose(tipPose);
     if (triggersOut.hasKey(endEffectorRotationVar)) {
-        qCDebug(animation) << " end effector variable " << endEffectorRotationVar << " is " << triggersOut.lookupRigToGeometry(endEffectorRotationVar, tipPose.rot());
         targetPose.rot() = triggersOut.lookupRigToGeometry(endEffectorRotationVar, tipPose.rot());
     } else if (animVars.hasKey(endEffectorRotationVar)) {
         targetPose.rot() = animVars.lookupRigToGeometry(endEffectorRotationVar, tipPose.rot());
