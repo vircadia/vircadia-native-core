@@ -44,6 +44,7 @@ const COLUMNS = {
         initialWidth: 0.16,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: ASCENDING_SORT,
     },
     name: {
         columnHeader: "Name",
@@ -51,6 +52,7 @@ const COLUMNS = {
         initialWidth: 0.34,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: ASCENDING_SORT,
     },
     url: {
         columnHeader: "File",
@@ -58,6 +60,7 @@ const COLUMNS = {
         propertyID: "url",
         initialWidth: 0.34,
         initiallyShown: true,
+        defaultSortOrder: ASCENDING_SORT,
     },
     locked: {
         columnHeader: "&#xe006;",
@@ -66,6 +69,7 @@ const COLUMNS = {
         initialWidth: 0.08,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: DESCENDING_SORT,
     },
     visible: {
         columnHeader: "&#xe007;",
@@ -74,25 +78,29 @@ const COLUMNS = {
         initialWidth: 0.08,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: DESCENDING_SORT,
     },
     verticesCount: {
         columnHeader: "Verts",
         dropdownLabel: "Vertices",
         propertyID: "verticesCount",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     texturesCount: {
         columnHeader: "Texts",
         dropdownLabel: "Textures",
         propertyID: "texturesCount",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     texturesSize: {
         columnHeader: "Text MB",
         dropdownLabel: "Texture Size",
         propertyID: "texturesSize",
         initialWidth: 0.10,
-        format: decimalMegabytes
+        format: decimalMegabytes,
+        defaultSortOrder: DESCENDING_SORT,
     },
     hasTransparent: {
         columnHeader: "&#xe00b;",
@@ -100,6 +108,7 @@ const COLUMNS = {
         dropdownLabel: "Transparency",
         propertyID: "hasTransparent",
         initialWidth: 0.04,
+        defaultSortOrder: DESCENDING_SORT,
     },
     isBaked: {
         columnHeader: "&#xe01a;",
@@ -107,12 +116,14 @@ const COLUMNS = {
         dropdownLabel: "Baked",
         propertyID: "isBaked",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     drawCalls: {
         columnHeader: "Draws",
         dropdownLabel: "Draws",
         propertyID: "drawCalls",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     hasScript: {
         columnHeader: "k",
@@ -120,25 +131,8 @@ const COLUMNS = {
         dropdownLabel: "Script",
         propertyID: "hasScript",
         initialWidth: 0.06,
+        defaultSortOrder: DESCENDING_SORT,
     },
-};
-
-const COMPARE_ASCENDING = function(a, b) {
-    let va = a[currentSortColumnID];
-    let vb = b[currentSortColumnID];
-
-    if (va < vb) {
-        return -1;
-    }  else if (va > vb) {
-        return 1;
-    } else if (a.id < b.id) {
-        return -1;
-    }
-
-    return 1;
-};
-const COMPARE_DESCENDING = function(a, b) {
-    return COMPARE_ASCENDING(b, a);
 };
 
 const FILTER_TYPES = [
@@ -643,6 +637,10 @@ function loaded() {
             
             refreshEntityList();
         }
+
+        const isNullOrEmpty = function(value) {
+            return value === undefined || value === null || value === "";
+        };
         
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
@@ -660,8 +658,34 @@ function loaded() {
                 });
                 
                 PROFILE("sort", function() {
-                    let cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
-                    visibleEntities.sort(cmp);
+                    let isAscendingSort = currentSortOrder === ASCENDING_SORT;
+                    let isDefaultSort = currentSortOrder === COLUMNS[currentSortColumnID].defaultSortOrder;
+                    visibleEntities.sort((entityA, entityB) => {
+                        /**
+                         * If the default sort is ascending, empty should be considered largest.
+                         * If the default sort is descending, empty should be considered smallest.
+                         */
+                        if (!isAscendingSort) {
+                            [entityA, entityB] = [entityB, entityA];
+                        }
+                        let valueA = entityA[currentSortColumnID];
+                        let valueB = entityB[currentSortColumnID];
+
+                        if (valueA === valueB) {
+                            if (entityA.id < entityB.id) {
+                                return -1;
+                            }
+                            return 1;
+                        }
+
+                        if (isNullOrEmpty(valueA)) {
+                            return (isDefaultSort && isAscendingSort) ? 1 : -1;
+                        }
+                        if (isNullOrEmpty(valueB)) {
+                            return (isDefaultSort && isAscendingSort) ? -1 : 1;
+                        }
+                        return valueA < valueB ? -1 : 1;
+                    });
                 });
 
                 PROFILE("update-dom", function() {
@@ -757,7 +781,7 @@ function loaded() {
                 } else {
                     elSortOrders[currentSortColumnID].innerHTML = "";
                     currentSortColumnID = columnID;
-                    currentSortOrder = ASCENDING_SORT;
+                    currentSortOrder = COLUMNS[currentSortColumnID].defaultSortOrder;
                 }
                 refreshSortOrder();
                 refreshEntityList();
