@@ -258,6 +258,7 @@ class MyAvatar : public Avatar {
     const float DEFAULT_GEAR_3 = 0.8f;
     const float DEFAULT_GEAR_4 = 0.9f;
     const float DEFAULT_GEAR_5 = 1.0f;
+    const int DEFAULT_CONTROL_SCHEME_INDEX = 0;
 
 public:
     enum DriveKeys {
@@ -1138,6 +1139,20 @@ public:
     Q_INVOKABLE float getDriveGear5();
 
     /**jsdoc
+     * Choose the control scheme.
+     * @function MyAvatar.setControlSchemeIndex
+     * @param {number} Choose the control scheme to be used.
+     */
+    void setControlSchemeIndex(int index);
+
+    /**jsdoc
+     * Check what control scheme is in use.
+     * @function MyAvatar.getControlSchemeIndex
+     * @returns {number} Returns the index associated with a given control scheme.
+     */
+    int getControlSchemeIndex();
+
+    /**jsdoc
      * @function MyAvatar.getAvatarScale
      * @returns {number}
      */
@@ -1813,6 +1828,7 @@ private:
     float _driveGear3 { DEFAULT_GEAR_3 };
     float _driveGear4 { DEFAULT_GEAR_4 };
     float _driveGear5 { DEFAULT_GEAR_5 };
+    int _controlSchemeIndex { DEFAULT_CONTROL_SCHEME_INDEX };
 
     glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
@@ -2058,6 +2074,7 @@ private:
     Setting::Handle<float> _driveGear3Setting;
     Setting::Handle<float> _driveGear4Setting;
     Setting::Handle<float> _driveGear5Setting;
+    Setting::Handle<int> _controlSchemeIndexSetting;
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
 

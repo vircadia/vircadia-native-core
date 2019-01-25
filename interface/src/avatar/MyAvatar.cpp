@@ -144,7 +144,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     _driveGear2Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear2", _driveGear2),
     _driveGear3Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear3", _driveGear3),
     _driveGear4Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear4", _driveGear4),
-    _driveGear5Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear5", _driveGear5)
+    _driveGear5Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear5", _driveGear5),
+    _controlSchemeIndexSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "controlSchemeIndex", _controlSchemeIndex)
 {
     _clientTraitsHandler.reset(new ClientTraitsHandler(this));
 
@@ -1312,6 +1313,7 @@ void MyAvatar::saveData() {
     _driveGear3Setting.set(getDriveGear3());
     _driveGear4Setting.set(getDriveGear4());
     _driveGear5Setting.set(getDriveGear5());
+    _controlSchemeIndexSetting.set(getControlSchemeIndex());
 
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     saveAvatarEntityDataToSettings();
@@ -1894,6 +1896,7 @@ void MyAvatar::loadData() {
     setDriveGear3(firstRunVal.get() ? DEFAULT_GEAR_3 : _driveGear3Setting.get());
     setDriveGear4(firstRunVal.get() ? DEFAULT_GEAR_4 : _driveGear4Setting.get());
     setDriveGear5(firstRunVal.get() ? DEFAULT_GEAR_5 : _driveGear5Setting.get());
+    setControlSchemeIndex(firstRunVal.get() ? DEFAULT_CONTROL_SCHEME_INDEX : _controlSchemeIndexSetting.get());
     setFlyingEnabled(getFlyingEnabled());
 
     setDisplayName(_displayNameSetting.get());
@@ -3873,6 +3876,19 @@ void MyAvatar::setHandRelativeMovement(bool enabled) {
 
 bool MyAvatar::getHandRelativeMovement() {
     return _handRelativeMovement;
+}
+
+void MyAvatar::setControlSchemeIndex(int index){
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setControlSchemeIndex", Q_ARG(int, index));
+        return;
+    }
+    // Need to add checks for valid indices.
+    _controlSchemeIndex = index;
+}
+
+int MyAvatar::getControlSchemeIndex() {
+    return _controlSchemeIndex;
 }
 
 void MyAvatar::setDriveGear1(float shiftPoint) {
