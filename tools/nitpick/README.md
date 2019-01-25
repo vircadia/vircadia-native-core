@@ -6,16 +6,42 @@ Nitpick is a stand alone application that provides a mechanism for regression te
 * The result, if any test failed, is a zipped folder describing the failure.
 
 Nitpick has 5 functions, separated into separate tabs:
-
 1. Creating tests, MD files and recursive scripts
 1. Windows task bar utility (Windows only)
 1. Running tests
 1. Evaluating the results of running tests
 1. Web interface
 
-## Installation
-`nitpick` is packaged with High Fidelity PR and Development builds.
-### Windows
+## Build (for developers)
+Nitpick is built as part of the High Fidelity build.
+### Creating installers
+#### Windows
+1.  Verify that 7Zip is installed.
+1.  cd to the `build\tools\nitpick\Release` directory
+1.  Delete any existing installers (named nitpick-installer-###.exe)
+1.  Select all, right-click and select 7-Zip->Add to archive...
+1.  Set Archive format to 7z
+1.  Check "Create SFX archive
+1.  Enter installer name (i.e. `nitpick-installer-v1.2.exe`)
+1.  Click "OK"
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe: aws s3 cp nitpick-installer-v1.2.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.2.exe
+#### Mac
+These steps assume the hifi repository has been cloned to `~/hifi`.
+1.  (first time) Install brew
+    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+1.  (First time) install create-dmg:
+    In a terminal: `brew install create-dmg`
+1.  In a terminal: cd to the `build/tools/nitpick/Release` folder
+1.  Copy the quazip dynamic library (note final period):
+    In a terminal: `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib .`
+1.  Change the loader instruction to find the dynamic library locally
+    In a terminal: `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
+1.  Delete any existing disk images. In a terminal: `rm *.dmg`
+1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-v1.2 nitpick-installer-v1.2.dmg .`  
+    Make sure to wait for completion.
+1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.2.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.2.dmg`
+### Installation
+#### Windows
 1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe)
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
@@ -26,9 +52,12 @@ Nitpick has 5 functions, separated into separate tabs:
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  `pip install boto3`
 
-1.  (First time) Install adb (Android Debug Bridge) from `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`
-    1.  Create and environment variable named ADB_PATH and set its value to the installation location (e.g. **C:\adb**)
-### Mac
+1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe>)
+1. Double click on the installer and install to a convenient location  
+![](./setup_7z.PNG)
+
+1. __To run nitpick, double click **nitpick.exe**__
+#### Mac
 1.  (first time) Install brew
     In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
 1.  (First time) install Qt:
@@ -46,8 +75,17 @@ In a terminal: `python3 get-pip.py --user`
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
-    1.  Install the latest release of Boto3 via pip:  pip3 install boto3  
-1.  (First time)Install adb (Android Debug Bridge) from `https://dl.google.com/android/repository/platform-tools-latest-darwin.zip`
+    1.  Install the latest release of Boto3 via pip:  pip3 install boto3
+1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.2.dmg>).
+1.  Double-click on the downloaded image to mount it
+1. Create a folder for the nitpick files (e.g. ~/nitpick)
+   If this folder exists then delete all it's contents.
+1. Copy the downloaded files to the folder  
+   In a terminal:  
+     `cd ~/nitpick`  
+     `cp -r /Volumes/nitpick-installer-v1.2/* .`
+
+1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__  
 # Usage
 ## Create
 ![](./Create.PNG)
@@ -126,7 +164,7 @@ nitpick.runRecursive();
 In this case all recursive scripts, from the selected folder down, are created.
 
 Running this function in the tests root folder will create (or update) all the recursive scripts.
-## Windows (only)
+## Windows
 ![](./Windows.PNG)
 
 This tab is Windows-specific.  It provides buttons to hide and show the task bar.
