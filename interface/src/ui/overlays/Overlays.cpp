@@ -21,26 +21,24 @@
 
 #include "Application.h"
 #include "InterfaceLogging.h"
-#include "Image3DOverlay.h"
-#include "Circle3DOverlay.h"
-#include "Cube3DOverlay.h"
-#include "Shape3DOverlay.h"
+
 #include "ImageOverlay.h"
-#include "Line3DOverlay.h"
-#include "ModelOverlay.h"
-#include "Rectangle3DOverlay.h"
-#include "Sphere3DOverlay.h"
-#include "Grid3DOverlay.h"
 #include "TextOverlay.h"
 #include "RectangleOverlay.h"
-#include "Text3DOverlay.h"
-#include "Web3DOverlay.h"
+
+#include <raypick/RayPick.h>
+
+#include <RenderableWebEntityItem.h>
+
 #include "ui/Keyboard.h"
 #include <QtQuick/QQuickWindow>
 
 #include <PointerManager.h>
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
+
+std::unordered_map<QString, QString> Overlays::_entityToOverlayTypes;
+std::unordered_map<QString, QString> Overlays::_overlayToEntityTypes;
 
 Overlays::Overlays() {
     auto pointerManager = DependencyManager::get<PointerManager>();
@@ -50,6 +48,17 @@ Overlays::Overlays() {
     connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, this, &Overlays::mousePressPointerEvent);
     connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, this, &Overlays::mouseMovePointerEvent);
     connect(pointerManager.data(), &PointerManager::triggerEndOverlay, this, &Overlays::mouseReleasePointerEvent);
+
+    ADD_TYPE_MAP(Box, cube);
+    ADD_TYPE_MAP(Sphere, sphere);
+    ADD_TYPE_MAP(Shape, shape);
+    ADD_TYPE_MAP(Model, model);
+    ADD_TYPE_MAP(Text, text3d);
+    ADD_TYPE_MAP(Image, image3d);
+    ADD_TYPE_MAP(Web, web3d);
+    ADD_TYPE_MAP(PolyLine, line3d);
+    ADD_TYPE_MAP(Grid, grid);
+    ADD_TYPE_MAP(Gizmo, circle3d);
 }
 
 void Overlays::cleanupAllOverlays() {
@@ -151,9 +160,39 @@ Overlay::Pointer Overlays::get2DOverlay(const QUuid& id) const {
     return nullptr;
 }
 
+QString Overlays::entityToOverlayType(const QString& type) {
+    auto iter = _entityToOverlayTypes.find(type);
+    if (iter != _entityToOverlayTypes.end()) {
+        return iter->second;
+    }
+    return "unknown";
+}
+
+QString Overlays::overlayToEntityType(const QString& type) {
+    auto iter = _overlayToEntityTypes.find(type);
+    if (iter != _overlayToEntityTypes.end()) {
+        return iter->second;
+    } else if (type == "billboard") {
+        return "Image";
+    }
+    return "Unknown";
+}
+
+EntityItemProperties convertOverlayToEntityProperties(const QVariantMap& overlayProps) {
+    EntityItemProperties props;
+
+    return props;
+}
+
+QVariantMap convertEntityToOverlayProperties(const EntityItemProperties& entityProps) {
+    QVariantMap props;
+
+    return props;
+}
+
 QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (_shuttingDown) {
-        return UNKNOWN_OVERLAY_ID;
+        return UNKNOWN_ENTITY_ID;
     }
 
     if (QThread::currentThread() != thread()) {
@@ -163,8 +202,6 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
         return result;
     }
 
-    Overlay::Pointer thisOverlay = nullptr;
-
     /**jsdoc
      * <p>An overlay may be one of the following types:</p>
      * <table>
@@ -172,26 +209,26 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
      *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
+     *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
+     *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
+     *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
      *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
      *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> overlay to create a 
      *     cube.</td></tr>
      *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
-     *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
      *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
      *     <tr><td><code>line3d</code></td><td>3D</td><td>A line.</td></tr>
      *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
-     *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
      *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
      *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
      *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> overlay to create a 
      *     sphere.</td></tr>
-     *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
      *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
      *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
      *   </tbody>
      * </table>
      * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
-     * rendered at a position and orientation in-world.<p>
+     * rendered at a position and orientation in-world, but are deprecated (use local entities instead).<p>
      * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
      * @typedef {string} Overlays.OverlayType
      */
@@ -203,18 +240,18 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
      *     <tr><th>{@link Overlays.OverlayType|OverlayType}</th><th>Overlay Properties</th></tr>
      *   </thead>
      *   <tbody>
+     *     <tr><td><code>image</code></td><td>{@link Overlays.ImageProperties|ImageProperties}</td></tr>
+     *     <tr><td><code>rectangle</code></td><td>{@link Overlays.RectangleProperties|RectangleProperties}</td></tr>
+     *     <tr><td><code>text</code></td><td>{@link Overlays.TextProperties|TextProperties}</td></tr>
      *     <tr><td><code>circle3d</code></td><td>{@link Overlays.Circle3DProperties|Circle3DProperties}</td></tr>
      *     <tr><td><code>cube</code></td><td>{@link Overlays.CubeProperties|CubeProperties}</td></tr>
      *     <tr><td><code>grid</code></td><td>{@link Overlays.GridProperties|GridProperties}</td></tr>
-     *     <tr><td><code>image</code></td><td>{@link Overlays.ImageProperties|ImageProperties}</td></tr>
      *     <tr><td><code>image3d</code></td><td>{@link Overlays.Image3DProperties|Image3DProperties}</td></tr>
      *     <tr><td><code>line3d</code></td><td>{@link Overlays.Line3DProperties|Line3DProperties}</td></tr>
      *     <tr><td><code>model</code></td><td>{@link Overlays.ModelProperties|ModelProperties}</td></tr>
-     *     <tr><td><code>rectangle</code></td><td>{@link Overlays.RectangleProperties|RectangleProperties}</td></tr>
      *     <tr><td><code>rectangle3d</code></td><td>{@link Overlays.Rectangle3DProperties|Rectangle3DProperties}</td></tr>
      *     <tr><td><code>shape</code></td><td>{@link Overlays.ShapeProperties|ShapeProperties}</td></tr>
      *     <tr><td><code>sphere</code></td><td>{@link Overlays.SphereProperties|SphereProperties}</td></tr>
-     *     <tr><td><code>text</code></td><td>{@link Overlays.TextProperties|TextProperties}</td></tr>
      *     <tr><td><code>text3d</code></td><td>{@link Overlays.Text3DProperties|Text3DProperties}</td></tr>
      *     <tr><td><code>web3d</code></td><td>{@link Overlays.Web3DProperties|Web3DProperties}</td></tr>
      *   </tbody>
@@ -222,54 +259,42 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
      * @typedef {object} Overlays.OverlayProperties
      */
 
+    Overlay::Pointer overlay;
     if (type == ImageOverlay::TYPE) {
 #if !defined(DISABLE_QML)
-        thisOverlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
 #endif
-    } else if (type == Image3DOverlay::TYPE || type == "billboard") { // "billboard" for backwards compatibility
-        thisOverlay = Overlay::Pointer(new Image3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == TextOverlay::TYPE) {
 #if !defined(DISABLE_QML)
-        thisOverlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
 #endif
-    } else if (type == Text3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Text3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Shape3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Shape3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Cube3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Cube3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Sphere3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Sphere3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Circle3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Circle3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Rectangle3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Rectangle3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Line3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Line3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Grid3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Grid3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == ModelOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new ModelOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    } else if (type == Web3DOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new Web3DOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     } else if (type == RectangleOverlay::TYPE) {
-        thisOverlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
     }
 
-    if (thisOverlay) {
-        thisOverlay->setProperties(properties.toMap());
-        return add2DOverlay(thisOverlay);
+    if (overlay) {
+        overlay->setProperties(properties.toMap());
+        return add2DOverlay(overlay);
     }
-    return UNKNOWN_OVERLAY_ID;
+
+    QString entityType = overlayToEntityType(type);
+
+    if (entityType == "Unknown") {
+        return UNKNOWN_ENTITY_ID;
+    }
+
+    QVariantMap propertyMap = properties.toMap();
+    propertyMap["type"] = entityType;
+    return DependencyManager::get<EntityScriptingInterface>()->addEntity(convertOverlayToEntityProperties(propertyMap), "local");
 }
 
 QUuid Overlays::add2DOverlay(const Overlay::Pointer& overlay) {
     if (_shuttingDown) {
-        return UNKNOWN_OVERLAY_ID;
+        return UNKNOWN_ENTITY_ID;
     }
 
     QUuid thisID = QUuid::createUuid();
-    overlay->setOverlayID(thisID);
+    overlay->setID(thisID);
     overlay->setStackOrder(_stackOrder++);
     {
         QMutexLocker locker(&_mutex);
@@ -281,7 +306,7 @@ QUuid Overlays::add2DOverlay(const Overlay::Pointer& overlay) {
 
 QUuid Overlays::cloneOverlay(const QUuid& id) {
     if (_shuttingDown) {
-        return UNKNOWN_OVERLAY_ID;
+        return UNKNOWN_ENTITY_ID;
     }
 
     if (QThread::currentThread() != thread()) {
@@ -486,111 +511,70 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
                                                              const QScriptValue& overlayIDsToInclude,
                                                              const QScriptValue& overlayIDsToDiscard,
                                                              bool visibleOnly, bool collidableOnly) {
-    const QVector<QUuid> overlaysToInclude = qVectorQUuidFromScriptValue(overlayIDsToInclude);
-    const QVector<QUuid> overlaysToDiscard = qVectorQUuidFromScriptValue(overlayIDsToDiscard);
+    const QVector<EntityItemID> include = qVectorEntityItemIDFromScriptValue(overlayIDsToInclude);
+    const QVector<EntityItemID> discard = qVectorEntityItemIDFromScriptValue(overlayIDsToDiscard);
 
-    return findRayIntersectionVector(ray, precisionPicking,
-                                     overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
+    return findRayIntersectionVector(ray, precisionPicking, include, discard, visibleOnly, collidableOnly);
 }
 
-
 RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
-                                                                   const QVector<QUuid>& overlaysToInclude,
-                                                                   const QVector<QUuid>& overlaysToDiscard,
+                                                                   const QVector<EntityItemID>& include,
+                                                                   const QVector<EntityItemID>& discard,
                                                                    bool visibleOnly, bool collidableOnly) {
-    float bestDistance = std::numeric_limits<float>::max();
-    bool bestIsFront = false;
-    bool bestIsTablet = false;
-    auto tabletIDs = qApp->getTabletIDs();
+    unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES);
 
-    QMutexLocker locker(&_mutex);
-    RayToOverlayIntersectionResult result;
-    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
-    while (i.hasNext()) {
-        i.next();
-        OverlayID thisID = i.key();
-        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
-
-        if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
-            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID))) {
-            continue;
-        }
-
-        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnorePickIntersection() && thisOverlay->isLoaded()) {
-            float thisDistance;
-            BoxFace thisFace;
-            glm::vec3 thisSurfaceNormal;
-            QVariantMap thisExtraInfo;
-            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance,
-                                                          thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
-                bool isDrawInFront = thisOverlay->getDrawInFront();
-                bool isTablet = tabletIDs.contains(thisID);
-                if ((isDrawInFront && !bestIsFront && !bestIsTablet)
-                        || ((isTablet || isDrawInFront || !bestIsFront) && thisDistance < bestDistance)) {
-                    bestIsFront = isDrawInFront;
-                    bestIsTablet = isTablet;
-                    bestDistance = thisDistance;
-                    result.intersects = true;
-                    result.distance = thisDistance;
-                    result.face = thisFace;
-                    result.surfaceNormal = thisSurfaceNormal;
-                    result.overlayID = thisID;
-                    result.intersection = ray.origin + (ray.direction * thisDistance);
-                    result.extraInfo = thisExtraInfo;
-                }
-            }
-        }
+    if (!precisionPicking) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COARSE);
     }
-    return result;
+
+    if (visibleOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE);
+    }
+
+    if (collidableOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE);
+    }
+    auto result = DependencyManager::get<EntityScriptingInterface>()->evalRayIntersectionVector(ray, PickFilter(searchFilter), include, discard);
+
+    RayToOverlayIntersectionResult overlayResult;
+    overlayResult.overlayID = result.entityID;
+    overlayResult.intersects = result.intersects;
+    overlayResult.intersection = result.intersection;
+    overlayResult.distance = result.distance;
+    overlayResult.surfaceNormal = result.surfaceNormal;
+    overlayResult.face = result.face;
+    overlayResult.extraInfo = result.extraInfo;
+    return overlayResult;
 }
 
 ParabolaToOverlayIntersectionResult Overlays::findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
-                                                                             const QVector<OverlayID>& overlaysToInclude,
-                                                                             const QVector<OverlayID>& overlaysToDiscard,
+                                                                             const QVector<EntityItemID>& include,
+                                                                             const QVector<EntityItemID>& discard,
                                                                              bool visibleOnly, bool collidableOnly) {
-    float bestDistance = std::numeric_limits<float>::max();
-    bool bestIsFront = false;
-    const QVector<OverlayID> keyboardKeysToDiscard = DependencyManager::get<Keyboard>()->getKeysID();
-    QMutexLocker locker(&_mutex);
-    ParabolaToOverlayIntersectionResult result;
-    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
-    while (i.hasNext()) {
-        i.next();
-        OverlayID thisID = i.key();
-        auto thisOverlay = std::dynamic_pointer_cast<Base3DOverlay>(i.value());
+    unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES);
 
-        if ((overlaysToDiscard.size() > 0 && overlaysToDiscard.contains(thisID)) ||
-            (overlaysToInclude.size() > 0 && !overlaysToInclude.contains(thisID)) ||
-            (keyboardKeysToDiscard.size() > 0 && keyboardKeysToDiscard.contains(thisID))) {
-            continue;
-        }
-
-        if (thisOverlay && thisOverlay->getVisible() && !thisOverlay->getIgnorePickIntersection() && thisOverlay->isLoaded()) {
-            float thisDistance;
-            BoxFace thisFace;
-            glm::vec3 thisSurfaceNormal;
-            QVariantMap thisExtraInfo;
-            if (thisOverlay->findParabolaIntersectionExtraInfo(parabola.origin, parabola.velocity, parabola.acceleration, thisDistance,
-                thisFace, thisSurfaceNormal, thisExtraInfo, precisionPicking)) {
-                bool isDrawInFront = thisOverlay->getDrawInFront();
-                if ((bestIsFront && isDrawInFront && thisDistance < bestDistance)
-                    || (!bestIsFront && (isDrawInFront || thisDistance < bestDistance))) {
-
-                    bestIsFront = isDrawInFront;
-                    bestDistance = thisDistance;
-                    result.intersects = true;
-                    result.parabolicDistance = thisDistance;
-                    result.face = thisFace;
-                    result.surfaceNormal = thisSurfaceNormal;
-                    result.overlayID = thisID;
-                    result.intersection = parabola.origin + parabola.velocity * thisDistance + 0.5f * parabola.acceleration * thisDistance * thisDistance;
-                    result.distance = glm::distance(result.intersection, parabola.origin);
-                    result.extraInfo = thisExtraInfo;
-                }
-            }
-        }
+    if (!precisionPicking) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COARSE);
     }
-    return result;
+
+    if (visibleOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE);
+    }
+
+    if (collidableOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE);
+    }
+    auto result = DependencyManager::get<EntityScriptingInterface>()->evalParabolaIntersectionVector(parabola, PickFilter(searchFilter), include, discard);
+
+    ParabolaToOverlayIntersectionResult overlayResult;
+    overlayResult.overlayID = result.entityID;
+    overlayResult.intersects = result.intersects;
+    overlayResult.intersection = result.intersection;
+    overlayResult.parabolicDistance = result.parabolicDistance;
+    overlayResult.surfaceNormal = result.surfaceNormal;
+    overlayResult.face = result.face;
+    overlayResult.extraInfo = result.extraInfo;
+    return overlayResult;
 }
 
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
@@ -671,28 +655,28 @@ bool Overlays::isAddedOverlay(const QUuid& id) {
     return DependencyManager::get<EntityScriptingInterface>()->isAddedEntity(id);
 }
 
-void Overlays::sendMousePressOnOverlay(const QUuid& overlayID, const PointerEvent& event) {
-    mousePressPointerEvent(overlayID, event);
+void Overlays::sendMousePressOnOverlay(const QUuid& id, const PointerEvent& event) {
+    mousePressPointerEvent(id, event);
 }
 
-void Overlays::sendMouseReleaseOnOverlay(const QUuid& overlayID, const PointerEvent& event) {
-    mouseReleasePointerEvent(overlayID, event);
+void Overlays::sendMouseReleaseOnOverlay(const QUuid& id, const PointerEvent& event) {
+    mouseReleasePointerEvent(id, event);
 }
 
-void Overlays::sendMouseMoveOnOverlay(const QUuid& overlayID, const PointerEvent& event) {
-    mouseMovePointerEvent(overlayID, event);
+void Overlays::sendMouseMoveOnOverlay(const QUuid& id, const PointerEvent& event) {
+    mouseMovePointerEvent(id, event);
 }
 
-void Overlays::sendHoverEnterOverlay(const QUuid& overlayID, const PointerEvent& event) {
-    hoverEnterPointerEvent(overlayID, event);
+void Overlays::sendHoverEnterOverlay(const QUuid& id, const PointerEvent& event) {
+    hoverEnterPointerEvent(id, event);
 }
 
-void Overlays::sendHoverOverOverlay(const QUuid& overlayID, const PointerEvent& event) {
-    hoverOverPointerEvent(overlayID, event);
+void Overlays::sendHoverOverOverlay(const QUuid& id, const PointerEvent& event) {
+    hoverOverPointerEvent(id, event);
 }
 
-void Overlays::sendHoverLeaveOverlay(const QUuid& overlayID, const PointerEvent& event) {
-    hoverLeavePointerEvent(overlayID, event);
+void Overlays::sendHoverLeaveOverlay(const QUuid& id, const PointerEvent& event) {
+    hoverLeavePointerEvent(id, event);
 }
 
 float Overlays::width() {
@@ -719,28 +703,6 @@ float Overlays::height() {
     return offscreenUi->getWindow()->size().height();
 }
 
-static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay,
-    const RayToOverlayIntersectionResult& rayPickResult) {
-
-    // Project the intersection point onto the local xy plane of the overlay.
-    float distance;
-    glm::vec3 planePosition = position;
-    glm::vec3 planeNormal = rotation * Vectors::UNIT_Z;
-    glm::vec3 overlayDimensions = glm::vec3(dimensions.x, dimensions.y, 0.0f);
-    glm::vec3 rayDirection = pickRay.direction;
-    glm::vec3 rayStart = pickRay.origin;
-    glm::vec3 p;
-    if (rayPlaneIntersection(planePosition, planeNormal, rayStart, rayDirection, distance)) {
-        p = rayStart + rayDirection * distance;
-    } else {
-        p = rayPickResult.intersection;
-    }
-    glm::vec3 localP = glm::inverse(rotation) * (p - position);
-    glm::vec3 normalizedP = (localP / overlayDimensions) + glm::vec3(0.5f);
-    return glm::vec2(normalizedP.x * overlayDimensions.x,
-        (1.0f - normalizedP.y) * overlayDimensions.y);  // flip y-axis
-}
-
 static uint32_t toPointerButtons(const QMouseEvent& event) {
     uint32_t buttons = 0;
     buttons |= event.buttons().testFlag(Qt::LeftButton) ? PointerEvent::PrimaryButton : 0;
@@ -765,32 +727,18 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
 PointerEvent Overlays::calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray,
                                              const RayToOverlayIntersectionResult& rayPickResult, QMouseEvent* event,
                                              PointerEvent::EventType eventType) {
-    auto overlay = std::dynamic_pointer_cast<Planar3DOverlay>(getOverlay(id));
-    if (getOverlayType(overlayID) == "web3d") {
-        overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (!overlay) {
-        return PointerEvent();
-    }
-    glm::vec3 position = overlay->getWorldPosition();
-    glm::quat rotation = overlay->getWorldOrientation();
-    glm::vec2 dimensions = overlay->getSize();
-
-
-    glm::vec2 pos2D = projectOntoOverlayXYPlane(position, rotation, dimensions, ray, rayPickResult);
-
+    glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(id, rayPickResult.intersection);
     PointerEvent pointerEvent(eventType, PointerManager::MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
                               ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
 
     return pointerEvent;
 }
 
-
 bool Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<QUuid>(), QVector<QUuid>());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -799,35 +747,33 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
         return true;
     }
     // if we didn't press on an overlay, disable overlay keyboard focus
-    setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    setKeyboardFocusOverlay(UNKNOWN_ENTITY_ID);
     // emit to scripts
     emit mousePressOffOverlay();
     return false;
 }
 
-void Overlays::mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
-    // TODO: generalize this to allow any overlay to recieve events
-    std::shared_ptr<Web3DOverlay> thisOverlay;
-    if (getOverlayType(overlayID) == "web3d") {
-        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (thisOverlay) {
-        if (event.shouldFocus()) {
-            // Focus keyboard on web overlays
-            DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-            setKeyboardFocusOverlay(overlayID);
+void Overlays::mousePressPointerEvent(const QUuid& id, const PointerEvent& event) {
+    // TODO: generalize this to allow any object to recieve events
+    auto renderable = qApp->getEntities()->renderableForEntityId(id);
+    if (renderable) {
+        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
+        if (web) {
+            if (event.shouldFocus()) {
+                // Focus keyboard on web overlays
+                DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+                setKeyboardFocusOverlay(id);
+            }
+
+            web->handlePointerEvent(event);
         }
-
-        // Send to web overlay
-        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
     }
-
 
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(overlayID)) {
+    if (!keyboard->getKeysID().contains(id)) {
         // emit to scripts
-        emit mousePressOnOverlay(overlayID, event);
+        emit mousePressOnOverlay(id, event);
     }
 }
 
@@ -835,7 +781,7 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(), QVector<OverlayID>());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -849,60 +795,57 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     return false;
 }
 
-void Overlays::hoverEnterPointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
-    // TODO: generalize this to allow any overlay to recieve events
-    std::shared_ptr<Web3DOverlay> thisOverlay;
-    if (getOverlayType(overlayID) == "web3d") {
-        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (thisOverlay) {
-        // Send to web overlay
-        QMetaObject::invokeMethod(thisOverlay.get(), "hoverEnterOverlay", Q_ARG(PointerEvent, event));
+void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event) {
+    // TODO: generalize this to allow any object to recieve events
+    auto renderable = qApp->getEntities()->renderableForEntityId(id);
+    if (renderable) {
+        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
+        if (web) {
+            web->hoverEnterEntity(event);
+        }
     }
 
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(overlayID)) {
+    if (!keyboard->getKeysID().contains(id)) {
         // emit to scripts
-        emit hoverEnterOverlay(overlayID, event);
+        emit hoverEnterOverlay(id, event);
     }
 }
 
-void Overlays::hoverOverPointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
+void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    std::shared_ptr<Web3DOverlay> thisOverlay;
-    if (getOverlayType(overlayID) == "web3d") {
-        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (thisOverlay) {
-        // Send to web overlay
-        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+    auto renderable = qApp->getEntities()->renderableForEntityId(id);
+    if (renderable) {
+        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
+        if (web) {
+            web->handlePointerEvent(event);
+        }
     }
 
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(overlayID)) {
+    if (!keyboard->getKeysID().contains(id)) {
         // emit to scripts
-        emit hoverOverOverlay(overlayID, event);
+        emit hoverOverOverlay(id, event);
     }
 }
 
-void Overlays::hoverLeavePointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
+void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    std::shared_ptr<Web3DOverlay> thisOverlay;
-    if (getOverlayType(overlayID) == "web3d") {
-        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (thisOverlay) {
-        // Send to web overlay
-        QMetaObject::invokeMethod(thisOverlay.get(), "hoverLeaveOverlay", Q_ARG(PointerEvent, event));
+    auto renderable = qApp->getEntities()->renderableForEntityId(id);
+    if (renderable) {
+        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
+        if (web) {
+            web->hoverLeaveEntity(event);
+        }
     }
 
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(overlayID)) {
+    if (!keyboard->getKeysID().contains(id)) {
         // emit to scripts
-        emit hoverLeaveOverlay(overlayID, event);
+        emit hoverLeaveOverlay(id, event);
     }
 }
 
@@ -910,33 +853,31 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(),
-        QVector<OverlayID>());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
         mouseReleasePointerEvent(rayPickResult.overlayID, pointerEvent);
     }
 
-    _currentClickingOnOverlayID = UNKNOWN_OVERLAY_ID;
+    _currentClickingOnOverlayID = UNKNOWN_ENTITY_ID;
     return false;
 }
 
-void Overlays::mouseReleasePointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
+void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    std::shared_ptr<Web3DOverlay> thisOverlay;
-    if (getOverlayType(overlayID) == "web3d") {
-        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (thisOverlay) {
-        // Send to web overlay
-        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+    auto renderable = qApp->getEntities()->renderableForEntityId(id);
+    if (renderable) {
+        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
+        if (web) {
+            web->handlePointerEvent(event);
+        }
     }
 
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(overlayID)) {
+    if (!keyboard->getKeysID().contains(id)) {
         // emit to scripts
-        emit mouseReleaseOnOverlay(overlayID, event);
+        emit mouseReleaseOnOverlay(id, event);
     }
 }
 
@@ -944,14 +885,13 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<OverlayID>(),
-        QVector<OverlayID>());
+    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
         mouseMovePointerEvent(rayPickResult.overlayID, pointerEvent);
 
         // If previously hovering over a different overlay then leave hover on that overlay.
-        if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
+        if (_currentHoverOverOverlayID != UNKNOWN_ENTITY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
             auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
             hoverLeavePointerEvent(_currentHoverOverOverlayID, pointerEvent);
         }
@@ -967,33 +907,31 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
         _currentHoverOverOverlayID = rayPickResult.overlayID;
     } else {
         // If previously hovering an overlay then leave hover.
-        if (_currentHoverOverOverlayID != UNKNOWN_OVERLAY_ID) {
+        if (_currentHoverOverOverlayID != UNKNOWN_ENTITY_ID) {
             auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
             hoverLeavePointerEvent(_currentHoverOverOverlayID, pointerEvent);
 
-            _currentHoverOverOverlayID = UNKNOWN_OVERLAY_ID;
+            _currentHoverOverOverlayID = UNKNOWN_ENTITY_ID;
         }
     }
     return false;
 }
 
-void Overlays::mouseMovePointerEvent(const OverlayID& overlayID, const PointerEvent& event) {
+void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
     // TODO: generalize this to allow any overlay to recieve events
-    std::shared_ptr<Web3DOverlay> thisOverlay;
-    if (getOverlayType(overlayID) == "web3d") {
-        thisOverlay = std::static_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
-    if (thisOverlay) {
-        // Send to web overlay
-        QMetaObject::invokeMethod(thisOverlay.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+    auto renderable = qApp->getEntities()->renderableForEntityId(id);
+    if (renderable) {
+        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
+        if (web) {
+            web->handlePointerEvent(event);
+        }
     }
 
     auto keyboard = DependencyManager::get<Keyboard>();
-
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(overlayID)) {
+    if (!keyboard->getKeysID().contains(id)) {
         // emit to scripts
-        emit mouseMoveOnOverlay(overlayID, event);
+        emit mouseMoveOnOverlay(id, event);
     }
 }
 

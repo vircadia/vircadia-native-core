@@ -70,9 +70,6 @@ public:
     void setDrawHUDLayer(bool drawHUDLayer) override;
     void setGroupCulled(bool groupCulled);
 
-    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) override;
-    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) override;
-
     virtual scriptable::ScriptableModelBase getScriptableModel() override;
     virtual bool canReplaceModelMeshPart(int meshIndex, int partIndex) override;
     virtual bool replaceScriptableModelMeshPart(scriptable::ScriptableModelBasePointer model, int meshIndex, int partIndex) override;
@@ -129,8 +126,6 @@ private:
     bool _renderLayerDirty { false };
     bool _isGroupCulled { false };
     bool _groupCulledDirty { false };
-
-    void processMaterials();
 
 };
 

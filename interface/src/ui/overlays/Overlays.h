@@ -103,13 +103,13 @@ public:
     QUuid add2DOverlay(const Overlay::Pointer& overlay);
 
     RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
-        const QVector<QUuid>& overlaysToInclude,
-        const QVector<QUuid>& overlaysToDiscard,
+        const QVector<EntityItemID>& include,
+        const QVector<EntityItemID>& discard,
         bool visibleOnly = false, bool collidableOnly = false);
 
     ParabolaToOverlayIntersectionResult findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
-        const QVector<QUuid>& overlaysToInclude,
-        const QVector<QUuid>& overlaysToDiscard,
+        const QVector<EntityItemID>& include,
+        const QVector<EntityItemID>& discard,
         bool visibleOnly = false, bool collidableOnly = false);
 
     bool mousePressEvent(QMouseEvent* event);
@@ -356,8 +356,8 @@ public slots:
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {Array.<Uuid>} [overlayIDsToInclude=[]] - If not empty then the search is restricted to these overlays.
-     * @param {Array.<Uuid>} [overlayIDsToExclude=[]] - Overlays to ignore during the search.
+     * @param {Array.<Uuid>} [include=[]] - If not empty then the search is restricted to these overlays.
+     * @param {Array.<Uuid>} [discard=[]] - Overlays to ignore during the search.
      * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
      * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
@@ -379,8 +379,8 @@ public slots:
      */
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray,
                                                        bool precisionPicking = false,
-                                                       const QScriptValue& overlayIDsToInclude = QScriptValue(),
-                                                       const QScriptValue& overlayIDsToDiscard = QScriptValue(),
+                                                       const QScriptValue& include = QScriptValue(),
+                                                       const QScriptValue& discard = QScriptValue(),
                                                        bool visibleOnly = false,
                                                        bool collidableOnly = false);
 
@@ -718,6 +718,11 @@ private:
     QUuid _currentClickingOnOverlayID;
     QUuid _currentHoverOverOverlayID;
 
+    static QString entityToOverlayType(const QString& type);
+    static QString overlayToEntityType(const QString& type);
+    static std::unordered_map<QString, QString> _entityToOverlayTypes;
+    static std::unordered_map<QString, QString> _overlayToEntityTypes;
+
 private slots:
     void mousePressPointerEvent(const QUuid& id, const PointerEvent& event);
     void mouseMovePointerEvent(const QUuid& id, const PointerEvent& event);
@@ -726,5 +731,9 @@ private slots:
     void hoverOverPointerEvent(const QUuid& id, const PointerEvent& event);
     void hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event);
 };
+
+#define ADD_TYPE_MAP(entity, overlay) \
+    _entityToOverlayTypes[#entity] = #overlay; \
+    _overlayToEntityTypes[#overlay] = #entity;
 
 #endif // hifi_Overlays_h

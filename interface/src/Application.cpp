@@ -8748,7 +8748,7 @@ void Application::createLoginDialog() {
     EntityItemProperties properties;
     properties.setType(EntityTypes::Web);
     properties.setName("LoginDialogEntity");
-    properties.setSourceUrl(LOGIN_DIALOG);
+    properties.setSourceUrl(LOGIN_DIALOG.toString());
     properties.setPosition(position);
     properties.setRotation(cameraOrientation);
     properties.setDimensions(LOGIN_DIMENSIONS);

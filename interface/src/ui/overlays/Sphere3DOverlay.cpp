@@ -128,7 +128,7 @@ scriptable::ScriptableModelBase Sphere3DOverlay::getScriptableModel() {
     auto vertexColor = ColorUtils::toVec3(_color);
     scriptable::ScriptableModelBase result;
     if (auto mesh = geometryCache->meshFromShape(GeometryCache::Sphere, vertexColor)) {
-        result.objectID = getID();
+        result.objectID = Overlay::getID();
         result.append(mesh);
     }
     return result;

@@ -23,8 +23,6 @@ public:
     Overlay2D(const Overlay2D* overlay2D);
     
     virtual AABox getBounds() const override;
-    
-    virtual bool is3D() const override { return false; }
 
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return 1; }
 

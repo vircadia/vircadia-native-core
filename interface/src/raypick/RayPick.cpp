@@ -102,6 +102,11 @@ glm::vec2 RayPick::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3
 }
 
 glm::vec2 RayPick::projectOntoEntityXYPlane(const QUuid& entityID, const glm::vec3& worldPos, bool unNormalized) {
-    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
+    EntityPropertyFlags desiredProperties;
+    desiredProperties += PROP_POSITION;
+    desiredProperties += PROP_ROTATION;
+    desiredProperties += PROP_DIMENSIONS;
+    desiredProperties += PROP_REGISTRATION_POINT;
+    auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID, desiredProperties);
     return projectOntoXYPlane(worldPos, props.getPosition(), props.getRotation(), props.getDimensions(), props.getRegistrationPoint(), unNormalized);
 }

@@ -27,14 +27,8 @@ public:
     void setVisible(bool visible) override;
     bool queryAACubeNeedsUpdate() const override { return false; } // HACK: queryAACube not relevant for Overlays
 
-    virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
-    void setOverlayID(OverlayID overlayID) override { setID(overlayID); }
-
     virtual QString getName() const override;
     void setName(QString name);
-
-    // getters
-    virtual bool is3D() const override { return true; }
 
     virtual render::ItemKey getKey() override;
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return (uint32_t) subItems.size(); }

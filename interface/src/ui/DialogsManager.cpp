@@ -70,7 +70,7 @@ void DialogsManager::hideAddressBar() {
         tablet->gotoHomeScreen();
         hmd->closeTablet();
     }
-    qApp->setKeyboardFocusLocalEntity(UNKNOWN_OVERLAY_ID);
+    qApp->setKeyboardFocusLocalEntity(UNKNOWN_ENTITY_ID);
     setAddressBarVisible(false);
 }
 

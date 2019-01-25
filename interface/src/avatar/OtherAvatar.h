@@ -57,7 +57,7 @@ protected:
     void onRemoveAttachedAvatarEntity(const QUuid& id);
 
     std::vector<QUuid> _attachedAvatarEntities;
-    QUuid _otherAvatarOrbMeshPlaceholderID { UNKNOWN_ENTITY_ID };
+    QUuid _otherAvatarOrbMeshPlaceholderID;
     AvatarMotionState* _motionState { nullptr };
     int32_t _spaceIndex { -1 };
     uint8_t _workloadRegion { workload::Region::INVALID };

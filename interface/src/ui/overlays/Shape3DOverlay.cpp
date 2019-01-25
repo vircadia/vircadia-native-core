@@ -196,7 +196,7 @@ scriptable::ScriptableModelBase Shape3DOverlay::getScriptableModel() {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     auto vertexColor = ColorUtils::toVec3(_color);
     scriptable::ScriptableModelBase result;
-    result.objectID = getID();
+    result.objectID = Overlay::getID();
     if (auto mesh = geometryCache->meshFromShape(_shape, vertexColor)) {
         result.append(mesh);
     }

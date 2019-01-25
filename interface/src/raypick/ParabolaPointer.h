@@ -10,6 +10,8 @@
 
 #include "PathPointer.h"
 
+#include <render/Item.h>
+
 class ParabolaPointer : public PathPointer {
     using Parent = PathPointer;
 public:

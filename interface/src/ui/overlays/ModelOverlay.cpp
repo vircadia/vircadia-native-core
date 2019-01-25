@@ -92,7 +92,7 @@ void ModelOverlay::update(float deltatime) {
     render::ScenePointer scene = qApp->getMain3DScene();
     render::Transaction transaction;
     if (_model->needsFixupInScene()) {
-        emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getID(), NestableType::Overlay, _model);
+        emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(Overlay::getID(), NestableType::Overlay, _model);
         _model->removeFromScene(scene, transaction);
         _model->addToScene(scene, transaction);
 
@@ -101,8 +101,7 @@ void ModelOverlay::update(float deltatime) {
             auto modelOverlay = static_cast<ModelOverlay*>(&data);
             modelOverlay->setSubRenderItemIDs(newRenderItemIDs);
         });
-        processMaterials();
-        emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
+        emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(Overlay::getID(), NestableType::Overlay, _model);
     }
     bool metaDirty = false;
     if (_visibleDirty && _texturesLoaded) {
@@ -145,15 +144,14 @@ void ModelOverlay::update(float deltatime) {
 bool ModelOverlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::addToScene(overlay, scene, transaction);
     _model->addToScene(scene, transaction);
-    processMaterials();
-    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(getID(), NestableType::Overlay, _model);
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelAddedToScene(Overlay::getID(), NestableType::Overlay, _model);
     return true;
 }
 
 void ModelOverlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
     Volume3DOverlay::removeFromScene(overlay, scene, transaction);
     _model->removeFromScene(scene, transaction);
-    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(getID(), NestableType::Overlay, _model);
+    emit DependencyManager::get<scriptable::ModelProviderFactory>()->modelRemovedFromScene(Overlay::getID(), NestableType::Overlay, _model);
     transaction.updateItem<Overlay>(getRenderItemID(), [](Overlay& data) {
         auto modelOverlay = static_cast<ModelOverlay*>(&data);
         modelOverlay->clearSubRenderItemIDs();
@@ -709,32 +707,6 @@ uint32_t ModelOverlay::fetchMetaSubItems(render::ItemIDs& subItems) const {
     return 0;
 }
 
-void ModelOverlay::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    Overlay::addMaterial(material, parentMaterialName);
-    if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->addMaterial(material, parentMaterialName);
-    }
-}
-
-void ModelOverlay::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    Overlay::removeMaterial(material, parentMaterialName);
-    if (_model && _model->fetchRenderItemIDs().size() > 0) {
-        _model->removeMaterial(material, parentMaterialName);
-    }
-}
-
-void ModelOverlay::processMaterials() {
-    assert(_model);
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    for (auto& shapeMaterialPair : _materials) {
-        auto material = shapeMaterialPair.second;
-        while (!material.empty()) {
-            _model->addMaterial(material.top(), shapeMaterialPair.first);
-            material.pop();
-        }
-    }
-}
-
 bool ModelOverlay::canReplaceModelMeshPart(int meshIndex, int partIndex) {
     // TODO: bounds checking; for now just used to indicate provider generally supports mesh updates
     return _model && _model->isLoaded();
@@ -750,11 +722,7 @@ scriptable::ScriptableModelBase ModelOverlay::getScriptableModel() {
         return Base3DOverlay::getScriptableModel();
     }
     auto result = _model->getScriptableModel();
-    result.objectID = getID();
-    {
-        std::lock_guard<std::mutex> lock(_materialsLock);
-        result.appendMaterials(_materials);
-    }
+    result.objectID = Overlay::getID();
     return result;
 }
 
