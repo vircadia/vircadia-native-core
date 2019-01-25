@@ -841,7 +841,7 @@
       <property name="title">
        <string>Amazon Web Services</string>
       </property>
-      <widget class="QPushButton" name="createWebPagePushPushbutton">
+      <widget class="QPushButton" name="createWebPagePushbutton">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -1052,7 +1052,7 @@
   <tabstop>createTestRailRunPushbutton</tabstop>
   <tabstop>createTestRailTestCasesPushbutton</tabstop>
   <tabstop>createXMLScriptRadioButton</tabstop>
-  <tabstop>createWebPagePushPushbutton</tabstop>
+  <tabstop>createWebPagePushbutton</tabstop>
   <tabstop>updateAWSCheckBox</tabstop>
   <tabstop>awsURLLineEdit</tabstop>
   <tabstop>closePushbutton</tabstop>
