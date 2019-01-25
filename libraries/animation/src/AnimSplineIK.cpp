@@ -28,7 +28,9 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     const QString& tipRotationVar,
     const QString& secondaryTargetJointName,
     const QString& secondaryTargetPositionVar,
-    const QString& secondaryTargetRotationVar) :
+    const QString& secondaryTargetRotationVar,
+    const QString& primaryFlexCoefficients,
+    const QString& secondaryFlexCoefficients) :
     AnimNode(AnimNode::Type::SplineIK, id),
     _alpha(alpha),
     _enabled(enabled),
@@ -47,8 +49,25 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     _tipRotationVar(tipRotationVar),
     _secondaryTargetJointName(secondaryTargetJointName),
     _secondaryTargetPositionVar(secondaryTargetPositionVar),
-    _secondaryTargetRotationVar(secondaryTargetRotationVar) 
+    _secondaryTargetRotationVar(secondaryTargetRotationVar)
 {
+    
+    QStringList flexCoefficientsValues = primaryFlexCoefficients.split(',', QString::SkipEmptyParts);
+    for (int i = 0; i < flexCoefficientsValues.size(); i++) {
+        if (i < MAX_NUMBER_FLEX_VARIABLES) {
+            qCDebug(animation) << "flex value " << flexCoefficientsValues[i].toDouble();
+            _primaryFlexCoefficients[i] = (float)flexCoefficientsValues[i].toDouble();
+        }
+    }
+    _numPrimaryFlexCoefficients = std::min(flexCoefficientsValues.size(), MAX_NUMBER_FLEX_VARIABLES);
+    QStringList secondaryFlexCoefficientsValues = secondaryFlexCoefficients.split(',', QString::SkipEmptyParts);
+    for (int i = 0; i < secondaryFlexCoefficientsValues.size(); i++) {
+        if (i < MAX_NUMBER_FLEX_VARIABLES) {
+            qCDebug(animation) << "secondaryflex value " << secondaryFlexCoefficientsValues[i].toDouble();
+            _secondaryFlexCoefficients[i] = (float)secondaryFlexCoefficientsValues[i].toDouble();
+        }
+    }
+    _numSecondaryFlexCoefficients = std::min(secondaryFlexCoefficientsValues.size(), MAX_NUMBER_FLEX_VARIABLES);
 
 }
 
@@ -145,8 +164,11 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
 
         target.setPose(rotation, translation);
         target.setWeight(weight);
+
+   
+
         const float* flexCoefficients = new float[5]{ 1.0f, 0.5f, 0.25f, 0.2f, 0.1f };
-        target.setFlexCoefficients(5, flexCoefficients);
+        target.setFlexCoefficients(_numPrimaryFlexCoefficients, _primaryFlexCoefficients);
     }
 
     AnimChain jointChain;
@@ -182,7 +204,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         secondaryTarget.setWeight(weight2);
         
         const float* flexCoefficients2 = new float[3]{ 1.0f, 0.5f, 0.25f };
-        secondaryTarget.setFlexCoefficients(3, flexCoefficients2);
+        secondaryTarget.setFlexCoefficients(_numSecondaryFlexCoefficients, _secondaryFlexCoefficients);
     }
     
     AnimChain secondaryJointChain;

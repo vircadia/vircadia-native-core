@@ -26,7 +26,9 @@ public:
         const QString& tipPositionVar, const QString& tipRotationVar,
         const QString& secondaryTargetJointName,
         const QString& secondaryTargetPositionVar,
-        const QString& secondaryTargetRotationVar);
+        const QString& secondaryTargetRotationVar,
+        const QString& primaryFlexCoefficients,
+        const QString& secondaryFlexCoefficients);
 
 	virtual ~AnimSplineIK() override;
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
@@ -65,6 +67,14 @@ protected:
     QString _tipRotationVar;
     QString _secondaryTargetPositionVar;
     QString _secondaryTargetRotationVar;
+    //QString _primaryFlexCoefficients;
+    //QString _secondaryFlexCoefficients;
+
+    static const int MAX_NUMBER_FLEX_VARIABLES = 10;
+    float _primaryFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
+    float _secondaryFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
+    int _numPrimaryFlexCoefficients { 0 };
+    int _numSecondaryFlexCoefficients { 0 };
 
     int _baseParentJointIndex { -1 };
     int _baseJointIndex { -1 };
