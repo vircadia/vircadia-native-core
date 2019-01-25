@@ -24,7 +24,7 @@ OculusAPIPlugin::~OculusAPIPlugin() {
     hifi::ovr::releaseRenderSession(_session);
 }
 
-bool OculusAPIPlugin::isRunning() {
+bool OculusAPIPlugin::isRunning() const {
     return (qApp->property(hifi::properties::OCULUS_STORE).toBool());
 }
 

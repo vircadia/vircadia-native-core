@@ -304,8 +304,7 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
             emit handleCreateFailed(reply->errorString());
             return;
         }
-        auto root = doc.object();
-        auto data = root["data"];
+        auto data = doc["data"];
         auto error = data["error"];
         auto oculusError = data["oculus"];
         auto user = error["username"].toArray();
