@@ -203,7 +203,6 @@
 #include "ui/Stats.h"
 #include "ui/AnimStats.h"
 #include "ui/UpdateDialog.h"
-#include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
 #include "Util.h"
@@ -4900,7 +4899,7 @@ void Application::idle() {
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
                 setKeyboardFocusLocalEntity(UNKNOWN_ENTITY_ID);
             } else {
-                // update position of highlight overlay
+                // update position of highlight object
                 if (!_keyboardFocusedEntity.get().isInvalidID()) {
                     auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
                     if (entity && !_keyboardFocusHighlightID.isNull()) {

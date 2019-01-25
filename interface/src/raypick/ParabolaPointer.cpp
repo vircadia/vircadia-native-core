@@ -322,6 +322,7 @@ glm::vec3 ParabolaPointer::findIntersection(const PickedObject& pickedObject, co
     // TODO: implement
     switch (pickedObject.type) {
         case ENTITY:
+        case LOCAL_ENTITY:
             //return ParabolaPick::intersectParabolaWithEntityXYPlane(pickedObject.objectID, origin, velocity, acceleration);
         default:
             return glm::vec3(NAN);

@@ -23,6 +23,7 @@
 enum IntersectionType {
     NONE = 0,
     ENTITY,
+    LOCAL_ENTITY,
     AVATAR,
     HUD
 };
@@ -175,7 +176,6 @@ public:
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
     virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
-    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 

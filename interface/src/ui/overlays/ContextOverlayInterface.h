@@ -22,8 +22,6 @@
 #include "avatar/AvatarManager.h"
 
 #include "EntityScriptingInterface.h"
-#include "ui/overlays/Image3DOverlay.h"
-#include "ui/overlays/Overlays.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/SelectionScriptingInterface.h"
 #include "scripting/WalletScriptingInterface.h"
@@ -43,8 +41,7 @@ class ContextOverlayInterface : public QObject, public Dependency {
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
     QSharedPointer<TabletScriptingInterface> _tabletScriptingInterface;
     QSharedPointer<SelectionScriptingInterface> _selectionScriptingInterface;
-    OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
-    std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
+    QUuid _contextOverlayID { UNKNOWN_ENTITY_ID };
 public:
     ContextOverlayInterface();
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
@@ -83,12 +80,12 @@ private:
     enum {
         MAX_SELECTION_COUNT = 16
     };
-    bool _verboseLogging{ true };
+    bool _verboseLogging { true };
     bool _enabled { true };
-    EntityItemID _mouseDownEntity{};
+    EntityItemID _mouseDownEntity;
     quint64 _mouseDownEntityTimestamp;
-    EntityItemID _currentEntityWithContextOverlay{};
-    EntityItemID _lastInspectedEntity{};
+    EntityItemID _currentEntityWithContextOverlay;
+    EntityItemID _lastInspectedEntity;
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 

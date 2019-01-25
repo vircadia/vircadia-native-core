@@ -12,8 +12,6 @@
 #include <QString>
 #include <glm/glm.hpp>
 
-#include "ui/overlays/Overlay.h"
-
 #include <Pointer.h>
 #include <Pick.h>
 
@@ -78,7 +76,7 @@ public:
     virtual ~PathPointer();
 
     void setRenderState(const std::string& state) override;
-    // You cannot use editRenderState to change the type of any part of the pointer.  You can only edit the properties of the existing overlays.
+    // You cannot use editRenderState to change the type of any part of the pointer.  You can only edit the properties of the existing parts.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
     void setLength(float length) override;
@@ -119,7 +117,7 @@ protected:
     bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
     bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
 
-    void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
+    void updateRenderState(const QUuid& id, const QVariant& props);
     virtual void editRenderStatePath(const std::string& state, const QVariant& pathProps) = 0;
 
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;

@@ -67,7 +67,15 @@ PickResultPointer ParabolaPick::getEntityIntersection(const PickParabola& pick) 
             DependencyManager::get<EntityScriptingInterface>()->evalParabolaIntersectionVector(pick, searchFilter,
                 getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
         if (entityRes.intersects) {
-            return std::make_shared<ParabolaPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
+            IntersectionType type = IntersectionType::ENTITY;
+            if (getFilter().doesPickLocalEntities()) {
+                EntityPropertyFlags desiredProperties;
+                desiredProperties += PROP_ENTITY_HOST_TYPE;
+                if (DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityRes.entityID, desiredProperties).getEntityHostType() == entity::HostType::LOCAL) {
+                    type = IntersectionType::LOCAL_ENTITY;
+                }
+            }
+            return std::make_shared<ParabolaPickResult>(type, entityRes.entityID, entityRes.distance, entityRes.parabolicDistance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
         }
     }
     return std::make_shared<ParabolaPickResult>(pick.toVariantMap());

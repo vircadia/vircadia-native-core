@@ -37,7 +37,7 @@ class PickRay;
  * @typedef {object} Overlays.RayToOverlayIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
  *     <code>false</code>.
- * @property {Uuid} overlayID - The UUID of the overlay that was intersected.
+ * @property {Uuid} overlayID - The UUID of the local entity that was intersected.
  * @property {number} distance - The distance from the {@link PickRay} origin to the intersection point.
  * @property {Vec3} surfaceNormal - The normal of the overlay surface at the intersection point.
  * @property {Vec3} intersection - The position of the intersection point.
@@ -46,7 +46,7 @@ class PickRay;
 class RayToOverlayIntersectionResult {
 public:
     bool intersects { false };
-    QUuid overlayID { UNKNOWN_OVERLAY_ID };
+    QUuid overlayID;
     float distance { 0.0f };
     BoxFace face { UNKNOWN_FACE };
     glm::vec3 surfaceNormal;
@@ -60,7 +60,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 class ParabolaToOverlayIntersectionResult {
 public:
     bool intersects { false };
-    QUuid overlayID { UNKNOWN_OVERLAY_ID };
+    QUuid overlayID;
     float distance { 0.0f };
     float parabolicDistance { 0.0f };
     BoxFace face { UNKNOWN_FACE };
@@ -715,8 +715,8 @@ private:
     PointerEvent calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray, const RayToOverlayIntersectionResult& rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
-    QUuid _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
-    QUuid _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
+    QUuid _currentClickingOnOverlayID;
+    QUuid _currentHoverOverOverlayID;
 
 private slots:
     void mousePressPointerEvent(const QUuid& id, const PointerEvent& event);

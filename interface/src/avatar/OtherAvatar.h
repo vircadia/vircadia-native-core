@@ -16,7 +16,6 @@
 #include <workload/Space.h>
 
 #include "InterfaceLogging.h"
-#include "ui/overlays/Overlays.h"
 
 class AvatarManager;
 class AvatarMotionState;

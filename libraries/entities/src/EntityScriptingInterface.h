@@ -1306,11 +1306,11 @@ public slots:
 
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity, overlay, or avatar. 
+     * Get the IDs of entities and avatars that are directly parented to an entity or avatar model. Recurse on the IDs returned by the function to get all descendants of an entity or avatar. 
      * @function Entities.getChildrenIDs
-     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
-     * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity, overlay, or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
+     * @param {Uuid} parentID - The ID of the entity or avatar to get the children IDs of.
+     * @returns {Uuid[]} An array of entity and avatar IDs that are parented directly to the <code>parentID</code> 
+     *     entity or avatar. Does not include children's children, etc. The array is empty if no children can be found or 
      *     <code>parentID</code> cannot be found.
      * @example <caption>Report the children of an entity.</caption>
      * function createEntity(description, position, parent) {
@@ -1336,12 +1336,12 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDs(const QUuid& parentID);
 
     /**jsdoc
-     * Get the IDs of entities, overlays, and avatars that are directly parented to an entity, overlay, or avatar model's joint.
+     * Get the IDs of entities and avatars that are directly parented to an entity or avatar model's joint.
      * @function Entities.getChildrenIDsOfJoint
-     * @param {Uuid} parentID - The ID of the entity, overlay, or avatar to get the children IDs of.
+     * @param {Uuid} parentID - The ID of the entity or avatar to get the children IDs of.
      * @param {number} jointIndex - Integer number of the model joint to get the children IDs of.
-     * @returns {Uuid[]} An array of entity, overlay, and avatar IDs that are parented directly to the <code>parentID</code> 
-     *     entity, overlay, or avatar at the <code>jointIndex</code> joint. Does not include children's children, etc. The 
+     * @returns {Uuid[]} An array of entity and avatar IDs that are parented directly to the <code>parentID</code> 
+     *     entity or avatar at the <code>jointIndex</code> joint. Does not include children's children, etc. The 
      *     array is empty if no children can be found or <code>parentID</code> cannot be found.
      * @example <caption>Report the children of your avatar's right hand.</caption>
      * function createEntity(description, position, parent) {
@@ -1371,11 +1371,11 @@ public slots:
     Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
 
     /**jsdoc
-     * Check whether an entity or overlay has an entity as an ancestor (parent, parent's parent, etc.).
+     * Check whether an entity has an entity as an ancestor (parent, parent's parent, etc.).
      * @function Entities.isChildOfParent
-     * @param {Uuid} childID - The ID of the child entity or overlay to test for being a child, grandchild, etc.
+     * @param {Uuid} childID - The ID of the child entity to test for being a child, grandchild, etc.
      * @param {Uuid} parentID - The ID of the parent entity to test for being a parent, grandparent, etc.
-     * @returns {boolean} <code>true</code> if the <code>childID</code> entity or overlay has the <code>parentID</code> entity 
+     * @returns {boolean} <code>true</code> if the <code>childID</code> entity has the <code>parentID</code> entity 
      *     as a parent or grandparent etc., otherwise <code>false</code>.
      * @example <caption>Check that a grandchild entity is a child of its grandparent.</caption>
      * function createEntity(description, position, parent) {
@@ -1400,12 +1400,11 @@ public slots:
     Q_INVOKABLE bool isChildOfParent(const QUuid& childID, const QUuid& parentID);
 
     /**jsdoc
-     * Get the type &mdash; entity, overlay, or avatar &mdash; of an in-world item.
+     * Get the type &mdash; entity or avatar &mdash; of an in-world item.
      * @function Entities.getNestableType
      * @param {Uuid} entityID - The ID of the item to get the type of.
-     * @returns {string} The type of the item: <code>"entity"</code> if the item is an entity, <code>"overlay"</code> if the 
-     *    the item is an overlay, <code>"avatar"</code> if the item is an avatar; otherwise <code>"unknown"</code> if the item 
-     *    cannot be found.
+     * @returns {string} The type of the item: <code>"entity"</code> if the item is an entity, <code>"avatar"</code>
+     *    if the item is an avatar; otherwise <code>"unknown"</code> if the item cannot be found.
      * @example <caption>Print some nestable types.</caption>
      * var entity = Entities.addEntity({
      *     type: "Sphere",

@@ -25,8 +25,6 @@
 #include <shared/ReadWriteLockable.h>
 #include <SettingHandle.h>
 
-#include "ui/overlays/Overlay.h"
-
 class PointerEvent;
 
 
@@ -47,8 +45,8 @@ public:
 
     static Key::Type getKeyTypeFromString(const QString& keyTypeString);
 
-    OverlayID getID() const { return _keyID; }
-    void setID(OverlayID overlayID) { _keyID = overlayID; }
+    QUuid getID() const { return _keyID; }
+    void setID(const QUuid& id) { _keyID = id; }
 
     void startTimer(int time);
     bool timerFinished();
@@ -77,7 +75,7 @@ private:
     int _switchToLayer { 0 };
     bool _pressed { false };
 
-    OverlayID _keyID;
+    QUuid _keyID;
     QString _keyString;
 
     glm::vec3 _originalLocalPosition;
@@ -111,35 +109,35 @@ public:
 
     bool getUse3DKeyboard() const;
     void setUse3DKeyboard(bool use);
-    bool containsID(OverlayID overlayID) const;
+    bool containsID(const QUuid& id) const;
 
     void loadKeyboardFile(const QString& keyboardFile);
-    QVector<OverlayID> getKeysID();
-    OverlayID getAnchorID();
+    QVector<QUuid> getKeysID();
+    QUuid getAnchorID();
 
 public slots:
-    void handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event);
-    void handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event);
-    void handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event);
-    void handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event);
-    void handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event);
+    void handleTriggerBegin(const QUuid& id, const PointerEvent& event);
+    void handleTriggerEnd(const QUuid& id, const PointerEvent& event);
+    void handleTriggerContinue(const QUuid& id, const PointerEvent& event);
+    void handleHoverBegin(const QUuid& id, const PointerEvent& event);
+    void handleHoverEnd(const QUuid& id, const PointerEvent& event);
     void scaleKeyboard(float sensorToWorldScale);
 
 private:
     struct Anchor {
-        OverlayID overlayID;
+        QUuid entityID;
         glm::vec3 originalDimensions;
     };
 
     struct BackPlate {
-        OverlayID overlayID;
+        QUuid entityID;
         glm::vec3 dimensions;
         glm::vec3 localPosition;
     };
 
     struct TextDisplay {
         float lineHeight;
-        OverlayID overlayID;
+        QUuid entityID;
         glm::vec3 localPosition;
         glm::vec3 dimensions;
     };
@@ -153,9 +151,9 @@ private:
     void clearKeyboardKeys();
     void switchToLayer(int layerIndex);
     void updateTextDisplay();
-    bool shouldProcessOverlayAndPointerEvent(const PointerEvent& event, const OverlayID& overlayID) const;
+    bool shouldProcessEntityAndPointerEvent(const PointerEvent& event, const QUuid& id) const;
     bool shouldProcessPointerEvent(const PointerEvent& event) const;
-    bool shouldProcessOverlay(const OverlayID& overlayID) const;
+    bool shouldProcessEntity(const QUuid& id) const;
 
     void startLayerSwitchTimer();
     bool isLayerSwitchTimerFinished() const;
@@ -184,8 +182,8 @@ private:
     Anchor _anchor;
     BackPlate _backPlate;
 
-    QVector<OverlayID> _itemsToIgnore;
-    std::vector<QHash<OverlayID, Key>> _keyboardLayers;
+    QVector<QUuid> _itemsToIgnore;
+    std::vector<QHash<QUuid, Key>> _keyboardLayers;
 };
 
 #endif

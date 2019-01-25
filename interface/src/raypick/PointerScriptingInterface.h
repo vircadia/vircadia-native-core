@@ -16,7 +16,7 @@
 
 /**jsdoc
  * The Pointers API lets you create and manage objects for repeatedly calculating intersections in different ways, as well as the visual representation of those objects.
- *  Pointers can also be configured to automatically generate {@link PointerEvent}s on {@link Entities} and {@link Overlays}.
+ *  Pointers can also be configured to automatically generate {@link PointerEvent}s on {@link Entities}.
  *
  * @namespace Pointers
  *
@@ -39,7 +39,7 @@ public:
     * @typedef {object} Pointers.Trigger
     * @property {Controller.Standard|Controller.Actions|function} action This can be a built-in Controller action, like Controller.Standard.LTClick, or a function that evaluates to >= 1.0 when you want to trigger <code>button</code>.
     * @property {string} button Which button to trigger.  "Primary", "Secondary", "Tertiary", and "Focus" are currently supported.  Only "Primary" will trigger clicks on web surfaces.  If "Focus" is triggered,
-    * it will try to set the entity or overlay focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
+    * it will try to set the entity focus to the object at which the Pointer is aimed.  Buttons besides the first three will still trigger events, but event.button will be "None".
     */
 
     /**jsdoc
@@ -153,7 +153,7 @@ public:
     Q_INVOKABLE void setLength(unsigned int uid, float length) const { DependencyManager::get<PointerManager>()->setLength(uid, length); }
 
     /**jsdoc
-     * Sets a list of Entity IDs, Overlay IDs, and/or Avatar IDs to ignore during intersection.  Not used by Stylus Pointers.
+     * Sets a list of Entity IDs and/or Avatar IDs to ignore during intersection.  Not used by Stylus Pointers.
      * @function Pointers.setIgnoreItems
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
      * @param {Uuid[]} ignoreItems A list of IDs to ignore.
@@ -161,7 +161,7 @@ public:
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreEntities) const;
 
     /**jsdoc
-     * Sets a list of Entity IDs, Overlay IDs, and/or Avatar IDs to include during intersection, instead of intersecting with everything.  Stylus
+     * Sets a list of Entity IDs and/or Avatar IDs to include during intersection, instead of intersecting with everything.  Stylus
      *   Pointers <b>only</b> intersect with objects in their include list.
      * @function Pointers.setIncludeItems
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
@@ -171,15 +171,15 @@ public:
 
 
     /**jsdoc
-     * Lock a Pointer onto a specific object (overlay, entity, or avatar).  Optionally, provide an offset in object-space, otherwise the Pointer will lock on to the center of the object.
+     * Lock a Pointer onto a specific object (entity or avatar).  Optionally, provide an offset in object-space, otherwise the Pointer will lock on to the center of the object.
      *   Not used by Stylus Pointers.
      * @function Pointers.setLockEndUUID
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
      * @param {Uuid} objectID The ID of the object to which to lock on.
-     * @param {boolean} isOverlay False for entities or avatars, true for overlays
+     * @param {boolean} isAvatar False for entities, true for avatars
      * @param {Mat4} [offsetMat] The offset matrix to use if you do not want to lock on to the center of the object.
      */
-    Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isOverlay, offsetMat); }
+    Q_INVOKABLE void setLockEndUUID(unsigned int uid, const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat = glm::mat4()) const { DependencyManager::get<PointerManager>()->setLockEndUUID(uid, objectID, isAvatar, offsetMat); }
 
 
     /**jsdoc
@@ -211,7 +211,7 @@ public:
      * @function Pointers.getPointerProperties
      * @param {number} uid The ID of the Pointer, as returned by {@link Pointers.createPointer}.
      * @returns {Pointers.LaserPointerProperties|Pointers.StylusPointerProperties|Pointers.ParabolaPointerProperties} The information about the Pointer.
-     * Currently only includes renderStates and defaultRenderStates with associated overlay IDs.
+     * Currently only includes renderStates and defaultRenderStates with associated entity IDs.
      */
     Q_INVOKABLE QVariantMap getPointerProperties(unsigned int uid) const;
 };

@@ -19,7 +19,7 @@
 #include <QtScript/QScriptable>
 
 /**jsdoc
- * A UUID (Universally Unique IDentifier) is used to uniquely identify entities, overlays, avatars, and the like. It is
+ * A UUID (Universally Unique IDentifier) is used to uniquely identify entities, avatars, and the like. It is
  * represented in JavaScript as a string in the format, <code>{nnnnnnnn-nnnn-nnnn-nnnn-nnnnnnnnnnnn}</code>, where the "n"s are
  * hexadecimal digits.
  *

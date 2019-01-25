@@ -247,6 +247,7 @@ PointerEvent LaserPointer::buildPointerEvent(const PickedObject& target, const P
 glm::vec3 LaserPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {
     switch (pickedObject.type) {
         case ENTITY:
+        case LOCAL_ENTITY:
             return RayPick::intersectRayWithEntityXYPlane(pickedObject.objectID, origin, direction);
         default:
             return glm::vec3(NAN);

@@ -11,8 +11,6 @@
 
 #include <glm/glm.hpp>
 
-#include "ui/overlays/Base3DOverlay.h"
-
 #include "Application.h"
 #include <DependencyManager.h>
 #include "avatar/AvatarManager.h"
@@ -148,7 +146,13 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
             continue;
         }
 
-        if (!entity->getVisible() && !getFilter().doesPickInvisible()) {
+        bool visible = entity->getVisible();
+        bool collisionless = entity->getCollisionless();
+        if ((!visible && !getFilter().doesPickInvisible()) || (visible && !getFilter().doesPickVisible()) ||
+            (!collisionless && !getFilter().doesPickCollidable()) || (collisionless && !getFilter().doesPickNonCollidable()) ||
+            (entity->isLocalEntity() && !getFilter().doesPickLocalEntities()) ||
+            (entity->isAvatarEntity() && !getFilter().doesPickAvatarEntities()) || 
+            (entity->isDomainEntity() && !getFilter().doesPickDomainEntities())) {
             continue;
         }
 
@@ -161,47 +165,15 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
 
         glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(target, intersection, false);
         if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            results.push_back(StylusPickResult(IntersectionType::ENTITY, target, distance, intersection, pick, normal));
-        }
-    }
-
-    StylusPickResult nearestTarget(pick.toVariantMap());
-    for (const auto& result : results) {
-        if (result.distance < nearestTarget.distance) {
-            nearestTarget = result;
-        }
-    }
-    return std::make_shared<StylusPickResult>(nearestTarget);
-}
-
-PickResultPointer StylusPick::getOverlayIntersection(const StylusTip& pick) {
-    std::vector<StylusPickResult> results;
-    for (const auto& target : getIncludeItems()) {
-        if (target.isNull()) {
-            continue;
-        }
-
-        auto overlay = qApp->getOverlays().getOverlay(target);
-        // Don't interact with non-3D or invalid overlays
-        if (!overlay || !overlay->is3D()) {
-            continue;
-        }
-
-        if (!overlay->getVisible() && !getFilter().doesPickInvisible()) {
-            continue;
-        }
-
-        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-        const auto overlayRotation = overlay3D->getWorldOrientation();
-        const auto overlayPosition = overlay3D->getWorldPosition();
-
-        glm::vec3 normal = overlayRotation * Vectors::UNIT_Z;
-        float distance = glm::dot(pick.position - overlayPosition, normal);
-        glm::vec3 intersection = pick.position - (normal * distance);
-
-        glm::vec2 pos2D = RayPick::projectOntoOverlayXYPlane(target, intersection, false);
-        if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            results.push_back(StylusPickResult(IntersectionType::OVERLAY, target, distance, intersection, pick, normal));
+            IntersectionType type = IntersectionType::ENTITY;
+            if (getFilter().doesPickLocalEntities()) {
+                EntityPropertyFlags desiredProperties;
+                desiredProperties += PROP_ENTITY_HOST_TYPE;
+                if (DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(target, desiredProperties).getEntityHostType() == entity::HostType::LOCAL) {
+                    type = IntersectionType::LOCAL_ENTITY;
+                }
+            }
+            results.push_back(StylusPickResult(type, target, distance, intersection, pick, normal));
         }
     }
 

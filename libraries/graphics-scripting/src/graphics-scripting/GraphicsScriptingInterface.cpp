@@ -36,12 +36,12 @@ void GraphicsScriptingInterface::jsThrowError(const QString& error) {
     }
 }
 
-bool GraphicsScriptingInterface::canUpdateModel(QUuid uuid, int meshIndex, int partNumber) {
+bool GraphicsScriptingInterface::canUpdateModel(const QUuid& uuid, int meshIndex, int partNumber) {
     auto provider = getModelProvider(uuid);
     return provider && provider->canReplaceModelMeshPart(meshIndex, partNumber);
 }
 
-bool GraphicsScriptingInterface::updateModel(QUuid uuid, const scriptable::ScriptableModelPointer& model) {
+bool GraphicsScriptingInterface::updateModel(const QUuid& uuid, const scriptable::ScriptableModelPointer& model) {
     if (!model) {
         jsThrowError("null model argument");
     }
@@ -69,7 +69,7 @@ bool GraphicsScriptingInterface::updateModel(QUuid uuid, const scriptable::Scrip
     return provider->replaceScriptableModelMeshPart(base, -1, -1);
 }
 
-scriptable::ModelProviderPointer GraphicsScriptingInterface::getModelProvider(QUuid uuid) {
+scriptable::ModelProviderPointer GraphicsScriptingInterface::getModelProvider(const QUuid& uuid) {
     QString error;
     if (auto appProvider = DependencyManager::get<scriptable::ModelProviderFactory>()) {
         if (auto provider = appProvider->lookupModelProvider(uuid)) {
@@ -107,7 +107,7 @@ scriptable::ScriptableModelPointer GraphicsScriptingInterface::newModel(const sc
     return modelWrapper;
 }
 
-scriptable::ScriptableModelPointer GraphicsScriptingInterface::getModel(QUuid uuid) {
+scriptable::ScriptableModelPointer GraphicsScriptingInterface::getModel(const QUuid& uuid) {
     QString error;
     bool success;
     QString providerType = "unknown";

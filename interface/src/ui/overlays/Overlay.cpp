@@ -215,37 +215,6 @@ void Overlay::removeFromScene(Overlay::Pointer overlay, const render::ScenePoint
     render::Item::clearID(_renderItemID);
 }
 
-QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id) {
-    return quuidToScriptValue(engine, id);
-}
-
-void OverlayIDfromScriptValue(const QScriptValue &object, OverlayID& id) {
-    quuidFromScriptValue(object, id);
-}
-
-QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array) {
-    if (!array.isArray()) {
-        return QVector<OverlayID>();
-    }
-    QVector<OverlayID> newVector;
-    int length = array.property("length").toInteger();
-    newVector.reserve(length);
-    for (int i = 0; i < length; i++) {
-        newVector << OverlayID(array.property(i).toString());
-    }
-    return newVector;
-}
-
-void Overlay::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].push(material);
-}
-
-void Overlay::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].remove(material);
-}
-
 render::ItemKey Overlay::getKey() {
     auto builder = render::ItemKey::Builder().withTypeShape().withTypeMeta();
 

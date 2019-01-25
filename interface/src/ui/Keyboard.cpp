@@ -33,11 +33,6 @@
 #include <RegisteredMetaTypes.h>
 #include <ui/TabletScriptingInterface.h>
 
-#include "ui/overlays/Overlays.h"
-#include "ui/overlays/Overlay.h"
-#include "ui/overlays/ModelOverlay.h"
-#include "ui/overlays/Cube3DOverlay.h"
-#include "ui/overlays/Text3DOverlay.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/AvatarManager.h"
@@ -120,21 +115,21 @@ std::pair<glm::vec3, glm::quat> calculateKeyboardPositionAndOrientation() {
     float sensorToWorldScale = myAvatar->getSensorToWorldScale();
     QUuid tabletID = hmd->getCurrentTabletFrameID();
     if (!tabletID.isNull() && hmd->getShouldShowTablet()) {
-        Overlays& overlays = qApp->getOverlays();
-        auto tabletOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(tabletID));
-        if (tabletOverlay) {
-            auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
-            bool landscapeMode = tablet->getLandscape();
-            glm::vec3 keyboardOffset = landscapeMode ? KEYBOARD_TABLET_LANDSCAPE_OFFSET : KEYBOARD_TABLET_OFFSET;
-            glm::vec3 keyboardDegreesOffset = landscapeMode ? KEYBOARD_TABLET_LANDSCAPE_DEGREES_OFFSET : KEYBOARD_TABLET_DEGREES_OFFSET;
-            glm::vec3 tabletWorldPosition = tabletOverlay->getWorldPosition();
-            glm::quat tabletWorldOrientation = tabletOverlay->getWorldOrientation();
-            glm::vec3 scaledKeyboardTabletOffset = keyboardOffset * sensorToWorldScale;
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_POSITION;
+        desiredProperties += PROP_ROTATION;
+        auto properties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(tabletID, desiredProperties);
 
-            keyboardLocation.first = tabletWorldPosition + (tabletWorldOrientation * scaledKeyboardTabletOffset);
-            keyboardLocation.second = tabletWorldOrientation * glm::quat(glm::radians(keyboardDegreesOffset));
-        }
+        auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+        bool landscapeMode = tablet->getLandscape();
+        glm::vec3 keyboardOffset = landscapeMode ? KEYBOARD_TABLET_LANDSCAPE_OFFSET : KEYBOARD_TABLET_OFFSET;
+        glm::vec3 keyboardDegreesOffset = landscapeMode ? KEYBOARD_TABLET_LANDSCAPE_DEGREES_OFFSET : KEYBOARD_TABLET_DEGREES_OFFSET;
+        glm::vec3 tabletWorldPosition = properties.getPosition();
+        glm::quat tabletWorldOrientation = properties.getRotation();
+        glm::vec3 scaledKeyboardTabletOffset = keyboardOffset * sensorToWorldScale;
 
+        keyboardLocation.first = tabletWorldPosition + (tabletWorldOrientation * scaledKeyboardTabletOffset);
+        keyboardLocation.second = tabletWorldOrientation * glm::quat(glm::radians(keyboardDegreesOffset));
     } else {
         glm::vec3 avatarWorldPosition = myAvatar->getWorldPosition();
         glm::quat avatarWorldOrientation = myAvatar->getWorldOrientation();
@@ -148,32 +143,25 @@ std::pair<glm::vec3, glm::quat> calculateKeyboardPositionAndOrientation() {
 }
 
 void Key::saveDimensionsAndLocalPosition() {
-    Overlays& overlays = qApp->getOverlays();
-    auto model3DOverlay = std::dynamic_pointer_cast<ModelOverlay>(overlays.getOverlay(_keyID));
+    EntityPropertyFlags desiredProperties;
+    desiredProperties += PROP_LOCAL_POSITION;
+    desiredProperties += PROP_DIMENSIONS;
+    auto properties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_keyID, desiredProperties);
 
-    if (model3DOverlay) {
-        _originalLocalPosition = model3DOverlay->getLocalPosition();
-        _originalDimensions = model3DOverlay->getDimensions();
-        _currentLocalPosition = _originalLocalPosition;
-    }
+    _originalLocalPosition = properties.getLocalPosition();
+    _originalDimensions = properties.getDimensions();
+    _currentLocalPosition = _originalLocalPosition;
 }
 
 void Key::scaleKey(float sensorToWorldScale) {
-    Overlays& overlays = qApp->getOverlays();
-    auto model3DOverlay = std::dynamic_pointer_cast<ModelOverlay>(overlays.getOverlay(_keyID));
+    glm::vec3 scaledLocalPosition = _originalLocalPosition * sensorToWorldScale;
+    glm::vec3 scaledDimensions = _originalDimensions * sensorToWorldScale;
+    _currentLocalPosition = scaledLocalPosition;
 
-    if (model3DOverlay) {
-        glm::vec3 scaledLocalPosition = _originalLocalPosition * sensorToWorldScale;
-        glm::vec3 scaledDimensions = _originalDimensions * sensorToWorldScale;
-        _currentLocalPosition = scaledLocalPosition;
-
-        QVariantMap properties {
-            { "dimensions", vec3toVariant(scaledDimensions) },
-            { "localPosition", vec3toVariant(scaledLocalPosition) }
-        };
-
-        overlays.editOverlay(_keyID, properties);
-    }
+    EntityItemProperties properties;
+    properties.setDimensions(scaledDimensions);
+    properties.setLocalPosition(scaledLocalPosition);
+    DependencyManager::get<EntityScriptingInterface>()->editEntity(_keyID, properties);
 }
 
 void Key::startTimer(int time) {
@@ -262,21 +250,21 @@ void Keyboard::createKeyboard() {
 
     QVariantMap leftStylusProperties {
         { "hand", LEFT_HAND_CONTROLLER_INDEX },
-        { "filter", PickScriptingInterface::PICK_OVERLAYS() },
+        { "filter", PickScriptingInterface::PICK_LOCAL_ENTITIES() },
         { "model", modelProperties },
         { "tipOffset", vec3toVariant(MALLET_TIP_OFFSET) }
     };
 
     QVariantMap rightStylusProperties {
         { "hand", RIGHT_HAND_CONTROLLER_INDEX },
-        { "filter", PickScriptingInterface::PICK_OVERLAYS() },
+        { "filter", PickScriptingInterface::PICK_LOCAL_ENTITIES() },
         { "model", modelProperties },
         { "tipOffset", vec3toVariant(MALLET_TIP_OFFSET) }
     };
 
-    _leftHandStylus = pointerManager->addPointer(std::make_shared<StylusPointer>(leftStylusProperties, StylusPointer::buildStylusOverlay(leftStylusProperties), true, true,
+    _leftHandStylus = pointerManager->addPointer(std::make_shared<StylusPointer>(leftStylusProperties, StylusPointer::buildStylus(leftStylusProperties), true, true,
                                                                                  MALLET_POSITION_OFFSET, MALLET_ROTATION_OFFSET, MALLET_MODEL_DIMENSIONS));
-    _rightHandStylus = pointerManager->addPointer(std::make_shared<StylusPointer>(rightStylusProperties, StylusPointer::buildStylusOverlay(rightStylusProperties), true, true,
+    _rightHandStylus = pointerManager->addPointer(std::make_shared<StylusPointer>(rightStylusProperties, StylusPointer::buildStylus(rightStylusProperties), true, true,
                                                                                   MALLET_POSITION_OFFSET, MALLET_ROTATION_OFFSET, MALLET_MODEL_DIMENSIONS));
 
     pointerManager->disablePointer(_rightHandStylus);
@@ -312,93 +300,70 @@ void Keyboard::setRaised(bool raised) {
 }
 
 void Keyboard::updateTextDisplay() {
-    Overlays& overlays = qApp->getOverlays();
-
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     float sensorToWorldScale = myAvatar->getSensorToWorldScale();
-    float textWidth = (float) overlays.textSize(_textDisplay.overlayID, _typedCharacters).width();
+    float textWidth = (float)entityScriptingInterface->textSize(_textDisplay.entityID, _typedCharacters).width();
 
     glm::vec3 scaledDimensions = _textDisplay.dimensions;
     scaledDimensions *= sensorToWorldScale;
     float leftMargin = (scaledDimensions.x / 2);
     scaledDimensions.x += textWidth;
 
-
-    QVariantMap textDisplayProperties {
-        { "dimensions", vec3toVariant(scaledDimensions) },
-        { "leftMargin", leftMargin },
-        { "text", _typedCharacters },
-        { "lineHeight", (_textDisplay.lineHeight * sensorToWorldScale) }
-    };
-
-    overlays.editOverlay(_textDisplay.overlayID, textDisplayProperties);
+    EntityItemProperties properties;
+    properties.setDimensions(scaledDimensions);
+    properties.setLeftMargin(leftMargin);
+    properties.setText(_typedCharacters);
+    properties.setLineHeight(_textDisplay.lineHeight * sensorToWorldScale);
+    entityScriptingInterface->editEntity(_textDisplay.entityID, properties);
 }
 
 void Keyboard::raiseKeyboardAnchor(bool raise) const {
-    Overlays& overlays = qApp->getOverlays();
-    OverlayID anchorOverlayID = _anchor.overlayID;
-    auto anchorOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(anchorOverlayID));
-    if (anchorOverlay) {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
+    EntityItemProperties properties;
+    properties.setVisible(raise);
+
+    entityScriptingInterface->editEntity(_textDisplay.entityID, properties);
+    entityScriptingInterface->editEntity(_backPlate.entityID, properties);
+
+    if (_resetKeyboardPositionOnRaise) {
         std::pair<glm::vec3, glm::quat> keyboardLocation = calculateKeyboardPositionAndOrientation();
-        if (_resetKeyboardPositionOnRaise) {
-            anchorOverlay->setWorldPosition(keyboardLocation.first);
-            anchorOverlay->setWorldOrientation(keyboardLocation.second);
-        }
-        anchorOverlay->setVisible(raise);
-
-        QVariantMap textDisplayProperties {
-            { "visible", raise }
-        };
-
-        overlays.editOverlay(_textDisplay.overlayID, textDisplayProperties);
-
-        auto backPlateOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(_backPlate.overlayID));
-
-        if (backPlateOverlay) {
-            backPlateOverlay->setVisible(raise);
-        }
+        properties.setPosition(keyboardLocation.first);
+        properties.setRotation(keyboardLocation.second);
     }
+    entityScriptingInterface->editEntity(_anchor.entityID, properties);
 }
 
 void Keyboard::scaleKeyboard(float sensorToWorldScale) {
-    Overlays& overlays = qApp->getOverlays();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
-    glm::vec3 scaledDimensions = _anchor.originalDimensions * sensorToWorldScale;
-    auto volume3DOverlay = std::dynamic_pointer_cast<Volume3DOverlay>(overlays.getOverlay(_anchor.overlayID));
-
-    if (volume3DOverlay) {
-        volume3DOverlay->setDimensions(scaledDimensions);
+    {
+        EntityItemProperties properties;
+        properties.setDimensions(_anchor.originalDimensions * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_anchor.entityID, properties);
     }
 
-    for (auto& keyboardLayer: _keyboardLayers) {
+    for (auto& keyboardLayer : _keyboardLayers) {
         for (auto iter = keyboardLayer.begin(); iter != keyboardLayer.end(); iter++) {
             iter.value().scaleKey(sensorToWorldScale);
         }
     }
 
+    {
+        EntityItemProperties properties;
+        properties.setLocalPosition(_textDisplay.localPosition * sensorToWorldScale);
+        properties.setDimensions(_textDisplay.dimensions * sensorToWorldScale);
+        properties.setLineHeight(_textDisplay.lineHeight * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_textDisplay.entityID, properties);
+    }
 
-
-    glm::vec3 scaledLocalPosition = _textDisplay.localPosition * sensorToWorldScale;
-    glm::vec3 textDisplayScaledDimensions = _textDisplay.dimensions * sensorToWorldScale;
-
-    QVariantMap textDisplayProperties {
-        { "localPosition", vec3toVariant(scaledLocalPosition) },
-        { "dimensions", vec3toVariant(textDisplayScaledDimensions) },
-        { "lineHeight", (_textDisplay.lineHeight * sensorToWorldScale) }
-    };
-
-    overlays.editOverlay(_textDisplay.overlayID, textDisplayProperties);
-
-
-    glm::vec3 backPlateScaledDimensions = _backPlate.dimensions * sensorToWorldScale;
-    glm::vec3 backPlateScaledLocalPosition = _backPlate.localPosition * sensorToWorldScale;
-
-    QVariantMap backPlateProperties {
-        { "localPosition", vec3toVariant(backPlateScaledLocalPosition) },
-        { "dimensions", vec3toVariant(backPlateScaledDimensions) }
-    };
-
-    overlays.editOverlay(_backPlate.overlayID, backPlateProperties);
+    {
+        EntityItemProperties properties;
+        properties.setLocalPosition(_backPlate.localPosition * sensorToWorldScale);
+        properties.setDimensions(_backPlate.dimensions * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_backPlate.entityID, properties);
+    }
 }
 
 void Keyboard::startLayerSwitchTimer() {
@@ -419,13 +384,12 @@ void Keyboard::raiseKeyboard(bool raise) const {
     if (_keyboardLayers.empty()) {
         return;
     }
-    Overlays& overlays = qApp->getOverlays();
+
     const auto& keyboardLayer = _keyboardLayers[_layerIndex];
+    EntityItemProperties properties;
+    properties.setVisible(raise);
     for (auto iter = keyboardLayer.begin(); iter != keyboardLayer.end(); iter++) {
-        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(iter.key()));
-        if (base3DOverlay) {
-            base3DOverlay->setVisible(raise);
-        }
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(iter.key(), properties);
     }
 }
 
@@ -465,19 +429,15 @@ bool Keyboard::getPreferMalletsOverLasers() const {
 }
 
 void Keyboard::switchToLayer(int layerIndex) {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (layerIndex >= 0 && layerIndex < (int)_keyboardLayers.size()) {
-        Overlays& overlays = qApp->getOverlays();
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_POSITION;
+        desiredProperties += PROP_ROTATION;
+        auto oldProperties = entityScriptingInterface->getEntityProperties(_anchor.entityID, desiredProperties);
 
-        OverlayID currentAnchorOverlayID = _anchor.overlayID;
-
-        glm::vec3 currentOverlayPosition;
-        glm::quat currentOverlayOrientation;
-
-        auto currentAnchorOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(currentAnchorOverlayID));
-        if (currentAnchorOverlay) {
-            currentOverlayPosition = currentAnchorOverlay->getWorldPosition();
-            currentOverlayOrientation = currentAnchorOverlay->getWorldOrientation();
-        }
+        glm::vec3 currentPosition = oldProperties.getPosition();
+        glm::quat currentOrientation = oldProperties.getRotation();
 
          raiseKeyboardAnchor(false);
          raiseKeyboard(false);
@@ -487,19 +447,17 @@ void Keyboard::switchToLayer(int layerIndex) {
          raiseKeyboardAnchor(true);
          raiseKeyboard(true);
 
-         OverlayID newAnchorOverlayID = _anchor.overlayID;
-         auto newAnchorOverlay = std::dynamic_pointer_cast<Cube3DOverlay>(overlays.getOverlay(newAnchorOverlayID));
-         if (newAnchorOverlay) {
-             newAnchorOverlay->setWorldPosition(currentOverlayPosition);
-             newAnchorOverlay->setWorldOrientation(currentOverlayOrientation);
-         }
+         EntityItemProperties properties;
+         properties.setPosition(currentPosition);
+         properties.setRotation(currentOrientation);
+         entityScriptingInterface->editEntity(_anchor.entityID, properties);
 
          startLayerSwitchTimer();
     }
 }
 
-bool Keyboard::shouldProcessOverlayAndPointerEvent(const PointerEvent& event, const OverlayID& overlayID) const {
-    return (shouldProcessPointerEvent(event) && shouldProcessOverlay(overlayID));
+bool Keyboard::shouldProcessEntityAndPointerEvent(const PointerEvent& event, const QUuid& id) const {
+    return (shouldProcessPointerEvent(event) && shouldProcessEntity(id));
 }
 
 bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
@@ -510,14 +468,14 @@ bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
     return ((isStylusEvent && preferMalletsOverLasers) || (isLaserEvent && !preferMalletsOverLasers));
 }
 
-void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event) {
+void Keyboard::handleTriggerBegin(const QUuid& id, const PointerEvent& event) {
     auto buttonType = event.getButton();
-    if (!shouldProcessOverlayAndPointerEvent(event, overlayID) || buttonType != PointerEvent::PrimaryButton) {
+    if (!shouldProcessEntityAndPointerEvent(event, id) || buttonType != PointerEvent::PrimaryButton) {
         return;
     }
 
     auto& keyboardLayer = _keyboardLayers[_layerIndex];
-    auto search = keyboardLayer.find(overlayID);
+    auto search = keyboardLayer.find(id);
 
     if (search == keyboardLayer.end()) {
         return;
@@ -533,13 +491,9 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
         userInputMapper->triggerHapticPulse(PULSE_STRENGTH, PULSE_DURATION, handIndex);
 
-        Overlays& overlays = qApp->getOverlays();
-        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
-
-        glm::vec3 keyWorldPosition;
-        if (base3DOverlay) {
-            keyWorldPosition = base3DOverlay->getWorldPosition();
-        }
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_POSITION;
+        glm::vec3 keyWorldPosition = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getPosition();
 
         AudioInjectorOptions audioOptions;
         audioOptions.localOnly = true;
@@ -601,7 +555,7 @@ void Keyboard::handleTriggerBegin(const OverlayID& overlayID, const PointerEvent
             key.startTimer(KEY_PRESS_TIMEOUT_MS);
         }
         auto selection = DependencyManager::get<SelectionScriptingInterface>();
-        selection->addToSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "overlay", overlayID);
+        selection->addToSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "entity", id);
     }
 }
 
@@ -617,25 +571,23 @@ void Keyboard::setRightHandLaser(unsigned int rightHandLaser) {
     });
 }
 
-void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event) {
-    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
+void Keyboard::handleTriggerEnd(const QUuid& id, const PointerEvent& event) {
+    if (!shouldProcessEntityAndPointerEvent(event, id)) {
         return;
     }
 
     auto& keyboardLayer = _keyboardLayers[_layerIndex];
-    auto search = keyboardLayer.find(overlayID);
+    auto search = keyboardLayer.find(id);
 
     if (search == keyboardLayer.end()) {
         return;
     }
 
-    Key& key = search.value();;
-    Overlays& overlays = qApp->getOverlays();
-    auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
+    Key& key = search.value();
 
-    if (base3DOverlay) {
-        base3DOverlay->setLocalPosition(key.getCurrentLocalPosition());
-    }
+    EntityItemProperties properties;
+    properties.setLocalPosition(key.getCurrentLocalPosition());
+    DependencyManager::get<EntityScriptingInterface>()->editEntity(id, properties);
 
     key.setIsPressed(false);
     if (key.timerFinished() && getPreferMalletsOverLasers()) {
@@ -643,78 +595,79 @@ void Keyboard::handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& 
     }
 
     auto selection = DependencyManager::get<SelectionScriptingInterface>();
-    selection->removeFromSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "overlay", overlayID);
+    selection->removeFromSelectedItemsList(KEY_PRESSED_HIGHLIGHT, "entity", id);
 }
 
-void Keyboard::handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event) {
-    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
+void Keyboard::handleTriggerContinue(const QUuid& id, const PointerEvent& event) {
+    if (!shouldProcessEntityAndPointerEvent(event, id)) {
         return;
     }
 
     auto& keyboardLayer = _keyboardLayers[_layerIndex];
-    auto search = keyboardLayer.find(overlayID);
+    auto search = keyboardLayer.find(id);
 
     if (search == keyboardLayer.end()) {
         return;
     }
 
     Key& key = search.value();
-    Overlays& overlays = qApp->getOverlays();
-
     if (!key.isPressed() && getPreferMalletsOverLasers()) {
-        auto base3DOverlay = std::dynamic_pointer_cast<Base3DOverlay>(overlays.getOverlay(overlayID));
+        unsigned int pointerID = event.getID();
+        auto pointerManager = DependencyManager::get<PointerManager>();
+        auto pickResult = pointerManager->getPrevPickResult(pointerID);
+        auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
+        float distance = stylusPickResult->distance;
 
-        if (base3DOverlay) {
-            unsigned int pointerID = event.getID();
-            auto pointerManager = DependencyManager::get<PointerManager>();
-            auto pickResult = pointerManager->getPrevPickResult(pointerID);
-            auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
-            float distance = stylusPickResult->distance;
+        static const float PENATRATION_THRESHOLD = 0.025f;
+        if (distance < PENATRATION_THRESHOLD) {
+            static const float Z_OFFSET = 0.002f;
 
-            static const float PENATRATION_THRESHOLD = 0.025f;
-            if (distance < PENATRATION_THRESHOLD) {
-                static const float Z_OFFSET = 0.002f;
-                glm::quat overlayOrientation = base3DOverlay->getWorldOrientation();
-                glm::vec3 overlayYAxis = overlayOrientation * Z_AXIS;
-                glm::vec3 overlayYOffset = overlayYAxis * Z_OFFSET;
-                glm::vec3 localPosition = key.getCurrentLocalPosition() - overlayYOffset;
-                base3DOverlay->setLocalPosition(localPosition);
-                key.setIsPressed(true);
-            }
+            auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+            EntityPropertyFlags desiredProperties;
+            desiredProperties += PROP_ROTATION;
+            glm::quat orientation = entityScriptingInterface->getEntityProperties(id, desiredProperties).getRotation();
+            glm::vec3 yAxis = orientation * Z_AXIS;
+            glm::vec3 yOffset = yAxis * Z_OFFSET;
+            glm::vec3 localPosition = key.getCurrentLocalPosition() - yOffset;
+
+            EntityItemProperties properties;
+            properties.setLocalPosition(localPosition);
+            entityScriptingInterface->editEntity(id, properties);
+            key.setIsPressed(true);
         }
     }
 }
 
-void Keyboard::handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event) {
-    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
+void Keyboard::handleHoverBegin(const QUuid& id, const PointerEvent& event) {
+    if (!shouldProcessEntityAndPointerEvent(event, id)) {
         return;
     }
 
     auto& keyboardLayer = _keyboardLayers[_layerIndex];
-    auto search = keyboardLayer.find(overlayID);
+    auto search = keyboardLayer.find(id);
 
     if (search == keyboardLayer.end()) {
         return;
     }
 
     auto selection = DependencyManager::get<SelectionScriptingInterface>();
-    selection->addToSelectedItemsList(KEY_HOVER_HIGHLIGHT, "overlay", overlayID);
+    selection->addToSelectedItemsList(KEY_HOVER_HIGHLIGHT, "entity", id);
 }
 
-void Keyboard::handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event) {
-    if (!shouldProcessOverlayAndPointerEvent(event, overlayID)) {
+void Keyboard::handleHoverEnd(const QUuid& id, const PointerEvent& event) {
+    if (!shouldProcessEntityAndPointerEvent(event, id)) {
         return;
     }
 
     auto& keyboardLayer = _keyboardLayers[_layerIndex];
-    auto search = keyboardLayer.find(overlayID);
+    auto search = keyboardLayer.find(id);
 
     if (search == keyboardLayer.end()) {
         return;
     }
 
     auto selection = DependencyManager::get<SelectionScriptingInterface>();
-    selection->removeFromSelectedItemsList(KEY_HOVER_HIGHLIGHT, "overlay", overlayID);
+    selection->removeFromSelectedItemsList(KEY_HOVER_HIGHLIGHT, "entity", id);
 }
 
 void Keyboard::disableStylus() {
@@ -752,7 +705,6 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         }
 
         clearKeyboardKeys();
-        Overlays& overlays = qApp->getOverlays();
         auto requestData = request->getData();
 
         QVector<QUuid> includeItems;
@@ -776,54 +728,58 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             return;
         }
 
-        QVariantMap anchorProperties {
-            { "name", "KeyboardAnchor"},
-            { "isSolid", true },
-            { "visible", false },
-            { "grabbable", true },
-            { "ignorePickIntersection", false },
-            { "dimensions", anchorObject["dimensions"].toVariant() },
-            { "position", anchorObject["position"].toVariant() },
-            { "orientation", anchorObject["rotation"].toVariant() }
-        };
+        auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        {
+            glm::vec3 dimensions = vec3FromVariant(anchorObject["dimensions"].toVariant());
 
-        glm::vec3 dimensions = vec3FromVariant(anchorObject["dimensions"].toVariant());
+            EntityItemProperties properties;
+            properties.setType(EntityTypes::Box);
+            properties.setName("KeyboardAnchor");
+            properties.setVisible(false);
+            properties.getGrab().setGrabbable(true);
+            properties.setIgnorePickIntersection(false);
+            properties.setDimensions(dimensions);
+            properties.setPosition(vec3FromVariant(anchorObject["position"].toVariant()));
+            properties.setRotation(quatFromVariant(anchorObject["rotation"].toVariant()));
 
-        Anchor anchor;
-        anchor.overlayID = overlays.addOverlay("cube", anchorProperties);
-        anchor.originalDimensions = dimensions;
-        _anchor = anchor;
+            Anchor anchor;
+            anchor.entityID = entityScriptingInterface->addEntity(properties, "local");
+            anchor.originalDimensions = dimensions;
+            _anchor = anchor;
+        }
 
-        QJsonObject backPlateObject = jsonObject["backPlate"].toObject();
+        {
+            QJsonObject backPlateObject = jsonObject["backPlate"].toObject();
+            glm::vec3 dimensions = vec3FromVariant(backPlateObject["dimensions"].toVariant());
 
-        QVariantMap backPlateProperties {
-            { "name", "backPlate"},
-            { "isSolid", true },
-            { "visible", true },
-            { "grabbable", false },
-            { "alpha", 0.0 },
-            { "ignoreRayIntersection", false},
-            { "dimensions", backPlateObject["dimensions"].toVariant() },
-            { "position", backPlateObject["position"].toVariant() },
-            { "orientation", backPlateObject["rotation"].toVariant() },
-            { "parentID", _anchor.overlayID }
-        };
+            EntityItemProperties properties;
+            properties.setType(EntityTypes::Box);
+            properties.setName("BackPlate");
+            properties.setVisible(true);
+            properties.getGrab().setGrabbable(false);
+            properties.setAlpha(0.0f);
+            properties.setIgnorePickIntersection(false);
+            properties.setDimensions(dimensions);
+            properties.setPosition(vec3FromVariant(backPlateObject["position"].toVariant()));
+            properties.setRotation(quatFromVariant(backPlateObject["rotation"].toVariant()));
+            properties.setParentID(_anchor.entityID);
 
-        BackPlate backPlate;
-        backPlate.overlayID = overlays.addOverlay("cube", backPlateProperties);
-        backPlate.dimensions = vec3FromVariant(backPlateObject["dimensions"].toVariant());
-        backPlate.localPosition = vec3FromVariant(overlays.getProperty(backPlate.overlayID, "localPosition").value);
-        _backPlate = backPlate;
+            BackPlate backPlate;
+            backPlate.entityID = entityScriptingInterface->addEntity(properties, "local");
+            backPlate.dimensions = dimensions;
+            EntityPropertyFlags desiredProperties;
+            desiredProperties += PROP_LOCAL_POSITION;
+            backPlate.localPosition = entityScriptingInterface->getEntityProperties(backPlate.entityID, desiredProperties).getLocalPosition();
+            _backPlate = backPlate;
+        }
 
         const QJsonArray& keyboardLayers = jsonObject["layers"].toArray();
         int keyboardLayerCount = keyboardLayers.size();
         _keyboardLayers.reserve(keyboardLayerCount);
-
-
         for (int keyboardLayerIndex = 0; keyboardLayerIndex < keyboardLayerCount; keyboardLayerIndex++) {
             const QJsonValue& keyboardLayer = keyboardLayers[keyboardLayerIndex].toArray();
 
-            QHash<OverlayID, Key> keyboardLayerKeys;
+            QHash<QUuid, Key> keyboardLayerKeys;
             foreach (const QJsonValue& keyboardKeyValue, keyboardLayer.toArray()) {
 
                 QVariantMap textureMap;
@@ -841,21 +797,6 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                 QString modelUrl = keyboardKeyValue["modelURL"].toString();
                 QString url = (useResourcePath ? (resourcePath + modelUrl) : modelUrl);
 
-                QVariantMap properties {
-                    { "dimensions", keyboardKeyValue["dimensions"].toVariant() },
-                    { "position", keyboardKeyValue["position"].toVariant() },
-                    { "visible", false },
-                    { "isSolid", true },
-                    { "emissive", true },
-                    { "parentID", _anchor.overlayID },
-                    { "url", url },
-                    { "textures", textureMap },
-                    { "grabbable", false },
-                    { "localOrientation", keyboardKeyValue["localOrientation"].toVariant() }
-                };
-
-                OverlayID overlayID = overlays.addOverlay("model", properties);
-
                 QString keyType = keyboardKeyValue["type"].toString();
                 QString keyString = keyboardKeyValue["key"].toString();
 
@@ -869,48 +810,65 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                         key.setSwitchToLayerIndex(switchToLayer);
                     }
                 }
-                key.setID(overlayID);
+
+                EntityItemProperties properties;
+                properties.setType(EntityTypes::Model);
+                properties.setDimensions(vec3FromVariant(keyboardKeyValue["dimensions"].toVariant()));
+                properties.setPosition(vec3FromVariant(keyboardKeyValue["position"].toVariant()));
+                properties.setVisible(false);
+                properties.setEmissive(true);
+                properties.setParentID(_anchor.entityID);
+                properties.setModelURL(url);
+                properties.setTextures(QVariant(textureMap).toString());
+                properties.getGrab().setGrabbable(false);
+                properties.setLocalRotation(quatFromVariant(keyboardKeyValue["localOrientation"].toVariant()));
+                QUuid id = entityScriptingInterface->addEntity(properties, "local");
+                key.setID(id);
                 key.setKeyString(keyString);
                 key.saveDimensionsAndLocalPosition();
 
                 includeItems.append(key.getID());
                 _itemsToIgnore.append(key.getID());
-                keyboardLayerKeys.insert(overlayID, key);
+                keyboardLayerKeys.insert(id, key);
             }
 
             _keyboardLayers.push_back(keyboardLayerKeys);
 
         }
 
-        TextDisplay textDisplay;
-        QJsonObject displayTextObject = jsonObject["textDisplay"].toObject();
+        {
+            QJsonObject displayTextObject = jsonObject["textDisplay"].toObject();
+            glm::vec3 dimensions = vec3FromVariant(displayTextObject["dimensions"].toVariant());
+            glm::vec3 localPosition = vec3FromVariant(displayTextObject["localPosition"].toVariant());
+            float lineHeight = (float)displayTextObject["lineHeight"].toDouble();
 
-        QVariantMap displayTextProperties {
-            { "dimensions", displayTextObject["dimensions"].toVariant() },
-            { "localPosition", displayTextObject["localPosition"].toVariant() },
-            { "localOrientation", displayTextObject["localOrientation"].toVariant() },
-            { "leftMargin", displayTextObject["leftMargin"].toVariant() },
-            { "rightMargin", displayTextObject["rightMargin"].toVariant() },
-            { "topMargin", displayTextObject["topMargin"].toVariant() },
-            { "bottomMargin", displayTextObject["bottomMargin"].toVariant() },
-            { "lineHeight", displayTextObject["lineHeight"].toVariant() },
-            { "visible", false },
-            { "emissive", true },
-            { "grabbable", false },
-            { "text", ""},
-            { "parentID", _anchor.overlayID }
-        };
+            EntityItemProperties properties;
+            properties.setType(EntityTypes::Text);
+            properties.setDimensions(dimensions);
+            properties.setLocalPosition(localPosition);
+            properties.setLocalRotation(quatFromVariant(displayTextObject["localOrientation"].toVariant()));
+            properties.setLeftMargin((float)displayTextObject["leftMargin"].toDouble());
+            properties.setRightMargin((float)displayTextObject["rightMargin"].toDouble());
+            properties.setTopMargin((float)displayTextObject["topMargin"].toDouble());
+            properties.setBottomMargin((float)displayTextObject["bottomMargin"].toDouble());
+            properties.setLineHeight((float)displayTextObject["lineHeight"].toDouble());
+            properties.setVisible(false);
+            properties.setEmissive(true);
+            properties.getGrab().setGrabbable(false);
+            properties.setText("");
+            properties.setParentID(_anchor.entityID);
 
-        textDisplay.overlayID = overlays.addOverlay("text3d", displayTextProperties);
-        textDisplay.localPosition = vec3FromVariant(displayTextObject["localPosition"].toVariant());
-        textDisplay.dimensions = vec3FromVariant(displayTextObject["dimensions"].toVariant());
-        textDisplay.lineHeight = (float) displayTextObject["lineHeight"].toDouble();
-
-        _textDisplay = textDisplay;
+            TextDisplay textDisplay;
+            textDisplay.entityID = entityScriptingInterface->addEntity(properties, "local");
+            textDisplay.localPosition = localPosition;
+            textDisplay.dimensions = dimensions;
+            textDisplay.lineHeight = lineHeight;
+            _textDisplay = textDisplay;
+        }
 
         _ignoreItemsLock.withWriteLock([&] {
-            _itemsToIgnore.append(_textDisplay.overlayID);
-            _itemsToIgnore.append(_anchor.overlayID);
+            _itemsToIgnore.append(_textDisplay.entityID);
+            _itemsToIgnore.append(_anchor.entityID);
         });
         _layerIndex = 0;
         auto pointerManager = DependencyManager::get<PointerManager>();
@@ -922,34 +880,33 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
 }
 
 
-OverlayID Keyboard::getAnchorID() {
-    return _ignoreItemsLock.resultWithReadLock<OverlayID>([&] {
-        return _anchor.overlayID;
+QUuid Keyboard::getAnchorID() {
+    return _ignoreItemsLock.resultWithReadLock<QUuid>([&] {
+        return _anchor.entityID;
     });
 }
 
-bool Keyboard::shouldProcessOverlay(const OverlayID& overlayID) const {
-    return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished() && overlayID != _backPlate.overlayID);
+bool Keyboard::shouldProcessEntity(const QUuid& id) const {
+    return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished() && id != _backPlate.entityID);
 }
 
-QVector<OverlayID> Keyboard::getKeysID() {
-    return _ignoreItemsLock.resultWithReadLock<QVector<OverlayID>>([&] {
+QVector<QUuid> Keyboard::getKeysID() {
+    return _ignoreItemsLock.resultWithReadLock<QVector<QUuid>>([&] {
         return _itemsToIgnore;
     });
 }
 
 void Keyboard::clearKeyboardKeys() {
-    Overlays& overlays = qApp->getOverlays();
-
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     for (const auto& keyboardLayer: _keyboardLayers) {
         for (auto iter = keyboardLayer.begin(); iter != keyboardLayer.end(); iter++) {
-            overlays.deleteOverlay(iter.key());
+            entityScriptingInterface->deleteEntity(iter.key());
         }
     }
 
-    overlays.deleteOverlay(_anchor.overlayID);
-    overlays.deleteOverlay(_textDisplay.overlayID);
-    overlays.deleteOverlay(_backPlate.overlayID);
+    entityScriptingInterface->deleteEntity(_anchor.entityID);
+    entityScriptingInterface->deleteEntity(_textDisplay.entityID);
+    entityScriptingInterface->deleteEntity(_backPlate.entityID);
 
     _keyboardLayers.clear();
 
@@ -989,8 +946,8 @@ void Keyboard::disableRightMallet() {
     pointerManager->disablePointer(_rightHandStylus);
 }
 
-bool Keyboard::containsID(OverlayID overlayID) const {
+bool Keyboard::containsID(const QUuid& id) const {
     return resultWithReadLock<bool>([&] {
-        return _itemsToIgnore.contains(overlayID) || _backPlate.overlayID == overlayID;
+        return _itemsToIgnore.contains(id) || _backPlate.entityID == id;
     });
 }

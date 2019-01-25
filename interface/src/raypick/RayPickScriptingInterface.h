@@ -53,6 +53,7 @@ class RayPickScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(unsigned int PICK_ALL_INTERSECTIONS READ PICK_ALL_INTERSECTIONS CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_LOCAL_ENTITY READ INTERSECTED_LOCAL_ENTITY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_OVERLAY READ INTERSECTED_OVERLAY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_AVATAR READ INTERSECTED_AVATAR CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
@@ -202,7 +203,13 @@ public slots:
      * @function RayPick.INTERSECTED_OVERLAY
      * @returns {number}
      */
-    static unsigned int INTERSECTED_OVERLAY() { return PickScriptingInterface::INTERSECTED_OVERLAY(); }
+    static unsigned int INTERSECTED_LOCAL_ENTITY() { return PickScriptingInterface::INTERSECTED_LOCAL_ENTITY(); }
+
+    /**jsdoc
+     * @function RayPick.INTERSECTED_OVERLAY
+     * @returns {number}
+     */
+    static unsigned int INTERSECTED_OVERLAY() { return PickScriptingInterface::INTERSECTED_LOCAL_ENTITY(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_AVATAR

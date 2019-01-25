@@ -13,13 +13,6 @@
 
 #include <render/Scene.h>
 
-class OverlayID : public QUuid {
-public:
-    OverlayID() : QUuid() {}
-    OverlayID(QString v) : QUuid(v) {}
-    OverlayID(QUuid v) : QUuid(v) {}
-};
-
 class Overlay : public QObject {
     Q_OBJECT
 
@@ -32,8 +25,8 @@ public:
     Overlay(const Overlay* overlay);
     ~Overlay();
 
-    virtual OverlayID getOverlayID() const { return _overlayID; }
-    virtual void setOverlayID(OverlayID overlayID) { _overlayID = overlayID; }
+    virtual QUuid getID() const { return _id; }
+    virtual void setID(const QUuid& id) { _id = id; }
 
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
@@ -51,7 +44,6 @@ public:
 
     // getters
     virtual QString getType() const = 0;
-    virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
     virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
@@ -92,9 +84,6 @@ public:
     unsigned int getStackOrder() const { return _stackOrder; }
     void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
 
-    virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
-    virtual void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
-
 protected:
     float updatePulse();
 
@@ -121,11 +110,8 @@ protected:
     static const glm::u8vec3 DEFAULT_OVERLAY_COLOR;
     static const float DEFAULT_ALPHA;
 
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
-
 private:
-    OverlayID _overlayID; // only used for non-3d overlays
+    QUuid _id;
 };
 
 namespace render {
@@ -135,11 +121,5 @@ namespace render {
    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
    template <> uint32_t metaFetchMetaSubItems(const Overlay::Pointer& overlay, ItemIDs& subItems);
 }
-
-Q_DECLARE_METATYPE(OverlayID);
-Q_DECLARE_METATYPE(QVector<OverlayID>);
-QScriptValue OverlayIDtoScriptValue(QScriptEngine* engine, const OverlayID& id);
-void OverlayIDfromScriptValue(const QScriptValue& object, OverlayID& id);
-QVector<OverlayID> qVectorOverlayIDFromScriptValue(const QScriptValue& array);
 
 #endif // hifi_Overlay_h

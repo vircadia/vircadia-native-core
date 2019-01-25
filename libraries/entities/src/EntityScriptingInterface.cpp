@@ -1038,6 +1038,15 @@ bool EntityScriptingInterface::isLoaded(const QUuid& id) {
     return toReturn;
 }
 
+bool EntityScriptingInterface::isAddedEntity(const QUuid& id) {
+    bool toReturn = false;
+    _entityTree->withReadLock([&] {
+        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(id);
+        toReturn = (bool)entity;
+    });
+    return toReturn;
+}
+
 QSizeF EntityScriptingInterface::textSize(const QUuid& id, const QString& text) {
     return EntityTree::textSize(id, text);
 }
