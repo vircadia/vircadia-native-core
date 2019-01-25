@@ -48,8 +48,6 @@
 // 50 times per second - target is 45hz, but this helps account for any small deviations
 // in the update loop - this also results in ~30hz when in desktop mode which is essentially
 // what we want
-const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
-static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
@@ -350,25 +348,6 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         avatar->postUpdate(deltaTime, scene);
     }
-}
-
-void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    nodeList->eachMatchingNode(
-        [](const SharedNodePointer& node)->bool {
-            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-        },
-        [this, avatarID, nodeListWeak](const SharedNodePointer& node) {
-            auto nodeList = nodeListWeak.lock();
-            if (nodeList) {
-                auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-                packet->write(avatarID.toRfc4122());
-                nodeList->sendPacket(std::move(packet), *node);
-                ++_identityRequestsSent;
-            }
-        }
-    );
 }
 
 void AvatarManager::simulateAvatarFades(float deltaTime) {

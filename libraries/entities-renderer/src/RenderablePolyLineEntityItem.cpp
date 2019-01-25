@@ -55,11 +55,15 @@ void PolyLineEntityRenderer::buildPipeline() {
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
-    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
+    return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
 }
 
 ShapeKey PolyLineEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    auto builder = ShapeKey::Builder().withOwnPipeline().withTranslucent().withoutCullFace();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 bool PolyLineEntityRenderer::needsRenderUpdate() const {

@@ -134,8 +134,7 @@ Item {
         if (isWebPage) {
             var webUrl = tabletApps.get(currentApp).appWebUrl;
             var scriptUrl = tabletApps.get(currentApp).scriptUrl;
-            loadSource("hifi/tablet/TabletWebView.qml");
-            loadWebUrl(webUrl, scriptUrl);
+            loadWebBase(webUrl, scriptUrl);
         } else {
         	loader.load(tabletApps.get(currentApp).appUrl);
         }
@@ -148,16 +147,6 @@ Item {
         newWindow.profile = profile;
         request.openIn(newWindow.webView);
         tabletRoot.openBrowser = newWindow;
-    }
-
-    function loadWebUrl(url, injectedJavaScriptUrl) {
-        tabletApps.clear();
-        loader.item.url = url;
-        loader.item.scriptURL = injectedJavaScriptUrl;
-        tabletApps.append({"appUrl": "TabletWebView.qml", "isWebUrl": true, "scriptUrl": injectedJavaScriptUrl, "appWebUrl": url});
-        if (loader.item.hasOwnProperty("closeButtonVisible")) {
-            loader.item.closeButtonVisible = false;
-        }
     }
 
     // used to send a message from qml to interface script.
