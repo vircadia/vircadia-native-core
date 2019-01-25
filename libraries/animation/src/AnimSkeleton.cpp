@@ -237,8 +237,17 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, 
     _relativeDefaultPoses = _absoluteDefaultPoses;
     convertAbsolutePosesToRelative(_relativeDefaultPoses);
 
+    // build _jointIndicesByName hash
     for (int i = 0; i < _jointsSize; i++) {
-        _jointIndicesByName[_joints[i].name] = i;
+        auto iter = _jointIndicesByName.find(_joints[i].name);
+        if (iter != _jointIndicesByName.end()) {
+            // prefer joints over meshes if there is a name collision.
+            if (_joints[i].isSkeletonJoint && !_joints[iter.value()].isSkeletonJoint) {
+                iter.value() = i;
+            }
+        } else {
+            _jointIndicesByName.insert(_joints[i].name, i);
+        }
     }
 
     // build mirror map.
