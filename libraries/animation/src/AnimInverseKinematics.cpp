@@ -243,13 +243,6 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                 break;
             case IKTarget::Type::Spline:
                 solveTargetWithSpline(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
-                //if (jointChainInfoVec[i].target.getIndex() == _skeleton->nameToJointIndex("Head")) {
-                   // qCDebug(animation) << "AnimIK spline index is " << targets[i].getIndex() << " and chain info size is " << jointChainInfoVec[i].jointInfoVec.size();
-                   for (int w = 0; w < jointChainInfoVec[i].jointInfoVec.size(); w++) {
-                       // qCDebug(animation) << "joint " << jointChainInfoVec[i].jointInfoVec[w].jointIndex << " rotation is " << jointChainInfoVec[i].jointInfoVec[w].rot;
-                       // qCDebug(animation) << "joint " << jointChainInfoVec[i].jointInfoVec[w].jointIndex << " translation is " << jointChainInfoVec[i].jointInfoVec[w].trans;
-                   }
-                //}
                 break;
             default:
                 solveTargetWithCCD(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
@@ -328,6 +321,10 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                 absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
             }
         }
+
+        //qCDebug(animation) << "joint chain pose for head animIK " << jointChainInfoVec[4].jointInfoVec[w].trans << " " << jointChainInfoVec[4].jointInfoVec[w].rot;
+        qCDebug(animation) << "absolute pose for head animIK " << absolutePoses[_skeleton->nameToJointIndex("Head")];
+        qCDebug(animation) << "target pose for   head animIK " << targets[4].getTranslation() << " " << targets[4].getRotation();
 
         // compute maxError
         maxError = 0.0f;
@@ -833,7 +830,9 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
 
+            
             bool constrained = false;
+            /*
             if (splineJointInfo.jointIndex != _hipsIndex) {
                 // constrain the amount the spine can stretch or compress
                 float length = glm::length(relPose.trans());
@@ -854,7 +853,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
                     relPose.trans() = glm::vec3(0.0f);
                 }
             }
-
+            */
             jointChainInfoOut.jointInfoVec[i] = { relPose.rot(), relPose.trans(), splineJointInfo.jointIndex, constrained };
 
             parentAbsPose = flexedAbsPose;

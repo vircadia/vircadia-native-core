@@ -1857,14 +1857,14 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 
     updateHead(_headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
-                params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
-                params.rigToSensorMatrix, sensorToRigMatrix);
+    //updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, hipsEstimated, leftArmEnabled, rightArmEnabled, _headEnabled, dt,
+    //            params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
+    //            params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo,
+    //            params.rigToSensorMatrix, sensorToRigMatrix);
 
-    //updateHands2(leftHandEnabled, rightHandEnabled, _headEnabled,
-    //             params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-    //             params.rigToSensorMatrix, sensorToRigMatrix);
+    updateHands2(leftHandEnabled, rightHandEnabled, _headEnabled,
+                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
+                 params.rigToSensorMatrix, sensorToRigMatrix);
 
     updateFeet(leftFootEnabled, rightFootEnabled, _headEnabled,
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot],

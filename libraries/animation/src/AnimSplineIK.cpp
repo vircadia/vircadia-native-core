@@ -20,7 +20,14 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     const QString& baseJointName,
     const QString& tipJointName,
     const QString& alphaVar, const QString& enabledVar,
-    const QString& endEffectorRotationVarVar, const QString& endEffectorPositionVarVar) :
+    const QString& endEffectorRotationVarVar, const QString& endEffectorPositionVarVar,
+    const QString& basePositionVar,
+    const QString& baseRotationVar,
+    const QString& tipPositionVar,
+    const QString& tipRotationVar,
+    const QString& secondaryTargetJointName,
+    const QString& secondaryTargetPositionVar,
+    const QString& secondaryTargetRotationVar) :
     AnimNode(AnimNode::Type::SplineIK, id),
     _alpha(alpha),
     _enabled(enabled),
@@ -32,7 +39,15 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     _endEffectorRotationVarVar(endEffectorRotationVarVar),
     _endEffectorPositionVarVar(endEffectorPositionVarVar),
     _prevEndEffectorRotationVar(),
-    _prevEndEffectorPositionVar() {
+    _prevEndEffectorPositionVar(),
+    _basePositionVar(basePositionVar),
+    _baseRotationVar(baseRotationVar),
+    _tipPositionVar(tipPositionVar),
+    _tipRotationVar(tipRotationVar),
+    _secondaryTargetJointName(secondaryTargetJointName),
+    _secondaryTargetPositionVar(secondaryTargetPositionVar),
+    _secondaryTargetRotationVar(secondaryTargetRotationVar) 
+{
 
 }
 
@@ -51,16 +66,19 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     if (_children.size() != 1) {
         return _poses;
     }
-    // evalute underPoses
+    // evaluate underPoses
     AnimPoseVec underPoses = _children[0]->evaluate(animVars, context, dt, triggersOut);
     _poses = underPoses;
 
-    // now we override the hips relative pose based on the hips target that has been set.
+    glm::quat hipsTargetRotation;
+    glm::vec3 hipsTargetTranslation;
+
+    // now we override the hips with the hips target pose.
     ////////////////////////////////////////////////////
     if (_poses.size() > 0) {
         AnimPose hipsUnderPose = _skeleton->getAbsolutePose(_hipsIndex, _poses);
-        glm::quat hipsTargetRotation = animVars.lookupRigToGeometry("hipsRotation", hipsUnderPose.rot());
-        glm::vec3 hipsTargetTranslation = animVars.lookupRigToGeometry("hipsPosition", hipsUnderPose.trans());
+        hipsTargetRotation = animVars.lookupRigToGeometry("hipsRotation", hipsUnderPose.rot());
+        hipsTargetTranslation = animVars.lookupRigToGeometry("hipsPosition", hipsUnderPose.trans());
         AnimPose absHipsTargetPose(hipsTargetRotation, hipsTargetTranslation);
 
         int hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
@@ -76,23 +94,22 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     computeAbsolutePoses(absolutePoses);
    
     IKTarget target;
-    if (_headIndex != -1) {
-        target.setType(animVars.lookup("headType", (int)IKTarget::Type::RotationAndPosition));
-        target.setIndex(_headIndex);
-        AnimPose absPose = _skeleton->getAbsolutePose(_headIndex, _poses);
-        glm::quat rotation = animVars.lookupRigToGeometry("headRotation", absPose.rot());
-        glm::vec3 translation = animVars.lookupRigToGeometry("headPosition", absPose.trans());
-        float weight = animVars.lookup("headWeight", "4.0");
+    if (_tipJointIndex != -1) {
+        target.setType((int)IKTarget::Type::Spline);
+        target.setIndex(_tipJointIndex);
+        AnimPose absPose = _skeleton->getAbsolutePose(_tipJointIndex, _poses);
+        glm::quat rotation = animVars.lookupRigToGeometry(_tipRotationVar, absPose.rot());
+        glm::vec3 translation = animVars.lookupRigToGeometry(_tipPositionVar, absPose.trans());
+        float weight = 1.0f;
 
         target.setPose(rotation, translation);
         target.setWeight(weight);
-        const float* flexCoefficients = new float[5]{ 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
-        //const float* flexCoefficients = new float[2]{ 0.0f, 1.0f };
+        const float* flexCoefficients = new float[5]{ 1.0f, 0.5f, 0.25f, 0.2f, 0.1f };
         target.setFlexCoefficients(5, flexCoefficients);
     }
 
     AnimChain jointChain;
-    AnimPose targetSpine2;
+    AnimPose updatedSecondaryTarget;
     AnimPoseVec absolutePoses2;
     absolutePoses2.resize(_poses.size());
     if (_poses.size() > 0) {
@@ -100,43 +117,47 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         //_snapshotChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
         jointChain.buildFromRelativePoses(_skeleton, _poses, target.getIndex());
         solveTargetWithSpline(context, target, absolutePoses, false, jointChain);
+        jointChain.buildDirtyAbsolutePoses();
+        qCDebug(animation) << "the jointChain Result for head " << jointChain.getAbsolutePoseFromJointIndex(_tipJointIndex);
+        qCDebug(animation) << "the orig target pose for  head " << target.getPose();
         jointChain.outputRelativePoses(_poses);
 
-        AnimPose afterSolveSpine2 = _skeleton->getAbsolutePose(_spine2Index, _poses);
-        glm::quat spine2RotationTarget = animVars.lookupRigToGeometry("spine2Rotation", afterSolveSpine2.rot());
+        AnimPose afterSolveSecondaryTarget = _skeleton->getAbsolutePose(_secondaryTargetIndex, _poses);
+        glm::quat secondaryTargetRotation = animVars.lookupRigToGeometry(_secondaryTargetRotationVar, afterSolveSecondaryTarget.rot());
         
-        targetSpine2 = AnimPose(spine2RotationTarget, afterSolveSpine2.trans());  
+        // updatedSecondaryTarget = AnimPose(secondaryTargetRotation, afterSolveSpine2.trans());  
+        updatedSecondaryTarget = AnimPose(afterSolveSecondaryTarget.rot(), afterSolveSecondaryTarget.trans());
     }
 
-    /*
-    IKTarget target2;
+    
+    IKTarget secondaryTarget;
     computeAbsolutePoses(absolutePoses2);
-    if (_spine2Index != -1) {
-        target2.setType(animVars.lookup("spine2Type", (int)IKTarget::Type::RotationAndPosition));
-        target2.setIndex(_spine2Index);
+    if (_secondaryTargetIndex != -1) {
+        secondaryTarget.setType((int)IKTarget::Type::Spline);
+        secondaryTarget.setIndex(_secondaryTargetIndex);
 
-        float weight2 = animVars.lookup("spine2Weight", "2.0");
+        float weight2 = 1.0f;
        
-        target2.setPose(targetSpine2.rot(), targetSpine2.trans());
-        target2.setWeight(weight2);
+        secondaryTarget.setPose(updatedSecondaryTarget.rot(), updatedSecondaryTarget.trans());
+        secondaryTarget.setWeight(weight2);
         
         const float* flexCoefficients2 = new float[3]{ 1.0f, 1.0f, 1.0f };
-        target2.setFlexCoefficients(3, flexCoefficients2);
+        secondaryTarget.setFlexCoefficients(3, flexCoefficients2);
     }
-
-    AnimChain jointChain2;
+    /*
+    AnimChain secondaryJointChain;
     AnimPose beforeSolveChestNeck;
     if (_poses.size() > 0) {
 
         
         beforeSolveChestNeck = _skeleton->getAbsolutePose(_skeleton->nameToJointIndex("Neck"), _poses);
 
-        jointChain2.buildFromRelativePoses(_skeleton, _poses, target2.getIndex());
-        solveTargetWithSpline(context, target2, absolutePoses2, false, jointChain2);
-        jointChain2.outputRelativePoses(_poses);
+        secondaryJointChain.buildFromRelativePoses(_skeleton, _poses, secondaryTarget.getIndex());
+        solveTargetWithSpline(context, secondaryTarget, absolutePoses2, false, secondaryJointChain);
+        secondaryJointChain.outputRelativePoses(_poses);
     }
-    */
     
+    */
     
     const float FRAMES_PER_SECOND = 30.0f;
     _interpAlphaVel = FRAMES_PER_SECOND / _interpDuration;
@@ -149,23 +170,59 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     // update the relative poses and then we are done
 
     // set the tip/head rotation to match the absolute rotation of the target.
-    int headParent = _skeleton->getParentIndex(_headIndex);
-    int spine2Parent = _skeleton->getParentIndex(_spine2Index);
-    if ((spine2Parent != -1) && (headParent != -1) && (_poses.size() > 0)) {
+    int tipParent = _skeleton->getParentIndex(_tipJointIndex);
+    int secondaryTargetParent = _skeleton->getParentIndex(_secondaryTargetIndex);
+    if ((secondaryTargetParent != -1) && (tipParent != -1) && (_poses.size() > 0)) {
         /*
-        AnimPose spine2Target(target2.getRotation(), target2.getTranslation());
-        AnimPose finalSpine2RelativePose = _skeleton->getAbsolutePose(spine2Parent, _poses).inverse() * spine2Target;
-        _poses[_spine2Index] = finalSpine2RelativePose;
+        AnimPose secondaryTargetPose(target2.getRotation(), target2.getTranslation());
+        AnimPose secondaryTargetRelativePose = _skeleton->getAbsolutePose(secondaryTargetParent, _poses).inverse() * secondaryTargetPose;
+        _poses[_secondaryTargetIndex] = secondaryTargetRelativePose;
 
         
-        AnimPose neckAbsolute = _skeleton->getAbsolutePose(headParent, _poses);
+        AnimPose neckAbsolute = _skeleton->getAbsolutePose(tipParent, _poses);
         AnimPose finalNeckAbsolute = AnimPose(safeLerp(target2.getRotation(), target.getRotation(), 1.0f),neckAbsolute.trans());
         _poses[headParent] = spine2Target.inverse() * beforeSolveChestNeck;
         */
-        AnimPose headTarget(target.getRotation(),target.getTranslation());
-        AnimPose finalHeadRelativePose = _skeleton->getAbsolutePose(headParent,_poses).inverse() * headTarget;
-        _poses[_headIndex] = finalHeadRelativePose;
+        //AnimPose tipTarget(target.getRotation(),target.getTranslation());
+        //AnimPose tipRelativePose = _skeleton->getAbsolutePose(tipParent,_poses).inverse() * headTarget;
+        //_poses[_tipJointIndex] = tipHeadRelativePose;
     }
+
+    // debug render ik targets
+    if (context.getEnableDebugDrawIKTargets()) {
+        const vec4 WHITE(1.0f);
+        const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+        glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+
+        glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
+        glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
+        QString name = QString("ikTargetHead");
+        DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
+
+        glm::mat4 geomTargetMat2 = createMatFromQuatAndPos(secondaryTarget.getRotation(), secondaryTarget.getTranslation());
+        glm::mat4 avatarTargetMat2 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat2;
+        QString name2 = QString("ikTargetSpine2");
+        DebugDraw::getInstance().addMyAvatarMarker(name2, glmExtractRotation(avatarTargetMat2), extractTranslation(avatarTargetMat2), WHITE);
+
+
+        glm::mat4 geomTargetMat3 = createMatFromQuatAndPos(hipsTargetRotation, hipsTargetTranslation);
+        glm::mat4 avatarTargetMat3 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat3;
+        QString name3 = QString("ikTargetHips");
+        DebugDraw::getInstance().addMyAvatarMarker(name3, glmExtractRotation(avatarTargetMat3), extractTranslation(avatarTargetMat3), WHITE);
+
+
+    } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
+        // remove markers if they were added last frame.
+
+        QString name = QString("ikTargetHead");
+        DebugDraw::getInstance().removeMyAvatarMarker(name);
+        QString name2 = QString("ikTargetSpine2");
+        DebugDraw::getInstance().removeMyAvatarMarker(name2);
+        QString name3 = QString("ikTargetHips");
+        DebugDraw::getInstance().removeMyAvatarMarker(name3);
+
+    }
+    _previousEnableDebugIKTargets = context.getEnableDebugDrawIKTargets();
  
     return _poses;
 }
@@ -174,11 +231,12 @@ void AnimSplineIK::lookUpIndices() {
     assert(_skeleton);
 
     // look up bone indices by name
-    std::vector<int> indices = _skeleton->lookUpJointIndices({ _baseJointName, _tipJointName });
+    std::vector<int> indices = _skeleton->lookUpJointIndices({ _baseJointName, _tipJointName, _secondaryTargetJointName });
 
     // cache the results
     _baseJointIndex = indices[0];
     _tipJointIndex = indices[1];
+    _secondaryTargetIndex = indices[2];
 
     if (_baseJointIndex != -1) {
         _baseParentJointIndex = _skeleton->getParentIndex(_baseJointIndex);
@@ -206,9 +264,8 @@ const AnimPoseVec& AnimSplineIK::getPosesInternal() const {
 
 void AnimSplineIK::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     AnimNode::setSkeletonInternal(skeleton);
-    _headIndex = _skeleton->nameToJointIndex("Head");
+    //_headIndex = _skeleton->nameToJointIndex("Head");
     _hipsIndex = _skeleton->nameToJointIndex("Hips");
-    _spine2Index = _skeleton->nameToJointIndex("Spine2");
     lookUpIndices();
 }
 
@@ -224,20 +281,20 @@ static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const 
 
 void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const {
 
-    const int baseIndex = _hipsIndex;
-    const int headBaseIndex =  _spine2Index;
+    const int baseIndex = _baseJointIndex;
+    const int tipBaseIndex =  _secondaryTargetIndex;
 
     // build spline from tip to base
     AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
     AnimPose basePose;
-    //if (target.getIndex() == _headIndex) {
-    //    basePose = absolutePoses[headBaseIndex];
+    //if (target.getIndex() == _tipJointIndex) {
+    //    basePose = absolutePoses[tipBaseIndex];
     //} else {
         basePose = absolutePoses[baseIndex];
     //}
 
     CubicHermiteSplineFunctorWithArcLength spline;
-    if (target.getIndex() == _headIndex) {
+    if (target.getIndex() == _tipJointIndex) {
         // set gain factors so that more curvature occurs near the tip of the spline.
         const float HIPS_GAIN = 0.5f;
         const float HEAD_GAIN = 1.0f;
@@ -268,7 +325,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTar
 
             // for head splines, preform most twist toward the tip by using ease in function. t^2
             float rotT = t;
-            if (target.getIndex() == _headIndex) {
+            if (target.getIndex() == _tipJointIndex) {
                 rotT = t * t;
             }
             glm::quat twistRot = safeLerp(basePose.rot(), tipPose.rot(), rotT);
@@ -290,7 +347,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTar
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
 
             bool constrained = false;
-            if (splineJointInfo.jointIndex != _hipsIndex) {
+            if (splineJointInfo.jointIndex != _baseJointIndex) {
                 // constrain the amount the spine can stretch or compress
                 float length = glm::length(relPose.trans());
                 const float EPSILON = 0.0001f;
@@ -350,15 +407,15 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
     // build spline between the default poses.
     AnimPose tipPose = _skeleton->getAbsoluteDefaultPose(target.getIndex());
     AnimPose basePose;
-    if (target.getIndex() == _headIndex) {
-        basePose = _skeleton->getAbsoluteDefaultPose(_hipsIndex);
-        //basePose = _skeleton->getAbsoluteDefaultPose(_spine2Index);
+    if (target.getIndex() == _tipJointIndex) {
+        basePose = _skeleton->getAbsoluteDefaultPose(_baseJointIndex);
+        //basePose = _skeleton->getAbsoluteDefaultPose(_secondaryTargetIndex);
     } else {
-        basePose = _skeleton->getAbsoluteDefaultPose(_hipsIndex);
+        basePose = _skeleton->getAbsoluteDefaultPose(_baseJointIndex);
     }
 
     CubicHermiteSplineFunctorWithArcLength spline;
-    if (target.getIndex() == _headIndex) {
+    if (target.getIndex() == _tipJointIndex) {
         // set gain factors so that more curvature occurs near the tip of the spline.
         const float HIPS_GAIN = 0.5f;
         const float HEAD_GAIN = 1.0f;
@@ -377,11 +434,11 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
 
     int index = target.getIndex();
     int endIndex;
-    if (target.getIndex() == _headIndex) {
-        endIndex = _skeleton->getParentIndex(_spine2Index);
-        // endIndex = _skeleton->getParentIndex(_hipsIndex);
+    if (target.getIndex() == _tipJointIndex) {
+        //endIndex = _skeleton->getParentIndex(_secondaryTargetIndex);
+        endIndex = _skeleton->getParentIndex(_baseJointIndex);
     } else {
-        endIndex = _skeleton->getParentIndex(_hipsIndex);
+        endIndex = _skeleton->getParentIndex(_baseJointIndex);
     }
     while (index != endIndex) {
         AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
@@ -410,11 +467,34 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
     _splineJointInfoMap[target.getIndex()] = splineJointInfoVec;
 }
 
-void AnimSplineIK ::loadPoses(const AnimPoseVec& poses) {
+void AnimSplineIK::loadPoses(const AnimPoseVec& poses) {
     assert(_skeleton && ((poses.size() == 0) || (_skeleton->getNumJoints() == (int)poses.size())));
     if (_skeleton->getNumJoints() == (int)poses.size()) {
         _poses = poses;
     } else {
         _poses.clear();
     }
+}
+
+
+void AnimSplineIK::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
+    const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients,
+    const QString& poleVectorEnabledVar, const QString& poleReferenceVectorVar, const QString& poleVectorVar) {
+  /*
+    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients, poleVectorEnabledVar, poleReferenceVectorVar, poleVectorVar);
+
+    // if there are dups, last one wins.
+    bool found = false;
+    for (auto& targetVarIter : _targetVarVec) {
+        if (targetVarIter.jointName == jointName) {
+            targetVarIter = targetVar;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        // create a new entry
+        _targetVarVec.push_back(targetVar);
+    }
+    */
 }
