@@ -134,13 +134,6 @@ void Web3DOverlay::destroyWebSurface() {
 
     QQuickItem* rootItem = _webSurface->getRootItem();
 
-    if (rootItem && rootItem->objectName() == "tabletRoot") {
-        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        if (tabletScriptingInterface) {
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
-        }
-    }
-
     // Fix for crash in QtWebEngineCore when rapidly switching domains
     // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
     if (rootItem) {

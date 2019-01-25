@@ -5,12 +5,21 @@ DOCKER_IMAGE_NAME="hifi_androidbuild"
 
 docker build --build-arg BUILD_UID=`id -u` -t "${DOCKER_IMAGE_NAME}" -f docker/Dockerfile docker
 
+# The Jenkins PR builds use VERSION_CODE, but the release builds use VERSION
+# So make sure we use VERSION_CODE consistently
+if [-z "$VERSION_CODE"]; then
+   export VERSION_CODE=$VERSION
+fi
+
 docker run \
    --rm \
-    --security-opt seccomp:unconfined \
+   --security-opt seccomp:unconfined \
    -v "${WORKSPACE}":/home/jenkins/hifi \
+   -v /home/jenkins/.gradle:/home/jenkins/.gradle \
    -e RELEASE_NUMBER \
    -e RELEASE_TYPE \
+   -e ANDROID_APP \
+   -e ANDROID_APK_NAME \
    -e ANDROID_BUILD_TARGET \
    -e ANDROID_BUILD_DIR \
    -e CMAKE_BACKTRACE_URL \

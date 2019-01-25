@@ -82,15 +82,18 @@ private:
         }
 
 #ifdef OCULUS_APP_ID
-        if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
-            if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
-                qCWarning(oculusLog) << "Unable to initialize the platform for entitlement check - fail the check" << ovr::getError();
-                return;
-            } else {
-                qCDebug(oculusLog) << "Performing Oculus Platform entitlement check";
-                ovr_Entitlement_GetIsViewerEntitled();
+        static std::once_flag once;
+        std::call_once(once, []() {
+            if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
+                if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
+                    qCWarning(oculusLog) << "Unable to initialize the platform for entitlement check - fail the check" << ovr::getError();
+                    return;
+                } else {
+                    qCDebug(oculusLog) << "Performing Oculus Platform entitlement check";
+                    ovr_Entitlement_GetIsViewerEntitled();
+                }
             }
-        }
+        });
 #endif
 
         ovrGraphicsLuid luid;

@@ -253,6 +253,9 @@ class MyAvatar : public Avatar {
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
 
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
+
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -293,6 +296,8 @@ public:
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
+
+    void setCollisionWithOtherAvatarsFlags() override;
 
     /**jsdoc
      * @function MyAvatar.resetSensorsAndBody
@@ -1213,6 +1218,7 @@ public:
     void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
     void avatarEntityDataToJson(QJsonObject& root) const override;
+    int sendAvatarDataPacket(bool sendAll = false) override;
 
 public slots:
 
@@ -1728,7 +1734,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    int32_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
+    int32_t _previousCollisionMask { BULLET_COLLISION_MASK_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -1936,6 +1942,8 @@ private:
     int _disableHandTouchCount { 0 };
     bool _skeletonModelLoaded { false };
     bool _reloadAvatarEntityDataFromSettings { true };
+
+    TimePoint _nextTraitsSendWindow;
 
     Setting::Handle<QString> _dominantHandSetting;
     Setting::Handle<float> _headPitchSetting;

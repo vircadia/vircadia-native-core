@@ -109,7 +109,7 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    void setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning);
+    void setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning);
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;

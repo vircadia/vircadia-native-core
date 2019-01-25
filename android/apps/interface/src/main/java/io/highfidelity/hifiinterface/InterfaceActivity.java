@@ -61,7 +61,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private HeadsetStateReceiver headsetStateReceiver;
 
     //public static native void handleHifiURL(String hifiURLString);
-    private native long nativeOnCreate(InterfaceActivity instance, AssetManager assetManager);
+    private native void nativeOnCreate(AssetManager assetManager);
     private native void nativeOnDestroy();
     private native void nativeGotoUrl(String url);
     private native void nativeGoToUser(String username);
@@ -114,7 +114,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         assetManager = getResources().getAssets();
 
         //nativeGvrApi =
-            nativeOnCreate(this, assetManager /*, gvrApi.getNativeGvrContext()*/);
+            nativeOnCreate(assetManager /*, gvrApi.getNativeGvrContext()*/);
 
         final View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 

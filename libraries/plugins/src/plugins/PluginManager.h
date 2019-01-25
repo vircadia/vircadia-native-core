@@ -13,8 +13,7 @@
 
 #include "Forward.h"
 
-
-class PluginManager;
+class QPluginLoader;
 using PluginManagerPointer = QSharedPointer<PluginManager>;
 
 class PluginManager : public QObject, public Dependency {
@@ -48,6 +47,9 @@ public:
     void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
     QStringList getRunningInputDeviceNames() const;
 
+    using PluginFilter = std::function<bool(const QJsonObject&)>;
+    void setPluginFilter(PluginFilter pluginFilter) { _pluginFilter = pluginFilter; }
+
 signals:
     void inputDeviceRunningChanged(const QString& pluginName, bool isRunning, const QStringList& runningDevices);
     
@@ -61,6 +63,12 @@ private:
     PluginContainer* _container { nullptr };
     DisplayPluginList _displayPlugins;
     InputPluginList _inputPlugins;
+    PluginFilter _pluginFilter { [](const QJsonObject&) { return true; } };
+
+    using Loader = QSharedPointer<QPluginLoader>;
+    using LoaderList = QList<Loader>;
+
+    const LoaderList& getLoadedPlugins() const;
 };
 
 // TODO: we should define this value in CMake, and then use CMake
