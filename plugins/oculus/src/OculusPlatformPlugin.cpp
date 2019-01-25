@@ -62,11 +62,9 @@ void OculusAPIPlugin::handleOVREvents() {
                         ovrUserHandle user = ovr_Message_GetUser(message);
                         _user = ovr_User_GetOculusID(user);
                         // went all the way through the `requestNonceAndUserID()` pipeline successfully.
-                        _nonceChanged = true;
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform user retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
                         // emit the signal so we don't hang for it anywhere else.
-                        _nonceChanged = true;
                         _user = "";
                     }
                     break;
@@ -79,8 +77,8 @@ void OculusAPIPlugin::handleOVREvents() {
                     } else {
                         qCDebug(oculusLog) << "Oculus Platform user ID retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
                         // emit the signal so we don't hang for it anywhere else.
-                        _nonceChanged = true;
                     }
+                    _userIDChanged = true;
                     break;
                 }
                 case ovrMessage_User_GetUserProof: {
@@ -92,15 +90,15 @@ void OculusAPIPlugin::handleOVREvents() {
                         qCDebug(oculusLog) << "Oculus Platform nonce retrieval failed" << QString(ovr_Error_GetMessage(ovr_Message_GetError(message)));
                         _nonce = "";
                         // emit the signal so we don't hang for it anywhere else.
-                        _nonceChanged = true;
                     }
+                    _nonceChanged = true;
                     break;
                 }
             }
 
-            if (_nonceChanged) {
+            if (_nonceChanged && _userIDChanged) {
                 _nonceUserIDCallback(_nonce, QString::number(_userID));
-                _nonceChanged = false;
+                _nonceChanged = _userIDChanged = false;
             }
 
             // free the message handle to cleanup and not leak

@@ -305,36 +305,28 @@ void LoginDialog::createFailed(QNetworkReply* reply) {
             return;
         }
         auto root = doc.object();
-        auto data = root["data"].toObject();
-        auto error = data["error"].toObject();
+        auto data = root["data"];
+        auto error = data["error"];
         auto oculusError = data["oculus"];
         auto user = error["username"].toArray();
         auto uid = error["uid"].toArray();
         auto email = error["email"].toArray();
         auto password = error["password"].toArray();
         QString reply;
-        if (!uid.isEmpty()) {
-            if (uid[0].isString()) {
-                emit handleCreateFailed("Oculus ID " + uid[0].toString() + ".");
-                return;
-            }
+        if (uid[0].isString()) {
+            emit handleCreateFailed("Oculus ID " + uid[0].toString() + ".");
+            return;
         }
-        if (!user.isEmpty()) {
-            if (user[0].isString()) {
-                reply = "Username " + user[0].toString() + ".";
-            }
+        if (user[0].isString()) {
+            reply = "Username " + user[0].toString() + ".";
         }
-        if (!email.isEmpty()) {
-            if (email[0].isString()) {
-                reply.append((!reply.isEmpty()) ? "\n" : "");
-                reply.append("Email " + email[0].toString() + ".");
-            }
+        if (email[0].isString()) {
+            reply.append((!reply.isEmpty()) ? "\n" : "");
+            reply.append("Email " + email[0].toString() + ".");
         }
-        if (!password.isEmpty()) {
-            if (password[0].isString()) {
-                reply.append((!reply.isEmpty()) ? "\n" : "");
-                reply.append("Password " + password[0].toString() + ".");
-            }
+        if (password[0].isString()) {
+            reply.append((!reply.isEmpty()) ? "\n" : "");
+            reply.append("Password " + password[0].toString() + ".");
         }
         if (!oculusError.isNull() && !oculusError.isUndefined()) {
             emit handleCreateFailed("Could not verify token with Oculus. Please try again.");
