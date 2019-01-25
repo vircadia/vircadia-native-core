@@ -18,6 +18,8 @@ void GrabManager::simulateGrabs() {
     // Update grabbed objects
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
     auto entityTree = entityTreeRenderer->getTree();
+    auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
+    EntityEditPacketSender* packetSender = entityTreeRenderer ? entityTreeRenderer->getPacketSender() : nullptr;
     entityTree->withReadLock([&] {
         PROFILE_RANGE(simulation, "Grabs");
 
@@ -33,6 +35,8 @@ void GrabManager::simulateGrabs() {
                 glm::vec3 finalPosition = acc.finalizePosition();
                 glm::quat finalOrientation = acc.finalizeOrientation();
                 grabbedThing->setTransform(createMatFromQuatAndPos(finalOrientation, finalPosition));
+                bool iShouldTellServer = grabbedThing->getEditSenderID() == sessionID;
+                entityTree->updateEntityQueryAACube(grabbedThing, packetSender, false, iShouldTellServer);
             }
         }
     });

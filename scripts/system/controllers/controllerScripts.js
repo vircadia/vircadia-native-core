@@ -32,21 +32,12 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",
     "controllerModules/nearGrabHyperLinkEntity.js",
-    "controllerModules/nearTabletHighlight.js"
+    "controllerModules/nearTabletHighlight.js",
+    "controllerModules/nearGrabEntity.js",
+    "controllerModules/farGrabEntity.js"
 ];
 
-if (Settings.getValue("useTraitsGrab", true)) {
-    CONTOLLER_SCRIPTS.push("controllerModules/nearGrabEntity.js");
-    CONTOLLER_SCRIPTS.push("controllerModules/farGrabEntity.js");
-} else {
-    CONTOLLER_SCRIPTS.push("controllerModules/nearParentGrabEntity.js");
-    CONTOLLER_SCRIPTS.push("controllerModules/nearActionGrabEntity.js");
-    CONTOLLER_SCRIPTS.push("controllerModules/farActionGrabEntityDynOnly.js");
-    CONTOLLER_SCRIPTS.push("controllerModules/farParentGrabEntity.js");
-}
-
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
-
 
 function runDefaultsTogether() {
     for (var j in CONTOLLER_SCRIPTS) {

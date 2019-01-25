@@ -173,7 +173,7 @@ public:
     }
     
 protected:
-    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(getTagMask()); }
+    virtual ItemKey getKey() override { return ItemKey::Builder::opaqueShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()); }
     virtual ShapeKey getShapeKey() override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;

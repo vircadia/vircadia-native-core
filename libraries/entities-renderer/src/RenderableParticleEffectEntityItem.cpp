@@ -159,14 +159,18 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
     if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(getTagMask());
+        return ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     } else {
-        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).build();
+        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()).build();
     }
 }
 
 ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
+    auto builder = ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 Item::Bound ParticleEffectEntityRenderer::getBound() {

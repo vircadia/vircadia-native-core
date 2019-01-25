@@ -342,7 +342,7 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
     _itemKey = builder.build();
 }
 
-void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {
+void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning) {
     if (invalidateShapeKey) {
         _shapeKey = ShapeKey::Builder::invalid();
         return;
@@ -359,6 +359,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isDeformed = _isBlendShaped || _isSkinned;
+    bool isWireframe = primitiveMode == PrimitiveMode::LINES;
 
     if (isWireframe) {
         isTranslucent = hasTangents = hasLightmap = false;
