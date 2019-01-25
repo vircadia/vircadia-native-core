@@ -39,6 +39,14 @@
     "leftMargin": {
         "tooltip": "The left margin, in meters."
     },
+    "zoneShapeType": {
+        "tooltip": "The shape of the volume in which the zone's lighting effects and avatar permissions have effect.",
+        "jsPropertyName": "shapeType"
+    },
+    "zoneCompoundShapeURL": {
+        "tooltip": "The model file to use for the compound shape if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
+    },
     "flyingAllowed": {
         "tooltip": "If enabled, users can fly in the zone."
     },
@@ -133,7 +141,7 @@
         "tooltip": "The shape of the collision hull used if collisions are enabled. This affects how an entity collides."
     },
     "compoundShapeURL": {
-        "tooltip": "The OBJ file to use for the compound shape if Collision Shape is \"compound\"."
+        "tooltip": "The model file to use for the compound shape if Collision Shape is \"Compound\"."
     },
     "animation.url": {
         "tooltip": "An animation to play on the model."

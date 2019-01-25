@@ -962,7 +962,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
  *
  * @property {ShapeType} shapeType="none" - The shape of the collision hull used if collisions are enabled.
- * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is
+ * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is
  *     <code>"compound"</code>.
  *
  * @property {Entities.AnimationProperties} animation - An animation to play on the model.
@@ -1302,7 +1302,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {ShapeType} shapeType="box" - The shape of the volume in which the zone's lighting effects and avatar 
  *     permissions have effect. Reverts to the default value if set to <code>"none"</code>, or set to <code>"compound"</code> 
  *     and <code>compoundShapeURL</code> is <code>""</code>.
-  * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is 
+  * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is 
  *     <code>"compound"</code>.
  *
  * @property {string} keyLightMode="inherit" - Configures the key light in the zone. Possible values:<br />
