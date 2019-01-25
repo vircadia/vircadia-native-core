@@ -30,6 +30,8 @@ Item {
     property bool withOculus: withOculus
     property bool linkSteam: linkSteam
 
+    readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
+
     QtObject {
         id: d
         readonly property int minWidth: 480
@@ -62,8 +64,12 @@ Item {
         running: false;
         repeat: false;
         onTriggered: {
-            if (loginDialog.getLoginDialogPoppedUp()) {
+            if (loggingInBody.loginDialogPoppedUp) {
                 loginDialog.dismissLoginDialog();
+                var data = {
+                    "action": "user logged in successfully"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
             }
             root.tryDestroy();
         }
@@ -107,6 +113,12 @@ Item {
             loggingInText.x = 0;
             loggingInText.anchors.centerIn = loggingInHeader;
             loggedInGlyph.visible = true;
+            if (loggingInBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user logged in with Steam successfully"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
         } else if (loggingInBody.withOculus) {
             // reset the flag.
             loggingInGlyph.visible = false;
@@ -115,8 +127,21 @@ Item {
             loggingInText.anchors.centerIn = loggingInHeader;
             loggedInGlyph.text = hifi.glyphs.oculus;
             loggedInGlyph.visible = true;
+            if (loggingInBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user logged in with Oculus successfully"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
         } else {
             loggingInText.text = "You are now logged in!";
+            if (loggingInBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user logged in successfully"
+                };
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
+
         }
         successTimer.start();
     }
@@ -234,11 +259,28 @@ Item {
         target: loginDialog
         onHandleLinkCompleted: {
             console.log("Link Succeeded");
-            loggingInBody.linkSteam = false;
-            loggingInBody.loadingSuccess();
+            if (loggingInBody.linkSteam) {
+                loggingInBody.linkSteam = false;
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user linked Steam with their hifi account credentials successfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+
+                loggingInBody.loadingSuccess();
+            }
         }
         onHandleLinkFailed: {
             console.log("Link Failed: " + error);
+            if (loggingInBody.linkSteam) {
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user linked Steam unsuccessfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+            }
             bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": true, "errorString": error });
         }
 
@@ -253,18 +295,43 @@ Item {
             var errorString = "";
             if (loggingInBody.linkSteam && loggingInBody.withSteam) {
                 errorString = "Username or password is incorrect.";
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user failed to link Steam with their hifi account credentials"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
                 bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "linkSteam": loggingInBody.linkSteam, "errorString": errorString });
             } else if (loggingInBody.withSteam) {
                 loggingInGlyph.visible = false;
                 errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user failed to authenticate with Steam to log in"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
                 bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "errorString": errorString });
             } else if (loggingInBody.withOculus) {
                 loggingInGlyph.visible = false;
                 errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user failed to authenticate with Oculus to log in"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
                 bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
             }
             else {
                 errorString = "Username or password is incorrect.";
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user failed at logging in"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+
                 bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
             }
         }

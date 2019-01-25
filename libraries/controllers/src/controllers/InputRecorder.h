@@ -45,6 +45,7 @@ namespace controller {
         void setActionState(const QString& action, float value);
         void setActionState(const QString& action, const controller::Pose& pose);
         float getActionState(const QString&  action);
+        ActionStates getActionstates();
         controller::Pose getPoseState(const QString& action);
         QString getSaveDirectory();
         void frameTick();

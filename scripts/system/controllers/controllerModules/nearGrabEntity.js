@@ -8,9 +8,10 @@
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, getControllerJointIndex, enableDispatcherModule,
    disableDispatcherModule, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE,
-   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGroupParent, Vec3, cloneEntity,
-   entityIsCloneable, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE, distanceBetweenPointAndEntityBoundingBox,
-   getGrabbableData, getEnabledModuleByName, DISPATCHER_PROPERTIES, HMD, NEAR_GRAB_DISTANCE
+   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS, findGrabbableGroupParent, Vec3,
+   cloneEntity, entityIsCloneable, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, BUMPER_ON_VALUE,
+   distanceBetweenPointAndEntityBoundingBox, getGrabbableData, getEnabledModuleByName, DISPATCHER_PROPERTIES, HMD,
+   NEAR_GRAB_DISTANCE
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -80,9 +81,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.endNearGrabEntity = function () {
             this.endGrab();
 
-            this.grabbing = false;
-            this.targetEntityID = null;
-
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
@@ -90,6 +88,9 @@ Script.include("/~/system/libraries/controllers.js");
                 grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
+
+            this.grabbing = false;
+            this.targetEntityID = null;
         };
 
         this.getTargetProps = function (controllerData) {
@@ -110,7 +111,7 @@ Script.include("/~/system/libraries/controllers.js");
                 if (entityIsGrabbable(props) || entityIsCloneable(props)) {
                     if (!entityIsCloneable(props)) {
                         // if we've attempted to grab a non-cloneable child, roll up to the root of the tree
-                        var groupRootProps = findGroupParent(controllerData, props);
+                        var groupRootProps = findGrabbableGroupParent(controllerData, props);
                         if (entityIsGrabbable(groupRootProps)) {
                             return groupRootProps;
                         }

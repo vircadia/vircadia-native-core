@@ -1,1 +1,5 @@
-include ':app'
+include ':qt'
+project(':qt').projectDir = new File(settingsDir, 'libraries/qt')
+
+include ':interface'
+project(':interface').projectDir = new File(settingsDir, 'apps/interface')

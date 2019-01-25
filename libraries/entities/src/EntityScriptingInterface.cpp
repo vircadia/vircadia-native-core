@@ -986,7 +986,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                     shouldSendDeleteToServer = false;
                 } else {
                     // only delete local entities, server entities will round trip through the server filters
-                    if (entity->isAvatarEntity() || _entityTree->isServerlessMode()) {
+                    if (!entity->isDomainEntity() || _entityTree->isServerlessMode()) {
                         shouldSendDeleteToServer = false;
                         _entityTree->deleteEntity(entityID);
 

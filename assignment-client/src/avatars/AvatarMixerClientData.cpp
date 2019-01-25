@@ -157,7 +157,7 @@ void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,
                     if (traitSize == AvatarTraits::DELETED_TRAIT_SIZE) {
                         _avatar->processDeletedTraitInstance(traitType, instanceID);
                         // Mixer doesn't need deleted IDs.
-                        _avatar->getAndClearRecentlyDetachedIDs();
+                        _avatar->getAndClearRecentlyRemovedIDs();
 
                         // to track a deleted instance but keep version information
                         // the avatar mixer uses the negative value of the sent version
@@ -207,8 +207,10 @@ void AvatarMixerClientData::processBulkAvatarTraitsAckMessage(ReceivedMessage& m
             // process simple traits
             auto simpleReceivedIt = traitVersions.simpleCBegin();
             while (simpleReceivedIt != traitVersions.simpleCEnd()) {
-                auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
-                _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+                if (*simpleReceivedIt != AvatarTraits::DEFAULT_TRAIT_VERSION) {
+                    auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitVersions.simpleCBegin(), simpleReceivedIt));
+                    _perNodeAckedTraitVersions[nodeId][traitType] = *simpleReceivedIt;
+                }
                 simpleReceivedIt++;
             }
 
@@ -341,6 +343,10 @@ void AvatarMixerClientData::removeFromRadiusIgnoringSet(const QUuid& other) {
 void AvatarMixerClientData::resetSentTraitData(Node::LocalID nodeLocalID) {
     _lastSentTraitsTimestamps[nodeLocalID] = TraitsCheckTimestamp();
     _perNodeSentTraitVersions[nodeLocalID].reset();
+    _perNodeAckedTraitVersions[nodeLocalID].reset();
+    for (auto && pendingTraitVersions : _perNodePendingTraitVersions) {
+        pendingTraitVersions.second[nodeLocalID].reset();
+    }
 }
 
 void AvatarMixerClientData::readViewFrustumPacket(const QByteArray& message) {

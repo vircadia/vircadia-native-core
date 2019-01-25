@@ -55,7 +55,8 @@ FocusScope {
     Image {
         z: -10
         id: loginDialogBackground
-        source: "LoginDialog/images/background.jpg"
+        fillMode: Image.PreserveAspectCrop
+        source: "LoginDialog/images/background.png"
         anchors.fill: parent
     }
 

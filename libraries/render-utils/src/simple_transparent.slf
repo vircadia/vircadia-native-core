@@ -92,22 +92,22 @@ void main(void) {
     emissive = vec3(clamp(emissiveAmount, 0.0, 1.0));
 #elif defined(PROCEDURAL_V3) || defined(PROCEDURAL_V4)
 #if defined(PROCEDURAL_V3)
-    ProceduralFragment proceduralData = {
+    ProceduralFragment proceduralData = ProceduralFragment(
 #else
     vec4 position = cam._viewInverse * _positionES;
-    ProceduralFragmentWithPosition proceduralData = {
+    ProceduralFragmentWithPosition proceduralData = ProceduralFragmentWithPosition(
         position.xyz,
 #endif
         normal,
-        vec3(0.0),
-        DEFAULT_SPECULAR,
-        DEFAULT_EMISSIVE,
-        1.0,
-        DEFAULT_ROUGHNESS,
-        DEFAULT_METALLIC,
-        DEFAULT_OCCLUSION,
+        diffuse,
+        fresnel,
+        emissive,
+        alpha,
+        roughness,
+        metallic,
+        occlusion,
         DEFAULT_SCATTERING
-    };
+    );
 
 #if defined(PROCEDURAL_V3)
     emissiveAmount = getProceduralFragment(proceduralData);
