@@ -205,12 +205,12 @@ MyAvatar::MyAvatar(QThread* thread) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
-            _previousCollisionGroup = _characterController.computeCollisionGroup();
+            _previousCollisionMask = _characterController.computeCollisionMask();
             _characterController.setCollisionless(true);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
-            if (_previousCollisionGroup != BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            if (_previousCollisionMask != BULLET_COLLISION_MASK_COLLISIONLESS) {
                 _characterController.setCollisionless(false);
             }
         }
@@ -2534,7 +2534,7 @@ void MyAvatar::updateMotors() {
     float verticalMotorTimescale;
 
     if (_characterController.getState() == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
     } else {
@@ -2544,7 +2544,7 @@ void MyAvatar::updateMotors() {
 
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
-                _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
             motorRotation = getMyHead()->getHeadOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
@@ -2599,7 +2599,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
         qDebug() << "Warning: getParentVelocity failed" << getID();
         parentVelocity = glm::vec3();
     }
-    _characterController.handleChangedCollisionGroup();
+    _characterController.handleChangedCollisionMask();
     _characterController.setParentVelocity(parentVelocity);
     _characterController.setScaleFactor(getSensorToWorldScale());
 
@@ -3279,7 +3279,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
     } else {
         head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
             + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
     }
@@ -3325,7 +3325,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     glm::vec3 direction = forward + right;
     if (state == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
@@ -3881,7 +3881,7 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
 bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
-    return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+    return _characterController.computeCollisionMask() != BULLET_COLLISION_MASK_COLLISIONLESS;
 }
 
 void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
@@ -3890,12 +3890,21 @@ void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
         QMetaObject::invokeMethod(this, "setOtherAvatarsCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
+    bool change = _collideWithOtherAvatars != enabled;
     _collideWithOtherAvatars = enabled;
+    if (change) {
+        setCollisionWithOtherAvatarsFlags();
+    }
     emit otherAvatarsCollisionsEnabledChanged(enabled);
 }
 
 bool MyAvatar::getOtherAvatarsCollisionsEnabled() {
     return _collideWithOtherAvatars;
+}
+
+void MyAvatar::setCollisionWithOtherAvatarsFlags() {
+    _characterController.setCollideWithOtherAvatars(_collideWithOtherAvatars);
+    _characterController.setPendingFlagsUpdateCollisionMask();
 }
 
 void MyAvatar::updateCollisionCapsuleCache() {

@@ -42,6 +42,12 @@ public:
 
     void setDensity(btScalar density) { _density = density; }
 
+    int32_t computeCollisionMask() const override;
+    void handleChangedCollisionMask() override;
+
+    bool _collideWithOtherAvatars{ true };
+    void setCollideWithOtherAvatars(bool collideWithOtherAvatars) { _collideWithOtherAvatars = collideWithOtherAvatars; }
+
 protected:
     void initRayShotgun(const btCollisionWorld* world);
     void updateMassProperties() override;
