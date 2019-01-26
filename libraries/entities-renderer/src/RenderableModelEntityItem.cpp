@@ -1074,10 +1074,16 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 }
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
+    auto builder = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (_model && _model->isGroupCulled()) {
+        builder.withMetaCullGroup();
+    }
+
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask());
+        _itemKey = builder.build();
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask());
+        _itemKey = builder.withTypeShape().build();
     }
 }
 
@@ -1295,6 +1301,10 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {
             return true;
         }
+
+        if (model->isGroupCulled() != entity->getGroupCulled()) {
+            return true;
+        }
     }
 
     return false;
@@ -1351,6 +1361,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
+            _model->setTagMask(getTagMask());
+            _model->setHifiRenderLayer(getHifiRenderLayer());
             emit requestRenderUpdate();
             if(didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
@@ -1438,6 +1450,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     }
 
     {
+        bool groupCulled = entity->getGroupCulled();
+        if (model->isGroupCulled() != groupCulled) {
+            model->setGroupCulled(groupCulled);
+            setKey(_didLastVisualGeometryRequestSucceed);
+        }
+    }
+
+    {
         DETAILED_PROFILE_RANGE(simulation_physics, "Fixup");
         if (model->needsFixupInScene()) {
             model->removeFromScene(scene, transaction);
@@ -1494,6 +1514,24 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {
     Parent::setIsVisibleInSecondaryCamera(value);
     setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setTagMask(getTagMask());
+    }
+}
+
+void ModelEntityRenderer::setRenderLayer(RenderLayer value) {
+    Parent::setRenderLayer(value);
+    setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setHifiRenderLayer(getHifiRenderLayer());
+    }
+}
+
+void ModelEntityRenderer::setPrimitiveMode(PrimitiveMode value) {
+    Parent::setPrimitiveMode(value);
+    if (_model) {
+        _model->setPrimitiveMode(_primitiveMode);
+    }
 }
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items

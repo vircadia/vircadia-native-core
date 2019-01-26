@@ -2707,7 +2707,6 @@ void convertGrabUserDataToProperties(EntityItemProperties& properties) {
 bool EntityTree::readFromMap(QVariantMap& map) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
-    bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
 
     if (map.contains("Id")) {
         _persistID = map["Id"].toUuid();
@@ -2782,7 +2781,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         // Fix for older content not containing mode fields in the zones
-        if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+        if (contentVersion < (int)EntityVersion::ZoneLightInheritModes && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The legacy version had no keylight mode - this is set to on
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
 

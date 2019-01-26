@@ -14,10 +14,10 @@ const char* billboardModeNames[] = {
     "full"
 };
 
-static const size_t MATERIAL_MODE_NAMES = (sizeof(billboardModeNames) / sizeof((billboardModeNames)[0]));
+static const size_t BILLBOARD_MODE_NAMES = (sizeof(billboardModeNames) / sizeof(billboardModeNames[0]));
 
 QString BillboardModeHelpers::getNameForBillboardMode(BillboardMode mode) {
-    if (((int)mode <= 0) || ((int)mode >= (int)MATERIAL_MODE_NAMES)) {
+    if (((int)mode <= 0) || ((int)mode >= (int)BILLBOARD_MODE_NAMES)) {
         mode = (BillboardMode)0;
     }
 
