@@ -1314,7 +1314,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = fbxModel.name;
         if (hfmModel.hfmToHifiJointNameMapping.contains(hfmModel.hfmToHifiJointNameMapping.key(joint.name))) {
-           // qCDebug(modelformat) << "joint name " << joint.name << " hifi name " << hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
             joint.name = hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
         }
 

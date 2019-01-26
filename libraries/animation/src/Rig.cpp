@@ -1468,7 +1468,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         // need this for two bone ik
         _animVars.set(LEFT_HAND_IK_POSITION_VAR, MAIN_STATE_MACHINE_LEFT_HAND_POSITION);
         _animVars.set(LEFT_HAND_IK_ROTATION_VAR, MAIN_STATE_MACHINE_LEFT_HAND_ROTATION);
-        
+
         _animVars.set("leftHandPoleVectorEnabled", false);
         _animVars.unset("leftHandPosition");
         _animVars.unset("leftHandRotation");

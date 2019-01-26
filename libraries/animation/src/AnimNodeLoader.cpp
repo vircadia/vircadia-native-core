@@ -601,9 +601,9 @@ static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QStr
 
     auto node = std::make_shared<AnimSplineIK>(id, alpha, enabled, interpDuration,
         baseJointName, tipJointName,
-        alphaVar, enabledVar, endEffectorRotationVarVar, endEffectorPositionVarVar, 
-        basePositionVar, baseRotationVar, 
-        tipPositionVar, tipRotationVar, secondaryTargetJointName, secondaryTargetPositionVar, 
+        alphaVar, enabledVar, endEffectorRotationVarVar, endEffectorPositionVarVar,
+        basePositionVar, baseRotationVar,
+        tipPositionVar, tipRotationVar, secondaryTargetJointName, secondaryTargetPositionVar,
         secondaryTargetRotationVar, primaryFlexCoefficients, secondaryFlexCoefficients);
     return node;
 }

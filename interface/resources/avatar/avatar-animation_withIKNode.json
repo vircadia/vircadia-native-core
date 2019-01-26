@@ -194,8 +194,8 @@
                                                                                     "enabledVar": "splineIKEnabled",
                                                                                     "endEffectorRotationVarVar": "splineIKRotationVar",
                                                                                     "endEffectorPositionVarVar": "splineIKPositionVar",
-                                                                                    "primaryFlexCoefficients": "1, 0.5, 0.25, 0.2, 0.1",
-                                                                                    "secondaryFlexCoefficients": "1.0, 0.5, 0.25"
+                                                                                    "primaryFlexCoefficients": "1.0, 1.0, 1.0, 1.0, 1.0",
+                                                                                    "secondaryFlexCoefficients": "1.0, 1.0, 1.0"
                                                                                 },
                                                                                 "children": [
                                                                                     {
