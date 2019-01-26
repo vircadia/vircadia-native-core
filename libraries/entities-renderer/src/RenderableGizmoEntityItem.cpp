@@ -279,10 +279,10 @@ void GizmoEntityRenderer::doRender(RenderArgs* args) {
         // Ticks
         if (hasTickMarks) {
             if (tickProperties.x > 0.0f && tickProperties.y != 0.0f) {
-                geometryCache->renderVertices(batch, gpu::LINE_STRIP, _majorTicksGeometryID);
+                geometryCache->renderVertices(batch, gpu::LINES, _majorTicksGeometryID);
             }
             if (tickProperties.z > 0.0f && tickProperties.w != 0.0f) {
-                geometryCache->renderVertices(batch, gpu::LINE_STRIP, _minorTicksGeometryID);
+                geometryCache->renderVertices(batch, gpu::LINES, _minorTicksGeometryID);
             }
         }
     }

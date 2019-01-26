@@ -579,9 +579,9 @@ QUuid EntityScriptingInterface::cloneEntity(const QUuid& entityIDToClone) {
 
     if (properties.getEntityHostType() == entity::HostType::LOCAL) {
         // Local entities are only cloned locally
-        return addEntity(properties, "local");
+        return addEntity(properties, QString("local"));
     } else if (cloneAvatarEntity) {
-        return addEntity(properties, "avatar");
+        return addEntity(properties, QString("avatar"));
     } else {
         // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
         // from the server-created entity, don't change this unless you know what you are doing

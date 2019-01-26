@@ -361,7 +361,6 @@ void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
     if (_inputMode == WebInputMode::MOUSE) {
         handlePointerEvent(event);
     } else if (_webSurface) {
-        qDebug() << "boop5" << this << _webSurface << _webSurface->getRootItem();
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
         _webSurface->hoverBeginEvent(webEvent, _touchDevice);

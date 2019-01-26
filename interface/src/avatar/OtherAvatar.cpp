@@ -84,7 +84,7 @@ void OtherAvatar::createOrb() {
         properties.setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
         properties.setVisible(true);
 
-        _otherAvatarOrbMeshPlaceholderID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, "local");
+        _otherAvatarOrbMeshPlaceholderID = DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, QString("local"));
     }
 }
 

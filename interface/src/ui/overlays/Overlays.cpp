@@ -52,7 +52,7 @@ Overlays::Overlays() {
 
     ADD_TYPE_MAP(Box, cube);
     ADD_TYPE_MAP(Sphere, sphere);
-    _overlayToEntityTypes["rectangle"] = "Shape";
+    _overlayToEntityTypes["rectangle3d"] = "Shape";
     ADD_TYPE_MAP(Shape, shape);
     ADD_TYPE_MAP(Model, model);
     ADD_TYPE_MAP(Text, text3d);
@@ -172,8 +172,7 @@ QString Overlays::overlayToEntityType(const QString& type) {
 
 #define SET_OVERLAY_PROP_DEFAULT(o, d)                                                   \
     {                                                                                    \
-        auto iter = overlayProps.find(#o);                                               \
-        if (iter == overlayProps.end()) {                                                \
+        if (add && !overlayProps.contains(#o)) {                                         \
             overlayProps[#o] = d;                                                        \
         }                                                                                \
     }
@@ -190,11 +189,12 @@ QString Overlays::overlayToEntityType(const QString& type) {
     {                                                                                                \
         auto iter = overlayProps.find(#o);                                                           \
         if (iter != overlayProps.end()) {                                                            \
-            auto iter2 = overlayProps.find(#g);                                                      \
-            if (iter2 == overlayProps.end()) {                                                       \
+            if (!overlayProps.contains(#g)) {                                                       \
                 overlayProps[#g] = QVariantMap();                                                    \
             }                                                                                        \
-            overlayProps[#g].toMap()[#e] = iter.value();                                             \
+            auto map = overlayProps[#g].toMap();                                                     \
+            map[#e] = iter.value();                                                                  \
+            overlayProps[#g] = map;                                                                  \
         }                                                                                            \
     }
 
@@ -202,17 +202,19 @@ QString Overlays::overlayToEntityType(const QString& type) {
     {                                                                                                \
         auto iter = overlayProps.find(#o);                                                           \
         if (iter != overlayProps.end()) {                                                            \
-            auto iter2 = overlayProps.find(#g);                                                      \
-            if (iter2 == overlayProps.end()) {                                                       \
+            if (!overlayProps.contains(#g)) {                                                        \
                 overlayProps[#g] = QVariantMap();                                                    \
             }                                                                                        \
-            overlayProps[#g].toMap()[#e] = iter.value();                                             \
-        } else {                                                                                     \
-            auto iter2 = overlayProps.find(#g);                                                      \
-            if (iter2 == overlayProps.end()) {                                                       \
+            auto map = overlayProps[#g].toMap();                                                     \
+            map[#e] = iter.value();                                                                  \
+            overlayProps[#g] = map;                                                                  \
+        } else if (add) {                                                                            \
+            if (!overlayProps.contains(#g)) {                                                        \
                 overlayProps[#g] = QVariantMap();                                                    \
             }                                                                                        \
-            overlayProps[#g].toMap()[#e] = d;                                                        \
+            auto map = overlayProps[#g].toMap();                                                     \
+            map[#e] = d;                                                                             \
+            overlayProps[#g] = map;                                                                  \
         }                                                                                            \
     }
 
@@ -229,7 +231,7 @@ QString Overlays::overlayToEntityType(const QString& type) {
         auto iter = overlayProps.find(#o);                                               \
         if (iter != overlayProps.end()) {                                                \
             overlayProps[#e] = C(iter.value());                                          \
-        } else {                                                                         \
+        } else if (add) {                                                                \
             overlayProps[#e] = C(d);                                                     \
         }                                                                                \
     }
@@ -238,17 +240,20 @@ QString Overlays::overlayToEntityType(const QString& type) {
     {                                                                                    \
         auto iter = overlayProps.find(#o);                                               \
         if (iter != overlayProps.end()) {                                                \
-            auto iter2 = overlayProps.find(#g);                                          \
-            if (iter2 == overlayProps.end()) {                                           \
+            if (!overlayProps.contains(#g)) {                                            \
                 overlayProps[#g] = QVariantMap();                                        \
             }                                                                            \
-            overlayProps[#g].toMap()[#e] = C(iter.value());                              \
+            auto map = overlayProps[#g].toMap();                                         \
+            map[#e] = C(iter.value());                                                   \
+            overlayProps[#g] = map;                                                      \
         }                                                                                \
     }
 
-EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps) {
+EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
+    overlayProps["type"] = type;
+
     SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
-    if (overlayProps["type"] != "PolyLine") {
+    if (type != "PolyLine") {
         OVERLAY_TO_ENTITY_PROP(p1, position);
         OVERLAY_TO_ENTITY_PROP(start, position);
     }
@@ -296,18 +301,18 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         return "none";
     });
 
-    if (overlayProps["type"] == "Shape") {
+    if (type == "Shape") {
         SET_OVERLAY_PROP_DEFAULT(shape, "Hexagon");
-    } else if (overlayProps["type"] == "Model") {
+    } else if (type == "Model") {
         OVERLAY_TO_ENTITY_PROP(url, modelURL);
         OVERLAY_TO_ENTITY_PROP(animationSettings, animation);
-    } else if (overlayProps["type"] == "Image") {
+    } else if (type == "Image") {
         OVERLAY_TO_ENTITY_PROP(url, imageURL);
-    } else if (overlayProps["type"] == "Web") {
+    } else if (type == "Web") {
         OVERLAY_TO_ENTITY_PROP(url, sourceUrl);
         OVERLAY_TO_ENTITY_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "Mouse" ? "mouse" : "touch"; });
-    } else if (overlayProps["type"] == "Gizmo") {
-        {
+    } else if (type == "Gizmo") {
+        if (add || overlayProps.contains("outerRadius")) {
             float ratio = 2.0f;
             {
                 auto iter = overlayProps.find("outerRadius");
@@ -315,14 +320,34 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                     ratio = iter.value().toFloat() / 0.5f;
                 }
             }
-            glm::vec3 dimensions = glm::vec3(1.0f);
+            glm::vec3 dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
             {
                 auto iter = overlayProps.find("dimensions");
                 if (iter != overlayProps.end()) {
                     dimensions = vec3FromVariant(iter.value());
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_DIMENSIONS;
+                    dimensions = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getDimensions();
                 }
             }
             overlayProps["dimensions"] = vec3toVariant(ratio * dimensions);
+        }
+
+        if (add || overlayProps.contains("rotation")) {
+            glm::quat rotation;
+            {
+                auto iter = overlayProps.find("rotation");
+                if (iter != overlayProps.end()) {
+                    rotation = vec3FromVariant(iter.value());
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_ROTATION;
+                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getRotation();
+                }
+            }
+            // FIXME:
+            overlayProps["rotation"] = quatToVariant(glm::angleAxis((float)M_PI_2, Vectors::RIGHT) * rotation);
         }
 
         {
@@ -383,12 +408,27 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         OVERLAY_TO_GROUP_ENTITY_PROP(minorTickMarksLength, ring, minorTickMarksLength);
         OVERLAY_TO_GROUP_ENTITY_PROP(majorTickMarksColor, ring, majorTickMarksColor);
         OVERLAY_TO_GROUP_ENTITY_PROP(minorTickMarksColor, ring, minorTickMarksColor);
-    } else if (overlayProps["type"] == "PolyLine") {
+    } else if (type == "PolyLine") {
         OVERLAY_TO_ENTITY_PROP(startPoint, start);
         OVERLAY_TO_ENTITY_PROP(p1, start);
-        OVERLAY_TO_ENTITY_PROP(localStart, start);
         OVERLAY_TO_ENTITY_PROP(endPoint, end);
         OVERLAY_TO_ENTITY_PROP(p2, end);
+
+        if (overlayProps.contains("start") || overlayProps.contains("end")) {
+            glm::vec3 position;
+            auto iter = overlayProps.find("position");
+            if (iter != overlayProps.end()) {
+                position = vec3FromVariant(iter.value());
+            } else if (!add) {
+                EntityPropertyFlags desiredProperties;
+                desiredProperties += PROP_POSITION;
+                position = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getPosition();
+            }
+            OVERLAY_TO_ENTITY_PROP_CONVERT(start, start, [position](const QVariant& v) { return vec3toVariant(vec3FromVariant(v) - position); })
+            OVERLAY_TO_ENTITY_PROP_CONVERT(end, end, [position](const QVariant& v) { return vec3toVariant(vec3FromVariant(v) - position); })
+        }
+
+        OVERLAY_TO_ENTITY_PROP(localStart, start);
         OVERLAY_TO_ENTITY_PROP(localEnd, end);
 
         {
@@ -417,17 +457,17 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         }
     }
 
+    QScriptEngine scriptEngine;
+    QScriptValue props = variantMapToScriptValue(overlayProps, scriptEngine);
     EntityItemProperties toReturn;
-    EntityItemPropertiesFromScriptValueHonorReadOnly(variantMapToScriptValue(overlayProps, _scriptEngine), toReturn);
+    EntityItemPropertiesFromScriptValueHonorReadOnly(props, toReturn);
     return toReturn;
 }
 
 QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& entityProps) {
     QScriptValue entityProperties;
-    EntityItemPropertiesToScriptValue(&_scriptEngine, entityProps);
 
     QVariantMap props;
-
     return props;
 }
 
@@ -467,11 +507,10 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     }
 
     QVariantMap propertyMap = properties.toMap();
-    propertyMap["type"] = entityType;
-    if (type == "rectangle") {
+    if (type == "rectangle3d") {
         propertyMap["shape"] = "Quad";
     }
-    return DependencyManager::get<EntityScriptingInterface>()->addEntity(convertOverlayToEntityProperties(propertyMap), "local");
+    return DependencyManager::get<EntityScriptingInterface>()->addEntity(convertOverlayToEntityProperties(propertyMap, entityType, true), QString("local"));
 }
 
 QUuid Overlays::add2DOverlay(const Overlay::Pointer& overlay) {
@@ -530,8 +569,9 @@ bool Overlays::editOverlay(const QUuid& id, const QVariant& properties) {
         return true;
     }
 
-    EntityItemProperties entityProperties = convertOverlayToEntityProperties(properties.toMap());
-    return !DependencyManager::get<EntityScriptingInterface>()->editEntity(id, entityProperties).isNull();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    EntityItemProperties entityProperties = convertOverlayToEntityProperties(properties.toMap(), entityScriptingInterface->getEntityType(id), false, id);
+    return !entityScriptingInterface->editEntity(id, entityProperties).isNull();
 }
 
 bool Overlays::editOverlays(const QVariant& propertiesById) {
@@ -543,6 +583,7 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
 
     QVariantMap deferred;
     const QVariantMap map = propertiesById.toMap();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     for (const auto& key : map.keys()) {
         QUuid id = QUuid(key);
         const QVariant& properties = map[key];
@@ -555,8 +596,7 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
             }
             overlay->setProperties(properties.toMap());
         } else {
-            EntityItemProperties entityProperties = convertOverlayToEntityProperties(properties.toMap());
-            DependencyManager::get<EntityScriptingInterface>()->editEntity(id, entityProperties);
+            entityScriptingInterface->editEntity(id, convertOverlayToEntityProperties(properties.toMap(), entityScriptingInterface->getEntityType(id), false, id));
         }
     }
 

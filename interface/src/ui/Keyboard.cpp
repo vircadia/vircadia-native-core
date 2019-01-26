@@ -743,7 +743,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             properties.setRotation(quatFromVariant(anchorObject["rotation"].toVariant()));
 
             Anchor anchor;
-            anchor.entityID = entityScriptingInterface->addEntity(properties, "local");
+            anchor.entityID = entityScriptingInterface->addEntity(properties, QString("local"));
             anchor.originalDimensions = dimensions;
             _anchor = anchor;
         }
@@ -765,7 +765,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             properties.setParentID(_anchor.entityID);
 
             BackPlate backPlate;
-            backPlate.entityID = entityScriptingInterface->addEntity(properties, "local");
+            backPlate.entityID = entityScriptingInterface->addEntity(properties, QString("local"));
             backPlate.dimensions = dimensions;
             EntityPropertyFlags desiredProperties;
             desiredProperties += PROP_LOCAL_POSITION;
@@ -822,7 +822,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                 properties.setTextures(QVariant(textureMap).toString());
                 properties.getGrab().setGrabbable(false);
                 properties.setLocalRotation(quatFromVariant(keyboardKeyValue["localOrientation"].toVariant()));
-                QUuid id = entityScriptingInterface->addEntity(properties, "local");
+                QUuid id = entityScriptingInterface->addEntity(properties, QString("local"));
                 key.setID(id);
                 key.setKeyString(keyString);
                 key.saveDimensionsAndLocalPosition();
@@ -859,7 +859,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             properties.setParentID(_anchor.entityID);
 
             TextDisplay textDisplay;
-            textDisplay.entityID = entityScriptingInterface->addEntity(properties, "local");
+            textDisplay.entityID = entityScriptingInterface->addEntity(properties, QString("local"));
             textDisplay.localPosition = localPosition;
             textDisplay.dimensions = dimensions;
             textDisplay.lineHeight = lineHeight;

@@ -5729,7 +5729,7 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
         properties.getPulse().setMax(1.0f);
         properties.getPulse().setColorMode(PulseMode::IN_PHASE);
         properties.setIgnorePickIntersection(true);
-        _keyboardFocusHighlightID = entityScriptingInterface->addEntity(properties, "local");
+        _keyboardFocusHighlightID = entityScriptingInterface->addEntity(properties, QString("local"));
     }
 
     // Position focus
@@ -8760,7 +8760,7 @@ void Application::createLoginDialog() {
     properties.setVisible(true);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    _loginDialogID = entityScriptingInterface->addEntity(properties, "local");
+    _loginDialogID = entityScriptingInterface->addEntity(properties, QString("local"));
 
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogID.isNull()) {
