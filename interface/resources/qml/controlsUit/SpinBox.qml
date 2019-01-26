@@ -57,16 +57,23 @@ SpinBox {
 
     locale: Qt.locale("en_US")
 
-    onValueModified: realValue = value/factor
-    onValueChanged: realValue = value/factor
+    onValueModified: {
+        realValue = value / factor
+    }
+
+    onValueChanged: {
+        realValue = value / factor
+        spinBox.editingFinished();
+    }
+
     onRealValueChanged: {
-        var newValue = Math.round(realValue*factor);
+        var newValue = Math.round(realValue * factor);
         if(value != newValue) {
             value = newValue;
         }
     }
 
-    stepSize: realStepSize*factor
+    stepSize: realStepSize * factor
     to : realTo*factor
     from : realFrom*factor
 
@@ -90,11 +97,11 @@ SpinBox {
     }
 
     textFromValue: function(value, locale) {
-        return parseFloat(value/factor).toFixed(decimals);
+        return parseFloat(value / factor).toFixed(decimals);
     }
 
     valueFromText: function(text, locale) {
-        return Number.fromLocaleString(locale, text)*factor;
+        return Number.fromLocaleString(locale, text) * factor;
     }
 
 
@@ -102,7 +109,7 @@ SpinBox {
         id: spinboxText
         z: 2
         color: isLightColorScheme
-               ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
+               ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.faintGray)
                : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
         selectedTextColor: hifi.colors.black
         selectionColor: hifi.colors.primaryHighlight
@@ -112,8 +119,6 @@ SpinBox {
         verticalAlignment: Qt.AlignVCenter
         leftPadding: spinBoxLabelInside.visible ? 30 : hifi.dimensions.textPadding
         width: spinBox.width - hifi.dimensions.spinnerSize
-        onEditingFinished: spinBox.editingFinished()
-
         Text {
             id: suffixText
             x: metrics.advanceWidth(spinboxText.text + '*')
@@ -125,7 +130,7 @@ SpinBox {
             }
 
             color: isLightColorScheme
-                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.lightGray)
+                   ? (spinBox.activeFocus ? hifi.colors.black : hifi.colors.faintGray)
                    : (spinBox.activeFocus ? hifi.colors.white : hifi.colors.lightGrayText)
             text: suffix
             verticalAlignment: Qt.AlignVCenter
@@ -167,6 +172,22 @@ SpinBox {
     down.onPressedChanged: {
         if(value) {
             spinBox.forceActiveFocus();
+        }
+    }
+
+    Keys.onPressed: {
+        if (event.key === Qt.Key_Return) {
+            if (!spinboxText.acceptableInput) {
+                var number = spinBox.valueFromText(spinboxText.text, spinBox.locale) / spinBox.factor
+
+                if (number < spinBox.minimumValue) {
+                    number = spinBox.minimumValue;
+                } else if (number > maximumValue) {
+                    number = spinBox.maximumValue;
+                }
+
+                spinboxText.text = spinBox.textFromValue(Math.round(number * factor), spinBox.locale)
+            }
         }
     }
 
