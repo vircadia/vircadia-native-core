@@ -195,21 +195,22 @@ int AvatarHashMap::numberOfAvatarsInRange(const glm::vec3& position, float range
     return count;
 }
 
-AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
-    return std::make_shared<AvatarData>();
+AvatarSharedPointer AvatarHashMap::newSharedAvatar(const QUuid& sessionUUID) {
+    auto avatarData = std::make_shared<AvatarData>();
+    avatarData->setSessionUUID(sessionUUID);
+    return avatarData;
 }
 
 AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
 
-    auto avatar = newSharedAvatar();
+    auto avatar = newSharedAvatar(sessionUUID);
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
     // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
     _avatarHash.insert(sessionUUID, avatar);
     emit avatarAddedEvent(sessionUUID);
-
     return avatar;
 }
 

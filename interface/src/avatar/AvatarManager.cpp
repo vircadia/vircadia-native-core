@@ -48,8 +48,6 @@
 // 50 times per second - target is 45hz, but this helps account for any small deviations
 // in the update loop - this also results in ~30hz when in desktop mode which is essentially
 // what we want
-const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
-static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
@@ -67,6 +65,11 @@ AvatarManager::AvatarManager(QObject* parent) :
     connect(nodeList.data(), &NodeList::ignoredNode, this, [this](const QUuid& nodeID, bool enabled) {
         if (enabled) {
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
+        } else {
+            auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(nodeID));
+            if (avatar) {
+                avatar->createOrb();
+            }
         }
     });
 
@@ -267,7 +270,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
             avatar->removeOrb();
-            avatar->updateCollisionGroup(_myAvatar->getOtherAvatarsCollisionsEnabled());
             if (avatar->needsPhysicsUpdate()) {
                 _avatarsToChangeInPhysics.insert(avatar);
             }
@@ -347,25 +349,6 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
     }
 }
 
-void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    nodeList->eachMatchingNode(
-        [](const SharedNodePointer& node)->bool {
-            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-        },
-        [this, avatarID, nodeListWeak](const SharedNodePointer& node) {
-            auto nodeList = nodeListWeak.lock();
-            if (nodeList) {
-                auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-                packet->write(avatarID.toRfc4122());
-                nodeList->sendPacket(std::move(packet), *node);
-                ++_identityRequestsSent;
-            }
-        }
-    );
-}
-
 void AvatarManager::simulateAvatarFades(float deltaTime) {
     if (_avatarsToFadeOut.empty()) {
         return;
@@ -391,8 +374,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     scene->enqueueTransaction(transaction);
 }
 
-AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
+AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
+    auto otherAvatar = new OtherAvatar(qApp->thread());
+    otherAvatar->setSessionUUID(sessionUUID);
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+        otherAvatar->createOrb();
+    }
+    return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {

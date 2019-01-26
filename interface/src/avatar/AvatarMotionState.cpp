@@ -15,7 +15,6 @@
 #include <PhysicsEngine.h>
 #include <PhysicsHelpers.h>
 
-
 AvatarMotionState::AvatarMotionState(OtherAvatarPointer avatar, const btCollisionShape* shape) : ObjectMotionState(shape), _avatar(avatar) {
     assert(_avatar);
     _type = MOTIONSTATE_TYPE_AVATAR;
@@ -172,7 +171,10 @@ QUuid AvatarMotionState::getSimulatorID() const {
 // virtual
 void AvatarMotionState::computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const {
     group = _collisionGroup;
-    mask = _collisionGroup == BULLET_COLLISION_GROUP_COLLISIONLESS ? 0 : Physics::getDefaultCollisionMask(group);
+    mask = Physics::getDefaultCollisionMask(group);
+    if (!_avatar->getCollideWithOtherAvatars()) {
+        mask &= ~(BULLET_COLLISION_GROUP_MY_AVATAR | BULLET_COLLISION_GROUP_OTHER_AVATAR);
+    }
 }
 
 // virtual

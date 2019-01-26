@@ -70,6 +70,49 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
+void EntityTree::eraseNonLocalEntities() {
+    emit clearingEntities();
+
+    if (_simulation) {
+        // This will clear all entities host types including local entities, because local entities
+        // are not in the physics simulation
+        _simulation->clearEntities();
+    }
+    _staleProxies.clear();
+    QHash<EntityItemID, EntityItemPointer> localMap;
+    localMap.swap(_entityMap);
+    QHash<EntityItemID, EntityItemPointer> savedEntities;
+    this->withWriteLock([&] {
+        foreach(EntityItemPointer entity, localMap) {
+            EntityTreeElementPointer element = entity->getElement();
+            if (element) {
+                element->cleanupNonLocalEntities();
+            }
+
+            if (entity->isLocalEntity()) {
+                savedEntities[entity->getEntityItemID()] = entity;
+            }
+        }
+    });
+    localMap.clear();
+    _entityMap = savedEntities;
+
+    resetClientEditStats();
+    clearDeletedEntities();
+
+    {
+        QWriteLocker locker(&_needsParentFixupLock);
+        QVector<EntityItemWeakPointer> localEntitiesNeedsParentFixup;
+
+        foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
+            if (!entityItem.expired() && entityItem.lock()->isLocalEntity()) {
+                localEntitiesNeedsParentFixup.push_back(entityItem);
+            }
+        }
+
+        _needsParentFixup = localEntitiesNeedsParentFixup;
+    }
+}
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
@@ -2664,7 +2707,6 @@ void convertGrabUserDataToProperties(EntityItemProperties& properties) {
 bool EntityTree::readFromMap(QVariantMap& map) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
-    bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
 
     if (map.contains("Id")) {
         _persistID = map["Id"].toUuid();
@@ -2739,7 +2781,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         // Fix for older content not containing mode fields in the zones
-        if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+        if (contentVersion < (int)EntityVersion::ZoneLightInheritModes && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The legacy version had no keylight mode - this is set to on
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
 
@@ -2965,8 +3007,8 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
-        bool tellServerThis = tellServer && (entity->getEntityHostType() != entity::HostType::AVATAR);
-        if ((entity->updateQueryAACube() || force)) {
+        // NOTE: we rely on side-effects of the entity->updateQueryAACube() call in the following if() conditional:
+        if (entity->updateQueryAACube() || force) {
             bool success;
             AACube newCube = entity->getQueryAACube(success);
             if (success) {
@@ -2974,7 +3016,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             }
             // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
             // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-            if (tellServerThis && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+            if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
                 quint64 now = usecTimestampNow();
                 EntityItemProperties properties = entity->getProperties();
                 properties.setQueryAACubeDirty();
@@ -2982,6 +3024,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
                 properties.setLastEdited(now);
 
                 packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastEdited(now); // so we ignore the echo from the server
                 entity->setLastBroadcast(now); // for debug/physics status icons
             }
 

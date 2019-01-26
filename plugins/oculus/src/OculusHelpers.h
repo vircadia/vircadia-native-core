@@ -30,7 +30,6 @@ struct ovr {
     static ovrSessionStatus getStatus(ovrResult& result);
     static ovrTrackingState getTrackingState(double absTime = 0.0, ovrBool latencyMarker = ovrFalse);
     static QString getError();
-    static bool handleOVREvents();
 
     static inline bool quitRequested() { return quitRequested(getStatus()); }
     static inline bool reorientRequested() { return reorientRequested(getStatus()); }

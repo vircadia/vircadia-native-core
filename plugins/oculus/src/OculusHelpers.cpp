@@ -82,15 +82,18 @@ private:
         }
 
 #ifdef OCULUS_APP_ID
-        if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
-            if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
-                qCWarning(oculusLog) << "Unable to initialize the platform for entitlement check - fail the check" << ovr::getError();
-                return;
-            } else {
-                qCDebug(oculusLog) << "Performing Oculus Platform entitlement check";
-                ovr_Entitlement_GetIsViewerEntitled();
+        static std::once_flag once;
+        std::call_once(once, []() {
+            if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
+                if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
+                    qCWarning(oculusLog) << "Unable to initialize the platform for entitlement check - fail the check" << ovr::getError();
+                    return;
+                } else {
+                    qCDebug(oculusLog) << "Performing Oculus Platform entitlement check";
+                    ovr_Entitlement_GetIsViewerEntitled();
+                }
             }
-        }
+        });
 #endif
 
         ovrGraphicsLuid luid;
@@ -292,35 +295,4 @@ controller::Pose hifi::ovr::toControllerPose(ovrHandType hand,
     pose.velocity = toGlm(lastHandPose.LinearVelocity);
     pose.valid = true;
     return pose;
-}
-
-bool hifi::ovr::handleOVREvents() {
-#ifdef OCULUS_APP_ID
-    if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
-        // pop messages to see if we got a return for an entitlement check
-        ovrMessageHandle message = ovr_PopMessage();
-
-        while (message) {
-            switch (ovr_Message_GetType(message)) {
-                case ovrMessage_Entitlement_GetIsViewerEntitled: {
-                    if (!ovr_Message_IsError(message)) {
-                        // this viewer is entitled, no need to flag anything
-                        qCDebug(oculusLog) << "Oculus Platform entitlement check succeeded, proceeding normally";
-                    } else {
-                        // we failed the entitlement check, quit
-                        qCDebug(oculusLog) << "Oculus Platform entitlement check failed, app will now quit" << OCULUS_APP_ID;
-                        return false;
-                    }
-                }
-            }
-
-            // free the message handle to cleanup and not leak
-            ovr_FreeMessage(message);
-
-            // pop the next message to check, if there is one
-            message = ovr_PopMessage();
-        }
-    }
-#endif
-    return true;
 }

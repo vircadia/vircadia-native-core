@@ -22,8 +22,6 @@ class Web3DOverlay : public Billboard3DOverlay {
     using Parent = Billboard3DOverlay;
 
 public:
-
-    static const QString QML;
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
 
@@ -59,11 +57,9 @@ public:
         Mouse
     };
 
-    void buildWebSurface();
+    void buildWebSurface(bool overrideWeb = false);
     void destroyWebSurface();
     void onResizeWebSurface();
-
-    Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
 
 public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
@@ -72,26 +68,23 @@ signals:
     void scriptEventReceived(const QVariant& message);
     void webEventReceived(const QVariant& message);
     void resizeWebSurface();
-    void requestWebSurface();
-    void releaseWebSurface();
+    void requestWebSurface(bool overrideWeb);
 
 protected:
     Transform evalRenderTransform() override;
 
 private:
-    void setupQmlSurface(bool isTablet, bool isLoginDialog);
     void rebuildWebSurface();
     bool isWebContent() const;
 
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
-    bool _cachedWebSurface{ false };
+    bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;
     float _dpi { 30.0f };
     int _geometryId { 0 };
-    bool _showKeyboardFocusHighlight { true };
 
     QTouchDevice _touchDevice;
 
@@ -99,6 +92,8 @@ private:
     uint8_t _currentMaxFPS { 0 };
 
     bool _mayNeedResize { false };
+
+    std::vector<QMetaObject::Connection> _connections;
 };
 
 #endif // hifi_Web3DOverlay_h
