@@ -120,6 +120,7 @@
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/OculusPlatformPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <render/EngineStats.h>
@@ -800,7 +801,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
-
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -2737,6 +2737,7 @@ Application::~Application() {
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
     }
+
     DependencyManager::destroy<PluginManager>();
 
     DependencyManager::destroy<CompositorHelper>(); // must be destroyed before the FramebufferCache
@@ -4871,6 +4872,10 @@ void Application::idle() {
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->runCallbacks();
+    }
+
+    if (auto oculusPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlugin->handleOVREvents();
     }
 
     float secondsSinceLastUpdate = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_MSEC / MSECS_PER_SECOND;
