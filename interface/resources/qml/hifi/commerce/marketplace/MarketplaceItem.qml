@@ -40,6 +40,7 @@ Rectangle {
     property string posted: ""
     property bool available: false
     property string created_at: ""
+    property bool isLoggedIn: false;
     
     onCategoriesChanged: {
         categoriesListModel.clear();
@@ -184,7 +185,9 @@ Rectangle {
                 }
                 
                 onClicked: {
-                    MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, !root.liked);
+                    if (isLoggedIn) {
+                        MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, !root.liked);
+                    }
                 }
             }                
         }
@@ -382,21 +385,21 @@ Rectangle {
                     onClicked: { 
                         licenseInfo.visible = true;
                         var url;
-                        if (root.license == "No Rights Reserved (CC0)") {
+                        if (root.license === "No Rights Reserved (CC0)") {
                           url = "https://creativecommons.org/publicdomain/zero/1.0/"
-                        } else if (root.license == "Attribution (CC BY)") {
+                        } else if (root.license === "Attribution (CC BY)") {
                           url = "https://creativecommons.org/licenses/by/4.0/"
-                        } else if (root.license == "Attribution-ShareAlike (CC BY-SA)") {
+                        } else if (root.license === "Attribution-ShareAlike (CC BY-SA)") {
                           url = "https://creativecommons.org/licenses/by-sa/4.0/"
-                        } else if (root.license == "Attribution-NoDerivs (CC BY-ND)") {
+                        } else if (root.license === "Attribution-NoDerivs (CC BY-ND)") {
                           url = "https://creativecommons.org/licenses/by-nd/4.0/"
-                        } else if (root.license == "Attribution-NonCommercial (CC BY-NC)") {
+                        } else if (root.license === "Attribution-NonCommercial (CC BY-NC)") {
                           url = "https://creativecommons.org/licenses/by-nc/4.0/"
-                        } else if (root.license == "Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)") {
+                        } else if (root.license === "Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)") {
                           url = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
-                        } else if (root.license == "Attribution-NonCommercial-NoDerivs (CC BY-NC-ND)") {
+                        } else if (root.license === "Attribution-NonCommercial-NoDerivs (CC BY-NC-ND)") {
                           url = "https://creativecommons.org/licenses/by-nc-nd/4.0/"
-                        } else if (root.license == "Proof of Provenance License (PoP License)") {
+                        } else if (root.license === "Proof of Provenance License (PoP License)") {
                           url = "https://digitalassetregistry.com/PoP-License/v1/"
                         }
                         if(url) {

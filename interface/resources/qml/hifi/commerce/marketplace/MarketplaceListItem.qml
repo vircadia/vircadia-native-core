@@ -35,6 +35,7 @@ Rectangle {
     property string category: ""
     property int price: 0
     property bool available: false
+    property bool isLoggedIn: false;
 
     signal buy()
     signal showItem()
@@ -184,9 +185,11 @@ Rectangle {
                         bottom: parent.bottom
                     }
                     onClicked: {
-                        root.liked = !root.liked;
-                        root.likes = root.liked ? root.likes + 1 : root.likes - 1;
-                        MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, root.liked);
+                        if(isLoggedIn) {
+                            root.liked = !root.liked;
+                            root.likes = root.liked ? root.likes + 1 : root.likes - 1;
+                            MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, root.liked);
+                        }
                     }
                 }                
             }

@@ -613,7 +613,7 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'passphrasePopup_cancelClicked':
     case 'needsLogIn_cancelClicked':
         // Should/must NOT check for wallet setup.
-        ui.open(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
         break;
     case 'needsLogIn_loginClicked':
         openLoginWindow();

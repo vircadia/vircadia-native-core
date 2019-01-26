@@ -37,17 +37,41 @@ Rectangle {
     property string searchString: ""
     property bool keyboardEnabled: HMD.active
     property bool keyboardRaised: false
+    property string searchScopeString: "Featured"
+    property bool isLoggedIn: false;
     
     anchors.fill: (typeof parent === undefined) ? undefined : parent
 
     function getMarketplaceItems() {
         marketplaceItemView.visible = false;
-        itemsList.visible = true;          
+        itemsList.visible = true;
         marketBrowseModel.getFirstPage();
+        {
+        if(root.searchString !== undefined && root.searchString !== "") {
+                root.searchScopeString = "Search Results: \"" + root.searchString + "\"";
+            } else if (root.categoryString !== "") {
+                root.searchScopeString = root.categoryString;
+            } else {
+                root.searchScopeString = "Featured";
+            }
+        }
     }
-    
+
+    Component.onCompleted: {
+        Commerce.getLoginStatus();
+    }
+
     Component.onDestruction: {
         keyboard.raised = false;
+    }
+
+    Connections {
+        target: GlobalServices
+
+        onMyUsernameChanged: {
+            console.log("LOGIN STATUS CHANGING");
+            Commerce.getLoginStatus();
+        }
     }
     
     Connections {
@@ -61,7 +85,7 @@ Rectangle {
                 categoriesModel.append({
                     id: -1,
                     name: "Everything"
-                });                
+                });
                 result.data.items.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,
@@ -84,19 +108,30 @@ Rectangle {
                 marketplaceItem.image_url = result.data.thumbnail_url;
                 marketplaceItem.name = result.data.title;
                 marketplaceItem.likes = result.data.likes;
-                marketplaceItem.liked = result.data.has_liked;
+                if(result.data.has_liked !== undefined) {
+                    marketplaceItem.liked = result.data.has_liked;
+                }
                 marketplaceItem.creator = result.data.creator;
                 marketplaceItem.categories = result.data.categories;
                 marketplaceItem.price = result.data.cost;
                 marketplaceItem.description = result.data.description;
                 marketplaceItem.attributions = result.data.attributions;
                 marketplaceItem.license = result.data.license;
-                marketplaceItem.available = result.data.availability == "available";
+                marketplaceItem.available = result.data.availability === "available";
                 marketplaceItem.created_at = result.data.created_at;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
             }
+        }
+    }
+
+    Connections {
+        target: Commerce
+
+        onLoginStatusResult: {
+            root.isLoggedIn = isLoggedIn;
+            itemsLoginStatus.visible = !isLoggedIn;
         }
     }
 
@@ -423,7 +458,6 @@ Rectangle {
                             getMarketplaceItems();
                         }
                     }
-                    
                 }
 
                 ScrollBar.vertical: ScrollBar {
@@ -452,12 +486,12 @@ Rectangle {
 
         anchors {
             fill: parent
-            topMargin: 100
+            topMargin: 120
             bottomMargin: 50
         }
-
+ 
         visible: true;
-        
+
         HifiModels.PSFListModel {
             id: marketBrowseModel
 
@@ -467,7 +501,7 @@ Rectangle {
 
             getPage: function () {
                 MarketplaceScriptingInterface.getMarketplaceItems(
-                    root.searchString == "" ? undefined : root.searchString,
+                    root.searchString === "" ? undefined : root.searchString,
                     "",
                     root.categoryString.toLowerCase(),
                     "",
@@ -503,11 +537,12 @@ Rectangle {
                 image_url:model.thumbnail_url
                 name: model.title
                 likes: model.likes
-                liked: model.has_liked
+                liked: model.has_liked ? model.has_liked : false
                 creator: model.creator
                 category: model.primary_category
                 price: model.cost
-                available: model.availability == "available"
+                available: model.availability === "available"
+                isLoggedIn: root.isLoggedIn;
 
                 onShowItem: {
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
@@ -546,9 +581,65 @@ Rectangle {
                 height: childrenRect.height
                 width: parent.width
                 
+                Rectangle {
+                    id: itemsLoginStatus;
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        leftMargin: 15
+                        rightMargin: 15
+                    }
+                    height: root.isLoggedIn ? 0 : 80
+
+                    visible: !root.isLoggedIn
+                    color: hifi.colors.greenHighlight
+                    border.color: hifi.colors.greenShadow
+                    border.width: 1
+                    radius: 4
+                    z: 10000
+
+                    HifiControlsUit.Button {
+                        id: loginButton;
+                        anchors {
+                            left: parent.left
+                            top: parent.top
+                            bottom: parent.bottom
+                            leftMargin: 15
+                            topMargin:10
+                            bottomMargin: 10
+                        }
+                        width: 80;
+
+                        text: root.price ? root.price : "LOG IN"
+
+                        onClicked: {
+                            sendToScript({method: 'needsLogIn_loginClicked'});
+                        }
+                    }
+
+                    RalewayRegular {
+                        id: itemsLoginText
+
+                        anchors {
+                            leftMargin: 15
+                            top: parent.top;
+                            bottom: parent.bottom;
+                            right: parent.right;
+                            left: loginButton.right
+                        }
+
+                        text: "to get items from the Marketplace."
+                        color: hifi.colors.baseGray
+                        horizontalAlignment: Text.AlignLeft
+                        verticalAlignment: Text.AlignVCenter
+                        size: 18
+                    }
+                }
+
                 Item {
                     id: breadcrumbs
 
+                    anchors.top: itemsLoginStatus.bottom;
                     anchors.left: parent.left
                     anchors.right: parent.right
                     height: 34
@@ -598,7 +689,7 @@ Rectangle {
                             topMargin: 10
                         }
 
-                        text: "Featured";
+                        text: searchScopeString
                         color: hifi.colors.baseGray
                         horizontalAlignment: Text.AlignLeft
                         verticalAlignment: Text.AlignVCenter
@@ -751,8 +842,64 @@ Rectangle {
             contentWidth: parent.width
 
             Rectangle {
-                id: marketplaceItemContent
+                id: itemLoginStatus;
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    leftMargin: 15
+                    rightMargin: 15
+                }
+                height: root.isLoggedIn ? 0 : 80
 
+                visible: !root.isLoggedIn
+                color: hifi.colors.greenHighlight
+                border.color: hifi.colors.greenShadow
+                border.width: 1
+                radius: 4
+                z: 10000
+
+                HifiControlsUit.Button {
+                    id: loginButton;
+                    anchors {
+                        left: parent.left
+                        top: parent.top
+                        bottom: parent.bottom
+                        leftMargin: 15
+                        topMargin:10
+                        bottomMargin: 10
+                    }
+                    width: 80;
+
+                    text: root.price ? root.price : "LOG IN"
+
+                    onClicked: {
+                        sendToScript({method: 'needsLogIn_loginClicked'});
+                    }
+                }
+
+                RalewayRegular {
+                    id: itemsLoginText
+
+                    anchors {
+                        leftMargin: 15
+                        top: parent.top;
+                        bottom: parent.bottom;
+                        right: parent.right;
+                        left: loginButton.right
+                    }
+
+                    text: "to get items from the Marketplace."
+                    color: hifi.colors.baseGray
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    size: 18
+                }
+            }
+
+
+            Rectangle {
+                id: marketplaceItemContent
+                anchors.top: itemLoginStatus.bottom;
                 width: parent.width
                 height: childrenRect.height + 100
                 
@@ -785,11 +932,14 @@ Rectangle {
                 MarketplaceItem {
                     id: marketplaceItem
 
+
                     anchors.topMargin: 15
                     anchors.top: backText.bottom
                     width: parent.width
                     height: childrenRect.height
                     
+                    isLoggedIn: root.isLoggedIn;
+
                     onBuy: {
                         sendToScript({method: 'marketplace_checkout', itemId: item_id});
                     }

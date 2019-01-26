@@ -2990,6 +2990,7 @@ void Application::initializeUi() {
         QUrl{ "hifi/dialogs/security/SecurityImageModel.qml" },
         QUrl{ "hifi/dialogs/security/SecurityImageSelection.qml" },
         QUrl{ "hifi/tablet/TabletMenu.qml" },
+        QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
     }, commerceCallback);
 
     QmlContextCallback marketplaceCallback = [](QQmlContext* context) {
