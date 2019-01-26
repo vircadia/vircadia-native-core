@@ -79,6 +79,7 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 }
 
 void TestRunnerMobile::connectDevice() {
+#if defined Q_OS_WIN or defined Q_OS_MAC
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbCommand + " devices > " + devicesFullFilename;
     system(command.toStdString().c_str());
@@ -108,6 +109,7 @@ void TestRunnerMobile::connectDevice() {
             _downloadAPKPushbutton->setEnabled(true);
         }
     }
+#endif
 }
 
 void TestRunnerMobile::downloadAPK() {
@@ -152,15 +154,19 @@ void TestRunnerMobile::downloadComplete() {
 }
 
 void TestRunnerMobile::installAPK() {
+#if defined Q_OS_WIN or defined Q_OS_MAC
     _statusLabel->setText("Installing");
     QString command = _adbCommand + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
     system(command.toStdString().c_str());
     _statusLabel->setText("Installation complete");
+#endif
 }
 
 void TestRunnerMobile::pullFolder() {
+#if defined Q_OS_WIN or defined Q_OS_MAC
     _statusLabel->setText("Pulling folder");
     QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + _installerFilename;
     system(command.toStdString().c_str());
     _statusLabel->setText("Pull complete");
+#endif
 }
