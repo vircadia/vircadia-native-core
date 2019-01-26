@@ -64,8 +64,8 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 
         _adbCommand = adbExePath + "/" + _adbExe;
     } else {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
-            "Please set PYTHON_PATH to directory containing the Python executable");
+        QMessageBox::critical(0, "ADB_PATH not defined",
+            "Please set ADB_PATH to directory containing the `adb` executable");
         exit(-1);
     }
 #elif defined Q_OS_MAC
