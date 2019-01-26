@@ -444,8 +444,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
 
     std::map<QString, HFMLight> lights;
 
-    QVariantHash joints = mapping.value("joint").toHash();
-
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
 
     QMultiHash<QByteArray, WeightedIndex> blendshapeIndices;
@@ -473,8 +471,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     HFMModel& hfmModel = *hfmModelPtr;
 
     hfmModel.originalURL = url;
-    hfmModel.hfmToHifiJointNameMapping.clear();
-    hfmModel.hfmToHifiJointNameMapping = getJointNameMapping(mapping);
+    auto hfmToHifiJointNameMapping = getJointNameMapping(mapping);
 
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
@@ -1341,8 +1338,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = fbxModel.name;
-        if (hfmModel.hfmToHifiJointNameMapping.contains(hfmModel.hfmToHifiJointNameMapping.key(joint.name))) {
-            joint.name = hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
+        if (hfmToHifiJointNameMapping.contains(hfmToHifiJointNameMapping.key(joint.name))) {
+            joint.name = hfmToHifiJointNameMapping.key(fbxModel.name);
         }
 
         joint.bindTransformFoundInCluster = false;
@@ -1704,7 +1701,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             generateBoundryLinesForDop14(joint.shapeInfo.dots, joint.shapeInfo.avgPoint, joint.shapeInfo.debugLines);
         }
     }
-    hfmModel.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
 
     // attempt to map any meshes to a named model
     for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin();
@@ -1728,7 +1724,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         QString jointName = itr.key();
         glm::quat rotationOffset = itr.value();
         int jointIndex = hfmModel.getJointIndex(jointName);
-        if (hfmModel.hfmToHifiJointNameMapping.contains(jointName)) {
+        if (hfmToHifiJointNameMapping.contains(jointName)) {
             jointIndex = hfmModel.getJointIndex(jointName);
         }
         if (jointIndex != -1) {
