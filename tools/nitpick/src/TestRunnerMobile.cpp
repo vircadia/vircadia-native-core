@@ -23,6 +23,7 @@ TestRunnerMobile::TestRunnerMobile(
     QLabel* detectedDeviceLabel,
     QLineEdit *folderLineEdit,
     QPushButton* downloadAPKPushbutton,
+    QPushButton* installAPKPushbutton,
     QCheckBox* runLatest,
     QLineEdit* url,
     QLabel* statusLabel,
@@ -36,6 +37,7 @@ TestRunnerMobile::TestRunnerMobile(
     _detectedDeviceLabel = detectedDeviceLabel;
     _folderLineEdit = folderLineEdit;
     _downloadAPKPushbutton = downloadAPKPushbutton;
+    _installAPKPushbutton = installAPKPushbutton;
     _runLatest = runLatest;
     _url = url;
     _statusLabel = statusLabel;
@@ -50,7 +52,6 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
     setWorkingFolder(_workingFolderLabel);
 
     _connectDeviceButton->setEnabled(true);
-    _downloadAPKPushbutton->setEnabled(true);
 
     // Find ADB (Android Debugging Bridge) before continuing
 #ifdef Q_OS_WIN
@@ -104,6 +105,7 @@ void TestRunnerMobile::connectDevice() {
             _detectedDeviceLabel->setText(line2.remove(DEVICE));
             _pullFolderButton->setEnabled(true);
             _folderLineEdit->setEnabled(true);
+            _downloadAPKPushbutton->setEnabled(true);
         }
     }
 }
@@ -143,25 +145,22 @@ void TestRunnerMobile::downloadComplete() {
        _statusLabel->setText("Downloading installer");
 
         nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
-
-        // `downloadComplete` will run again after download has completed
-
     } else {
-        // Download of Installer has completed
-////        appendLog(QString("Tests started at ") + QString::number(_testStartDateTime.time().hour()) + ":" +
-////            QString("%1").arg(_testStartDateTime.time().minute(), 2, 10, QChar('0')) + ", on " +
-////            _testStartDateTime.date().toString("ddd, MMM d, yyyy"));
-
-        _statusLabel->setText("Installing");
-
-        // Kill any existing processes that would interfere with installation
-////        killProcesses();
-
-////        runInstaller();
+        _statusLabel->setText("Installer download complete");
+        _installAPKPushbutton->setEnabled(true);
     }
 }
 
-void TestRunnerMobile::pullFolder() {
-    QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + " >" + _workingFolder + "/pullOutput.txt";
+void TestRunnerMobile::installAPK() {
+    _statusLabel->setText("Installing");
+    QString command = _adbCommand + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
     system(command.toStdString().c_str());
+    _statusLabel->setText("Installation complete");
+}
+
+void TestRunnerMobile::pullFolder() {
+    _statusLabel->setText("Pulling folder");
+    QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + _installerFilename;
+    system(command.toStdString().c_str());
+    _statusLabel->setText("Pull complete");
 }

@@ -98,7 +98,10 @@ private slots:
     void on_setWorkingFolderRunOnMobilePushbutton_clicked();
     void on_connectDevicePushbutton_clicked();
     void on_runLatestOnMobileCheckBox_clicked();
+
     void on_downloadAPKPushbutton_clicked();
+    void on_installAPKPushbutton_clicked();
+
     void on_pullFolderPushbutton_clicked();
 
 private:

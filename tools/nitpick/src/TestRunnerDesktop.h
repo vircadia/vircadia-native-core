@@ -16,7 +16,6 @@
 #include <QObject>
 #include <QPushButton>
 #include <QThread>
-#include <QTimeEdit>
 #include <QTimer>
 
 #include "TestRunner.h"
@@ -67,8 +66,6 @@ public:
 
     void copyFolder(const QString& source, const QString& destination);
 
-    void appendLog(const QString& message);
-
     QString getPRNumberFromURL(const QString& url);
 
 private slots:
@@ -106,11 +103,6 @@ private:
     QCheckBox* _runServerless;
     QPushButton* _runNow;
     QTimer* _timer;
-
-    QFile _logFile;
-
-    QDateTime _testStartDateTime;
-
     QThread* _installerThread;
     QThread* _interfaceThread;
 

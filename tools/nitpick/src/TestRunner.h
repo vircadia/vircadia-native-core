@@ -12,9 +12,11 @@
 #define hifi_testRunner_h
 
 #include <QCheckBox>
+#include <QDir>
 #include <QLabel>
 #include <QLineEdit>
 #include <QObject>
+#include <QTimeEdit>
 
 class Worker;
 
@@ -30,6 +32,8 @@ public:
     void downloadBuildXml(void* caller);
     void parseBuildInformation();
     QString getInstallerNameFromURL(const QString& url);
+
+    void appendLog(const QString& message);
 
 protected:
     QLabel* _workingFolderLabel;
@@ -52,6 +56,11 @@ protected:
 #else
     const QString INSTALLER_FILENAME_LATEST{ "" };
 #endif
+
+    QDateTime _testStartDateTime;
+
+private:
+    QFile _logFile;
 };
 
 class Worker : public QObject {

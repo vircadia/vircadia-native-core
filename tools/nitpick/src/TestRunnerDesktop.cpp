@@ -83,8 +83,6 @@ void TestRunnerDesktop::setWorkingFolderAndEnableControls() {
     _installationFolder = _workingFolder + "/High_Fidelity";
 #endif
 
-    _logFile.setFileName(_workingFolder + "/log.txt");
-
     nitpick->enableRunTabControls();
 
     _timer = new QTimer(this);
@@ -659,20 +657,6 @@ void TestRunnerDesktop::checkTime() {
     if (timeToRun) {
         run();
     }
-}
-
-void TestRunnerDesktop::appendLog(const QString& message) {
-    if (!_logFile.open(QIODevice::Append | QIODevice::Text)) {
-        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not open the log file");
-        exit(-1);
-    }
-
-    _logFile.write(message.toStdString().c_str());
-    _logFile.write("\n");
-    _logFile.close();
-
-    nitpick->appendLogWindow(message);
 }
 
 QString TestRunnerDesktop::getPRNumberFromURL(const QString& url) {

@@ -27,6 +27,7 @@ public:
         QLabel* detectedDeviceLabel,
         QLineEdit *folderLineEdit,
         QPushButton* downloadAPKPushbutton,
+        QPushButton* installAPKPushbutton,
         QCheckBox* runLatest,
         QLineEdit* url,
         QLabel* statusLabel,
@@ -37,8 +38,12 @@ public:
 
     void setWorkingFolderAndEnableControls();
     void connectDevice();
-    void downloadAPK();
+
     void downloadComplete();
+    void downloadAPK();
+
+    void installAPK();
+
     void pullFolder();
 
 private:
@@ -47,6 +52,7 @@ private:
     QLabel* _detectedDeviceLabel;
     QLineEdit* _folderLineEdit;
     QPushButton* _downloadAPKPushbutton;
+    QPushButton* _installAPKPushbutton;
 
 #ifdef Q_OS_WIN
     const QString _adbExe{ "adb.exe" };

@@ -32,6 +32,9 @@ void TestRunner::setWorkingFolder(QLabel* workingFolderLabel) {
     }
 
     workingFolderLabel->setText(QDir::toNativeSeparators(_workingFolder));
+
+    // This file is used for debug purposes.
+    _logFile.setFileName(_workingFolder + "/log.txt");
 }
 
 void TestRunner::downloadBuildXml(void* caller) {
@@ -149,6 +152,20 @@ QString TestRunner::getInstallerNameFromURL(const QString& url) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "unknown error");
         exit(-1);
     }
+}
+
+void TestRunner::appendLog(const QString& message) {
+    if (!_logFile.open(QIODevice::Append | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+            "Could not open the log file");
+        exit(-1);
+    }
+
+    _logFile.write(message.toStdString().c_str());
+    _logFile.write("\n");
+    _logFile.close();
+
+    nitpick->appendLogWindow(message);
 }
 
 void Worker::setCommandLine(const QString& commandLine) {

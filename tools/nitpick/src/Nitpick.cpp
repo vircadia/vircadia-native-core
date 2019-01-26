@@ -112,6 +112,7 @@ void Nitpick::setup() {
         _ui.detectedDeviceLabel, 
         _ui.folderLineEdit,
         _ui.downloadAPKPushbutton,
+        _ui.installAPKPushbutton,
         _ui.runLatestOnMobileCheckBox,
         _ui.urlOnMobileLineEdit,
         _ui.statusLabelOnMobile
@@ -360,6 +361,10 @@ void Nitpick::on_runLatestOnMobileCheckBox_clicked() {
 
 void Nitpick::on_downloadAPKPushbutton_clicked() {
     _testRunnerMobile->downloadAPK();
+}
+
+void Nitpick::on_installAPKPushbutton_clicked() {
+    _testRunnerMobile->installAPK();
 }
 
 void Nitpick::on_pullFolderPushbutton_clicked() {
