@@ -70,7 +70,7 @@ Flickable {
             readonly property bool hmdDesktop: hmdInDesktop.checked
 
             property int state: buttonState.disabled
-            property var lastConfiguration: null
+            property var lastConfiguration:  null
 
             HifiConstants { id: hifi }
 
@@ -90,7 +90,6 @@ Flickable {
                 anchors.fill: parent
                 propagateComposedEvents: true
                 onPressed: {
-                    parent.forceActiveFocus()
                     mouse.accepted = false;
                 }
             }
@@ -169,9 +168,7 @@ Flickable {
                     boxRadius: 7
                     visible: viveInDesktop.checked
 
-                    anchors.top: viveInDesktop.bottom
                     anchors.topMargin: 5
-                    anchors.left: openVrConfiguration.left
                     anchors.leftMargin: leftMargin + 10
 
                     onClicked: {
@@ -214,13 +211,13 @@ Flickable {
 
                     onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
 
                 HifiControls.SpinBox {
                     id: headZOffset
+                    z: 10
                     width: 112
                     label: "Z Offset"
                     minimumValue: -50
@@ -232,7 +229,6 @@ Flickable {
 
                     onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -326,7 +322,6 @@ Flickable {
 
                     onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -344,7 +339,6 @@ Flickable {
 
                     onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -578,7 +572,6 @@ Flickable {
 
                     onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -596,7 +589,6 @@ Flickable {
 
                     onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -747,8 +739,8 @@ Flickable {
             }
 
             Component.onCompleted: {
-                InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
                 lastConfiguration = composeConfigurationSettings();
+                InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
             }
 
             Component.onDestruction: {
@@ -777,7 +769,6 @@ Flickable {
                     calibrationTimer.interval = realValue * 1000;
                     openVrConfiguration.countDown = realValue;
                     numberAnimation.duration = calibrationTimer.interval;
-                    openVrConfiguration.forceActiveFocus();
                 }
             }
 
@@ -1048,6 +1039,9 @@ Flickable {
             }
 
             function updateButtonState() {
+                if (lastConfiguration === null) {
+                    lastConfiguration = composeConfigurationSettings();
+                }
                 var settings = composeConfigurationSettings();
                 var bodySetting = settings["bodyConfiguration"];
                 var headSetting = settings["headConfiguration"];

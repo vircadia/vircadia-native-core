@@ -58,7 +58,7 @@ Item {
             keyItem.state = "mouseOver";
 
             var globalPosition = keyItem.mapToGlobal(mouseArea1.mouseX, mouseArea1.mouseY);
-            var pointerID = Web3DOverlay.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
+            var pointerID = QmlSurface.deviceIdByTouchPoint(globalPosition.x, globalPosition.y);
 
             if (Pointers.isLeftHand(pointerID)) {
                 Controller.triggerHapticPulse(_HAPTIC_STRENGTH, _HAPTIC_DURATION, leftHand);

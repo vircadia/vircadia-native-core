@@ -47,7 +47,7 @@
    makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
-   findGroupParent:true,
+   findGrabbableGroupParent:true,
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
@@ -451,13 +451,16 @@ ensureDynamic = function (entityID) {
     }
 };
 
-findGroupParent = function (controllerData, targetProps) {
+findGrabbableGroupParent = function (controllerData, targetProps) {
     while (targetProps.grab.grabDelegateToParent &&
            targetProps.parentID &&
            targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
+            break;
+        }
+        if (!entityIsGrabbable(parentProps)) {
             break;
         }
         parentProps.id = targetProps.parentID;
@@ -605,7 +608,7 @@ if (typeof module !== 'undefined') {
         unhighlightTargetEntity: unhighlightTargetEntity,
         clearHighlightedEntities: clearHighlightedEntities,
         makeRunningValues: makeRunningValues,
-        findGroupParent: findGroupParent,
+        findGrabbableGroupParent: findGrabbableGroupParent,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,

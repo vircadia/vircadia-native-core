@@ -293,6 +293,15 @@ public:
     bool isVisibleInSecondaryCamera() const;
     void setIsVisibleInSecondaryCamera(bool value);
 
+    RenderLayer getRenderLayer() const;
+    void setRenderLayer(RenderLayer value);
+
+    PrimitiveMode getPrimitiveMode() const;
+    void setPrimitiveMode(PrimitiveMode value);
+
+    bool getIgnorePickIntersection() const;
+    void setIgnorePickIntersection(bool value);
+
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
@@ -621,7 +630,10 @@ protected:
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
     bool _isVisibleInSecondaryCamera { ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA };
+    RenderLayer _renderLayer { RenderLayer::WORLD };
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
+    bool _ignorePickIntersection { false };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };

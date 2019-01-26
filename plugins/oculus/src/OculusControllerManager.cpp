@@ -17,6 +17,7 @@
 #include <controllers/UserInputMapper.h>
 #include <controllers/StandardControls.h>
 
+#include <AvatarConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <NumericalConstants.h>
@@ -327,8 +328,14 @@ void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
                           ovr::toGlm(headPose.AngularVelocity));
 
     glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) *
-        inputCalibrationData.defaultHeadMat;
+    glm::mat4 defaultHeadOffset;
+    if (inputCalibrationData.hmdAvatarAlignmentType == controller::HmdAvatarAlignmentType::Eyes) {
+        // align the eyes of the user with the eyes of the avatar
+        defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+    } else {
+        // align the head of the user with the head of the avatar
+        defaultHeadOffset = createMatFromQuatAndPos(Quaternions::IDENTITY, -DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET);
+    }
 
     pose.valid = true;
     _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);

@@ -277,8 +277,8 @@ namespace AvatarDataPacket {
         uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
         SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
         uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
-        SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
-
+        float maxTranslationDimension;                         // used to normalize fixed point translation values.
+        SixByteTrans translation[numValidTranslations];        // normalized and compressed by packFloatVec3ToSignedTwoByteFixed()
         SixByteQuat leftHandControllerRotation;
         SixByteTrans leftHandControllerTranslation;
         SixByteQuat rightHandControllerRotation;
@@ -286,6 +286,7 @@ namespace AvatarDataPacket {
     };
     */
     size_t maxJointDataSize(size_t numJoints, bool hasGrabJoints);
+    size_t minJointDataSize(size_t numJoints);
 
     /*
     struct JointDefaultPoseFlags {
@@ -494,6 +495,8 @@ public:
     /// \param offset number of bytes into packet where data starts
     /// \return number of bytes parsed
     virtual int parseDataFromBuffer(const QByteArray& buffer);
+
+    virtual void setCollisionWithOtherAvatarsFlags() {};
 
     // Body Rotation (degrees)
     float getBodyYaw() const;

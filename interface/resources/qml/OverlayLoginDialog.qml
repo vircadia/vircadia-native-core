@@ -55,7 +55,8 @@ FocusScope {
     Image {
         z: -10
         id: loginDialogBackground
-        source: "LoginDialog/images/background.jpg"
+        fillMode: Image.PreserveAspectCrop
+        source: "LoginDialog/images/background.png"
         anchors.fill: parent
     }
 
@@ -149,6 +150,6 @@ FocusScope {
 
     Component.onCompleted: {
         keyboardTimer.start();
-        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
+        bodyLoader.setSource("LoginDialog/LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false, "linkOculus": false });
     }
 }

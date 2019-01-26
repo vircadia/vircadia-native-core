@@ -35,7 +35,7 @@ public:
     Q_INVOKABLE void synthesizeKeyPress(QString key, QObject* targetOverride = nullptr);
     Q_INVOKABLE void lowerKeyboard();
     PointerEvent::EventType choosePointerEventType(QEvent::Type type);
-    unsigned int deviceIdByTouchPoint(qreal x, qreal y);
+    Q_INVOKABLE unsigned int deviceIdByTouchPoint(qreal x, qreal y);
 
 signals:
     void focusObjectChanged(QObject* newFocus);

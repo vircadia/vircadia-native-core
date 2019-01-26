@@ -12,6 +12,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <gpu/Frame.h>
 #include <gl/Config.h>
+#include <shared/GlobalAppProperties.h>
 
 #include "OculusHelpers.h"
 
@@ -30,7 +31,7 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         return false;
     }
 
-    if (ovr::quitRequested(status) || ovr::displayLost(status) || !ovr::handleOVREvents()) {
+    if (ovr::quitRequested(status) || ovr::displayLost(status)) {
         QMetaObject::invokeMethod(qApp, "quit");
         return false;
     }
