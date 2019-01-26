@@ -633,12 +633,8 @@ void DdeFaceTracker::calibrate() {
         _calibrationCount = 0;
         _calibrationMessage = CALIBRATION_INSTRUCTION_MESSAGE + "\n\n";
 
+        // FIXME: this overlay probably doesn't work anymore
         _calibrationBillboard = new TextOverlay();
-        _calibrationBillboard->setTopMargin(CALIBRATION_BILLBOARD_TOP_MARGIN);
-        _calibrationBillboard->setLeftMargin(CALIBRATION_BILLBOARD_LEFT_MARGIN);
-        _calibrationBillboard->setFontSize(CALIBRATION_BILLBOARD_FONT_SIZE);
-        _calibrationBillboard->setText(CALIBRATION_INSTRUCTION_MESSAGE);
-        _calibrationBillboard->setAlpha(CALIBRATION_BILLBOARD_ALPHA);
         glm::vec2 viewport = qApp->getCanvasSize();
         _calibrationBillboard->setX((viewport.x - CALIBRATION_BILLBOARD_WIDTH) / 2);
         _calibrationBillboard->setY((viewport.y - CALIBRATION_BILLBOARD_HEIGHT) / 2);
@@ -658,10 +654,10 @@ void DdeFaceTracker::addCalibrationDatum() {
     int samplesLeft = CALIBRATION_SAMPLES - _calibrationCount;
     if (samplesLeft % LARGE_TICK_INTERVAL == 0) {
         _calibrationMessage += QString::number(samplesLeft / LARGE_TICK_INTERVAL);
-        _calibrationBillboard->setText(_calibrationMessage);
+        // FIXME: set overlay text
     } else if (samplesLeft % SMALL_TICK_INTERVAL == 0) {
         _calibrationMessage += ".";
-        _calibrationBillboard->setText(_calibrationMessage);
+        // FIXME: set overlay text
     }
 
     for (int i = 0; i < NUM_FACESHIFT_BLENDSHAPES; i++) {

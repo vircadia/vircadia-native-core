@@ -56,6 +56,5 @@ private:
 private:
     std::mutex _mutex;
     AvatarData* _myAvatar { nullptr };
-    QScriptEngine _scriptEngine;
 };
 #endif // hifi_EntityEditPacketSender_h

@@ -27,13 +27,14 @@
 #include "RectangleOverlay.h"
 
 #include <raypick/RayPick.h>
+#include <PointerManager.h>
 
 #include <RenderableWebEntityItem.h>
+#include "VariantMapToScriptValue.h"
 
 #include "ui/Keyboard.h"
 #include <QtQuick/QQuickWindow>
 
-#include <PointerManager.h>
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
@@ -51,10 +52,12 @@ Overlays::Overlays() {
 
     ADD_TYPE_MAP(Box, cube);
     ADD_TYPE_MAP(Sphere, sphere);
+    _overlayToEntityTypes["rectangle"] = "Shape";
     ADD_TYPE_MAP(Shape, shape);
     ADD_TYPE_MAP(Model, model);
     ADD_TYPE_MAP(Text, text3d);
     ADD_TYPE_MAP(Image, image3d);
+    _overlayToEntityTypes["billboard"] = "Image";
     ADD_TYPE_MAP(Web, web3d);
     ADD_TYPE_MAP(PolyLine, line3d);
     ADD_TYPE_MAP(Grid, grid);
@@ -138,8 +141,6 @@ void Overlays::enable() {
     _enabled = true;
 }
 
-// Note, can't be invoked by scripts, but can be called by the InterfaceParentFinder
-// class on packet processing threads
 Overlay::Pointer Overlays::get2DOverlay(const QUuid& id) const {
     if (_shuttingDown) {
         return nullptr;
@@ -165,19 +166,266 @@ QString Overlays::overlayToEntityType(const QString& type) {
     auto iter = _overlayToEntityTypes.find(type);
     if (iter != _overlayToEntityTypes.end()) {
         return iter->second;
-    } else if (type == "billboard") {
-        return "Image";
     }
     return "Unknown";
 }
 
-EntityItemProperties convertOverlayToEntityProperties(const QVariantMap& overlayProps) {
-    EntityItemProperties props;
+#define SET_OVERLAY_PROP_DEFAULT(o, d)                                                   \
+    {                                                                                    \
+        auto iter = overlayProps.find(#o);                                               \
+        if (iter == overlayProps.end()) {                                                \
+            overlayProps[#o] = d;                                                        \
+        }                                                                                \
+    }
 
-    return props;
+#define OVERLAY_TO_ENTITY_PROP(o, e)                                                     \
+    {                                                                                    \
+        auto iter = overlayProps.find(#o);                                               \
+        if (iter != overlayProps.end()) {                                                \
+            overlayProps[#e] = iter.value();                                             \
+        }                                                                                \
+    }
+
+#define OVERLAY_TO_GROUP_ENTITY_PROP(o, g, e)                                                        \
+    {                                                                                                \
+        auto iter = overlayProps.find(#o);                                                           \
+        if (iter != overlayProps.end()) {                                                            \
+            auto iter2 = overlayProps.find(#g);                                                      \
+            if (iter2 == overlayProps.end()) {                                                       \
+                overlayProps[#g] = QVariantMap();                                                    \
+            }                                                                                        \
+            overlayProps[#g].toMap()[#e] = iter.value();                                             \
+        }                                                                                            \
+    }
+
+#define OVERLAY_TO_GROUP_ENTITY_PROP_DEFAULT(o, g, e, d)                                             \
+    {                                                                                                \
+        auto iter = overlayProps.find(#o);                                                           \
+        if (iter != overlayProps.end()) {                                                            \
+            auto iter2 = overlayProps.find(#g);                                                      \
+            if (iter2 == overlayProps.end()) {                                                       \
+                overlayProps[#g] = QVariantMap();                                                    \
+            }                                                                                        \
+            overlayProps[#g].toMap()[#e] = iter.value();                                             \
+        } else {                                                                                     \
+            auto iter2 = overlayProps.find(#g);                                                      \
+            if (iter2 == overlayProps.end()) {                                                       \
+                overlayProps[#g] = QVariantMap();                                                    \
+            }                                                                                        \
+            overlayProps[#g].toMap()[#e] = d;                                                        \
+        }                                                                                            \
+    }
+
+#define OVERLAY_TO_ENTITY_PROP_CONVERT(o, e, C)                                          \
+    {                                                                                    \
+        auto iter = overlayProps.find(#o);                                               \
+        if (iter != overlayProps.end()) {                                                \
+            overlayProps[#e] = C(iter.value());                                          \
+        }                                                                                \
+    }
+
+#define OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(o, e, d, C)                               \
+    {                                                                                    \
+        auto iter = overlayProps.find(#o);                                               \
+        if (iter != overlayProps.end()) {                                                \
+            overlayProps[#e] = C(iter.value());                                          \
+        } else {                                                                         \
+            overlayProps[#e] = C(d);                                                     \
+        }                                                                                \
+    }
+
+#define OVERLAY_TO_GROUP_ENTITY_PROP_CONVERT(o, g, e, C)                                 \
+    {                                                                                    \
+        auto iter = overlayProps.find(#o);                                               \
+        if (iter != overlayProps.end()) {                                                \
+            auto iter2 = overlayProps.find(#g);                                          \
+            if (iter2 == overlayProps.end()) {                                           \
+                overlayProps[#g] = QVariantMap();                                        \
+            }                                                                            \
+            overlayProps[#g].toMap()[#e] = C(iter.value());                              \
+        }                                                                                \
+    }
+
+EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps) {
+    SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
+    if (overlayProps["type"] != "PolyLine") {
+        OVERLAY_TO_ENTITY_PROP(p1, position);
+        OVERLAY_TO_ENTITY_PROP(start, position);
+    }
+    OVERLAY_TO_ENTITY_PROP(point, position);
+    OVERLAY_TO_ENTITY_PROP(scale, dimensions);
+    OVERLAY_TO_ENTITY_PROP(size, dimensions);
+    OVERLAY_TO_ENTITY_PROP(orientation, rotation);
+    OVERLAY_TO_ENTITY_PROP(localOrientation, localRotation);
+    OVERLAY_TO_ENTITY_PROP(ignoreRayIntersection, ignorePickIntersection);
+
+    {
+        OVERLAY_TO_ENTITY_PROP(solid, isSolid);
+        OVERLAY_TO_ENTITY_PROP(isFilled, isSolid);
+        OVERLAY_TO_ENTITY_PROP(filled, isSolid);
+        OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(isSolid, primitiveMode, false, [](const QVariant& v) { return v.toBool() ? "solid" : "lines"; });
+
+        OVERLAY_TO_ENTITY_PROP(wire, isWire);
+        OVERLAY_TO_ENTITY_PROP_CONVERT(isWire, primitiveMode, [](const QVariant& v) { return v.toBool() ? "lines" : "solid"; });
+    }
+
+    OVERLAY_TO_ENTITY_PROP_CONVERT(drawInFront, renderLayer, [](const QVariant& v) { return v.toBool() ? "front" : "world"; });
+    OVERLAY_TO_ENTITY_PROP_CONVERT(drawHUDLayer, renderLayer, [](const QVariant& v) { return v.toBool() ? "hud" : "world"; });
+
+    OVERLAY_TO_GROUP_ENTITY_PROP_DEFAULT(grabbable, grab, grabbable, false);
+
+    OVERLAY_TO_GROUP_ENTITY_PROP(pulseMin, pulse, min);
+    OVERLAY_TO_GROUP_ENTITY_PROP(pulseMax, pulse, max);
+    OVERLAY_TO_GROUP_ENTITY_PROP(pulsePeriod, pulse, period);
+    OVERLAY_TO_GROUP_ENTITY_PROP_CONVERT(colorPulse, pulse, colorMode, [](const QVariant& v) {
+        float f = v.toFloat();
+        if (f > 0.0f) {
+            return "in";
+        } else if (f < 0.0f) {
+            return "out";
+        }
+        return "none";
+    });
+    OVERLAY_TO_GROUP_ENTITY_PROP_CONVERT(alphaPulse, pulse, alphaMode, [](const QVariant& v) {
+        float f = v.toFloat();
+        if (f > 0.0f) {
+            return "in";
+        } else if (f < 0.0f) {
+            return "out";
+        }
+        return "none";
+    });
+
+    if (overlayProps["type"] == "Shape") {
+        SET_OVERLAY_PROP_DEFAULT(shape, "Hexagon");
+    } else if (overlayProps["type"] == "Model") {
+        OVERLAY_TO_ENTITY_PROP(url, modelURL);
+        OVERLAY_TO_ENTITY_PROP(animationSettings, animation);
+    } else if (overlayProps["type"] == "Image") {
+        OVERLAY_TO_ENTITY_PROP(url, imageURL);
+    } else if (overlayProps["type"] == "Web") {
+        OVERLAY_TO_ENTITY_PROP(url, sourceUrl);
+        OVERLAY_TO_ENTITY_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "Mouse" ? "mouse" : "touch"; });
+    } else if (overlayProps["type"] == "Gizmo") {
+        {
+            float ratio = 2.0f;
+            {
+                auto iter = overlayProps.find("outerRadius");
+                if (iter != overlayProps.end()) {
+                    ratio = iter.value().toFloat() / 0.5f;
+                }
+            }
+            glm::vec3 dimensions = glm::vec3(1.0f);
+            {
+                auto iter = overlayProps.find("dimensions");
+                if (iter != overlayProps.end()) {
+                    dimensions = vec3FromVariant(iter.value());
+                }
+            }
+            overlayProps["dimensions"] = vec3toVariant(ratio * dimensions);
+        }
+
+        {
+            OVERLAY_TO_ENTITY_PROP(color, innerStartColor);
+            OVERLAY_TO_ENTITY_PROP(color, innerEndColor);
+            OVERLAY_TO_ENTITY_PROP(color, outerStartColor);
+            OVERLAY_TO_ENTITY_PROP(color, outerEndColor);
+
+            OVERLAY_TO_ENTITY_PROP(startColor, innerStartColor);
+            OVERLAY_TO_ENTITY_PROP(startColor, outerStartColor);
+
+            OVERLAY_TO_ENTITY_PROP(endColor, innerEndColor);
+            OVERLAY_TO_ENTITY_PROP(endColor, outerEndColor);
+
+            OVERLAY_TO_ENTITY_PROP(innerColor, innerStartColor);
+            OVERLAY_TO_ENTITY_PROP(innerColor, innerEndColor);
+
+            OVERLAY_TO_ENTITY_PROP(outerColor, outerStartColor);
+            OVERLAY_TO_ENTITY_PROP(outerColor, outerEndColor);
+        }
+
+        {
+            OVERLAY_TO_ENTITY_PROP(alpha, innerStartAlpha);
+            OVERLAY_TO_ENTITY_PROP(alpha, innerEndAlpha);
+            OVERLAY_TO_ENTITY_PROP(alpha, outerStartAlpha);
+            OVERLAY_TO_ENTITY_PROP(alpha, outerEndAlpha);
+
+            OVERLAY_TO_ENTITY_PROP(startAlpha, innerStartAlpha);
+            OVERLAY_TO_ENTITY_PROP(startAlpha, outerStartAlpha);
+
+            OVERLAY_TO_ENTITY_PROP(endAlpha, innerEndAlpha);
+            OVERLAY_TO_ENTITY_PROP(endAlpha, outerEndAlpha);
+
+            OVERLAY_TO_ENTITY_PROP(innerAlpha, innerStartAlpha);
+            OVERLAY_TO_ENTITY_PROP(innerAlpha, innerEndAlpha);
+
+            OVERLAY_TO_ENTITY_PROP(outerAlpha, outerStartAlpha);
+            OVERLAY_TO_ENTITY_PROP(outerAlpha, outerEndAlpha);
+        }
+
+        OVERLAY_TO_GROUP_ENTITY_PROP(startAt, ring, startAngle);
+        OVERLAY_TO_GROUP_ENTITY_PROP(endAt, ring, endAngle);
+        OVERLAY_TO_GROUP_ENTITY_PROP(innerRadius, ring, innerRadius);
+
+        OVERLAY_TO_GROUP_ENTITY_PROP(innerStartColor, ring, innerStartColor);
+        OVERLAY_TO_GROUP_ENTITY_PROP(innerEndColor, ring, innerEndColor);
+        OVERLAY_TO_GROUP_ENTITY_PROP(outerStartColor, ring, outerStartColor);
+        OVERLAY_TO_GROUP_ENTITY_PROP(outerEndColor, ring, outerEndColor);
+        OVERLAY_TO_GROUP_ENTITY_PROP(innerStartAlpha, ring, innerStartAlpha);
+        OVERLAY_TO_GROUP_ENTITY_PROP(innerEndAlpha, ring, innerEndAlpha);
+        OVERLAY_TO_GROUP_ENTITY_PROP(outerStartAlpha, ring, outerStartAlpha);
+        OVERLAY_TO_GROUP_ENTITY_PROP(outerEndAlpha, ring, outerEndAlpha);
+
+        OVERLAY_TO_GROUP_ENTITY_PROP(hasTickMarks, ring, hasTickMarks);
+        OVERLAY_TO_GROUP_ENTITY_PROP(majorTickMarksAngle, ring, majorTickMarksAngle);
+        OVERLAY_TO_GROUP_ENTITY_PROP(minorTickMarksAngle, ring, minorTickMarksAngle);
+        OVERLAY_TO_GROUP_ENTITY_PROP(majorTickMarksLength, ring, majorTickMarksLength);
+        OVERLAY_TO_GROUP_ENTITY_PROP(minorTickMarksLength, ring, minorTickMarksLength);
+        OVERLAY_TO_GROUP_ENTITY_PROP(majorTickMarksColor, ring, majorTickMarksColor);
+        OVERLAY_TO_GROUP_ENTITY_PROP(minorTickMarksColor, ring, minorTickMarksColor);
+    } else if (overlayProps["type"] == "PolyLine") {
+        OVERLAY_TO_ENTITY_PROP(startPoint, start);
+        OVERLAY_TO_ENTITY_PROP(p1, start);
+        OVERLAY_TO_ENTITY_PROP(localStart, start);
+        OVERLAY_TO_ENTITY_PROP(endPoint, end);
+        OVERLAY_TO_ENTITY_PROP(p2, end);
+        OVERLAY_TO_ENTITY_PROP(localEnd, end);
+
+        {
+            QVariantList points;
+            {
+                auto iter = overlayProps.find("start");
+                if (iter != overlayProps.end()) {
+                    points.push_back(iter.value());
+                }
+            }
+            {
+                auto iter = overlayProps.find("end");
+                if (iter != overlayProps.end()) {
+                    points.push_back(iter.value());
+                }
+            }
+            overlayProps["linePoints"] = points;
+        }
+        {
+            auto iter = overlayProps.find("lineWidth");
+            if (iter != overlayProps.end()) {
+                QVariantList widths;
+                widths.append(iter.value());
+                overlayProps["strokeWidths"] = widths;
+            }
+        }
+    }
+
+    EntityItemProperties toReturn;
+    EntityItemPropertiesFromScriptValueHonorReadOnly(variantMapToScriptValue(overlayProps, _scriptEngine), toReturn);
+    return toReturn;
 }
 
-QVariantMap convertEntityToOverlayProperties(const EntityItemProperties& entityProps) {
+QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& entityProps) {
+    QScriptValue entityProperties;
+    EntityItemPropertiesToScriptValue(&_scriptEngine, entityProps);
+
     QVariantMap props;
 
     return props;
@@ -194,63 +442,6 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
         BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
         return result;
     }
-
-    /**jsdoc
-     * <p>An overlay may be one of the following types:</p>
-     * <table>
-     *   <thead>
-     *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
-     *   </thead>
-     *   <tbody>
-     *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
-     *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
-     *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
-     *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
-     *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> overlay to create a 
-     *     cube.</td></tr>
-     *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
-     *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
-     *     <tr><td><code>line3d</code></td><td>3D</td><td>A line.</td></tr>
-     *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
-     *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
-     *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
-     *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> overlay to create a 
-     *     sphere.</td></tr>
-     *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
-     *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
-     *   </tbody>
-     * </table>
-     * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
-     * rendered at a position and orientation in-world, but are deprecated (use local entities instead).<p>
-     * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
-     * @typedef {string} Overlays.OverlayType
-     */
-
-     /**jsdoc
-     * <p>Different overlay types have different properties:</p>
-     * <table>
-     *   <thead>
-     *     <tr><th>{@link Overlays.OverlayType|OverlayType}</th><th>Overlay Properties</th></tr>
-     *   </thead>
-     *   <tbody>
-     *     <tr><td><code>image</code></td><td>{@link Overlays.ImageProperties|ImageProperties}</td></tr>
-     *     <tr><td><code>rectangle</code></td><td>{@link Overlays.RectangleProperties|RectangleProperties}</td></tr>
-     *     <tr><td><code>text</code></td><td>{@link Overlays.TextProperties|TextProperties}</td></tr>
-     *     <tr><td><code>circle3d</code></td><td>{@link Overlays.Circle3DProperties|Circle3DProperties}</td></tr>
-     *     <tr><td><code>cube</code></td><td>{@link Overlays.CubeProperties|CubeProperties}</td></tr>
-     *     <tr><td><code>grid</code></td><td>{@link Overlays.GridProperties|GridProperties}</td></tr>
-     *     <tr><td><code>image3d</code></td><td>{@link Overlays.Image3DProperties|Image3DProperties}</td></tr>
-     *     <tr><td><code>line3d</code></td><td>{@link Overlays.Line3DProperties|Line3DProperties}</td></tr>
-     *     <tr><td><code>model</code></td><td>{@link Overlays.ModelProperties|ModelProperties}</td></tr>
-     *     <tr><td><code>rectangle3d</code></td><td>{@link Overlays.Rectangle3DProperties|Rectangle3DProperties}</td></tr>
-     *     <tr><td><code>shape</code></td><td>{@link Overlays.ShapeProperties|ShapeProperties}</td></tr>
-     *     <tr><td><code>sphere</code></td><td>{@link Overlays.SphereProperties|SphereProperties}</td></tr>
-     *     <tr><td><code>text3d</code></td><td>{@link Overlays.Text3DProperties|Text3DProperties}</td></tr>
-     *     <tr><td><code>web3d</code></td><td>{@link Overlays.Web3DProperties|Web3DProperties}</td></tr>
-     *   </tbody>
-     * </table>
-     * @typedef {object} Overlays.OverlayProperties
-     */
 
     Overlay::Pointer overlay;
     if (type == ImageOverlay::TYPE) {
@@ -271,13 +462,15 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     }
 
     QString entityType = overlayToEntityType(type);
-
     if (entityType == "Unknown") {
         return UNKNOWN_ENTITY_ID;
     }
 
     QVariantMap propertyMap = properties.toMap();
     propertyMap["type"] = entityType;
+    if (type == "rectangle") {
+        propertyMap["shape"] = "Quad";
+    }
     return DependencyManager::get<EntityScriptingInterface>()->addEntity(convertOverlayToEntityProperties(propertyMap), "local");
 }
 
@@ -942,14 +1135,44 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     return result;
 }
 
+
+
+/**jsdoc
+ * <p>An overlay may be one of the following types:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>2D/3D</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>image</code></td><td>2D</td><td>An image. Synonym: <code>billboard</code>.</td></tr>
+ *     <tr><td><code>rectangle</code></td><td>2D</td><td>A rectangle.</td></tr>
+ *     <tr><td><code>text</code></td><td>2D</td><td>Text.</td></tr>
+ *     <tr><td><code>cube</code></td><td>3D</td><td>A cube. Can also use a <code>shape</code> overlay to create a cube.</td></tr>
+ *     <tr><td><code>sphere</code></td><td>3D</td><td>A sphere. Can also use a <code>shape</code> overlay to create a sphere.</td></tr>
+ *     <tr><td><code>rectangle3d</code></td><td>3D</td><td>A rectangle.</td></tr>
+ *     <tr><td><code>shape</code></td><td>3D</td><td>A geometric shape, such as a cube, sphere, or cylinder.</td></tr>
+ *     <tr><td><code>model</code></td><td>3D</td><td>A model.</td></tr>
+ *     <tr><td><code>text3d</code></td><td>3D</td><td>Text.</td></tr>
+ *     <tr><td><code>image3d</code></td><td>3D</td><td>An image.</td></tr>
+ *     <tr><td><code>web3d</code></td><td>3D</td><td>Web content.</td></tr>
+ *     <tr><td><code>line3d</code></td><td>3D</td><td>A line.</td></tr>
+ *     <tr><td><code>grid</code></td><td>3D</td><td>A grid of lines in a plane.</td></tr>
+ *     <tr><td><code>circle3d</code></td><td>3D</td><td>A circle.</td></tr>
+ *   </tbody>
+ * </table>
+ * <p>2D overlays are rendered on the display surface in desktop mode and on the HUD surface in HMD mode. 3D overlays are
+ * rendered at a position and orientation in-world, but are deprecated (use local entities instead).<p>
+ * <p>Each overlay type has different {@link Overlays.OverlayProperties|OverlayProperties}.</p>
+ * @typedef {string} Overlays.OverlayType
+ */
+
 /**jsdoc
  * Different overlay types have different properties: some common to all overlays (listed below) and some specific to each
  * {@link Overlays.OverlayType|OverlayType} (linked to below). The properties are accessed as an object of property names and
- * values.
+ * values.  3D Overlays are local entities, internally, so they also support the corresponding entity properties.
  *
  * @typedef {object} Overlays.OverlayProperties
  * @property {Uuid} id - The ID of the overlay. <em>Read-only.</em>
- * @property {string} type=TODO - Has the value <code>"TODO"</code>. <em>Read-only.</em>
  * @property {Overlays.OverlayType} type - The overlay type. <em>Read-only.</em>
  * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
  *
@@ -959,6 +1182,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @see {@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}
  * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube}
  * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere}
+ * @see {@link Overlays.OverlayProperties-Rectangle3D|OverlayProperties-Rectangle3D}
  * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape}
  * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model}
  * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}
@@ -1014,7 +1238,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  */
 
 /**jsdoc
- * The <code>"Text"</code> {@link Overlays.OverlayType|OverlayType} is for 2D rectangles.
+ * The <code>"Rectangle"</code> {@link Overlays.OverlayType|OverlayType} is for 2D rectangles.
  * @typedef {object} Overlays.OverlayProperties-Rectangle
  * @property {Rect} bounds - The position and size of the rectangle, in pixels. <em>Write-only.</em>
  * @property {number} x - Integer left, x-coordinate value = <code>bounds.x</code>. <em>Write-only.</em>
@@ -1074,6 +1298,45 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
 /**jsdoc
  * The <code>"Sphere"</code> {@link Overlays.OverlayType|OverlayType} is for 3D spheres.
  * @typedef {object} Overlays.OverlayProperties-Sphere
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ */
+
+/**jsdoc
+ * The <code>"Rectangle3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D rectangles.
+ * @typedef {object} Overlays.OverlayProperties-Rectangle3D
  * @property {string} name - The name of the overlay.
  * @property {Color} color=255,255,255 - The color of the overlay.
  * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.

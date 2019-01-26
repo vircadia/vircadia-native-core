@@ -26,8 +26,6 @@
 
 #include "Overlay.h"
 
-#include "PanelAttachable.h"
-
 #include <EntityScriptingInterface.h>
 
 class PickRay;
@@ -118,6 +116,8 @@ public:
     bool mouseMoveEvent(QMouseEvent* event);
 
     void cleanupAllOverlays();
+
+    mutable QScriptEngine _scriptEngine;
 
 public slots:
     /**jsdoc
@@ -722,6 +722,9 @@ private:
     static QString overlayToEntityType(const QString& type);
     static std::unordered_map<QString, QString> _entityToOverlayTypes;
     static std::unordered_map<QString, QString> _overlayToEntityTypes;
+
+    QVariantMap convertEntityToOverlayProperties(const EntityItemProperties& entityProps);
+    EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps);
 
 private slots:
     void mousePressPointerEvent(const QUuid& id, const PointerEvent& event);
