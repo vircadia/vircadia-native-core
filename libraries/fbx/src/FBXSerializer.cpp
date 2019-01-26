@@ -384,43 +384,6 @@ QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
-QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
-    static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
-    QMap<QString, QString> hfmToHifiJointNameMap;
-    if (!mapping.isEmpty() && mapping.contains(JOINT_NAME_MAPPING_FIELD) && mapping[JOINT_NAME_MAPPING_FIELD].type() == QVariant::Hash) {
-        auto jointNames = mapping[JOINT_NAME_MAPPING_FIELD].toHash();
-        for (auto itr = jointNames.begin(); itr != jointNames.end(); itr++) {
-            hfmToHifiJointNameMap.insert(itr.key(), itr.value().toString());
-            qCDebug(modelformat) << "the mapped key " << itr.key() << " has a value of " << hfmToHifiJointNameMap[itr.key()];
-        }
-    }
-    return hfmToHifiJointNameMap;
-}
-
-QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
-    QMap<QString, glm::quat> jointRotationOffsets;
-    static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
-    if (!mapping.isEmpty() && mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) {
-        auto offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
-        for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
-            QString jointName = itr.key();
-            QString line = itr.value().toString();
-            auto quatCoords = line.split(',');
-            if (quatCoords.size() == 4) {
-                float quatX = quatCoords[0].mid(1).toFloat();
-                float quatY = quatCoords[1].toFloat();
-                float quatZ = quatCoords[2].toFloat();
-                float quatW = quatCoords[3].mid(0, quatCoords[3].size() - 1).toFloat();
-                if (!isNaN(quatX) && !isNaN(quatY) && !isNaN(quatZ) && !isNaN(quatW)) {
-                    glm::quat rotationOffset = glm::quat(quatW, quatX, quatY, quatZ);
-                    jointRotationOffsets.insert(jointName, rotationOffset);
-                }
-            }
-        }
-    }
-    return jointRotationOffsets;
-}
-
 HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QString& url) {
     const FBXNode& node = _rootNode;
     QMap<QString, ExtractedMesh> meshes;
@@ -471,7 +434,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     HFMModel& hfmModel = *hfmModelPtr;
 
     hfmModel.originalURL = url;
-    auto hfmToHifiJointNameMapping = getJointNameMapping(mapping);
 
     float unitScaleFactor = 1.0f;
     glm::vec3 ambientColor;
@@ -1284,13 +1246,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     }
 
     // convert the models to joints
-    QVariantList freeJoints = mapping.values("freeJoint");
     hfmModel.hasSkeletonJoints = false;
 
     foreach (const QString& modelID, modelIDs) {
         const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
-        joint.isFree = freeJoints.contains(fbxModel.name);
         joint.parentIndex = fbxModel.parentIndex;
 
         // get the indices of all ancestors starting with the first free one (if any)
@@ -1338,14 +1298,10 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = fbxModel.name;
-        if (hfmToHifiJointNameMapping.contains(hfmToHifiJointNameMapping.key(joint.name))) {
-            joint.name = hfmToHifiJointNameMapping.key(fbxModel.name);
-        }
 
         joint.bindTransformFoundInCluster = false;
 
         hfmModel.joints.append(joint);
-        hfmModel.jointIndices.insert(joint.name, hfmModel.joints.size());
 
         QString rotationID = localRotations.value(modelID);
         AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
@@ -1716,21 +1672,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 hfmModel.meshIndicesToModelNames.insert(meshIndex, modelName);
             }
         }
-    }
-
-    auto offsets = getJointRotationOffsets(mapping);
-    hfmModel.jointRotationOffsets.clear();
-    for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
-        QString jointName = itr.key();
-        glm::quat rotationOffset = itr.value();
-        int jointIndex = hfmModel.getJointIndex(jointName);
-        if (hfmToHifiJointNameMapping.contains(jointName)) {
-            jointIndex = hfmModel.getJointIndex(jointName);
-        }
-        if (jointIndex != -1) {
-            hfmModel.jointRotationOffsets.insert(jointIndex, rotationOffset);
-        }
-        qCDebug(modelformat) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
 
     return hfmModelPtr;
