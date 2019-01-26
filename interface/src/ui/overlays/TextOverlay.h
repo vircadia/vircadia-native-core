@@ -19,16 +19,8 @@ public:
     QString getType() const override { return TYPE; }
     static QUrl const URL;
 
-
     TextOverlay();
     TextOverlay(const TextOverlay* textOverlay);
-    ~TextOverlay();
-
-    void setTopMargin(float margin);
-    void setLeftMargin(float margin);
-    void setFontSize(float size);
-    void setText(const QString& text);
-
 
     TextOverlay* createClone() const override;
     QSizeF textSize(const QString& text) const;  // Pixels

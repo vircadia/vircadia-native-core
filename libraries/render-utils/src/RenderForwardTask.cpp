@@ -61,7 +61,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
         const auto& items = fetchedItems.get0();
 
-            // Extract opaques / transparents / lights / metas / overlays / background
+            // Extract opaques / transparents / lights / metas / layered / background
             const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
             const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
             const auto& metas = items[RenderFetchCullSortTask::META];

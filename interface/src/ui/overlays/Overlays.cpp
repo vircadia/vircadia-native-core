@@ -79,13 +79,6 @@ void Overlays::init() {
 }
 
 void Overlays::update(float deltatime) {
-    {
-        QMutexLocker locker(&_mutex);
-        foreach(const auto& thisOverlay, _overlays) {
-            thisOverlay->update(deltatime);
-        }
-    }
-
     cleanupOverlaysToDelete();
 }
 
@@ -948,3 +941,589 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     }
     return result;
 }
+
+/**jsdoc
+ * Different overlay types have different properties: some common to all overlays (listed below) and some specific to each
+ * {@link Overlays.OverlayType|OverlayType} (linked to below). The properties are accessed as an object of property names and
+ * values.
+ *
+ * @typedef {object} Overlays.OverlayProperties
+ * @property {Uuid} id - The ID of the overlay. <em>Read-only.</em>
+ * @property {string} type=TODO - Has the value <code>"TODO"</code>. <em>Read-only.</em>
+ * @property {Overlays.OverlayType} type - The overlay type. <em>Read-only.</em>
+ * @property {boolean} visible=true - If <code>true</code>, the overlay is rendered, otherwise it is not rendered.
+ *
+ * @see The different entity types have additional properties as follows:
+ * @see {@link Overlays.OverlayProperties-Image|OverlayProperties-Image}
+ * @see {@link Overlays.OverlayProperties-Text|OverlayProperties-Text}
+ * @see {@link Overlays.OverlayProperties-Rectangle|OverlayProperties-Rectangle}
+ * @see {@link Overlays.OverlayProperties-Cube|OverlayProperties-Cube}
+ * @see {@link Overlays.OverlayProperties-Sphere|OverlayProperties-Sphere}
+ * @see {@link Overlays.OverlayProperties-Shape|OverlayProperties-Shape}
+ * @see {@link Overlays.OverlayProperties-Model|OverlayProperties-Model}
+ * @see {@link Overlays.OverlayProperties-Text3D|OverlayProperties-Text3D}
+ * @see {@link Overlays.OverlayProperties-Image3D|OverlayProperties-Image3D}
+ * @see {@link Overlays.OverlayProperties-Web|OverlayProperties-Web}
+ * @see {@link Overlays.OverlayProperties-Line|OverlayProperties-Line}
+ * @see {@link Overlays.OverlayProperties-Grid|OverlayProperties-Grid}
+ * @see {@link Overlays.OverlayProperties-Circle|OverlayProperties-Circle}
+ */
+
+/**jsdoc
+ * The <code>"Image"</code> {@link Overlays.OverlayType|OverlayType} is a 2D image.
+ * @typedef {object} Overlays.OverlayProperties-Image
+ * @property {Rect} bounds - The position and size of the image display area, in pixels. <em>Write-only.</em>
+ * @property {number} x - Integer left, x-coordinate value of the image display area = <code>bounds.x</code>.
+ *     <em>Write-only.</em>
+ *  @property {number} y - Integer top, y-coordinate value of the image display area = <code>bounds.y</code>.
+ *     <em>Write-only.</em>
+ * @property {number} width - Integer width of the image display area = <code>bounds.width</code>. <em>Write-only.</em>
+ *  @property {number} height - Integer height of the image display area = <code>bounds.height</code>. <em>Write-only.</em>
+ * @property {string} imageURL - The URL of the image file to display. The image is scaled to fit to the <code>bounds</code>.
+ *     <em>Write-only.</em>
+ *  @property {Vec2} subImage=0,0 - Integer coordinates of the top left pixel to start using image content from.
+ *     <em>Write-only.</em>
+ * @property {Color} color=0,0,0 - The color to apply over the top of the image to colorize it. <em>Write-only.</em>
+ *  @property {number} alpha=0.0 - The opacity of the color applied over the top of the image, <code>0.0</code> -
+ *     <code>1.0</code>. <em>Write-only.</em>
+ */
+
+/**jsdoc
+ * The <code>"Text"</code> {@link Overlays.OverlayType|OverlayType} is for 2D text.
+ * @typedef {object} Overlays.OverlayProperties-Text
+ * @property {Rect} bounds - The position and size of the rectangle, in pixels. <em>Write-only.</em>
+ * @property {number} x - Integer left, x-coordinate value = <code>bounds.x</code>. <em>Write-only.</em>
+ * @property {number} y - Integer top, y-coordinate value = <code>bounds.y</code>. <em>Write-only.</em>
+ * @property {number} width - Integer width of the rectangle = <code>bounds.width</code>. <em>Write-only.</em>
+ * @property {number} height - Integer height of the rectangle = <code>bounds.height</code>. <em>Write-only.</em>
+ *
+ * @property {number} margin=0 - Sets the <code>leftMargin</code> and <code>topMargin</code> values, in pixels.
+ *     <em>Write-only.</em>
+ * @property {number} leftMargin=0 - The left margin's size, in pixels. This value is also used for the right margin.
+ *     <em>Write-only.</em>
+ * @property {number} topMargin=0 - The top margin's size, in pixels. This value is also used for the bottom margin.
+ *     <em>Write-only.</em>
+ * @property {string} text="" - The text to display. Text does not automatically wrap; use <code>\n</code> for a line break. Text
+ *     is clipped to the <code>bounds</code>. <em>Write-only.</em>
+ * @property {number} font.size=18 - The size of the text, in pixels. <em>Write-only.</em>
+ * @property {number} lineHeight=18 - The height of a line of text, in pixels. <em>Write-only.</em>
+ * @property {Color} color=255,255,255 - The color of the text. Synonym: <code>textColor</code>. <em>Write-only.</em>
+ * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
+ * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle. <em>Write-only.</em>
+ * @property {number} backgroundAlpha=0.7 - The opacity of the background rectangle. <em>Write-only.</em>
+ */
+
+/**jsdoc
+ * The <code>"Text"</code> {@link Overlays.OverlayType|OverlayType} is for 2D rectangles.
+ * @typedef {object} Overlays.OverlayProperties-Rectangle
+ * @property {Rect} bounds - The position and size of the rectangle, in pixels. <em>Write-only.</em>
+ * @property {number} x - Integer left, x-coordinate value = <code>bounds.x</code>. <em>Write-only.</em>
+ * @property {number} y - Integer top, y-coordinate value = <code>bounds.y</code>. <em>Write-only.</em>
+ * @property {number} width - Integer width of the rectangle = <code>bounds.width</code>. <em>Write-only.</em>
+ * @property {number} height - Integer height of the rectangle = <code>bounds.height</code>. <em>Write-only.</em>
+ *
+ * @property {Color} color=0,0,0 - The color of the overlay. <em>Write-only.</em>
+ * @property {number} alpha=1.0 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>. <em>Write-only.</em>
+ * @property {number} borderWidth=1 - Integer width of the border, in pixels. The border is drawn within the rectangle's bounds.
+ *     It is not drawn unless either <code>borderColor</code> or <code>borderAlpha</code> are specified. <em>Write-only.</em>
+ * @property {number} radius=0 - Integer corner radius, in pixels. <em>Write-only.</em>
+ * @property {Color} borderColor=0,0,0 - The color of the border. <em>Write-only.</em>
+ * @property {number} borderAlpha=1.0 - The opacity of the border, <code>0.0</code> - <code>1.0</code>.
+ *     <em>Write-only.</em>
+ */
+
+/**jsdoc
+ * The <code>"Cube"</code> {@link Overlays.OverlayType|OverlayType} is for 3D cubes.
+ * @typedef {object} Overlays.OverlayProperties-Cube
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ */
+
+/**jsdoc
+ * The <code>"Sphere"</code> {@link Overlays.OverlayType|OverlayType} is for 3D spheres.
+ * @typedef {object} Overlays.OverlayProperties-Sphere
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ */
+
+/**jsdoc
+ * <p>A <code>shape</code> {@link Overlays.OverlayType|OverlayType} may display as one of the following geometrical shapes:</p>
+ * <table>
+ *   <thead>
+ *     <tr><th>Value</th><th>Dimensions</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>"Circle"</code></td><td>2D</td><td>A circle oriented in 3D.</td></td></tr>
+ *     <tr><td><code>"Cone"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Cube"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Cylinder"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Dodecahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Hexagon"</code></td><td>3D</td><td>A hexagonal prism.</td></tr>
+ *     <tr><td><code>"Icosahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Line"</code></td><td>1D</td><td>A line oriented in 3D.</td></tr>
+ *     <tr><td><code>"Octagon"</code></td><td>3D</td><td>An octagonal prism.</td></tr>
+ *     <tr><td><code>"Octahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Quad"</code></td><td>2D</td><td>A square oriented in 3D.</tr>
+ *     <tr><td><code>"Sphere"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Tetrahedron"</code></td><td>3D</td><td></td></tr>
+ *     <tr><td><code>"Torus"</code></td><td>3D</td><td><em>Not implemented.</em></td></tr>
+ *     <tr><td><code>"Triangle"</code></td><td>3D</td><td>A triangular prism.</td></tr>
+ *   </tbody>
+ * </table>
+ * @typedef {string} Overlays.Shape
+ */
+
+/**jsdoc
+ * The <code>"Shape"</code> {@link Overlays.OverlayType|OverlayType} is for 3D shapes.
+ * @typedef {object} Overlays.OverlayProperties-Shape
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {Overlays.Shape} shape=Hexagon - The geometrical shape of the overlay.
+ */
+
+/**jsdoc
+ * The <code>"Model"</code> {@link Overlays.OverlayType|OverlayType} is for 3D models.
+ * @typedef {object} Overlays.OverlayProperties-Model
+ * @property {string} name - The name of the overlay.
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {string} url - The URL of the FBX or OBJ model used for the overlay.
+ * @property {number} loadPriority=0.0 - The priority for loading and displaying the overlay. Overlays with higher values load
+ *     first. <CURRENTLY NOT USED>
+ * @property {object.<name, url>} textures - Maps the named textures in the model to the JPG or PNG images in the urls.
+ * @property {string[]} jointNames - The names of the joints - if any - in the model. <em>Read-only.</em>
+ * @property {Quat[]} jointRotations - The relative rotations of the model's joints.
+ * @property {Vec3[]} jointTranslations - The relative translations of the model's joints.
+ * @property {Quat[]} jointOrientations - The absolute orientations of the model's joints, in world coordinates. <em>Read-only.</em>
+ * @property {Vec3[]} jointPositions - The absolute positions of the model's joints, in world coordinates. <em>Read-only.</em>
+ * @property {string} animationSettings.url="" - The URL of an FBX file containing an animation to play.
+ * @property {number} animationSettings.fps=0 - The frame rate (frames/sec) to play the animation at.
+ * @property {number} animationSettings.firstFrame=0 - The frame to start playing at.
+ * @property {number} animationSettings.lastFrame=0 - The frame to finish playing at.
+ * @property {number} animationSettings.currentFrame=0 - The current frame being played.
+ * @property {boolean} animationSettings.running=false - Whether or not the animation is playing.
+ * @property {boolean} animationSettings.loop=false - Whether or not the animation should repeat in a loop.
+ * @property {boolean} animationSettings.hold=false - Whether or not when the animation finishes, the rotations and
+ *     translations of the last frame played should be maintained.
+ * @property {boolean} animationSettings.allowTranslation=false - Whether or not translations contained in the animation should
+ *     be played.
+ */
+
+/**jsdoc
+ * The <code>"Text3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D text.
+ * @typedef {object} Overlays.OverlayProperties-Text3D
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} isFacingAvatar - If <code>true< / code>, the overlay is rotated to face the user's camera about an axis
+ *     parallel to the user's avatar's "up" direction.
+ * @property {string} text="" - The text to display.Text does not automatically wrap; use <code>\n< / code> for a line break.
+ * @property {number} textAlpha=1 - The text alpha value.
+ * @property {Color} backgroundColor=0,0,0 - The background color.
+ * @property {number} backgroundAlpha=0.7 - The background alpha value.
+ * @property {number} lineHeight=1 - The height of a line of text in meters.
+ * @property {number} leftMargin=0.1 - The left margin, in meters.
+ * @property {number} topMargin=0.1 - The top margin, in meters.
+ * @property {number} rightMargin=0.1 - The right margin, in meters.
+ * @property {number} bottomMargin=0.1 - The bottom margin, in meters.
+ */
+
+/**jsdoc
+ * The <code>"Image3D"</code> {@link Overlays.OverlayType|OverlayType} is for 3D images.
+ * @typedef {object} Overlays.OverlayProperties-Image3D
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
+ *     parallel to the user's avatar's "up" direction.
+ * @property {string} url - The URL of the PNG or JPG image to display.
+ * @property {Rect} subImage - The portion of the image to display. Defaults to the full image.
+ * @property {boolean} emissive - If <code>true</code>, the overlay is displayed at full brightness, otherwise it is rendered
+ *     with scene lighting.
+ * @property {bool} keepAspectRatio=true - overlays will maintain the aspect ratio when the subImage is applied.
+ */
+
+/**jsdoc
+ * The <code>"Web"</code> {@link Overlays.OverlayType|OverlayType} is for 3D web surfaces.
+ * @typedef {object} Overlays.OverlayProperties-Web
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
+ *     parallel to the user's avatar's "up" direction.
+ * @property {string} url - The URL of the Web page to display.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {number} dpi=30 - The dots per inch to display the Web page at, on the overlay.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web overlay content, in frames/second.
+ * @property {string} inputMode=Touch - The user input mode to use - either <code>"Touch"</code> or <code>"Mouse"</code>.
+ */
+
+/**jsdoc
+ * The <code>"Line"</code> {@link Overlays.OverlayType|OverlayType} is for 3D lines.
+ * @typedef {object} Overlays.OverlayProperties-Line
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {Uuid} endParentID=null - The avatar, entity, or overlay that the end point of the line is parented to.
+ * @property {number} endParentJointIndex=65535 - Integer value specifying the skeleton joint that the end point of the line is
+ *     attached to if <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint". <CURRENTLY BROKEN>
+ * @property {Vec3} start - The start point of the line. Synonyms: <code>startPoint</code> and <code>p1</code>.
+ * @property {Vec3} end - The end point of the line. Synonyms: <code>endPoint</code> and <code>p2</code>.
+ * @property {Vec3} localStart - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>start</code>. Synonym: <code>localPosition</code>.
+ * @property {Vec3} localEnd - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>endParentID</code> set, otherwise the same value as <code>end</code>. <CURRENTLY BROKEN>
+ * @property {number} length - The length of the line, in meters. This can be set after creating a line with start and end
+ *     points. <CURRENTLY BROKEN>
+ * @property {number} glow=0 - If <code>glow > 0</code>, the line is rendered with a glow.
+ * @property {number} lineWidth=0.02 - Width of the line, in meters.
+ */
+
+/**jsdoc
+ * The <code>"Grid"</code> {@link Overlays.OverlayType|OverlayType} is for 3D grid.
+ * @typedef {object} Overlays.OverlayProperties-Grid
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {boolean} followCamera=true - If <code>true</code>, the grid is always visible even as the camera moves to another position.
+ * @property {number} majorGridEvery=5 - Integer number of <code>minorGridEvery</code> intervals at which to draw a thick grid line. Minimum value = <code>1</code>.
+ * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value = <code>0.001</code>.
+ */
+
+/**jsdoc
+ * The <code>"Circle"</code> {@link Overlays.OverlayType|OverlayType} is for 3D circle.
+ * @typedef {object} Overlays.OverlayProperties-Circle
+ * @property {string} name - The name of the overlay.
+ * @property {Color} color=255,255,255 - The color of the overlay.
+ * @property {number} alpha=0.7 - The opacity of the overlay, <code>0.0</code> - <code>1.0</code>.
+ * @property {number} pulseMax=0 - The maximum value of the pulse multiplier.
+ * @property {number} pulseMin=0 - The minimum value of the pulse multiplier.
+ * @property {number} pulsePeriod=1 - The duration of the color and alpha pulse, in seconds. A pulse multiplier value goes from
+ *     <code>pulseMin</code> to <code>pulseMax</code>, then <code>pulseMax</code> to <code>pulseMin</code> in one period.
+ * @property {number} alphaPulse=0 - If non-zero, the alpha of the overlay is pulsed: the alpha value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ * @property {number} colorPulse=0 - If non-zero, the color of the overlay is pulsed: the color value is multiplied by the
+ *     current pulse multiplier value each frame. If > 0 the pulse multiplier is applied in phase with the pulse period; if < 0
+ *     the pulse multiplier is applied out of phase with the pulse period. (The magnitude of the property isn't otherwise
+ *     used.)
+ *
+ * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
+ *     <code>start</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
+ * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
+ * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
+ *     Antonyms: <code>isWire</code> and <code>wire</code>.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
+ * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
+ * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
+ * @property {boolean} grabbable=false - Signal to grabbing scripts whether or not this overlay can be grabbed.
+ * @property {Uuid} parentID=null - The avatar, entity, or overlay that the overlay is parented to.
+ * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
+ *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
+ *
+ * @property {number} startAt = 0 - The counter - clockwise angle from the overlay's x-axis that drawing starts at, in degrees.
+ * @property {number} endAt = 360 - The counter - clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
+ * @property {number} outerRadius = 1 - The outer radius of the overlay, in meters.Synonym: <code>radius< / code>.
+ * @property {number} innerRadius = 0 - The inner radius of the overlay, in meters.
+ * @property {Color} color = 255, 255, 255 - The color of the overlay.Setting this value also sets the values of
+ *     <code>innerStartColor< / code>, <code>innerEndColor< / code>, <code>outerStartColor< / code>, and <code>outerEndColor< / code>.
+ * @property {Color} startColor - Sets the values of <code>innerStartColor< / code> and <code>outerStartColor< / code>.
+ *     <em>Write - only.< / em>
+ * @property {Color} endColor - Sets the values of <code>innerEndColor< / code> and <code>outerEndColor< / code>.
+ *     <em>Write - only.< / em>
+ * @property {Color} innerColor - Sets the values of <code>innerStartColor< / code> and <code>innerEndColor< / code>.
+ *     <em>Write - only.< / em>
+ * @property {Color} outerColor - Sets the values of <code>outerStartColor< / code> and <code>outerEndColor< / code>.
+ *     <em>Write - only.< / em>
+ * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
+ * @property {Color} innerEndColor - The color at the inner end point of the overlay.
+ * @property {Color} outerStartColor - The color at the outer start point of the overlay.
+ * @property {Color} outerEndColor - The color at the outer end point of the overlay.
+ * @property {number} alpha = 0.5 - The opacity of the overlay, <code>0.0< / code> -<code>1.0< / code>.Setting this value also sets
+ *     the values of <code>innerStartAlpha< / code>, <code>innerEndAlpha< / code>, <code>outerStartAlpha< / code>, and
+ *     <code>outerEndAlpha< / code>.Synonym: <code>Alpha< / code>; <em>write - only< / em>.
+ * @property {number} startAlpha - Sets the values of <code>innerStartAlpha< / code> and <code>outerStartAlpha< / code>.
+ *     <em>Write - only.< / em>
+ * @property {number} endAlpha - Sets the values of <code>innerEndAlpha< / code> and <code>outerEndAlpha< / code>.
+ *     <em>Write - only.< / em>
+ * @property {number} innerAlpha - Sets the values of <code>innerStartAlpha< / code> and <code>innerEndAlpha< / code>.
+ *     <em>Write - only.< / em>
+ * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha< / code> and <code>outerEndAlpha< / code>.
+ *     <em>Write - only.< / em>
+ * @property {number} innerStartAlpha = 0 - The alpha at the inner start point of the overlay.
+ * @property {number} innerEndAlpha = 0 - The alpha at the inner end point of the overlay.
+ * @property {number} outerStartAlpha = 0 - The alpha at the outer start point of the overlay.
+ * @property {number} outerEndAlpha = 0 - The alpha at the outer end point of the overlay.
+ *
+ * @property {boolean} hasTickMarks = false - If <code>true< / code>, tick marks are drawn.
+ * @property {number} majorTickMarksAngle = 0 - The angle between major tick marks, in degrees.
+ * @property {number} minorTickMarksAngle = 0 - The angle between minor tick marks, in degrees.
+ * @property {number} majorTickMarksLength = 0 - The length of the major tick marks, in meters.A positive value draws tick marks
+ *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
+ * @property {number} minorTickMarksLength = 0 - The length of the minor tick marks, in meters.A positive value draws tick marks
+ *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
+ * @property {Color} majorTickMarksColor = 0, 0, 0 - The color of the major tick marks.
+ * @property {Color} minorTickMarksColor = 0, 0, 0 - The color of the minor tick marks.
+ */
