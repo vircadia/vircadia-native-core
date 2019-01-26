@@ -252,6 +252,7 @@ class MyAvatar : public Avatar {
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
+    const QString DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE = "head";
 
     using Clock = std::chrono::system_clock;
     using TimePoint = Clock::time_point;
@@ -519,7 +520,18 @@ public:
      * @function MyAvatar.getDominantHand
      * @returns {string} 
      */
-    Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
+    Q_INVOKABLE QString getDominantHand() const;
+
+    /**jsdoc
+     * @function MyAvatar.setHmdAvatarAlignmentType
+     * @param {string} hand
+     */
+    Q_INVOKABLE void setHmdAvatarAlignmentType(const QString& hand);
+    /**jsdoc
+     * @function MyAvatar.setHmdAvatarAlignmentType
+     * @returns {string}
+     */
+    Q_INVOKABLE QString getHmdAvatarAlignmentType() const;
 
     /**jsdoc
     * @function MyAvatar.setCenterOfGravityModelEnabled
@@ -1586,6 +1598,13 @@ signals:
     void dominantHandChanged(const QString& hand);
 
     /**jsdoc
+     * @function MyAvatar.hmdAvatarAlignmentTypeChanged
+     * @param {string} type
+     * @returns {Signal}
+     */
+    void hmdAvatarAlignmentTypeChanged(const QString& type);
+
+    /**jsdoc
      * @function MyAvatar.sensorToWorldScaleChanged
      * @param {number} scale
      * @returns {Signal} 
@@ -1773,7 +1792,8 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
-    QString _dominantHand { DOMINANT_RIGHT_HAND };
+    ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
+    ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
     const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
@@ -1946,6 +1966,7 @@ private:
     TimePoint _nextTraitsSendWindow;
 
     Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<QString> _hmdAvatarAlignmentTypeSetting;
     Setting::Handle<float> _headPitchSetting;
     Setting::Handle<float> _scaleSetting;
     Setting::Handle<float> _yawSpeedSetting;

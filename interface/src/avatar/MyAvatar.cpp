@@ -125,6 +125,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
     _dominantHandSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "dominantHand", DOMINANT_RIGHT_HAND),
+    _hmdAvatarAlignmentTypeSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "hmdAvatarAlignmentType", DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE),
     _headPitchSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "", 0.0f),
     _scaleSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "scale", _targetScale),
     _yawSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "yawSpeed", _yawSpeed),
@@ -286,10 +287,25 @@ MyAvatar::~MyAvatar() {
     _myScriptEngine = nullptr;
 }
 
+QString MyAvatar::getDominantHand() const {
+    return _dominantHand.get();
+}
+
 void MyAvatar::setDominantHand(const QString& hand) {
     if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
-        _dominantHand = hand;
-        emit dominantHandChanged(_dominantHand);
+        _dominantHand.set(hand);
+        emit dominantHandChanged(hand);
+    }
+}
+
+QString MyAvatar::getHmdAvatarAlignmentType() const {
+    return _hmdAvatarAlignmentType.get();
+}
+
+void MyAvatar::setHmdAvatarAlignmentType(const QString& type) {
+    if (type != _hmdAvatarAlignmentType.get()) {
+        _hmdAvatarAlignmentType.set(type);
+        emit hmdAvatarAlignmentTypeChanged(type);
     }
 }
 
@@ -377,6 +393,7 @@ void MyAvatar::resetSensorsAndBody() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "resetSensorsAndBody");
         return;
+
     }
 
     qApp->getActiveDisplayPlugin()->resetSensors();
@@ -1277,7 +1294,8 @@ void MyAvatar::resizeAvatarEntitySettingHandles(uint32_t maxIndex) {
 }
 
 void MyAvatar::saveData() {
-    _dominantHandSetting.set(_dominantHand);
+    _dominantHandSetting.set(getDominantHand());
+    _hmdAvatarAlignmentTypeSetting.set(getHmdAvatarAlignmentType());
     _headPitchSetting.set(getHead()->getBasePitch());
     _scaleSetting.set(_targetScale);
     _yawSpeedSetting.set(_yawSpeed);
@@ -1882,6 +1900,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(_collisionSoundURLSetting.get(QUrl(DEFAULT_AVATAR_COLLISION_SOUND_URL)).toString());
     setSnapTurn(_useSnapTurnSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
+    setHmdAvatarAlignmentType(_hmdAvatarAlignmentTypeSetting.get(DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE).toLower());
     setUserHeight(_userHeightSetting.get(DEFAULT_AVATAR_HEIGHT));
     setTargetScale(_scaleSetting.get());
 

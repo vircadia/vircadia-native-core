@@ -6062,6 +6062,13 @@ void Application::update(float deltaTime) {
 
         auto userInputMapper = DependencyManager::get<UserInputMapper>();
 
+        controller::HmdAvatarAlignmentType hmdAvatarAlignmentType;
+        if (myAvatar->getHmdAvatarAlignmentType() == "eyes") {
+            hmdAvatarAlignmentType = controller::HmdAvatarAlignmentType::Eyes;
+        } else {
+            hmdAvatarAlignmentType = controller::HmdAvatarAlignmentType::Head;
+        }
+
         controller::InputCalibrationData calibrationData = {
             myAvatar->getSensorToWorldMatrix(),
             createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition()),
@@ -6075,7 +6082,8 @@ void Application::update(float deltaTime) {
             myAvatar->getRightArmCalibrationMat(),
             myAvatar->getLeftArmCalibrationMat(),
             myAvatar->getRightHandCalibrationMat(),
-            myAvatar->getLeftHandCalibrationMat()
+            myAvatar->getLeftHandCalibrationMat(),
+            hmdAvatarAlignmentType
         };
 
         InputPluginPointer keyboardMousePlugin;
