@@ -185,83 +185,83 @@ QString Overlays::overlayToEntityType(const QString& type) {
     return "Unknown";
 }
 
-#define SET_OVERLAY_PROP_DEFAULT(o, d)                                                   \
-    {                                                                                    \
-        if (add && !overlayProps.contains(#o)) {                                         \
-            overlayProps[#o] = d;                                                        \
-        }                                                                                \
+#define SET_OVERLAY_PROP_DEFAULT(o, d)                      \
+    {                                                       \
+        if (add && !overlayProps.contains(#o)) {            \
+            overlayProps[#o] = d;                           \
+        }                                                   \
     }
 
-#define OVERLAY_TO_ENTITY_PROP(o, e)                                                     \
-    {                                                                                    \
-        auto iter = overlayProps.find(#o);                                               \
-        if (iter != overlayProps.end()) {                                                \
-            overlayProps[#e] = iter.value();                                             \
-        }                                                                                \
+#define RENAME_PROP(o, e)                                   \
+    {                                                       \
+        auto iter = overlayProps.find(#o);                  \
+        if (iter != overlayProps.end()) {                   \
+            overlayProps[#e] = iter.value();                \
+        }                                                   \
     }
 
-#define OVERLAY_TO_GROUP_ENTITY_PROP(o, g, e)                                                        \
-    {                                                                                                \
-        auto iter = overlayProps.find(#o);                                                           \
-        if (iter != overlayProps.end()) {                                                            \
-            if (!overlayProps.contains(#g)) {                                                       \
-                overlayProps[#g] = QVariantMap();                                                    \
-            }                                                                                        \
-            auto map = overlayProps[#g].toMap();                                                     \
-            map[#e] = iter.value();                                                                  \
-            overlayProps[#g] = map;                                                                  \
-        }                                                                                            \
+#define RENAME_PROP_CONVERT(o, e, C)                        \
+    {                                                       \
+        auto iter = overlayProps.find(#o);                  \
+        if (iter != overlayProps.end()) {                   \
+            overlayProps[#e] = C(iter.value());             \
+        }                                                   \
     }
 
-#define OVERLAY_TO_GROUP_ENTITY_PROP_DEFAULT(o, g, e, d)                                             \
-    {                                                                                                \
-        auto iter = overlayProps.find(#o);                                                           \
-        if (iter != overlayProps.end()) {                                                            \
-            if (!overlayProps.contains(#g)) {                                                        \
-                overlayProps[#g] = QVariantMap();                                                    \
-            }                                                                                        \
-            auto map = overlayProps[#g].toMap();                                                     \
-            map[#e] = iter.value();                                                                  \
-            overlayProps[#g] = map;                                                                  \
-        } else if (add) {                                                                            \
-            if (!overlayProps.contains(#g)) {                                                        \
-                overlayProps[#g] = QVariantMap();                                                    \
-            }                                                                                        \
-            auto map = overlayProps[#g].toMap();                                                     \
-            map[#e] = d;                                                                             \
-            overlayProps[#g] = map;                                                                  \
-        }                                                                                            \
+#define OVERLAY_TO_GROUP_ENTITY_PROP(o, g, e)               \
+    {                                                       \
+        auto iter = overlayProps.find(#o);                  \
+        if (iter != overlayProps.end()) {                   \
+            if (!overlayProps.contains(#g)) {               \
+                overlayProps[#g] = QVariantMap();           \
+            }                                               \
+            auto map = overlayProps[#g].toMap();            \
+            map[#e] = iter.value();                         \
+            overlayProps[#g] = map;                         \
+        }                                                   \
     }
 
-#define OVERLAY_TO_ENTITY_PROP_CONVERT(o, e, C)                                          \
-    {                                                                                    \
-        auto iter = overlayProps.find(#o);                                               \
-        if (iter != overlayProps.end()) {                                                \
-            overlayProps[#e] = C(iter.value());                                          \
-        }                                                                                \
+#define OVERLAY_TO_GROUP_ENTITY_PROP_DEFAULT(o, g, e, d)    \
+    {                                                       \
+        auto iter = overlayProps.find(#o);                  \
+        if (iter != overlayProps.end()) {                   \
+            if (!overlayProps.contains(#g)) {               \
+                overlayProps[#g] = QVariantMap();           \
+            }                                               \
+            auto map = overlayProps[#g].toMap();            \
+            map[#e] = iter.value();                         \
+            overlayProps[#g] = map;                         \
+        } else if (add) {                                   \
+            if (!overlayProps.contains(#g)) {               \
+                overlayProps[#g] = QVariantMap();           \
+            }                                               \
+            auto map = overlayProps[#g].toMap();            \
+            map[#e] = d;                                    \
+            overlayProps[#g] = map;                         \
+        }                                                   \
     }
 
-#define OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(o, e, d, C)                               \
-    {                                                                                    \
-        auto iter = overlayProps.find(#o);                                               \
-        if (iter != overlayProps.end()) {                                                \
-            overlayProps[#e] = C(iter.value());                                          \
-        } else if (add) {                                                                \
-            overlayProps[#e] = C(d);                                                     \
-        }                                                                                \
+#define OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(o, e, d, C)  \
+    {                                                       \
+        auto iter = overlayProps.find(#o);                  \
+        if (iter != overlayProps.end()) {                   \
+            overlayProps[#e] = C(iter.value());             \
+        } else if (add) {                                   \
+            overlayProps[#e] = C(d);                        \
+        }                                                   \
     }
 
-#define OVERLAY_TO_GROUP_ENTITY_PROP_CONVERT(o, g, e, C)                                 \
-    {                                                                                    \
-        auto iter = overlayProps.find(#o);                                               \
-        if (iter != overlayProps.end()) {                                                \
-            if (!overlayProps.contains(#g)) {                                            \
-                overlayProps[#g] = QVariantMap();                                        \
-            }                                                                            \
-            auto map = overlayProps[#g].toMap();                                         \
-            map[#e] = C(iter.value());                                                   \
-            overlayProps[#g] = map;                                                      \
-        }                                                                                \
+#define OVERLAY_TO_GROUP_ENTITY_PROP_CONVERT(o, g, e, C)    \
+    {                                                       \
+        auto iter = overlayProps.find(#o);                  \
+        if (iter != overlayProps.end()) {                   \
+            if (!overlayProps.contains(#g)) {               \
+                overlayProps[#g] = QVariantMap();           \
+            }                                               \
+            auto map = overlayProps[#g].toMap();            \
+            map[#e] = C(iter.value());                      \
+            overlayProps[#g] = map;                         \
+        }                                                   \
     }
 
 EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
@@ -269,28 +269,28 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
 
     SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
     if (type != "PolyLine") {
-        OVERLAY_TO_ENTITY_PROP(p1, position);
-        OVERLAY_TO_ENTITY_PROP(start, position);
+        RENAME_PROP(p1, position);
+        RENAME_PROP(start, position);
     }
-    OVERLAY_TO_ENTITY_PROP(point, position);
-    OVERLAY_TO_ENTITY_PROP(scale, dimensions);
-    OVERLAY_TO_ENTITY_PROP(size, dimensions);
-    OVERLAY_TO_ENTITY_PROP(orientation, rotation);
-    OVERLAY_TO_ENTITY_PROP(localOrientation, localRotation);
-    OVERLAY_TO_ENTITY_PROP(ignoreRayIntersection, ignorePickIntersection);
+    RENAME_PROP(point, position);
+    RENAME_PROP(scale, dimensions);
+    RENAME_PROP(size, dimensions);
+    RENAME_PROP(orientation, rotation);
+    RENAME_PROP(localOrientation, localRotation);
+    RENAME_PROP(ignoreRayIntersection, ignorePickIntersection);
 
     {
-        OVERLAY_TO_ENTITY_PROP(solid, isSolid);
-        OVERLAY_TO_ENTITY_PROP(isFilled, isSolid);
-        OVERLAY_TO_ENTITY_PROP(filled, isSolid);
+        RENAME_PROP(solid, isSolid);
+        RENAME_PROP(isFilled, isSolid);
+        RENAME_PROP(filled, isSolid);
         OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(isSolid, primitiveMode, false, [](const QVariant& v) { return v.toBool() ? "solid" : "lines"; });
 
-        OVERLAY_TO_ENTITY_PROP(wire, isWire);
-        OVERLAY_TO_ENTITY_PROP_CONVERT(isWire, primitiveMode, [](const QVariant& v) { return v.toBool() ? "lines" : "solid"; });
+        RENAME_PROP(wire, isWire);
+        RENAME_PROP_CONVERT(isWire, primitiveMode, [](const QVariant& v) { return v.toBool() ? "lines" : "solid"; });
     }
 
-    OVERLAY_TO_ENTITY_PROP_CONVERT(drawInFront, renderLayer, [](const QVariant& v) { return v.toBool() ? "front" : "world"; });
-    OVERLAY_TO_ENTITY_PROP_CONVERT(drawHUDLayer, renderLayer, [](const QVariant& v) { return v.toBool() ? "hud" : "world"; });
+    RENAME_PROP_CONVERT(drawInFront, renderLayer, [](const QVariant& v) { return v.toBool() ? "front" : "world"; });
+    RENAME_PROP_CONVERT(drawHUDLayer, renderLayer, [](const QVariant& v) { return v.toBool() ? "hud" : "world"; });
 
     OVERLAY_TO_GROUP_ENTITY_PROP_DEFAULT(grabbable, grab, grabbable, false);
 
@@ -319,13 +319,13 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
     if (type == "Shape") {
         SET_OVERLAY_PROP_DEFAULT(shape, "Hexagon");
     } else if (type == "Model") {
-        OVERLAY_TO_ENTITY_PROP(url, modelURL);
-        OVERLAY_TO_ENTITY_PROP(animationSettings, animation);
+        RENAME_PROP(url, modelURL);
+        RENAME_PROP(animationSettings, animation);
     } else if (type == "Image") {
-        OVERLAY_TO_ENTITY_PROP(url, imageURL);
+        RENAME_PROP(url, imageURL);
     } else if (type == "Web") {
-        OVERLAY_TO_ENTITY_PROP(url, sourceUrl);
-        OVERLAY_TO_ENTITY_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "Mouse" ? "mouse" : "touch"; });
+        RENAME_PROP(url, sourceUrl);
+        RENAME_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "Mouse" ? "mouse" : "touch"; });
     } else if (type == "Gizmo") {
         if (add || overlayProps.contains("outerRadius")) {
             float ratio = 2.0f;
@@ -366,41 +366,41 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         }
 
         {
-            OVERLAY_TO_ENTITY_PROP(color, innerStartColor);
-            OVERLAY_TO_ENTITY_PROP(color, innerEndColor);
-            OVERLAY_TO_ENTITY_PROP(color, outerStartColor);
-            OVERLAY_TO_ENTITY_PROP(color, outerEndColor);
+            RENAME_PROP(color, innerStartColor);
+            RENAME_PROP(color, innerEndColor);
+            RENAME_PROP(color, outerStartColor);
+            RENAME_PROP(color, outerEndColor);
 
-            OVERLAY_TO_ENTITY_PROP(startColor, innerStartColor);
-            OVERLAY_TO_ENTITY_PROP(startColor, outerStartColor);
+            RENAME_PROP(startColor, innerStartColor);
+            RENAME_PROP(startColor, outerStartColor);
 
-            OVERLAY_TO_ENTITY_PROP(endColor, innerEndColor);
-            OVERLAY_TO_ENTITY_PROP(endColor, outerEndColor);
+            RENAME_PROP(endColor, innerEndColor);
+            RENAME_PROP(endColor, outerEndColor);
 
-            OVERLAY_TO_ENTITY_PROP(innerColor, innerStartColor);
-            OVERLAY_TO_ENTITY_PROP(innerColor, innerEndColor);
+            RENAME_PROP(innerColor, innerStartColor);
+            RENAME_PROP(innerColor, innerEndColor);
 
-            OVERLAY_TO_ENTITY_PROP(outerColor, outerStartColor);
-            OVERLAY_TO_ENTITY_PROP(outerColor, outerEndColor);
+            RENAME_PROP(outerColor, outerStartColor);
+            RENAME_PROP(outerColor, outerEndColor);
         }
 
         {
-            OVERLAY_TO_ENTITY_PROP(alpha, innerStartAlpha);
-            OVERLAY_TO_ENTITY_PROP(alpha, innerEndAlpha);
-            OVERLAY_TO_ENTITY_PROP(alpha, outerStartAlpha);
-            OVERLAY_TO_ENTITY_PROP(alpha, outerEndAlpha);
+            RENAME_PROP(alpha, innerStartAlpha);
+            RENAME_PROP(alpha, innerEndAlpha);
+            RENAME_PROP(alpha, outerStartAlpha);
+            RENAME_PROP(alpha, outerEndAlpha);
 
-            OVERLAY_TO_ENTITY_PROP(startAlpha, innerStartAlpha);
-            OVERLAY_TO_ENTITY_PROP(startAlpha, outerStartAlpha);
+            RENAME_PROP(startAlpha, innerStartAlpha);
+            RENAME_PROP(startAlpha, outerStartAlpha);
 
-            OVERLAY_TO_ENTITY_PROP(endAlpha, innerEndAlpha);
-            OVERLAY_TO_ENTITY_PROP(endAlpha, outerEndAlpha);
+            RENAME_PROP(endAlpha, innerEndAlpha);
+            RENAME_PROP(endAlpha, outerEndAlpha);
 
-            OVERLAY_TO_ENTITY_PROP(innerAlpha, innerStartAlpha);
-            OVERLAY_TO_ENTITY_PROP(innerAlpha, innerEndAlpha);
+            RENAME_PROP(innerAlpha, innerStartAlpha);
+            RENAME_PROP(innerAlpha, innerEndAlpha);
 
-            OVERLAY_TO_ENTITY_PROP(outerAlpha, outerStartAlpha);
-            OVERLAY_TO_ENTITY_PROP(outerAlpha, outerEndAlpha);
+            RENAME_PROP(outerAlpha, outerStartAlpha);
+            RENAME_PROP(outerAlpha, outerEndAlpha);
         }
 
         OVERLAY_TO_GROUP_ENTITY_PROP(startAt, ring, startAngle);
@@ -424,38 +424,39 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         OVERLAY_TO_GROUP_ENTITY_PROP(majorTickMarksColor, ring, majorTickMarksColor);
         OVERLAY_TO_GROUP_ENTITY_PROP(minorTickMarksColor, ring, minorTickMarksColor);
     } else if (type == "PolyLine") {
-        OVERLAY_TO_ENTITY_PROP(startPoint, start);
-        OVERLAY_TO_ENTITY_PROP(p1, start);
-        OVERLAY_TO_ENTITY_PROP(endPoint, end);
-        OVERLAY_TO_ENTITY_PROP(p2, end);
+        RENAME_PROP(startPoint, p1);
+        RENAME_PROP(start, p1);
+        RENAME_PROP(endPoint, p2);
+        RENAME_PROP(end, p1);
 
-        if (overlayProps.contains("start") || overlayProps.contains("end")) {
+        RENAME_PROP(p1, position);
+        RENAME_PROP_CONVERT(p1, p1, [](const QVariant& v) { return vec3toVariant(glm::vec3(0.0f)); });
+        RENAME_PROP_CONVERT(p2, p2, [=](const QVariant& v) {
             glm::vec3 position;
-            auto iter = overlayProps.find("position");
-            if (iter != overlayProps.end()) {
+            auto iter2 = overlayProps.find("position");
+            if (iter2 != overlayProps.end()) {
                 position = vec3FromVariant(iter.value());
             } else if (!add) {
                 EntityPropertyFlags desiredProperties;
                 desiredProperties += PROP_POSITION;
                 position = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getPosition();
             }
-            OVERLAY_TO_ENTITY_PROP_CONVERT(start, start, [position](const QVariant& v) { return vec3toVariant(vec3FromVariant(v) - position); })
-            OVERLAY_TO_ENTITY_PROP_CONVERT(end, end, [position](const QVariant& v) { return vec3toVariant(vec3FromVariant(v) - position); })
-        }
+            return vec3toVariant(vec3FromVariant(v) - position);
+        });
 
-        OVERLAY_TO_ENTITY_PROP(localStart, start);
-        OVERLAY_TO_ENTITY_PROP(localEnd, end);
+        RENAME_PROP(localStart, p1);
+        RENAME_PROP(localEnd, p2);
 
         {
             QVariantList points;
             {
-                auto iter = overlayProps.find("start");
+                auto iter = overlayProps.find("p1");
                 if (iter != overlayProps.end()) {
                     points.push_back(iter.value());
                 }
             }
             {
-                auto iter = overlayProps.find("end");
+                auto iter = overlayProps.find("p2");
                 if (iter != overlayProps.end()) {
                     points.push_back(iter.value());
                 }
@@ -479,11 +480,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
     return toReturn;
 }
 
-QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& entityProps) {
-    QScriptValue entityProperties;
+QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& properties) {
+    QScriptEngine scriptEngine;
+    QVariantMap overlayProps = EntityItemPropertiesToScriptValue(&scriptEngine, properties).toVariant().toMap();
 
-    QVariantMap props;
-    return props;
+    return overlayProps;
 }
 
 QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {

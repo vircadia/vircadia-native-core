@@ -5715,10 +5715,10 @@ QUuid Application::getKeyboardFocusEntity() const {
 
 static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
 
-void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
-    if (_keyboardFocusedEntity.get() != entityItemID) {
+void Application::setKeyboardFocusEntity(const QUuid& id) {
+    if (_keyboardFocusedEntity.get() != id) {
         if (qApp->getLoginDialogPoppedUp() && !_loginDialogID.isNull()) {
-            if (entityItemID == _loginDialogID) {
+            if (id == _loginDialogID) {
                 emit loginDialogFocusEnabled();
             } else {
                 // that's the only entity we want in focus;
@@ -5726,17 +5726,17 @@ void Application::setKeyboardFocusEntity(const EntityItemID& entityItemID) {
             }
         }
 
-        _keyboardFocusedEntity.set(entityItemID);
+        _keyboardFocusedEntity.set(id);
 
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-        if (entityItemID == UNKNOWN_ENTITY_ID) {
+        if (id == UNKNOWN_ENTITY_ID) {
             EntityItemProperties properties;
             properties.setVisible(false);
             entityScriptingInterface->editEntity(_keyboardFocusHighlightID, properties);
             return;
         }
 
-        auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
+        auto properties = entityScriptingInterface->getEntityProperties(id);
         if (!properties.getLocked() && properties.getVisible()) {
             auto entities = getEntities();
             auto entityId = _keyboardFocusedEntity.get();
