@@ -75,8 +75,8 @@ public:
  * @hifi-interface
  * @hifi-client-entity
  *
- * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Entities.EntityTypes|Web} local entity that has keyboard focus.
- *     If no local entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
+ * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Entities.EntityTypes|Web} entity that has keyboard focus.
+ *     If no entity has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 
  *     clear keyboard focus.
  */
 
@@ -552,20 +552,20 @@ public slots:
     void sendHoverLeaveOverlay(const QUuid& id, const PointerEvent& event);
 
     /**jsdoc
-     * Get the ID of the Web3D local entity that has keyboard focus.
+     * Get the ID of the Web3D entity that has keyboard focus.
      * @function Overlays.getKeyboardFocusOverlay
      * @returns {Uuid} The ID of the {@link Entities.EntityTypes|Web} overlay that has focus, if any, otherwise 
      *     <code>null</code>.
      */
-    EntityItemID getKeyboardFocusOverlay() { return DependencyManager::get<EntityScriptingInterface>()->getKeyboardFocusLocalEntity(); }
+    QUuid getKeyboardFocusOverlay() { return DependencyManager::get<EntityScriptingInterface>()->getKeyboardFocusEntity(); }
 
     /**jsdoc
-     * Set the Web3D local entity that has keyboard focus.
+     * Set the Web3D entity that has keyboard focus.
      * @function Overlays.setKeyboardFocusOverlay
-     * @param {Uuid} id - The ID of the {@link Entities.EntityTypes|Web} overlay to set keyboard focus to. Use 
+     * @param {Uuid} id - The ID of the {@link Entities.EntityTypes|Web} entity to set keyboard focus to. Use 
      *     <code>null</code> or {@link Uuid|Uuid.NULL} to unset keyboard focus from an overlay.
      */
-    void setKeyboardFocusOverlay(const EntityItemID& id) { DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusLocalEntity(id); }
+    void setKeyboardFocusOverlay(const QUuid& id) { DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(id); }
 
 signals:
     /**jsdoc

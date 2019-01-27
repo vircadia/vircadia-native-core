@@ -439,9 +439,6 @@ public slots:
     QUuid getKeyboardFocusEntity() const;  // thread-safe
     void setKeyboardFocusEntity(const EntityItemID& entityItemID);
 
-    EntityItemID getKeyboardFocusLocalEntity();
-    void setKeyboardFocusLocalEntity(const EntityItemID& id);
-
     void addAssetToWorldMessageClose();
 
     void loadLODToolsDialog();
@@ -720,7 +717,6 @@ private:
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();
 
     ThreadSafeValueCache<EntityItemID> _keyboardFocusedEntity;
-    ThreadSafeValueCache<EntityItemID> _keyboardFocusedLocalEntity;
     quint64 _lastAcceptedKeyPress = 0;
     bool _isForeground = true; // starts out assumed to be in foreground
     bool _isGLInitialized { false };

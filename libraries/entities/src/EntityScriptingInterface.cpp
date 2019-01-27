@@ -58,7 +58,7 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
 
     // If the user clicks somewhere where there is no entity at all, we will release focus
-    connect(this, &EntityScriptingInterface::mousePressOffEntity, [=]() {
+    connect(this, &EntityScriptingInterface::mousePressOffEntity, [this]() {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
 
@@ -2160,18 +2160,8 @@ QUuid EntityScriptingInterface::getKeyboardFocusEntity() const {
     return result;
 }
 
-void EntityScriptingInterface::setKeyboardFocusEntity(const EntityItemID& id) {
-    QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(EntityItemID, id));
-}
-
-QUuid EntityScriptingInterface::getKeyboardFocusLocalEntity() const {
-    QUuid result;
-    QMetaObject::invokeMethod(qApp, "getKeyboardFocusLocalEntity", Qt::DirectConnection, Q_RETURN_ARG(QUuid, result));
-    return result;
-}
-
-void EntityScriptingInterface::setKeyboardFocusLocalEntity(const EntityItemID& id) {
-    QMetaObject::invokeMethod(qApp, "setKeyboardFocusLocalEntity", Qt::DirectConnection, Q_ARG(EntityItemID, id));
+void EntityScriptingInterface::setKeyboardFocusEntity(const QUuid& id) {
+    QMetaObject::invokeMethod(qApp, "setKeyboardFocusEntity", Qt::DirectConnection, Q_ARG(const QUuid&, id));
 }
 
 void EntityScriptingInterface::sendMousePressOnEntity(const EntityItemID& id, const PointerEvent& event) {
