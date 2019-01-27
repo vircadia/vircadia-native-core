@@ -1884,6 +1884,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         }
     });
+    connect(&_overlays, &Overlays::mousePressOnOverlay, [this](const QUuid& id, const PointerEvent& event) {
+        if (event.shouldFocus()) {
+            if (getEntities()->wantsKeyboardFocus(id)) {
+                setKeyboardFocusLocalEntity(id);
+                setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            } else {
+                setKeyboardFocusLocalEntity(UNKNOWN_ENTITY_ID);
+            }
+        }
+    });
 
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [this](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
@@ -5729,7 +5739,7 @@ void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm
         properties.getPulse().setMax(1.0f);
         properties.getPulse().setColorMode(PulseMode::IN_PHASE);
         properties.setIgnorePickIntersection(true);
-        _keyboardFocusHighlightID = entityScriptingInterface->addEntity(properties, QString("local"));
+        _keyboardFocusHighlightID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
     }
 
     // Position focus
@@ -8760,7 +8770,7 @@ void Application::createLoginDialog() {
     properties.setVisible(true);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    _loginDialogID = entityScriptingInterface->addEntity(properties, QString("local"));
+    _loginDialogID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
 
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogID.isNull()) {

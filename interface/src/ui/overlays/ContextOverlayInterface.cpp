@@ -205,7 +205,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 properties.setImageURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
                 properties.setBillboardMode(BillboardMode::FULL);
 
-                _contextOverlayID = entityScriptingInterface->addEntity(properties, QString("local"));
+                _contextOverlayID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
             }
 
             EntityItemProperties properties;

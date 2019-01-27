@@ -167,6 +167,9 @@ public:
     */
     static QScriptValue getMultipleEntityProperties(QScriptContext* context, QScriptEngine* engine);
     QScriptValue getMultipleEntityPropertiesInternal(QScriptEngine* engine, QVector<QUuid> entityIDs, const QScriptValue& extendedDesiredProperties);
+
+    QUuid addEntityInternal(const EntityItemProperties& properties, entity::HostType entityHostType);
+
 public slots:
 
     /**jsdoc
@@ -269,7 +272,17 @@ public slots:
      * });
      * print("Entity created: " + entityID);
      */
-    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString);
+    Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString) {
+        entity::HostType entityHostType;
+        if (entityHostTypeString == "domain") {
+            entityHostType = entity::HostType::DOMAIN;
+        } else if (entityHostTypeString == "avatar") {
+            entityHostType = entity::HostType::AVATAR;
+        } else if (entityHostTypeString == "local") {
+            entityHostType = entity::HostType::LOCAL;
+        }
+        return addEntityInternal(properties, entityHostType);
+    }
 
     /**jsdoc
      * Add a new entity with specified properties.
@@ -279,8 +292,8 @@ public slots:
      * @returns {Uuid} The ID of the entity if successfully created, otherwise {@link Uuid|Uuid.NULL}.
      */
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, bool avatarEntity = false) {
-        QString entityHostType = avatarEntity ? "avatar" : "domain";
-        return addEntity(properties, entityHostType);
+        entity::HostType entityHostType = avatarEntity ? entity::HostType::AVATAR : entity::HostType::DOMAIN;
+        return addEntityInternal(properties, entityHostType);
     }
 
     /// temporary method until addEntity can be used from QJSEngine

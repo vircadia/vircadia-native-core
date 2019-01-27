@@ -28,13 +28,14 @@
 
 #include <raypick/RayPick.h>
 #include <PointerManager.h>
+#include <raypick/MouseTransformNode.h>
+#include <PickManager.h>
 
 #include <RenderableWebEntityItem.h>
 #include "VariantMapToScriptValue.h"
 
 #include "ui/Keyboard.h"
 #include <QtQuick/QQuickWindow>
-
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
@@ -62,6 +63,13 @@ Overlays::Overlays() {
     ADD_TYPE_MAP(PolyLine, line3d);
     ADD_TYPE_MAP(Grid, grid);
     ADD_TYPE_MAP(Gizmo, circle3d);
+
+    auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP,
+                                                  PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES) |
+                                                             PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE)), 0.0f, true);
+    mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
+    mouseRayPick->setJointState(PickQuery::JOINT_STATE_MOUSE);
+    _mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
 }
 
 void Overlays::cleanupAllOverlays() {
@@ -79,6 +87,13 @@ void Overlays::cleanupAllOverlays() {
 }
 
 void Overlays::init() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    connect(this, &Overlays::hoverEnterOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity);
+    connect(this, &Overlays::hoverOverOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity);
+    connect(this, &Overlays::hoverLeaveOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity);
+    connect(this, &Overlays::mousePressOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity);
+    connect(this, &Overlays::mouseMoveOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(this, &Overlays::mouseReleaseOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity);
 }
 
 void Overlays::update(float deltatime) {
@@ -320,7 +335,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                     ratio = iter.value().toFloat() / 0.5f;
                 }
             }
-            glm::vec3 dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
+            glm::vec3 dimensions = glm::vec3(1.0f);
             {
                 auto iter = overlayProps.find("dimensions");
                 if (iter != overlayProps.end()) {
@@ -347,7 +362,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                 }
             }
             // FIXME:
-            overlayProps["rotation"] = quatToVariant(glm::angleAxis((float)M_PI_2, Vectors::RIGHT) * rotation);
+            //overlayProps["rotation"] = quatToVariant(glm::angleAxis((float)M_PI_2, Vectors::RIGHT) * rotation);
         }
 
         {
@@ -510,7 +525,7 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (type == "rectangle3d") {
         propertyMap["shape"] = "Quad";
     }
-    return DependencyManager::get<EntityScriptingInterface>()->addEntity(convertOverlayToEntityProperties(propertyMap, entityType, true), QString("local"));
+    return DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(convertOverlayToEntityProperties(propertyMap, entityType, true), entity::HostType::LOCAL);
 }
 
 QUuid Overlays::add2DOverlay(const Overlay::Pointer& overlay) {
@@ -950,21 +965,63 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-PointerEvent Overlays::calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray,
-                                             const RayToOverlayIntersectionResult& rayPickResult, QMouseEvent* event,
-                                             PointerEvent::EventType eventType) {
-    glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(id, rayPickResult.intersection);
-    PointerEvent pointerEvent(eventType, PointerManager::MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
-                              ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
+RayToOverlayIntersectionResult getPrevPickResult(unsigned int mouseRayPickID) {
+    RayToOverlayIntersectionResult overlayResult;
+    overlayResult.intersects = false;
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(mouseRayPickID);
+    if (pickResult) {
+        overlayResult.intersects = pickResult->type != IntersectionType::NONE;
+        if (overlayResult.intersects) {
+            overlayResult.intersection = pickResult->intersection;
+            overlayResult.distance = pickResult->distance;
+            overlayResult.surfaceNormal = pickResult->surfaceNormal;
+            overlayResult.overlayID = pickResult->objectID;
+            overlayResult.extraInfo = pickResult->extraInfo;
+        }
+    }
+    return overlayResult;
+}
 
-    return pointerEvent;
+PointerEvent Overlays::calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray,
+                                                    const RayToOverlayIntersectionResult& rayPickResult, QMouseEvent* event,
+                                                    PointerEvent::EventType eventType) {
+    glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(id, rayPickResult.intersection);
+    return PointerEvent(eventType, PointerManager::MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
+                        ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
+}
+
+void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(id)) {
+        // emit to scripts
+        emit hoverEnterOverlay(id, event);
+    }
+}
+
+void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(id)) {
+        // emit to scripts
+        emit hoverOverOverlay(id, event);
+    }
+}
+
+void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeysID().contains(id)) {
+        // emit to scripts
+        emit hoverLeaveOverlay(id, event);
+    }
 }
 
 bool Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -974,27 +1031,11 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
     }
     // if we didn't press on an overlay, disable overlay keyboard focus
     setKeyboardFocusOverlay(UNKNOWN_ENTITY_ID);
-    // emit to scripts
     emit mousePressOffOverlay();
     return false;
 }
 
 void Overlays::mousePressPointerEvent(const QUuid& id, const PointerEvent& event) {
-    // TODO: generalize this to allow any object to recieve events
-    auto renderable = qApp->getEntities()->renderableForEntityId(id);
-    if (renderable) {
-        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
-        if (web) {
-            if (event.shouldFocus()) {
-                // Focus keyboard on web overlays
-                DependencyManager::get<EntityScriptingInterface>()->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-                setKeyboardFocusOverlay(id);
-            }
-
-            web->handlePointerEvent(event);
-        }
-    }
-
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeysID().contains(id)) {
@@ -1007,79 +1048,23 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
         auto pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        // emit to scripts
         emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
         return true;
     }
-    // emit to scripts
     emit mouseDoublePressOffOverlay();
     return false;
-}
-
-void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event) {
-    // TODO: generalize this to allow any object to recieve events
-    auto renderable = qApp->getEntities()->renderableForEntityId(id);
-    if (renderable) {
-        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
-        if (web) {
-            web->hoverEnterEntity(event);
-        }
-    }
-
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
-        emit hoverEnterOverlay(id, event);
-    }
-}
-
-void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event) {
-    // TODO: generalize this to allow any overlay to recieve events
-    auto renderable = qApp->getEntities()->renderableForEntityId(id);
-    if (renderable) {
-        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
-        if (web) {
-            web->handlePointerEvent(event);
-        }
-    }
-
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
-        emit hoverOverOverlay(id, event);
-    }
-}
-
-void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event) {
-    // TODO: generalize this to allow any overlay to recieve events
-    auto renderable = qApp->getEntities()->renderableForEntityId(id);
-    if (renderable) {
-        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
-        if (web) {
-            web->hoverLeaveEntity(event);
-        }
-    }
-
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
-        emit hoverLeaveOverlay(id, event);
-    }
 }
 
 bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
         mouseReleasePointerEvent(rayPickResult.overlayID, pointerEvent);
@@ -1090,19 +1075,9 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
 }
 
 void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
-    // TODO: generalize this to allow any overlay to recieve events
-    auto renderable = qApp->getEntities()->renderableForEntityId(id);
-    if (renderable) {
-        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
-        if (web) {
-            web->handlePointerEvent(event);
-        }
-    }
-
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
         emit mouseReleaseOnOverlay(id, event);
     }
 }
@@ -1111,7 +1086,7 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = findRayIntersectionVector(ray, true, QVector<EntityItemID>(), QVector<EntityItemID>());
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
         mouseMovePointerEvent(rayPickResult.overlayID, pointerEvent);
@@ -1144,15 +1119,6 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
-    // TODO: generalize this to allow any overlay to recieve events
-    auto renderable = qApp->getEntities()->renderableForEntityId(id);
-    if (renderable) {
-        auto web = std::dynamic_pointer_cast<render::entities::WebEntityRenderer>(renderable);
-        if (web) {
-            web->handlePointerEvent(event);
-        }
-    }
-
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeysID().contains(id)) {
@@ -1174,8 +1140,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     }
     return result;
 }
-
-
 
 /**jsdoc
  * <p>An overlay may be one of the following types:</p>

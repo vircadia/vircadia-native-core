@@ -474,7 +474,7 @@ void synchronizeEditedGrabProperties(EntityItemProperties& properties, const QSt
 }
 
 
-QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString) {
+QUuid EntityScriptingInterface::addEntityInternal(const EntityItemProperties& properties, entity::HostType entityHostType) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
     _activityTracking.addedEntityCount++;
@@ -483,10 +483,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     const auto sessionID = nodeList->getSessionUUID();
 
     EntityItemProperties propertiesWithSimID = properties;
-    propertiesWithSimID.setEntityHostTypeFromString(entityHostTypeString);
-    if (propertiesWithSimID.getEntityHostType() == entity::HostType::AVATAR) {
+    propertiesWithSimID.setEntityHostType(entityHostType);
+    if (entityHostType == entity::HostType::AVATAR) {
         propertiesWithSimID.setOwningAvatarID(sessionID);
-    } else if (propertiesWithSimID.getEntityHostType() == entity::HostType::LOCAL) {
+    } else if (entityHostType == entity::HostType::LOCAL) {
         // For now, local entities are always collisionless
         // TODO: create a separate, local physics simulation that just handles local entities (and MyAvatar?)
         propertiesWithSimID.setCollisionless(true);
@@ -579,9 +579,9 @@ QUuid EntityScriptingInterface::cloneEntity(const QUuid& entityIDToClone) {
 
     if (properties.getEntityHostType() == entity::HostType::LOCAL) {
         // Local entities are only cloned locally
-        return addEntity(properties, QString("local"));
+        return addEntityInternal(properties, entity::HostType::LOCAL);
     } else if (cloneAvatarEntity) {
-        return addEntity(properties, QString("avatar"));
+        return addEntityInternal(properties, entity::HostType::AVATAR);
     } else {
         // setLastEdited timestamp to 0 to ensure this entity gets updated with the properties 
         // from the server-created entity, don't change this unless you know what you are doing
