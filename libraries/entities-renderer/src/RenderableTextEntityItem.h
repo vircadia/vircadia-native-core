@@ -38,6 +38,8 @@ private:
     int _geometryID{ 0 };
     std::shared_ptr<TextRenderer3D> _textRenderer;
 
+    PulsePropertyGroup _pulseProperties;
+
     QString _text;
     float _lineHeight;
     glm::vec3 _textColor;

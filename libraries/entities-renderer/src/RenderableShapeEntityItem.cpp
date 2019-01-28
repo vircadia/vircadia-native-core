@@ -85,6 +85,10 @@ bool ShapeEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
         return true;
     }
 
+    if (_pulseProperties != entity->getPulseProperties()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -97,6 +101,7 @@ void ShapeEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         }
 
         _shape = entity->getShape();
+        _pulseProperties = entity->getPulseProperties();
     });
 
     void* key = (void*)this;
@@ -141,6 +146,10 @@ void ShapeEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
 }
 
 bool ShapeEntityRenderer::isTransparent() const {
+    if (_pulseProperties.getAlphaMode() != PulseMode::NONE) {
+        return true;
+    }
+
     if (_procedural.isEnabled() && _procedural.isFading()) {
         return Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) < 1.0f;
     }
@@ -248,6 +257,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         materials = _materials["0"];
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
         outColor = glm::vec4(schema._albedo, schema._opacity);
+        outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
         if (_procedural.isReady()) {
             outColor = _procedural.getColor(outColor);
             outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;

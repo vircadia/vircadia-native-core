@@ -45,6 +45,9 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dpi, getDPI);
@@ -60,6 +63,10 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(sourceUrl, setSourceUrl);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dpi, setDPI);
@@ -91,6 +98,13 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
 
     READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
 
     READ_ENTITY_PROPERTY(PROP_SOURCE_URL, QString, setSourceUrl);
     READ_ENTITY_PROPERTY(PROP_DPI, uint16_t, setDPI);
@@ -105,6 +119,7 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
+    requestedProperties += _pulseProperties.getEntityProperties(params);
 
     requestedProperties += PROP_SOURCE_URL;
     requestedProperties += PROP_DPI;
@@ -115,7 +130,7 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
 }
 
 void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -125,6 +140,10 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
 
     APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, getSourceUrl());
     APPEND_ENTITY_PROPERTY(PROP_DPI, getDPI());
@@ -284,5 +303,11 @@ void WebEntityItem::setInputMode(const WebInputMode& value) {
 WebInputMode WebEntityItem::getInputMode() const {
     return resultWithReadLock<WebInputMode>([&] {
         return _inputMode;
+    });
+}
+
+PulsePropertyGroup WebEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
     });
 }

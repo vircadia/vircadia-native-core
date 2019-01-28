@@ -11,6 +11,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class WebEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -30,7 +32,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -75,9 +77,12 @@ public:
     void setInputMode(const WebInputMode& value);
     WebInputMode getInputMode() const;
 
+    PulsePropertyGroup getPulseProperties() const;
+
 protected:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
+    PulsePropertyGroup _pulseProperties;
 
     QString _sourceUrl;
     uint16_t _dpi;

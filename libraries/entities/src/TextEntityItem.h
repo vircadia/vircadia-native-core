@@ -14,6 +14,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class TextEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -33,7 +35,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -94,6 +96,8 @@ public:
     float getBottomMargin() const;
     void setBottomMargin(float value);
 
+    PulsePropertyGroup getPulseProperties() const;
+
 private:
     QString _text;
     float _lineHeight;
@@ -101,6 +105,7 @@ private:
     float _textAlpha;
     glm::u8vec3 _backgroundColor;
     float _backgroundAlpha;
+    PulsePropertyGroup _pulseProperties;
     BillboardMode _billboardMode;
     float _leftMargin;
     float _rightMargin;
