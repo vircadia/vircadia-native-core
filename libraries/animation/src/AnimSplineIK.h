@@ -60,15 +60,13 @@ protected:
     float _interpDuration;
     QString _baseJointName;
     QString _tipJointName;
-    QString _secondaryTargetJointName;
+    QString _midJointName;
     QString _basePositionVar;
     QString _baseRotationVar;
+    QString _midPositionVar;
+    QString _midRotationVar;
     QString _tipPositionVar;
     QString _tipRotationVar;
-    QString _secondaryTargetPositionVar;
-    QString _secondaryTargetRotationVar;
-    //QString _primaryFlexCoefficients;
-    //QString _secondaryFlexCoefficients;
 
     static const int MAX_NUMBER_FLEX_VARIABLES = 10;
     float _primaryFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
@@ -78,7 +76,7 @@ protected:
 
     int _baseParentJointIndex { -1 };
     int _baseJointIndex { -1 };
-    int _secondaryTargetIndex { -1 };
+    int _midJointIndex { -1 };
     int _tipJointIndex { -1 };
     int _headIndex { -1 };
     int _hipsIndex { -1 };
@@ -110,9 +108,6 @@ protected:
 
     bool _lastEnableDebugDrawIKTargets{ false };
     void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
-    void AnimSplineIK::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
-        const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients,
-        const QString& poleVectorEnabledVar, const QString& poleReferenceVectorVar, const QString& poleVectorVar);
     void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const;
     const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const;
     mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;

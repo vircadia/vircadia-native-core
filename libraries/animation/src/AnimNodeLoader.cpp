@@ -584,14 +584,14 @@ static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QStr
     READ_BOOL(enabled, jsonObj, id, jsonUrl, nullptr);
     READ_FLOAT(interpDuration, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(baseJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midJointName, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(tipJointName, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(secondaryTargetJointName, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(basePositionVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(baseRotationVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midPositionVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midRotationVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(tipPositionVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(tipRotationVar, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(secondaryTargetPositionVar, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(secondaryTargetRotationVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(alphaVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(enabledVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(endEffectorRotationVarVar, jsonObj, id, jsonUrl, nullptr);
@@ -600,11 +600,10 @@ static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QStr
     READ_STRING(secondaryFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
 
     auto node = std::make_shared<AnimSplineIK>(id, alpha, enabled, interpDuration,
-        baseJointName, tipJointName,
+        baseJointName, midJointName, tipJointName,
         alphaVar, enabledVar, endEffectorRotationVarVar, endEffectorPositionVarVar,
-        basePositionVar, baseRotationVar,
-        tipPositionVar, tipRotationVar, secondaryTargetJointName, secondaryTargetPositionVar,
-        secondaryTargetRotationVar, primaryFlexCoefficients, secondaryFlexCoefficients);
+        basePositionVar, baseRotationVar, midPositionVar, midRotationVar,
+        tipPositionVar, tipRotationVar, primaryFlexCoefficients, secondaryFlexCoefficients);
     return node;
 }
 
