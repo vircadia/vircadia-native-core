@@ -596,14 +596,14 @@ static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QStr
     READ_STRING(enabledVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(endEffectorRotationVarVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(endEffectorPositionVarVar, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(primaryFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(secondaryFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(tipTargetFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midTargetFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
 
     auto node = std::make_shared<AnimSplineIK>(id, alpha, enabled, interpDuration,
         baseJointName, midJointName, tipJointName,
         alphaVar, enabledVar, endEffectorRotationVarVar, endEffectorPositionVarVar,
         basePositionVar, baseRotationVar, midPositionVar, midRotationVar,
-        tipPositionVar, tipRotationVar, primaryFlexCoefficients, secondaryFlexCoefficients);
+        tipPositionVar, tipRotationVar, tipTargetFlexCoefficients, midTargetFlexCoefficients);
     return node;
 }
 

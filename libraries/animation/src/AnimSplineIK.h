@@ -19,14 +19,12 @@
 class AnimSplineIK : public AnimNode {
 public:
     AnimSplineIK(const QString& id, float alpha, bool enabled, float interpDuration,
-        const QString& baseJointName, const QString& tipJointName,
+        const QString& baseJointName, const QString& midJointName, const QString& tipJointName,
         const QString& alphaVar, const QString& enabledVar,
         const QString& endEffectorRotationVarVar, const QString& endEffectorPositionVarVar,
         const QString& basePositionVar, const QString& baseRotationVar,
+        const QString& midPositionVar, const QString& midRotationVar,
         const QString& tipPositionVar, const QString& tipRotationVar,
-        const QString& secondaryTargetJointName,
-        const QString& secondaryTargetPositionVar,
-        const QString& secondaryTargetRotationVar,
         const QString& primaryFlexCoefficients,
         const QString& secondaryFlexCoefficients);
 
@@ -69,19 +67,15 @@ protected:
     QString _tipRotationVar;
 
     static const int MAX_NUMBER_FLEX_VARIABLES = 10;
-    float _primaryFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
-    float _secondaryFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
-    int _numPrimaryFlexCoefficients { 0 };
-    int _numSecondaryFlexCoefficients { 0 };
+    float _tipTargetFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
+    float _midTargetFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
+    int _numTipTargetFlexCoefficients { 0 };
+    int _numMidTargetFlexCoefficients { 0 };
 
     int _baseParentJointIndex { -1 };
     int _baseJointIndex { -1 };
     int _midJointIndex { -1 };
     int _tipJointIndex { -1 };
-    int _headIndex { -1 };
-    int _hipsIndex { -1 };
-    int _spine2Index { -1 };
-    int _hipsTargetIndex { -1 };
 
     QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
     QString _enabledVar;  // bool
