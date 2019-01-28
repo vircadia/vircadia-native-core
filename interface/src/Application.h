@@ -589,6 +589,8 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
 
+    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
