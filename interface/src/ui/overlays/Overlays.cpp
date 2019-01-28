@@ -362,7 +362,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                 }
             }
             // FIXME:
-            //overlayProps["rotation"] = quatToVariant(glm::angleAxis((float)M_PI_2, Vectors::RIGHT) * rotation);
+            overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
         }
 
         {
@@ -427,7 +427,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP(startPoint, p1);
         RENAME_PROP(start, p1);
         RENAME_PROP(endPoint, p2);
-        RENAME_PROP(end, p1);
+        RENAME_PROP(end, p2);
 
         RENAME_PROP(p1, position);
         RENAME_PROP_CONVERT(p1, p1, [](const QVariant& v) { return vec3toVariant(glm::vec3(0.0f)); });
@@ -470,6 +470,15 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                 widths.append(iter.value());
                 overlayProps["strokeWidths"] = widths;
             }
+        }
+
+        RENAME_PROP_CONVERT(glow, glow, [](const QVariant& v) { return v.toFloat() > 0.0f ? true : false; });
+        SET_OVERLAY_PROP_DEFAULT(faceCamera, true);
+        {
+            QVariantList normals;
+            normals.append(vec3toVariant(Vectors::UP));
+            normals.append(vec3toVariant(Vectors::UP));
+            SET_OVERLAY_PROP_DEFAULT(normals, normals);
         }
     }
 
