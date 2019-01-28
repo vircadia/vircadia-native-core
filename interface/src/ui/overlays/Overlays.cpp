@@ -315,7 +315,15 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
     }
 
     RENAME_PROP_CONVERT(drawInFront, renderLayer, [](const QVariant& v) { return v.toBool() ? "front" : "world"; });
-    RENAME_PROP_CONVERT(drawHUDLayer, renderLayer, [](const QVariant& v) { return v.toBool() ? "hud" : "world"; });
+    RENAME_PROP_CONVERT(drawHUDLayer, renderLayer, [=](const QVariant& v) {
+        bool f = v.toBool();
+        if (f) {
+            return QVariant("hud");
+        } else if (overlayProps.contains("renderLayer")) {
+            return overlayProps["renderLayer"];
+        }
+        return QVariant("world");
+    });
 
     OVERLAY_TO_GROUP_ENTITY_PROP_DEFAULT(grabbable, grab, grabbable, false);
 
@@ -380,14 +388,13 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             {
                 auto iter = overlayProps.find("rotation");
                 if (iter != overlayProps.end()) {
-                    rotation = vec3FromVariant(iter.value());
+                    rotation = quatFromVariant(iter.value());
                 } else if (!add) {
                     EntityPropertyFlags desiredProperties;
                     desiredProperties += PROP_ROTATION;
                     rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getRotation();
                 }
             }
-            // FIXME:
             overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
         }
 
@@ -584,7 +591,6 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
 
         RENAME_PROP_CONVERT(rotation, rotation, [](const QVariant& v) {
             glm::quat rot = quatFromVariant(v);
-            // FIXME:
             return quatToVariant(glm::angleAxis((float)M_PI_2, rot * Vectors::RIGHT) * rot);
         });
 
