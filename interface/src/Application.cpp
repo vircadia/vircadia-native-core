@@ -2417,7 +2417,6 @@ void Application::updateVerboseLogging() {
     bool enable = menu->isOptionChecked(MenuOption::VerboseLogging);
 
     QString rules =
-        "hifi.*.debug=%1\n"
         "hifi.*.info=%1\n"
         "hifi.audio-stream.debug=false\n"
         "hifi.audio-stream.info=false";
