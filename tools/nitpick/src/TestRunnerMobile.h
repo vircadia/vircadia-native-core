@@ -11,6 +11,7 @@
 #ifndef hifi_testRunnerMobile_h
 #define hifi_testRunnerMobile_h
 
+#include <QMap>
 #include <QLabel>
 #include <QObject>
 #include <QPushButton>
@@ -28,6 +29,7 @@ public:
         QLineEdit *folderLineEdit,
         QPushButton* downloadAPKPushbutton,
         QPushButton* installAPKPushbutton,
+        QPushButton* runInterfacePushbutton,
         QCheckBox* runLatest,
         QLineEdit* url,
         QLabel* statusLabel,
@@ -41,6 +43,7 @@ public:
 
     void downloadComplete();
     void downloadAPK();
+    void runInterface();
 
     void installAPK();
 
@@ -53,6 +56,7 @@ private:
     QLineEdit* _folderLineEdit;
     QPushButton* _downloadAPKPushbutton;
     QPushButton* _installAPKPushbutton;
+    QPushButton* _runInterfacePushbutton;
 
 #ifdef Q_OS_WIN
     const QString _adbExe{ "adb.exe" };
@@ -65,5 +69,6 @@ private:
 
     QString _adbCommand;
 
+    std::map<QString, QString> modelNames;
 };
 #endif

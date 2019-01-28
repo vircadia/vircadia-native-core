@@ -24,6 +24,7 @@ TestRunnerMobile::TestRunnerMobile(
     QLineEdit *folderLineEdit,
     QPushButton* downloadAPKPushbutton,
     QPushButton* installAPKPushbutton,
+    QPushButton* runInterfacePushbutton,
     QCheckBox* runLatest,
     QLineEdit* url,
     QLabel* statusLabel,
@@ -38,22 +39,16 @@ TestRunnerMobile::TestRunnerMobile(
     _folderLineEdit = folderLineEdit;
     _downloadAPKPushbutton = downloadAPKPushbutton;
     _installAPKPushbutton = installAPKPushbutton;
+    _runInterfacePushbutton = runInterfacePushbutton;
     _runLatest = runLatest;
     _url = url;
     _statusLabel = statusLabel;
 
     folderLineEdit->setText("/sdcard/DCIM/TEST");
-}
 
-TestRunnerMobile::~TestRunnerMobile() {
-}
+    modelNames["SM_G955U1"] = "Samsung S8+ unlocked";
 
-void TestRunnerMobile::setWorkingFolderAndEnableControls() {
-    setWorkingFolder(_workingFolderLabel);
-
-    _connectDeviceButton->setEnabled(true);
-
-    // Find ADB (Android Debugging Bridge) before continuing
+    // Find ADB (Android Debugging Bridge)
 #ifdef Q_OS_WIN
     if (QProcessEnvironment::systemEnvironment().contains("ADB_PATH")) {
         QString adbExePath = QProcessEnvironment::systemEnvironment().value("ADB_PATH") + "/platform-tools";
@@ -78,10 +73,19 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 #endif
 }
 
+TestRunnerMobile::~TestRunnerMobile() {
+}
+
+void TestRunnerMobile::setWorkingFolderAndEnableControls() {
+    setWorkingFolder(_workingFolderLabel);
+
+    _connectDeviceButton->setEnabled(true);
+}
+
 void TestRunnerMobile::connectDevice() {
 #if defined Q_OS_WIN || defined Q_OS_MAC
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
-    QString command = _adbCommand + " devices > " + devicesFullFilename;
+    QString command = _adbCommand + " devices -l > " + devicesFullFilename;
     system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
@@ -103,7 +107,17 @@ void TestRunnerMobile::connectDevice() {
             QMessageBox::critical(0, "Too many devices detected", "Tests will run only if a single device is attached");
 
         } else {
-            _detectedDeviceLabel->setText(line2.remove(DEVICE));
+            // Line looks like this: 988a1b47335239434b     device product:dream2qlteue model:SM_G955U1 device:dream2qlteue transport_id:2
+            QStringList tokens = line2.split(QRegExp("[\r\n\t ]+"));
+            QString deviceID = tokens[0];
+            
+            QString modelID = tokens[3].split(':')[1];
+            QString modelName = "UKNOWN";
+            if (modelNames.count(modelID) == 1) {
+                modelName = modelNames[modelID];
+            }
+
+            _detectedDeviceLabel->setText(modelName + " [" + deviceID + "]");
             _pullFolderButton->setEnabled(true);
             _folderLineEdit->setEnabled(true);
             _downloadAPKPushbutton->setEnabled(true);
@@ -159,6 +173,16 @@ void TestRunnerMobile::installAPK() {
     QString command = _adbCommand + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
     system(command.toStdString().c_str());
     _statusLabel->setText("Installation complete");
+    _runInterfacePushbutton->setEnabled(true);
+#endif
+}
+
+void TestRunnerMobile::runInterface() {
+#if defined Q_OS_WIN || defined Q_OS_MAC
+    _statusLabel->setText("Starting Interface");
+    QString command = _adbCommand + " shell monkey -p io.highfidelity.hifiinterface -v 1";
+    system(command.toStdString().c_str());
+    _statusLabel->setText("Interface started");
 #endif
 }
 
