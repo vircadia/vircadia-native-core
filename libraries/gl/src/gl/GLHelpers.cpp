@@ -99,6 +99,8 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 #else
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 #endif
+        format.setColorSpace(QSurfaceFormat::sRGBColorSpace);
+
         if (gl::Context::enableDebugLogger()) {
             format.setOption(QSurfaceFormat::DebugContext);
         }

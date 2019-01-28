@@ -124,16 +124,16 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DrawBounds>("DrawBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
 
-        task.addJob<DrawBounds>("DrawZones", zones);
+        task.addJob<DrawBounds>("DrawZones", zones);*/
         const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
-    }*/
+   // }
 
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+  //  const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
+ //   task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Layered Overlays
     // Composite the HUD and HUD overlays
@@ -154,21 +154,23 @@ void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::Fra
 
     if (!_framebuffer) {
         _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("forward"));
+        
+        int numSamples = 8;
 
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
      /*   auto colorTexture =
             gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
         _framebuffer->setRenderBuffer(0, colorTexture);*/
         auto colorTexture =
-            gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, 16, defaultSampler);
+            gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
         _framebuffer->setRenderBuffer(0, colorTexture);
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);  // Depth24_Stencil8 texel format
       /*  auto depthTexture =
             gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);*/
         auto depthTexture =
-            gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, 16, defaultSampler);
+            gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
     }
 

@@ -260,7 +260,9 @@ void HmdDisplayPlugin::internalPresent() {
 
                 viewport.z *= 2;
             }
-            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
+         //   renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
+            renderFromTexture(batch, _currentFrame->framebuffer->getRenderBuffer(0), viewport, scissor, fbo);
+
         });
         swapBuffers();
 
