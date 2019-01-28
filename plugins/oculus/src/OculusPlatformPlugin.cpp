@@ -23,7 +23,9 @@ OculusAPIPlugin::~OculusAPIPlugin() {
 }
 
 bool OculusAPIPlugin::init() {
-    _session = hifi::ovr::acquireRenderSession();
+    if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
+        _session = hifi::ovr::acquireRenderSession();
+    }
     return _session;
 }
 
