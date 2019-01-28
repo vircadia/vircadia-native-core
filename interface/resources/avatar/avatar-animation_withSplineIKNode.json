@@ -192,8 +192,6 @@
                                                                                     "tipRotationVar": "headRotation",
                                                                                     "alphaVar": "splineIKAlpha",
                                                                                     "enabledVar": "splineIKEnabled",
-                                                                                    "endEffectorRotationVarVar": "splineIKRotationVar",
-                                                                                    "endEffectorPositionVarVar": "splineIKPositionVar",
                                                                                     "tipTargetFlexCoefficients": "1.0, 1.0, 1.0, 1.0, 1.0",
                                                                                     "midTargetFlexCoefficients": "1.0, 1.0, 1.0"
                                                                                 },

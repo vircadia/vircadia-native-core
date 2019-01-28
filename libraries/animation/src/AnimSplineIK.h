@@ -20,13 +20,12 @@ class AnimSplineIK : public AnimNode {
 public:
     AnimSplineIK(const QString& id, float alpha, bool enabled, float interpDuration,
         const QString& baseJointName, const QString& midJointName, const QString& tipJointName,
-        const QString& alphaVar, const QString& enabledVar,
-        const QString& endEffectorRotationVarVar, const QString& endEffectorPositionVarVar,
         const QString& basePositionVar, const QString& baseRotationVar,
         const QString& midPositionVar, const QString& midRotationVar,
         const QString& tipPositionVar, const QString& tipRotationVar,
-        const QString& primaryFlexCoefficients,
-        const QString& secondaryFlexCoefficients);
+        const QString& alphaVar, const QString& enabledVar,
+        const QString& tipTargetFlexCoefficients,
+        const QString& midTargetFlexCoefficients);
 
 	virtual ~AnimSplineIK() override;
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
@@ -79,11 +78,6 @@ protected:
 
     QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
     QString _enabledVar;  // bool
-    QString _endEffectorRotationVarVar; // string
-    QString _endEffectorPositionVarVar; // string
-
-    QString _prevEndEffectorRotationVar;
-    QString _prevEndEffectorPositionVar;
 
     bool _previousEnableDebugIKTargets { false };
 
