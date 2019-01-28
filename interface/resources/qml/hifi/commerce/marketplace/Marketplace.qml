@@ -665,6 +665,7 @@ Rectangle {
                             categoriesListView.currentIndex = -1;
                             categoriesText.text = "Categories";
                             root.categoryString = "";
+                            searchField.text = "";
                             getMarketplaceItems();
                         }
                     }

@@ -703,7 +703,7 @@ var onMarketplaceScreen = false;
 var onWalletScreen = false;
 var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
     ui.setCurrentVisibleScreenMetadata(type, url);
-    onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
+    onMarketplaceScreen = type === "QML" && url.indexOf(MARKETPLACE_QML_PATH) !== -1;
     onInspectionCertificateScreen = type === "QML" && url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1;
     var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
     var onCommerceScreenNow = type === "QML" && (
