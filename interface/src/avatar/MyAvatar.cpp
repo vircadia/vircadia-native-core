@@ -3296,6 +3296,44 @@ static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const floa
     return scaledSpeed;
 }
 
+glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right) {
+    float stickFullOn = 0.95f;
+    auto zSpeed = getDriveKey(TRANSLATE_Z);
+    auto xSpeed = getDriveKey(TRANSLATE_X);
+    glm::vec3 direction;
+    switch(_controlSchemeIndex) {
+    case CONTROLS_DEFAULT:
+        // No acceleration curve for this one, constant speed.
+        if (zSpeed || xSpeed) {
+            direction = forward + right;
+            return getSensorToWorldScale() * _walkSpeedScalar * direction;
+        } else {
+            return Vectors::ZERO;
+        }
+    case CONTROLS_ANALOG:
+        if (zSpeed || xSpeed) {
+            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * forward;
+            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * right;
+            direction = scaledForward + scaledRight;
+            return direction;
+        } else {
+            return Vectors::ZERO;
+        }
+    case CONTROLS_ANALOG_PLUS:
+        if (zSpeed || xSpeed) {
+            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * forward;
+            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * right;
+            direction = scaledForward + scaledRight;
+            return direction;
+        } else {
+            return Vectors::ZERO;
+        }
+    default:
+        qDebug() << "Invalid control scheme index.";
+        return Vectors::ZERO;
+    }
+}
+
 glm::vec3 MyAvatar::calculateScaledDirection(){
     CharacterController::State state = _characterController.getState();
 
@@ -3308,15 +3346,15 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
         auto handRotation = getDominantHandRotation();
         glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
         glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f));
-        forward = (getDriveKey(TRANSLATE_Z)) * (handRotation * controllerForward);
-        right = (getDriveKey(TRANSLATE_X)) * (handRotation * controllerRight);
+        forward = (handRotation * controllerForward);
+        right = (handRotation * controllerRight);
     }
     else {
-        forward = (getDriveKey(TRANSLATE_Z)) * IDENTITY_FORWARD;
-        right = (getDriveKey(TRANSLATE_X)) * IDENTITY_RIGHT;
+        forward = IDENTITY_FORWARD;
+        right = IDENTITY_RIGHT;
     }
 
-    glm::vec3 direction = forward + right;
+    glm::vec3 direction = scaleMotorSpeed(forward, right);
 
     // RKNOTE: This may need to be changed later...
     if (state == CharacterController::State::Hover ||
@@ -3324,16 +3362,6 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         up /= glm::length(up);
         direction += up;
-    }
-
-    _wasPushing = _isPushing;
-    float directionLength = glm::length(direction);
-    _isPushing = directionLength > EPSILON;
-
-    if (_isPushing) {
-        direction;
-    } else {
-        direction = Vectors::ZERO;
     }
 
     return direction;
@@ -3358,6 +3386,16 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     glm::vec3 direction = calculateScaledDirection();
 
+    _wasPushing = _isPushing;
+    float directionLength = glm::length(direction);
+    _isPushing = directionLength > EPSILON;
+
+    if (_isPushing) {
+        direction;
+    } else {
+        direction = Vectors::ZERO;
+    }
+
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
 
@@ -3369,6 +3407,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         const float maxBoostSpeed = getSensorToWorldScale() * MAX_BOOST_SPEED;
 
         if (_isPushing) {
+            direction /= direction;
             if (motorSpeed < maxBoostSpeed) {
                 // an active action motor should never be slower than this
                 float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
@@ -3380,10 +3419,11 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         _actionMotorVelocity = motorSpeed * direction;
     } else {
         // we're interacting with a floor --> simple horizontal speed and exponential decay
-        const glm::vec2 currentVel = { direction.x, direction.z };
-        float scaledSpeed = scaleSpeedByDirection(currentVel, _walkSpeed.get(), _walkBackwardSpeed.get());
+        //const glm::vec2 currentVel = { direction.x, direction.z };
+        //float scaledSpeed = scaleSpeedByDirection(currentVel, _walkSpeed.get(), _walkBackwardSpeed.get());
         // _walkSpeedScalar is a multiplier if we are in sprint mode, otherwise 1.0
-        _actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
+        _actionMotorVelocity = direction;
+        //_actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
     }
 
     float previousBoomLength = _boomLength;

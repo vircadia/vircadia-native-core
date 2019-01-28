@@ -38,6 +38,10 @@ class AvatarActionHold;
 class ModelItemID;
 class MyHead;
 
+const int CONTROLS_DEFAULT = 0;
+const int CONTROLS_ANALOG = 1;
+const int CONTROLS_ANALOG_PLUS = 2;
+
 enum eyeContactTarget {
     LEFT_EYE,
     RIGHT_EYE,
@@ -258,10 +262,6 @@ class MyAvatar : public Avatar {
     const float DEFAULT_GEAR_3 = 0.8f;
     const float DEFAULT_GEAR_4 = 0.9f;
     const float DEFAULT_GEAR_5 = 1.0f;
-    const int CONTROLS_DEFAULT = 0;
-    const int CONTROLS_ANALOG = 1;
-    const int CONTROLS_ANALOG_PLUS = 2;
-
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -523,7 +523,7 @@ public:
      * @function MyAvatar.setControlScheme
      * @param {number} index
     */
-    Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = index; }
+    Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = (index >= 0 && index <= 2) ? index : 0; }
     /**jsdoc
      * @function MyAvatar.setDominantHand
      * @param {string} hand
@@ -1882,6 +1882,7 @@ private:
     // private methods
     void updateOrientation(float deltaTime);
     glm::vec3 calculateScaledDirection();
+    glm::vec3 scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right);
     void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
