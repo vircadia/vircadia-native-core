@@ -23,6 +23,10 @@ public:
 
     bool isRunning() const;
 
+    bool init();
+
+    void shutdown();
+
     virtual void requestNonceAndUserID(NonceUserIDCallback callback);
 
     virtual void handleOVREvents();

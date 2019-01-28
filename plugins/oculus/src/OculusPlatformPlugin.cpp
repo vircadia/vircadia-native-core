@@ -17,13 +17,18 @@
 QString OculusAPIPlugin::NAME { "Oculus Rift" };
 
 OculusAPIPlugin::OculusAPIPlugin() {
-    if (hifi::ovr::available()) {
-        _session = hifi::ovr::acquireRenderSession();
-    }
 }
 
 OculusAPIPlugin::~OculusAPIPlugin() {
-    if (hifi::ovr::available() && isRunning()) {
+}
+
+bool OculusAPIPlugin::init() {
+    _session = hifi::ovr::acquireRenderSession();
+    return _session;
+}
+
+void OculusAPIPlugin::shutdown() {
+    if (isRunning()) {
         hifi::ovr::releaseRenderSession(_session);
     }
 }
