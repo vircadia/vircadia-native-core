@@ -16,6 +16,10 @@ var SHAPETYPE_TO_SHAPE = {
     "cylinder-y": "Cylinder",
 };
 
+var REQUESTED_ENTITY_SHAPE_PROPERTIES = [
+    'type', 'shapeType', 'compoundShapeURL', 'localDimensions'
+];
+
 function getEntityShapePropertiesForType(properties) {
     switch (properties.type) {
         case "Zone":
@@ -51,27 +55,80 @@ function getEntityShapePropertiesForType(properties) {
     };
 }
 
-function getStringifiedEntityShapePropertiesForType(properties) {
-    return JSON.stringify(getEntityShapePropertiesForType(properties));
+function deepEqual(a, b) {
+    if (a === b) {
+        return true;
+    }
+
+    if (typeof(a) !== "object" || typeof(b) !== "object") {
+        return false;
+    }
+
+    if (Object.keys(a).length !== Object.keys(b).length) {
+        return false;
+    }
+
+    for (var property in a) {
+        if (!a.hasOwnProperty(property)) {
+            continue;
+        }
+        if (!b.hasOwnProperty(property)) {
+            return false;
+        }
+        if (!deepEqual(a[property], b[property])) {
+            return false;
+        }
+    }
+    return true;
 }
 
-var REQUESTED_ENTITY_SHAPE_PROPERTIES = [
-    'type', 'shapeType', 'compoundShapeURL', 'localDimensions'
-];
+/**
+ * Returns an array of property names which are different in comparison.
+ * @param propertiesA
+ * @param propertiesB
+ * @returns {Array} - array of different property names
+ */
+function compareEntityProperties(propertiesA, propertiesB) {
+    var differentProperties = [],
+        property;
+
+    for (property in propertiesA) {
+        if (!propertiesA.hasOwnProperty(property)) {
+            continue;
+        }
+        if (!propertiesB.hasOwnProperty(property) || !deepEqual(propertiesA[property], propertiesB[property])) {
+            differentProperties.push(property);
+        }
+    }
+    for (property in propertiesB) {
+        if (!propertiesB.hasOwnProperty(property)) {
+            continue;
+        }
+        if (!propertiesA.hasOwnProperty(property)) {
+            differentProperties.push(property);
+        }
+    }
+
+    return differentProperties;
+}
+
+function deepCopy(v) {
+    return JSON.parse(JSON.stringify(v));
+}
 
 function EntityShape(entityID) {
     this.entityID = entityID;
-    var properties = Entities.getEntityProperties(entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES);
+    var propertiesForType = getEntityShapePropertiesForType(Entities.getEntityProperties(entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES));
 
-    this.previousPropertiesForTypeStringified = getStringifiedEntityShapePropertiesForType(properties);
+    this.previousPropertiesForType = propertiesForType;
 
-    this.initialize(properties, this.previousPropertiesForTypeStringified);
+    this.initialize(propertiesForType);
 }
 
 EntityShape.prototype = {
-    initialize: function(properties, propertiesForTypeStringified) {
+    initialize: function(properties) {
         // Create new instance of JS object:
-        var overlayProperties = JSON.parse(propertiesForTypeStringified);
+        var overlayProperties = deepCopy(properties);
 
         overlayProperties.localPosition = Vec3.ZERO;
         overlayProperties.localRotation = Quat.IDENTITY;
@@ -88,29 +145,23 @@ EntityShape.prototype = {
             parentID: this.entity,
             priority: 1,
             materialMappingMode: PROJECTED_MATERIALS ? "projected" : "uv",
-            materialURL: "materialData",
-            materialData: JSON.stringify({
-                materialVersion: 1,
-                materials: {
-                    albedo: [0.0, 0.0, 7.0],
-                    unlit: true,
-                    opacity: 0.4,
-                    albedoMap: Script.resolvePath("../assets/images/materials/boxgridpatterncreatezonew.png")
-                }
-            }),
+            materialURL: Script.resolvePath("../assets/images/materials/GridPattern.json"),
         }, "local");
     },
     update: function() {
-        var properties = Entities.getEntityProperties(this.entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES);
-        var propertiesForTypeStringified = getStringifiedEntityShapePropertiesForType(properties);
-        if (propertiesForTypeStringified !== this.previousPropertiesForTypeStringified) {
-            this.previousPropertiesForTypeStringified = propertiesForTypeStringified;
-            this.clear();
-            this.initialize(properties, propertiesForTypeStringified);
-        } else {
+        var propertiesForType = getEntityShapePropertiesForType(Entities.getEntityProperties(this.entityID, REQUESTED_ENTITY_SHAPE_PROPERTIES));
+
+        var difference = compareEntityProperties(propertiesForType, this.previousPropertiesForType);
+
+        if (deepEqual(difference, ['localDimensions'])) {
+            this.previousPropertiesForType = propertiesForType;
             Entities.editEntity(this.entity, {
-                localDimensions: JSON.parse(propertiesForTypeStringified).localDimensions,
+                localDimensions: propertiesForType.localDimensions,
             });
+        } else if (difference.length > 0) {
+            this.previousPropertiesForType = propertiesForType;
+            this.clear();
+            this.initialize(propertiesForType);
         }
     },
     clear: function() {
@@ -128,7 +179,7 @@ function EntityShapeVisualizer(visualizedTypes) {
 }
 
 EntityShapeVisualizer.prototype = {
-    addEntity: function(entityID, properties) {
+    addEntity: function(entityID) {
         if (this.entityShapes[entityID]) {
             return;
         }
@@ -154,8 +205,8 @@ EntityShapeVisualizer.prototype = {
         }, this);
         this.entityShapes = {};
     },
-    updateSelection: function(selection) {
-        var qualifiedSelection = selection.filter(function(entityID) {
+    setEntities: function(entities) {
+        var qualifiedEntities = entities.filter(function(entityID) {
             if (this.acceptedEntities.indexOf(entityID) !== -1) {
                 return true;
             }
@@ -175,7 +226,7 @@ EntityShapeVisualizer.prototype = {
         var updateEntries = [];
 
         var currentEntries = Object.keys(this.entityShapes);
-        qualifiedSelection.forEach(function(entityID) {
+        qualifiedEntities.forEach(function(entityID) {
             if (currentEntries.indexOf(entityID) !== -1) {
                 updateEntries.push(entityID);
             } else {

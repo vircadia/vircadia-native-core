@@ -82,7 +82,7 @@ var selectionManager = SelectionManager;
 var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
 var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
-var ZONE_URL = Script.resourcesPath() + "icons/create-icons/23-zone-01.svg";
+var ZONE_URL = Script.resolvePath("assets/images/icon-zone.svg");
 
 var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect', 'Zone'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
@@ -119,7 +119,7 @@ var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
-    entityShapeVisualizer.updateSelection(selectionManager.selections);
+    entityShapeVisualizer.setEntities(selectionManager.selections);
 });
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
