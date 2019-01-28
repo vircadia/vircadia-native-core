@@ -205,6 +205,8 @@ bool HFMModel::convexHullContains(const glm::vec3& point) const {
 
     auto checkEachPrimitive = [=](HFMMesh& mesh, QVector<int> indices, int primitiveSize) -> bool {
         // Check whether the point is "behind" all the primitives.
+        // But first must transform from model-frame into mesh-frame
+        glm::vec3 transformedPoint = glm::vec3(glm::inverse(mesh.modelTransform) * glm::vec4(point, 1.0f));
         int verticesSize = mesh.vertices.size();
         for (int j = 0;
             j < indices.size() - 2; // -2 in case the vertices aren't the right size -- we access j + 2 below
@@ -212,7 +214,7 @@ bool HFMModel::convexHullContains(const glm::vec3& point) const {
             if (indices[j] < verticesSize &&
                 indices[j + 1] < verticesSize &&
                 indices[j + 2] < verticesSize &&
-                !isPointBehindTrianglesPlane(point,
+                !isPointBehindTrianglesPlane(transformedPoint,
                     mesh.vertices[indices[j]],
                     mesh.vertices[indices[j + 1]],
                     mesh.vertices[indices[j + 2]])) {

@@ -49,8 +49,6 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-const graphics::MaterialPointer MeshPartPayload::DEFAULT_MATERIAL = std::make_shared<graphics::Material>();
-
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
@@ -85,11 +83,13 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
@@ -104,10 +104,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
-    }
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     ShapeKey::Builder builder;
     builder.withMaterial();
@@ -158,7 +155,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
     }
 
@@ -332,11 +329,13 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withDeformed();
     }
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
@@ -348,10 +347,11 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         return;
     }
 
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
+    if (_drawMaterials.needsUpdate()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
+
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
@@ -435,7 +435,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
     }
 

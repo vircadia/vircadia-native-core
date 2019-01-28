@@ -42,6 +42,7 @@ BloomPropertyGroup EntityItemProperties::_staticBloom;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 GrabPropertyGroup EntityItemProperties::_staticGrab;
+PulsePropertyGroup EntityItemProperties::_staticPulse;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -404,6 +405,32 @@ void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMo
     }
 }
 
+QHash<QString, WebInputMode> stringToWebInputModeLookup;
+
+void addWebInputMode(WebInputMode mode) {
+    stringToWebInputModeLookup[WebInputModeHelpers::getNameForWebInputMode(mode)] = mode;
+}
+
+void buildStringToWebInputModeLookup() {
+    addWebInputMode(WebInputMode::TOUCH);
+    addWebInputMode(WebInputMode::MOUSE);
+}
+
+QString EntityItemProperties::getInputModeAsString() const {
+    return WebInputModeHelpers::getNameForWebInputMode(_inputMode);
+}
+
+void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
+    if (stringToWebInputModeLookup.empty()) {
+        buildStringToWebInputModeLookup();
+    }
+    auto webInputModeItr = stringToWebInputModeLookup.find(webInputMode.toLower());
+    if (webInputModeItr != stringToWebInputModeLookup.end()) {
+        _inputMode = webInputModeItr.value();
+        _inputModeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
@@ -430,6 +457,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
     CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
     CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
+    CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -487,6 +515,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
+    changedProperties += _pulse.getChangedProperties();
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
 
     // Particles
@@ -584,6 +613,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     // Web
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_URL, scriptURL);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_FPS, maxFPS);
+    CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -669,6 +701,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
  * @property {RenderLayer} renderLayer="world" - In which layer this entity renders.
  * @property {PrimitiveMode} primitiveMode="solid" - How this entity's geometry is rendered.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the entity.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -1084,6 +1117,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
  * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
  * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -1211,6 +1245,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.Shape} shape="Sphere" - The shape of the entity.
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
  * @property {Color} color=255,255,255 - The color of the entity.
+ * @property {number} alpha=1 - The alpha of the shape.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a cylinder.</caption>
  * var shape = Entities.addEntity({
  *     type: "Shape",
@@ -1250,6 +1286,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} rightMargin=0.0 - The right margin, in meters.
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a text entity.</caption>
  * var text = Entities.addEntity({
  *     type: "Text",
@@ -1269,11 +1306,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * The entity has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * @typedef {object} Entities.EntityProperties-Web
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {Color} color=255,255,255 - The color of the web surface.
+ * @property {number} alpha=1 - The alpha of the web surface.
  * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
  *     on the Web entity.
  * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
  *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
  *     you get the resolution in pixels.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web content, in frames/second.
+ * @property {WebInputMode} inputMode="touch" - The user input mode to use.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1383,6 +1426,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the full image in that dimension.
  * @property {Color} color=255,255,255 - The color of the image.
  * @property {number} alpha=1 - The alpha of the image.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a image entity.</caption>
  * var image = Entities.addEntity({
  *     type: "Image",
@@ -1406,6 +1450,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     line. Minimum value = <code>1</code>.
  * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value =
  *     <code>0.001</code>.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a grid entity.</caption>
  * var grid = Entities.addEntity({
  *     type: "Grid",
@@ -1482,6 +1527,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1542,6 +1588,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
@@ -1615,6 +1662,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
     }
 
@@ -1630,6 +1678,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Text only
     if (_type == EntityTypes::Text) {
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT, text);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_TEXT_COLOR, textColor, getTextColor(), u8vec3Color);
@@ -1669,8 +1719,15 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Web only
     if (_type == EntityTypes::Web) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_URL, scriptURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_FPS, maxFPS);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
     }
 
     // PolyVoxel only
@@ -1729,6 +1786,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Image) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMISSIVE, emissive);
@@ -1749,6 +1807,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Grid) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRID_FOLLOW_CAMERA, followCamera);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
@@ -1866,6 +1925,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(ignorePickIntersection, bool, setIgnorePickIntersection);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -1928,6 +1988,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, u8vec3Color, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
+    _pulse.copyFromScriptValue(object, _defaultSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
 
     // Particles
@@ -2025,6 +2086,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     // Web
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptURL, QString, setScriptURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxFPS, uint8_t, setMaxFPS);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -2140,6 +2204,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(isVisibleInSecondaryCamera);
     COPY_PROPERTY_IF_CHANGED(renderLayer);
     COPY_PROPERTY_IF_CHANGED(primitiveMode);
+    COPY_PROPERTY_IF_CHANGED(ignorePickIntersection);
     _grab.merge(other._grab);
 
     // Physics
@@ -2197,6 +2262,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
     COPY_PROPERTY_IF_CHANGED(color);
     COPY_PROPERTY_IF_CHANGED(alpha);
+    _pulse.merge(other._pulse);
     COPY_PROPERTY_IF_CHANGED(textures);
 
     // Particles
@@ -2294,6 +2360,9 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     // Web
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(dpi);
+    COPY_PROPERTY_IF_CHANGED(scriptURL);
+    COPY_PROPERTY_IF_CHANGED(maxFPS);
+    COPY_PROPERTY_IF_CHANGED(inputMode);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2413,6 +2482,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
         ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
         ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
+        ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2500,6 +2570,13 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, u8vec3Color);
         ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA, Alpha, alpha, float, particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        { // Pulse
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_MIN, Pulse, pulse, Min, min);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_MAX, Pulse, pulse, Max, max);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_PERIOD, Pulse, pulse, Period, period);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_COLOR_MODE, Pulse, pulse, ColorMode, colorMode);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_ALPHA_MODE, Pulse, pulse, AlphaMode, alphaMode);
+        }
         ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
 
         // Particles
@@ -2663,6 +2740,9 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         // Web
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t);
+        ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -2845,6 +2925,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, properties.getIsVisibleInSecondaryCamera()); // not sent over the wire
             APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
             APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
+            APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -2896,6 +2977,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
 
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
@@ -2967,6 +3051,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Text) {
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
@@ -3026,8 +3114,17 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Web) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
+                APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, properties.getScriptURL());
+                APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, properties.getMaxFPS());
+                APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -3056,6 +3153,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
@@ -3076,6 +3176,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             if (properties.getType() == EntityTypes::Image) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
                 APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, properties.getEmissive());
@@ -3088,6 +3191,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             if (properties.getType() == EntityTypes::Grid) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, properties.getFollowCamera());
                 APPEND_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, properties.getMajorGridEvery());
@@ -3289,6 +3395,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera); // not sent over the wire
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3338,6 +3445,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, quint32, setMaxParticles);
@@ -3409,6 +3517,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Text) {
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, u8vec3Color, setTextColor);
@@ -3459,8 +3569,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Web) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_URL, QString, setScriptURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_FPS, uint8_t, setMaxFPS);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -3489,6 +3606,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
@@ -3509,6 +3628,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Image) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IMAGE_URL, QString, setImageURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMISSIVE, bool, setEmissive);
@@ -3521,6 +3641,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Grid) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRID_FOLLOW_CAMERA, bool, setFollowCamera);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAJOR_GRID_EVERY, uint32_t, setMajorGridEvery);
@@ -3674,6 +3795,7 @@ void EntityItemProperties::markAllChanged() {
     _isVisibleInSecondaryCameraChanged = true;
     _renderLayerChanged = true;
     _primitiveModeChanged = true;
+    _ignorePickIntersectionChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -3723,6 +3845,7 @@ void EntityItemProperties::markAllChanged() {
     _shapeTypeChanged = true;
     _colorChanged = true;
     _alphaChanged = true;
+    _pulse.markAllChanged();
     _texturesChanged = true;
     _compoundShapeURLChanged = true;
 
@@ -3821,6 +3944,9 @@ void EntityItemProperties::markAllChanged() {
     // Web
     _sourceUrlChanged = true;
     _dpiChanged = true;
+    _scriptURLChanged = true;
+    _maxFPSChanged = true;
+    _inputModeChanged = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -4053,6 +4179,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (primitiveModeChanged()) {
         out += "primitiveMode";
     }
+    if (ignorePickIntersectionChanged()) {
+        out += "ignorePickIntersection";
+    }
     getGrab().listChangedProperties(out);
 
     // Physics
@@ -4181,6 +4310,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (alphaChanged()) {
         out += "alpha";
     }
+    getPulse().listChangedProperties(out);
     if (texturesChanged()) {
         out += "textures";
     }
@@ -4431,6 +4561,15 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (dpiChanged()) {
         out += "dpi";
+    }
+    if (scriptURLChanged()) {
+        out += "scriptURL";
+    }
+    if (maxFPSChanged()) {
+        out += "maxFPS";
+    }
+    if (inputModeChanged()) {
+        out += "inputMode";
     }
 
     // Polyline

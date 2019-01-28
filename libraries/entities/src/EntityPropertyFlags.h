@@ -41,6 +41,7 @@ enum EntityPropertyList {
     PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over the wire
     PROP_RENDER_LAYER,
     PROP_PRIMITIVE_MODE,
+    PROP_IGNORE_PICK_INTERSECTION,
     // Grab
     PROP_GRAB_GRABBABLE,
     PROP_GRAB_KINEMATIC,
@@ -105,12 +106,17 @@ enum EntityPropertyList {
     PROP_LOCAL_VELOCITY,
     PROP_LOCAL_ANGULAR_VELOCITY,
     PROP_LOCAL_DIMENSIONS,
-    
+
     // These properties are used by multiple subtypes but aren't in the base EntityItem
     PROP_SHAPE_TYPE,
     PROP_COMPOUND_SHAPE_URL,
     PROP_COLOR,
     PROP_ALPHA,
+    PROP_PULSE_MIN,
+    PROP_PULSE_MAX,
+    PROP_PULSE_PERIOD,
+    PROP_PULSE_COLOR_MODE,
+    PROP_PULSE_ALPHA_MODE,
     PROP_TEXTURES,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -287,6 +293,9 @@ enum EntityPropertyList {
     // Web
     PROP_SOURCE_URL = PROP_DERIVED_0,
     PROP_DPI = PROP_DERIVED_1,
+    PROP_SCRIPT_URL = PROP_DERIVED_2,
+    PROP_MAX_FPS = PROP_DERIVED_3,
+    PROP_INPUT_MODE = PROP_DERIVED_4,
 
     // Polyline
     PROP_LINE_POINTS = PROP_DERIVED_0,

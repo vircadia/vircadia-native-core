@@ -49,6 +49,10 @@ void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColor);
@@ -66,6 +70,11 @@ EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& de
 bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
+
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(text, setText);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
@@ -101,6 +110,14 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
+
     READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
     READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, glm::u8vec3, setTextColor);
@@ -118,6 +135,8 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
 EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+
+    requestedProperties += _pulseProperties.getEntityProperties(params);
     requestedProperties += PROP_TEXT;
     requestedProperties += PROP_LINE_HEIGHT;
     requestedProperties += PROP_TEXT_COLOR;
@@ -129,11 +148,12 @@ EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_RIGHT_MARGIN;
     requestedProperties += PROP_TOP_MARGIN;
     requestedProperties += PROP_BOTTOM_MARGIN;
+
     return requestedProperties;
 }
 
 void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -141,6 +161,11 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
+
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
 
     APPEND_ENTITY_PROPERTY(PROP_TEXT, getText());
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
@@ -343,5 +368,11 @@ void TextEntityItem::setBottomMargin(float value) {
 float TextEntityItem::getBottomMargin() const {
     return resultWithReadLock<float>([&] {
         return _bottomMargin;
+    });
+}
+
+PulsePropertyGroup TextEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
     });
 }

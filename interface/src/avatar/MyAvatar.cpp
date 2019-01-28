@@ -95,6 +95,37 @@ const float CENTIMETERS_PER_METER = 100.0f;
 
 const QString AVATAR_SETTINGS_GROUP_NAME { "Avatar" };
 
+static const QString USER_RECENTER_MODEL_FORCE_SIT = QStringLiteral("ForceSit");
+static const QString USER_RECENTER_MODEL_FORCE_STAND = QStringLiteral("ForceStand");
+static const QString USER_RECENTER_MODEL_AUTO = QStringLiteral("Auto");
+static const QString USER_RECENTER_MODEL_DISABLE_HMD_LEAN = QStringLiteral("DisableHMDLean");
+
+MyAvatar::SitStandModelType stringToUserRecenterModel(const QString& str) {
+    if (str == USER_RECENTER_MODEL_FORCE_SIT) {
+        return MyAvatar::ForceSit;
+    } else if (str == USER_RECENTER_MODEL_FORCE_STAND) {
+        return MyAvatar::ForceStand;
+    } else if (str == USER_RECENTER_MODEL_DISABLE_HMD_LEAN) {
+        return MyAvatar::DisableHMDLean;
+    } else {
+        return MyAvatar::Auto;
+    }
+}
+
+QString userRecenterModelToString(MyAvatar::SitStandModelType model) {
+    switch (model) {
+    case MyAvatar::ForceSit:
+        return USER_RECENTER_MODEL_FORCE_SIT;
+    case MyAvatar::ForceStand:
+        return USER_RECENTER_MODEL_FORCE_STAND;
+    case MyAvatar::DisableHMDLean:
+        return USER_RECENTER_MODEL_DISABLE_HMD_LEAN;
+    case MyAvatar::Auto:
+    default:
+        return USER_RECENTER_MODEL_AUTO;
+    }
+}
+
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
     _yawSpeed(YAW_SPEED_DEFAULT),
@@ -125,6 +156,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
     _dominantHandSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "dominantHand", DOMINANT_RIGHT_HAND),
+    _hmdAvatarAlignmentTypeSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "hmdAvatarAlignmentType", DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE),
     _headPitchSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "", 0.0f),
     _scaleSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "scale", _targetScale),
     _yawSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "yawSpeed", _yawSpeed),
@@ -138,7 +170,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
-    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0)
+    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0),
+    _userRecenterModelSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userRecenterModel", USER_RECENTER_MODEL_AUTO)
 {
     _clientTraitsHandler.reset(new ClientTraitsHandler(this));
 
@@ -286,10 +319,25 @@ MyAvatar::~MyAvatar() {
     _myScriptEngine = nullptr;
 }
 
+QString MyAvatar::getDominantHand() const {
+    return _dominantHand.get();
+}
+
 void MyAvatar::setDominantHand(const QString& hand) {
     if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
-        _dominantHand = hand;
-        emit dominantHandChanged(_dominantHand);
+        _dominantHand.set(hand);
+        emit dominantHandChanged(hand);
+    }
+}
+
+QString MyAvatar::getHmdAvatarAlignmentType() const {
+    return _hmdAvatarAlignmentType.get();
+}
+
+void MyAvatar::setHmdAvatarAlignmentType(const QString& type) {
+    if (type != _hmdAvatarAlignmentType.get()) {
+        _hmdAvatarAlignmentType.set(type);
+        emit hmdAvatarAlignmentTypeChanged(type);
     }
 }
 
@@ -377,6 +425,7 @@ void MyAvatar::resetSensorsAndBody() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "resetSensorsAndBody");
         return;
+
     }
 
     qApp->getActiveDisplayPlugin()->resetSensors();
@@ -1206,7 +1255,8 @@ void MyAvatar::resizeAvatarEntitySettingHandles(uint32_t maxIndex) {
 }
 
 void MyAvatar::saveData() {
-    _dominantHandSetting.set(_dominantHand);
+    _dominantHandSetting.set(getDominantHand());
+    _hmdAvatarAlignmentTypeSetting.set(getHmdAvatarAlignmentType());
     _headPitchSetting.set(getHead()->getBasePitch());
     _scaleSetting.set(_targetScale);
     _yawSpeedSetting.set(_yawSpeed);
@@ -1229,6 +1279,7 @@ void MyAvatar::saveData() {
     _useSnapTurnSetting.set(_useSnapTurn);
     _userHeightSetting.set(getUserHeight());
     _flyingHMDSetting.set(getFlyingHMDPref());
+    _userRecenterModelSetting.set(userRecenterModelToString(getUserRecenterModel()));
 
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     saveAvatarEntityDataToSettings();
@@ -1811,8 +1862,11 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(_collisionSoundURLSetting.get(QUrl(DEFAULT_AVATAR_COLLISION_SOUND_URL)).toString());
     setSnapTurn(_useSnapTurnSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
+    setHmdAvatarAlignmentType(_hmdAvatarAlignmentTypeSetting.get(DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE).toLower());
     setUserHeight(_userHeightSetting.get(DEFAULT_AVATAR_HEIGHT));
     setTargetScale(_scaleSetting.get());
+
+    setUserRecenterModel(stringToUserRecenterModel(_userRecenterModelSetting.get(USER_RECENTER_MODEL_AUTO)));
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
     _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
@@ -4689,7 +4743,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    const float CYLINDER_TOP = 0.1f;
+    const float CYLINDER_TOP = 2.0f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
 

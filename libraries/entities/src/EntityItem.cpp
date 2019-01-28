@@ -97,9 +97,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
-    withReadLock([&] {
-        requestedProperties += _grabProperties.getEntityProperties(params);
-    });
+    requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
+    requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
     requestedProperties += PROP_DENSITY;
@@ -280,6 +279,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over the wire
         APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
         APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
+        APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -848,6 +848,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over the wire
     READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
     READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -1321,6 +1322,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderLayer, getRenderLayer);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1467,6 +1469,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderLayer, setRenderLayer);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -2982,6 +2985,18 @@ void EntityItem::setPrimitiveMode(PrimitiveMode value) {
     if (changed) {
         emit requestRenderUpdate();
     }
+}
+
+bool EntityItem::getIgnorePickIntersection() const {
+    return resultWithReadLock<bool>([&] {
+        return _ignorePickIntersection;
+    });
+}
+
+void EntityItem::setIgnorePickIntersection(bool value) {
+    withWriteLock([&] {
+        _ignorePickIntersection = value;
+    });
 }
 
 bool EntityItem::getCanCastShadow() const {
