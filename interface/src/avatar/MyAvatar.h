@@ -258,7 +258,9 @@ class MyAvatar : public Avatar {
     const float DEFAULT_GEAR_3 = 0.8f;
     const float DEFAULT_GEAR_4 = 0.9f;
     const float DEFAULT_GEAR_5 = 1.0f;
-    const int DEFAULT_CONTROL_SCHEME_INDEX = 0;
+    const int CONTROLS_DEFAULT = 0;
+    const int CONTROLS_ANALOG = 1;
+    const int CONTROLS_ANALOG_PLUS = 2;
 
 public:
     enum DriveKeys {
@@ -511,7 +513,17 @@ public:
      */
     Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
 
+    /**
+     * @function MyAvatar.getControlScheme
+     * @returns {number}
+    */
+    Q_INVOKABLE int getControlScheme() const { return _controlSchemeIndex; }
 
+    /**
+     * @function MyAvatar.setControlScheme
+     * @param {number} index
+    */
+    Q_INVOKABLE void setControlScheme(int index) { _controlSchemeIndex = index; }
     /**jsdoc
      * @function MyAvatar.setDominantHand
      * @param {string} hand
@@ -1828,7 +1840,7 @@ private:
     float _driveGear3 { DEFAULT_GEAR_3 };
     float _driveGear4 { DEFAULT_GEAR_4 };
     float _driveGear5 { DEFAULT_GEAR_5 };
-    int _controlSchemeIndex { DEFAULT_CONTROL_SCHEME_INDEX };
+    int _controlSchemeIndex { CONTROLS_DEFAULT };
 
     glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 

@@ -1896,7 +1896,7 @@ void MyAvatar::loadData() {
     setDriveGear3(firstRunVal.get() ? DEFAULT_GEAR_3 : _driveGear3Setting.get());
     setDriveGear4(firstRunVal.get() ? DEFAULT_GEAR_4 : _driveGear4Setting.get());
     setDriveGear5(firstRunVal.get() ? DEFAULT_GEAR_5 : _driveGear5Setting.get());
-    setControlSchemeIndex(firstRunVal.get() ? DEFAULT_CONTROL_SCHEME_INDEX : _controlSchemeIndexSetting.get());
+    setControlSchemeIndex(firstRunVal.get() ? CONTROLS_DEFAULT : _controlSchemeIndexSetting.get());
     setFlyingEnabled(getFlyingEnabled());
 
     setDisplayName(_displayNameSetting.get());
