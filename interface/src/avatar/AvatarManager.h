@@ -137,7 +137,7 @@ public:
      * @param {PickRay} ray
      * @param {Uuid[]} [avatarsToInclude=[]]
      * @param {Uuid[]} [avatarsToDiscard=[]]
-     * @param {string[]} [jointNamesToFilter=[] - If included avatars are provided only this joints corresponding to those avatars would be included ]
+     * @param {boolean} pickAgainstMesh
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
@@ -149,7 +149,7 @@ public:
      * @param {PickRay} ray
      * @param {Uuid[]} avatarsToInclude
      * @param {Uuid[]} avatarsToDiscard
-     * @param {string[]} [jointNamesToFilter=[] - If included avatars are provided only this joints corresponding to those avatars would be included ]
+     * @param {boolean} pickAgainstMesh
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
