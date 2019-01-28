@@ -370,6 +370,9 @@
     "priority": {
         "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
     },
+    "materialMappingMode": {
+        "tooltip": "How the material is mapped to the entity. If set to \"UV space\", then the material will be applied with the target entity's UV coordinates. If set to \"3D Projected\", then the 3D transform of the material entity will be used."
+    },
     "materialMappingPos": {
         "tooltip": "The offset position of the bottom left of the material within the parent's UV space."
     },
@@ -378,6 +381,9 @@
     },
     "materialMappingRot": {
         "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
+    },
+    "materialRepeat": {
+        "tooltip": "If enabled, the material will repeat, otherwise it will clamp."
     },
     "followCamera": {
         "tooltip": "If enabled, the grid is always visible even as the camera moves to another position."
