@@ -106,6 +106,7 @@ public:
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
+    void requestAccessTokenWithOculus(const QString& nonce, const QString& oculusID);
     void requestAccessTokenWithAuthCode(const QString& authCode,
                                         const QString& clientId,
                                         const QString& clientSecret,
