@@ -398,7 +398,6 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
                 auto& detailedMotionStates = avatar->getDetailedMotionStates();
-                qDebug() << "Deleting " << detailedMotionStates.size() << "Motion states";
                 for (auto& mState : detailedMotionStates) {
                     transaction.objectsToRemove.push_back(mState);
                 }
@@ -426,8 +425,6 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                 } else {
                     failedShapeBuilds.insert(avatar);
                 }
-
-                qDebug() << "Adding " << avatar->getDetailedMotionStates().size() << " Motion states";
             }
         } else if (isInPhysics) {
             transaction.objectsToChange.push_back(avatar->_motionState);
