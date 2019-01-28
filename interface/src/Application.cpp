@@ -2361,6 +2361,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     // Preload Tablet sounds
+    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(qApp->getEntities()->getTree());
     DependencyManager::get<TabletScriptingInterface>()->preloadSounds();
     DependencyManager::get<Keyboard>()->createKeyboard();
 
@@ -8692,12 +8693,11 @@ void Application::createLoginDialog() {
 
     auto keyboard = DependencyManager::get<Keyboard>().data();
     if (!keyboard->getAnchorID().isNull() && !_loginDialogID.isNull()) {
-        const auto KEYBOARD_LOCAL_ORIENTATION = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
         auto keyboardLocalOffset = cameraOrientation * glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
 
         EntityItemProperties properties;
         properties.setPosition(position + keyboardLocalOffset);
-        properties.setRotation(cameraOrientation * KEYBOARD_LOCAL_ORIENTATION);
+        properties.setRotation(cameraOrientation * Quaternions::Y_180);
 
         entityScriptingInterface->editEntity(keyboard->getAnchorID(), properties);
         keyboard->setResetKeyboardPositionOnRaise(false);
@@ -8728,7 +8728,6 @@ void Application::updateLoginDialogPosition() {
     auto upVec = getMyAvatar()->getWorldOrientation() * Vectors::UNIT_Y;
     auto offset = headLookVec * OFFSET.x;
     auto newPositionVec = (cameraPositionVec + offset) + (upVec * OFFSET.y);
-    auto newOrientation = glm::inverse(glm::quat_cast(glm::lookAt(newPositionVec, cameraPositionVec, upVec))) * Quaternions::Y_180;
 
     bool outOfBounds = glm::distance(positionVec, cameraPositionVec) > 1.0f;
 
@@ -8736,17 +8735,17 @@ void Application::updateLoginDialogPosition() {
         {
             EntityItemProperties properties;
             properties.setPosition(newPositionVec);
-            properties.setRotation(newOrientation);
+            properties.setRotation(cameraOrientation);
             entityScriptingInterface->editEntity(_loginDialogID, properties);
         }
 
         {
-            const auto KEYBOARD_LOCAL_ORIENTATION = glm::quat(0.0f, 0.0, 1.0f, 0.25f);
-            auto keyboardLocalOffset = newOrientation * glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
+            glm::vec3 keyboardLocalOffset = cameraOrientation * glm::vec3(-0.4f * getMyAvatar()->getSensorToWorldScale(), -0.3f, 0.2f);
+            glm::quat keyboardOrientation = cameraOrientation * glm::quat(glm::radians(glm::vec3(-30.0f, 180.0f, 0.0f)));
 
             EntityItemProperties properties;
             properties.setPosition(newPositionVec + keyboardLocalOffset);
-            properties.setRotation(newOrientation * KEYBOARD_LOCAL_ORIENTATION);
+            properties.setRotation(keyboardOrientation);
             entityScriptingInterface->editEntity(DependencyManager::get<Keyboard>()->getAnchorID(), properties);
         }
     }

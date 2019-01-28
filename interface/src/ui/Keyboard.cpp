@@ -151,17 +151,20 @@ void Key::saveDimensionsAndLocalPosition() {
     _originalLocalPosition = properties.getLocalPosition();
     _originalDimensions = properties.getDimensions();
     _currentLocalPosition = _originalLocalPosition;
+    _originalDimensionsAndLocalPositionSaved = true;
 }
 
 void Key::scaleKey(float sensorToWorldScale) {
-    glm::vec3 scaledLocalPosition = _originalLocalPosition * sensorToWorldScale;
-    glm::vec3 scaledDimensions = _originalDimensions * sensorToWorldScale;
-    _currentLocalPosition = scaledLocalPosition;
+    if (_originalDimensionsAndLocalPositionSaved) {
+        glm::vec3 scaledLocalPosition = _originalLocalPosition * sensorToWorldScale;
+        glm::vec3 scaledDimensions = _originalDimensions * sensorToWorldScale;
+        _currentLocalPosition = scaledLocalPosition;
 
-    EntityItemProperties properties;
-    properties.setDimensions(scaledDimensions);
-    properties.setLocalPosition(scaledLocalPosition);
-    DependencyManager::get<EntityScriptingInterface>()->editEntity(_keyID, properties);
+        EntityItemProperties properties;
+        properties.setDimensions(scaledDimensions);
+        properties.setLocalPosition(scaledLocalPosition);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_keyID, properties);
+    }
 }
 
 void Key::startTimer(int time) {
@@ -229,6 +232,18 @@ void Keyboard::registerKeyboardHighlighting() {
     selection->enableListToScene(KEY_PRESSED_HIGHLIGHT);
 }
 
+void Keyboard::disableSelectionLists() {
+    auto selection = DependencyManager::get<SelectionScriptingInterface>();
+    selection->disableListHighlight(KEY_HOVER_HIGHLIGHT);
+    selection->disableListHighlight(KEY_PRESSED_HIGHLIGHT);
+}
+
+void Keyboard::enableSelectionLists() {
+    auto selection = DependencyManager::get<SelectionScriptingInterface>();
+    selection->enableListHighlight(KEY_HOVER_HIGHLIGHT, KEY_HOVERING_STYLE);
+    selection->enableListHighlight(KEY_PRESSED_HIGHLIGHT, KEY_PRESSING_STYLE);
+}
+
 bool Keyboard::getUse3DKeyboard() const {
     return _use3DKeyboardLock.resultWithReadLock<bool>([&] {
         return _use3DKeyboard.get();
@@ -288,6 +303,7 @@ void Keyboard::setRaised(bool raised) {
         raiseKeyboardAnchor(raised);
         raiseKeyboard(raised);
         raised ? enableStylus() : disableStylus();
+        raised ? enableSelectionLists() : disableSelectionLists();
         withWriteLock([&] {
             _raised = raised;
             _layerIndex = 0;
@@ -340,8 +356,9 @@ void Keyboard::scaleKeyboard(float sensorToWorldScale) {
 
     {
         EntityItemProperties properties;
-        properties.setDimensions(_anchor.originalDimensions * sensorToWorldScale);
-        entityScriptingInterface->editEntity(_anchor.entityID, properties);
+        properties.setLocalPosition(_backPlate.localPosition * sensorToWorldScale);
+        properties.setDimensions(_backPlate.dimensions * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_backPlate.entityID, properties);
     }
 
     for (auto& keyboardLayer : _keyboardLayers) {
@@ -356,13 +373,6 @@ void Keyboard::scaleKeyboard(float sensorToWorldScale) {
         properties.setDimensions(_textDisplay.dimensions * sensorToWorldScale);
         properties.setLineHeight(_textDisplay.lineHeight * sensorToWorldScale);
         entityScriptingInterface->editEntity(_textDisplay.entityID, properties);
-    }
-
-    {
-        EntityItemProperties properties;
-        properties.setLocalPosition(_backPlate.localPosition * sensorToWorldScale);
-        properties.setDimensions(_backPlate.dimensions * sensorToWorldScale);
-        entityScriptingInterface->editEntity(_backPlate.entityID, properties);
     }
 }
 
@@ -456,8 +466,8 @@ void Keyboard::switchToLayer(int layerIndex) {
     }
 }
 
-bool Keyboard::shouldProcessEntityAndPointerEvent(const PointerEvent& event, const QUuid& id) const {
-    return (shouldProcessPointerEvent(event) && shouldProcessEntity(id));
+bool Keyboard::shouldProcessEntityAndPointerEvent(const PointerEvent& event) const {
+    return (shouldProcessPointerEvent(event) && shouldProcessEntity());
 }
 
 bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
@@ -470,7 +480,7 @@ bool Keyboard::shouldProcessPointerEvent(const PointerEvent& event) const {
 
 void Keyboard::handleTriggerBegin(const QUuid& id, const PointerEvent& event) {
     auto buttonType = event.getButton();
-    if (!shouldProcessEntityAndPointerEvent(event, id) || buttonType != PointerEvent::PrimaryButton) {
+    if (!shouldProcessEntityAndPointerEvent(event) || buttonType != PointerEvent::PrimaryButton) {
         return;
     }
 
@@ -572,7 +582,7 @@ void Keyboard::setRightHandLaser(unsigned int rightHandLaser) {
 }
 
 void Keyboard::handleTriggerEnd(const QUuid& id, const PointerEvent& event) {
-    if (!shouldProcessEntityAndPointerEvent(event, id)) {
+    if (!shouldProcessEntityAndPointerEvent(event)) {
         return;
     }
 
@@ -599,7 +609,7 @@ void Keyboard::handleTriggerEnd(const QUuid& id, const PointerEvent& event) {
 }
 
 void Keyboard::handleTriggerContinue(const QUuid& id, const PointerEvent& event) {
-    if (!shouldProcessEntityAndPointerEvent(event, id)) {
+    if (!shouldProcessEntityAndPointerEvent(event)) {
         return;
     }
 
@@ -639,7 +649,7 @@ void Keyboard::handleTriggerContinue(const QUuid& id, const PointerEvent& event)
 }
 
 void Keyboard::handleHoverBegin(const QUuid& id, const PointerEvent& event) {
-    if (!shouldProcessEntityAndPointerEvent(event, id)) {
+    if (!shouldProcessEntityAndPointerEvent(event)) {
         return;
     }
 
@@ -655,7 +665,7 @@ void Keyboard::handleHoverBegin(const QUuid& id, const PointerEvent& event) {
 }
 
 void Keyboard::handleHoverEnd(const QUuid& id, const PointerEvent& event) {
-    if (!shouldProcessEntityAndPointerEvent(event, id)) {
+    if (!shouldProcessEntityAndPointerEvent(event)) {
         return;
     }
 
@@ -750,26 +760,28 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
 
         {
             QJsonObject backPlateObject = jsonObject["backPlate"].toObject();
+            glm::vec3 position = vec3FromVariant(backPlateObject["position"].toVariant());
             glm::vec3 dimensions = vec3FromVariant(backPlateObject["dimensions"].toVariant());
+            glm::quat rotation = quatFromVariant(backPlateObject["rotation"].toVariant());
 
             EntityItemProperties properties;
             properties.setType(EntityTypes::Box);
-            properties.setName("BackPlate");
+            properties.setName("Keyboard-BackPlate");
             properties.setVisible(true);
             properties.getGrab().setGrabbable(false);
             properties.setAlpha(0.0f);
             properties.setIgnorePickIntersection(false);
             properties.setDimensions(dimensions);
-            properties.setPosition(vec3FromVariant(backPlateObject["position"].toVariant()));
-            properties.setRotation(quatFromVariant(backPlateObject["rotation"].toVariant()));
+            properties.setPosition(position);
+            properties.setRotation(rotation);
             properties.setParentID(_anchor.entityID);
 
             BackPlate backPlate;
             backPlate.entityID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
             backPlate.dimensions = dimensions;
-            EntityPropertyFlags desiredProperties;
-            desiredProperties += PROP_LOCAL_POSITION;
-            backPlate.localPosition = entityScriptingInterface->getEntityProperties(backPlate.entityID, desiredProperties).getLocalPosition();
+            glm::quat anchorEntityInverseWorldOrientation = glm::inverse(rotation);
+            glm::vec3 anchorEntityLocalTranslation = anchorEntityInverseWorldOrientation * -position;
+            backPlate.localPosition = (anchorEntityInverseWorldOrientation * position) + anchorEntityLocalTranslation;
             _backPlate = backPlate;
         }
 
@@ -797,6 +809,19 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                 QString modelUrl = keyboardKeyValue["modelURL"].toString();
                 QString url = (useResourcePath ? (resourcePath + modelUrl) : modelUrl);
 
+                EntityItemProperties properties;
+                properties.setType(EntityTypes::Model);
+                properties.setDimensions(vec3FromVariant(keyboardKeyValue["dimensions"].toVariant()));
+                properties.setPosition(vec3FromVariant(keyboardKeyValue["position"].toVariant()));
+                properties.setVisible(false);
+                properties.setEmissive(true);
+                properties.setParentID(_anchor.entityID);
+                properties.setModelURL(url);
+                properties.setTextures(QVariant(textureMap).toString());
+                properties.getGrab().setGrabbable(false);
+                properties.setLocalRotation(quatFromVariant(keyboardKeyValue["localOrientation"].toVariant()));
+                QUuid id = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
+
                 QString keyType = keyboardKeyValue["type"].toString();
                 QString keyString = keyboardKeyValue["key"].toString();
 
@@ -810,19 +835,6 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                         key.setSwitchToLayerIndex(switchToLayer);
                     }
                 }
-
-                EntityItemProperties properties;
-                properties.setType(EntityTypes::Model);
-                properties.setDimensions(vec3FromVariant(keyboardKeyValue["dimensions"].toVariant()));
-                properties.setPosition(vec3FromVariant(keyboardKeyValue["position"].toVariant()));
-                properties.setVisible(false);
-                properties.setEmissive(true);
-                properties.setParentID(_anchor.entityID);
-                properties.setModelURL(url);
-                properties.setTextures(QVariant(textureMap).toString());
-                properties.getGrab().setGrabbable(false);
-                properties.setLocalRotation(quatFromVariant(keyboardKeyValue["localOrientation"].toVariant()));
-                QUuid id = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
                 key.setID(id);
                 key.setKeyString(keyString);
                 key.saveDimensionsAndLocalPosition();
@@ -886,8 +898,8 @@ QUuid Keyboard::getAnchorID() {
     });
 }
 
-bool Keyboard::shouldProcessEntity(const QUuid& id) const {
-    return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished() && id != _backPlate.entityID);
+bool Keyboard::shouldProcessEntity() const {
+    return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished());
 }
 
 QVector<QUuid> Keyboard::getKeysID() {

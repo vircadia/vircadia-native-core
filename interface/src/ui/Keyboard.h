@@ -81,6 +81,7 @@ private:
     glm::vec3 _originalLocalPosition;
     glm::vec3 _originalDimensions;
     glm::vec3 _currentLocalPosition;
+    bool _originalDimensionsAndLocalPositionSaved { false };
 
     std::shared_ptr<QTimer> _timer { std::make_shared<QTimer>() };
 };
@@ -146,14 +147,16 @@ private:
     void raiseKeyboardAnchor(bool raise) const;
     void enableStylus();
     void disableStylus();
+    void enableSelectionLists();
+    void disableSelectionLists();
 
     void setLayerIndex(int layerIndex);
     void clearKeyboardKeys();
     void switchToLayer(int layerIndex);
     void updateTextDisplay();
-    bool shouldProcessEntityAndPointerEvent(const PointerEvent& event, const QUuid& id) const;
+    bool shouldProcessEntityAndPointerEvent(const PointerEvent& event) const;
     bool shouldProcessPointerEvent(const PointerEvent& event) const;
-    bool shouldProcessEntity(const QUuid& id) const;
+    bool shouldProcessEntity() const;
 
     void startLayerSwitchTimer();
     bool isLayerSwitchTimerFinished() const;

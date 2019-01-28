@@ -264,6 +264,30 @@ QString Overlays::overlayToEntityType(const QString& type) {
         }                                                   \
     }
 
+#define GROUP_ENTITY_TO_OVERLAY_PROP(g, e, o)               \
+    {                                                       \
+        auto iter = overlayProps.find(#g);                  \
+        if (iter != overlayProps.end()) {                   \
+            auto map = iter.value().toMap();                \
+            auto iter2 = map.find(#e);                      \
+            if (iter2 != map.end()) {                       \
+                overlayProps[#o] = iter2.value();           \
+            }                                               \
+        }                                                   \
+    }
+
+#define GROUP_ENTITY_TO_OVERLAY_PROP_CONVERT(g, e, o, C)    \
+    {                                                       \
+        auto iter = overlayProps.find(#g);                  \
+        if (iter != overlayProps.end()) {                   \
+            auto map = iter.value().toMap();                \
+            auto iter2 = map.find(#e);                      \
+            if (iter2 != map.end()) {                       \
+                overlayProps[#o] = C(iter2.value());        \
+            }                                               \
+        }                                                   \
+    }
+
 EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
     overlayProps["type"] = type;
 
@@ -279,7 +303,8 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
     RENAME_PROP(localOrientation, localRotation);
     RENAME_PROP(ignoreRayIntersection, ignorePickIntersection);
 
-    {
+    // Model overlays didn't support wireframe drawing
+    if (type != "Model") {
         RENAME_PROP(solid, isSolid);
         RENAME_PROP(isFilled, isSolid);
         RENAME_PROP(filled, isSolid);
@@ -327,6 +352,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP(url, sourceUrl);
         RENAME_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "Mouse" ? "mouse" : "touch"; });
     } else if (type == "Gizmo") {
+        RENAME_PROP(radius, outerRadius);
         if (add || overlayProps.contains("outerRadius")) {
             float ratio = 2.0f;
             {
@@ -435,7 +461,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             glm::vec3 position;
             auto iter2 = overlayProps.find("position");
             if (iter2 != overlayProps.end()) {
-                position = vec3FromVariant(iter.value());
+                position = vec3FromVariant(iter2.value());
             } else if (!add) {
                 EntityPropertyFlags desiredProperties;
                 desiredProperties += PROP_POSITION;
@@ -492,6 +518,119 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
 QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemProperties& properties) {
     QScriptEngine scriptEngine;
     QVariantMap overlayProps = EntityItemPropertiesToScriptValue(&scriptEngine, properties).toVariant().toMap();
+
+    QString type = overlayProps["type"].toString();
+    overlayProps["type"] = entityToOverlayType(type);
+
+    if (type != "PolyLine") {
+        RENAME_PROP(position, p1);
+        RENAME_PROP(position, start);
+    }
+    RENAME_PROP(position, point);
+    RENAME_PROP(dimensions, scale);
+    RENAME_PROP(dimensions, size);
+    RENAME_PROP(rotation, orientation);
+    RENAME_PROP(localRotation, localOrientation);
+    RENAME_PROP(ignorePickIntersection, ignoreRayIntersection);
+
+    {
+        RENAME_PROP_CONVERT(primitiveMode, isSolid, [](const QVariant& v) { return v.toString() == "solid" ? true : false; });
+        RENAME_PROP(isSolid, solid);
+        RENAME_PROP(isSolid, isFilled);
+        RENAME_PROP(isSolid, filled);
+
+        RENAME_PROP_CONVERT(primitiveMode, isWire, [](const QVariant& v) { return v.toString() == "lines" ? true : false; });
+        RENAME_PROP(isWire, wire);
+    }
+
+    RENAME_PROP_CONVERT(renderLayer, drawInFront, [](const QVariant& v) { return v.toString() == "front" ? true : false; });
+    RENAME_PROP_CONVERT(renderLayer, drawHUDLayer, [](const QVariant& v) { return v.toString() == "hud" ? true : false; });
+
+    GROUP_ENTITY_TO_OVERLAY_PROP(grab, grabbable, grabbable);
+
+    GROUP_ENTITY_TO_OVERLAY_PROP(pulse, min, pulseMin);
+    GROUP_ENTITY_TO_OVERLAY_PROP(pulse, max, pulseMax);
+    GROUP_ENTITY_TO_OVERLAY_PROP(pulse, period, pulsePeriod);
+    GROUP_ENTITY_TO_OVERLAY_PROP_CONVERT(pulse, colorMode, colorPulse, [](const QVariant& v) {
+        QString f = v.toString();
+        if (f == "in") {
+            return 1.0f;
+        } else if (f == "out") {
+            return -1.0f;
+        }
+        return 0.0f;
+    });
+    GROUP_ENTITY_TO_OVERLAY_PROP_CONVERT(pulse, alphaMode, alphaPulse, [](const QVariant& v) {
+        QString f = v.toString();
+        if (f == "in") {
+            return 1.0f;
+        } else if (f == "out") {
+            return -1.0f;
+        }
+        return 0.0f;
+    });
+
+    if (type == "Model") {
+        RENAME_PROP(modelURL, url);
+        RENAME_PROP(animation, animationSettings);
+    } else if (type == "Image") {
+        RENAME_PROP(imageURL, url);
+    } else if (type == "Web") {
+        RENAME_PROP(sourceUrl, url);
+        RENAME_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "mouse" ? "Mouse" : "Touch"; });
+    } else if (type == "Gizmo") {
+        RENAME_PROP_CONVERT(dimensions, outerRadius, [](const QVariant& v) { return vec3FromVariant(v).x; });
+        RENAME_PROP(outerRadius, radius);
+
+        RENAME_PROP_CONVERT(rotation, rotation, [](const QVariant& v) {
+            glm::quat rot = quatFromVariant(v);
+            // FIXME:
+            return quatToVariant(glm::angleAxis((float)M_PI_2, rot * Vectors::RIGHT) * rot);
+        });
+
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, startAngle, startAt);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, endAngle, endAt);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, innerRadius, innerRadius);
+
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, innerStartColor, innerStartColor);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, innerEndColor, innerEndColor);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, outerStartColor, outerStartColor);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, outerEndColor, outerEndColor);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, innerStartAlpha, innerStartAlpha);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, innerEndAlpha, innerEndAlpha);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, outerStartAlpha, outerStartAlpha);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, outerEndAlpha, outerEndAlpha);
+
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, hasTickMarks, hasTickMarks);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, majorTickMarksAngle, majorTickMarksAngle);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, minorTickMarksAngle, minorTickMarksAngle);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, majorTickMarksLength, majorTickMarksLength);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, minorTickMarksLength, minorTickMarksLength);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, majorTickMarksColor, majorTickMarksColor);
+        GROUP_ENTITY_TO_OVERLAY_PROP(ring, minorTickMarksColor, minorTickMarksColor);
+    } else if (type == "PolyLine") {
+        QVector<glm::vec3> points = qVectorVec3FromScriptValue(scriptEngine.newVariant(overlayProps["linePoints"]));
+        glm::vec3 position = vec3FromVariant(overlayProps["position"]);
+        if (points.length() > 1) {
+            overlayProps["p1"] = vec3toVariant(points[0] + position);
+            overlayProps["p2"] = vec3toVariant(points[1] + position);
+
+            overlayProps["localStart"] = vec3toVariant(points[0]);
+            overlayProps["localEnd"] = vec3toVariant(points[1]);
+        }
+
+        RENAME_PROP(p1, startPoint);
+        RENAME_PROP(p1, start);
+        RENAME_PROP(p2, endPoint);
+        RENAME_PROP(p2, end);
+
+        QVector<float> widths = qVectorFloatFromScriptValue(scriptEngine.newVariant(overlayProps["strokeWidths"]));
+        if (widths.length() > 0) {
+            overlayProps["lineWidth"] = widths[0];
+        }
+
+        RENAME_PROP_CONVERT(glow, glow, [](const QVariant& v) { return v.toBool() ? 1.0f : 0.0f; });
+    }
 
     return overlayProps;
 }
