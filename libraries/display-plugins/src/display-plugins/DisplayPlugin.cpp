@@ -20,7 +20,7 @@ const QString& DisplayPlugin::MENU_PATH() {
     return value;
 }
 
-#if !defined(USE_QUEST)
+#if !defined(CUSTOM_DISPLAY_PLUGINS)
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 DisplayPluginList getDisplayPlugins() {
     DisplayPlugin* PLUGIN_POOL[] = {

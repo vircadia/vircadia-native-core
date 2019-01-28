@@ -25,5 +25,5 @@ project(':questInterface').projectDir = new File(settingsDir, 'apps/questInterfa
 //include ':framePlayer'
 //project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
 
-//include ':ui'
-//project(':ui').projectDir = new File(settingsDir, 'apps/ui')
+//include ':questFramePlayer'
+//project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')

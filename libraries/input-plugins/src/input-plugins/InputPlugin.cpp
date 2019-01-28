@@ -16,8 +16,7 @@
 #include "TouchscreenDevice.h"
 #include "TouchscreenVirtualPadDevice.h"
 
-#if !defined(Q_OS_ANDROID)
-
+#if !defined(CUSTOM_INPUT_PLUGINS)
 // TODO migrate to a DLL model where plugins are discovered and loaded at runtime by the PluginManager class
 InputPluginList getInputPlugins() {
     InputPlugin* PLUGIN_POOL[] = {

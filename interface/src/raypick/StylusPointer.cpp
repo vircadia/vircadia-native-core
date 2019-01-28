@@ -61,7 +61,7 @@ OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
     overlayProperties["loadPriority"] = 10.0f;
     overlayProperties["solid"] = true;
     overlayProperties["visible"] = false;
-    overlayProperties["ignoreRayIntersection"] = true;
+    overlayProperties["ignorePickIntersection"] = true;
     overlayProperties["drawInFront"] = false;
 
     return qApp->getOverlays().addOverlay("model", overlayProperties);

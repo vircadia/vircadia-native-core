@@ -1082,13 +1082,10 @@ QUuid EntityScriptingInterface::findClosestEntity(const glm::vec3& center, float
 
     EntityItemID result;
     if (_entityTree) {
-        EntityItemPointer closestEntity;
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
-            closestEntity = _entityTree->findClosestEntity(center, radius);
+            result = _entityTree->evalClosestEntity(center, radius, PickFilter(searchFilter));
         });
-        if (closestEntity) {
-            result = closestEntity->getEntityItemID();
-        }
     }
     return result;
 }
@@ -1107,14 +1104,10 @@ QVector<QUuid> EntityScriptingInterface::findEntities(const glm::vec3& center, f
 
     QVector<QUuid> result;
     if (_entityTree) {
-        QVector<EntityItemPointer> entities;
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
-            _entityTree->findEntities(center, radius, entities);
+            _entityTree->evalEntitiesInSphere(center, radius, PickFilter(searchFilter), result);
         });
-
-        foreach (EntityItemPointer entity, entities) {
-            result << entity->getEntityItemID();
-        }
     }
     return result;
 }
@@ -1124,15 +1117,11 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
 
     QVector<QUuid> result;
     if (_entityTree) {
-        QVector<EntityItemPointer> entities;
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
             AABox box(corner, dimensions);
-            _entityTree->findEntities(box, entities);
+            _entityTree->evalEntitiesInBox(box, PickFilter(searchFilter), result);
         });
-
-        foreach (EntityItemPointer entity, entities) {
-            result << entity->getEntityItemID();
-        }
     }
     return result;
 }
@@ -1167,14 +1156,10 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInFrustum(QVariantMap frust
         viewFrustum.calculate();
 
         if (_entityTree) {
-            QVector<EntityItemPointer> entities;
+            unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
             _entityTree->withReadLock([&] {
-                _entityTree->findEntities(viewFrustum, entities);
+                _entityTree->evalEntitiesInFrustum(viewFrustum, PickFilter(searchFilter), result);
             });
-
-            foreach(EntityItemPointer entity, entities) {
-                result << entity->getEntityItemID();
-            }
         }
     }
 
@@ -1186,86 +1171,64 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesByType(const QString entity
 
     QVector<QUuid> result;
     if (_entityTree) {
-        QVector<EntityItemPointer> entities;
+        unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
         _entityTree->withReadLock([&] {
-            _entityTree->findEntities(center, radius, entities);
+            _entityTree->evalEntitiesInSphereWithType(center, radius, type, PickFilter(searchFilter), result);
         });
-
-        foreach(EntityItemPointer entity, entities) {
-            if (entity->getType() == type) {
-                result << entity->getEntityItemID().toString();
-            }
-        }
     }
     return result;
 }
 
 QVector<QUuid> EntityScriptingInterface::findEntitiesByName(const QString entityName, const glm::vec3& center, float radius, bool caseSensitiveSearch) const {
-    
     QVector<QUuid> result;
     if (_entityTree) {
-        QVector<EntityItemPointer> entities;
         _entityTree->withReadLock([&] {
-            _entityTree->findEntities(center, radius, entities);
+            unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
+            _entityTree->evalEntitiesInSphereWithName(center, radius, entityName, caseSensitiveSearch, PickFilter(searchFilter), result);
         });
-
-        if (caseSensitiveSearch) {
-            foreach(EntityItemPointer entity, entities) {
-                if (entity->getName() == entityName) {
-                    result << entity->getEntityItemID();
-                }
-            }
-
-        } else {
-            QString entityNameLowerCase = entityName.toLower();
-
-            foreach(EntityItemPointer entity, entities) {
-                QString entityItemLowerCase = entity->getName().toLower();
-                if (entityItemLowerCase == entityNameLowerCase) {
-                    result << entity->getEntityItemID();
-                }
-            }
-        }
     }
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, 
-                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking,
+        const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) const {
+    PROFILE_RANGE(script_entities, __FUNCTION__);
     QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
     QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
 
-    return findRayIntersectionVector(ray, precisionPicking, entitiesToInclude, entitiesToDiscard, visibleOnly, collidableOnly);
+    unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES);
+
+    if (!precisionPicking) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COARSE);
+    }
+
+    if (visibleOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE);
+    }
+
+    if (collidableOnly) {
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE);
+    }
+
+    return evalRayIntersectionWorker(ray, Octree::Lock, PickFilter(searchFilter), entitiesToInclude, entitiesToDiscard);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
-                const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionVector(const PickRay& ray, PickFilter searchFilter,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly);
+    return evalRayIntersectionWorker(ray, Octree::Lock, searchFilter, entityIdsToInclude, entityIdsToDiscard);
 }
 
-// FIXME - we should remove this API and encourage all users to use findRayIntersection() instead. We've changed
-//         findRayIntersection() to be blocking because it never makes sense for a script to get back a non-answer
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, 
-                const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
-
-    qWarning() << "Entities.findRayIntersectionBlocking() is obsolete, use Entities.findRayIntersection() instead.";
-    const QVector<EntityItemID>& entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
-    const QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
-}
-
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
-        Octree::lockType lockType, bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
-        const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
-
+RayToEntityIntersectionResult EntityScriptingInterface::evalRayIntersectionWorker(const PickRay& ray,
+        Octree::lockType lockType, PickFilter searchFilter, const QVector<EntityItemID>& entityIdsToInclude,
+        const QVector<EntityItemID>& entityIdsToDiscard) const {
 
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElementPointer element;
-        result.entityID = _entityTree->findRayIntersection(ray.origin, ray.direction,
-            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
+        result.entityID = _entityTree->evalRayIntersection(ray.origin, ray.direction,
+            entityIdsToInclude, entityIdsToDiscard, searchFilter,
             element, result.distance, result.face, result.surfaceNormal,
             result.extraInfo, lockType, &result.accurate);
         result.intersects = !result.entityID.isNull();
@@ -1276,23 +1239,22 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     return result;
 }
 
-ParabolaToEntityIntersectionResult EntityScriptingInterface::findParabolaIntersectionVector(const PickParabola& parabola, bool precisionPicking,
-    const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
+ParabolaToEntityIntersectionResult EntityScriptingInterface::evalParabolaIntersectionVector(const PickParabola& parabola, PickFilter searchFilter,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
     PROFILE_RANGE(script_entities, __FUNCTION__);
 
-    return findParabolaIntersectionWorker(parabola, Octree::Lock, precisionPicking, entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly);
+    return evalParabolaIntersectionWorker(parabola, Octree::Lock, searchFilter, entityIdsToInclude, entityIdsToDiscard);
 }
 
-ParabolaToEntityIntersectionResult EntityScriptingInterface::findParabolaIntersectionWorker(const PickParabola& parabola,
-    Octree::lockType lockType, bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
-    const QVector<EntityItemID>& entityIdsToDiscard, bool visibleOnly, bool collidableOnly) {
-
+ParabolaToEntityIntersectionResult EntityScriptingInterface::evalParabolaIntersectionWorker(const PickParabola& parabola,
+    Octree::lockType lockType, PickFilter searchFilter, const QVector<EntityItemID>& entityIdsToInclude,
+    const QVector<EntityItemID>& entityIdsToDiscard) const {
 
     ParabolaToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElementPointer element;
-        result.entityID = _entityTree->findParabolaIntersection(parabola,
-            entityIdsToInclude, entityIdsToDiscard, visibleOnly, collidableOnly, precisionPicking,
+        result.entityID = _entityTree->evalParabolaIntersection(parabola,
+            entityIdsToInclude, entityIdsToDiscard, searchFilter,
             element, result.intersection, result.distance, result.parabolicDistance, result.face, result.surfaceNormal,
             result.extraInfo, lockType, &result.accurate);
         result.intersects = !result.entityID.isNull();

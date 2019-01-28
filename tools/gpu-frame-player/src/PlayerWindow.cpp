@@ -116,24 +116,6 @@ void PlayerWindow::textureLoader(const std::string& filename, const gpu::Texture
 void PlayerWindow::loadFrame(const QString& path) {
     auto frame = gpu::readFrame(path.toStdString(), _renderThread._externalTexture, &PlayerWindow::textureLoader);
     if (frame) {
-
-        {
-            for (auto& batch : frame->batches) {
-                size_t commandCount = batch->_commands.size();
-                for (size_t i = 0; i < commandCount; ++i) {
-                    const auto& command = batch->_commands[i];
-                    const auto& paramOffset = batch->_commandOffsets[i];
-                    if (command == gpu::Batch::Command::COMMAND_setIndexBuffer) {
-
-                    } else if (command == gpu::Batch::Command::COMMAND_drawIndexed) {
-
-                    } else if (command == gpu::Batch::Command::COMMAND_drawIndexedInstanced) {
-
-                    }
-                }
-            }
-        }
-
         _renderThread.submitFrame(frame);
         if (!_renderThread.isThreaded()) {
             _renderThread.process();
@@ -148,5 +130,6 @@ void PlayerWindow::loadFrame(const QString& path) {
         while (glm::any(glm::greaterThan(size, maxSize))) {
             size /= 2;
         }
+        resize(size.x, size.y);
     }
 }
