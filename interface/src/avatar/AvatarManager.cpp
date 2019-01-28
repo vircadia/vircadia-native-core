@@ -450,6 +450,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
     }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
+    avatar->tearDownGrabs();
 
     avatar->die();
     queuePhysicsChange(avatar);
