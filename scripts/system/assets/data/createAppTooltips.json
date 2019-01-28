@@ -371,7 +371,7 @@
         "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
     },
     "materialMappingMode": {
-        "tooltip": "How the material is mapped to the entity. If set to \"UV space\", then the material will be applied with the target entities their UV coordinates. If set to \"3D Projected\", then the 3D transform of the material entity will be used."
+        "tooltip": "How the material is mapped to the entity. If set to \"UV space\", then the material will be applied with the target entity's UV coordinates. If set to \"3D Projected\", then the 3D transform of the material entity will be used."
     },
     "materialMappingPos": {
         "tooltip": "The offset position of the bottom left of the material within the parent's UV space."
