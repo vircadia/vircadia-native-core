@@ -58,10 +58,6 @@ void Context::debugMessageHandler(const QOpenGLDebugMessage& debugMessage) {
     }
 
     auto severity = debugMessage.severity();
-    auto type = debugMessage.type();
-    if (type == QOpenGLDebugMessage::PerformanceType) {
-        return;
-    }
     switch (severity) {
         case QOpenGLDebugMessage::NotificationSeverity:
         case QOpenGLDebugMessage::LowSeverity:
