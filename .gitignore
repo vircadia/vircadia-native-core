@@ -14,11 +14,13 @@ Makefile
 
 # Android Studio
 *.iml
+*.class
 local.properties
 android/gradle*
 android/.gradle
 android/**/src/main/jniLibs
 android/**/libs
+android/**/bin
 android/**/src/main/res/values/libs.xml
 android/**/src/main/assets
 android/**/gradle*
@@ -102,3 +104,6 @@ tools/unity-avatar-exporter/Logs
 tools/unity-avatar-exporter/Packages
 tools/unity-avatar-exporter/ProjectSettings
 tools/unity-avatar-exporter/Temp
+server-console/package-lock.json
+vcpkg/
+/tools/nitpick/compiledResources

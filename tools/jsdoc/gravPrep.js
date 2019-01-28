@@ -25,7 +25,7 @@ let dir_css = path.join(dir_grav, 'css');
 let dir_js = path.join(dir_grav, 'js');
 let dir_template = path.join(dir_grav, 'templates');
 
-let dir_md = path.join(dir_grav, '06.api-reference');
+let dir_md = path.join(dir_grav, '08.api-reference');
 let dir_md_objects = path.join(dir_md, '02.Objects');
 let dir_md_namespaces = path.join(dir_md, '01.Namespaces');
 let dir_md_globals = path.join(dir_md, '03.Globals');
@@ -662,7 +662,7 @@ if (copyLocal){
     copyFolderRecursiveSync(dir_template, targetTemplateDirectory);
 
     // Copy files to the Md Directory
-    let baseMdRefDir = path.join(targetMDDirectory,"06.api-reference");
+    let baseMdRefDir = path.join(targetMDDirectory,"08.api-reference");
     // Remove existing MD directory
     if (fs.existsSync(baseMdRefDir)){
         rimraf.sync(baseMdRefDir);

@@ -23,6 +23,7 @@ Item {
     clip: true
     height: root.height
     width: root.width
+    readonly property string termsContainerText: qsTr("By signing up, you agree to High Fidelity's Terms of Service")
     property int textFieldHeight: 31
     property string fontFamily: "Raleway"
     property int fontSize: 15
@@ -37,8 +38,9 @@ Item {
     onKeyboardRaisedChanged: d.resize();
 
     property string errorString: errorString
-    property bool linkSteam: linkSteam
     property bool lostFocus: false
+
+    readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
 
     QtObject {
         id: d
@@ -71,7 +73,6 @@ Item {
 
     function init() {
         // going to/from sign in/up dialog.
-        loginDialog.isLogIn = false;
         emailField.placeholderText = "Email";
         emailField.text = "";
         emailField.anchors.top = usernameField.bottom;
@@ -345,7 +346,13 @@ Item {
                 fontSize: signUpBody.fontSize
                 fontBold: signUpBody.fontBold
                 onClicked: {
-                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": signUpBody.linkSteam });
+                    if (signUpBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked cancel button at sign up screen"
+                        }
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                    }
+                    bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": false });
                 }
             }
             HifiControlsUit.Button {
@@ -363,19 +370,62 @@ Item {
                 }
 
                 onClicked: {
+                    if (signUpBody.loginDialogPoppedUp) {
+                        var data = {
+                            "action": "user clicked sign up button"
+                        }
+                        UserActivityLogger.logAction("encourageLoginDialog", data);
+                    }
                     signUpBody.signup();
                 }
             }
-        }
-    }
+            Item {
+                id: termsContainer
+                width: parent.width
+                height: termsTextMetrics.height
+                anchors {
+                    top: signUpButton.bottom
+                    horizontalCenter: parent.horizontalCenter
+                    topMargin: 2 * hifi.dimensions.contentSpacing.y
+                    left: parent.left
+                }
+                TextMetrics {
+                    id: termsTextMetrics
+                    font: termsText.font
+                    text: signUpBody.termsContainerText
+                    Component.onCompleted: {
+                        // with the link.
+                        termsText.text = qsTr("By signing up, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                    }
+                }
 
-    MouseArea {
-        z: -2
-        anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
-        onClicked: {
-            if (!usernameField.focus && !emailField.focus && !passwordField.focus) {
-                usernameField.focus = true;
+                HifiStylesUit.InfoItem {
+                    id: termsText
+                    text: signUpBody.termsContainerText
+                    font.family: signUpBody.fontFamily
+                    font.pixelSize: signUpBody.fontSize
+                    font.bold: signUpBody.fontBold
+                    wrapMode: Text.WordWrap
+                    color: hifi.colors.white
+                    linkColor: hifi.colors.blueAccent
+                    lineHeight: 1
+                    lineHeightMode: Text.ProportionalHeight
+
+                    onLinkActivated: loginDialog.openUrl(link);
+
+                    Component.onCompleted: {
+                        if (termsTextMetrics.width > root.bannerWidth) {
+                            termsText.width = root.bannerWidth;
+                            termsText.wrapMode = Text.WordWrap;
+                            additionalText.verticalAlignment = Text.AlignLeft;
+                            additionalText.horizontalAlignment = Text.AlignLeft;
+                            termsContainer.height = (termsTextMetrics.width / root.bannerWidth) * termsTextMetrics.height;
+                            termsContainer.anchors.left = buttons.left;
+                        } else {
+                            termsText.anchors.centerIn = termsContainer;
+                        }
+                    }
+                }
             }
         }
     }
@@ -408,22 +458,37 @@ Item {
         onHandleSignupCompleted: {
             console.log("Sign Up Completed");
 
+            if (signUpBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user signed up successfully"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
+
             loginDialog.login(usernameField.text, passwordField.text);
             bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": false, "linkSteam": false });
         }
         onHandleSignupFailed: {
             console.log("Sign Up Failed")
 
+            if (signUpBody.loginDialogPoppedUp) {
+                var data = {
+                    "action": "user signed up unsuccessfully"
+                }
+                UserActivityLogger.logAction("encourageLoginDialog", data);
+            }
+
             if (errorString !== "") {
                 loginErrorMessage.visible = true;
+                var errorLength = errorString.split(/\r\n|\r|\n/).length;
                 var errorStringEdited = errorString.replace(/[\n\r]+/g, "\n");
                 loginErrorMessage.text = errorStringEdited;
-                loginErrorMessageTextMetrics.text = errorString;
-                if (loginErrorMessageTextMetrics.width > usernameField.width) {
+                if (errorLength > 1.0) {
+                    loginErrorMessage.width = root.bannerWidth;
                     loginErrorMessage.wrapMode = Text.WordWrap;
                     loginErrorMessage.verticalAlignment = Text.AlignLeft;
                     loginErrorMessage.horizontalAlignment = Text.AlignLeft;
-                    errorContainer.height = (loginErrorMessageTextMetrics.width / usernameField.width) * loginErrorMessageTextMetrics.height;
+                    errorContainer.height = errorLength * loginErrorMessageTextMetrics.height;
                 }
                 errorContainer.anchors.bottom = usernameField.top;
                 errorContainer.anchors.bottomMargin = hifi.dimensions.contentSpacing.y;

@@ -50,6 +50,7 @@
 #include <RecordingScriptingInterface.h>
 #include <trackers/FaceTracker.h>
 #include <RenderableModelEntityItem.h>
+#include <VariantMapToScriptValue.h>
 
 #include "MyHead.h"
 #include "MySkeletonModel.h"
@@ -94,6 +95,37 @@ const float CENTIMETERS_PER_METER = 100.0f;
 
 const QString AVATAR_SETTINGS_GROUP_NAME { "Avatar" };
 
+static const QString USER_RECENTER_MODEL_FORCE_SIT = QStringLiteral("ForceSit");
+static const QString USER_RECENTER_MODEL_FORCE_STAND = QStringLiteral("ForceStand");
+static const QString USER_RECENTER_MODEL_AUTO = QStringLiteral("Auto");
+static const QString USER_RECENTER_MODEL_DISABLE_HMD_LEAN = QStringLiteral("DisableHMDLean");
+
+MyAvatar::SitStandModelType stringToUserRecenterModel(const QString& str) {
+    if (str == USER_RECENTER_MODEL_FORCE_SIT) {
+        return MyAvatar::ForceSit;
+    } else if (str == USER_RECENTER_MODEL_FORCE_STAND) {
+        return MyAvatar::ForceStand;
+    } else if (str == USER_RECENTER_MODEL_DISABLE_HMD_LEAN) {
+        return MyAvatar::DisableHMDLean;
+    } else {
+        return MyAvatar::Auto;
+    }
+}
+
+QString userRecenterModelToString(MyAvatar::SitStandModelType model) {
+    switch (model) {
+    case MyAvatar::ForceSit:
+        return USER_RECENTER_MODEL_FORCE_SIT;
+    case MyAvatar::ForceStand:
+        return USER_RECENTER_MODEL_FORCE_STAND;
+    case MyAvatar::DisableHMDLean:
+        return USER_RECENTER_MODEL_DISABLE_HMD_LEAN;
+    case MyAvatar::Auto:
+    default:
+        return USER_RECENTER_MODEL_AUTO;
+    }
+}
+
 MyAvatar::MyAvatar(QThread* thread) :
     Avatar(thread),
     _yawSpeed(YAW_SPEED_DEFAULT),
@@ -124,6 +156,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _prevShouldDrawHead(true),
     _audioListenerMode(FROM_HEAD),
     _dominantHandSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "dominantHand", DOMINANT_RIGHT_HAND),
+    _hmdAvatarAlignmentTypeSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "hmdAvatarAlignmentType", DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE),
     _headPitchSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "", 0.0f),
     _scaleSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "scale", _targetScale),
     _yawSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "yawSpeed", _yawSpeed),
@@ -137,7 +170,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
-    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0)
+    _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0),
+    _userRecenterModelSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userRecenterModel", USER_RECENTER_MODEL_AUTO)
 {
     _clientTraitsHandler.reset(new ClientTraitsHandler(this));
 
@@ -204,12 +238,12 @@ MyAvatar::MyAvatar(QThread* thread) :
             if (recordingInterface->getPlayFromCurrentLocation()) {
                 setRecordingBasis();
             }
-            _previousCollisionGroup = _characterController.computeCollisionGroup();
+            _previousCollisionMask = _characterController.computeCollisionMask();
             _characterController.setCollisionless(true);
         } else {
             clearRecordingBasis();
             useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
-            if (_previousCollisionGroup != BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            if (_previousCollisionMask != BULLET_COLLISION_MASK_COLLISIONLESS) {
                 _characterController.setCollisionless(false);
             }
         }
@@ -281,12 +315,29 @@ MyAvatar::MyAvatar(QThread* thread) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+    delete _myScriptEngine;
+    _myScriptEngine = nullptr;
+}
+
+QString MyAvatar::getDominantHand() const {
+    return _dominantHand.get();
 }
 
 void MyAvatar::setDominantHand(const QString& hand) {
     if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
-        _dominantHand = hand;
-        emit dominantHandChanged(_dominantHand);
+        _dominantHand.set(hand);
+        emit dominantHandChanged(hand);
+    }
+}
+
+QString MyAvatar::getHmdAvatarAlignmentType() const {
+    return _hmdAvatarAlignmentType.get();
+}
+
+void MyAvatar::setHmdAvatarAlignmentType(const QString& type) {
+    if (type != _hmdAvatarAlignmentType.get()) {
+        _hmdAvatarAlignmentType.set(type);
+        emit hmdAvatarAlignmentTypeChanged(type);
     }
 }
 
@@ -374,6 +425,7 @@ void MyAvatar::resetSensorsAndBody() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "resetSensorsAndBody");
         return;
+
     }
 
     qApp->getActiveDisplayPlugin()->resetSensors();
@@ -665,13 +717,7 @@ void MyAvatar::update(float deltaTime) {
         Q_ARG(glm::vec3, (getWorldPosition() - halfBoundingBoxDimensions)),
         Q_ARG(glm::vec3, (halfBoundingBoxDimensions*2.0f)));
 
-    if (getIdentityDataChanged()) {
-        sendIdentityPacket();
-    }
-
-    _clientTraitsHandler->sendChangedTraitsToMixer();
-
-    simulate(deltaTime);
+    simulate(deltaTime, true);
 
     currentEnergy += energyChargeRate;
     currentEnergy -= getAccelerationEnergy();
@@ -743,7 +789,7 @@ void MyAvatar::updateChildCauterization(SpatiallyNestablePointer object, bool ca
     }
 }
 
-void MyAvatar::simulate(float deltaTime) {
+void MyAvatar::simulate(float deltaTime, bool inView) {
     PerformanceTimer perfTimer("simulate");
     animateScaleChanges(deltaTime);
 
@@ -770,7 +816,7 @@ void MyAvatar::simulate(float deltaTime) {
         auto headBoneSet = _skeletonModel->getCauterizeBoneSet();
         forEachChild([&](SpatiallyNestablePointer object) {
             bool isChildOfHead = headBoneSet.find(object->getParentJointIndex()) != headBoneSet.end();
-            if (isChildOfHead) {
+            if (isChildOfHead && !object->hasGrabs()) {
                 // Cauterize or display children of head per head drawing state.
                 updateChildCauterization(object, !_prevShouldDrawHead);
                 object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
@@ -820,7 +866,9 @@ void MyAvatar::simulate(float deltaTime) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
-    updateGrabs();
+    if (updateGrabs()) {
+        _cauterizationNeedsUpdate = true;
+    }
 
     if (!_skeletonModel->hasSkeleton()) {
         // All the simulation that can be done has been done
@@ -876,9 +924,13 @@ void MyAvatar::simulate(float deltaTime) {
                 collisionlessAllowed = zone->getGhostingAllowed();
             }
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            bool force = false;
-            bool iShouldTellServer = true;
             forEachDescendant([&](SpatiallyNestablePointer object) {
+                // we need to update attached queryAACubes in our own local tree so point-select always works
+                // however we don't want to flood the update pipeline with AvatarEntity updates, so we assume
+                // others have all info required to properly update queryAACube of AvatarEntities on their end
+                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
+                bool iShouldTellServer = !(entity && entity->isAvatarEntity());
+                const bool force = false;
                 entityTree->updateEntityQueryAACube(object, packetSender, force, iShouldTellServer);
             });
         });
@@ -887,7 +939,7 @@ void MyAvatar::simulate(float deltaTime) {
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
-    updateAvatarEntities();
+    handleChangedAvatarEntityData();
 
     updateFadingStatus();
 }
@@ -1251,7 +1303,7 @@ void MyAvatar::saveAvatarUrl() {
     }
 }
 
-void MyAvatar::resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex) {
+void MyAvatar::resizeAvatarEntitySettingHandles(uint32_t maxIndex) {
     // The original Settings interface saved avatar-entity array data like this:
     // Avatar/avatarEntityData/size: 5
     // Avatar/avatarEntityData/1/id: ...
@@ -1261,19 +1313,21 @@ void MyAvatar::resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex) 
     // Avatar/avatarEntityData/5/properties: ...
     //
     // Create Setting::Handles to mimic this.
-
-    while (_avatarEntityIDSettings.size() <= avatarEntityIndex) {
+    uint32_t settingsIndex = (uint32_t)_avatarEntityIDSettings.size() + 1;
+    while (settingsIndex <= maxIndex) {
         Setting::Handle<QUuid> idHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                        << QString::number(avatarEntityIndex + 1) << "id", QUuid());
+                                        << QString::number(settingsIndex) << "id", QUuid());
         _avatarEntityIDSettings.push_back(idHandle);
         Setting::Handle<QByteArray> dataHandle(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData"
-                                               << QString::number(avatarEntityIndex + 1) << "properties", QByteArray());
+                                               << QString::number(settingsIndex) << "properties", QByteArray());
         _avatarEntityDataSettings.push_back(dataHandle);
+        settingsIndex++;
     }
 }
 
 void MyAvatar::saveData() {
-    _dominantHandSetting.set(_dominantHand);
+    _dominantHandSetting.set(getDominantHand());
+    _hmdAvatarAlignmentTypeSetting.set(getHmdAvatarAlignmentType());
     _headPitchSetting.set(getHead()->getBasePitch());
     _scaleSetting.set(_targetScale);
     _yawSpeedSetting.set(_yawSpeed);
@@ -1296,28 +1350,57 @@ void MyAvatar::saveData() {
     _useSnapTurnSetting.set(_useSnapTurn);
     _userHeightSetting.set(getUserHeight());
     _flyingHMDSetting.set(getFlyingHMDPref());
+    _userRecenterModelSetting.set(userRecenterModelToString(getUserRecenterModel()));
 
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
-    _avatarEntitiesLock.withReadLock([&] {
-        QList<QUuid> avatarEntityIDs = _avatarEntityData.keys();
-        unsigned int avatarEntityCount = avatarEntityIDs.size();
-        unsigned int previousAvatarEntityCount = _avatarEntityCountSetting.get(0);
-        resizeAvatarEntitySettingHandles(std::max<unsigned int>(avatarEntityCount, previousAvatarEntityCount));
-        _avatarEntityCountSetting.set(avatarEntityCount);
+    saveAvatarEntityDataToSettings();
+}
 
-        unsigned int avatarEntityIndex = 0;
-        for (auto entityID : avatarEntityIDs) {
-            _avatarEntityIDSettings[avatarEntityIndex].set(entityID);
-            _avatarEntityDataSettings[avatarEntityIndex].set(_avatarEntityData.value(entityID));
-            avatarEntityIndex++;
-        }
+void MyAvatar::saveAvatarEntityDataToSettings() {
+    if (!_needToSaveAvatarEntitySettings) {
+        return;
+    }
+    bool success = updateStaleAvatarEntityBlobs();
+    if (!success) {
+        return;
+    }
+    _needToSaveAvatarEntitySettings = false;
 
-        // clean up any left-over (due to the list shrinking) slots
-        for (; avatarEntityIndex < previousAvatarEntityCount; avatarEntityIndex++) {
-            _avatarEntityIDSettings[avatarEntityIndex].remove();
-            _avatarEntityDataSettings[avatarEntityIndex].remove();
+    uint32_t numEntities = (uint32_t)_cachedAvatarEntityBlobs.size();
+    uint32_t prevNumEntities = _avatarEntityCountSetting.get(0);
+    resizeAvatarEntitySettingHandles(std::max<uint32_t>(numEntities, prevNumEntities));
+
+    // save new Settings
+    if (numEntities > 0) {
+        // save all unfortunately-formatted-binary-blobs to Settings
+        _avatarEntitiesLock.withWriteLock([&] {
+            uint32_t i = 0;
+            AvatarEntityMap::const_iterator itr = _cachedAvatarEntityBlobs.begin();
+            while (itr != _cachedAvatarEntityBlobs.end()) {
+                _avatarEntityIDSettings[i].set(itr.key());
+                _avatarEntityDataSettings[i].set(itr.value());
+                ++itr;
+                ++i;
+            }
+            numEntities = i;
+        });
+    }
+    _avatarEntityCountSetting.set(numEntities);
+
+    // remove old Settings if any
+    if (numEntities < prevNumEntities) {
+        uint32_t numEntitiesToRemove = prevNumEntities - numEntities;
+        for (uint32_t i = 0; i < numEntitiesToRemove; ++i) {
+            if (_avatarEntityIDSettings.size() > numEntities) {
+                _avatarEntityIDSettings.back().remove();
+                _avatarEntityIDSettings.pop_back();
+            }
+            if (_avatarEntityDataSettings.size() > numEntities) {
+                _avatarEntityDataSettings.back().remove();
+                _avatarEntityDataSettings.pop_back();
+            }
         }
-    });
+    }
 }
 
 float loadSetting(Settings& settings, const QString& name, float defaultValue) {
@@ -1414,7 +1497,420 @@ void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
     _skeletonModel->getRig().setEnableInverseKinematics(isEnabled);
 }
 
+void MyAvatar::storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) {
+    AvatarData::storeAvatarEntityDataPayload(entityID, payload);
+    _avatarEntitiesLock.withWriteLock([&] {
+        _cachedAvatarEntityBlobsToAddOrUpdate.push_back(entityID);
+    });
+}
+
+void MyAvatar::clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree) {
+    AvatarData::clearAvatarEntity(entityID, requiresRemovalFromTree);
+    _avatarEntitiesLock.withWriteLock([&] {
+        _cachedAvatarEntityBlobsToDelete.push_back(entityID);
+    });
+}
+
+void MyAvatar::sanitizeAvatarEntityProperties(EntityItemProperties& properties) const {
+    properties.setEntityHostType(entity::HostType::AVATAR);
+    properties.setOwningAvatarID(getID());
+
+    // there's no entity-server to tell us we're the simulation owner, so always set the
+    // simulationOwner to the owningAvatarID and a high priority.
+    properties.setSimulationOwner(getID(), AVATAR_ENTITY_SIMULATION_PRIORITY);
+
+    if (properties.getParentID() == AVATAR_SELF_ID) {
+        properties.setParentID(getID());
+    }
+
+    // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
+    // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
+    // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
+    // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
+    // and seems safe (per Seth).
+    properties.markAllChanged();
+}
+
+void MyAvatar::handleChangedAvatarEntityData() {
+    // NOTE: this is a per-frame update
+    if (getID().isNull() ||
+        getID() == AVATAR_SELF_ID ||
+        DependencyManager::get<NodeList>()->getSessionUUID() == QUuid()) {
+        // wait until MyAvatar and this Node gets an ID before doing this.  Otherwise, various things go wrong:
+        // things get their parent fixed up from AVATAR_SELF_ID to a null uuid which means "no parent".
+        return;
+    }
+    if (_reloadAvatarEntityDataFromSettings) {
+        loadAvatarEntityDataFromSettings();
+    }
+
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return;
+    }
+
+    // We collect changes to AvatarEntities and then handle them all in one spot per frame: handleChangedAvatarEntityData().
+    // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
+    // "directions" and the "authoritative source" of each direction is different, so we maintain two distinct sets
+    // of transaction lists:
+    //
+    // The _entitiesToDelete/Add/Update lists are for changes whose "authoritative sources" are already
+    // correctly stored in _cachedAvatarEntityBlobs.  These come from loadAvatarEntityDataFromSettings() and
+    // setAvatarEntityData().  These changes need to be extracted from _cachedAvatarEntityBlobs and applied to
+    // real EntityItems.
+    //
+    // The _cachedAvatarEntityBlobsToDelete/Add/Update lists are for changes whose "authoritative sources" are
+    // already reflected in real EntityItems. These changes need to be propagated to _cachedAvatarEntityBlobs
+    // and eventually to Settings.
+    //
+    // The DELETEs also need to be propagated to the traits, which will eventually propagate to
+    // AvatarData::_packedAvatarEntityData via deeper logic.
+
+    // move the lists to minimize lock time
+    std::vector<QUuid> cachedBlobsToDelete;
+    std::vector<QUuid> cachedBlobsToUpdate;
+    std::vector<QUuid> entitiesToDelete;
+    std::vector<QUuid> entitiesToAdd;
+    std::vector<QUuid> entitiesToUpdate;
+    _avatarEntitiesLock.withWriteLock([&] {
+        cachedBlobsToDelete = std::move(_cachedAvatarEntityBlobsToDelete);
+        cachedBlobsToUpdate = std::move(_cachedAvatarEntityBlobsToAddOrUpdate);
+        entitiesToDelete = std::move(_entitiesToDelete);
+        entitiesToAdd = std::move(_entitiesToAdd);
+        entitiesToUpdate = std::move(_entitiesToUpdate);
+    });
+
+    auto removeAllInstancesHelper = [] (const QUuid& id, std::vector<QUuid>& v) {
+        uint32_t i = 0;
+        while (i < v.size()) {
+            if (id == v[i]) {
+                v[i] = v.back();
+                v.pop_back();
+            } else {
+                ++i;
+            }
+        }
+    };
+
+    // remove delete-add and delete-update overlap
+    for (const auto& id : entitiesToDelete) {
+        removeAllInstancesHelper(id, cachedBlobsToUpdate);
+        removeAllInstancesHelper(id, entitiesToAdd);
+        removeAllInstancesHelper(id, entitiesToUpdate);
+    }
+    for (const auto& id : cachedBlobsToDelete) {
+        removeAllInstancesHelper(id, entitiesToUpdate);
+        removeAllInstancesHelper(id, cachedBlobsToUpdate);
+    }
+    for (const auto& id : entitiesToAdd) {
+        removeAllInstancesHelper(id, entitiesToUpdate);
+    }
+
+    // DELETE real entities
+    for (const auto& id : entitiesToDelete) {
+        entityTree->withWriteLock([&] {
+            entityTree->deleteEntity(id);
+        });
+    }
+
+    // ADD real entities
+    EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
+    for (const auto& id : entitiesToAdd) {
+        bool blobFailed = false;
+        EntityItemProperties properties;
+        _avatarEntitiesLock.withReadLock([&] {
+            AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(id);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                blobFailed = true; // blob doesn't exist
+                return;
+            }
+            if (!EntityItemProperties::blobToProperties(*_myScriptEngine, itr.value(), properties)) {
+                blobFailed = true; // blob is corrupt
+            }
+        });
+        if (blobFailed) {
+            // remove from _cachedAvatarEntityBlobUpdatesToSkip just in case:
+            // avoids a resource leak when blob updates to be skipped are never actually skipped
+            // when the blob fails to result in a real EntityItem
+            _avatarEntitiesLock.withWriteLock([&] {
+                removeAllInstancesHelper(id, _cachedAvatarEntityBlobUpdatesToSkip);
+            });
+            continue;
+        }
+        sanitizeAvatarEntityProperties(properties);
+        entityTree->withWriteLock([&] {
+            EntityItemPointer entity = entityTree->addEntity(id, properties);
+            if (entity) {
+                packetSender->queueEditEntityMessage(PacketType::EntityAdd, entityTree, id, properties);
+            }
+        });
+    }
+
+    // CHANGE real entities
+    for (const auto& id : entitiesToUpdate) {
+        EntityItemProperties properties;
+        bool skip = false;
+        _avatarEntitiesLock.withReadLock([&] {
+            AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(id);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                skip = true;
+                return;
+            }
+            if (!EntityItemProperties::blobToProperties(*_myScriptEngine, itr.value(), properties)) {
+                skip = true;
+            }
+        });
+        if (!skip) {
+            sanitizeAvatarEntityProperties(properties);
+            entityTree->withWriteLock([&] {
+                entityTree->updateEntity(id, properties);
+            });
+        }
+    }
+
+    // DELETE cached blobs
+    _avatarEntitiesLock.withWriteLock([&] {
+        for (const auto& id : cachedBlobsToDelete) {
+            AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.find(id);
+            // remove blob and remember to remove from settings
+            if (itr != _cachedAvatarEntityBlobs.end()) {
+                _cachedAvatarEntityBlobs.erase(itr);
+                _needToSaveAvatarEntitySettings = true;
+            }
+            // also remove from list of stale blobs to avoid failed entity lookup later
+            std::set<QUuid>::iterator blobItr = _staleCachedAvatarEntityBlobs.find(id);
+            if (blobItr != _staleCachedAvatarEntityBlobs.end()) {
+                _staleCachedAvatarEntityBlobs.erase(blobItr);
+            }
+            // also remove from _cachedAvatarEntityBlobUpdatesToSkip just in case:
+            // avoids a resource leak when things are deleted before they could be skipped
+            removeAllInstancesHelper(id, _cachedAvatarEntityBlobUpdatesToSkip);
+        }
+    });
+
+    // ADD/UPDATE cached blobs
+    for (const auto& id : cachedBlobsToUpdate) {
+        // computing the blobs is expensive and we want to avoid it when possible
+        // so we add these ids to _staleCachedAvatarEntityBlobs for later
+        // and only build the blobs when absolutely necessary
+        bool skip = false;
+        uint32_t i = 0;
+        _avatarEntitiesLock.withWriteLock([&] {
+            while (i < _cachedAvatarEntityBlobUpdatesToSkip.size()) {
+                if (id == _cachedAvatarEntityBlobUpdatesToSkip[i]) {
+                    _cachedAvatarEntityBlobUpdatesToSkip[i] = _cachedAvatarEntityBlobUpdatesToSkip.back();
+                    _cachedAvatarEntityBlobUpdatesToSkip.pop_back();
+                    skip = true;
+                    break; // assume no duplicates
+                } else {
+                    ++i;
+                }
+            }
+        });
+        if (!skip) {
+            _staleCachedAvatarEntityBlobs.insert(id);
+            _needToSaveAvatarEntitySettings = true;
+        }
+    }
+
+    // DELETE traits
+    // (no need to worry about the ADDs and UPDATEs: each will be handled when the interface
+    // tries to send a real update packet (via AvatarData::storeAvatarEntityDataPayload()))
+    if (_clientTraitsHandler) {
+        // we have a client traits handler
+        // flag removed entities as deleted so that changes are sent next frame
+        _avatarEntitiesLock.withWriteLock([&] {
+            for (const auto& id : entitiesToDelete) {
+                if (_packedAvatarEntityData.find(id) != _packedAvatarEntityData.end()) {
+                    _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, id);
+                }
+            }
+            for (const auto& id : cachedBlobsToDelete) {
+                if (_packedAvatarEntityData.find(id) != _packedAvatarEntityData.end()) {
+                    _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::AvatarEntity, id);
+                }
+            }
+        });
+    }
+}
+
+bool MyAvatar::updateStaleAvatarEntityBlobs() const {
+    // call this right before you actually need to use the blobs
+    //
+    // Note: this method is const (and modifies mutable data members)
+    // so we can call it at the Last Minute inside other const methods
+    //
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (!entityTree) {
+        return false;
+    }
+
+    std::set<QUuid> staleBlobs = std::move(_staleCachedAvatarEntityBlobs);
+    int32_t numFound = 0;
+    for (const auto& id : staleBlobs) {
+        bool found = false;
+        EntityItemProperties properties;
+        entityTree->withReadLock([&] {
+            EntityItemPointer entity = entityTree->findEntityByID(id);
+            if (entity) {
+                properties = entity->getProperties();
+                found = true;
+            }
+        });
+        if (found) {
+            ++numFound;
+            QByteArray blob;
+            EntityItemProperties::propertiesToBlob(*_myScriptEngine, getID(), properties, blob);
+            _avatarEntitiesLock.withWriteLock([&] {
+                _cachedAvatarEntityBlobs[id] = blob;
+            });
+        }
+    }
+    return true;
+}
+
+void MyAvatar::prepareAvatarEntityDataForReload() {
+    saveAvatarEntityDataToSettings();
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        _packedAvatarEntityData.clear();
+        _entitiesToDelete.clear();
+        _entitiesToAdd.clear();
+        _entitiesToUpdate.clear();
+        _cachedAvatarEntityBlobs.clear();
+        _cachedAvatarEntityBlobsToDelete.clear();
+        _cachedAvatarEntityBlobsToAddOrUpdate.clear();
+        _cachedAvatarEntityBlobUpdatesToSkip.clear();
+    });
+
+    _reloadAvatarEntityDataFromSettings = true;
+}
+
+AvatarEntityMap MyAvatar::getAvatarEntityData() const {
+    // NOTE: the return value is expected to be a map of unfortunately-formatted-binary-blobs
+    updateStaleAvatarEntityBlobs();
+    AvatarEntityMap result;
+    _avatarEntitiesLock.withReadLock([&] {
+        result = _cachedAvatarEntityBlobs;
+    });
+    return result;
+}
+
+void MyAvatar::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
+    // Note: this is an invokable Script call
+    // avatarEntityData is expected to be a map of QByteArrays that represent EntityItemProperties objects from JavaScript,
+    // aka: unfortunately-formatted-binary-blobs because we store them in non-human-readable format in Settings.
+    //
+    if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
+        // the data is suspect
+        qCDebug(interfaceapp) << "discard suspect AvatarEntityData with size =" << avatarEntityData.size();
+        return;
+    }
+
+    // this overwrites ALL AvatarEntityData so we clear pending operations
+    _avatarEntitiesLock.withWriteLock([&] {
+        _packedAvatarEntityData.clear();
+        _entitiesToDelete.clear();
+        _entitiesToAdd.clear();
+        _entitiesToUpdate.clear();
+    });
+    _needToSaveAvatarEntitySettings = true;
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        // find new and updated IDs
+        AvatarEntityMap::const_iterator constItr = avatarEntityData.begin();
+        while (constItr != avatarEntityData.end()) {
+            QUuid id = constItr.key();
+            if (_cachedAvatarEntityBlobs.find(id) == _cachedAvatarEntityBlobs.end()) {
+                _entitiesToAdd.push_back(id);
+            } else {
+                _entitiesToUpdate.push_back(id);
+            }
+            ++constItr;
+        }
+        // find and erase deleted IDs from _cachedAvatarEntityBlobs
+        std::vector<QUuid> deletedIDs;
+        AvatarEntityMap::iterator itr = _cachedAvatarEntityBlobs.begin();
+        while (itr != _cachedAvatarEntityBlobs.end()) {
+            QUuid id = itr.key();
+            if (std::find(_entitiesToUpdate.begin(), _entitiesToUpdate.end(), id) == _entitiesToUpdate.end()) {
+                deletedIDs.push_back(id);
+                itr = _cachedAvatarEntityBlobs.erase(itr);
+            } else {
+                ++itr;
+            }
+        }
+        // copy new data
+        constItr = avatarEntityData.begin();
+        while (constItr != avatarEntityData.end()) {
+            _cachedAvatarEntityBlobs.insert(constItr.key(), constItr.value());
+            ++constItr;
+        }
+        // erase deleted IDs from _packedAvatarEntityData
+        for (const auto& id : deletedIDs) {
+            itr = _packedAvatarEntityData.find(id);
+            if (itr != _packedAvatarEntityData.end()) {
+                _packedAvatarEntityData.erase(itr);
+            } else {
+                ++itr;
+            }
+            _entitiesToDelete.push_back(id);
+        }
+    });
+}
+
+void MyAvatar::updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) {
+    // NOTE: this is an invokable Script call
+    bool changed = false;
+    _avatarEntitiesLock.withWriteLock([&] {
+        auto data = QJsonDocument::fromBinaryData(entityData);
+        if (data.isEmpty() || data.isNull() || !data.isObject() || data.object().isEmpty()) {
+            qDebug() << "ERROR!  Trying to update with invalid avatar entity data.  Skipping." << data;
+        } else {
+            auto itr = _cachedAvatarEntityBlobs.find(entityID);
+            if (itr == _cachedAvatarEntityBlobs.end()) {
+                _entitiesToAdd.push_back(entityID);
+                _cachedAvatarEntityBlobs.insert(entityID, entityData);
+                changed = true;
+            } else {
+                _entitiesToUpdate.push_back(entityID);
+                itr.value() = entityData;
+                changed = true;
+            }
+        }
+    });
+    if (changed) {
+        _needToSaveAvatarEntitySettings = true;
+    }
+}
+
+void MyAvatar::avatarEntityDataToJson(QJsonObject& root) const {
+    updateStaleAvatarEntityBlobs();
+    _avatarEntitiesLock.withReadLock([&] {
+        if (!_cachedAvatarEntityBlobs.empty()) {
+            QJsonArray avatarEntityJson;
+            int entityCount = 0;
+            AvatarEntityMap::const_iterator itr = _cachedAvatarEntityBlobs.begin();
+            while (itr != _cachedAvatarEntityBlobs.end()) {
+                QVariantMap entityData;
+                QUuid id = _avatarEntityForRecording.size() == _cachedAvatarEntityBlobs.size() ? _avatarEntityForRecording.values()[entityCount++] : itr.key();
+                entityData.insert("id", id);
+                entityData.insert("properties", itr.value().toBase64());
+                avatarEntityJson.push_back(QVariant(entityData).toJsonObject());
+                ++itr;
+            }
+            const QString JSON_AVATAR_ENTITIES = QStringLiteral("attachedEntities");
+            root[JSON_AVATAR_ENTITIES] = avatarEntityJson;
+        }
+    });
+}
+
 void MyAvatar::loadData() {
+    if (!_myScriptEngine) {
+        _myScriptEngine = new QScriptEngine();
+    }
     getHead()->setBasePitch(_headPitchSetting.get());
 
     _yawSpeed = _yawSpeedSetting.get(_yawSpeed);
@@ -1426,14 +1922,7 @@ void MyAvatar::loadData() {
 
     useFullAvatarURL(_fullAvatarURLFromPreferences, _fullAvatarModelName);
 
-    int avatarEntityCount = _avatarEntityCountSetting.get(0);
-    for (int i = 0; i < avatarEntityCount; i++) {
-        resizeAvatarEntitySettingHandles(i);
-        // QUuid entityID = QUuid::createUuid(); // generate a new ID
-        QUuid entityID = _avatarEntityIDSettings[i].get(QUuid());
-        QByteArray properties = _avatarEntityDataSettings[i].get();
-        updateAvatarEntity(entityID, properties);
-    }
+    loadAvatarEntityDataFromSettings();
 
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
@@ -1444,8 +1933,11 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(_collisionSoundURLSetting.get(QUrl(DEFAULT_AVATAR_COLLISION_SOUND_URL)).toString());
     setSnapTurn(_useSnapTurnSetting.get());
     setDominantHand(_dominantHandSetting.get(DOMINANT_RIGHT_HAND).toLower());
+    setHmdAvatarAlignmentType(_hmdAvatarAlignmentTypeSetting.get(DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE).toLower());
     setUserHeight(_userHeightSetting.get(DEFAULT_AVATAR_HEIGHT));
     setTargetScale(_scaleSetting.get());
+
+    setUserRecenterModel(stringToUserRecenterModel(_userRecenterModelSetting.get(USER_RECENTER_MODEL_AUTO)));
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
     _follow.setToggleHipsFollowing (Menu::getInstance()->isOptionChecked(MenuOption::ToggleHipsFollowing));
@@ -1453,6 +1945,38 @@ void MyAvatar::loadData() {
     setEnableDebugDrawDefaultPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawDefaultPose));
     setEnableDebugDrawAnimPose(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawAnimPose));
     setEnableDebugDrawPosition(Menu::getInstance()->isOptionChecked(MenuOption::AnimDebugDrawPosition));
+}
+
+void MyAvatar::loadAvatarEntityDataFromSettings() {
+    // this overwrites ALL AvatarEntityData so we clear pending operations
+    _avatarEntitiesLock.withWriteLock([&] {
+        _packedAvatarEntityData.clear();
+        _entitiesToDelete.clear();
+        _entitiesToAdd.clear();
+        _entitiesToUpdate.clear();
+    });
+    _reloadAvatarEntityDataFromSettings = false;
+    _needToSaveAvatarEntitySettings = false;
+
+    int numEntities = _avatarEntityCountSetting.get(0);
+    if (numEntities == 0) {
+        return;
+    }
+    resizeAvatarEntitySettingHandles(numEntities);
+
+    _avatarEntitiesLock.withWriteLock([&] {
+        _entitiesToAdd.reserve(numEntities);
+        // TODO: build map between old and new IDs so we can restitch parent-child relationships
+        for (int i = 0; i < numEntities; i++) {
+            QUuid id = QUuid::createUuid(); // generate a new ID
+            _cachedAvatarEntityBlobs[id] = _avatarEntityDataSettings[i].get();
+            _entitiesToAdd.push_back(id);
+            // this blob is the "authoritative source" for this AvatarEntity and we want to avoid overwriting it
+            // (the outgoing update packet will flag it for save-back into the blob)
+            // which is why we remember its id: to skip its save-back later
+            _cachedAvatarEntityBlobUpdatesToSkip.push_back(id);
+        }
+    });
 }
 
 void MyAvatar::saveAttachmentData(const AttachmentData& attachment) const {
@@ -1902,53 +2426,47 @@ bool isWearableEntity(const EntityItemPointer& entity) {
             || entity->getParentID() == AVATAR_SELF_ID);
 }
 
-void MyAvatar::clearAvatarEntities() {
+void MyAvatar::removeWornAvatarEntity(const EntityItemID& entityID) {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
 
-    AvatarEntityMap avatarEntities = getAvatarEntityData();
-    for (auto entityID : avatarEntities.keys()) {
-        entityTree->withWriteLock([&entityID, &entityTree] {
-            // remove this entity first from the entity tree
-            entityTree->deleteEntity(entityID, true, true);
-        });
-
-        // remove the avatar entity from our internal list
-        // (but indicate it doesn't need to be pulled from the tree)
-        clearAvatarEntity(entityID, false);
-    }
-}
-
-void MyAvatar::removeWearableAvatarEntities() {
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    
     if (entityTree) {
-        AvatarEntityMap avatarEntities = getAvatarEntityData();
-        for (auto entityID : avatarEntities.keys()) {
-            auto entity = entityTree->findEntityByID(entityID);
-            if (entity && isWearableEntity(entity)) {
-                entityTree->withWriteLock([&entityID, &entityTree] {
-                    // remove this entity first from the entity tree
-                    entityTree->deleteEntity(entityID, true, true);
-                });
+        auto entity = entityTree->findEntityByID(entityID);
+        if (entity && isWearableEntity(entity)) {
+            entityTree->withWriteLock([&entityID, &entityTree] {
+                // remove this entity first from the entity tree
+                entityTree->deleteEntity(entityID, true, true);
+            });
 
-                // remove the avatar entity from our internal list
-                // (but indicate it doesn't need to be pulled from the tree)
-                clearAvatarEntity(entityID, false);
-            }
+            // remove the avatar entity from our internal list
+            // (but indicate it doesn't need to be pulled from the tree)
+            clearAvatarEntity(entityID, false);
         }
     }
 }
 
+void MyAvatar::clearWornAvatarEntities() {
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (auto entityID : avatarEntityIDs) {
+        removeWornAvatarEntity(entityID);
+    }
+}
+
+
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
+    // NOTE: this method is NOT efficient
     QVariantList avatarEntitiesData;
-    QScriptEngine scriptEngine;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
-        AvatarEntityMap avatarEntities = getAvatarEntityData();
-        for (auto entityID : avatarEntities.keys()) {
+        QList<QUuid> avatarEntityIDs;
+        _avatarEntitiesLock.withReadLock([&] {
+                avatarEntityIDs = _packedAvatarEntityData.keys();
+        });
+        for (const auto& entityID : avatarEntityIDs) {
             auto entity = entityTree->findEntityByID(entityID);
             if (!entity) {
                 continue;
@@ -1959,7 +2477,8 @@ QVariantList MyAvatar::getAvatarEntitiesVariant() {
             desiredProperties += PROP_LOCAL_POSITION;
             desiredProperties += PROP_LOCAL_ROTATION;
             EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(_myScriptEngine, entityProperties);
+            avatarEntityData["id"] = entityID;
             avatarEntityData["properties"] = scriptProperties.toVariant();
             avatarEntitiesData.append(QVariant(avatarEntityData));
         }
@@ -2069,7 +2588,7 @@ void MyAvatar::updateMotors() {
     float verticalMotorTimescale;
 
     if (_characterController.getState() == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         horizontalMotorTimescale = FLYING_MOTOR_TIMESCALE;
         verticalMotorTimescale = FLYING_MOTOR_TIMESCALE;
     } else {
@@ -2079,7 +2598,7 @@ void MyAvatar::updateMotors() {
 
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
-                _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+                _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
             motorRotation = getMyHead()->getHeadOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
@@ -2134,7 +2653,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
         qDebug() << "Warning: getParentVelocity failed" << getID();
         parentVelocity = glm::vec3();
     }
-    _characterController.handleChangedCollisionGroup();
+    _characterController.handleChangedCollisionMask();
     _characterController.setParentVelocity(parentVelocity);
     _characterController.setScaleFactor(getSensorToWorldScale());
 
@@ -2338,8 +2857,8 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         newEntitiesProperties.push_back(properties);
     }
 
-    // clear any existing avatar entities
-    clearAvatarEntities();
+    // clear any existing wearables
+    clearWornAvatarEntities();
 
     for (auto& properties : newEntitiesProperties) {
         DependencyManager::get<EntityScriptingInterface>()->addEntity(properties, true);
@@ -2348,17 +2867,17 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 }
 
 QVector<AttachmentData> MyAvatar::getAttachmentData() const {    
-    QVector<AttachmentData> avatarData;
-    auto avatarEntities = getAvatarEntityData();
-    AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
-    while (dataItr != avatarEntities.end()) {
-        QUuid entityID = dataItr.key();
+    QVector<AttachmentData> attachmentData;
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+        avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (const auto& entityID : avatarEntityIDs) {
         auto properties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
         AttachmentData data = entityPropertiesToAttachmentData(properties);
-        avatarData.append(data);
-        dataItr++;
+        attachmentData.append(data);
     }
-    return avatarData;
+    return attachmentData;
 }
 
 QVariantList MyAvatar::getAttachmentsVariant() const {
@@ -2387,16 +2906,16 @@ void MyAvatar::setAttachmentsVariant(const QVariantList& variant) {
 }
 
 bool MyAvatar::findAvatarEntity(const QString& modelURL, const QString& jointName, QUuid& entityID) {
-    auto avatarEntities = getAvatarEntityData();
-    AvatarEntityMap::const_iterator dataItr = avatarEntities.begin();
-    while (dataItr != avatarEntities.end()) {
-        entityID = dataItr.key();
+    QList<QUuid> avatarEntityIDs;
+    _avatarEntitiesLock.withReadLock([&] {
+            avatarEntityIDs = _packedAvatarEntityData.keys();
+    });
+    for (const auto& entityID : avatarEntityIDs) {
         auto props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID);
         if (props.getModelURL() == modelURL &&
             (jointName.isEmpty() || props.getParentJointIndex() == getJointIndex(jointName))) {
             return true;
         }
-        dataItr++;
     }
     return false;
 }
@@ -2638,6 +3157,39 @@ void MyAvatar::preDisplaySide(const RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
+int MyAvatar::sendAvatarDataPacket(bool sendAll) {
+    using namespace std::chrono;
+    auto now = Clock::now();
+
+    int MAX_DATA_RATE_MBPS = 3;
+    int maxDataRateBytesPerSeconds = MAX_DATA_RATE_MBPS * BYTES_PER_KILOBYTE * KILO_PER_MEGA / BITS_IN_BYTE;
+    int maxDataRateBytesPerMilliseconds = maxDataRateBytesPerSeconds / MSECS_PER_SECOND;
+
+    auto bytesSent = 0;
+
+    if (now > _nextTraitsSendWindow) {
+        if (getIdentityDataChanged()) {
+            bytesSent += sendIdentityPacket();
+        }
+
+        bytesSent += _clientTraitsHandler->sendChangedTraitsToMixer();
+
+        // Compute the next send window based on how much data we sent and what
+        // data rate we're trying to max at.
+        milliseconds timeUntilNextSend { bytesSent / maxDataRateBytesPerMilliseconds };
+        _nextTraitsSendWindow += timeUntilNextSend;
+
+        // Don't let the next send window lag behind if we're not sending a lot of data.
+        if (_nextTraitsSendWindow < now) {
+            _nextTraitsSendWindow = now;
+        }
+    }
+
+    bytesSent += Avatar::sendAvatarDataPacket(sendAll);
+
+    return bytesSent;
+}
+
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.47f;
 
 bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
@@ -2710,9 +3262,10 @@ void MyAvatar::updateOrientation(float deltaTime) {
             _bodyYawDelta = 0.0f;
         }
     }
-
     float totalBodyYaw = _bodyYawDelta * deltaTime;
 
+    // Rotate directly proportional to delta yaw and delta pitch from right-click mouse movement.
+    totalBodyYaw += getDriveKey(DELTA_YAW) * _yawSpeed / YAW_SPEED_DEFAULT;
 
     // Comfort Mode: If you press any of the left/right rotation drive keys or input, you'll
     // get an instantaneous 15 degree turn. If you keep holding the key down you'll get another
@@ -2780,7 +3333,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         head->setBaseRoll(ROLL(euler));
     } else {
         head->setBaseYaw(0.0f);
-        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
+        head->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime 
+            + getDriveKey(DELTA_PITCH) * _pitchSpeed / PITCH_SPEED_DEFAULT);
         head->setBaseRoll(0.0f);
     }
 }
@@ -2825,7 +3379,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
 
     glm::vec3 direction = forward + right;
     if (state == CharacterController::State::Hover ||
-            _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
+            _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
         direction += up;
     }
@@ -3381,7 +3935,7 @@ void MyAvatar::setCollisionsEnabled(bool enabled) {
 bool MyAvatar::getCollisionsEnabled() {
     // may return 'false' even though the collisionless option was requested
     // because the zone may disallow collisionless avatars
-    return _characterController.computeCollisionGroup() != BULLET_COLLISION_GROUP_COLLISIONLESS;
+    return _characterController.computeCollisionMask() != BULLET_COLLISION_MASK_COLLISIONLESS;
 }
 
 void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
@@ -3390,12 +3944,21 @@ void MyAvatar::setOtherAvatarsCollisionsEnabled(bool enabled) {
         QMetaObject::invokeMethod(this, "setOtherAvatarsCollisionsEnabled", Q_ARG(bool, enabled));
         return;
     }
+    bool change = _collideWithOtherAvatars != enabled;
     _collideWithOtherAvatars = enabled;
+    if (change) {
+        setCollisionWithOtherAvatarsFlags();
+    }
     emit otherAvatarsCollisionsEnabledChanged(enabled);
 }
 
 bool MyAvatar::getOtherAvatarsCollisionsEnabled() {
     return _collideWithOtherAvatars;
+}
+
+void MyAvatar::setCollisionWithOtherAvatarsFlags() {
+    _characterController.setCollideWithOtherAvatars(_collideWithOtherAvatars);
+    _characterController.setPendingFlagsUpdateCollisionMask();
 }
 
 void MyAvatar::updateCollisionCapsuleCache() {
@@ -4252,7 +4815,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    const float CYLINDER_TOP = 0.1f;
+    const float CYLINDER_TOP = 2.0f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
 

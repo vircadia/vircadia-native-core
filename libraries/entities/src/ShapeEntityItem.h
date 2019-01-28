@@ -101,8 +101,6 @@ public:
     virtual void computeShapeInfo(ShapeInfo& info) override;
     virtual ShapeType getShapeType() const override;
 
-    std::shared_ptr<graphics::Material> getMaterial() { return _material; }
-
     PulsePropertyGroup getPulseProperties() const;
 
 protected:
@@ -115,8 +113,6 @@ protected:
     //! prior functionality where new or unsupported shapes are treated as
     //! ellipsoids.
     ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_ELLIPSOID };
-
-    std::shared_ptr<graphics::Material> _material;
 };
 
 #endif // hifi_ShapeEntityItem_h

@@ -14,7 +14,6 @@ import QtQuick.Layouts 1.3
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControls
 import  "configSlider"
-import "../lib/jet/qml" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -249,12 +248,6 @@ Rectangle {
                     checked: render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"] = checked }
                 }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Transparents in HUD"
-                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
-                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
-                }
 
             }
             Column {
@@ -276,6 +269,12 @@ Rectangle {
                     text: "Zones"
                     checked: render.mainViewTask.getConfig("DrawZones")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("ZoneRenderer")["enabled"] = checked; render.mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
+                }
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Transparents in HUD"
+                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
+                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
                 }
             }
         }
@@ -300,6 +299,14 @@ Rectangle {
             // activeFocusOnPress: false
                 onClicked: {
                 sendToScript({method: "openCullInspectorView"}); 
+                }
+            }
+        }
+        Row {
+            HifiControls.Button {
+                text: "Material"
+                onClicked: {
+                sendToScript({method: "openMaterialInspectorView"}); 
                 }
             }
         }

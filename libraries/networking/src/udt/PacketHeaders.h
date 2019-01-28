@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         SetAvatarTraits,
-        AvatarIdentityRequest,
+        UNUSED_PACKET_TYPE,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -133,7 +133,7 @@ public:
         EntityQueryInitialResultsComplete,
         BulkAvatarTraits,
         AudioSoloRequest,
-
+        BulkAvatarTraitsAck,
         NUM_PACKET_TYPE
     };
 
@@ -318,7 +318,10 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     FarGrabJointsRedux,
     JointTransScaled,
     GrabTraits,
-    CollisionFlag
+    CollisionFlag,
+    AvatarTraitsAck,
+    FasterAvatarEntities,
+    SendMaxTranslationDimension
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

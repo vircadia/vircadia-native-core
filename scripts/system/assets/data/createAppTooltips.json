@@ -11,8 +11,14 @@
     "textColor": {
         "tooltip": "The color of the text."
     },
+    "textAlpha": {
+        "tooltip": "The alpha of the text."
+    },
     "backgroundColor": {
         "tooltip": "The color of the background."
+    },
+    "backgroundAlpha": {
+        "tooltip": "The alpha of the background."
     },
     "lineHeight": {
         "tooltip": "The height of each line of text. This determines the size of the text."
@@ -20,6 +26,26 @@
     "textBillboardMode": {
         "tooltip": "If enabled, determines how the entity will face the camera.",
         "jsPropertyName": "billboardMode"
+    },
+    "topMargin": {
+        "tooltip": "The top margin, in meters."
+    },
+    "rightMargin": {
+        "tooltip": "The right margin, in meters."
+    },
+    "bottomMargin": {
+        "tooltip": "The bottom margin, in meters."
+    },
+    "leftMargin": {
+        "tooltip": "The left margin, in meters."
+    },
+    "zoneShapeType": {
+        "tooltip": "The shape of the volume in which the zone's lighting effects and avatar permissions have effect.",
+        "jsPropertyName": "shapeType"
+    },
+    "zoneCompoundShapeURL": {
+        "tooltip": "The model file to use for the compound shape if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
     },
     "flyingAllowed": {
         "tooltip": "If enabled, users can fly in the zone."
@@ -115,7 +141,7 @@
         "tooltip": "The shape of the collision hull used if collisions are enabled. This affects how an entity collides."
     },
     "compoundShapeURL": {
-        "tooltip": "The OBJ file to use for the compound shape if Collision Shape is \"compound\"."
+        "tooltip": "The model file to use for the compound shape if Collision Shape is \"Compound\"."
     },
     "animation.url": {
         "tooltip": "An animation to play on the model."

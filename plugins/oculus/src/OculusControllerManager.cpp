@@ -17,6 +17,7 @@
 #include <controllers/UserInputMapper.h>
 #include <controllers/StandardControls.h>
 
+#include <AvatarConstants.h>
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <NumericalConstants.h>
@@ -258,15 +259,15 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
     using namespace controller;
     // Axes
     const auto& inputState = _parent._touchInputState;
-    _axisStateMap[LX] = inputState.Thumbstick[ovrHand_Left].x;
-    _axisStateMap[LY] = inputState.Thumbstick[ovrHand_Left].y;
-    _axisStateMap[LT] = inputState.IndexTrigger[ovrHand_Left];
-    _axisStateMap[LEFT_GRIP] = inputState.HandTrigger[ovrHand_Left];
+    _axisStateMap[LX].value = inputState.Thumbstick[ovrHand_Left].x;
+    _axisStateMap[LY].value = inputState.Thumbstick[ovrHand_Left].y;
+    _axisStateMap[LT].value = inputState.IndexTrigger[ovrHand_Left];
+    _axisStateMap[LEFT_GRIP].value = inputState.HandTrigger[ovrHand_Left];
 
-    _axisStateMap[RX] = inputState.Thumbstick[ovrHand_Right].x;
-    _axisStateMap[RY] = inputState.Thumbstick[ovrHand_Right].y;
-    _axisStateMap[RT] = inputState.IndexTrigger[ovrHand_Right];
-    _axisStateMap[RIGHT_GRIP] = inputState.HandTrigger[ovrHand_Right];
+    _axisStateMap[RX].value = inputState.Thumbstick[ovrHand_Right].x;
+    _axisStateMap[RY].value = inputState.Thumbstick[ovrHand_Right].y;
+    _axisStateMap[RT].value = inputState.IndexTrigger[ovrHand_Right];
+    _axisStateMap[RIGHT_GRIP].value = inputState.HandTrigger[ovrHand_Right];
 
     // Buttons
     for (const auto& pair : BUTTON_MAP) {
@@ -327,8 +328,14 @@ void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
                           ovr::toGlm(headPose.AngularVelocity));
 
     glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) *
-        inputCalibrationData.defaultHeadMat;
+    glm::mat4 defaultHeadOffset;
+    if (inputCalibrationData.hmdAvatarAlignmentType == controller::HmdAvatarAlignmentType::Eyes) {
+        // align the eyes of the user with the eyes of the avatar
+        defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+    } else {
+        // align the head of the user with the head of the avatar
+        defaultHeadOffset = createMatFromQuatAndPos(Quaternions::IDENTITY, -DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET);
+    }
 
     pose.valid = true;
     _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);

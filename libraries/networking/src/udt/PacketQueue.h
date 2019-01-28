@@ -30,8 +30,9 @@ class PacketQueue {
     using LockGuard = std::lock_guard<Mutex>;
     using PacketPointer = std::unique_ptr<Packet>;
     using PacketListPointer = std::unique_ptr<PacketList>;
-    using Channel = std::unique_ptr<std::list<PacketPointer>>;
-    using Channels = std::vector<Channel>;
+    using RawChannel = std::list<PacketPointer>;
+    using Channel = std::unique_ptr<RawChannel>;
+    using Channels = std::list<Channel>;
     
 public:
     PacketQueue(MessageNumber messageNumber = 0);
@@ -47,13 +48,14 @@ public:
     
 private:
     MessageNumber getNextMessageNumber();
-    unsigned int nextIndex();
-    
+
     MessageNumber _currentMessageNumber { 0 };
     
     mutable Mutex _packetsLock; // Protects the packets to be sent.
     Channels _channels; // One channel per packet list + Main channel
-    unsigned int _currentIndex { 0 };
+
+    Channels::iterator _currentChannel;
+    unsigned int _channelsVisitedCount { 0 };
 };
 
 }

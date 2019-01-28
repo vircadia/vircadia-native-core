@@ -28,6 +28,7 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
+#include <VariantMapToScriptValue.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
@@ -92,6 +93,16 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
+bool EntityItemProperties::constructFromBuffer(const unsigned char* data, int dataLength) {
+    ReadBitstreamToTreeParams args;
+    EntityItemPointer tempEntity = EntityTypes::constructEntityItem(data, dataLength);
+    if (!tempEntity) {
+        return false;
+    }
+    tempEntity->readEntityDataFromBuffer(data, dataLength, args);
+    (*this) = tempEntity->getProperties();
+    return true;
+}
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
@@ -952,10 +963,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
- * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
- *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
- *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
- *     parsed to <code>0</code>.
+ * @property {string} parentMaterialName="0" - Selects the mesh part or parts within the parent to which to apply the material.
+ *     If in the format <code>"mat::string"</code>, all mesh parts with material name <code>"string"</code> are replaced.
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh part index to modify.  If <code>"all"</code>,
+ *     all mesh parts will be replaced.  If an array (starts with <code>"["</code> and ends with <code>"]"</code>), the string will be
+ *     split at each <code>","</code> and each element will be parsed as either a number or a string if it starts with
+ *     <code>"mat::"</code>.  In other words, <code>"[0,1,mat::string,mat::string2]"</code> will replace mesh parts 0 and 1, and any
+ *     mesh parts with material <code>"string"</code> or <code>"string2"</code>.  Do not put spaces around the commas.  Invalid values
+ *     are parsed to <code>0</code>.
  * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
  *     <code>"projected"</code>. In "uv" mode, the material will be evaluated within the UV space of the mesh it is applied to.  In
  *     "projected" mode, the 3D transform of the Material Entity will be used to evaluate the texture coordinates for the material.
@@ -1011,7 +1026,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
  *
  * @property {ShapeType} shapeType="none" - The shape of the collision hull used if collisions are enabled.
- * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is
+ * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is
  *     <code>"compound"</code>.
  *
  * @property {Entities.AnimationProperties} animation - An animation to play on the model.
@@ -1361,7 +1376,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {ShapeType} shapeType="box" - The shape of the volume in which the zone's lighting effects and avatar 
  *     permissions have effect. Reverts to the default value if set to <code>"none"</code>, or set to <code>"compound"</code> 
  *     and <code>compoundShapeURL</code> is <code>""</code>.
-  * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is 
+  * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is 
  *     <code>"compound"</code>.
  *
  * @property {string} keyLightMode="inherit" - Configures the key light in the zone. Possible values:<br />
@@ -1477,6 +1492,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     minorGridEvery: 0.5,
  *     lifetime: 300  // Delete after 5 minutes.
  * });
+ */
 
 /**jsdoc
  * The <code>"Gizmo"</code> {@link Entities.EntityType|EntityType} displays an entity that could be used as UI.
@@ -2201,6 +2217,18 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     _lastEdited = usecTimestampNow();
 }
 
+void EntityItemProperties::copyFromJSONString(QScriptEngine& scriptEngine, const QString& jsonString) {
+    // DANGER: this method is expensive
+    QJsonDocument propertiesDoc = QJsonDocument::fromJson(jsonString.toUtf8());
+    QJsonObject propertiesObj = propertiesDoc.object();
+    QVariant propertiesVariant(propertiesObj);
+    QVariantMap propertiesMap = propertiesVariant.toMap();
+    QScriptValue propertiesScriptValue = variantMapToScriptValue(propertiesMap, scriptEngine);
+    bool honorReadOnly = true;
+    copyFromScriptValue(propertiesScriptValue, honorReadOnly);
+}
+
+
 void EntityItemProperties::merge(const EntityItemProperties& other) {
     // Core
     COPY_PROPERTY_IF_CHANGED(simulationOwner);
@@ -2441,7 +2469,6 @@ void EntityItemPropertiesFromScriptValueIgnoreReadOnly(const QScriptValue &objec
 void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object, EntityItemProperties& properties) {
     properties.copyFromScriptValue(object, true);
 }
-
 
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
@@ -4917,6 +4944,40 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
     setCloneDynamic(ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
     setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
+}
+
+bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
+    // DANGER: this method is NOT efficient.
+    // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
+    QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
+    if (jsonProperties.isEmpty() || jsonProperties.isNull() || !jsonProperties.isObject() || jsonProperties.object().isEmpty()) {
+        qCDebug(entities) << "bad avatarEntityData json" << QString(blob.toHex());
+        return false;
+    }
+    QVariant variant = jsonProperties.toVariant();
+    QVariantMap variantMap = variant.toMap();
+    QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
+    EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptValue, properties);
+    // end recipe
+    return true;
+}
+
+void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+    // DANGER: this method is NOT efficient.
+    // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
+    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QVariant variantProperties = scriptValue.toVariant();
+    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+    QJsonObject jsonObject = jsonProperties.object();
+    if (jsonObject.contains("parentID")) {
+        if (QUuid(jsonObject["parentID"].toString()) == myAvatarID) {
+            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+        }
+    }
+    jsonProperties = QJsonDocument(jsonObject);
+    blob = jsonProperties.toBinaryData();
+    // end recipe
 }
 
 QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {

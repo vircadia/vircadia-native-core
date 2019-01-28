@@ -23,6 +23,7 @@ class Serializer {
 public:
     class Factory {
     public:
+        virtual ~Factory() {}
         virtual std::shared_ptr<Serializer> get() = 0;
     };
 

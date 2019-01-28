@@ -15,6 +15,11 @@
 
 namespace controller {
 
+enum class HmdAvatarAlignmentType {
+    Eyes = 0,  // align the user's eyes with the avatars eyes
+    Head       // align the user's head with the avatars head
+};
+
 struct InputCalibrationData {
     glm::mat4 sensorToWorldMat;    // sensor to world
     glm::mat4 avatarMat;           // avatar to world
@@ -29,6 +34,7 @@ struct InputCalibrationData {
     glm::mat4 defaultLeftArm;      // default pose for leftArm joint in sensor space
     glm::mat4 defaultRightHand;    // default pose for rightHand joint in sensor space
     glm::mat4 defaultLeftHand;     // default pose for leftHand joint in sensor space
+    HmdAvatarAlignmentType hmdAvatarAlignmentType;
 };
 
 enum class ChannelType {

@@ -1475,29 +1475,56 @@ bool Model::isRenderable() const {
     return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
-std::vector<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {
-    // try to find all meshes with materials that match parentMaterialName as a string
-    // if none, return parentMaterialName as a uint
-    std::vector<unsigned int> toReturn;
-    const QString MATERIAL_NAME_PREFIX = "mat::";
-    if (parentMaterialName.startsWith(MATERIAL_NAME_PREFIX)) {
-        parentMaterialName.replace(0, MATERIAL_NAME_PREFIX.size(), QString(""));
-        for (unsigned int i = 0; i < (unsigned int)_modelMeshMaterialNames.size(); i++) {
-            if (_modelMeshMaterialNames[i] == parentMaterialName.toStdString()) {
-                toReturn.push_back(i);
-            }
-        }
-    }
+std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {
+    std::set<unsigned int> toReturn;
 
-    if (toReturn.empty()) {
-        toReturn.push_back(parentMaterialName.toUInt());
+    const QString all("all");
+    if (parentMaterialName == all) {
+        for (unsigned int i = 0; i < (unsigned int)_modelMeshRenderItemIDs.size(); i++) {
+            toReturn.insert(i);
+        }
+    } else if (!parentMaterialName.isEmpty()) {
+        auto parseFunc = [this, &toReturn] (QString& target) {
+            if (target.isEmpty()) {
+                return;
+            }
+            // if target starts with "mat::", try to find all meshes with materials that match target as a string
+            // otherwise, return target as a uint
+            const QString MATERIAL_NAME_PREFIX("mat::");
+            if (target.startsWith(MATERIAL_NAME_PREFIX)) {
+                std::string targetStdString = target.replace(0, MATERIAL_NAME_PREFIX.size(), "").toStdString();
+                for (unsigned int i = 0; i < (unsigned int)_modelMeshMaterialNames.size(); i++) {
+                    if (_modelMeshMaterialNames[i] == targetStdString) {
+                        toReturn.insert(i);
+                    }
+                }
+                return;
+            }
+            toReturn.insert(target.toUInt());
+        };
+
+        if (parentMaterialName.length() > 2 && parentMaterialName.startsWith("[") && parentMaterialName.endsWith("]")) {
+            QStringList list = parentMaterialName.split(",", QString::SkipEmptyParts);
+            for (int i = 0; i < list.length(); i++) {
+                auto& target = list[i];
+                if (i == 0) {
+                    target = target.replace(0, 1, "");
+                }
+                if (i == list.length() - 1) {
+                    target = target.replace(target.length() - 1, 1, "");
+                }
+                parseFunc(target);
+            }
+        } else {
+            parseFunc(parentMaterialName);
+        }
     }
 
     return toReturn;
 }
 
 void Model::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+    std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
@@ -1520,7 +1547,7 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
 }
 
 void Model::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+    std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {

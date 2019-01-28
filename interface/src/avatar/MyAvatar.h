@@ -252,6 +252,10 @@ class MyAvatar : public Avatar {
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
+    const QString DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE = "head";
+
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
 
 public:
     enum DriveKeys {
@@ -265,6 +269,8 @@ public:
         STEP_YAW,
         PITCH,
         ZOOM,
+        DELTA_YAW,
+        DELTA_PITCH,
         MAX_DRIVE_KEYS
     };
     Q_ENUM(DriveKeys)
@@ -291,6 +297,8 @@ public:
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
 
     void reset(bool andRecenter = false, bool andReload = true, bool andHead = true);
+
+    void setCollisionWithOtherAvatarsFlags() override;
 
     /**jsdoc
      * @function MyAvatar.resetSensorsAndBody
@@ -512,7 +520,18 @@ public:
      * @function MyAvatar.getDominantHand
      * @returns {string} 
      */
-    Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
+    Q_INVOKABLE QString getDominantHand() const;
+
+    /**jsdoc
+     * @function MyAvatar.setHmdAvatarAlignmentType
+     * @param {string} hand
+     */
+    Q_INVOKABLE void setHmdAvatarAlignmentType(const QString& hand);
+    /**jsdoc
+     * @function MyAvatar.setHmdAvatarAlignmentType
+     * @returns {string}
+     */
+    Q_INVOKABLE QString getHmdAvatarAlignmentType() const;
 
     /**jsdoc
     * @function MyAvatar.setCenterOfGravityModelEnabled
@@ -575,9 +594,11 @@ public:
     float getHMDRollControlRate() const { return _hmdRollControlRate; }
 
     // get/set avatar data
-    void resizeAvatarEntitySettingHandles(unsigned int avatarEntityIndex);
+    void resizeAvatarEntitySettingHandles(uint32_t maxIndex);
     void saveData();
+    void saveAvatarEntityDataToSettings();
     void loadData();
+    void loadAvatarEntityDataFromSettings();
 
     void saveAttachmentData(const AttachmentData& attachment) const;
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
@@ -966,8 +987,8 @@ public:
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
-    void clearAvatarEntities();
-    void removeWearableAvatarEntities();
+    void removeWornAvatarEntity(const EntityItemID& entityID);
+    void clearWornAvatarEntities();
 
     /**jsdoc
      * Check whether your avatar is flying or not.
@@ -1184,6 +1205,7 @@ public:
     virtual void setAttachmentsVariant(const QVariantList& variant) override;
 
     glm::vec3 getNextPosition() { return _goToPending ? _goToPosition : getWorldPosition(); }
+    void prepareAvatarEntityDataForReload();
 
     /**jsdoc
      * Create a new grab.
@@ -1203,6 +1225,12 @@ public:
      * @param {Uuid} grabID - id of grabbed thing
      */
     Q_INVOKABLE void releaseGrab(const QUuid& grabID);
+
+    AvatarEntityMap getAvatarEntityData() const override;
+    void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
+    void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
+    void avatarEntityDataToJson(QJsonObject& root) const override;
+    int sendAvatarDataPacket(bool sendAll = false) override;
 
 public slots:
 
@@ -1402,6 +1430,10 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
+    void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
+    void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true) override;
+    void sanitizeAvatarEntityProperties(EntityItemProperties& properties) const;
+
     /**jsdoc
      * Set whether or not your avatar mesh is visible.
      * @function MyAvatar.setEnableMeshVisible
@@ -1566,6 +1598,13 @@ signals:
     void dominantHandChanged(const QString& hand);
 
     /**jsdoc
+     * @function MyAvatar.hmdAvatarAlignmentTypeChanged
+     * @param {string} type
+     * @returns {Signal}
+     */
+    void hmdAvatarAlignmentTypeChanged(const QString& type);
+
+    /**jsdoc
      * @function MyAvatar.sensorToWorldScaleChanged
      * @param {number} scale
      * @returns {Signal} 
@@ -1601,23 +1640,24 @@ signals:
      */
     void disableHandTouchForIDChanged(const QUuid& entityID, bool disable);
 
-
 private slots:
     void leaveDomain();
     void updateCollisionCapsuleCache();
 
 protected:
+    void handleChangedAvatarEntityData();
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const override;
     virtual void forgetChild(SpatiallyNestablePointer newChild) const override;
     virtual void recalculateChildCauterization() const override;
 
 private:
+    bool updateStaleAvatarEntityBlobs() const;
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
-    void simulate(float deltaTime);
+    void simulate(float deltaTime, bool inView) override;
     void updateFromTrackers(float deltaTime);
     void saveAvatarUrl();
     virtual void render(RenderArgs* renderArgs) override;
@@ -1713,7 +1753,7 @@ private:
     SharedSoundPointer _collisionSound;
 
     MyCharacterController _characterController;
-    int32_t _previousCollisionGroup { BULLET_COLLISION_GROUP_MY_AVATAR };
+    int32_t _previousCollisionMask { BULLET_COLLISION_MASK_MY_AVATAR };
 
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
@@ -1752,7 +1792,8 @@ private:
     ThreadSafeValueCache<QUrl> _prefOverrideAnimGraphUrl;
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
-    QString _dominantHand { DOMINANT_RIGHT_HAND };
+    ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
+    ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
     const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
@@ -1920,8 +1961,12 @@ private:
     bool _haveReceivedHeightLimitsFromDomain { false };
     int _disableHandTouchCount { 0 };
     bool _skeletonModelLoaded { false };
+    bool _reloadAvatarEntityDataFromSettings { true };
+
+    TimePoint _nextTraitsSendWindow;
 
     Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<QString> _hmdAvatarAlignmentTypeSetting;
     Setting::Handle<float> _headPitchSetting;
     Setting::Handle<float> _scaleSetting;
     Setting::Handle<float> _yawSpeedSetting;
@@ -1938,6 +1983,39 @@ private:
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
+    Setting::Handle<QString> _userRecenterModelSetting;
+
+    // AvatarEntities stuff:
+    // We cache the "map of unfortunately-formatted-binary-blobs" because they are expensive to compute
+    // Do not confuse these with AvatarData::_packedAvatarEntityData which are in wire-format.
+    mutable AvatarEntityMap _cachedAvatarEntityBlobs;
+
+    // We collect changes to AvatarEntities and then handle them all in one spot per frame: updateAvatarEntities().
+    // Basically this is a "transaction pattern" with an extra complication: these changes can come from two
+    // "directions" and the "authoritative source" of each direction is different, so maintain two distinct sets of
+    // transaction lists;
+    //
+    // The _entitiesToDelete/Add/Update lists are for changes whose "authoritative sources" are already
+    // correctly stored in _cachedAvatarEntityBlobs.  These come from loadAvatarEntityDataFromSettings() and
+    // setAvatarEntityData().  These changes need to be extracted from _cachedAvatarEntityBlobs and applied to
+    // real EntityItems.
+    std::vector<QUuid> _entitiesToDelete;
+    std::vector<QUuid> _entitiesToAdd;
+    std::vector<QUuid> _entitiesToUpdate;
+    //
+    // The _cachedAvatarEntityBlobsToDelete/Add/Update lists are for changes whose "authoritative sources" are
+    // already reflected in real EntityItems. These changes need to be propagated to _cachedAvatarEntityBlobs
+    // and eventually to settings.
+    std::vector<QUuid> _cachedAvatarEntityBlobsToDelete;
+    std::vector<QUuid> _cachedAvatarEntityBlobsToAddOrUpdate;
+    std::vector<QUuid> _cachedAvatarEntityBlobUpdatesToSkip;
+    //
+    // Also these lists for tracking delayed changes to blobs and Settings
+    mutable std::set<QUuid> _staleCachedAvatarEntityBlobs;
+    //
+    // keep a ScriptEngine around so we don't have to instantiate on the fly (these are very slow to create/delete)
+    QScriptEngine* _myScriptEngine { nullptr };
+    bool _needToSaveAvatarEntitySettings { false };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
