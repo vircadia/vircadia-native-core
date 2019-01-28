@@ -30,7 +30,7 @@ const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
 const uint32_t PENDING_FLAG_UPDATE_SHAPE = 1U << 2;
 const uint32_t PENDING_FLAG_JUMP = 1U << 3;
-const uint32_t PENDING_FLAG_UPDATE_COLLISION_GROUP = 1U << 4;
+const uint32_t PENDING_FLAG_UPDATE_COLLISION_MASK = 1U << 4;
 const uint32_t PENDING_FLAG_RECOMPUTE_FLYING = 1U << 5;
 const float DEFAULT_MIN_FLOOR_NORMAL_DOT_UP = cosf(PI / 3.0f);
 
@@ -120,14 +120,16 @@ public:
     bool isStuck() const { return _isStuck; }
 
     void setCollisionless(bool collisionless);
-    int32_t computeCollisionGroup() const;
-    void handleChangedCollisionGroup();
+
+    virtual int32_t computeCollisionMask() const = 0;
+    virtual void handleChangedCollisionMask() = 0;
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
     void setFlyingAllowed(bool value);
     void setCollisionlessAllowed(bool value);
 
+    void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
 
 protected:
 #ifdef DEBUG_STATE_CHANGE

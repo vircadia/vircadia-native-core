@@ -11,10 +11,10 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class WebEntityItem : public EntityItem {
 public:
-    static const QString DEFAULT_SOURCE_URL;
-
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     WebEntityItem(const EntityItemID& entityItemID);
@@ -32,7 +32,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -54,15 +54,41 @@ public:
                          BoxFace& face, glm::vec3& surfaceNormal,
                          QVariantMap& extraInfo, bool precisionPicking) const override;
 
-    virtual void setSourceUrl(const QString& value);
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
+
+    float getAlpha() const;
+    void setAlpha(float alpha);
+
+    static const QString DEFAULT_SOURCE_URL;
+    void setSourceUrl(const QString& value);
     QString getSourceUrl() const;
 
     void setDPI(uint16_t value);
     uint16_t getDPI() const;
 
+    void setScriptURL(const QString& value);
+    QString getScriptURL() const;
+
+    static const uint8_t DEFAULT_MAX_FPS;
+    void setMaxFPS(uint8_t value);
+    uint8_t getMaxFPS() const;
+
+    void setInputMode(const WebInputMode& value);
+    WebInputMode getInputMode() const;
+
+    PulsePropertyGroup getPulseProperties() const;
+
 protected:
+    glm::u8vec3 _color;
+    float _alpha { 1.0f };
+    PulsePropertyGroup _pulseProperties;
+
     QString _sourceUrl;
     uint16_t _dpi;
+    QString _scriptURL;
+    uint8_t _maxFPS;
+    WebInputMode _inputMode;
 };
 
 #endif // hifi_WebEntityItem_h

@@ -41,13 +41,16 @@ TextEntityRenderer::~TextEntityRenderer() {
 }
 
 bool TextEntityRenderer::isTransparent() const {
-    return Parent::isTransparent() || _textAlpha < 1.0f || _backgroundAlpha < 1.0f;
+    return Parent::isTransparent() || _textAlpha < 1.0f || _backgroundAlpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
 ShapeKey TextEntityRenderer::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (isTransparent()) {
         builder.withTranslucent();
+    }
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
     }
     return builder.build();
 }
@@ -101,6 +104,10 @@ bool TextEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
         return true;
     }
 
+    if (_pulseProperties != entity->getPulseProperties()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -116,32 +123,39 @@ void TextEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
 }
 
 void TextEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
-    _text = entity->getText();
-    _lineHeight = entity->getLineHeight();
-    _textColor = toGlm(entity->getTextColor());
-    _textAlpha = entity->getTextAlpha();
-    _backgroundColor = toGlm(entity->getBackgroundColor());
-    _backgroundAlpha = entity->getBackgroundAlpha();
-    _billboardMode = entity->getBillboardMode();
-    _leftMargin = entity->getLeftMargin();
-    _rightMargin = entity->getRightMargin();
-    _topMargin = entity->getTopMargin();
-    _bottomMargin = entity->getBottomMargin();
+    withWriteLock([&] {
+        _pulseProperties = entity->getPulseProperties();
+        _text = entity->getText();
+        _lineHeight = entity->getLineHeight();
+        _textColor = toGlm(entity->getTextColor());
+        _textAlpha = entity->getTextAlpha();
+        _backgroundColor = toGlm(entity->getBackgroundColor());
+        _backgroundAlpha = entity->getBackgroundAlpha();
+        _billboardMode = entity->getBillboardMode();
+        _leftMargin = entity->getLeftMargin();
+        _rightMargin = entity->getRightMargin();
+        _topMargin = entity->getTopMargin();
+        _bottomMargin = entity->getBottomMargin();
+    });
 }
 
 void TextEntityRenderer::doRender(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
 
+    glm::vec4 textColor;
+    glm::vec4 backgroundColor;
     Transform modelTransform;
     glm::vec3 dimensions;
     withReadLock([&] {
         modelTransform = _renderTransform;
         dimensions = _dimensions;
-    });
 
-    float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-    glm::vec4 textColor = glm::vec4(_textColor, fadeRatio * _textAlpha);
-    glm::vec4 backgroundColor = glm::vec4(_backgroundColor, fadeRatio * _backgroundAlpha);
+        float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+        textColor = glm::vec4(_textColor, fadeRatio * _textAlpha);
+        textColor = EntityRenderer::calculatePulseColor(textColor, _pulseProperties, _created);
+        backgroundColor = glm::vec4(_backgroundColor, fadeRatio * _backgroundAlpha);
+        backgroundColor = EntityRenderer::calculatePulseColor(backgroundColor, _pulseProperties, _created);
+    });
 
     // Render background
     static const float SLIGHTLY_BEHIND = -0.005f;

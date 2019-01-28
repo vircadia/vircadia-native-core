@@ -500,6 +500,9 @@ void SharedObject::onTimer() {
     }
 
     {
+        if (_maxFps == 0) {
+            return;
+        }
         auto minRenderInterval = USECS_PER_SECOND / _maxFps;
         auto lastInterval = usecTimestampNow() - _lastRenderTime;
         // Don't exceed the framerate limit

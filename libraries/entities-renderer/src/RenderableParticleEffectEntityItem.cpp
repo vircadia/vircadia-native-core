@@ -71,8 +71,11 @@ bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedE
         return true;
     }
 
-    auto particleProperties = entity->getParticleProperties();
-    if (particleProperties != _particleProperties) {
+    if (_particleProperties != entity->getParticleProperties()) {
+        return true;
+    }
+
+    if (_pulseProperties != entity->getPulseProperties()) {
         return true;
     }
 
@@ -95,6 +98,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             }
         });
     }
+
+    withWriteLock([&] {
+        _pulseProperties = entity->getPulseProperties();
+    });
     _emitting = entity->getIsEmitting();
 
     bool hasTexture = resultWithReadLock<bool>([&]{ return _particleProperties.textures.isEmpty(); });
@@ -142,10 +149,6 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
         particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
         particleUniforms.radius.finish = _particleProperties.radius.range.finish;
         particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
-        particleUniforms.color.start = _particleProperties.getColorStart();
-        particleUniforms.color.middle = _particleProperties.getColorMiddle();
-        particleUniforms.color.finish = _particleProperties.getColorFinish();
-        particleUniforms.color.spread = _particleProperties.getColorSpread();
         particleUniforms.spin.start = _particleProperties.spin.range.start;
         particleUniforms.spin.middle = _particleProperties.spin.gradient.target;
         particleUniforms.spin.finish = _particleProperties.spin.range.finish;
@@ -158,15 +161,20 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 }
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
+    // FIXME: implement isTransparent() for particles and an opaque pipeline
     if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(getTagMask());
+        return ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     } else {
-        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).build();
+        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()).build();
     }
 }
 
 ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
+    auto builder = ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 Item::Bound ParticleEffectEntityRenderer::getBound() {
@@ -330,12 +338,18 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
     batch.setResourceTexture(0, _networkTexture->getGPUTexture());
 
-    Transform transform; 
+    Transform transform;
     // The particles are in world space, so the transform is unused, except for the rotation, which we use
     // if the particles are marked rotateWithEntity
     withReadLock([&] {
         transform.setRotation(_renderTransform.getRotation());
+        auto& color = _uniformBuffer.edit<ParticleUniforms>().color;
+        color.start = EntityRenderer::calculatePulseColor(_particleProperties.getColorStart(), _pulseProperties, _created);
+        color.middle = EntityRenderer::calculatePulseColor(_particleProperties.getColorMiddle(), _pulseProperties, _created);
+        color.finish = EntityRenderer::calculatePulseColor(_particleProperties.getColorFinish(), _pulseProperties, _created);
+        color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
     });
+
     batch.setModelTransform(transform);
     batch.setUniformBuffer(0, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);

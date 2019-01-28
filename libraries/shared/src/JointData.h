@@ -14,7 +14,7 @@ public:
 };
 
 // Used by the avatar mixer to describe a single joint
-// Translations relative to their parent and are in meters.
+// Translations relative to their parent joint
 // Rotations are absolute (i.e. not relative to parent) and are in rig space.
 class JointData {
 public:
