@@ -1938,7 +1938,7 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel() {
 void Avatar::clearAvatarGrabData(const QUuid& id) {
     AvatarData::clearAvatarGrabData(id);
     _avatarGrabsLock.withWriteLock([&] {
-        if (_avatarGrabs.find(id) == _avatarGrabs.end()) {
+        if (_avatarGrabs.find(id) != _avatarGrabs.end()) {
             _grabsToDelete.push_back(id);
         }
     });
