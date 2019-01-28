@@ -2543,7 +2543,7 @@ controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action act
     }
 }
 
-quat MyAvatar::getDominantHandRotation() const {
+quat MyAvatar::getDominantHandRotation() {
     auto hand = (getDominantHand() == DOMINANT_RIGHT_HAND) ? controller::Action::RIGHT_HAND : controller::Action::LEFT_HAND;
     auto pose = getControllerPoseInAvatarFrame(hand);
     return pose.rotation;
