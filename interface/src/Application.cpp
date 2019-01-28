@@ -8246,7 +8246,18 @@ void Application::toggleLogDialog() {
         return;
     }
     if (! _logDialog) {
+
+        bool keepOnTop =_keepLogWindowOnTop.get();
+#ifdef Q_OS_WIN
+        _logDialog = new LogDialog(keepOnTop ? qApp->getWindow() : nullptr, getLogger());
+#else
         _logDialog = new LogDialog(nullptr, getLogger());
+
+        if (keepOnTop) {
+            Qt::WindowFlags flags = _logDialog->windowFlags() | Qt::Tool;
+            _logDialog->setWindowFlags(flags);
+        }
+#endif
     }
 
     if (_logDialog->isVisible()) {
@@ -8255,6 +8266,19 @@ void Application::toggleLogDialog() {
         _logDialog->show();
     }
 }
+
+ void Application::recreateLogWindow(int keepOnTop) {
+     _keepLogWindowOnTop.set(keepOnTop != 0);
+     if (_logDialog) {
+         bool toggle = _logDialog->isVisible();
+         _logDialog->close();
+         _logDialog = nullptr;
+
+         if (toggle) {
+             toggleLogDialog();
+         }
+     }
+ }
 
 void Application::toggleEntityScriptServerLogDialog() {
     if (! _entityScriptServerLogDialog) {

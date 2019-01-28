@@ -19,6 +19,9 @@
 
 #include <shared/AbstractLoggerInterface.h>
 
+#include "Application.h"
+#include "MainWindow.h"
+
 const int REVEAL_BUTTON_WIDTH = 122;
 const int ALL_LOGS_BUTTON_WIDTH = 90;
 const int MARGIN_LEFT = 25;
@@ -148,6 +151,16 @@ LogDialog::LogDialog(QWidget* parent, AbstractLoggerInterface* logger) : BaseLog
     _messageCount->setObjectName("messageCount");
     _messageCount->show();
 
+    _keepOnTopBox = new QCheckBox(" Keep window on top", this);
+    bool isOnTop = qApp-> getLogWindowOnTopSetting();
+    _keepOnTopBox->setCheckState(isOnTop ? Qt::Checked : Qt::Unchecked);
+#ifdef Q_OS_WIN
+    connect(_keepOnTopBox, &QCheckBox::stateChanged, qApp, &Application::recreateLogWindow);
+#else
+    connect(_keepOnTopBox, &QCheckBox::stateChanged, this, &LogDialog::handleKeepWindowOnTop);
+#endif
+    _keepOnTopBox->show();
+
     _extraDebuggingBox = new QCheckBox("Extra debugging", this);
     if (_logger->extraDebugging()) {
         _extraDebuggingBox->setCheckState(Qt::Checked);
@@ -180,6 +193,11 @@ void LogDialog::resizeEvent(QResizeEvent* event) {
         ALL_LOGS_BUTTON_WIDTH,
         ELEMENT_HEIGHT);
     _extraDebuggingBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH,
+        THIRD_ROW,
+        COMBOBOX_WIDTH,
+        ELEMENT_HEIGHT);
+
+     _keepOnTopBox->setGeometry(width() - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN - ALL_LOGS_BUTTON_WIDTH - ELEMENT_MARGIN - COMBOBOX_WIDTH - ELEMENT_MARGIN,
         THIRD_ROW,
         COMBOBOX_WIDTH,
         ELEMENT_HEIGHT);
@@ -232,6 +250,23 @@ void LogDialog::handleDebugPrintBox(int state) {
 void LogDialog::handleInfoPrintBox(int state) {
     _logger->setInfoPrint(state != 0);
     printLogFile();
+}
+
+void LogDialog::handleKeepWindowOnTop(int state) {
+    bool keepOnTop = (state != 0);
+
+    Qt::WindowFlags flags = windowFlags();
+
+    if (keepOnTop) {
+        flags |= Qt::Tool;
+    } else {
+        flags &= ~Qt::Tool;
+    }
+
+    setWindowFlags(flags);
+    qApp->setLogWindowOnTopSetting(keepOnTop);
+
+    show();
 }
 
 void LogDialog::handleCriticalPrintBox(int state) {
