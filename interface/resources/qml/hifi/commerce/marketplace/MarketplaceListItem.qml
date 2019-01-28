@@ -185,7 +185,7 @@ Rectangle {
                         bottom: parent.bottom
                     }
                     onClicked: {
-                        if(isLoggedIn) {
+                        if (isLoggedIn) {
                             root.liked = !root.liked;
                             root.likes = root.liked ? root.likes + 1 : root.likes - 1;
                             MarketplaceScriptingInterface.marketplaceItemLike(root.item_id, root.liked);
@@ -203,7 +203,7 @@ Rectangle {
                 left: parent.left
                 right: parent.right
             }
-            height: width*0.5625
+            height: width * 0.5625
 
             source: root.image_url
             fillMode: Image.PreserveAspectCrop

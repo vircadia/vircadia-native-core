@@ -728,7 +728,7 @@ Rectangle {
                             top: parent.top
                             leftMargin: 20
                         }
-                        width: 322
+                        width: root.isLoggedIn ? 322 : 242
                         height: 36
 
                         radius: 4
@@ -790,6 +790,8 @@ Rectangle {
                                 glyph: model.glyph
                                 text: model.name
                                 
+                                visible: root.isLoggedIn || model.sortString != "my_likes"
+
                                 checked: ListView.isCurrentItem
 
                                 onClicked: {
