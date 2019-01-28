@@ -383,7 +383,7 @@
         "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
     },
     "materialRepeat": {
-        "tooltip": "If enabled, the material will repeat."
+        "tooltip": "If enabled, the material will repeat, otherwise it will clamp."
     },
     "followCamera": {
         "tooltip": "If enabled, the grid is always visible even as the camera moves to another position."
