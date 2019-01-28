@@ -16,8 +16,8 @@
 
 class OculusAPIPlugin : public OculusPlatformPlugin {
 public:
-    OculusAPIPlugin();
-    virtual ~OculusAPIPlugin();
+    OculusAPIPlugin() = default;
+    virtual ~OculusAPIPlugin() = default;
     QString getName() const { return NAME; }
     QString getOculusUserID() const { return _user; };
 

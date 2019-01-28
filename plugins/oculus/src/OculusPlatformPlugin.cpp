@@ -16,12 +16,6 @@
 
 QString OculusAPIPlugin::NAME { "Oculus Rift" };
 
-OculusAPIPlugin::OculusAPIPlugin() {
-}
-
-OculusAPIPlugin::~OculusAPIPlugin() {
-}
-
 bool OculusAPIPlugin::init() {
     if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
         _session = hifi::ovr::acquireRenderSession();
