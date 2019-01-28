@@ -1480,9 +1480,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             }
         }
 
-        extracted.mesh.createMeshTangents(generateTangents);
-        extracted.mesh.createBlendShapeTangents(generateTangents);
-
         // find the clusters with which the mesh is associated
         QVector<QString> clusterIDs;
         foreach (const QString& childID, _connectionChildMap.values(it.key())) {
