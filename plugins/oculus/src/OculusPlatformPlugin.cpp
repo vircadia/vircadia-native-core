@@ -36,6 +36,8 @@ bool OculusAPIPlugin::isRunning() const {
 void OculusAPIPlugin::requestNonceAndUserID(NonceUserIDCallback callback) {
 #ifdef OCULUS_APP_ID
     if (!isRunning()) {
+        qCWarning(oculusLog) << "Oculus request failed: Oculus platform plugin not running";
+        callback("", "");
         return;
     }
 
