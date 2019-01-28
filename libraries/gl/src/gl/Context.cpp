@@ -34,21 +34,8 @@ bool Context::USE_CUSTOM_CONTEXT { true };
 #endif
 
 bool Context::enableDebugLogger() {
-#if defined(Q_OS_MAC)
-    // OSX does not support GL_KHR_debug or GL_ARB_debug_output
-    return false;
-#else
-#if defined(DEBUG) || defined(USE_GLES)
-    static bool enableDebugLogger = true;
-#else
-    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
-    static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-#endif
-    return enableDebugLogger;
-#endif
+    return gl::debugContextEnabled();
 }
-
-
 
 std::atomic<size_t> Context::_totalSwapchainMemoryUsage { 0 };
 

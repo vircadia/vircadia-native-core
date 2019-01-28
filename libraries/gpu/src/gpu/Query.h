@@ -45,6 +45,9 @@ namespace gpu {
         const std::string _name;
         uint64_t _queryResult { 0 };
         uint64_t _usecBatchElapsedTime { 0 };
+
+        friend class Serializer;
+        friend class Deserializer;
     };
     
     typedef std::shared_ptr<Query> QueryPointer;
