@@ -143,7 +143,6 @@ public:
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue(),
-                                                                  const QStringList& jointNamesToFilter = QStringList(),
                                                                   bool pickAgainstMesh = true);
     /**jsdoc
      * @function AvatarManager.findRayIntersectionVector
@@ -156,7 +155,6 @@ public:
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
                                                                         const QVector<EntityItemID>& avatarsToDiscard,
-                                                                        const QStringList& jointNamesToFilter,
                                                                         bool pickAgainstMesh);
 
     /**jsdoc

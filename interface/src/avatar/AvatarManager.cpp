@@ -397,31 +397,37 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             if (isInPhysics) {
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
-                
                 auto& detailedMotionStates = avatar->getDetailedMotionStates();
+                qDebug() << "Deleting " << detailedMotionStates.size() << "Motion states";
                 for (auto& mState : detailedMotionStates) {
                     transaction.objectsToRemove.push_back(mState);
                 }
                 avatar->resetDetailedMotionStates();
                 
             } else {
-                ShapeInfo shapeInfo;
-                avatar->computeShapeInfo(shapeInfo);
-                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-                if (shape) {
-                    AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-                    motionState->setMass(avatar->computeMass());
-                    avatar->_motionState = motionState;
-                    transaction.objectsToAdd.push_back(motionState);
-                } else {
-                    failedShapeBuilds.insert(avatar);
-                }
                 if (avatar->getDetailedMotionStates().size() == 0) {
                     avatar->createDetailedMotionStates(avatar);
                     for (auto dMotionState : avatar->getDetailedMotionStates()) {
                         transaction.objectsToAdd.push_back(dMotionState);
                     }
                 }
+                if (avatar->getDetailedMotionStates().size() > 0) {
+                    ShapeInfo shapeInfo;
+                    avatar->computeShapeInfo(shapeInfo);
+                    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                    if (shape) {
+                        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                        motionState->setMass(avatar->computeMass());
+                        avatar->_motionState = motionState;
+                        transaction.objectsToAdd.push_back(motionState);
+                    } else {
+                        failedShapeBuilds.insert(avatar);
+                    }
+                } else {
+                    failedShapeBuilds.insert(avatar);
+                }
+
+                qDebug() << "Adding " << avatar->getDetailedMotionStates().size() << " Motion states";
             }
         } else if (isInPhysics) {
             transaction.objectsToChange.push_back(avatar->_motionState);
@@ -625,17 +631,15 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
                                                                  const QScriptValue& avatarIdsToDiscard,
-                                                                 const QStringList& jointNamesToFilter,
                                                                  bool pickAgainstMesh) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
-    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, jointNamesToFilter, pickAgainstMesh);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, pickAgainstMesh);
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
                                                                        const QVector<EntityItemID>& avatarsToInclude,
                                                                        const QVector<EntityItemID>& avatarsToDiscard,
-                                                                       const QStringList& jointNamesToFilter,
                                                                        bool pickAgainstMesh) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
@@ -644,10 +648,10 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard),
-                                  Q_ARG(const QStringList&, jointNamesToFilter),
                                   Q_ARG(bool, pickAgainstMesh));
         return result;
     }
+
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
 
     float distance = (float)INT_MAX;  // with FLT_MAX bullet rayTest does not return results 
@@ -668,9 +672,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
         for (auto &hit : physicsResults) {
             auto avatarID = hit._intersectWithAvatar;
-            bool avatarIsIncluded = avatarsToInclude.contains(avatarID);
-            bool avatarIsDiscarded = avatarsToDiscard.contains(avatarID);
-            if (avatarIsDiscarded || (jointNamesToFilter.size() == 0 && avatarsToInclude.size() > 0 && !avatarIsIncluded)) {
+            if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
+                (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID))) {
                 continue;
             }
             
@@ -683,19 +686,8 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             } else {
                 avatar = _myAvatar;
             }
-            QVector<int> jointIndicesToDiscard;
-            if (avatar && jointNamesToFilter.size() > 0 && avatarIsIncluded) {
-                auto names = avatar->getJointNames();
-                for (int i = 0; i < names.size(); i++) {
-                    if (!jointNamesToFilter.contains(names[i])) {
-                        jointIndicesToDiscard.push_back(i);
-                    }
-                }
-            }
             if (!hit._isBound) {
-                if (!jointIndicesToDiscard.contains(hit._intersectWithJoint)) {
-                    rayAvatarResult = hit;
-                }
+                rayAvatarResult = hit;
             } else if (avatar) {
                 auto &multiSpheres = avatar->getMultiSphereShapes();
                 if (multiSpheres.size() > 0) {
@@ -703,7 +695,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                     for (size_t i = 0; i < hit._boundJoints.size(); i++) {
                         assert(hit._boundJoints[i] < multiSpheres.size());
                         auto &mSphere = multiSpheres[hit._boundJoints[i]];
-                        if (mSphere.isValid() && jointIndicesToDiscard.contains(hit._boundJoints[i])) {
+                        if (mSphere.isValid()) {
                             float boundDistance = FLT_MAX;
                             BoxFace face;
                             glm::vec3 surfaceNormal;
@@ -757,7 +749,6 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 break;
             }
         }
-
         if (rayAvatarResult._intersect) {
             result.intersects = true;
             result.avatarID = rayAvatarResult._intersectWithAvatar;
