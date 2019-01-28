@@ -87,14 +87,14 @@ protected:
 
     AnimChain _snapshotChain;
 
-    // used to pre-compute information about each joint influeced by a spline IK target.
+    // used to pre-compute information about each joint influenced by a spline IK target.
     struct SplineJointInfo {
         int jointIndex;       // joint in the skeleton that this information pertains to.
         float ratio;          // percentage (0..1) along the spline for this joint.
         AnimPose offsetPose;  // local offset from the spline to the joint.
     };
 
-    bool _lastEnableDebugDrawIKTargets{ false };
+    bool _lastEnableDebugDrawIKTargets { false };
     void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
     void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const;
     const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const;
