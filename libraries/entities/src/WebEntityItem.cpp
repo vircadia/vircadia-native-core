@@ -232,15 +232,7 @@ float WebEntityItem::getAlpha() const {
 
 void WebEntityItem::setSourceUrl(const QString& value) {
     withWriteLock([&] {
-        if (_sourceUrl != value) {
-            auto newURL = QUrl::fromUserInput(value);
-
-            if (newURL.isValid()) {
-                _sourceUrl = newURL.toDisplayString();
-            } else {
-                qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
-            }
-        }
+        _sourceUrl = value;
     });
 }
 
@@ -270,7 +262,7 @@ void WebEntityItem::setScriptURL(const QString& value) {
             if (newURL.isValid()) {
                 _scriptURL = newURL.toDisplayString();
             } else {
-                qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
+                qCDebug(entities) << "Not setting web entity script URL since" << value << "cannot be parsed to a valid URL.";
             }
         }
     });

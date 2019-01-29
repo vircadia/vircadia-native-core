@@ -2332,7 +2332,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
         // Call stop on the QWebEngineView before destroying OffscreenQMLSurface.
-        if (rootItem) {
+        if (rootItem && !cachedWebSurface) {
             // stop loading
             QMetaObject::invokeMethod(rootItem, "stop");
         }

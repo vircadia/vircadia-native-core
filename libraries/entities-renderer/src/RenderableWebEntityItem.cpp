@@ -189,13 +189,13 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         });
 
         if (urlChanged) {
+            if (!_loading && (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent)) {
+                destroyWebSurface();
+            }
+
             withWriteLock([&] {
                 _contentType = newContentType;
             });
-
-            if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
-                destroyWebSurface();
-            }
         }
     }
 
@@ -214,10 +214,12 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         // This work must be done on the main thread
         if (!_webSurface) {
             buildWebSurface(entity, newSourceURL);
+            _loading = true;
         }
 
-        if (_webSurface && _webSurface->getRootItem()) {
+        if (_webSurface) {
             if (_webSurface->getRootItem()) {
+                _loading = false;
                 if (_contentType == ContentType::HtmlContent && urlChanged) {
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
                     _sourceURL = newSourceURL;
