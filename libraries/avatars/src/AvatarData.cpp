@@ -2900,6 +2900,7 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("intersection", intersection);
     QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
+    obj.setProperty("jointIndex", value.jointIndex);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
@@ -2919,6 +2920,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     if (surfaceNormal.isValid()) {
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
+    value.jointIndex = object.property("jointIndex").toInt32();
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
@@ -3010,7 +3012,6 @@ void AvatarData::clearAvatarGrabData(const QUuid& grabID) {
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabData.remove(grabID)) {
             _avatarGrabDataChanged = true;
-            _deletedAvatarGrabs.insert(grabID);
         }
     });
 }

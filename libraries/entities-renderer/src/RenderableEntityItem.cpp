@@ -14,20 +14,20 @@
 
 #include <ObjectMotionState.h>
 
-#include "RenderableLightEntityItem.h"
-#include "RenderableLineEntityItem.h"
-#include "RenderableModelEntityItem.h"
-#include "RenderableParticleEffectEntityItem.h"
-#include "RenderablePolyVoxEntityItem.h"
-#include "RenderablePolyLineEntityItem.h"
 #include "RenderableShapeEntityItem.h"
+#include "RenderableModelEntityItem.h"
 #include "RenderableTextEntityItem.h"
+#include "RenderableImageEntityItem.h"
 #include "RenderableWebEntityItem.h"
+#include "RenderableParticleEffectEntityItem.h"
+#include "RenderableLineEntityItem.h"
+#include "RenderablePolyLineEntityItem.h"
+#include "RenderablePolyVoxEntityItem.h"
+#include "RenderableGridEntityItem.h"
+#include "RenderableGizmoEntityItem.h"
+#include "RenderableLightEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableMaterialEntityItem.h"
-#include "RenderableImageEntityItem.h"
-#include "RenderableGridEntityItem.h"
-
 
 using namespace render;
 using namespace render::entities;
@@ -282,6 +282,10 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
 
         case Type::Grid:
             result = make_renderer<GridEntityRenderer>(entity);
+            break;
+
+        case Type::Gizmo:
+            result = make_renderer<GizmoEntityRenderer>(entity);
             break;
 
         case Type::Light:

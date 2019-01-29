@@ -1310,10 +1310,17 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
             memset(_localScratchBuffer, 0, bytesToRead);
             if (0 < injectorBuffer->readData((char*)_localScratchBuffer, bytesToRead)) {
 
+                float gain = injector->getVolume();
+
                 if (injector->isAmbisonic()) {
 
-                    // no distance attenuation
-                    float gain = injector->getVolume();
+                    if (injector->isPositionSet()) {
+
+                        // distance attenuation
+                        glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                        float distance = glm::max(glm::length(relativePosition), EPSILON);
+                        gain = gainForSource(distance, gain);
+                    }
 
                     //
                     // Calculate the soundfield orientation relative to the listener.
@@ -1327,33 +1334,49 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     float qy = -relativeOrientation.x;
                     float qz = relativeOrientation.y;
 
-                    // Ambisonic gets spatialized into mixBuffer
+                    // spatialize into mixBuffer
                     injector->getLocalFOA().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
                                                    qw, qx, qy, qz, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
                 } else if (injector->isStereo()) {
 
-                    // calculate distance, gain
-                    glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
-                    float distance = glm::max(glm::length(relativePosition), EPSILON);
-                    float gain = gainForSource(distance, injector->getVolume());
+                    if (injector->isPositionSet()) {
 
-                    // stereo gets directly mixed into mixBuffer
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i++) {
-                        mixBuffer[i] += convertToFloat(_localScratchBuffer[i]) * gain;
+                        // distance attenuation
+                        glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                        float distance = glm::max(glm::length(relativePosition), EPSILON);
+                        gain = gainForSource(distance, gain);
                     }
 
-                } else {
+                    // direct mix into mixBuffer
+                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
+                        mixBuffer[2*i+0] += convertToFloat(_localScratchBuffer[2*i+0]) * gain;
+                        mixBuffer[2*i+1] += convertToFloat(_localScratchBuffer[2*i+1]) * gain;
+                    }
 
-                    // calculate distance, gain and azimuth for hrtf
-                    glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
-                    float distance = glm::max(glm::length(relativePosition), EPSILON);
-                    float gain = gainForSource(distance, injector->getVolume());
-                    float azimuth = azimuthForSource(relativePosition);
+                } else {    // injector is mono
 
-                    // mono gets spatialized into mixBuffer
-                    injector->getLocalHRTF().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
-                                                    azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    if (injector->isPositionSet()) {
+
+                        // distance attenuation
+                        glm::vec3 relativePosition = injector->getPosition() - _positionGetter();
+                        float distance = glm::max(glm::length(relativePosition), EPSILON);
+                        gain = gainForSource(distance, gain);
+
+                        float azimuth = azimuthForSource(relativePosition);
+
+                        // spatialize into mixBuffer
+                        injector->getLocalHRTF().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
+                                                        azimuth, distance, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+                    } else {
+
+                        // direct mix into mixBuffer
+                        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
+                            float sample = convertToFloat(_localScratchBuffer[i]) * gain;
+                            mixBuffer[2*i+0] += sample;
+                            mixBuffer[2*i+1] += sample;
+                        }
+                    }
                 }
 
             } else {
@@ -1956,8 +1979,10 @@ float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
 float AudioClient::gainForSource(float distance, float volume) {
 
     // attenuation = -6dB * log2(distance)
-    // reference attenuation of 0dB at distance = 1.0m
-    float gain = volume / std::max(distance, HRTF_NEARFIELD_MIN);
+    // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
+    float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
+    float gain = volume / d;
+    gain = std::min(gain, ATTN_GAIN_MAX);
 
     return gain;
 }

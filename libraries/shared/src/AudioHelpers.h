@@ -43,8 +43,9 @@ static inline float fastLog2f(float x) {
 }
 
 //
-// for -127 <= x < 128, returns exp2(x)
-// otherwise, returns undefined
+// for -126 <= x < 128, returns exp2(x)
+// for x < -126, returns 0
+// for x >= 128, returns undefined
 //
 // rel |error| < 9e-6, smooth (exact for x=N)
 //
@@ -60,6 +61,7 @@ static inline float fastExp2f(float x) {
     x -= xi.i;
 
     // construct exp2(xi) as a float
+    xi.i &= ~(xi.i >> 31);  // MAX(xi.i, 0)
     xi.i <<= IEEE754_MANT_BITS;
 
     // polynomial for exp2(x) over x=[0,1]

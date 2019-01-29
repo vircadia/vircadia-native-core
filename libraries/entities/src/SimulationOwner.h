@@ -96,11 +96,11 @@ const uint8_t RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
 // When poking objects with scripts an observer will bid at SCRIPT_EDIT priority.
 const uint8_t SCRIPT_GRAB_SIMULATION_PRIORITY = 128;
 const uint8_t SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY - 1;
-const uint8_t AVATAR_ENTITY_SIMULATION_PRIORITY = 255;
 
 // PERSONAL priority (needs a better name) is the level at which a simulation observer owns its own avatar
 // which really just means: things that collide with it will be bid at a priority level one lower
 const uint8_t PERSONAL_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY;
+const uint8_t AVATAR_ENTITY_SIMULATION_PRIORITY = PERSONAL_SIMULATION_PRIORITY;
 
 
 class SimulationOwner {

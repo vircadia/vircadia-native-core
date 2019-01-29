@@ -54,5 +54,8 @@
     <dimen name="login_menu_button_margin_top">77dp</dimen>
     <dimen name="login_menu_text_size">20sp</dimen>
     <dimen name="login_edit_text_padding">14dp</dimen>
-
+    <dimen name="profile_margin_top">20dp</dimen>
+    <dimen name="profile_margin">35dp</dimen>
+    <dimen name="profile_margin_avatars_top">40dp</dimen>
+    <dimen name="profile_margin_avatars_bottom">70dp</dimen>
 </resources>

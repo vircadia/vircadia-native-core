@@ -74,3 +74,13 @@ void DebugDraw::clearRays() {
     Lock lock(_mapMutex);
     _rays.clear();
 }
+
+void DebugDraw::drawRays(const std::vector<std::pair<glm::vec3, glm::vec3>>& lines,
+    const glm::vec4& color, const glm::vec3& translation, const glm::quat& rotation) {
+    Lock lock(_mapMutex);
+    for (std::pair<glm::vec3, glm::vec3> line : lines) {
+        auto point1 = translation + rotation * line.first;
+        auto point2 = translation + rotation * line.second;
+        _rays.push_back(Ray(point1, point2, color));
+    }
+}
