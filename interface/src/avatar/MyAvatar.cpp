@@ -3305,8 +3305,11 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
     case CONTROLS_DEFAULT:
         // No acceleration curve for this one, constant speed.
         if (zSpeed || xSpeed) {
-            direction = forward + right;
-            return getSensorToWorldScale() * _walkSpeedScalar * direction;
+            direction = (zSpeed * forward) + (xSpeed * right);
+            // Normalize direction.
+            direction /= glm::length(direction);
+            float scale = scaleSpeedByDirection(direction, _walkSpeed.get(), _walkBackwardSpeed.get());
+            return getSensorToWorldScale() * scale * direction;
         } else {
             return Vectors::ZERO;
         }
