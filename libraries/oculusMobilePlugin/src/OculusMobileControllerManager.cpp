@@ -418,10 +418,10 @@ void OculusMobileInputDevice::update(float deltaTime, const controller::InputCal
     // Axes
     {
         const auto& inputState = _hands[0].state;
-        _axisStateMap[LX] = inputState.JoystickNoDeadZone.x;
-        _axisStateMap[LY] = inputState.JoystickNoDeadZone.y;
-        _axisStateMap[LT] = inputState.IndexTrigger;
-        _axisStateMap[LEFT_GRIP] = inputState.GripTrigger;
+        _axisStateMap[LX].value = inputState.JoystickNoDeadZone.x;
+        _axisStateMap[LY].value = inputState.JoystickNoDeadZone.y;
+        _axisStateMap[LT].value = inputState.IndexTrigger;
+        _axisStateMap[LEFT_GRIP].value = inputState.GripTrigger;
         for (const auto& pair : BUTTON_MAP) {
             if (inputState.Buttons & pair.first) {
                 _buttonPressedMap.insert(pair.second);
@@ -437,10 +437,10 @@ void OculusMobileInputDevice::update(float deltaTime, const controller::InputCal
 
     {
         const auto& inputState = _hands[1].state;
-        _axisStateMap[RX] = inputState.JoystickNoDeadZone.x;
-        _axisStateMap[RY] = inputState.JoystickNoDeadZone.y;
-        _axisStateMap[RT] = inputState.IndexTrigger;
-        _axisStateMap[RIGHT_GRIP] = inputState.GripTrigger;
+        _axisStateMap[RX].value = inputState.JoystickNoDeadZone.x;
+        _axisStateMap[RY].value = inputState.JoystickNoDeadZone.y;
+        _axisStateMap[RT].value = inputState.IndexTrigger;
+        _axisStateMap[RIGHT_GRIP].value = inputState.GripTrigger;
 
         for (const auto& pair : BUTTON_MAP) {
             if (inputState.Buttons & pair.first) {
