@@ -21,10 +21,10 @@
 namespace particle {
     static const float SCRIPT_MAXIMUM_PI = 3.1416f;  // Round up so that reasonable property values work
     static const float UNINITIALIZED = NAN;
-    static const u8vec3 DEFAULT_COLOR = { 255, 255, 255 };
+    static const u8vec3 DEFAULT_COLOR = ENTITY_ITEM_DEFAULT_COLOR;
     static const vec3 DEFAULT_COLOR_UNINITIALIZED = { UNINITIALIZED, UNINITIALIZED, UNINITIALIZED };
     static const u8vec3 DEFAULT_COLOR_SPREAD = { 0, 0, 0 };
-    static const float DEFAULT_ALPHA = 1.0f;
+    static const float DEFAULT_ALPHA = ENTITY_ITEM_DEFAULT_ALPHA;
     static const float DEFAULT_ALPHA_SPREAD = 0.0f;
     static const float DEFAULT_ALPHA_START = UNINITIALIZED;
     static const float DEFAULT_ALPHA_FINISH = UNINITIALIZED;
