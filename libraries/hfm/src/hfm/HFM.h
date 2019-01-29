@@ -75,8 +75,6 @@ struct JointShapeInfo {
 class Joint {
 public:
     JointShapeInfo shapeInfo;
-    QVector<int> freeLineage;
-    bool isFree;
     int parentIndex;
     float distanceToParent;
 

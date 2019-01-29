@@ -57,27 +57,12 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     auto& jointRotationOffsets = output.edit1();
     auto& jointIndices = output.edit2();
 
-    // Get which joints are free from FST file mappings
-    QVariantList freeJoints = mapping.values("freeJoint");
     // Get joint renames
     auto jointNameMapping = getJointNameMapping(mapping);
     // Apply joint metadata from FST file mappings
     for (const auto& jointIn : jointsIn) {
         jointsOut.push_back(jointIn);
         auto& jointOut = jointsOut[jointsOut.size()-1];
-
-        jointOut.isFree = freeJoints.contains(jointIn.name);
-        // Get the indices of all ancestors starting with the first free one (if any)
-        int jointIndex = jointsOut.size() - 1;
-        jointOut.freeLineage.append(jointIndex);
-        int lastFreeIndex = jointOut.isFree ? 0 : -1;
-        for (int index = jointOut.parentIndex; index != -1; index = jointsOut.at(index).parentIndex) {
-            if (jointsOut.at(index).isFree) {
-                lastFreeIndex = jointOut.freeLineage.size();
-            }
-            jointOut.freeLineage.append(index);
-        }
-        jointOut.freeLineage.remove(lastFreeIndex + 1, jointOut.freeLineage.size() - lastFreeIndex - 1);
 
         if (jointNameMapping.contains(jointNameMapping.key(jointIn.name))) {
             jointOut.name = jointNameMapping.key(jointIn.name);

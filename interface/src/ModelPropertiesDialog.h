@@ -39,7 +39,6 @@ private slots:
     void chooseTextureDirectory();
     void chooseScriptDirectory();
     void updatePivotJoint();
-    void createNewFreeJoint(const QString& joint = QString());
     
 private:
     QComboBox* createJointBox(bool withNone = true) const;
@@ -66,7 +65,6 @@ private:
     QComboBox* _headJoint = nullptr;
     QComboBox* _leftHandJoint = nullptr;
     QComboBox* _rightHandJoint = nullptr;
-    QVBoxLayout* _freeJoints = nullptr;
 };
 
 #endif // hifi_ModelPropertiesDialog_h
