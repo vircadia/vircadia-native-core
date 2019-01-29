@@ -163,40 +163,48 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     jointChain.buildDirtyAbsolutePoses();
     jointChain.outputRelativePoses(_poses);
 
-    // initialize the middle joint target
     IKTarget midTarget;
-    midTarget.setType((int)IKTarget::Type::Spline);
-    midTarget.setIndex(_midJointIndex);
-    // set the middle joint to the position that was just determined by the base-tip spline.
-    AnimPose afterSolveMidTarget = _skeleton->getAbsolutePose(_midJointIndex, _poses);
-    // use the rotation from the ik target value, if there is one.
-    glm::quat midTargetRotation = animVars.lookupRigToGeometry(_midRotationVar, afterSolveMidTarget.rot());
-    AnimPose updatedMidTarget = AnimPose(midTargetRotation, afterSolveMidTarget.trans());
-    midTarget.setPose(updatedMidTarget.rot(), updatedMidTarget.trans());
-    midTarget.setWeight(1.0f);
-    midTarget.setFlexCoefficients(_numMidTargetFlexCoefficients, _midTargetFlexCoefficients);
+    if (_midJointIndex != -1) {
 
-    AnimChain midJointChain;
-    // Find the pose of the middle target's child. This is to correct the mid to tip 
-    // after the base to mid spline is set.
-    int childOfMiddleJointIndex = -1;
-    AnimPose childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
-    childOfMiddleJointIndex = _tipJointIndex;
-    while (_skeleton->getParentIndex(childOfMiddleJointIndex) != _midJointIndex) {
-        childOfMiddleJointIndex = _skeleton->getParentIndex(childOfMiddleJointIndex);
+        // initialize the middle joint target
+        midTarget.setType((int)IKTarget::Type::Spline);
+        midTarget.setIndex(_midJointIndex);
+        // set the middle joint to the position that was just determined by the base-tip spline.
+        AnimPose afterSolveMidTarget = _skeleton->getAbsolutePose(_midJointIndex, _poses);
+        // use the rotation from the ik target value, if there is one.
+        glm::quat midTargetRotation = animVars.lookupRigToGeometry(_midRotationVar, afterSolveMidTarget.rot());
+        AnimPose updatedMidTarget = AnimPose(midTargetRotation, afterSolveMidTarget.trans());
+        midTarget.setPose(updatedMidTarget.rot(), updatedMidTarget.trans());
+        midTarget.setWeight(1.0f);
+        midTarget.setFlexCoefficients(_numMidTargetFlexCoefficients, _midTargetFlexCoefficients);
+
+        AnimChain midJointChain;
+        // Find the pose of the middle target's child. This is to correct the mid to tip 
+        // after the base to mid spline is set.
+        int childOfMiddleJointIndex = -1;
+        AnimPose childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
+        childOfMiddleJointIndex = _tipJointIndex;
+        while ((_skeleton->getParentIndex(childOfMiddleJointIndex) != _midJointIndex) && (childOfMiddleJointIndex != -1)) {
+            childOfMiddleJointIndex = _skeleton->getParentIndex(childOfMiddleJointIndex);
+        }
+        // if the middle joint is not actually between the base and the tip then don't create spline for it
+        if (childOfMiddleJointIndex != -1) {
+            childOfMiddleJointAbsolutePoseAfterBaseTipSpline = _skeleton->getAbsolutePose(childOfMiddleJointIndex, _poses);
+
+            AnimPoseVec absolutePosesAfterBaseTipSpline;
+            absolutePosesAfterBaseTipSpline.resize(_poses.size());
+            computeAbsolutePoses(absolutePosesAfterBaseTipSpline);
+            midJointChain.buildFromRelativePoses(_skeleton, _poses, midTarget.getIndex());
+            solveTargetWithSpline(context, midTarget, absolutePosesAfterBaseTipSpline, context.getEnableDebugDrawIKChains(), midJointChain);
+            midJointChain.outputRelativePoses(_poses);
+
+            // set the mid to tip segment to match the absolute rotation of the tip target.
+            AnimPose midTargetPose(midTarget.getRotation(), midTarget.getTranslation());
+            _poses[childOfMiddleJointIndex] = midTargetPose.inverse() * childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
+        }
     }
-    childOfMiddleJointAbsolutePoseAfterBaseTipSpline = _skeleton->getAbsolutePose(childOfMiddleJointIndex, _poses);
 
-    AnimPoseVec absolutePosesAfterBaseTipSpline;
-    absolutePosesAfterBaseTipSpline.resize(_poses.size());
-    computeAbsolutePoses(absolutePosesAfterBaseTipSpline);
-    midJointChain.buildFromRelativePoses(_skeleton, _poses, midTarget.getIndex());
-    solveTargetWithSpline(context, midTarget, absolutePosesAfterBaseTipSpline, context.getEnableDebugDrawIKChains(), midJointChain);
-    midJointChain.outputRelativePoses(_poses);
-
-    // set the mid to tip segment to match the absolute rotation of the target.
-    AnimPose midTargetPose(midTarget.getRotation(), midTarget.getTranslation());
-    _poses[childOfMiddleJointIndex] = midTargetPose.inverse() * childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
+    
 
     // compute chain
     AnimChain ikChain;
@@ -249,11 +257,12 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         QString name = QString("ikTargetSplineTip");
         DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
 
-        glm::mat4 geomTargetMat2 = createMatFromQuatAndPos(midTarget.getRotation(), midTarget.getTranslation());
-        glm::mat4 avatarTargetMat2 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat2;
-        QString name2 = QString("ikTargetSplineMid");
-        DebugDraw::getInstance().addMyAvatarMarker(name2, glmExtractRotation(avatarTargetMat2), extractTranslation(avatarTargetMat2), WHITE);
-
+        if (_midJointIndex != -1) {
+            glm::mat4 geomTargetMat2 = createMatFromQuatAndPos(midTarget.getRotation(), midTarget.getTranslation());
+            glm::mat4 avatarTargetMat2 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat2;
+            QString name2 = QString("ikTargetSplineMid");
+            DebugDraw::getInstance().addMyAvatarMarker(name2, glmExtractRotation(avatarTargetMat2), extractTranslation(avatarTargetMat2), WHITE);
+        }
 
         glm::mat4 geomTargetMat3 = createMatFromQuatAndPos(baseTargetAbsolutePose.rot(), baseTargetAbsolutePose.trans());
         glm::mat4 avatarTargetMat3 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat3;
@@ -266,8 +275,10 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
 
         QString name = QString("ikTargetSplineTip");
         DebugDraw::getInstance().removeMyAvatarMarker(name);
-        QString name2 = QString("ikTargetSplineMid");
-        DebugDraw::getInstance().removeMyAvatarMarker(name2);
+        if (_midJointIndex != -1) {
+            QString name2 = QString("ikTargetSplineMid");
+            DebugDraw::getInstance().removeMyAvatarMarker(name2);
+        }
         QString name3 = QString("ikTargetSplineBase");
         DebugDraw::getInstance().removeMyAvatarMarker(name3);
 
