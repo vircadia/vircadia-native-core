@@ -53,10 +53,13 @@ public:
     const VectorOfMotionStates& getDeactivatedMotionStates() const { return _deactivatedStates; }
 
     void addChangedMotionState(ObjectMotionState* motionState) { _changedMotionStates.push_back(motionState); }
+    virtual void debugDrawObject(const btTransform& worldTransform, const btCollisionShape* shape, const btVector3& color) override;
 
 private:
     // call this instead of non-virtual btDiscreteDynamicsWorld::synchronizeSingleMotionState()
     void synchronizeMotionState(btRigidBody* body);
+    void drawConnectedSpheres(btIDebugDraw* drawer, btScalar radius1, btScalar radius2, const btVector3& position1, 
+                              const btVector3& position2, const btVector3& color);
 
     VectorOfMotionStates _changedMotionStates;
     VectorOfMotionStates _deactivatedStates;
