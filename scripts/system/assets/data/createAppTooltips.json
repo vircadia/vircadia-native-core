@@ -39,6 +39,14 @@
     "leftMargin": {
         "tooltip": "The left margin, in meters."
     },
+    "zoneShapeType": {
+        "tooltip": "The shape of the volume in which the zone's lighting effects and avatar permissions have effect.",
+        "jsPropertyName": "shapeType"
+    },
+    "zoneCompoundShapeURL": {
+        "tooltip": "The model file to use for the compound shape if Shape Type is \"Use Compound Shape URL\".",
+        "jsPropertyName": "compoundShapeURL"
+    },
     "flyingAllowed": {
         "tooltip": "If enabled, users can fly in the zone."
     },
@@ -133,7 +141,7 @@
         "tooltip": "The shape of the collision hull used if collisions are enabled. This affects how an entity collides."
     },
     "compoundShapeURL": {
-        "tooltip": "The OBJ file to use for the compound shape if Collision Shape is \"compound\"."
+        "tooltip": "The model file to use for the compound shape if Collision Shape is \"Compound\"."
     },
     "animation.url": {
         "tooltip": "An animation to play on the model."
@@ -362,6 +370,9 @@
     "priority": {
         "tooltip": "The priority of the material, where a larger number means higher priority. Original materials = 0."
     },
+    "materialMappingMode": {
+        "tooltip": "How the material is mapped to the entity. If set to \"UV space\", then the material will be applied with the target entity's UV coordinates. If set to \"3D Projected\", then the 3D transform of the material entity will be used."
+    },
     "materialMappingPos": {
         "tooltip": "The offset position of the bottom left of the material within the parent's UV space."
     },
@@ -370,6 +381,9 @@
     },
     "materialMappingRot": {
         "tooltip": "How much to rotate the material within the parent's UV-space, in degrees."
+    },
+    "materialRepeat": {
+        "tooltip": "If enabled, the material will repeat, otherwise it will clamp."
     },
     "followCamera": {
         "tooltip": "If enabled, the grid is always visible even as the camera moves to another position."

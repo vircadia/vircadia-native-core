@@ -13,6 +13,9 @@
 
 #include <OVR_CAPI_GL.h>
 
+#define OVRPL_DISABLED
+#include <OVR_Platform.h>
+
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
@@ -30,7 +33,7 @@ public:
 
     QRectF getPlayAreaRect() override;
     QVector<glm::vec3> getSensorPositions() override;
-   
+
 protected:
     void customizeContext() override;
     void uncustomizeContext() override;

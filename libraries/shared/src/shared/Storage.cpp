@@ -70,12 +70,12 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
-    bool opened = _file.open(QFile::ReadWrite);
+    bool opened = _file.open(QFile::ReadWrite | QFile::Unbuffered);
     if (opened) {
         _hasWriteAccess = true;
     } else {
         _hasWriteAccess = false;
-        opened = _file.open(QFile::ReadOnly);
+        opened = _file.open(QFile::ReadOnly| QFile::Unbuffered);
     }
 
     if (opened) {

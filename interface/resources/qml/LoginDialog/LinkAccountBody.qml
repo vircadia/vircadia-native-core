@@ -36,9 +36,10 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property bool withSteam: false
+    property bool withSteam: withSteam
     property bool linkSteam: linkSteam
-    property bool withOculus: false
+    property bool withOculus: withOculus
+    property bool linkOculus: linkOculus
     property string errorString: errorString
     property bool lostFocus: false
 
@@ -83,23 +84,24 @@ Item {
             }
             UserActivityLogger.logAction("encourageLoginDialog", data);
         }
-
-        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
+        bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
+            "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus });
     }
 
     function init() {
         // going to/from sign in/up dialog.
-        loginDialog.isLogIn = true;
         loginErrorMessage.text = linkAccountBody.errorString;
         loginErrorMessage.visible = (linkAccountBody.errorString  !== "");
-        loginButton.text = !linkAccountBody.linkSteam ? "Log In" : "Link Account";
+        if (loginErrorMessageTextMetrics.width > emailField.width) {
+            loginErrorMessage.wrapMode = Text.WordWrap;
+            errorContainer.height = (loginErrorMessageTextMetrics.width / emailField.width) * loginErrorMessageTextMetrics.height;
+        }
+        loginButton.text = (!linkAccountBody.linkSteam && !linkAccountBody.linkOculus) ? "Log In" : "Link Account";
         loginButton.color = hifi.buttons.blue;
         emailField.placeholderText = "Username or Email";
         var savedUsername = Settings.getValue("keepMeLoggedIn/savedUsername", "");
         emailField.text = keepMeLoggedInCheckbox.checked ? savedUsername === "Unknown user" ? "" : savedUsername : "";
-        if (linkAccountBody.linkSteam) {
-            steamInfoText.anchors.top = passwordField.bottom;
-            keepMeLoggedInCheckbox.anchors.top = steamInfoText.bottom;
+        if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
             loginButton.width = (passwordField.width - hifi.dimensions.contentSpacing.x) / 2;
             loginButton.anchors.right = emailField.right;
         } else {
@@ -125,7 +127,7 @@ Item {
             id: loginContainer
             width: emailField.width
             height: errorContainer.height + emailField.height + passwordField.height + 5.5 * hifi.dimensions.contentSpacing.y +
-                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height + steamInfoTextMetrics.height
+                keepMeLoggedInCheckbox.height + loginButton.height + cantAccessTextMetrics.height + continueButton.height
             anchors {
                 top: parent.top
                 topMargin: root.bannerHeight + 0.25 * parent.height
@@ -135,7 +137,7 @@ Item {
 
             Item {
                 id: errorContainer
-                width: loginErrorMessageTextMetrics.width
+                width: parent.width
                 height: loginErrorMessageTextMetrics.height
                 anchors {
                     bottom: emailField.top;
@@ -304,7 +306,7 @@ Item {
                 fontSize: linkAccountBody.fontSize
                 fontBold: linkAccountBody.fontBold
                 color: hifi.buttons.noneBorderlessWhite;
-                visible: linkAccountBody.linkSteam
+                visible: linkAccountBody.linkSteam || linkAccountBody.linkOculus
                 anchors {
                     top: keepMeLoggedInCheckbox.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
@@ -315,10 +317,9 @@ Item {
                             "action": "user clicked cancel at link account screen"
                         };
                         UserActivityLogger.logAction("encourageLoginDialog", data);
-                        loginDialog.dismissLoginDialog();
                     }
-
-                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam, "errorString": "" });
+                    bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": linkAccountBody.withSteam,
+                        "withOculus": linkAccountBody.withOculus, "errorString": "" });
                 }
             }
             HifiControlsUit.Button {
@@ -338,33 +339,6 @@ Item {
                 }
             }
             TextMetrics {
-                id: steamInfoTextMetrics
-                font: steamInfoText.font
-                text: steamInfoText.text
-            }
-            Text {
-                id: steamInfoText
-                width: root.bannerWidth
-                visible: linkAccountBody.linkSteam
-                anchors {
-                    top: loginButton.bottom
-                    topMargin: hifi.dimensions.contentSpacing.y
-                    left: emailField.left
-                }
-
-                font.family: linkAccountBody.fontFamily
-                font.pixelSize: linkAccountBody.textFieldFontSize
-                color: "white"
-                text: qsTr("Your Steam account information will not be exposed to others.");
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                Component.onCompleted: {
-                    if (steamInfoTextMetrics.width > root.bannerWidth) {
-                        steamInfoText.wrapMode = Text.WordWrap;
-                    }
-                }
-            }
-            TextMetrics {
                 id: cantAccessTextMetrics
                 font: cantAccessText.font
                 text: "Can't access your account?"
@@ -372,7 +346,7 @@ Item {
             HifiStylesUit.ShortcutText {
                 id: cantAccessText
                 z: 10
-                visible: !linkAccountBody.linkSteam
+                visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
                 anchors {
                     top: loginButton.bottom
                     topMargin: hifi.dimensions.contentSpacing.y
@@ -423,10 +397,10 @@ Item {
                 buttonGlyphSize: 24
                 buttonGlyphRightMargin: 10
                 onClicked: {
-                    // if (loginDialog.isOculusStoreRunning()) {
-                    //     linkAccountBody.withOculus = true;
-                    //     loginDialog.loginThroughSteam();
-                    // } else
+                    if (loginDialog.isOculusRunning()) {
+                        linkAccountBody.withOculus = true;
+                        loginDialog.loginThroughOculus();
+                    } else
                     if (loginDialog.isSteamRunning()) {
                         linkAccountBody.withSteam = true;
                         loginDialog.loginThroughSteam();
@@ -446,18 +420,17 @@ Item {
                     }
 
                     bodyLoader.setSource("LoggingInBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam });
+                        "withSteam": linkAccountBody.withSteam, "withOculus": linkAccountBody.withOculus, "linkSteam": linkAccountBody.linkSteam, "linkOculus": linkAccountBody.linkOculus });
                 }
                 Component.onCompleted: {
-                    if (linkAccountBody.linkSteam) {
+                    if (linkAccountBody.linkSteam || linkAccountBody.linkOculus) {
                         continueButton.visible = false;
                         return;
                     }
-                    // if (loginDialog.isOculusStoreRunning()) {
-                    //     continueButton.text = qsTr("CONTINUE WITH OCULUS");
-                    //     continueButton.buttonGlyph = hifi.glyphs.oculus;
-                    // } else
-                    if (loginDialog.isSteamRunning()) {
+                    if (loginDialog.isOculusRunning()) {
+                        continueButton.text = qsTr("CONTINUE WITH OCULUS");
+                        continueButton.buttonGlyph = hifi.glyphs.oculus;
+                    } else if (loginDialog.isSteamRunning()) {
                         continueButton.text = qsTr("CONTINUE WITH STEAM");
                         continueButton.buttonGlyph = hifi.glyphs.steamSquare;
                     } else {
@@ -470,7 +443,7 @@ Item {
             id: signUpContainer
             width: loginContainer.width
             height: signUpTextMetrics.height
-            visible: !linkAccountBody.linkSteam
+            visible: !linkAccountBody.linkSteam && !linkAccountBody.linkOculus
             anchors {
                 left: loginContainer.left
                 top: loginContainer.bottom
@@ -519,7 +492,7 @@ Item {
                         UserActivityLogger.logAction("encourageLoginDialog", data);
                     }
                     bodyLoader.setSource("SignUpBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader,
-                        "errorString": "", "linkSteam": linkAccountBody.linkSteam });
+                        "errorString": "" });
                 }
             }
         }
@@ -543,7 +516,7 @@ Item {
             fontFamily: linkAccountBody.fontFamily
             fontSize: linkAccountBody.fontSize
             fontBold: linkAccountBody.fontBold
-            visible: linkAccountBody.loginDialogPoppedUp && !linkAccountBody.linkSteam;
+            visible: loginDialog.getLoginDialogPoppedUp() && !linkAccountBody.linkSteam && !linkAccountBody.linkOculus;
             onClicked: {
                 if (linkAccountBody.loginDialogPoppedUp) {
                     var data = {

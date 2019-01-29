@@ -44,7 +44,9 @@ public:
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 
-    void updateCollisionGroup(bool myAvatarCollide);
+    bool getCollideWithOtherAvatars() const { return _collideWithOtherAvatars; } 
+
+    void setCollisionWithOtherAvatarsFlags() override;
 
     void simulate(float deltaTime, bool inView) override;
 

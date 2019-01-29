@@ -31,6 +31,8 @@ public:
 
     virtual void compositeExtra() override;
 
+    virtual void pluginUpdate() override {};
+
 protected:
     mutable bool _isThrottled = false;
 

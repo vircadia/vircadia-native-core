@@ -6,8 +6,13 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 macro(TARGET_ZLIB)
-   	# using VCPKG for zlib
-    find_package(ZLIB REQUIRED)
-    target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${ZLIB_INCLUDE_DIRS})
-    target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
+    if (ANDROID)
+        # zlib is part of the NDK
+        target_link_libraries(${TARGET_NAME} z)
+    else()
+        # using VCPKG for zlib
+        find_package(ZLIB REQUIRED)
+        target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${ZLIB_INCLUDE_DIRS})
+        target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
+    endif()
 endmacro()

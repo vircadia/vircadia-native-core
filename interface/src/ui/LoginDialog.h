@@ -22,7 +22,6 @@ extern const QUrl LOGIN_DIALOG;
 
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
-    Q_PROPERTY(bool isLogIn READ getIsLogIn WRITE setIsLogIn)
     HIFI_QML_DECL
 
 public:
@@ -67,24 +66,23 @@ protected slots:
     Q_INVOKABLE void dismissLoginDialog();
 
     Q_INVOKABLE bool isSteamRunning() const;
-    Q_INVOKABLE bool isOculusStoreRunning() const;
+    Q_INVOKABLE bool isOculusRunning() const;
+
+    Q_INVOKABLE QString oculusUserID() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
     Q_INVOKABLE void createAccountFromSteam(QString username = QString());
+    Q_INVOKABLE void loginThroughOculus();
+    Q_INVOKABLE void linkOculus();
+    Q_INVOKABLE void createAccountFromOculus(QString email = QString(), QString username = QString(), QString password = QString());
 
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
 
     Q_INVOKABLE bool getLoginDialogPoppedUp() const;
-
-private:
-    bool getIsLogIn() const { return _isLogIn; }
-    void setIsLogIn(const bool isLogIn) { _isLogIn = isLogIn; }
-
-    bool _isLogIn{ false };
 };
 
 #endif // hifi_LoginDialog_h

@@ -141,7 +141,7 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity), _created(entity->getCreated()) {
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {
     connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
         _needsRenderUpdate = true;
         emit requestRenderUpdate();
@@ -479,7 +479,7 @@ glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const Puls
     }
 
     float t = ((float)(usecTimestampNow() - start)) / ((float)USECS_PER_SECOND);
-    float pulse = 0.5f * (glm::cos(t * (2.0f * M_PI) / pulseProperties.getPeriod()) + 1.0f) * (pulseProperties.getMax() - pulseProperties.getMin()) + pulseProperties.getMin();
+    float pulse = 0.5f * (cosf(t * (2.0f * (float)M_PI) / pulseProperties.getPeriod()) + 1.0f) * (pulseProperties.getMax() - pulseProperties.getMin()) + pulseProperties.getMin();
     float outPulse = (1.0f - pulse);
 
     glm::vec4 result = color;

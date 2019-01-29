@@ -26,8 +26,17 @@ glm::vec3 normalizeDirForPacking(const glm::vec3& dir) {
     return dir;
 }
 
-void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphicsMeshPointer, baker::MeshTangents& meshTangents, baker::Blendshapes& blendshapes) {
+void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphicsMeshPointer, const baker::MeshNormals& meshNormals, const baker::MeshTangents& meshTangentsIn) {
     auto graphicsMesh = std::make_shared<graphics::Mesh>();
+
+    // Fill tangents with a dummy value to force tangents to be present if there are normals
+    baker::MeshTangents meshTangents;
+    if (!meshTangentsIn.empty()) {
+        meshTangents = meshTangentsIn;
+    } else {
+        meshTangents.reserve(meshNormals.size());
+        std::fill_n(std::back_inserter(meshTangents), meshNormals.size(), Vectors::UNIT_X);
+    }
 
     unsigned int totalSourceIndices = 0;
     foreach(const HFMMeshPart& part, hfmMesh.parts) {
@@ -48,23 +57,6 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 
     int numVerts = hfmMesh.vertices.size();
 
-    if (!hfmMesh.normals.empty() && hfmMesh.tangents.empty()) {
-        // Fill with a dummy value to force tangents to be present if there are normals
-        meshTangents.reserve(hfmMesh.normals.size());
-        std::fill_n(std::back_inserter(meshTangents), hfmMesh.normals.size(), Vectors::UNIT_X);
-    } else {
-        meshTangents = hfmMesh.tangents.toStdVector();
-    }
-    // Same thing with blend shapes
-    blendshapes = hfmMesh.blendshapes.toStdVector();
-    for (auto& blendShape : blendshapes) {
-        if (!blendShape.normals.empty() && blendShape.tangents.empty()) {
-            // Fill with a dummy value to force tangents to be present if there are normals
-            blendShape.tangents.reserve(blendShape.normals.size());
-            std::fill_n(std::back_inserter(blendShape.tangents), blendShape.normals.size(), Vectors::UNIT_X);
-        }
-    }
-
     // evaluate all attribute elements and data sizes
 
     // Position is a vec3
@@ -73,12 +65,12 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 
     // Normal and tangent are always there together packed in normalized xyz32bits word (times 2)
     const auto normalElement = HFM_NORMAL_ELEMENT;
-    const int normalsSize = hfmMesh.normals.size() * normalElement.getSize();
+    const int normalsSize = (int)meshNormals.size() * normalElement.getSize();
     const int tangentsSize = (int)meshTangents.size() * normalElement.getSize();
     // If there are normals then there should be tangents
     assert(normalsSize <= tangentsSize);
     if (tangentsSize > normalsSize) {
-        HIFI_FCDEBUG_ID(model_baker(), repeatMessageID, "BuildGraphicsMeshTask -- Unexpected tangents in file");
+        HIFI_FCDEBUG_ID(model_baker(), repeatMessageID, "BuildGraphicsMeshTask -- Unexpected tangents in mesh");
     }
     const auto normalsAndTangentsSize = normalsSize + tangentsSize;
 
@@ -124,11 +116,11 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
     if (normalsSize > 0) {
         std::vector<NormalType> normalsAndTangents;
 
-        normalsAndTangents.reserve(hfmMesh.normals.size() + (int)meshTangents.size());
-        auto normalIt = hfmMesh.normals.constBegin();
+        normalsAndTangents.reserve(meshNormals.size() + (int)meshTangents.size());
+        auto normalIt = meshNormals.cbegin();
         auto tangentIt = meshTangents.cbegin();
         for (;
-            normalIt != hfmMesh.normals.constEnd();
+            normalIt != meshNormals.cend();
             ++normalIt, ++tangentIt) {
 #if HFM_PACK_NORMALS
             const auto normal = normalizeDirForPacking(*normalIt);
@@ -212,11 +204,6 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
     auto vertexFormat = std::make_shared<gpu::Stream::Format>();
     auto vertexBufferStream = std::make_shared<gpu::BufferStream>();
 
-    // Decision time:
-    // if blendshapes then keep position and normals/tangents as separated channel buffers from interleaved attributes
-    // else everything is interleaved in one buffer
-
-    // Default case is no blend shapes
     gpu::BufferPointer attribBuffer;
     int totalAttribBufferSize = totalVertsSize;
     gpu::uint8 posChannel = 0;
@@ -244,7 +231,7 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
         }
     }
 
-    // Pack normal and Tangent with the rest of atributes if no blend shapes
+    // Pack normal and Tangent with the rest of atributes
     if (colorsSize) {
         vertexFormat->setAttribute(gpu::Stream::COLOR, attribChannel, colorElement, bufOffset);
         bufOffset += colorElement.getSize();
@@ -384,22 +371,21 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 }
 
 void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
-    auto& meshes = input.get0();
-    auto& url = input.get1();
-    auto& meshIndicesToModelNames = input.get2();
+    const auto& meshes = input.get0();
+    const auto& url = input.get1();
+    const auto& meshIndicesToModelNames = input.get2();
+    const auto& normalsPerMesh = input.get3();
+    const auto& tangentsPerMesh = input.get4();
 
-    auto& graphicsMeshes = output.edit0();
-    auto& tangentsPerMesh = output.edit1();
-    auto& blendshapesPerMesh = output.edit2();
+    auto& graphicsMeshes = output;
+
     int n = (int)meshes.size();
     for (int i = 0; i < n; i++) {
         graphicsMeshes.emplace_back();
         auto& graphicsMesh = graphicsMeshes[i];
-        tangentsPerMesh.emplace_back();
-        blendshapesPerMesh.emplace_back();
         
         // Try to create the graphics::Mesh
-        buildGraphicsMesh(meshes[i], graphicsMesh, tangentsPerMesh[i], blendshapesPerMesh[i]);
+        buildGraphicsMesh(meshes[i], graphicsMesh, normalsPerMesh[i], tangentsPerMesh[i]);
 
         // Choose a name for the mesh
         if (graphicsMesh) {

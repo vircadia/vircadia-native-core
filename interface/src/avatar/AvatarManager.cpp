@@ -270,7 +270,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
             avatar->removeOrb();
-            avatar->updateCollisionGroup(_myAvatar->getOtherAvatarsCollisionsEnabled());
             if (avatar->needsPhysicsUpdate()) {
                 _avatarsToChangeInPhysics.insert(avatar);
             }
@@ -376,7 +375,6 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
-
     auto otherAvatar = new OtherAvatar(qApp->thread());
     otherAvatar->setSessionUUID(sessionUUID);
     auto nodeList = DependencyManager::get<NodeList>();
@@ -452,6 +450,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
     }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
+    avatar->tearDownGrabs();
 
     avatar->die();
     queuePhysicsChange(avatar);
