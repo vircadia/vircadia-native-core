@@ -270,9 +270,8 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         glm::vec3 axisDir = glm::normalize(axis);
         for (size_t i = 0; i < points.size(); i++) {
             float dot = glm::dot(points[i], axisDir);
-            float distance = glm::length(points[i]);
             if (dot > 0.0f) {
-                float distancePow = glm::pow(distance, 2);
+                float distancePow = glm::distance2(Vectors::ZERO, points[i]);
                 float dotPow = glm::pow(dot, 2);
                 float radius = (dot / maxDistance) * glm::sqrt(distancePow - dotPow);
                 averageRadius += radius;
