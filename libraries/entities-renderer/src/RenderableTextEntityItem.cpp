@@ -194,19 +194,22 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
 
-    batch.setModelTransform(transformToTopLeft);
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    geometryCache->bindSimpleProgram(batch, false, backgroundColor.a < 1.0f, false, false, false);
-    geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
+    if (backgroundColor.a > 0.0f) {
+        batch.setModelTransform(transformToTopLeft);
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        geometryCache->bindSimpleProgram(batch, false, backgroundColor.a < 1.0f, false, false, false);
+        geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
+    }
 
-    // FIXME: Factor out textRenderer so that text parts can be grouped by pipeline for a gpu performance increase.
-    float scale = _lineHeight / _textRenderer->getFontSize();
-    transformToTopLeft.setScale(scale); // Scale to have the correct line height
-    batch.setModelTransform(transformToTopLeft);
+    if (textColor.a > 0.0f) {
+        // FIXME: Factor out textRenderer so that text parts can be grouped by pipeline for a gpu performance increase.
+        float scale = _lineHeight / _textRenderer->getFontSize();
+        transformToTopLeft.setScale(scale);  // Scale to have the correct line height
+        batch.setModelTransform(transformToTopLeft);
 
-    glm::vec2 bounds = glm::vec2(dimensions.x - (_leftMargin + _rightMargin),
-                                 dimensions.y - (_topMargin + _bottomMargin));
-    _textRenderer->draw(batch, _leftMargin / scale, -_topMargin / scale, _text, textColor, bounds / scale);
+        glm::vec2 bounds = glm::vec2(dimensions.x - (_leftMargin + _rightMargin), dimensions.y - (_topMargin + _bottomMargin));
+        _textRenderer->draw(batch, _leftMargin / scale, -_topMargin / scale, _text, textColor, bounds / scale);
+    }
 }
 
 QSizeF TextEntityRenderer::textSize(const QString& text) const {
