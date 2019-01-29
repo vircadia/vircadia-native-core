@@ -397,6 +397,20 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             }
             overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
         }
+        if (add || overlayProps.contains("localRotation")) {
+            glm::quat rotation;
+            {
+                auto iter = overlayProps.find("localRotation");
+                if (iter != overlayProps.end()) {
+                    rotation = quatFromVariant(iter.value());
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_LOCAL_ROTATION;
+                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getLocalRotation();
+                }
+            }
+            overlayProps["localRotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
+        }
 
         {
             RENAME_PROP(color, innerStartColor);
@@ -536,8 +550,6 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
     RENAME_PROP(position, point);
     RENAME_PROP(dimensions, scale);
     RENAME_PROP(dimensions, size);
-    RENAME_PROP(rotation, orientation);
-    RENAME_PROP(localRotation, localOrientation);
     RENAME_PROP(ignorePickIntersection, ignoreRayIntersection);
 
     {
@@ -586,10 +598,14 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
         RENAME_PROP(sourceUrl, url);
         RENAME_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "mouse" ? "Mouse" : "Touch"; });
     } else if (type == "Gizmo") {
-        RENAME_PROP_CONVERT(dimensions, outerRadius, [](const QVariant& v) { return vec3FromVariant(v).x; });
+        RENAME_PROP_CONVERT(dimensions, outerRadius, [](const QVariant& v) { return 2.0f * vec3FromVariant(v).x; });
         RENAME_PROP(outerRadius, radius);
 
         RENAME_PROP_CONVERT(rotation, rotation, [](const QVariant& v) {
+            glm::quat rot = quatFromVariant(v);
+            return quatToVariant(glm::angleAxis((float)M_PI_2, rot * Vectors::RIGHT) * rot);
+        });
+        RENAME_PROP_CONVERT(localRotation, localRotation, [](const QVariant& v) {
             glm::quat rot = quatFromVariant(v);
             return quatToVariant(glm::angleAxis((float)M_PI_2, rot * Vectors::RIGHT) * rot);
         });
@@ -637,6 +653,10 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
 
         RENAME_PROP_CONVERT(glow, glow, [](const QVariant& v) { return v.toBool() ? 1.0f : 0.0f; });
     }
+
+    // Do at the end, in case this type was rotated above
+    RENAME_PROP(rotation, orientation);
+    RENAME_PROP(localRotation, localOrientation);
 
     return overlayProps;
 }

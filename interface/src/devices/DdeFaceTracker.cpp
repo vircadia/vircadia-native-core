@@ -615,10 +615,6 @@ void DdeFaceTracker::setEyeClosingThreshold(float eyeClosingThreshold) {
 
 static const int CALIBRATION_BILLBOARD_WIDTH = 300;
 static const int CALIBRATION_BILLBOARD_HEIGHT = 120;
-static const int CALIBRATION_BILLBOARD_TOP_MARGIN = 30;
-static const int CALIBRATION_BILLBOARD_LEFT_MARGIN = 30;
-static const int CALIBRATION_BILLBOARD_FONT_SIZE = 16;
-static const float CALIBRATION_BILLBOARD_ALPHA = 0.5f;
 static QString CALIBRATION_INSTRUCTION_MESSAGE = "Hold still to calibrate camera";
 
 void DdeFaceTracker::calibrate() {

@@ -170,8 +170,7 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
         visible: visible
     });
 
-    // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
-    var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
+    var homeButtonDim = 4.0 * tabletScaleFactor / 1.5;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2));
     var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleFactor;
@@ -223,23 +222,6 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
             }
         }
     };
-
-    this.myOnHoverEnterOverlay = function (overlayID, pointerEvent) {
-        _this.onHoverEnterOverlay(overlayID, pointerEvent);
-    };
-
-    Overlays.hoverEnterOverlay.connect(this.myOnHoverEnterOverlay);
-
-    this.myOnHoverLeaveOverlay = function (overlayID, pointerEvent) {
-        _this.onHoverLeaveOverlay(overlayID, pointerEvent);
-    };
-
-    Overlays.hoverLeaveOverlay.connect(this.myOnHoverLeaveOverlay);
-
-    this.myOnHoverOverOverlay = function (overlayID, pointerEvent) {
-        _this.onHoverOverOverlay(overlayID, pointerEvent);
-    };
-    Overlays.hoverOverOverlay.connect(this.myOnHoverOverOverlay);
 
     this.state = "idle";
 
@@ -350,10 +332,6 @@ WebTablet.prototype.setWidth = function (width) {
 };
 
 WebTablet.prototype.destroy = function () {
-    Overlays.hoverEnterOverlay.disconnect(this.myOnHoverEnterOverlay);
-    Overlays.hoverLeaveOverlay.disconnect(this.myOnHoverLeaveOverlay);
-    Overlays.hoverOverOverlay.disconnect(this.myOnHoverOverOverlay);
-
     Overlays.deleteOverlay(this.webOverlayID);
     Overlays.deleteOverlay(this.tabletEntityID);
     Overlays.deleteOverlay(this.homeButtonID);
@@ -447,24 +425,6 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
         position: worldMousePosition,
         rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) : Quat.multiply(Camera.orientation, ROT_Y_180)
     };
-};
-
-WebTablet.prototype.onHoverEnterOverlay = function (overlayID, pointerEvent) {
-    if (overlayID === this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 1.0 });
-    }
-};
-
-WebTablet.prototype.onHoverOverOverlay = function (overlayID, pointerEvent) {
-    if (overlayID !== this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
-    }
-};
-
-WebTablet.prototype.onHoverLeaveOverlay = function (overlayID, pointerEvent) {
-    if (overlayID === this.homeButtonID) {
-        Overlays.editOverlay(this.homeButtonHighlightID, { alpha: 0.0 });
-    }
 };
 
 // compute position, rotation & parentJointIndex of the tablet
@@ -595,17 +555,8 @@ WebTablet.prototype.scheduleMouseMoveProcessor = function() {
 
 WebTablet.prototype.handleHomeButtonHover = function(x, y) {
     var pickRay = Camera.computePickRay(x, y);
-    var entityPickResults;
-    var homebuttonHovered = false;
-    entityPickResults = Overlays.findRayIntersection(pickRay, true, [this.tabletEntityID]);
-    if (entityPickResults.intersects && (entityPickResults.entityID === this.tabletEntityID ||
-        entityPickResults.overlayID === this.tabletEntityID)) {
-        var overlayPickResults = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID], []);
-        if (overlayPickResults.intersects && overlayPickResults.overlayID === this.homeButtonID) {
-            homebuttonHovered = true;
-        }
-    }
-    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homebuttonHovered ? 1.0 : 0.0 });
+    var homePickResult = Overlays.findRayIntersection(pickRay, true, [this.homeButtonID]);
+    Overlays.editOverlay(this.homeButtonHighlightID, { alpha: homePickResult.intersects ? 1.0 : 0.0 });
 };
 
 WebTablet.prototype.mouseMoveEvent = function (event) {

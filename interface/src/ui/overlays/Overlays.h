@@ -358,8 +358,10 @@ public slots:
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
      * @param {Array.<Uuid>} [include=[]] - If not empty then the search is restricted to these overlays.
      * @param {Array.<Uuid>} [discard=[]] - Overlays to ignore during the search.
-     * @param {boolean} [visibleOnly=false] - <em>Unused</em>; exists to match Entity API.
-     * @param {boolean} [collidableOnly=false] - <em>Unused</em>; exists to match Entity API.
+     * @param {boolean} [visibleOnly=false] - If <code>true</code> then only entities that are 
+     *     <code>{@link Entities.EntityProperties|visible}<code> are searched.
+     * @param {boolean} [collideableOnly=false] - If <code>true</code> then only entities that are not 
+     *     <code>{@link Entities.EntityProperties|collisionless}</code> are searched.
      * @returns {Overlays.RayToOverlayIntersectionResult} The closest 3D overlay intersected by <code>pickRay</code>, taking
      *     into account <code>overlayIDsToInclude</code> and <code>overlayIDsToExclude</code> if they're not empty.
      * @example <caption>Create a cube overlay in front of your avatar. Report 3D overlay intersection details for mouse 
