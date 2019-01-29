@@ -726,7 +726,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.shouldCancel = function () {
-            return (_this.getDominantY() < -TELEPORT_DEADZONE || _this.getOffhandY() < -TELEPORT_DEADZONE) ? true : false;
+            //return (_this.getDominantY() < -TELEPORT_DEADZONE || _this.getOffhandY() < -TELEPORT_DEADZONE) ? true : false;
+            return (_this.getOffhandY() <= TELEPORT_DEADZONE) ? true : false;
         };
 
         this.parameters = makeDispatcherModuleParameters(
