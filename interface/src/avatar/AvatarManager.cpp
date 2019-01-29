@@ -652,13 +652,12 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
     PROFILE_RANGE(simulation_physics, __FUNCTION__);
 
     float distance = (float)INT_MAX;  // with FLT_MAX bullet rayTest does not return results 
-
-    std::vector<MyCharacterController::RayAvatarResult> physicsResults = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(ray.direction), distance, QVector<uint>());
-    
+    glm::vec3 rayDirection = glm::normalize(ray.direction);
+    std::vector<MyCharacterController::RayAvatarResult> physicsResults = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(rayDirection), distance, QVector<uint>());
     if (physicsResults.size() > 0) {
-        glm::vec3 rayDirectionInv = { ray.direction.x != 0 ? 1.0f / ray.direction.x : INFINITY,
-                                      ray.direction.y != 0.0f ? 1.0f / ray.direction.y : INFINITY,
-                                      ray.direction.z != 0.0f ? 1.0f / ray.direction.z : INFINITY };
+        glm::vec3 rayDirectionInv = { rayDirection.x != 0.0f ? 1.0f / rayDirection.x : INFINITY,
+                                      rayDirection.y != 0.0f ? 1.0f / rayDirection.y : INFINITY,
+                                      rayDirection.z != 0.0f ? 1.0f / rayDirection.z : INFINITY };
 
         MyCharacterController::RayAvatarResult rayAvatarResult;
         AvatarPointer avatar = nullptr;
@@ -697,12 +696,12 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                             BoxFace face;
                             glm::vec3 surfaceNormal;
                             auto &bbox = mSphere.getBoundingBox();
-                            if (bbox.findRayIntersection(ray.origin, ray.direction, rayDirectionInv, boundDistance, face, surfaceNormal)) {
+                            if (bbox.findRayIntersection(ray.origin, rayDirection, rayDirectionInv, boundDistance, face, surfaceNormal)) {
                                 MyCharacterController::RayAvatarResult boxHit;
                                 boxHit._distance = boundDistance;
                                 boxHit._intersect = true;
                                 boxHit._intersectionNormal = surfaceNormal;
-                                boxHit._intersectionPoint = ray.origin + boundDistance * glm::normalize(ray.direction);
+                                boxHit._intersectionPoint = ray.origin + boundDistance * rayDirection;
                                 boxHit._intersectWithAvatar = avatarID;
                                 boxHit._intersectWithJoint = mSphere.getJointIndex();
                                 boxHits.push_back(boxHit);
@@ -722,7 +721,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             }
             if (pickAgainstMesh) {
                 glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
-                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + ray.direction, rayAvatarResult._intersectWithJoint);
+                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayDirection, rayAvatarResult._intersectWithJoint);
 
                 auto avatarOrientation = avatar->getWorldOrientation();
                 auto avatarPosition = avatar->getWorldPosition();
@@ -737,7 +736,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 if (avatar->getSkeletonModel()->findRayIntersectionAgainstSubMeshes(defaultFrameRayOrigin, defaultFrameRayDirection, distance, face, surfaceNormal, extraInfo, true, false)) {
                     auto newDistance = glm::length(vec3FromVariant(extraInfo["worldIntersectionPoint"]) - defaultFrameRayOrigin);
                     rayAvatarResult._distance = newDistance;
-                    rayAvatarResult._intersectionPoint = ray.origin + newDistance * glm::normalize(ray.direction);
+                    rayAvatarResult._intersectionPoint = ray.origin + newDistance * rayDirection;
                     rayAvatarResult._intersectionNormal = surfaceNormal;
                     extraInfo["worldIntersectionPoint"] = vec3toVariant(rayAvatarResult._intersectionPoint);
                     break;
@@ -752,7 +751,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
             result.distance = rayAvatarResult._distance;
             result.surfaceNormal = rayAvatarResult._intersectionNormal;
             result.jointIndex = rayAvatarResult._intersectWithJoint;
-            result.intersection = ray.origin + rayAvatarResult._distance * glm::normalize(ray.direction);
+            result.intersection = ray.origin + rayAvatarResult._distance * rayDirection;
             result.extraInfo = extraInfo;
             result.face = face;
         }

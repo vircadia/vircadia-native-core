@@ -286,6 +286,9 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         minAverageRadius = glm::min(averageRadius, minAverageRadius);
         spheres[j]._radius = averageRadius;
     }
+    if (maxAverageRadius == 0.0f) {
+        maxAverageRadius = 1.0f;
+    }
     float radiusRatio = maxRadius / maxAverageRadius;
     // Push the sphere into the bounding box
     float contractionRatio = 0.8f;
@@ -299,7 +302,7 @@ void MultiSphereShape::spheresFromAxes(const std::vector<glm::vec3>& points, con
         }
         spheres[j]._radius = radius;
         if (distance - radius > 0.0f) {
-            spheres[j]._position = (distance - radius) * glm::normalize(axis);
+            spheres[j]._position = ((distance - radius) / distance) * axis;
         } else {
             spheres[j]._position = glm::vec3(0.0f);
         }
@@ -356,15 +359,15 @@ void MultiSphereShape::calculateDebugLines() {
                                    axis.x != 0.0f ? glm::abs(axis.y) / axis.y : 0.0f ,
                                    axis.z != 0.0f ? glm::abs(axis.z) / axis.z : 0.0f };
                 bool add = false;
-                if (sign.x == 0) {
+                if (sign.x == 0.0f) {
                     if (sign.y == CORNER_SIGNS[i].y && sign.z == CORNER_SIGNS[i].z) {
                         add = true;
                     }
-                } else if (sign.y == 0) {
+                } else if (sign.y == 0.0f) {
                     if (sign.x == CORNER_SIGNS[i].x && sign.z == CORNER_SIGNS[i].z) {
                         add = true;
                     }
-                } else if (sign.z == 0) {
+                } else if (sign.z == 0.0f) {
                     if (sign.x == CORNER_SIGNS[i].x && sign.y == CORNER_SIGNS[i].y) {
                         add = true;
                     }
@@ -459,14 +462,14 @@ void MultiSphereShape::calculateSphereLines(std::vector<std::pair<glm::vec3, glm
     } else {
         uAxis = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), mainAxis));
         vAxis = glm::normalize(glm::cross(mainAxis, uAxis));
-        if ((uAxis.z == 0 && uAxis.x < 0) || (uAxis.x == 0 && uAxis.z < 0)) {
+        if ((uAxis.z == 0.0f && uAxis.x < 0.0f) || (uAxis.x == 0.0f && uAxis.z < 0.0f)) {
             uAxis = -uAxis;
-        } else if (uAxis.x < 0) {
+        } else if (uAxis.x < 0.0f) {
             uAxis = -uAxis;
         }
-        if ((vAxis.z == 0 && vAxis.x < 0) || (vAxis.x == 0 && vAxis.z < 0)) {
+        if ((vAxis.z == 0.0f && vAxis.x < 0.0f) || (vAxis.x == 0.0f && vAxis.z < 0.0f)) {
             vAxis = -vAxis;
-        } else if (vAxis.x < 0) {
+        } else if (vAxis.x < 0.0f) {
             vAxis = -vAxis;
         }
     }

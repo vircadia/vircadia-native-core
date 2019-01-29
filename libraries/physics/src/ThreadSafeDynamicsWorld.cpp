@@ -174,17 +174,18 @@ void ThreadSafeDynamicsWorld::saveKinematicState(btScalar timeStep) {
 }
 
 void ThreadSafeDynamicsWorld::drawConnectedSpheres(btIDebugDraw* drawer, btScalar radius1, btScalar radius2, const btVector3& position1, const btVector3& position2, const btVector3& color) {
-    int stepDegrees = 30;
+    float stepRadians = PI/6.0f; // 30 degrees
     btVector3 direction = position2 - position1;
     btVector3 xAxis = direction.cross(btVector3(0.0f, 1.0f, 0.0f));
     xAxis = xAxis.length() < EPSILON ? btVector3(1.0f, 0.0f, 0.0f) : xAxis.normalize();
     btVector3 zAxis = xAxis.cross(btVector3(0.0f, 1.0f, 0.0f));
     zAxis = (direction.normalize().getY() < EPSILON) ? btVector3(0.0f, 1.0f, 0.0f) : zAxis.normalize();
-    for (int i = 0; i < 360; i += stepDegrees) {
-        float x1 = btSin(btScalar(i)*SIMD_RADS_PER_DEG) * radius1;
-        float z1 = btCos(btScalar(i)*SIMD_RADS_PER_DEG) * radius1;
-        float x2 = btSin(btScalar(i)*SIMD_RADS_PER_DEG) * radius2;
-        float z2 = btCos(btScalar(i)*SIMD_RADS_PER_DEG) * radius2;
+    float fullCircle = 2.0f * PI;
+    for (float i = 0; i < fullCircle; i += stepRadians) {
+        float x1 = btSin(btScalar(i)) * radius1;
+        float z1 = btCos(btScalar(i)) * radius1;
+        float x2 = btSin(btScalar(i)) * radius2;
+        float z2 = btCos(btScalar(i)) * radius2;
 
         btVector3 addVector1 = xAxis * x1 + zAxis * z1;
         btVector3 addVector2 = xAxis * x2 + zAxis * z2;
