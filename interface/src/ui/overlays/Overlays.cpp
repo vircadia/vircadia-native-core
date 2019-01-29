@@ -740,7 +740,8 @@ bool Overlays::editOverlay(const QUuid& id, const QVariant& properties) {
     }
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    EntityItemProperties entityProperties = convertOverlayToEntityProperties(properties.toMap(), entityScriptingInterface->getEntityType(id), false, id);
+    auto propertyMap = properties.toMap();
+    EntityItemProperties entityProperties = convertOverlayToEntityProperties(propertyMap, entityScriptingInterface->getEntityType(id), false, id);
     return !entityScriptingInterface->editEntity(id, entityProperties).isNull();
 }
 
@@ -766,7 +767,8 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
             }
             overlay->setProperties(properties.toMap());
         } else {
-            entityScriptingInterface->editEntity(id, convertOverlayToEntityProperties(properties.toMap(), entityScriptingInterface->getEntityType(id), false, id));
+            auto propertyMap = properties.toMap();
+            entityScriptingInterface->editEntity(id, convertOverlayToEntityProperties(propertyMap, entityScriptingInterface->getEntityType(id), false, id));
         }
     }
 

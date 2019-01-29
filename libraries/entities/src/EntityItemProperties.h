@@ -341,6 +341,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t, WebEntityItem::DEFAULT_MAX_FPS);
     DEFINE_PROPERTY_REF_ENUM(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode, WebInputMode::TOUCH);
+    DEFINE_PROPERTY_REF(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool, true);
 
     // Polyline
     DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);

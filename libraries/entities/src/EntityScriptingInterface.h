@@ -270,12 +270,12 @@ public slots:
      */
     Q_INVOKABLE QUuid addEntity(const EntityItemProperties& properties, const QString& entityHostTypeString) {
         entity::HostType entityHostType;
-        if (entityHostTypeString == "domain") {
-            entityHostType = entity::HostType::DOMAIN;
+        if (entityHostTypeString == "local") {
+            entityHostType = entity::HostType::LOCAL;
         } else if (entityHostTypeString == "avatar") {
             entityHostType = entity::HostType::AVATAR;
-        } else if (entityHostTypeString == "local") {
-            entityHostType = entity::HostType::LOCAL;
+        } else {
+            entityHostType = entity::HostType::DOMAIN;
         }
         return addEntityInternal(properties, entityHostType);
     }

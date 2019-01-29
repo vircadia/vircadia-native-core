@@ -54,6 +54,7 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptURL, getScriptURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxFPS, getMaxFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(inputMode, getInputMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(showKeyboardFocusHighlight, getShowKeyboardFocusHighlight);
     return properties;
 }
 
@@ -73,6 +74,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptURL, setScriptURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxFPS, setMaxFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(inputMode, setInputMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(showKeyboardFocusHighlight, setShowKeyboardFocusHighlight);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -111,6 +113,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
     READ_ENTITY_PROPERTY(PROP_SCRIPT_URL, QString, setScriptURL);
     READ_ENTITY_PROPERTY(PROP_MAX_FPS, uint8_t, setMaxFPS);
     READ_ENTITY_PROPERTY(PROP_INPUT_MODE, WebInputMode, setInputMode);
+    READ_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
 
     return bytesRead;
 }
@@ -126,6 +129,7 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
     requestedProperties += PROP_SCRIPT_URL;
     requestedProperties += PROP_MAX_FPS;
     requestedProperties += PROP_INPUT_MODE;
+    requestedProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
     return requestedProperties;
 }
 
@@ -150,6 +154,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, getScriptURL());
     APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, getMaxFPS());
     APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)getInputMode());
+    APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, getShowKeyboardFocusHighlight());
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -295,6 +300,18 @@ void WebEntityItem::setInputMode(const WebInputMode& value) {
 WebInputMode WebEntityItem::getInputMode() const {
     return resultWithReadLock<WebInputMode>([&] {
         return _inputMode;
+    });
+}
+
+void WebEntityItem::setShowKeyboardFocusHighlight(bool value) {
+    withWriteLock([&] {
+        _showKeyboardFocusHighlight = value;
+    });
+}
+
+bool WebEntityItem::getShowKeyboardFocusHighlight() const {
+    return resultWithReadLock<bool>([&] {
+        return _showKeyboardFocusHighlight;
     });
 }
 

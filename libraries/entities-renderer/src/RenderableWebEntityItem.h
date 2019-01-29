@@ -77,7 +77,6 @@ private:
     };
     static ContentType getContentType(const QString& urlString);
     ContentType _contentType { ContentType::NoContent };
-    bool _loading { false };
 
     QSharedPointer<OffscreenQmlSurface> _webSurface { nullptr };
     bool _cachedWebSurface { false };

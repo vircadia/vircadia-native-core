@@ -260,6 +260,7 @@ enum class EntityVersion : PacketVersion {
     MissingWebEntityProperties,
     PulseProperties,
     RingGizmoEntities,
+    ShowKeyboardFocusHighlight,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

@@ -1154,7 +1154,6 @@ SelectionDisplay = (function() {
         var result = testRayIntersect(pickRay, allOverlays);
         var pickedColor;
         var highlightNeeded = false;
-        print(JSON.stringify(result));
 
         if (result.intersects) {
             switch (result.overlayID) {

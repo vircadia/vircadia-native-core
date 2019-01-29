@@ -77,6 +77,9 @@ public:
     void setInputMode(const WebInputMode& value);
     WebInputMode getInputMode() const;
 
+    bool getShowKeyboardFocusHighlight() const;
+    void setShowKeyboardFocusHighlight(bool value);
+
     PulsePropertyGroup getPulseProperties() const;
 
 protected:
@@ -89,6 +92,7 @@ protected:
     QString _scriptURL;
     uint8_t _maxFPS;
     WebInputMode _inputMode;
+    bool _showKeyboardFocusHighlight;
 };
 
 #endif // hifi_WebEntityItem_h

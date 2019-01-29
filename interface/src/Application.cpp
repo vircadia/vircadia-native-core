@@ -4314,7 +4314,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
         buttons, event->modifiers());
 
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
-        !getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())).isNull()) {
+        getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())) != UNKNOWN_ENTITY_ID) {
         getEntities()->mouseMoveEvent(&mappedEvent);
         getOverlays().mouseMoveEvent(&mappedEvent);
     }
@@ -5756,8 +5756,11 @@ void Application::setKeyboardFocusEntity(const QUuid& id) {
             return;
         }
 
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_VISIBLE;
+        desiredProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
         auto properties = entityScriptingInterface->getEntityProperties(id);
-        if (!properties.getLocked() && properties.getVisible()) {
+        if (properties.getVisible() && properties.getShowKeyboardFocusHighlight()) {
             auto entities = getEntities();
             auto entityId = _keyboardFocusedEntity.get();
             if (entities->wantsKeyboardFocus(entityId)) {

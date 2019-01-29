@@ -115,35 +115,39 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
         }
     }
 
-    if (_color != entity->getColor()) {
-        return true;
-    }
+    if(resultWithReadLock<bool>([&] {
+        if (_color != entity->getColor()) {
+            return true;
+        }
 
-    if (_alpha != entity->getAlpha()) {
-        return true;
-    }
+        if (_alpha != entity->getAlpha()) {
+            return true;
+        }
 
-    if (_sourceURL != entity->getSourceUrl()) {
-        return true;
-    }
+        if (_sourceURL != entity->getSourceUrl()) {
+            return true;
+        }
 
-    if (_dpi != entity->getDPI()) {
-        return true;
-    }
+        if (_dpi != entity->getDPI()) {
+            return true;
+        }
 
-    if (_scriptURL != entity->getScriptURL()) {
-        return true;
-    }
+        if (_scriptURL != entity->getScriptURL()) {
+            return true;
+        }
 
-    if (_maxFPS != entity->getMaxFPS()) {
-        return true;
-    }
+        if (_maxFPS != entity->getMaxFPS()) {
+            return true;
+        }
 
-    if (_inputMode != entity->getInputMode()) {
-        return true;
-    }
+        if (_inputMode != entity->getInputMode()) {
+            return true;
+        }
 
-    if (_pulseProperties != entity->getPulseProperties()) {
+        if (_pulseProperties != entity->getPulseProperties()) {
+            return true;
+        }
+    })) {
         return true;
     }
 
@@ -185,17 +189,14 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         ContentType currentContentType;
         withReadLock([&] {
             urlChanged = _sourceURL != newSourceURL;
-            currentContentType = _contentType;
         });
+        currentContentType = _contentType;
 
         if (urlChanged) {
-            if (!_loading && (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent)) {
+            if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
                 destroyWebSurface();
             }
-
-            withWriteLock([&] {
-                _contentType = newContentType;
-            });
+            _contentType = newContentType;
         }
     }
 
@@ -214,16 +215,14 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         // This work must be done on the main thread
         if (!_webSurface) {
             buildWebSurface(entity, newSourceURL);
-            _loading = true;
         }
 
         if (_webSurface) {
             if (_webSurface->getRootItem()) {
-                _loading = false;
                 if (_contentType == ContentType::HtmlContent && urlChanged) {
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
-                    _sourceURL = newSourceURL;
                 }
+                _sourceURL = newSourceURL;
 
                 {
                     auto scriptURL = entity->getScriptURL();
