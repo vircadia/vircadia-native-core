@@ -54,7 +54,6 @@
 #include "AvatarTraits.h"
 #include "HeadData.h"
 #include "PathUtils.h"
-#include "Grab.h"
 
 #include <graphics/Material.h>
 
@@ -67,8 +66,6 @@ using PackedAvatarEntityMap = QMap<QUuid, QByteArray>; // similar to AvatarEntit
 using AvatarEntityIDs = QSet<QUuid>;
 
 using AvatarGrabDataMap = QMap<QUuid, QByteArray>;
-using AvatarGrabIDs = QSet<QUuid>;
-using AvatarGrabMap = QMap<QUuid, GrabPointer>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
@@ -1475,8 +1472,6 @@ protected:
     mutable ReadWriteLockable _avatarGrabsLock;
     AvatarGrabDataMap _avatarGrabData;
     bool _avatarGrabDataChanged { false }; // by network
-    AvatarGrabIDs _changedAvatarGrabs; // updated grab IDs -- changes needed to entities or physics
-    AvatarGrabIDs _deletedAvatarGrabs; // deleted grab IDs -- changes needed to entities or physics
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
@@ -1539,7 +1534,7 @@ protected:
     }
 
     bool updateAvatarGrabData(const QUuid& grabID, const QByteArray& grabData);
-    void clearAvatarGrabData(const QUuid& grabID);
+    virtual void clearAvatarGrabData(const QUuid& grabID);
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

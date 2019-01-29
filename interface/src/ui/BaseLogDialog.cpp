@@ -20,9 +20,9 @@
 #include <PathUtils.h>
 
 const int TOP_BAR_HEIGHT = 124;
-const int INITIAL_WIDTH = 720;
+const int INITIAL_WIDTH = 800;
 const int INITIAL_HEIGHT = 480;
-const int MINIMAL_WIDTH = 700;
+const int MINIMAL_WIDTH = 780;
 const int SEARCH_BUTTON_LEFT = 25;
 const int SEARCH_BUTTON_WIDTH = 20;
 const int SEARCH_TOGGLE_BUTTON_WIDTH = 50;

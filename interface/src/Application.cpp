@@ -2417,7 +2417,6 @@ void Application::updateVerboseLogging() {
     bool enable = menu->isOptionChecked(MenuOption::VerboseLogging);
 
     QString rules =
-        "hifi.*.debug=%1\n"
         "hifi.*.info=%1\n"
         "hifi.audio-stream.debug=false\n"
         "hifi.audio-stream.info=false";
@@ -3544,8 +3543,10 @@ void Application::resizeGL() {
         auto renderConfig = _graphicsEngine.getRenderEngine()->getConfiguration();
         assert(renderConfig);
         auto mainView = renderConfig->getConfig("RenderMainView.RenderDeferredTask");
-        assert(mainView);
-        mainView->setProperty("resolutionScale", renderResolutionScale);
+        // mainView can be null if we're rendering in forward mode
+        if (mainView) {
+            mainView->setProperty("resolutionScale", renderResolutionScale);
+        }
         displayPlugin->setRenderResolutionScale(renderResolutionScale);
     }
 
@@ -4093,6 +4094,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
+            case Qt::Key_G:
+                if (isShifted && isMeta && Menu::getInstance() && Menu::getInstance()->getMenu("Developer")->isVisible()) {
+                    static const QString HIFI_FRAMES_FOLDER_VAR = "HIFI_FRAMES_FOLDER";
+                    static const QString GPU_FRAME_FOLDER = QProcessEnvironment::systemEnvironment().contains(HIFI_FRAMES_FOLDER_VAR)
+                        ? QProcessEnvironment::systemEnvironment().value(HIFI_FRAMES_FOLDER_VAR)
+                        : "hifiFrames";
+                    static QString GPU_FRAME_TEMPLATE = GPU_FRAME_FOLDER + "/{DATE}_{TIME}";
+                    QString fullPath = FileUtils::computeDocumentPath(FileUtils::replaceDateTimeTokens(GPU_FRAME_TEMPLATE));
+                    if (FileUtils::canCreateFile(fullPath)) {
+                        getActiveDisplayPlugin()->captureFrame(fullPath.toStdString());
+                    }
+                }
+                break;
             case Qt::Key_X:
                 if (isShifted && isMeta) {
                     auto offscreenUi = getOffscreenUI();
@@ -8246,7 +8260,18 @@ void Application::toggleLogDialog() {
         return;
     }
     if (! _logDialog) {
+
+        bool keepOnTop =_keepLogWindowOnTop.get();
+#ifdef Q_OS_WIN
+        _logDialog = new LogDialog(keepOnTop ? qApp->getWindow() : nullptr, getLogger());
+#else
         _logDialog = new LogDialog(nullptr, getLogger());
+
+        if (keepOnTop) {
+            Qt::WindowFlags flags = _logDialog->windowFlags() | Qt::Tool;
+            _logDialog->setWindowFlags(flags);
+        }
+#endif
     }
 
     if (_logDialog->isVisible()) {
@@ -8255,6 +8280,19 @@ void Application::toggleLogDialog() {
         _logDialog->show();
     }
 }
+
+ void Application::recreateLogWindow(int keepOnTop) {
+     _keepLogWindowOnTop.set(keepOnTop != 0);
+     if (_logDialog) {
+         bool toggle = _logDialog->isVisible();
+         _logDialog->close();
+         _logDialog = nullptr;
+
+         if (toggle) {
+             toggleLogDialog();
+         }
+     }
+ }
 
 void Application::toggleEntityScriptServerLogDialog() {
     if (! _entityScriptServerLogDialog) {

@@ -32,6 +32,9 @@ EntityItemProperties ImageEntityItem::getProperties(const EntityPropertyFlags& d
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(imageURL, getImageURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emissive, getEmissive);
@@ -47,6 +50,10 @@ bool ImageEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(imageURL, setImageURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emissive, setEmissive);
@@ -77,6 +84,13 @@ int ImageEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
     READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
 
     READ_ENTITY_PROPERTY(PROP_IMAGE_URL, QString, setImageURL);
     READ_ENTITY_PROPERTY(PROP_EMISSIVE, bool, setEmissive);
@@ -92,6 +106,7 @@ EntityPropertyFlags ImageEntityItem::getEntityProperties(EncodeBitstreamParams& 
 
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
+    requestedProperties += _pulseProperties.getEntityProperties(params);
 
     requestedProperties += PROP_IMAGE_URL;
     requestedProperties += PROP_EMISSIVE;
@@ -103,7 +118,7 @@ EntityPropertyFlags ImageEntityItem::getEntityProperties(EncodeBitstreamParams& 
 }
 
 void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -114,6 +129,10 @@ void ImageEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
 
     APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, getImageURL());
     APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, getEmissive());
@@ -265,5 +284,11 @@ void ImageEntityItem::setAlpha(float alpha) {
 float ImageEntityItem::getAlpha() const {
     return resultWithReadLock<float>([&] {
         return _alpha;
+    });
+}
+
+PulsePropertyGroup ImageEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
     });
 }
