@@ -167,6 +167,8 @@ protected:
                                                     const Pointer& vertexShader,
                                                     const Pointer& geometryShader,
                                                     const Pointer& pixelShader);
+    friend class Serializer;
+    friend class Deserializer;
 };
 
 typedef Shader::Pointer ShaderPointer;

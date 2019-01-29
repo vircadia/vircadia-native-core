@@ -14,6 +14,9 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <map>
+#include <set>
+#include <vector>
 
 #include <QtCore/QUuid>
 
@@ -23,12 +26,15 @@
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
+#include <Grab.h>
+#include <ThreadSafeValueCache.h>
+
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
-#include <ThreadSafeValueCache.h>
 
 #include "MetaModelPayload.h"
+#include "MultiSphereShape.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -222,11 +228,62 @@ public:
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
+
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
+
+    // world-space to avatar-space rigconversion functions
+    /**jsdoc
+    * @function MyAvatar.worldToJointPoint
+    * @param {Vec3} position
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.worldToJointDirection
+    * @param {Vec3} direction
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.worldToJointRotation
+    * @param {Quat} rotation
+    * @param {number} [jointIndex=-1]
+    * @returns {Quat}
+    */
+    Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+
+
+    /**jsdoc
+    * @function MyAvatar.jointToWorldPoint
+    * @param {vec3} position
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.jointToWorldDirection
+    * @param {Vec3} direction
+    * @param {number} [jointIndex=-1]
+    * @returns {Vec3}
+    */
+    Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+
+    /**jsdoc
+    * @function MyAvatar.jointToWorldRotation
+    * @param {Quat} rotation
+    * @param {number} [jointIndex=-1]
+    * @returns {Quat}
+    */
+    Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
@@ -315,6 +372,8 @@ public:
     virtual void rebuildCollisionShape() = 0;
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
+    virtual void computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex);
+
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
     /**jsdoc
@@ -393,6 +452,7 @@ public:
 
     float getBoundingRadius() const;
     AABox getRenderBounds() const; // THis call is accessible from rendering thread only to report the bounding box of the avatar during the frame.
+    AABox getFitBounds() const { return _fitBoundingBox; }
 
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
@@ -435,6 +495,9 @@ public:
     AvatarTransit::Status updateTransit(float deltaTime, const glm::vec3& avatarPosition, float avatarScale, const AvatarTransit::TransitConfig& config);
 
     void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
+
+    const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
+    void tearDownGrabs();
 
 signals:
     void targetScaleChanged(float targetScale);
@@ -503,6 +566,8 @@ protected:
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
+    void computeMultiSphereShapes();
+    void updateFitBoundingBox();
 
     SkeletonModelPointer _skeletonModel;
 
@@ -538,7 +603,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
-    bool updateGrabs();
+    bool applyGrabChanges();
     void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
@@ -625,8 +690,18 @@ protected:
 
     static void metaBlendshapeOperator(render::ItemID renderItemID, int blendshapeNumber, const QVector<BlendshapeOffset>& blendshapeOffsets,
                                        const QVector<int>& blendedMeshSizes, const render::ItemIDs& subItemIDs);
+    
+    std::vector<MultiSphereShape> _multiSphereShapes;
+    AABox _fitBoundingBox;
+    void clearAvatarGrabData(const QUuid& grabID) override;
 
-    AvatarGrabMap _avatarGrabs;
+    using SetOfIDs = std::set<QUuid>;
+    using VectorOfIDs = std::vector<QUuid>;
+    using MapOfGrabs = std::map<QUuid, GrabPointer>;
+
+    MapOfGrabs _avatarGrabs;
+    SetOfIDs _grabsToChange; // updated grab IDs -- changes needed to entities or physics
+    VectorOfIDs _grabsToDelete; // deleted grab IDs -- changes needed to entities or physics
 };
 
 #endif // hifi_Avatar_h
