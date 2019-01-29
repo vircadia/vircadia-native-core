@@ -1252,18 +1252,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         const FBXModel& fbxModel = fbxModels[modelID];
         HFMJoint joint;
         joint.parentIndex = fbxModel.parentIndex;
-
-        // get the indices of all ancestors starting with the first free one (if any)
         int jointIndex = hfmModel.joints.size();
-        joint.freeLineage.append(jointIndex);
-        int lastFreeIndex = joint.isFree ? 0 : -1;
-        for (int index = joint.parentIndex; index != -1; index = hfmModel.joints.at(index).parentIndex) {
-            if (hfmModel.joints.at(index).isFree) {
-                lastFreeIndex = joint.freeLineage.size();
-            }
-            joint.freeLineage.append(index);
-        }
-        joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
+
         joint.translation = fbxModel.translation; // these are usually in centimeters
         joint.preTransform = fbxModel.preTransform;
         joint.preRotation = fbxModel.preRotation;
