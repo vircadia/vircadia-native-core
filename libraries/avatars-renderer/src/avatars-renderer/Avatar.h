@@ -14,6 +14,9 @@
 #include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <map>
+#include <set>
+#include <vector>
 
 #include <QtCore/QUuid>
 
@@ -23,10 +26,12 @@
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 
+#include <Grab.h>
+#include <ThreadSafeValueCache.h>
+
 #include "Head.h"
 #include "SkeletonModel.h"
 #include "Rig.h"
-#include <ThreadSafeValueCache.h>
 
 #include "MetaModelPayload.h"
 #include "MultiSphereShape.h"
@@ -492,6 +497,7 @@ public:
     void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
 
     const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
+    void tearDownGrabs();
 
 signals:
     void targetScaleChanged(float targetScale);
@@ -597,7 +603,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
-    bool updateGrabs();
+    bool applyGrabChanges();
     void relayJointDataToChildren();
 
     void fade(render::Transaction& transaction, render::Transition::Type type);
@@ -687,8 +693,15 @@ protected:
     
     std::vector<MultiSphereShape> _multiSphereShapes;
     AABox _fitBoundingBox;
+    void clearAvatarGrabData(const QUuid& grabID) override;
 
-    AvatarGrabMap _avatarGrabs;
+    using SetOfIDs = std::set<QUuid>;
+    using VectorOfIDs = std::vector<QUuid>;
+    using MapOfGrabs = std::map<QUuid, GrabPointer>;
+
+    MapOfGrabs _avatarGrabs;
+    SetOfIDs _grabsToChange; // updated grab IDs -- changes needed to entities or physics
+    VectorOfIDs _grabsToDelete; // deleted grab IDs -- changes needed to entities or physics
 };
 
 #endif // hifi_Avatar_h

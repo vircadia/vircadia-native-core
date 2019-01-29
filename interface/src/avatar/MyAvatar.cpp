@@ -866,7 +866,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
-    if (updateGrabs()) {
+    if (applyGrabChanges()) {
         _cauterizationNeedsUpdate = true;
     }
 
@@ -5301,7 +5301,7 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
 
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabData.remove(grabID)) {
-            _deletedAvatarGrabs.insert(grabID);
+            _grabsToDelete.push_back(grabID);
             tellHandler = true;
         }
     });

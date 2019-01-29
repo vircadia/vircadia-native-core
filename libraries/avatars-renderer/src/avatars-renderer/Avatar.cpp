@@ -326,88 +326,79 @@ void Avatar::removeAvatarEntitiesFromTree() {
     }
 }
 
-bool Avatar::updateGrabs() {
+bool Avatar::applyGrabChanges() {
+    if (!_avatarGrabDataChanged && _grabsToChange.empty() && _grabsToDelete.empty()) {
+        // early exit for most common case: nothing to do
+        return false;
+    }
+
     bool grabAddedOrRemoved = false;
-    // update the Grabs according to any changes in _avatarGrabData
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabDataChanged) {
+            // collect changes in _avatarGrabData
             foreach (auto grabID, _avatarGrabData.keys()) {
-                AvatarGrabMap::iterator grabItr = _avatarGrabs.find(grabID);
-                if (grabItr == _avatarGrabs.end()) {
+                MapOfGrabs::iterator itr = _avatarGrabs.find(grabID);
+                if (itr == _avatarGrabs.end()) {
                     GrabPointer grab = std::make_shared<Grab>();
                     grab->fromByteArray(_avatarGrabData.value(grabID));
                     _avatarGrabs[grabID] = grab;
-                    _changedAvatarGrabs.insert(grabID);
+                    _grabsToChange.insert(grabID);
                 } else {
-                    GrabPointer grab = grabItr.value();
-                    bool changed = grab->fromByteArray(_avatarGrabData.value(grabID));
+                    bool changed = itr->second->fromByteArray(_avatarGrabData.value(grabID));
                     if (changed) {
-                        _changedAvatarGrabs.insert(grabID);
+                        _grabsToChange.insert(grabID);
                     }
                 }
             }
             _avatarGrabDataChanged = false;
         }
 
-        auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-        auto entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-        EntityEditPacketSender* packetSender = treeRenderer ? treeRenderer->getPacketSender() : nullptr;
-        auto sessionID = DependencyManager::get<NodeList>()->getSessionUUID();
-
-        QMutableSetIterator<QUuid> delItr(_deletedAvatarGrabs);
-        while (delItr.hasNext()) {
-            QUuid grabID = delItr.next();
-            GrabPointer grab = _avatarGrabs[grabID];
-            if (!grab) {
-                delItr.remove();
+        // delete _avatarGrabs
+        VectorOfIDs undeleted;
+        for (const auto& id : _grabsToDelete) {
+            MapOfGrabs::iterator itr = _avatarGrabs.find(id);
+            if (itr == _avatarGrabs.end()) {
                 continue;
             }
 
             bool success;
+            const GrabPointer& grab = itr->second;
             SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
-
-            // only clear this entry from the _deletedAvatarGrabs if we found the entity.
             if (success && target) {
-                bool iShouldTellServer = target->getEditSenderID() == sessionID;
-
-                EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(target);
-                if (entity && entity->isAvatarEntity() && (entity->getOwningAvatarID() == sessionID ||
-                                                           entity->getOwningAvatarID() == AVATAR_SELF_ID)) {
-                    // this is our own avatar-entity, so we always tell the server about the release
-                    iShouldTellServer = true;
-                }
-
                 target->removeGrab(grab);
-                delItr.remove();
-                // in case this is the last grab on an entity, we need to shrink the queryAACube and tell the server
-                // about the final position.
-                if (entityTree) {
-                    bool force = true;
-                    entityTree->withWriteLock([&] {
-                        entityTree->updateEntityQueryAACube(target, packetSender, force, iShouldTellServer);
-                    });
-                }
+                _avatarGrabs.erase(itr);
                 grabAddedOrRemoved = true;
+            } else {
+                undeleted.push_back(id);
             }
-            _avatarGrabs.remove(grabID);
-            _changedAvatarGrabs.remove(grabID);
         }
+        _grabsToDelete = std::move(undeleted);
 
-        QMutableSetIterator<QUuid> changeItr(_changedAvatarGrabs);
-        while (changeItr.hasNext()) {
-            QUuid grabID = changeItr.next();
-            GrabPointer& grab = _avatarGrabs[grabID];
+        // change _avatarGrabs and add Actions to target
+        SetOfIDs unchanged;
+        for (const auto& id : _grabsToChange) {
+            MapOfGrabs::iterator itr = _avatarGrabs.find(id);
+            if (itr == _avatarGrabs.end()) {
+                continue;
+            }
 
             bool success;
+            const GrabPointer& grab = itr->second;
             SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
-
             if (success && target) {
                 target->addGrab(grab);
-                // only clear this entry from the _changedAvatarGrabs if we found the entity.
-                changeItr.remove();
+                if (isMyAvatar()) {
+                    EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(target);
+                    if (entity) {
+                        entity->upgradeScriptSimulationPriority(PERSONAL_SIMULATION_PRIORITY);
+                    }
+                }
                 grabAddedOrRemoved = true;
+            } else {
+                unchanged.insert(id);
             }
         }
+        _grabsToChange = std::move(unchanged);
     });
     return grabAddedOrRemoved;
 }
@@ -415,8 +406,8 @@ bool Avatar::updateGrabs() {
 void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators) {
     // relay avatar's joint position to grabbed target in a way that allows for averaging
     _avatarGrabsLock.withReadLock([&] {
-        foreach (auto grabID, _avatarGrabs.keys()) {
-            const GrabPointer& grab = _avatarGrabs.value(grabID);
+        for (const auto& entry : _avatarGrabs) {
+            const GrabPointer& grab = entry.second;
 
             if (!grab || !grab->getActionID().isNull()) {
                 continue; // the accumulated value isn't used, in this case.
@@ -432,6 +423,20 @@ void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& g
             grabLocationAccumulator.accumulate(extractTranslation(worldTransform), extractRotation(worldTransform));
         }
     });
+}
+
+void Avatar::tearDownGrabs() {
+    _avatarGrabsLock.withWriteLock([&] {
+        for (const auto& entry : _avatarGrabs) {
+            _grabsToDelete.push_back(entry.first);
+        }
+        _grabsToChange.clear();
+    });
+    applyGrabChanges();
+    if (!_grabsToDelete.empty()) {
+        // some grabs failed to delete, which is a possible "leak", so we log about it
+        qWarning() << "Failed to tearDown" << _grabsToDelete.size() << "grabs for Avatar" << getID();
+    }
 }
 
 void Avatar::relayJointDataToChildren() {
@@ -2062,4 +2067,13 @@ scriptable::ScriptableModelBase Avatar::getScriptableModel() {
         result.appendMaterials(_materials);
     }
     return result;
+}
+
+void Avatar::clearAvatarGrabData(const QUuid& id) {
+    AvatarData::clearAvatarGrabData(id);
+    _avatarGrabsLock.withWriteLock([&] {
+        if (_avatarGrabs.find(id) != _avatarGrabs.end()) {
+            _grabsToDelete.push_back(id);
+        }
+    });
 }

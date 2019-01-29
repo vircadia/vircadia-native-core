@@ -161,8 +161,9 @@ public:
 
     bool hasInternalKinematicChanges() const { return _hasInternalKinematicChanges; }
 
-    void dirtyInternalKinematicChanges() { _hasInternalKinematicChanges = true; }
-    void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
+    // these methods are declared const so they can be called inside other const methods
+    void dirtyInternalKinematicChanges() const { _hasInternalKinematicChanges = true; }
+    void clearInternalKinematicChanges() const { _hasInternalKinematicChanges = false; }
 
     virtual bool isLocallyOwned() const { return false; }
     virtual bool isLocallyOwnedOrShouldBe() const { return false; } // aka shouldEmitCollisionEvents()
@@ -186,8 +187,11 @@ protected:
     btRigidBody* _body { nullptr };
     float _density { 1.0f };
 
+    // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK: These date members allow an Action
+    // to operate on a kinematic object without screwing up our default kinematic integration
+    // which is done in the MotionState::getWorldTransform().
     mutable uint32_t _lastKinematicStep;
-    bool _hasInternalKinematicChanges { false };
+    mutable bool _hasInternalKinematicChanges { false };
 };
 
 using SetOfMotionStates = QSet<ObjectMotionState*>;

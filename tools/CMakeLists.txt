@@ -6,31 +6,38 @@ if (NPM_EXECUTABLE)
   set_target_properties(jsdoc PROPERTIES FOLDER "Tools")
 endif()
 
+function(check_test name)
+    set(RESULT TRUE)
+    if (BUILD_TOOLS_INCLUDE)
+        unset(RESULT)
+        list(FIND BUILD_TOOLS_INCLUDE ${name} BUILD_TOOL_FIND)
+        if (NOT (${BUILD_TOOL_FIND} EQUAL -1))
+            set(RESULT TRUE)
+        endif()
+    endif()
+    set(BUILD_TOOL_RESULT ${RESULT} PARENT_SCOPE)
+endfunction()
+
 if (BUILD_TOOLS)
-  add_subdirectory(udt-test)
-  set_target_properties(udt-test PROPERTIES FOLDER "Tools")
+    set(ALL_TOOLS 
+        udt-test 
+        vhacd-util
+        frame-optimizer
+        gpu-frame-player
+        ice-client
+        ktx-tool
+        ac-client
+        skeleton-dump
+        atp-client
+        oven
+        nitpick
+    )
 
-  add_subdirectory(vhacd-util)
-  set_target_properties(vhacd-util PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(ice-client)
-  set_target_properties(ice-client PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(ktx-tool)
-  set_target_properties(ktx-tool PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(ac-client)
-  set_target_properties(ac-client PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(skeleton-dump)
-  set_target_properties(skeleton-dump PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(atp-client)
-  set_target_properties(atp-client PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(oven)
-  set_target_properties(oven PROPERTIES FOLDER "Tools")
-
-  add_subdirectory(nitpick)
-  set_target_properties(nitpick PROPERTIES FOLDER "Tools")
+    foreach(TOOL ${ALL_TOOLS})
+        check_test(${TOOL})
+        if (${BUILD_TOOL_RESULT})
+            add_subdirectory(${TOOL})
+            set_target_properties(${TOOL} PROPERTIES FOLDER "Tools")
+        endif()
+    endforeach()
 endif()

@@ -363,7 +363,7 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
 
     {
         PROFILE_RANGE(simulation, "grabs");
-        updateGrabs();
+        applyGrabChanges();
     }
 
     updateFadingStatus();

@@ -100,9 +100,11 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
     if (body->isKinematicObject()) {
         ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(body->getMotionState());
         if (objectMotionState->hasInternalKinematicChanges()) {
-            // this is a special case where the kinematic motion has been updated by an Action
-            // so we supply the body's current transform to the MotionState
-            objectMotionState->clearInternalKinematicChanges();
+            // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK:
+            // This is a special case where the kinematic motion has been updated by an Action
+            // so we supply the body's current transform to the MotionState,
+            // but we DON'T clear the internalKinematicChanges bit here because
+            // objectMotionState.getWorldTransform() will use and clear it later
             body->getMotionState()->setWorldTransform(body->getWorldTransform());
         }
         return;

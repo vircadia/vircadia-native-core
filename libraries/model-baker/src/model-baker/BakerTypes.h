@@ -15,10 +15,25 @@
 #include <hfm/HFM.h>
 
 namespace baker {
+    using MeshIndices = std::vector<int>;
+    using IndicesPerMesh = std::vector<std::vector<int>>;
+    using VerticesPerMesh = std::vector<std::vector<glm::vec3>>;
+    using MeshNormals = std::vector<glm::vec3>;
+    using NormalsPerMesh = std::vector<std::vector<glm::vec3>>;
     using MeshTangents = std::vector<glm::vec3>;
     using TangentsPerMesh = std::vector<std::vector<glm::vec3>>;
+
     using Blendshapes = std::vector<hfm::Blendshape>;
     using BlendshapesPerMesh = std::vector<std::vector<hfm::Blendshape>>;
+    using BlendshapeVertices = std::vector<glm::vec3>;
+    using BlendshapeNormals = std::vector<glm::vec3>;
+    using BlendshapeIndices = std::vector<int>;
+    using VerticesPerBlendshape = std::vector<std::vector<glm::vec3>>;
+    using NormalsPerBlendshape = std::vector<std::vector<glm::vec3>>;
+    using IndicesPerBlendshape = std::vector<std::vector<int>>;
+    using BlendshapeTangents = std::vector<glm::vec3>;
+    using TangentsPerBlendshape = std::vector<std::vector<glm::vec3>>;
+
     using MeshIndicesToModelNames = QHash<int, QString>;
 };
 

@@ -7,6 +7,7 @@
 # 
 macro(TARGET_GLAD)
     if (ANDROID)
+        include(SelectLibraryConfigurations)
         set(INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/glad)
         set(GLAD_INCLUDE_DIRS "${INSTALL_DIR}/include")
         set(GLAD_LIBRARY_DEBUG ${INSTALL_DIR}/lib/libglad_d.a)
@@ -31,8 +32,8 @@ macro(TARGET_GLAD)
         set(GLAD_INCLUDE_DIRS ${${GLAD_UPPER}_INCLUDE_DIRS})
         set(GLAD_LIBRARY ${${GLAD_UPPER}_LIBRARY})
     endif()
-            
+
     target_include_directories(${TARGET_NAME} PUBLIC ${GLAD_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${GLAD_LIBRARY})
-    target_link_libraries(${TARGET_NAME} ${GLAD_EXTRA_LIBRARIES})
+    target_link_libraries(${TARGET_NAME} ${GLAD_EXTRA_LIBRARIES})       
 endmacro()

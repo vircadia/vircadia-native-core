@@ -20,8 +20,8 @@
 
 class BuildGraphicsMeshTask {
 public:
-    using Input = baker::VaryingSet3<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames>;
-    using Output = baker::VaryingSet3<std::vector<graphics::MeshPointer>, std::vector<baker::MeshTangents>, std::vector<baker::Blendshapes>>;
+    using Input = baker::VaryingSet5<std::vector<hfm::Mesh>, hifi::URL, baker::MeshIndicesToModelNames, baker::NormalsPerMesh, baker::TangentsPerMesh>;
+    using Output = std::vector<graphics::MeshPointer>;
     using JobModel = baker::Job::ModelIO<BuildGraphicsMeshTask, Input, Output>;
 
     void run(const baker::BakeContextPointer& context, const Input& input, Output& output);
