@@ -1,9 +1,10 @@
 import QtQuick 2.5
+import QtWebChannel 1.0
+import QtWebEngine 1.5
 
 import controlsUit 1.0
 import stylesUit 1.0
-
-import "windows"
+import "qrc:////qml//windows"
 
 ScrollingWindow {
     id: root
@@ -30,6 +31,7 @@ ScrollingWindow {
     }
 
     function setProfile(profile) {
+        webview.profile = profile;
     }
 
     function showPermissionsBar(){
@@ -41,6 +43,7 @@ ScrollingWindow {
     }
 
     function allowPermissions(){
+        webview.grantFeaturePermission(permissionsBar.securityOrigin, permissionsBar.feature, true);
         hidePermissionsBar();
     }
 
@@ -198,10 +201,61 @@ ScrollingWindow {
             }
         }
 
-        ProxyWebView {
+        WebView {
             id: webview
-            anchors.centerIn: parent
             url: "https://highfidelity.com/"
+            profile: FileTypeProfile;
+
+            // Create a global EventBridge object for raiseAndLowerKeyboard.
+            WebEngineScript {
+                id: createGlobalEventBridge
+                sourceCode: eventBridgeJavaScriptToInject
+                injectionPoint: WebEngineScript.Deferred
+                worldId: WebEngineScript.MainWorld
+            }
+
+            // Detect when may want to raise and lower keyboard.
+            WebEngineScript {
+                id: raiseAndLowerKeyboard
+                injectionPoint: WebEngineScript.Deferred
+                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                worldId: WebEngineScript.MainWorld
+            }
+
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+
+            anchors.top: buttons.bottom
+            anchors.topMargin: 8
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+
+            onFeaturePermissionRequested: {
+                if (feature == 2) { // QWebEnginePage::MediaAudioCapture
+                    grantFeaturePermission(securityOrigin, feature, true);
+                } else {
+                    permissionsBar.securityOrigin = securityOrigin;
+                    permissionsBar.feature = feature;
+                    root.showPermissionsBar();
+                }
+            }
+
+            onLoadingChanged: {
+                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
+                    addressBar.text = loadRequest.url
+                }
+                root.loadingChanged(loadRequest.status);
+            }
+
+            onWindowCloseRequested: {
+                root.destroy();
+            }
+
+            Component.onCompleted: {
+                webChannel.registerObject("eventBridge", eventBridge);
+                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+                desktop.initWebviewProfileHandlers(webview.profile);
+            }
         }
 
     } // item

@@ -49,6 +49,7 @@
 #include <shared/ReadWriteLockable.h>
 
 #include "SecurityImageProvider.h"
+#include "shared/FileUtils.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"
@@ -237,7 +238,9 @@ void OffscreenQmlSurface::clearFocusItem() {
 
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
-    new QQmlFileSelector(engine);
+    QQmlFileSelector* fileSelector = new QQmlFileSelector(engine);
+    fileSelector->setExtraSelectors(FileUtils::getFileSelectors());
+
     static std::once_flag once;
     std::call_once(once, [] { 
         qRegisterMetaType<TabletProxy*>();

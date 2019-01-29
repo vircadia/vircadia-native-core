@@ -33,6 +33,10 @@ const QStringList& FileUtils::getFileSelectors() {
 #if defined(USE_GLES)
         extraSelectors << "gles";
 #endif
+
+#ifndef Q_OS_ANDROID
+        extraSelectors << "webengine";
+#endif
     });
     return extraSelectors;
 
