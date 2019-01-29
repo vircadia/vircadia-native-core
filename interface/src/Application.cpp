@@ -802,6 +802,10 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
+    if (auto oculusPlatform = pluginManager->getOculusPlatformPlugin()) {
+        oculusPlatform->init();
+    }
+
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -2743,6 +2747,10 @@ Application::~Application() {
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
+    }
+
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->shutdown();
     }
 
     DependencyManager::destroy<PluginManager>();
