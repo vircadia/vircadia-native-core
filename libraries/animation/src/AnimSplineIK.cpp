@@ -91,7 +91,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPoseVec underPoses = _children[0]->evaluate(animVars, context, dt, triggersOut);
 
     // if we don't have a skeleton, or jointName lookup failed or the spline alpha is 0 or there are no underposes.
-    if (!_skeleton || _baseJointIndex == -1 || _midJointIndex == -1 || _tipJointIndex == -1 || alpha == 0.0f || underPoses.size() == 0) {
+    if (!_skeleton || _baseJointIndex == -1 || _tipJointIndex == -1 || alpha == 0.0f || underPoses.size() == 0) {
         // pass underPoses through unmodified.
         _poses = underPoses;
         return _poses;
@@ -159,7 +159,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     absolutePoses.resize(_poses.size());
     computeAbsolutePoses(absolutePoses);
     jointChain.buildFromRelativePoses(_skeleton, _poses, tipTarget.getIndex());
-    solveTargetWithSpline(context, tipTarget, absolutePoses, false, jointChain);
+    solveTargetWithSpline(context, tipTarget, absolutePoses, context.getEnableDebugDrawIKChains(), jointChain);
     jointChain.buildDirtyAbsolutePoses();
     jointChain.outputRelativePoses(_poses);
 
@@ -191,7 +191,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     absolutePosesAfterBaseTipSpline.resize(_poses.size());
     computeAbsolutePoses(absolutePosesAfterBaseTipSpline);
     midJointChain.buildFromRelativePoses(_skeleton, _poses, midTarget.getIndex());
-    solveTargetWithSpline(context, midTarget, absolutePosesAfterBaseTipSpline, false, midJointChain);
+    solveTargetWithSpline(context, midTarget, absolutePosesAfterBaseTipSpline, context.getEnableDebugDrawIKChains(), midJointChain);
     midJointChain.outputRelativePoses(_poses);
 
     // set the mid to tip segment to match the absolute rotation of the target.
@@ -418,7 +418,8 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTar
     }
 
     if (debug) {
-        //debugDrawIKChain(jointChainInfoOut, context);
+        const vec4 CYAN(0.0f, 1.0f, 1.0f, 1.0f);
+        chainInfoOut.debugDraw(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix(), CYAN);
     }
 }
 
