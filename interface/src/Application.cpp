@@ -3255,9 +3255,9 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     surfaceContext->setContextProperty("AnimStats", AnimStats::getInstance());
 
 #if !defined(Q_OS_ANDROID)
-//  auto offscreenUi = getOffscreenUI();
-//  auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
-//  offscreenUi->show(qml, "AvatarInputsBar");
+    auto offscreenUi = getOffscreenUI();
+    auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
+    offscreenUi->show(qml, "AvatarInputsBar");
 #endif
 }
 
@@ -5102,7 +5102,7 @@ void Application::calibrateEyeTracker5Points() {
 #endif
 
 bool Application::exportEntities(const QString& filename,
-                                 const QVector<EntityItemID>& entityIDs,
+                                 const QVector<QUuid>& entityIDs,
                                  const glm::vec3* givenOffset) {
     QHash<EntityItemID, EntityItemPointer> entities;
 
@@ -5177,16 +5177,12 @@ bool Application::exportEntities(const QString& filename, float x, float y, floa
     glm::vec3 minCorner = center - vec3(scale);
     float cubeSize = scale * 2;
     AACube boundingCube(minCorner, cubeSize);
-    QVector<EntityItemPointer> entities;
-    QVector<EntityItemID> ids;
+    QVector<QUuid> entities;
     auto entityTree = getEntities()->getTree();
     entityTree->withReadLock([&] {
-        entityTree->findEntities(boundingCube, entities);
-        foreach(EntityItemPointer entity, entities) {
-            ids << entity->getEntityItemID();
-        }
+        entityTree->evalEntitiesInCube(boundingCube, PickFilter(), entities);
     });
-    return exportEntities(filename, ids, &center);
+    return exportEntities(filename, entities, &center);
 }
 
 void Application::loadSettings() {
@@ -7253,7 +7249,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEnginePointe
 
     bool clientScript = scriptEngine->isClientScript();
     scriptEngine->registerFunction("OverlayWindow", clientScript ? QmlWindowClass::constructor : QmlWindowClass::restricted_constructor);
-#if !defined(DISABLE_QML)
+#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
     scriptEngine->registerFunction("OverlayWebWindow", clientScript ? QmlWebWindowClass::constructor : QmlWebWindowClass::restricted_constructor);
 #endif
     scriptEngine->registerFunction("QmlFragment", clientScript ? QmlFragmentClass::constructor : QmlFragmentClass::restricted_constructor);
@@ -8302,6 +8298,9 @@ void Application::loadDomainConnectionDialog() {
 
 void Application::toggleLogDialog() {
 #ifndef Q_OS_ANDROID
+    if (getLoginDialogPoppedUp()) {
+        return;
+    }
     if (! _logDialog) {
 
         bool keepOnTop =_keepLogWindowOnTop.get();
