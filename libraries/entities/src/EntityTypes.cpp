@@ -30,6 +30,7 @@
 #include "PolyLineEntityItem.h"
 #include "PolyVoxEntityItem.h"
 #include "GridEntityItem.h"
+#include "GizmoEntityItem.h"
 #include "LightEntityItem.h"
 #include "ZoneEntityItem.h"
 #include "MaterialEntityItem.h"
@@ -54,6 +55,7 @@ REGISTER_ENTITY_TYPE(Line)
 REGISTER_ENTITY_TYPE(PolyLine)
 REGISTER_ENTITY_TYPE(PolyVox)
 REGISTER_ENTITY_TYPE(Grid)
+REGISTER_ENTITY_TYPE(Gizmo)
 REGISTER_ENTITY_TYPE(Light)
 REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Material)
