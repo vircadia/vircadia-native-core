@@ -147,6 +147,8 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
         if (_pulseProperties != entity->getPulseProperties()) {
             return true;
         }
+
+        return false;
     })) {
         return true;
     }

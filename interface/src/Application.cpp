@@ -617,6 +617,8 @@ public:
             switch (type) {
             case NestableType::Entity:
                 return getEntityModelProvider(static_cast<EntityItemID>(uuid));
+            case NestableType::Overlay:
+                return nullptr;
             case NestableType::Avatar:
                 return getAvatarModelProvider(uuid);
             }

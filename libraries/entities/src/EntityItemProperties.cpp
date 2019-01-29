@@ -1926,7 +1926,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         properties.setProperty("localEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::LOCAL));
     }
 
-    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::FaceCamera) && _type != EntityTypes::PolyLine) {
+    if ((!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::FaceCamera)) && _type != EntityTypes::PolyLine) {
         properties.setProperty("faceCamera", convertScriptValue(engine, getBillboardMode() == BillboardMode::YAW));
     }
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::IsFacingAvatar)) {

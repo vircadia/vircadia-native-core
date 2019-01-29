@@ -196,7 +196,7 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
         color: {red: 255, green: 255, blue: 255},
         solid: true,
         innerRadius: 0.9,
-        ignoreIntersection: true,
+        ignorePickIntersection: true,
         alpha: 0.0,
         visible: visible,
         drawInFront: false,
