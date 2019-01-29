@@ -7,15 +7,12 @@ docker build --build-arg BUILD_UID=`id -u` -t "${DOCKER_IMAGE_NAME}" -f docker/D
 
 # The Jenkins PR builds use VERSION_CODE, but the release builds use VERSION
 # So make sure we use VERSION_CODE consistently
-if [-z "$VERSION_CODE"]; then
-   export VERSION_CODE=$VERSION
-fi
+test -z "$VERSION_CODE" && export VERSION_CODE=$VERSION
 
 docker run \
    --rm \
    --security-opt seccomp:unconfined \
    -v "${WORKSPACE}":/home/jenkins/hifi \
-   -v /home/jenkins/.gradle:/home/jenkins/.gradle \
    -e RELEASE_NUMBER \
    -e RELEASE_TYPE \
    -e ANDROID_APP \
