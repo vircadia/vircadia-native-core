@@ -4030,7 +4030,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
                     AudioInjectorOptions options;
                     options.localOnly = true;
+                    options.positionSet = false;    // system sound
                     options.stereo = true;
+
                     Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true };
                     Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
                     if (notificationSounds.get() && notificationSoundSnapshot.get()) {
