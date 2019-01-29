@@ -29,7 +29,6 @@ public:
 
 	virtual ~AnimSplineIK() override;
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
-    virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) override;
 
 protected:
 
@@ -95,7 +94,7 @@ protected:
     };
 
     bool _lastEnableDebugDrawIKTargets { false };
-    void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
+    void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
     void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const;
     const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const;
     mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;

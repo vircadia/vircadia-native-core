@@ -182,7 +182,7 @@
                                                                                     "enabled": false,
                                                                                     "interpDuration": 15,
                                                                                     "baseJointName": "Hips",
-                                                                                    "midJointName": "none",
+                                                                                    "midJointName": "Spine2",
                                                                                     "tipJointName": "Head",
                                                                                     "basePositionVar": "hipsPosition",
                                                                                     "baseRotationVar": "hipsRotation",

@@ -71,12 +71,6 @@ AnimSplineIK::~AnimSplineIK() {
 
 }
 
-//virtual
-const AnimPoseVec& AnimSplineIK::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
-    loadPoses(underPoses);
-    return _poses;
-}
-
 const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
     assert(_children.size() == 1);
     if (_children.size() != 1) {
@@ -159,7 +153,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     absolutePoses.resize(_poses.size());
     computeAbsolutePoses(absolutePoses);
     jointChain.buildFromRelativePoses(_skeleton, _poses, tipTarget.getIndex());
-    solveTargetWithSpline(context, tipTarget, absolutePoses, context.getEnableDebugDrawIKChains(), jointChain);
+    solveTargetWithSpline(context, _baseJointIndex, tipTarget, absolutePoses, context.getEnableDebugDrawIKChains(), jointChain);
     jointChain.buildDirtyAbsolutePoses();
     jointChain.outputRelativePoses(_poses);
 
@@ -195,15 +189,27 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
             absolutePosesAfterBaseTipSpline.resize(_poses.size());
             computeAbsolutePoses(absolutePosesAfterBaseTipSpline);
             midJointChain.buildFromRelativePoses(_skeleton, _poses, midTarget.getIndex());
-            solveTargetWithSpline(context, midTarget, absolutePosesAfterBaseTipSpline, context.getEnableDebugDrawIKChains(), midJointChain);
+            solveTargetWithSpline(context, _baseJointIndex, midTarget, absolutePosesAfterBaseTipSpline, context.getEnableDebugDrawIKChains(), midJointChain);
             midJointChain.outputRelativePoses(_poses);
 
             // set the mid to tip segment to match the absolute rotation of the tip target.
             AnimPose midTargetPose(midTarget.getRotation(), midTarget.getTranslation());
             _poses[childOfMiddleJointIndex] = midTargetPose.inverse() * childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
         }
+
+        
+        AnimChain upperJointChain;
+        AnimPoseVec finalAbsolutePoses;
+        finalAbsolutePoses.resize(_poses.size());
+        computeAbsolutePoses(finalAbsolutePoses);
+        upperJointChain.buildFromRelativePoses(_skeleton, _poses, tipTarget.getIndex());
+        solveTargetWithSpline(context, _midJointIndex, tipTarget, finalAbsolutePoses, context.getEnableDebugDrawIKChains(), upperJointChain);
+        upperJointChain.buildDirtyAbsolutePoses();
+        upperJointChain.outputRelativePoses(_poses);
+
     }
 
+   
     
 
     // compute chain
@@ -338,10 +344,9 @@ static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const 
     return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
 }
 
-void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const {
+void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const {
 
-    const int baseIndex = _baseJointIndex;
-    const int tipBaseIndex =  _midJointIndex;
+    const int baseIndex = base;
 
     // build spline from tip to base
     AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
