@@ -63,6 +63,8 @@ protected:
     QString _midRotationVar;
     QString _tipPositionVar;
     QString _tipRotationVar;
+    QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
+    QString _enabledVar;
 
     static const int MAX_NUMBER_FLEX_VARIABLES = 10;
     float _tipTargetFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
@@ -70,20 +72,15 @@ protected:
     int _numTipTargetFlexCoefficients { 0 };
     int _numMidTargetFlexCoefficients { 0 };
 
-    int _baseParentJointIndex { -1 };
     int _baseJointIndex { -1 };
     int _midJointIndex { -1 };
     int _tipJointIndex { -1 };
-
-    QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
-    QString _enabledVar;  // bool
 
     bool _previousEnableDebugIKTargets { false };
 
     InterpType _interpType{ InterpType::None };
     float _interpAlphaVel{ 0.0f };
     float _interpAlpha{ 0.0f };
-
     AnimChain _snapshotChain;
 
     // used to pre-compute information about each joint influenced by a spline IK target.
@@ -93,7 +90,6 @@ protected:
         AnimPose offsetPose;  // local offset from the spline to the joint.
     };
 
-    bool _lastEnableDebugDrawIKTargets { false };
     void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
     void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, int base, const IKTarget& target) const;
     const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, int base, const IKTarget& target) const;
