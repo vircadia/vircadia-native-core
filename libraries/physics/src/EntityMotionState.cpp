@@ -114,20 +114,6 @@ void EntityMotionState::updateServerPhysicsVariables() {
     }
 }
 
-// void EntityMotionState::handleDeactivation() {
-//     // copy _server data to entity
-//     Transform localTransform = _entity->getLocalTransform();
-//     // localTransform.setTranslation(_serverPosition);
-//     // localTransform.setRotation(_serverRotation);
-//     _entity->setLocalTransformAndVelocities(localTransform, ENTITY_ITEM_ZERO_VEC3, ENTITY_ITEM_ZERO_VEC3);
-//     // and also to RigidBody
-//     btTransform worldTrans;
-//     worldTrans.setOrigin(glmToBullet(_entity->getWorldPosition()));
-//     worldTrans.setRotation(glmToBullet(_entity->getWorldOrientation()));
-//     _body->setWorldTransform(worldTrans);
-//     // no need to update velocities... should already be zero
-// }
-
 void EntityMotionState::handleDeactivation() {
    if (_entity->getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
        // Some non-physical event (script-call or network-packet) has modified the entity's transform and/or velocities
