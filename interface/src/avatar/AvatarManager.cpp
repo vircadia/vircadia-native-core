@@ -718,7 +718,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
             if (rayAvatarResult._intersect && pickAgainstMesh) {
                 glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
-                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayDirection, rayAvatarResult._intersectWithJoint);
+                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayAvatarResult._distance * rayDirection, rayAvatarResult._intersectWithJoint);
 
                 auto avatarOrientation = avatar->getWorldOrientation();
                 auto avatarPosition = avatar->getWorldPosition();
@@ -728,7 +728,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
 
                 auto defaultFrameRayOrigin = jointPosition + jointOrientation * localRayOrigin;
                 auto defaultFrameRayPoint = jointPosition + jointOrientation * localRayPoint;
-                auto defaultFrameRayDirection = defaultFrameRayPoint - defaultFrameRayOrigin;
+                auto defaultFrameRayDirection = glm::normalize(defaultFrameRayPoint - defaultFrameRayOrigin);
 
                 float subMeshDistance = FLT_MAX;
                 BoxFace subMeshFace = BoxFace::UNKNOWN_FACE;
@@ -750,7 +750,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 result.avatarID = rayAvatarResult._intersectWithAvatar;
                 result.distance = rayAvatarResult._distance;
                 result.face = face;
-                result.intersection = rayAvatarResult._intersectionPoint;
+                result.intersection = ray.origin + rayAvatarResult._distance * rayDirection;
                 result.surfaceNormal = rayAvatarResult._intersectionNormal;
                 result.jointIndex = rayAvatarResult._intersectWithJoint;
                 result.extraInfo = extraInfo;
