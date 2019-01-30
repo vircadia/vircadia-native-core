@@ -5309,7 +5309,7 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
                 grab->setReleased(true);
                 bool success;
                 SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
-                if (target) {
+                if (target && success) {
                     target->disableGrab(grab);
                 }
             }
