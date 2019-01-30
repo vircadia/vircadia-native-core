@@ -199,8 +199,6 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
             AnimPose midTargetPose(midTarget.getRotation(), midTarget.getTranslation());
             //_poses[childOfMiddleJointIndex] = midTargetPose.inverse() * childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
         }
-
-        _splineJointInfoMap.clear();
         
         AnimChain upperJointChain;
         AnimPoseVec finalAbsolutePoses;

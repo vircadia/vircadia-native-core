@@ -293,10 +293,6 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
                 generateBasisVectors(up, fwd, u, v, w);
                 AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
                 currentSpine2Pose.trans() = rigSpine2.trans();
-                qCDebug(animation) << "my skeleton model spline spine2 " << rigSpine2.trans();
-                qCDebug(animation) << "my skeleton model current spine2 " << currentSpine2Pose.trans();
-                // qCDebug(animation) << "my skeleton model spline hips " << sensorToRigPose * sensorHips;
-                // qCDebug(animation) << "my skeleton model current hips " << currentHipsPose.trans();
                 currentSpine2Pose.rot() = safeLerp(currentSpine2Pose.rot(), newSpinePose.rot(), SPINE2_ROTATION_FILTER);
                 params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentSpine2Pose;
                 params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;
