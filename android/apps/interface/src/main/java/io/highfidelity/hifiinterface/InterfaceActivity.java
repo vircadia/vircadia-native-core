@@ -24,6 +24,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,6 +54,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     public static final String DOMAIN_URL = "url";
     public static final String EXTRA_GOTO_USERNAME = "gotousername";
     private static final String TAG = "Interface";
+    public static final String EXTRA_ARGS = "args";
     private static final int WEB_DRAWER_RIGHT_MARGIN = 262;
     private static final int WEB_DRAWER_BOTTOM_MARGIN = 150;
     private static final int NORMAL_DPI = 160;
@@ -77,6 +79,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     private boolean nativeEnterBackgroundCallEnqueued = false;
     private SlidingDrawer mWebSlidingDrawer;
+    private boolean mStartInDomain;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -92,8 +95,14 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     public void onCreate(Bundle savedInstanceState) {
         super.isLoading = true;
         Intent intent = getIntent();
-        if (intent.hasExtra(DOMAIN_URL) && !intent.getStringExtra(DOMAIN_URL).isEmpty()) {
+        if (intent.hasExtra(DOMAIN_URL) && !TextUtils.isEmpty(intent.getStringExtra(DOMAIN_URL))) {
             intent.putExtra("applicationArguments", "--url " + intent.getStringExtra(DOMAIN_URL));
+        } else if (intent.hasExtra(EXTRA_ARGS)) {
+            String args = intent.getStringExtra(EXTRA_ARGS);
+            if (!TextUtils.isEmpty(args)) {
+                mStartInDomain = true;
+                intent.putExtra("applicationArguments", args);
+            }
         }
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -124,7 +133,10 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
                 getActionBar().hide();
             }
         });
-        startActivity(new Intent(this, SplashActivity.class));
+        Intent splashIntent = new Intent(this, SplashActivity.class);
+        splashIntent.putExtra(SplashActivity.EXTRA_START_IN_DOMAIN, mStartInDomain);
+        startActivity(splashIntent);
+        
         mVibrator = (Vibrator) this.getSystemService(VIBRATOR_SERVICE);
         headsetStateReceiver = new HeadsetStateReceiver();
     }
