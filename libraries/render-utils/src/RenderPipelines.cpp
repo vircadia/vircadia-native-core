@@ -319,7 +319,7 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* a
             graphics::MultiMaterial::Schema schema;
             graphics::MaterialKey schemaKey;
 
-            schema._albedo = vec3(1.0f);
+            schema._albedo = ColorUtils::sRGBToLinearVec3(vec3(1.0f));
             schema._opacity = 1.0f;
             schema._metallic = 0.1f;
             schema._roughness = 0.9f;
