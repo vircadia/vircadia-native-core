@@ -7,6 +7,9 @@ import android.view.View;
 
 public class SplashActivity extends Activity {
 
+    public static final String EXTRA_START_IN_DOMAIN = "start-in-domain";
+    private boolean mStartInDomain;
+
     private native void registerLoadCompleteListener();
 
     @Override
