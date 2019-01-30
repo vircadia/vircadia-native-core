@@ -3308,15 +3308,14 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
             direction = (zSpeed * forward) + (xSpeed * right);
             // Normalize direction.
             direction /= glm::length(direction);
-            float scale = scaleSpeedByDirection(direction, _walkSpeed.get(), _walkBackwardSpeed.get());
-            return getSensorToWorldScale() * scale * direction;
+            return getSensorToWorldScale() * direction * getSprintSpeed();
         } else {
             return Vectors::ZERO;
         }
     case CONTROLS_ANALOG:
         if (zSpeed || xSpeed) {
-            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * forward;
-            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * right;
+            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
             direction = scaledForward + scaledRight;
             return direction;
         } else {
@@ -3324,8 +3323,8 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         }
     case CONTROLS_ANALOG_PLUS:
         if (zSpeed || xSpeed) {
-            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * forward;
-            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? _sprintSpeed.get() : _walkSpeed.get()) * right;
+            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
             direction = scaledForward + scaledRight;
             return direction;
         } else {
@@ -4591,11 +4590,27 @@ bool MyAvatar::getIsSitStandStateLocked() const {
 }
 
 float MyAvatar::getWalkSpeed() const {
-    return _walkSpeed.get() * _walkSpeedScalar;
+    switch(_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return _analogWalkSpeed.get() * _walkSpeedScalar;
+    case CONTROLS_ANALOG_PLUS:
+        return _analogPlusWalkSpeed.get() * _walkSpeedScalar;
+    case CONTROLS_DEFAULT:
+    default:
+        return _defaultWalkSpeed.get() * _walkSpeedScalar;
+    }
 }
 
 float MyAvatar::getWalkBackwardSpeed() const {
-    return _walkSpeed.get() * _walkSpeedScalar;
+    switch(_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return _analogWalkBackwardSpeed.get() * _walkSpeedScalar;
+    case CONTROLS_ANALOG_PLUS:
+        return _analogPlusWalkBackwardSpeed.get() * _walkSpeedScalar;
+    case CONTROLS_DEFAULT:
+    default:
+        return _defaultWalkBackwardSpeed.get() * _walkSpeedScalar;
+    }
 }
 
 bool MyAvatar::isReadyForPhysics() const {
@@ -4603,7 +4618,19 @@ bool MyAvatar::isReadyForPhysics() const {
 }
 
 void MyAvatar::setSprintMode(bool sprint) {
-    _walkSpeedScalar = sprint ? _sprintSpeed.get() : AVATAR_WALK_SPEED_SCALAR;
+    float value = AVATAR_WALK_SPEED_SCALAR;
+    if (sprint) {
+        switch(_controlSchemeIndex) {
+        case CONTROLS_ANALOG:
+            value = _analogSprintSpeed.get() * _walkSpeedScalar;
+        case CONTROLS_ANALOG_PLUS:
+            value = _analogPlusSprintSpeed.get() * _walkSpeedScalar;
+        case CONTROLS_DEFAULT:
+        default:
+            value = _defaultSprintSpeed.get() * _walkSpeedScalar;
+        }
+    }
+    _walkSpeedScalar = value;
 }
 
 void MyAvatar::setIsInWalkingState(bool isWalking) {
@@ -4666,19 +4693,63 @@ void MyAvatar::setIsSitStandStateLocked(bool isLocked) {
 }
 
 void MyAvatar::setWalkSpeed(float value) {
-    _walkSpeed.set(value);
+    switch(_controlSchemeIndex) {
+    case CONTROLS_DEFAULT:
+        _defaultWalkSpeed.set(value);
+        break;
+    case CONTROLS_ANALOG:
+        _analogWalkSpeed.set(value);
+        break;
+    case CONTROLS_ANALOG_PLUS:
+        _analogPlusWalkSpeed.set(value);
+        break;
+    default:
+        break;
+    }
 }
 
 void MyAvatar::setWalkBackwardSpeed(float value) {
-    _walkBackwardSpeed.set(value);
+    switch(_controlSchemeIndex) {
+    case CONTROLS_DEFAULT:
+        _defaultWalkBackwardSpeed.set(value);
+        break;
+    case CONTROLS_ANALOG:
+        _analogWalkBackwardSpeed.set(value);
+        break;
+    case CONTROLS_ANALOG_PLUS:
+        _analogPlusWalkBackwardSpeed.set(value);
+        break;
+    default:
+        break;
+    }
 }
 
 void MyAvatar::setSprintSpeed(float value) {
-    _sprintSpeed.set(value);
+    switch(_controlSchemeIndex) {
+    case CONTROLS_DEFAULT:
+        _defaultSprintSpeed.set(value);
+        break;
+    case CONTROLS_ANALOG:
+        _analogSprintSpeed.set(value);
+        break;
+    case CONTROLS_ANALOG_PLUS:
+        _analogPlusSprintSpeed.set(value);
+        break;
+    default:
+        break;
+    }
 }
 
 float MyAvatar::getSprintSpeed() const {
-    return _sprintSpeed.get();
+    switch(_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return _analogSprintSpeed.get();
+    case CONTROLS_ANALOG_PLUS:
+        return _analogPlusSprintSpeed.get();
+    case CONTROLS_DEFAULT:
+    default:
+        return _defaultSprintSpeed.get();
+    }
 }
 
 void MyAvatar::setSitStandStateChange(bool stateChanged) {

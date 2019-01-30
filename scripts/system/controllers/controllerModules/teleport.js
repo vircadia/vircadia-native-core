@@ -756,8 +756,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function(controllerData, deltaTime) {
             // Kill condition:
-            if (this.shouldCancel()) {
-                this.disableLasers();
+            if (_this.shouldCancel()) {
+                _this.disableLasers();
                 this.active = false;
                 return makeRunningValues(false, [], []);
             }
