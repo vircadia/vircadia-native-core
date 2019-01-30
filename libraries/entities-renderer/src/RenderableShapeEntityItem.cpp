@@ -53,7 +53,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
         }
 
         auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.needsUpdate()) {
+        if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
             return true;
         }
 
@@ -188,7 +188,7 @@ bool ShapeEntityRenderer::useMaterialPipeline(const graphics::MultiMaterial& mat
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
     auto mat = _materials.find("0");
-    if (mat != _materials.end() && mat->second.needsUpdate()) {
+    if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
         RenderPipelines::updateMultiMaterial(mat->second);
     }
 
@@ -256,7 +256,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
         materials = _materials["0"];
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
-        outColor = glm::vec4(schema._albedo, schema._opacity);
+        outColor = glm::vec4(ColorUtils::tosRGBVec3(schema._albedo), schema._opacity);
         outColor = EntityRenderer::calculatePulseColor(outColor, _pulseProperties, _created);
         if (_procedural.isReady()) {
             outColor = _procedural.getColor(outColor);
@@ -309,7 +309,7 @@ scriptable::ScriptableModelBase ShapeEntityRenderer::getScriptableModel()  {
         result.appendMaterials(_materials);
         auto materials = _materials.find("0");
         if (materials != _materials.end()) {
-            vertexColor = materials->second.getSchemaBuffer().get<graphics::MultiMaterial::Schema>()._albedo;
+            vertexColor = ColorUtils::tosRGBVec3(materials->second.getSchemaBuffer().get<graphics::MultiMaterial::Schema>()._albedo);
         }
     }
     if (auto mesh = geometryCache->meshFromShape(geometryShape, vertexColor)) {

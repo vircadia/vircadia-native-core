@@ -21,11 +21,11 @@ import "../../../../controls" as HifiControls
 import "../" as HifiCommerceCommon
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
-Item {
+Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-
+    color: hifi.colors.baseGray
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
     property string currentActiveView: "sendAssetHome";
