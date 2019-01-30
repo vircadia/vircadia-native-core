@@ -28,9 +28,8 @@ function executeLater(callback) {
     Script.setTimeout(callback, 300);
 }
 
-var INVALID_JOINT_INDEX = -1
 function isWearable(avatarEntity) {
-    return avatarEntity.properties.visible === true && (avatarEntity.properties.parentJointIndex !== INVALID_JOINT_INDEX || avatarEntity.properties.relayParentJoints === true) &&
+    return avatarEntity.properties.visible === true &&
         (avatarEntity.properties.parentID === MyAvatar.sessionUUID || avatarEntity.properties.parentID === MyAvatar.SELF_ID);
 }
 
@@ -63,19 +62,21 @@ function getMyAvatar() {
 function getMyAvatarSettings() {
     return {
         dominantHand: MyAvatar.getDominantHand(),
-        collisionsEnabled : MyAvatar.getCollisionsEnabled(),
+        hmdAvatarAlignmentType: MyAvatar.getHmdAvatarAlignmentType(),
+        collisionsEnabled: MyAvatar.getCollisionsEnabled(),
+        otherAvatarsCollisionsEnabled: MyAvatar.getOtherAvatarsCollisionsEnabled(),
         collisionSoundUrl : MyAvatar.collisionSoundURL,
         animGraphUrl: MyAvatar.getAnimGraphUrl(),
         animGraphOverrideUrl : MyAvatar.getAnimGraphOverrideUrl(),
     }
 }
 
-function updateAvatarWearables(avatar, bookmarkAvatarName, callback) {
+function updateAvatarWearables(avatar, callback, wearablesOverride) {
     executeLater(function() {
-        var wearables = getMyAvatarWearables();
+        var wearables = wearablesOverride ? wearablesOverride : getMyAvatarWearables();
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
-        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables, 'avatarName' : bookmarkAvatarName})
+        sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables})
 
         if(callback)
             callback();
@@ -129,10 +130,24 @@ function onDominantHandChanged(dominantHand) {
     }
 }
 
+function onHmdAvatarAlignmentTypeChanged(type) {
+    if (currentAvatarSettings.hmdAvatarAlignmentType !== type) {
+        currentAvatarSettings.hmdAvatarAlignmentType = type;
+        sendToQml({'method' : 'settingChanged', 'name' : 'hmdAvatarAlignmentType', 'value' : type});
+    }
+}
+
 function onCollisionsEnabledChanged(enabled) {
     if(currentAvatarSettings.collisionsEnabled !== enabled) {
         currentAvatarSettings.collisionsEnabled = enabled;
         sendToQml({'method' : 'settingChanged', 'name' : 'collisionsEnabled', 'value' : enabled})
+    }
+}
+
+function onOtherAvatarsCollisionsEnabledChanged(enabled) {
+    if (currentAvatarSettings.otherAvatarsCollisionsEnabled !== enabled) {
+        currentAvatarSettings.otherAvatarsCollisionsEnabled = enabled;
+        sendToQml({ 'method': 'settingChanged', 'name': 'otherAvatarsCollisionsEnabled', 'value': enabled })
     }
 }
 
@@ -159,7 +174,7 @@ var selectedAvatarEntityGrabbable = false;
 var selectedAvatarEntityID = null;
 var grabbedAvatarEntityChangeNotifier = null;
 
-var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/purchases/Purchases.qml";
+var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
 var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("html/js/marketplacesInject.js");
 
@@ -189,7 +204,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         sendToQml(message)
         break;
     case 'selectAvatar':
+        Entities.addingWearable.disconnect(onAddingWearable);
+        Entities.deletingWearable.disconnect(onDeletingWearable);
         AvatarBookmarks.loadBookmark(message.name);
+        Entities.addingWearable.connect(onAddingWearable);
+        Entities.deletingWearable.connect(onDeletingWearable);
         break;
     case 'deleteAvatar':
         AvatarBookmarks.removeBookmark(message.name);
@@ -199,7 +218,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         break;
     case 'adjustWearable':
         if(message.properties.localRotationAngles) {
-            message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles)
+            message.properties.localRotation = Quat.fromVec3Degrees(message.properties.localRotationAngles);
         }
 
         Entities.editEntity(message.entityID, message.properties);
@@ -224,7 +243,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             // revert changes using snapshot of wearables
             if(currentAvatarWearablesBackup !== null) {
                 AvatarBookmarks.updateAvatarEntities(currentAvatarWearablesBackup);
-                updateAvatarWearables(currentAvatar, message.avatarName);
+                updateAvatarWearables(currentAvatar, null, currentAvatarWearablesBackup);
             }
         } else {
             sendToQml({'method' : 'updateAvatarInBookmarks'});
@@ -257,8 +276,11 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
             parentJointIndex: hipsIndex
         };
 
+        Entities.addingWearable.disconnect(onAddingWearable);
         var entityID = Entities.addEntity(properties, true);
-        updateAvatarWearables(currentAvatar, message.avatarName, function() {
+        Entities.addingWearable.connect(onAddingWearable);
+
+        updateAvatarWearables(currentAvatar, function() {
             onSelectedEntity(entityID);
         });
         break;
@@ -266,8 +288,12 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         ensureWearableSelected(message.entityID);
         break;
     case 'deleteWearable':
+
+        Entities.deletingWearable.disconnect(onDeletingWearable);
         Entities.deleteEntity(message.entityID);
-        updateAvatarWearables(currentAvatar, message.avatarName);
+        Entities.deletingWearable.connect(onDeletingWearable);
+
+        updateAvatarWearables(currentAvatar);
         break;
     case 'changeDisplayName':
         if (MyAvatar.displayName !== message.displayName) {
@@ -285,9 +311,9 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'navigate':
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system")
         if(message.url.indexOf('app://') === 0) {
-            if(message.url === 'app://marketplace') {
+            if (message.url === 'app://marketplace') {
                 tablet.gotoWebScreen(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
-            } else if(message.url === 'app://purchases') {
+            } else if (message.url === 'app://purchases') {
                 tablet.pushOntoStack(MARKETPLACE_PURCHASES_QML_PATH);
             }
 
@@ -313,6 +339,8 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         currentAvatar.avatarScale = message.avatarScale;
 
         MyAvatar.setDominantHand(message.settings.dominantHand);
+        MyAvatar.setHmdAvatarAlignmentType(message.settings.hmdAvatarAlignmentType);
+        MyAvatar.setOtherAvatarsCollisionsEnabled(message.settings.otherAvatarsCollisionsEnabled);
         MyAvatar.setCollisionsEnabled(message.settings.collisionsEnabled);
         MyAvatar.collisionSoundURL = message.settings.collisionSoundUrl;
         MyAvatar.setAnimGraphOverrideUrl(message.settings.animGraphOverrideUrl);
@@ -320,7 +348,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         settings = getMyAvatarSettings();
         break;
     default:
-        print('Unrecognized message from AvatarApp.qml:', JSON.stringify(message));
+        print('Unrecognized message from AvatarApp.qml');
     }
 }
 
@@ -329,36 +357,18 @@ function isGrabbable(entityID) {
         return false;
     }
 
-    var properties = Entities.getEntityProperties(entityID, ['clientOnly', 'userData']);
-    if (properties.clientOnly) {
-        var userData;
-        try {
-            userData = JSON.parse(properties.userData);
-        } catch (e) {
-            userData = {};
-        }
-
-        return userData.grabbableKey && userData.grabbableKey.grabbable;
+    var properties = Entities.getEntityProperties(entityID, ['avatarEntity', 'grab.grabbable']);
+    if (properties.avatarEntity) {
+        return properties.grab.grabbable;
     }
 
     return false;
 }
 
 function setGrabbable(entityID, grabbable) {
-    var properties = Entities.getEntityProperties(entityID, ['clientOnly', 'userData']);
-    if (properties.clientOnly) {
-        var userData;
-        try {
-            userData = JSON.parse(properties.userData);
-        } catch (e) {
-            userData = {};
-        }
-
-        if (userData.grabbableKey === undefined) {
-            userData.grabbableKey = {};
-        }
-        userData.grabbableKey.grabbable = grabbable;
-        Entities.editEntity(entityID, {userData: JSON.stringify(userData)});
+    var properties = Entities.getEntityProperties(entityID, ['avatarEntity']);
+    if (properties.avatarEntity) {
+        Entities.editEntity(entityID, { grab: { grabbable: grabbable }});
     }
 }
 
@@ -397,6 +407,18 @@ function onSelectedEntity(entityID, pointerEvent) {
             sendToQml({'method' : 'selectAvatarEntity', 'entityID' : selectedAvatarEntityID});
         }
     }
+}
+
+function onAddingWearable(entityID) {
+    updateAvatarWearables(currentAvatar, function() {
+        sendToQml({'method' : 'updateAvatarInBookmarks'});
+    });
+}
+
+function onDeletingWearable(entityID) {
+    updateAvatarWearables(currentAvatar, function() {
+        sendToQml({'method' : 'updateAvatarInBookmarks'});
+    });
 }
 
 function handleWearableMessages(channel, message, sender) {
@@ -504,9 +526,13 @@ function off() {
         AvatarBookmarks.bookmarkDeleted.disconnect(onBookmarkDeleted);
         AvatarBookmarks.bookmarkAdded.disconnect(onBookmarkAdded);
 
+        Entities.addingWearable.disconnect(onAddingWearable);
+        Entities.deletingWearable.disconnect(onDeletingWearable);
         MyAvatar.skeletonModelURLChanged.disconnect(onSkeletonModelURLChanged);
         MyAvatar.dominantHandChanged.disconnect(onDominantHandChanged);
+        MyAvatar.hmdAvatarAlignmentTypeChanged.disconnect(onHmdAvatarAlignmentTypeChanged);
         MyAvatar.collisionsEnabledChanged.disconnect(onCollisionsEnabledChanged);
+        MyAvatar.otherAvatarsCollisionsEnabledChanged.disconnect(onOtherAvatarsCollisionsEnabledChanged);
         MyAvatar.newCollisionSoundURL.disconnect(onNewCollisionSoundUrl);
         MyAvatar.animGraphUrlChanged.disconnect(onAnimGraphUrlChanged);
         MyAvatar.targetScaleChanged.disconnect(onTargetScaleChanged);
@@ -514,16 +540,25 @@ function off() {
 }
 
 function on() {
-    AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
-    AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
-    AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
 
-    MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
-    MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
-    MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
-    MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
-    MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
-    MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
+    if (!isWired) { // It is not ok to connect these twice, hence guard.
+        isWired = true;
+
+        AvatarBookmarks.bookmarkLoaded.connect(onBookmarkLoaded);
+        AvatarBookmarks.bookmarkDeleted.connect(onBookmarkDeleted);
+        AvatarBookmarks.bookmarkAdded.connect(onBookmarkAdded);
+
+        Entities.addingWearable.connect(onAddingWearable);
+        Entities.deletingWearable.connect(onDeletingWearable);
+        MyAvatar.skeletonModelURLChanged.connect(onSkeletonModelURLChanged);
+        MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
+        MyAvatar.hmdAvatarAlignmentTypeChanged.connect(onHmdAvatarAlignmentTypeChanged);
+        MyAvatar.collisionsEnabledChanged.connect(onCollisionsEnabledChanged);
+        MyAvatar.otherAvatarsCollisionsEnabledChanged.connect(onOtherAvatarsCollisionsEnabledChanged);
+        MyAvatar.newCollisionSoundURL.connect(onNewCollisionSoundUrl);
+        MyAvatar.animGraphUrlChanged.connect(onAnimGraphUrlChanged);
+        MyAvatar.targetScaleChanged.connect(onTargetScaleChanged);
+    }
 }
 
 function onTabletButtonClicked() {
@@ -533,7 +568,6 @@ function onTabletButtonClicked() {
     } else {
         ContextOverlay.enabled = false;
         tablet.loadQMLSource(AVATARAPP_QML_SOURCE);
-        isWired = true;
     }
 }
 var hasEventBridge = false;

@@ -32,7 +32,6 @@
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "RenderCommonTask.h"
-#include "LightStage.h"
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -49,48 +48,59 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    auto items = input.get<Input>();
-    auto fadeEffect = DependencyManager::get<FadeEffect>();
-
     // Prepare the ShapePipelines
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber);
 
-    // Extract opaques / transparents / lights / metas / overlays / background
-    const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
-    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    //    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
-    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
-    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    // Unpack inputs
+    const auto& inputs = input.get<Input>();
+    
+    // Separate the fetched items
+    const auto& fetchedItems = inputs.get0();
 
-    //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
-    //    const auto& spatialSelection = items[1];
+        const auto& items = fetchedItems.get0();
 
+            // Extract opaques / transparents / lights / metas / overlays / background
+            const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+            const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+            const auto& metas = items[RenderFetchCullSortTask::META];
+            const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+            const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+          // TODO: Re enable the rendering of the HUD overlayes
+          // const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+          // const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+
+    // Lighting model comes next, the big configuration of the view
+    const auto& lightingModel = inputs[1];
+
+    // Extract the Lighting Stages Current frame ( and zones)
+    const auto& lightingStageInputs = inputs.get2();
+        // Fetch the current frame stacks from all the stages
+        const auto currentStageFrames = lightingStageInputs.get0();
+            const auto lightFrame = currentStageFrames[0];
+            const auto backgroundFrame = currentStageFrames[1];
+ 
+        const auto& zones = lightingStageInputs[1];
+
+    // First job, alter faded
     fadeEffect->build(task, opaques);
 
     // Prepare objects shared by several jobs
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
-    const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
-
-    // Filter zones from the general metas bucket
-    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
 
     // GPU jobs: Start preparing the main framebuffer
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 
-    task.addJob<PrepareForward>("PrepareForward", lightingModel);
+    task.addJob<PrepareForward>("PrepareForward", lightFrame);
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
 
     // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
-    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
-    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
 
+    // Layered Over (in front)
     const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, nullJitter).asVarying();
     const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, nullJitter).asVarying();
     task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
@@ -101,7 +111,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
-    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+    const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
+    task.addJob<DrawBackgroundStage>("DrawBackgroundForward", backgroundInputs);
 
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
@@ -114,8 +125,8 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
 
         task.addJob<DrawBounds>("DrawZones", zones);
-        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
-
+        const auto debugZoneInputs = DebugZoneLighting::Inputs(deferredFrameTransform, lightFrame, backgroundFrame).asVarying();
+        task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
     // Lighting Buffer ready for tone mapping
@@ -180,12 +191,12 @@ void PrepareForward::run(const RenderContextPointer& renderContext, const Inputs
         graphics::LightPointer keySunLight;
         auto lightStage = args->_scene->getStage<LightStage>();
         if (lightStage) {
-            keySunLight = lightStage->getCurrentKeyLight();
+            keySunLight = lightStage->getCurrentKeyLight(*inputs);
         }
 
         graphics::LightPointer keyAmbiLight;
         if (lightStage) {
-            keyAmbiLight = lightStage->getCurrentAmbientLight();
+            keyAmbiLight = lightStage->getCurrentAmbientLight(*inputs);
         }
 
         if (keySunLight) {

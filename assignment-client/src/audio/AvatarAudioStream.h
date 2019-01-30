@@ -16,6 +16,8 @@
 
 #include "PositionalAudioStream.h"
 
+using SilentSamplesBytes = quint16;
+
 class AvatarAudioStream : public PositionalAudioStream {
 public:
     AvatarAudioStream(bool isStereo, int numStaticJitterFrames = -1);

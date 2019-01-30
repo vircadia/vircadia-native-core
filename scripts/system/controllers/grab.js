@@ -14,78 +14,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global MyAvatar, Entities, Script, Camera, Vec3, Reticle, Overlays, getEntityCustomData, Messages, Quat, Controller,
-   isInEditMode, HMD entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity*/
-
+/* global MyAvatar, Entities, Script, HMD, Camera, Vec3, Reticle, Overlays, Messages, Quat, Controller,
+   isInEditMode, entityIsGrabbable, Picks, PickType, Pointers, unhighlightTargetEntity, DISPATCHER_PROPERTIES,
+   entityIsGrabbable, getMainTabletIDs
+*/
+/* jslint bitwise: true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    Script.include("/~/system/libraries/utils.js");
-    Script.include("/~/system/libraries/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/utils.js");
+Script.include("/~/system/libraries/controllerDispatcherUtils.js");
+
+var MOUSE_GRAB_JOINT = 65526; // FARGRAB_MOUSE_INDEX
+
 var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 
 var DELAY_FOR_30HZ = 33; // milliseconds
 
-var ZERO_VEC3 = {
-    x: 0,
-    y: 0,
-    z: 0
-};
-var IDENTITY_QUAT = {
-    x: 0,
-    y: 0,
-    z: 0,
-    w: 0
-};
-var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with handControllerGrab.js
-
-var DEFAULT_GRABBABLE_DATA = {
-    grabbable: true,
-    invertSolidWhileHeld: false
-};
-
-
-var ACTION_TTL = 10; // seconds
-
-function getTag() {
-    return "grab-" + MyAvatar.sessionUUID;
-}
-
-var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
-var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
-var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance holding action timeframe is unmodified
-
-function distanceGrabTimescale(mass, distance) {
-    var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
-        DISTANCE_HOLDING_UNITY_MASS * distance /
-        DISTANCE_HOLDING_UNITY_DISTANCE;
-    if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
-        timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
-    }
-    return timeScale;
-}
-function getMass(dimensions, density) {
-    return (dimensions.x * dimensions.y * dimensions.z) * density;
-}
-
-function entityIsGrabbedByOther(entityID) {
-    // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
-    var actionIDs = Entities.getActionIDs(entityID);
-    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-        var actionID = actionIDs[actionIndex];
-        var actionArguments = Entities.getActionArguments(entityID, actionID);
-        var tag = actionArguments.tag;
-        if (tag == getTag()) {
-            // we see a grab-*uuid* shaped tag, but it's our tag, so that's okay.
-            continue;
-        }
-        if (tag.slice(0, 5) == "grab-") {
-            // we see a grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
-            return true;
-        }
-    }
-    return false;
-}
+var ZERO_VEC3 = { x: 0, y: 0, z: 0 };
+var IDENTITY_QUAT = { x: 0, y: 0, z: 0, w: 1 };
 
 // helper function
 function mouseIntersectionWithPlane(pointOnPlane, planeNormal, event, maxDistance) {
@@ -226,7 +173,6 @@ var beacon = {
 function Grabber() {
     this.isGrabbing = false;
     this.entityID = null;
-    this.actionID = null;
     this.startPosition = ZERO_VEC3;
     this.lastRotation = IDENTITY_QUAT;
     this.currentPosition = ZERO_VEC3;
@@ -252,9 +198,6 @@ function Grabber() {
         z: 0
     };
 
-    this.targetPosition = null;
-    this.targetRotation = null;
-
     this.liftKey = false; // SHIFT
     this.rotateKey = false; // CONTROL
 
@@ -272,7 +215,7 @@ function Grabber() {
         joint: "Mouse",
         filter: Picks.PICK_ENTITIES | Picks.PICK_INCLUDE_NONCOLLIDABLE,
         faceAvatar: true,
-        scaleWithAvatar: true,
+        scaleWithParent: true,
         enabled: true,
         renderStates: renderStates
     });
@@ -304,7 +247,7 @@ Grabber.prototype.computeNewGrabPlane = function() {
         }
     }
 
-    this.pointOnPlane = Vec3.sum(this.currentPosition, this.offset);
+    this.pointOnPlane = Vec3.subtract(this.currentPosition, this.offset);
     var xzOffset = Vec3.subtract(this.pointOnPlane, Camera.getPosition());
     xzOffset.y = 0;
     this.xzDistanceToGrab = Vec3.length(xzOffset);
@@ -314,15 +257,12 @@ Grabber.prototype.pressEvent = function(event) {
     if (isInEditMode() || HMD.active) {
         return;
     }
-
     if (event.button !== "LEFT") {
         return;
     }
-
     if (event.isAlt || event.isMeta) {
         return;
     }
-
     if (Overlays.getOverlayAtPoint(Reticle.position) > 0) {
         // the mouse is pointing at an overlay; don't look for entities underneath the overlay.
         return;
@@ -339,16 +279,13 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var props = Entities.getEntityProperties(pickResults.objectID, ["dynamic", "userData", "locked", "type"]);
-    var isDynamic = props.dynamic;
-    var isGrabbable = props.grabbable;
+    var props = Entities.getEntityProperties(pickResults.objectID, DISPATCHER_PROPERTIES);
     if (!entityIsGrabbable(props)) {
         // only grab grabbable objects
         return;
     }
-
-    var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, pickResults.objectID, DEFAULT_GRABBABLE_DATA);
-    if (grabbableData.grabbable === false) {
+    if (props.grab.equippable) {
+        // don't mouse-grab click-to-equip entities (let equipEntity.js handle these)
         return;
     }
 
@@ -359,10 +296,9 @@ Grabber.prototype.pressEvent = function(event) {
     mouse.startDrag(event);
 
     var clickedEntity = pickResults.objectID;
-    var entityProperties = Entities.getEntityProperties(clickedEntity);
+    var entityProperties = Entities.getEntityProperties(clickedEntity, DISPATCHER_PROPERTIES);
     this.startPosition = entityProperties.position;
     this.lastRotation = entityProperties.rotation;
-    this.madeDynamic = false;
     var cameraPosition = Camera.getPosition();
 
     var objectBoundingDiameter = Vec3.length(entityProperties.dimensions);
@@ -374,21 +310,10 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (entityIsGrabbable(props) && !isDynamic) {
-        entityProperties.dynamic = true;
-        Entities.editEntity(clickedEntity, entityProperties);
-        this.madeDynamic = true;
-    }
-    // this.activateEntity(clickedEntity, entityProperties);
     this.isGrabbing = true;
 
     this.entityID = clickedEntity;
     this.currentPosition = entityProperties.position;
-    this.targetPosition = {
-        x: this.startPosition.x,
-        y: this.startPosition.y,
-        z: this.startPosition.z
-    };
 
     // compute the grab point
     var pickRay = Camera.computePickRay(event.x, event.y);
@@ -397,14 +322,13 @@ Grabber.prototype.pressEvent = function(event) {
     nearestPoint = Vec3.multiply(distanceToGrab, pickRay.direction);
     this.pointOnPlane = Vec3.sum(cameraPosition, nearestPoint);
 
-    // compute the grab offset (points from object center to point of grab)
-    this.offset = Vec3.subtract(this.pointOnPlane, this.startPosition);
+    // compute the grab offset (points from point of grab to object center)
+    this.offset = Vec3.subtract(this.startPosition, this.pointOnPlane); // offset in world-space
+    MyAvatar.setJointTranslation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointPoint(this.startPosition));
+    MyAvatar.setJointRotation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointRotation(this.lastRotation));
 
     this.computeNewGrabPlane();
-
-    if (!entityIsGrabbedByOther(this.entityID)) {
-      this.moveEvent(event);
-    }
+    this.moveEvent(event);
 
     var args = "mouse";
     Entities.callEntityMethod(this.entityID, "startDistanceGrab", args);
@@ -413,6 +337,12 @@ Grabber.prototype.pressEvent = function(event) {
         action: 'grab',
         grabbedEntity: this.entityID
     }));
+
+    if (this.grabID) {
+        MyAvatar.releaseGrab(this.grabID);
+        this.grabID = null;
+    }
+    this.grabID = MyAvatar.grab(this.entityID, MOUSE_GRAB_JOINT, ZERO_VEC3, IDENTITY_QUAT);
 
     // TODO: play sounds again when we aren't leaking AudioInjector threads
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
@@ -429,20 +359,7 @@ Grabber.prototype.releaseEvent = function(event) {
     }
 
     if (this.isGrabbing) {
-        // this.deactivateEntity(this.entityID);
         this.isGrabbing = false;
-        if (this.actionID) {
-            Entities.deleteAction(this.entityID, this.actionID);
-        }
-
-        if (this.madeDynamic) {
-            var entityProps = {};
-            entityProps.dynamic = false;
-            entityProps.localVelocity = {x: 0, y: 0, z: 0};
-            Entities.editEntity(this.entityID, entityProps);
-        }
-
-        this.actionID = null;
 
         Pointers.setRenderState(this.mouseRayEntities, "");
         Pointers.setLockEndUUID(this.mouseRayEntities, null, false);
@@ -455,6 +372,13 @@ Grabber.prototype.releaseEvent = function(event) {
             grabbedEntity: this.entityID,
             joint: "mouse"
         }));
+
+        if (this.grabID) {
+            MyAvatar.releaseGrab(this.grabID);
+            this.grabID = null;
+        }
+
+        MyAvatar.clearJointData(MOUSE_GRAB_JOINT);
 
         // TODO: play sounds again when we aren't leaking AudioInjector threads
         //Audio.playSound(releaseSound, { position: entityProperties.position, volume: VOLUME });
@@ -483,23 +407,12 @@ Grabber.prototype.moveEvent = function(event) {
 
 Grabber.prototype.moveEventProcess = function() {
     this.moveEventTimer = null;
-    // see if something added/restored gravity
-    var entityProperties = Entities.getEntityProperties(this.entityID);
-    if (!entityProperties || !entityProperties.gravity || HMD.active) {
+    var entityProperties = Entities.getEntityProperties(this.entityID, DISPATCHER_PROPERTIES);
+    if (!entityProperties || HMD.active) {
         return;
     }
 
-    if (Vec3.length(entityProperties.gravity) !== 0.0) {
-        this.originalGravity = entityProperties.gravity;
-    }
     this.currentPosition = entityProperties.position;
-    this.mass = getMass(entityProperties.dimensions, entityProperties.density);
-    var cameraPosition = Camera.getPosition();
-
-    var actionArgs = {
-        tag: getTag(),
-        ttl: ACTION_TTL
-    };
 
     if (this.mode === "rotate") {
         var drag = mouse.getDrag();
@@ -511,19 +424,9 @@ Grabber.prototype.moveEventProcess = function() {
         var ROTATE_STRENGTH = 0.4; // magic number tuned by hand
         var angle = ROTATE_STRENGTH * Math.sqrt((drag.x * drag.x) + (drag.y * drag.y));
         var deltaQ = Quat.angleAxis(angle, axis);
-        // var qZero = entityProperties.rotation;
-        //var qZero = this.lastRotation;
+
         this.lastRotation = Quat.multiply(deltaQ, this.lastRotation);
-
-        var distanceToCameraR = Vec3.length(Vec3.subtract(this.currentPosition, cameraPosition));
-        var angularTimeScale = distanceGrabTimescale(this.mass, distanceToCameraR);
-
-        actionArgs = {
-            targetRotation: this.lastRotation,
-            angularTimeScale: angularTimeScale,
-            tag: getTag(),
-            ttl: ACTION_TTL
-        };
+        MyAvatar.setJointRotation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointRotation(this.lastRotation));
 
     } else {
         var newPointOnPlane;
@@ -535,17 +438,10 @@ Grabber.prototype.moveEventProcess = function() {
             planeNormal = Vec3.normalize(planeNormal);
             var pointOnCylinder = Vec3.multiply(planeNormal, this.xzDistanceToGrab);
             pointOnCylinder = Vec3.sum(Camera.getPosition(), pointOnCylinder);
-            this.pointOnPlane = mouseIntersectionWithPlane(pointOnCylinder, planeNormal, mouse.current, this.maxDistance);
-            newPointOnPlane = {
-                x: this.pointOnPlane.x,
-                y: this.pointOnPlane.y,
-                z: this.pointOnPlane.z
-            };
-
+            newPointOnPlane = mouseIntersectionWithPlane(pointOnCylinder, planeNormal, mouse.current, this.maxDistance);
         } else {
-
-            newPointOnPlane = mouseIntersectionWithPlane(
-                    this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
+            var cameraPosition = Camera.getPosition();
+            newPointOnPlane = mouseIntersectionWithPlane(this.pointOnPlane, this.planeNormal, mouse.current, this.maxDistance);
             var relativePosition = Vec3.subtract(newPointOnPlane, cameraPosition);
             var distance = Vec3.length(relativePosition);
             if (distance > this.maxDistance) {
@@ -554,26 +450,8 @@ Grabber.prototype.moveEventProcess = function() {
                 newPointOnPlane = Vec3.sum(relativePosition, cameraPosition);
             }
         }
-        this.targetPosition = Vec3.subtract(newPointOnPlane, this.offset);
 
-        var distanceToCameraL = Vec3.length(Vec3.subtract(this.targetPosition, cameraPosition));
-        var linearTimeScale = distanceGrabTimescale(this.mass, distanceToCameraL);
-
-        actionArgs = {
-            targetPosition: this.targetPosition,
-            linearTimeScale: linearTimeScale,
-            tag: getTag(),
-            ttl: ACTION_TTL
-        };
-
-    }
-
-    if (!this.actionID) {
-        if (!entityIsGrabbedByOther(this.entityID) && !entityIsEquipped(this.entityID)) {
-            this.actionID = Entities.addAction("far-grab", this.entityID, actionArgs);
-        }
-    } else {
-        Entities.updateAction(this.entityID, this.actionID, actionArgs);
+        MyAvatar.setJointTranslation(MOUSE_GRAB_JOINT, MyAvatar.worldToJointPoint(Vec3.sum(newPointOnPlane, this.offset)));
     }
 
     this.scheduleMouseMoveProcessor();
@@ -602,6 +480,10 @@ Grabber.prototype.keyPressEvent = function(event) {
 Grabber.prototype.cleanup = function() {
     Pointers.removePointer(this.mouseRayEntities);
     Picks.removePick(this.mouseRayOverlays);
+    if (this.grabID) {
+        MyAvatar.releaseGrab(this.grabID);
+        this.grabID = null;
+    }
 };
 
 var grabber = new Grabber();

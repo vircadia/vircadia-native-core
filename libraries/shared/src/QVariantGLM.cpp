@@ -20,10 +20,6 @@ QVariantList quatToQList(const glm::quat& g) {
     return QVariantList() << g.x << g.y << g.z << g.w;
 }
 
-QVariantList rgbColorToQList(const rgbColor& v) {
-    return QVariantList() << (int)(v[0]) << (int)(v[1]) << (int)(v[2]);
-}
-
 QVariantMap vec3ToQMap(const glm::vec3& glmVector) {
     QVariantMap vectorAsVariantMap;
     vectorAsVariantMap["x"] = glmVector.x;
@@ -55,14 +51,6 @@ glm::quat qListToQuat(const QVariant& q) {
     float w = qList[3].toFloat();
     return glm::quat(w, x, y, z);
 }
-
-void qListToRgbColor(const QVariant& q, rgbColor& returnValue) {
-    QVariantList qList = q.toList();
-    returnValue[RED_INDEX] = qList[RED_INDEX].toInt();
-    returnValue[GREEN_INDEX] = qList[GREEN_INDEX].toInt();
-    returnValue[BLUE_INDEX] = qList[BLUE_INDEX].toInt();
-}
-
 
 glm::vec3 qMapToVec3(const QVariant& q) {
     QVariantMap qMap = q.toMap();

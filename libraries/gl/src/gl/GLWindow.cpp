@@ -22,7 +22,7 @@ void GLWindow::createContext(QOpenGLContext* shareContext) {
 void GLWindow::createContext(const QSurfaceFormat& format, QOpenGLContext* shareContext) {
     _context = new gl::Context();
     _context->setWindow(this);
-    _context->create();
+    _context->create(shareContext);
     _context->makeCurrent();
     _context->clear();
 }

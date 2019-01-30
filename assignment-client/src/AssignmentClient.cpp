@@ -35,6 +35,7 @@
 
 #include "AssignmentClientLogging.h"
 #include "AssignmentFactory.h"
+#include "ResourceRequestObserver.h"
 
 const QString ASSIGNMENT_CLIENT_TARGET_NAME = "assignment-client";
 const long long ASSIGNMENT_REQUEST_INTERVAL_MSECS = 1 * 1000;
@@ -49,6 +50,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     DependencyManager::set<tracing::Tracer>();
     DependencyManager::set<StatTracker>();
     DependencyManager::set<AccountManager>();
+    DependencyManager::set<ResourceRequestObserver>();
 
     auto addressManager = DependencyManager::set<AddressManager>();
 
@@ -127,17 +129,12 @@ void AssignmentClient::stopAssignmentClient() {
         QThread* currentAssignmentThread = _currentAssignment->thread();
 
         // ask the current assignment to stop
-        BLOCKING_INVOKE_METHOD(_currentAssignment, "stop");
+        QMetaObject::invokeMethod(_currentAssignment, "stop");
 
-        // ask the current assignment to delete itself on its thread
-        _currentAssignment->deleteLater();
-
-        // when this thread is destroyed we don't need to run our assignment complete method
-        disconnect(currentAssignmentThread, &QThread::destroyed, this, &AssignmentClient::assignmentCompleted);
-
-        // wait on the thread from that assignment - it will be gone once the current assignment deletes
-        currentAssignmentThread->quit();
-        currentAssignmentThread->wait();
+        auto PROCESS_EVENTS_INTERVAL_MS = 100;
+        while (!currentAssignmentThread->wait(PROCESS_EVENTS_INTERVAL_MS)) {
+            QCoreApplication::processEvents();
+        }
     }
 }
 

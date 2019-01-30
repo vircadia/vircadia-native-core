@@ -1,3 +1,5 @@
+/* global keyUpEventFromUIWindow */
+
 var GRID_CONTROLS_HTML_URL = Script.resolvePath('../html/gridControls.html');
 
 Grid = function() {
@@ -267,28 +269,29 @@ GridTool = function(opts) {
         try {
             data = JSON.parse(data);
         } catch (e) {
-            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data);
             return;
         }
 
-        if (data.type == "init") {
+        if (data.type === "init") {
             horizontalGrid.emitUpdate();
-        } else if (data.type == "update") {
+        } else if (data.type === "update") {
             horizontalGrid.update(data);
             for (var i = 0; i < listeners.length; i++) {
                 listeners[i] && listeners[i](data);
             }
-        } else if (data.type == "action") {
+        } else if (data.type === "action") {
             var action = data.action;
-            if (action == "moveToAvatar") {
+            if (action === "moveToAvatar") {
                 var position = MyAvatar.getJointPosition("LeftFoot");
-                if (position.x == 0 && position.y == 0 && position.z == 0) {
+                if (position.x === 0 && position.y === 0 && position.z === 0) {
                     position = MyAvatar.position;
                 }
                 horizontalGrid.setPosition(position);
-            } else if (action == "moveToSelection") {
+            } else if (action === "moveToSelection") {
                 horizontalGrid.moveToSelection();
             }
+        } else if (data.type === 'keyUpEvent') {
+            keyUpEventFromUIWindow(data.keyUpEvent);
         }
     };
 

@@ -687,7 +687,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
         delete _securityImage;
     }
     QString path = PathUtils::resourcesPath();
-    path.append("/qml/hifi/commerce/wallet/");
+    path.append("/qml/hifi/dialogs/security/");
     path.append(filename);
 
     // now create a new security image pixmap

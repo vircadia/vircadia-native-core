@@ -1,9 +1,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Layouts 1.3
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
-import "../../controls" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 
 Rectangle {
     id: root;
@@ -25,7 +24,17 @@ Rectangle {
         modified = false;
     }
 
-    property var jointNames;
+    property var jointNames: []
+    onJointNamesChanged: {
+        jointsModel.clear();
+        for (var i = 0; i < jointNames.length; ++i) {
+            var jointName = jointNames[i];
+            if (jointName !== 'LeftHand' && jointName !== 'RightHand') {
+                jointsModel.append({'text' : jointName, 'jointIndex' : i});
+            }
+        }
+    }
+
     property string avatarName: ''
     property var wearablesModel;
 
@@ -39,17 +48,37 @@ Rectangle {
         refresh(avatar);
     }
 
+    function extractTitleFromUrl(url) {
+        for (var j = (url.length - 1); j >= 0; --j) {
+            if (url[j] === '/') {
+                return url.substring(j + 1);
+            }
+        }
+        return url;
+    }
+
     function refresh(avatar) {
         wearablesCombobox.model.clear();
         wearablesCombobox.currentIndex = -1;
 
         for (var i = 0; i < avatar.wearables.count; ++i) {
             var wearable = avatar.wearables.get(i).properties;
-            for (var j = (wearable.modelURL.length - 1); j >= 0; --j) {
-                if (wearable.modelURL[j] === '/') {
-                    wearable.text = wearable.modelURL.substring(j + 1);
-                    break;
+            if (wearable.modelURL) {
+                wearable.text = extractTitleFromUrl(wearable.modelURL);
+            } else if (wearable.materialURL) {
+                var materialUrlOrJson = '';
+                if (!wearable.materialURL.startsWith('materialData')) {
+                    materialUrlOrJson = extractTitleFromUrl(wearable.materialURL);
+                } else if (wearable.materialData) {
+                    materialUrlOrJson = JSON.stringify(JSON.parse(wearable.materialData))
                 }
+                if(materialUrlOrJson) {
+                    wearable.text = 'Material: ' + materialUrlOrJson;
+                }
+            } else if (wearable.sourceUrl) {
+                wearable.text = extractTitleFromUrl(wearable.sourceUrl);
+            } else if (wearable.name) {
+                wearable.text = wearable.name;
             }
             wearablesCombobox.model.append(wearable);
         }
@@ -90,6 +119,25 @@ Rectangle {
         wearablesModel.setProperty(wearableIndex, 'properties', wearableModelItemProperties);
     }
 
+    function entityHasAvatarJoints(entityID) {
+        var hasAvatarJoint = false;
+
+        var props = Entities.getEntityProperties(entityID);
+        var avatarJointsCount = MyAvatar.getJointNames().length;
+        if (props && avatarJointsCount >= 0 ) {
+            var entityJointNames = Entities.getJointNames(entityID);
+            for (var index = 0; index < entityJointNames.length; index++) {
+                var avatarJointIndex = MyAvatar.getJointIndex(entityJointNames[index]);
+                if (avatarJointIndex >= 0) {
+                    hasAvatarJoint = true;
+                    break;
+                }
+            }
+        }
+
+        return hasAvatarJoint;
+    }
+
     function getCurrentWearable() {
         return wearablesCombobox.currentIndex !== -1 ? wearablesCombobox.model.get(wearablesCombobox.currentIndex) : null;
     }
@@ -99,6 +147,7 @@ Rectangle {
             var wearable = wearablesCombobox.model.get(i);
             if (wearable.id === entityID) {
                 wearablesCombobox.currentIndex = i;
+                softWearableTimer.restart();
                 break;
             }
         }
@@ -109,6 +158,7 @@ Rectangle {
         adjustWearablesClosed(status, avatarName);
     }
 
+
     HifiConstants { id: hifi }
 
     // This object is always used in a popup.
@@ -118,6 +168,21 @@ Rectangle {
         anchors.fill: parent;
         propagateComposedEvents: false;
         hoverEnabled: true;
+    }
+
+    Timer {
+        id: softWearableTimer
+        interval: 1000
+        running: false
+        repeat: true
+        onTriggered: {
+            var currentWearable = getCurrentWearable();
+            var hasSoft = currentWearable && currentWearable.relayParentJoints !== undefined;
+            var soft = hasSoft ? currentWearable.relayParentJoints : false;
+            var softEnabled = hasSoft ? entityHasAvatarJoints(currentWearable.id) : false;
+            isSoft.set(soft);
+            isSoft.enabled = softEnabled;
+        }
     }
 
     Column {
@@ -166,7 +231,7 @@ Rectangle {
                     lineHeightMode: Text.FixedHeight
                     lineHeight: 18;
                     text: "Wearable"
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 spacing: 10
@@ -177,7 +242,7 @@ Rectangle {
                     lineHeight: 18;
                     text: "<a href='#'>Get more</a>"
                     linkColor: hifi.colors.blueHighlight
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     onLinkActivated: {
                         popup.showGetWearables(function() {
                             emitSendToScript({'method' : 'navigate', 'url' : 'hifi://AvatarIsland/11.5848,-8.10862,-2.80195'})
@@ -201,7 +266,6 @@ Rectangle {
                         anchors.right: parent.right
                         onLinkActivated: {
                             popup.showSpecifyWearableUrl(function(url) {
-                                console.debug('popup.showSpecifyWearableUrl: ', url);
                                 addWearable(root.avatarName, url);
                                 modified = true;
                             });
@@ -237,13 +301,13 @@ Rectangle {
                     var rotation = currentWearable ? currentWearable.localRotationAngles : { x : 0, y : 0, z : 0 };
                     var scale = currentWearable ? currentWearable.dimensions.x / currentWearable.naturalDimensions.x : 1.0;
                     var joint = currentWearable ? currentWearable.parentJointIndex : -1;
-                    var soft = currentWearable ? currentWearable.relayParentJoints : false;
+                    softWearableTimer.restart();
 
                     positionVector.set(position);
                     rotationVector.set(rotation);
                     scalespinner.set(scale);
                     jointsCombobox.set(joint);
-                    isSoft.set(soft);
+
 
                     if (currentWearable) {
                         wearableSelected(currentWearable.id);
@@ -268,20 +332,30 @@ Rectangle {
                 anchors.right: parent.right
                 enabled: getCurrentWearable() !== null &&  !isSoft.checked
                 comboBox.displayText: isSoft.checked ? 'Hips' : comboBox.currentText
+                comboBox.textRole: "text"
 
-                model: jointNames
+                model: ListModel {
+                    id: jointsModel
+                }
                 property bool notify: false
 
                 function set(jointIndex) {
                     notify = false;
-                    currentIndex = jointIndex;
+                    for (var i = 0; i < jointsModel.count; ++i) {
+                        if (jointsModel.get(i).jointIndex === jointIndex) {
+                            currentIndex = i;
+                            break;
+                        }
+                    }
                     notify = true;
                 }
 
                 function notifyJointChanged() {
                     modified = true;
+                    var jointIndex = jointsModel.get(jointsCombobox.currentIndex).jointIndex;
+
                     var properties = {
-                        parentJointIndex: currentIndex,
+                        parentJointIndex: jointIndex,
                         localPosition: {
                             x: positionVector.xvalue,
                             y: positionVector.yvalue,
@@ -438,7 +512,7 @@ Rectangle {
 
                 function set(value) {
                     notify = false;
-                    checked = value
+                    checked = value;
                     notify = true;
                 }
 

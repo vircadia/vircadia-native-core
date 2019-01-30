@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <random>
+#include <chrono>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
@@ -32,6 +33,8 @@
 
 #include "AvatarMixer.h"
 #include "AvatarMixerClientData.h"
+
+namespace chrono = std::chrono;
 
 void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
     _begin = begin;
@@ -65,59 +68,87 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     _stats.processIncomingPacketsElapsedTime += (end - start);
 }
 
-int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    if (destinationNode->getType() == NodeType::Agent && !destinationNode->isUpstream()) {
+int AvatarMixerSlave::sendIdentityPacket(NLPacketList& packetList, const AvatarMixerClientData* nodeData, const Node& destinationNode) {
+    if (destinationNode.getType() == NodeType::Agent && !destinationNode.isUpstream()) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-        identityPackets->write(individualData);
-        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
-        _stats.numIdentityPackets++;
+        packetList.write(individualData);
+        _stats.numIdentityPacketsSent++;
+        _stats.numIdentityBytesSent += individualData.size();
         return individualData.size();
     } else {
         return 0;
     }
 }
 
+qint64 AvatarMixerSlave::addTraitsNodeHeader(AvatarMixerClientData* listeningNodeData,
+                                             const AvatarMixerClientData* sendingNodeData,
+                                             NLPacketList& traitsPacketList,
+                                             qint64 bytesWritten) {
+    if (bytesWritten == 0) {
+        if (traitsPacketList.getNumPackets() == 0) {
+            // This is the beginning of the traits packet, write out the sequence number.
+            bytesWritten += traitsPacketList.writePrimitive(listeningNodeData->nextTraitsMessageSequence());
+        }
+        // This is the beginning of the traits for a node, write out the node id
+        bytesWritten += traitsPacketList.write(sendingNodeData->getNodeID().toRfc4122());
+    }
+    return bytesWritten;
+}
+
 qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
                                                       const AvatarMixerClientData* sendingNodeData,
                                                       NLPacketList& traitsPacketList) {
 
-    auto otherNodeLocalID = sendingNodeData->getNodeLocalID();
+    // Avatar Traits flow control marks each outgoing avatar traits packet with a
+    // sequence number. The mixer caches the traits sent in the traits packet.
+    // Until an ack with the sequence number comes back, all updates to _traits
+    // in that packet_ are ignored.  Updates to traits not in that packet will
+    // be sent.
+
+    auto sendingNodeLocalID = sendingNodeData->getNodeLocalID();
 
     // Perform a simple check with two server clock time points
     // to see if there is any new traits data for this avatar that we need to send
-    auto timeOfLastTraitsSent = listeningNodeData->getLastOtherAvatarTraitsSendPoint(otherNodeLocalID);
+    auto timeOfLastTraitsSent = listeningNodeData->getLastOtherAvatarTraitsSendPoint(sendingNodeLocalID);
     auto timeOfLastTraitsChange = sendingNodeData->getLastReceivedTraitsChange();
+    bool allTraitsUpdated = true;
 
     qint64 bytesWritten = 0;
 
     if (timeOfLastTraitsChange > timeOfLastTraitsSent) {
         // there is definitely new traits data to send
 
-        // add the avatar ID to mark the beginning of traits for this avatar
-        bytesWritten += traitsPacketList.write(sendingNodeData->getNodeID().toRfc4122());
-
         auto sendingAvatar = sendingNodeData->getAvatarSharedPointer();
 
         // compare trait versions so we can see what exactly needs to go out
-        auto& lastSentVersions = listeningNodeData->getLastSentTraitVersions(otherNodeLocalID);
+        auto& lastSentVersions = listeningNodeData->getLastSentTraitVersions(sendingNodeLocalID);
+        auto& lastAckedVersions = listeningNodeData->getLastAckedTraitVersions(sendingNodeLocalID);
         const auto& lastReceivedVersions = sendingNodeData->getLastReceivedTraitVersions();
 
         auto simpleReceivedIt = lastReceivedVersions.simpleCBegin();
         while (simpleReceivedIt != lastReceivedVersions.simpleCEnd()) {
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(lastReceivedVersions.simpleCBegin(),
                                                                                 simpleReceivedIt));
-
             auto lastReceivedVersion = *simpleReceivedIt;
             auto& lastSentVersionRef = lastSentVersions[traitType];
+            auto& lastAckedVersionRef = lastAckedVersions[traitType];
 
-            if (lastReceivedVersions[traitType] > lastSentVersionRef) {
-                // there is an update to this trait, add it to the traits packet
-                bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
-
-                // update the last sent version
-                lastSentVersionRef = lastReceivedVersion;
+            // hold sending more traits until we've been acked that the last one we sent was received
+            if (lastSentVersionRef == lastAckedVersionRef) {
+                if (lastReceivedVersion > lastSentVersionRef) {
+                    bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+                    // there is an update to this trait, add it to the traits packet
+                    bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
+                    // update the last sent version
+                    lastSentVersionRef = lastReceivedVersion;
+                    // Remember which versions we sent in this particular packet
+                    // so we can verify when it's acked.
+                    auto& pendingTraitVersions = listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(), sendingNodeLocalID);
+                    pendingTraitVersions[traitType] = lastReceivedVersion;
+                }
+            } else {
+                allTraitsUpdated = false;
             }
 
             ++simpleReceivedIt;
@@ -130,6 +161,7 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
 
             // get or create the sent trait versions for this trait type
             auto& sentIDValuePairs = lastSentVersions.getInstanceIDValuePairs(traitType);
+            auto& ackIDValuePairs = lastAckedVersions.getInstanceIDValuePairs(traitType);
 
             // enumerate each received instance
             for (auto& receivedInstance : instancedReceivedIt->instances) {
@@ -147,8 +179,20 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                                                    {
                                                        return sentInstance.id == instanceID;
                                                    });
-
+                // look for existing acked version for this instance
+                auto ackedInstanceIt = std::find_if(ackIDValuePairs.begin(), ackIDValuePairs.end(),
+                                                    [instanceID](auto& ackInstance) { return ackInstance.id == instanceID; });
+                
+                // if we have a sent version, then we must have an acked instance of the same trait with the same
+                // version to go on, otherwise we drop the received trait
+                if (sentInstanceIt != sentIDValuePairs.end() &&
+                    (ackedInstanceIt == ackIDValuePairs.end() || sentInstanceIt->value != ackedInstanceIt->value)) {
+                    allTraitsUpdated = false;
+                    continue;
+                }
                 if (!isDeleted && (sentInstanceIt == sentIDValuePairs.end() || receivedVersion > sentInstanceIt->value)) {
+                    bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+
                     // this instance version exists and has never been sent or is newer so we need to send it
                     bytesWritten += sendingAvatar->packTraitInstance(traitType, instanceID, traitsPacketList, receivedVersion);
 
@@ -157,25 +201,42 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                     } else {
                         sentIDValuePairs.emplace_back(instanceID, receivedVersion);
                     }
+
+                    auto& pendingTraitVersions =
+                        listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(),
+                                                                   sendingNodeLocalID);
+                    pendingTraitVersions.instanceInsert(traitType, instanceID, receivedVersion);
+
                 } else if (isDeleted && sentInstanceIt != sentIDValuePairs.end() && absoluteReceivedVersion > sentInstanceIt->value) {
+                    bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
+
                     // this instance version was deleted and we haven't sent the delete to this client yet
                     bytesWritten += AvatarTraits::packInstancedTraitDelete(traitType, instanceID, traitsPacketList, absoluteReceivedVersion);
 
                     // update the last sent version for this trait instance to the absolute value of the deleted version
                     sentInstanceIt->value = absoluteReceivedVersion;
+
+                    auto& pendingTraitVersions =
+                        listeningNodeData->getPendingTraitVersions(listeningNodeData->getTraitsMessageSequence(),
+                                                                   sendingNodeLocalID);
+                    pendingTraitVersions.instanceInsert(traitType, instanceID, absoluteReceivedVersion);
+
                 }
             }
 
             ++instancedReceivedIt;
         }
-
-        // write a null trait type to mark the end of trait data for this avatar
-        bytesWritten += traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
-
-        // since we send all traits for this other avatar, update the time of last traits sent
-        // to match the time of last traits change
-        listeningNodeData->setLastOtherAvatarTraitsSendPoint(otherNodeLocalID, timeOfLastTraitsChange);
+        if (bytesWritten) {
+            // write a null trait type to mark the end of trait data for this avatar
+            bytesWritten += traitsPacketList.writePrimitive(AvatarTraits::NullTrait);
+            // since we send all traits for this other avatar, update the time of last traits sent
+            // to match the time of last traits change
+            if (allTraitsUpdated) {
+                listeningNodeData->setLastOtherAvatarTraitsSendPoint(sendingNodeLocalID, timeOfLastTraitsChange);
+            }
+        }
     }
+
 
     return bytesWritten;
 }
@@ -187,7 +248,8 @@ int AvatarMixerSlave::sendReplicatedIdentityPacket(const Node& agentNode, const 
         auto identityPacket = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
         identityPacket->write(individualData);
         DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPacket), destinationNode);
-        _stats.numIdentityPackets++;
+        _stats.numIdentityPacketsSent++;
+        _stats.numIdentityBytesSent += individualData.size();
         return individualData.size();
     } else {
         return 0;
@@ -209,7 +271,18 @@ void AvatarMixerSlave::broadcastAvatarData(const SharedNodePointer& node) {
     _stats.jobElapsedTime += (end - start);
 }
 
+AABox computeBubbleBox(const AvatarData& avatar, float bubbleExpansionFactor) {
+    AABox box = avatar.getGlobalBoundingBox();
+    glm::vec3 scale = box.getScale();
+    scale *= bubbleExpansionFactor;
+    const glm::vec3 MIN_BUBBLE_SCALE(0.3f, 1.3f, 0.3);
+    scale = glm::max(scale, MIN_BUBBLE_SCALE);
+    box.setScaleStayCentered(glm::max(scale, MIN_BUBBLE_SCALE));
+    return box;
+}
+
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
+    const Node* destinationNode = node.data();
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -220,7 +293,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     _stats.nodesBroadcastedTo++;
 
-    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(destinationNode->getLinkedData());
 
     nodeData->resetInViewStats();
 
@@ -230,11 +303,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // reset the internal state for correct random number distribution
     distribution.reset();
 
+    // Estimate number to sort on number sent last frame (with min. of 20).
+    const int numToSendEst = std::max(int(nodeData->getNumAvatarsSentLastFrame() * 2.5f), 20);
+
     // reset the number of sent avatars
     nodeData->resetNumAvatarsSentLastFrame();
-
-    // keep a counter of the number of considered avatars
-    int numOtherAvatars = 0;
 
     // keep track of outbound data rate specifically for avatar data
     int numAvatarDataBytes = 0;
@@ -242,12 +315,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     int traitBytesSent = 0;
 
     // max number of avatarBytes per frame
-    auto maxAvatarBytesPerFrame = (_maxKbpsPerNode * BYTES_PER_KILOBIT) / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
-
-    // FIXME - find a way to not send the sessionID for every avatar
-    int minimumBytesPerAvatar = AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID;
-
-    int overBudgetAvatars = 0;
+    int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
 
     // keep track of the number of other avatars held back in this frame
     int numAvatarsHeldBack = 0;
@@ -258,68 +326,37 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // When this is true, the AvatarMixer will send Avatar data to a client
     // about avatars they've ignored or that are out of view
     bool PALIsOpen = nodeData->getRequestsDomainListData();
+    bool PALWasOpen = nodeData->getPrevRequestsDomainListData();
 
     // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
-    bool getsAnyIgnored = PALIsOpen && node->getCanKick();
+    bool getsAnyIgnored = PALIsOpen && destinationNode->getCanKick();
 
-    if (PALIsOpen) {
-        // Increase minimumBytesPerAvatar if the PAL is open
-        minimumBytesPerAvatar += sizeof(AvatarDataPacket::AvatarGlobalPosition) +
-        sizeof(AvatarDataPacket::AudioLoudness);
-    }
+    // Bandwidth allowance for data that must be sent.
+    int minimumBytesPerAvatar = PALIsOpen ? AvatarDataPacket::AVATAR_HAS_FLAGS_SIZE + NUM_BYTES_RFC4122_UUID +
+        sizeof(AvatarDataPacket::AvatarGlobalPosition) + sizeof(AvatarDataPacket::AudioLoudness) : 0;
 
-    // setup a PacketList for the avatarPackets
-    auto avatarPacketList = NLPacketList::create(PacketType::BulkAvatarData);
-
-    // Define the minimum bubble size
-    static const glm::vec3 minBubbleSize = avatar.getSensorToWorldScale() * glm::vec3(0.3f, 1.3f, 0.3f);
-    // Define the scale of the box for the current node
-    glm::vec3 nodeBoxScale = (nodeData->getPosition() - nodeData->getGlobalBoundingBoxCorner()) * 2.0f * avatar.getSensorToWorldScale();
-    // Set up the bounding box for the current node
-    AABox nodeBox(nodeData->getGlobalBoundingBoxCorner(), nodeBoxScale);
-    // Clamp the size of the bounding box to a minimum scale
-    if (glm::any(glm::lessThan(nodeBoxScale, minBubbleSize))) {
-        nodeBox.setScaleStayCentered(minBubbleSize);
-    }
-    // Quadruple the scale of both bounding boxes
-    nodeBox.embiggen(4.0f);
-
-
-    // setup list of AvatarData as well as maps to map betweeen the AvatarData and the original nodes
-    std::vector<AvatarSharedPointer> avatarsToSort;
-    std::unordered_map<AvatarSharedPointer, SharedNodePointer> avatarDataToNodes;
-    std::unordered_map<QUuid, uint64_t> avatarEncodeTimes;
-    std::for_each(_begin, _end, [&](const SharedNodePointer& otherNode) {
-        // make sure this is an agent that we have avatar data for before considering it for inclusion
-        if (otherNode->getType() == NodeType::Agent
-            && otherNode->getLinkedData()) {
-            const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
-
-            AvatarSharedPointer otherAvatar = otherNodeData->getAvatarSharedPointer();
-            avatarsToSort.push_back(otherAvatar);
-            avatarDataToNodes[otherAvatar] = otherNode;
-            QUuid id = otherAvatar->getSessionUUID();
-            avatarEncodeTimes[id] = nodeData->getLastOtherAvatarEncodeTime(id);
-        }
-    });
+    // compute node bounding box
+    const float MY_AVATAR_BUBBLE_EXPANSION_FACTOR = 4.0f; // magic number determined emperically
+    AABox nodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR);
 
     class SortableAvatar: public PrioritySortUtil::Sortable {
     public:
         SortableAvatar() = delete;
-        SortableAvatar(const AvatarSharedPointer& avatar, uint64_t lastEncodeTime)
-            : _avatar(avatar), _lastEncodeTime(lastEncodeTime) {}
-        glm::vec3 getPosition() const override { return _avatar->getWorldPosition(); }
+        SortableAvatar(const AvatarData* avatar, const Node* avatarNode, uint64_t lastEncodeTime)
+            : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
+        glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
         float getRadius() const override {
-            glm::vec3 nodeBoxHalfScale = (_avatar->getWorldPosition() - _avatar->getGlobalBoundingBoxCorner() * _avatar->getSensorToWorldScale());
-            return glm::max(nodeBoxHalfScale.x, glm::max(nodeBoxHalfScale.y, nodeBoxHalfScale.z));
+            glm::vec3 nodeBoxScale = _avatar->getGlobalBoundingBox().getScale();
+            return 0.5f * glm::max(nodeBoxScale.x, glm::max(nodeBoxScale.y, nodeBoxScale.z));
         }
         uint64_t getTimestamp() const override {
             return _lastEncodeTime;
         }
-        AvatarSharedPointer getAvatar() const { return _avatar; }
+        const Node* getNode() const { return _node; }
 
     private:
-        AvatarSharedPointer _avatar;
+        const AvatarData* _avatar;
+        const Node* _node;
         uint64_t _lastEncodeTime;
     };
 
@@ -329,14 +366,17 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             AvatarData::_avatarSortCoefficientSize,
             AvatarData::_avatarSortCoefficientCenter,
             AvatarData::_avatarSortCoefficientAge);
+    sortedAvatars.reserve(_end - _begin);
 
-    // ignore or sort
-    const AvatarSharedPointer& thisAvatar = nodeData->getAvatarSharedPointer();
-    for (const auto& avatar : avatarsToSort) {
-        if (avatar == thisAvatar) {
-            // don't echo updates to self
+    for (auto listedNode = _begin; listedNode != _end; ++listedNode) {
+        Node* otherNodeRaw = (*listedNode).data();
+        if (otherNodeRaw->getType() != NodeType::Agent
+            || !otherNodeRaw->getLinkedData()
+            || otherNodeRaw == destinationNode) {
             continue;
         }
+
+        auto avatarNode = otherNodeRaw;
 
         bool shouldIgnore = false;
         // We ignore other nodes for a couple of reasons:
@@ -345,53 +385,38 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         //      happen if for example the avatar is connected on a desktop and sending
         //      updates at ~30hz. So every 3 frames we skip a frame.
 
-        auto avatarNode = avatarDataToNodes[avatar];
         assert(avatarNode); // we can't have gotten here without the avatarData being a valid key in the map
 
-        const AvatarMixerClientData* avatarNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
-        assert(avatarNodeData); // we can't have gotten here without avatarNode having valid data
+        const AvatarMixerClientData* avatarClientNodeData = reinterpret_cast<const AvatarMixerClientData*>(avatarNode->getLinkedData());
+        assert(avatarClientNodeData); // we can't have gotten here without avatarNode having valid data
         quint64 startIgnoreCalculation = usecTimestampNow();
 
         // make sure we have data for this avatar, that it isn't the same node,
         // and isn't an avatar that the viewing node has ignored
         // or that has ignored the viewing node
-        if (!avatarNode->getLinkedData()
-            || avatarNode->getUUID() == node->getUUID()
-            || (node->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
-            || (avatarNode->isIgnoringNodeWithID(node->getUUID()) && !getsAnyIgnored)) {
+        if ((destinationNode->isIgnoringNodeWithID(avatarNode->getUUID()) && !PALIsOpen)
+            || (avatarNode->isIgnoringNodeWithID(destinationNode->getUUID()) && !getsAnyIgnored)) {
             shouldIgnore = true;
         } else {
             // Check to see if the space bubble is enabled
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
-            if (node->isIgnoreRadiusEnabled() || (avatarNode->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
-                float sensorToWorldScale = avatarNodeData->getAvatarSharedPointer()->getSensorToWorldScale();
-                // Define the scale of the box for the current other node
-                glm::vec3 otherNodeBoxScale = (avatarNodeData->getPosition() - avatarNodeData->getGlobalBoundingBoxCorner()) * 2.0f * sensorToWorldScale;
-                // Set up the bounding box for the current other node
-                AABox otherNodeBox(avatarNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-                // Clamp the size of the bounding box to a minimum scale
-                if (glm::any(glm::lessThan(otherNodeBoxScale, minBubbleSize))) {
-                    otherNodeBox.setScaleStayCentered(minBubbleSize);
-                }
-                // Change the scale of both bounding boxes
-                // (This is an arbitrary number determined empirically)
-                otherNodeBox.embiggen(2.4f);
-
+            if (nodeData->isIgnoreRadiusEnabled() || (avatarClientNodeData->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                 // Perform the collision check between the two bounding boxes
+                AABox otherNodeBox = avatarClientNodeData->getAvatar().getDefaultBubbleBox();
                 if (nodeBox.touches(otherNodeBox)) {
-                    nodeData->ignoreOther(node, avatarNode);
+                    nodeData->ignoreOther(destinationNode, avatarNode);
                     shouldIgnore = !getsAnyIgnored;
                 }
             }
             // Not close enough to ignore
             if (!shouldIgnore) {
-                nodeData->removeFromRadiusIgnoringSet(node, avatarNode->getUUID());
+                nodeData->removeFromRadiusIgnoringSet(avatarNode->getUUID());
             }
         }
 
         if (!shouldIgnore) {
-            AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getUUID());
-            AvatarDataSequenceNumber lastSeqFromSender = avatarNodeData->getLastReceivedSequenceNumber();
+            AvatarDataSequenceNumber lastSeqToReceiver = nodeData->getLastBroadcastSequenceNumber(avatarNode->getLocalID());
+            AvatarDataSequenceNumber lastSeqFromSender = avatarClientNodeData->getLastReceivedSequenceNumber();
 
             // FIXME - This code does appear to be working. But it seems brittle.
             //         It supports determining if the frame of data for this "other"
@@ -406,6 +431,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             if (lastSeqToReceiver == lastSeqFromSender && lastSeqToReceiver != 0) {
                 ++numAvatarsHeldBack;
                 shouldIgnore = true;
+            } else if (lastSeqFromSender == 0) {
+                // We have have not yet recieved any data about this avatar. Ignore it for now
+                // This is important for Agent scripts that are not avatar
+                // so that they don't appear to be an avatar at the origin
+                shouldIgnore = true;
             } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                 // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                 ++numAvatarsWithSkippedFrames;
@@ -416,167 +446,180 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (!shouldIgnore) {
             // sort this one for later
-            uint64_t lastEncodeTime = 0;
-            std::unordered_map<QUuid, uint64_t>::const_iterator itr = avatarEncodeTimes.find(avatar->getSessionUUID());
-            if (itr != avatarEncodeTimes.end()) {
-                lastEncodeTime = itr->second;
-            }
-            sortedAvatars.push(SortableAvatar(avatar, lastEncodeTime));
+            const AvatarData* avatarNodeData = avatarClientNodeData->getConstAvatarData();
+            auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(avatarNode->getLocalID());
+
+            sortedAvatars.push(SortableAvatar(avatarNodeData, avatarNode, lastEncodeTime));
         }
+        
+        // If Avatar A's PAL WAS open but is no longer open, AND
+        // Avatar A is ignoring Avatar B OR Avatar B is ignoring Avatar A...
+        //
+        // This is a bit heavy-handed still - there are cases where a kill packet
+        // will be sent when it doesn't need to be (but where it _should_ be OK to send).
+        // However, it's less heavy-handed than using `shouldIgnore`.
+        if (PALWasOpen && !PALIsOpen &&
+            (destinationNode->isIgnoringNodeWithID(avatarNode->getUUID()) ||
+                avatarNode->isIgnoringNodeWithID(destinationNode->getUUID()))) {
+            // ...send a Kill Packet to Node A, instructing Node A to kill Avatar B,
+            // then have Node A cleanup the killed Node B.
+            auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
+            packet->write(avatarNode->getUUID().toRfc4122());
+            packet->writePrimitive(KillAvatarReason::AvatarIgnored);
+            nodeList->sendPacket(std::move(packet), *destinationNode);
+            nodeData->cleanupKilledNode(avatarNode->getUUID(), avatarNode->getLocalID());
+        }
+
+        nodeData->setPrevRequestsDomainListData(PALIsOpen);
     }
 
     // loop through our sorted avatars and allocate our bandwidth to them accordingly
 
     int remainingAvatars = (int)sortedAvatars.size();
     auto traitsPacketList = NLPacketList::create(PacketType::BulkAvatarTraits, QByteArray(), true, true);
-    while (!sortedAvatars.empty()) {
-        const auto avatarData = sortedAvatars.top().getAvatar();
-        sortedAvatars.pop();
-        remainingAvatars--;
 
-        auto otherNode = avatarDataToNodes[avatarData];
+    auto avatarPacket = NLPacket::create(PacketType::BulkAvatarData);
+    const int avatarPacketCapacity = avatarPacket->getPayloadCapacity();
+    int avatarSpaceAvailable = avatarPacketCapacity;
+    int numPacketsSent = 0;
+    auto identityPacketList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+
+    const auto& sortedAvatarVector = sortedAvatars.getSortedVector(numToSendEst);
+    for (const auto& sortedAvatar : sortedAvatarVector) {
+        const Node* otherNode = sortedAvatar.getNode();
+        auto lastEncodeForOther = sortedAvatar.getTimestamp();
+
         assert(otherNode); // we can't have gotten here without the avatarData being a valid key in the map
 
-        // NOTE: Here's where we determine if we are over budget and drop to bare minimum data
+        AvatarData::AvatarDataDetail detail = AvatarData::NoData;
+
+        // NOTE: Here's where we determine if we are over budget and drop remaining avatars,
+        // or send minimal avatar data in uncommon case of PALIsOpen.
         int minimRemainingAvatarBytes = minimumBytesPerAvatar * remainingAvatars;
-        bool overBudget = (identityBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes) > maxAvatarBytesPerFrame;
+        auto frameByteEstimate = identityBytesSent + traitBytesSent + numAvatarDataBytes + minimRemainingAvatarBytes;
+        bool overBudget = frameByteEstimate > maxAvatarBytesPerFrame;
+        if (overBudget) {
+            if (PALIsOpen) {
+                _stats.overBudgetAvatars++;
+                detail = AvatarData::PALMinimum;
+            } else {
+                _stats.overBudgetAvatars += remainingAvatars;
+                break;
+            }
+        }
 
-        quint64 startAvatarDataPacking = usecTimestampNow();
-
-        ++numOtherAvatars;
+        auto startAvatarDataPacking = chrono::high_resolution_clock::now();
 
         const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
         const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
 
-        // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
-        // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
-        if (otherAvatar->hasProcessedFirstIdentity()
-            && nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
-            identityBytesSent += sendIdentityPacket(otherNodeData, node);
+        // Typically all out-of-view avatars but such avatars' priorities will rise with time:
+        bool isLowerPriority = sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;
 
-            // remember the last time we sent identity details about this other node to the receiver
-            nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
-        }
-
-        // determine if avatar is in view which determines how much data to send
-        glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
-        glm::vec3 otherNodeBoxScale = (otherPosition - otherNodeData->getGlobalBoundingBoxCorner()) * 2.0f * otherAvatar->getSensorToWorldScale();
-        AABox otherNodeBox(otherNodeData->getGlobalBoundingBoxCorner(), otherNodeBoxScale);
-        bool isInView = nodeData->otherAvatarInView(otherNodeBox);
-
-        // start a new segment in the PacketList for this avatar
-        avatarPacketList->startSegment();
-
-        AvatarData::AvatarDataDetail detail;
-
-        if (overBudget) {
-            overBudgetAvatars++;
-            _stats.overBudgetAvatars++;
-            detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::NoData;
-        } else if (!isInView) {
+        if (isLowerPriority) {
             detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
             nodeData->incrementAvatarOutOfView();
-        } else {
-            detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO
-            ? AvatarData::SendAllData : AvatarData::CullSmallData;
+        } else if (!overBudget) {
+            detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO ? AvatarData::SendAllData : AvatarData::CullSmallData;
             nodeData->incrementAvatarInView();
-        }
 
-        bool includeThisAvatar = true;
-        auto lastEncodeForOther = nodeData->getLastOtherAvatarEncodeTime(otherNode->getUUID());
-        QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getUUID());
+            // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
+            // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
+            if (otherAvatar->hasProcessedFirstIdentity()
+                && nodeData->getLastBroadcastTime(otherNode->getLocalID()) <= otherNodeData->getIdentityChangeTimestamp()) {
+                identityBytesSent += sendIdentityPacket(*identityPacketList, otherNodeData, *destinationNode);
 
-        lastSentJointsForOther.resize(otherAvatar->getJointCount());
-
-        bool distanceAdjust = true;
-        glm::vec3 viewerPosition = myPosition;
-        AvatarDataPacket::HasFlags hasFlagsOut; // the result of the toByteArray
-        bool dropFaceTracking = false;
-
-        quint64 start = usecTimestampNow();
-        QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                                                    hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition,
-                                                    &lastSentJointsForOther);
-        quint64 end = usecTimestampNow();
-        _stats.toByteArrayElapsedTime += (end - start);
-
-        static auto maxAvatarDataBytes = avatarPacketList->getMaxSegmentSize() - NUM_BYTES_RFC4122_UUID;
-        if (bytes.size() > maxAvatarDataBytes) {
-            qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
-                << "resulted in very large buffer of" << bytes.size() << "bytes - dropping facial data";
-
-            dropFaceTracking = true; // first try dropping the facial data
-            bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                                             hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-
-            if (bytes.size() > maxAvatarDataBytes) {
-                qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
-                    << "without facial data resulted in very large buffer of" << bytes.size()
-                    << "bytes - reducing to MinimumData";
-                bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
-                                                 hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-
-                if (bytes.size() > maxAvatarDataBytes) {
-                    qCWarning(avatars) << "otherAvatar.toByteArray() for" << otherNode->getUUID()
-                        << "MinimumData resulted in very large buffer of" << bytes.size()
-                        << "bytes - refusing to send avatar";
-                    includeThisAvatar = false;
-                }
+                // remember the last time we sent identity details about this other node to the receiver
+                nodeData->setLastBroadcastTime(otherNode->getLocalID(), usecTimestampNow());
             }
         }
 
-        if (includeThisAvatar) {
-            numAvatarDataBytes += avatarPacketList->write(otherNode->getUUID().toRfc4122());
-            numAvatarDataBytes += avatarPacketList->write(bytes);
+        QVector<JointData>& lastSentJointsForOther = nodeData->getLastOtherAvatarSentJoints(otherNode->getLocalID());
 
-            if (detail != AvatarData::NoData) {
-                _stats.numOthersIncluded++;
+        const bool distanceAdjust = true;
+        const bool dropFaceTracking = false;
+        AvatarDataPacket::SendStatus sendStatus;
+        sendStatus.sendUUID = true;
 
-                // increment the number of avatars sent to this reciever
-                nodeData->incrementNumAvatarsSentLastFrame();
+        do {
+            auto startSerialize = chrono::high_resolution_clock::now();
+            QByteArray bytes = otherAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
+                sendStatus, dropFaceTracking, distanceAdjust, myPosition,
+                &lastSentJointsForOther, avatarSpaceAvailable);
+            auto endSerialize = chrono::high_resolution_clock::now();
+            _stats.toByteArrayElapsedTime +=
+                (quint64)chrono::duration_cast<chrono::microseconds>(endSerialize - startSerialize).count();
 
-                // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
-                                                         otherNodeData->getLastReceivedSequenceNumber());
-                nodeData->setLastOtherAvatarEncodeTime(otherNode->getUUID(), usecTimestampNow());
+            avatarPacket->write(bytes);
+            avatarSpaceAvailable -= bytes.size();
+            numAvatarDataBytes += bytes.size();
+            if (!sendStatus || avatarSpaceAvailable < (int)AvatarDataPacket::MIN_BULK_PACKET_SIZE) {
+                // Weren't able to fit everything.
+                nodeList->sendPacket(std::move(avatarPacket), *destinationNode);
+                ++numPacketsSent;
+                avatarPacket = NLPacket::create(PacketType::BulkAvatarData);
+                avatarSpaceAvailable = avatarPacketCapacity;
             }
-        } else {
-            // TODO? this avatar is not included now, and will probably not be included next frame.
-            // It would be nice if we could tweak its future sort priority to put it at the back of the list.
+        } while (!sendStatus);
+
+        if (detail != AvatarData::NoData) {
+            _stats.numOthersIncluded++;
+
+            // increment the number of avatars sent to this receiver
+            nodeData->incrementNumAvatarsSentLastFrame();
+
+            // set the last sent sequence number for this sender on the receiver
+            nodeData->setLastBroadcastSequenceNumber(otherNode->getLocalID(),
+                otherNodeData->getLastReceivedSequenceNumber());
+            nodeData->setLastOtherAvatarEncodeTime(otherNode->getLocalID(), usecTimestampNow());
         }
 
-        avatarPacketList->endSegment();
+        auto endAvatarDataPacking = chrono::high_resolution_clock::now();
+        _stats.avatarDataPackingElapsedTime +=
+            (quint64) chrono::duration_cast<chrono::microseconds>(endAvatarDataPacking - startAvatarDataPacking).count();
 
-        quint64 endAvatarDataPacking = usecTimestampNow();
-        _stats.avatarDataPackingElapsedTime += (endAvatarDataPacking - startAvatarDataPacking);
+        if (!overBudget) {
+            // use helper to add any changed traits to our packet list
+            traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
+        }
 
-        // use helper to add any changed traits to our packet list
-        traitBytesSent += addChangedTraitsToBulkPacket(nodeData, otherNodeData, *traitsPacketList);
+        remainingAvatars--;
+    }
 
-        traitsPacketList->getDataSize();
+    if (nodeData->getNumAvatarsSentLastFrame() > numToSendEst) {
+        qCWarning(avatars) << "More avatars sent than upper estimate" << nodeData->getNumAvatarsSentLastFrame()
+            << " / " << numToSendEst;
     }
 
     quint64 startPacketSending = usecTimestampNow();
 
-    // close the current packet so that we're always sending something
-    avatarPacketList->closeCurrentPacket(true);
+    if (avatarPacket->getPayloadSize() != 0) {
+        nodeList->sendPacket(std::move(avatarPacket), *destinationNode);
+        ++numPacketsSent;
+    }
 
-    _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
-    _stats.numBytesSent += numAvatarDataBytes;
-
-    // send the avatar data PacketList
-    nodeList->sendPacketList(std::move(avatarPacketList), *node);
-
-    // record the bytes sent for other avatar data in the AvatarMixerClientData
-    nodeData->recordSentAvatarData(numAvatarDataBytes);
+    _stats.numDataPacketsSent += numPacketsSent;
+    _stats.numDataBytesSent += numAvatarDataBytes;
 
     // close the current traits packet list
     traitsPacketList->closeCurrentPacket();
 
     if (traitsPacketList->getNumPackets() >= 1) {
         // send the traits packet list
-        nodeList->sendPacketList(std::move(traitsPacketList), *node);
+        _stats.numTraitsBytesSent += traitBytesSent;
+        _stats.numTraitsPacketsSent += (int) traitsPacketList->getNumPackets();
+        nodeList->sendPacketList(std::move(traitsPacketList), *destinationNode);
     }
+
+    // Send any AvatarIdentity packets:
+    identityPacketList->closeCurrentPacket();
+    if (identityBytesSent > 0) {
+        nodeList->sendPacketList(std::move(identityPacketList), *destinationNode);
+    }
+
+    // record the bytes sent for other avatar data in the AvatarMixerClientData
+    nodeData->recordSentAvatarData(numAvatarDataBytes, traitBytesSent);
+
 
     // record the number of avatars held back this frame
     nodeData->recordNumOtherAvatarStarves(numAvatarsHeldBack);
@@ -623,20 +666,20 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             // so we always send a full update for this avatar
             
             quint64 start = usecTimestampNow();
-            AvatarDataPacket::HasFlags flagsOut;
+            AvatarDataPacket::SendStatus sendStatus;
 
             QVector<JointData> emptyLastJointSendData { otherAvatar->getJointCount() };
 
             QByteArray avatarByteArray = otherAvatar->toByteArray(AvatarData::SendAllData, 0, emptyLastJointSendData,
-                                                                  flagsOut, false, false, glm::vec3(0), nullptr);
+                sendStatus, false, false, glm::vec3(0), nullptr, 0);
             quint64 end = usecTimestampNow();
             _stats.toByteArrayElapsedTime += (end - start);
 
-            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
+            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getLocalID());
             if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
                 || (start - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
                 sendReplicatedIdentityPacket(*agentNode, agentNodeData, *node);
-                nodeData->setLastBroadcastTime(agentNode->getUUID(), start);
+                nodeData->setLastBroadcastTime(agentNode->getLocalID(), start);
             }
 
             // figure out how large our avatar byte array can be to fit in the packet list
@@ -654,14 +697,14 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
                     << "-" << avatarByteArray.size() << "bytes";
 
                 avatarByteArray = otherAvatar->toByteArray(AvatarData::SendAllData, 0, emptyLastJointSendData,
-                                                           flagsOut, true, false, glm::vec3(0), nullptr);
+                    sendStatus, true, false, glm::vec3(0), nullptr, 0);
 
                 if (avatarByteArray.size() > maxAvatarByteArraySize) {
                     qCWarning(avatars) << "Replicated avatar data without facial data still too large for"
                         << otherAvatar->getSessionUUID() << "-" << avatarByteArray.size() << "bytes";
 
                     avatarByteArray = otherAvatar->toByteArray(AvatarData::MinimumData, 0, emptyLastJointSendData,
-                                                               flagsOut, true, false, glm::vec3(0), nullptr);
+                        sendStatus, true, false, glm::vec3(0), nullptr, 0);
                 }
             }
 
@@ -670,7 +713,7 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
                 nodeData->incrementNumAvatarsSentLastFrame();
 
                 // set the last sent sequence number for this sender on the receiver
-                nodeData->setLastBroadcastSequenceNumber(agentNode->getUUID(),
+                nodeData->setLastBroadcastSequenceNumber(agentNode->getLocalID(),
                                                          agentNodeData->getLastReceivedSequenceNumber());
 
                 // increment the number of avatars sent to this reciever
@@ -704,8 +747,8 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
         // close the current packet so that we're always sending something
         avatarPacketList->closeCurrentPacket(true);
 
-        _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
-        _stats.numBytesSent += numAvatarDataBytes;
+        _stats.numDataPacketsSent += (int)avatarPacketList->getNumPackets();
+        _stats.numDataBytesSent += numAvatarDataBytes;
 
         // send the replicated bulk avatar data
         auto nodeList = DependencyManager::get<NodeList>();

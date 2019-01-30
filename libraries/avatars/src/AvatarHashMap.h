@@ -32,6 +32,9 @@
 #include "AvatarData.h"
 #include "AssociatedTraitValues.h"
 
+const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
+const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
+
 /**jsdoc
  * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
  * synonym for the {@link AvatarManager} API.
@@ -40,6 +43,28 @@
  *
  * @hifi-assignment-client
  */
+
+class AvatarReplicas {
+public:
+    AvatarReplicas() {}
+    void addReplica(const QUuid& parentID, AvatarSharedPointer replica);
+    std::vector<QUuid> getReplicaIDs(const QUuid& parentID);
+    void parseDataFromBuffer(const QUuid& parentID, const QByteArray& buffer);
+    void processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+    void removeReplicas(const QUuid& parentID);
+    std::vector<AvatarSharedPointer> takeReplicas(const QUuid& parentID);
+    void processTrait(const QUuid& parentID, AvatarTraits::TraitType traitType, QByteArray traitBinaryData);
+    void processDeletedTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType, AvatarTraits::TraitInstanceID instanceID);
+    void processTraitInstance(const QUuid& parentID, AvatarTraits::TraitType traitType,
+                                AvatarTraits::TraitInstanceID instanceID, QByteArray traitBinaryData);
+    void setReplicaCount(int count) { _replicaCount = count; }
+    int getReplicaCount() { return _replicaCount; }
+
+private:
+    std::map<QUuid, std::vector<AvatarSharedPointer>> _replicasMap;
+    int _replicaCount { 0 };
+};
+
 
 class AvatarHashMap : public QObject, public Dependency {
     Q_OBJECT
@@ -76,6 +101,11 @@ public:
 
     virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) const { return findAvatar(sessionID); }
     int numberOfAvatarsInRange(const glm::vec3& position, float rangeMeters);
+
+    void setReplicaCount(int count);
+    int getReplicaCount() { return _replicas.getReplicaCount(); };
+
+    virtual void clearOtherAvatars();
 
 signals:
 
@@ -134,6 +164,11 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
+    /**jsdoc
+     * @function AvatarList.processBulkAvatarTraits
+     * @param {} message
+     * @param {} sendingNode
+     */
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
@@ -147,26 +182,21 @@ protected:
     AvatarHashMap();
 
     virtual AvatarSharedPointer parseAvatarData(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    virtual AvatarSharedPointer newSharedAvatar();
+    virtual AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID);
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
         bool& isNew);
     virtual AvatarSharedPointer findAvatar(const QUuid& sessionUUID) const; // uses a QReadLocker on the hashLock
     virtual void removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason = KillAvatarReason::NoReason);
-
+    
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
     
-    AvatarHash _avatarHash;
-    struct PendingAvatar {
-        std::chrono::steady_clock::time_point creationTime;
-        int transmits;
-        AvatarSharedPointer avatar;
-    };
-    using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
-    AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
+    AvatarHash _avatarHash;
 
     std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
+    AvatarReplicas _replicas;
+
 private:
     QUuid _lastOwnerSessionUUID;
 };

@@ -49,20 +49,14 @@ public:
     void init();
  
     static void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch);
+    static void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, const LightStage::Frame& lightFrame);
     static void unsetKeyLightBatch(gpu::Batch& batch);
 
     static void setupLocalLightsBatch(gpu::Batch& batch, const LightClustersPointer& lightClusters);
     static void unsetLocalLightsBatch(gpu::Batch& batch);
 
-    void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
-    void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
-    bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
-
 private:
     DeferredLightingEffect() = default;
-
-    bool _shadowMapEnabled{ true };  // note that this value is overwritten in the ::configure method
-    bool _ambientOcclusionEnabled{ false };
 
     graphics::MeshPointer _pointLightMesh;
     graphics::MeshPointer getPointLightMesh();
@@ -139,17 +133,17 @@ public:
 
 class RenderDeferredSetup {
 public:
-  //  using JobModel = render::Job::ModelI<RenderDeferredSetup, DeferredFrameTransformPointer>;
-    
+
     void run(const render::RenderContextPointer& renderContext,
         const DeferredFrameTransformPointer& frameTransform,
         const DeferredFramebufferPointer& deferredFramebuffer,
         const LightingModelPointer& lightingModel,
-        const graphics::HazePointer& haze,
+        const LightStage::FramePointer& lightFrame,
+        const LightStage::ShadowFramePointer& shadowFrame,
+        const HazeStage::FramePointer& hazeFrame,
         const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
         const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
-        bool renderShadows);
+        const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource);
 };
 
 class RenderDeferredLocals {
@@ -166,7 +160,6 @@ public:
     gpu::BufferView _localLightsBuffer;
 
     RenderDeferredLocals();
-
 };
 
 
@@ -181,15 +174,14 @@ using RenderDeferredConfig = render::GPUJobConfig;
 
 class RenderDeferred {
 public:
-    using Inputs = render::VaryingSet8 < 
-        DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, SurfaceGeometryFramebufferPointer, 
-        AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer, LightClustersPointer, graphics::HazePointer>;
+    using ExtraDeferredBuffer = render::VaryingSet3<SurfaceGeometryFramebufferPointer, AmbientOcclusionFramebufferPointer, SubsurfaceScatteringResourcePointer>;
+    using Inputs = render::VaryingSet8<
+        DeferredFrameTransformPointer, DeferredFramebufferPointer, ExtraDeferredBuffer, LightingModelPointer, LightClustersPointer, LightStage::FramePointer, LightStage::ShadowFramePointer, HazeStage::FramePointer>;
 
     using Config = RenderDeferredConfig;
     using JobModel = render::Job::ModelI<RenderDeferred, Inputs, Config>;
 
-    RenderDeferred() {}
-    RenderDeferred(bool renderShadows) : _renderShadows(renderShadows) {}
+    RenderDeferred();
 
     void configure(const Config& config);
 
@@ -203,7 +195,6 @@ protected:
     gpu::RangeTimerPointer _gpuTimer;
 
 private:
-    bool _renderShadows { false };
 };
 
 class DefaultLightingSetup {
@@ -220,7 +211,7 @@ protected:
     graphics::HazePointer _defaultHaze{ nullptr };
     HazeStage::Index _defaultHazeID{ HazeStage::INVALID_INDEX };
     graphics::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
-    gpu::TexturePointer _defaultSkyboxTexture;
+    NetworkTexturePointer _defaultSkyboxNetworkTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
 };
 

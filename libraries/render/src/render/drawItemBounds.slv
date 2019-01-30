@@ -20,15 +20,22 @@
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-layout(location=GPU_UNIFORM_COLOR) uniform vec4 inColor;
+struct DrawItemBoundsParams {
+    vec4 color;
+};
+
+LAYOUT(binding=0) uniform drawItemBoundsParamsBuffer {
+    DrawItemBoundsParams params;
+};
+
 
 struct ItemBound {
     vec4 id_boundPos;
     vec4 boundDim_s;
 };
 
-#if defined(GPU_GL410)
-layout(binding=0) uniform samplerBuffer ssbo0Buffer;
+#if !defined(GPU_SSBO_TRANSFORM_OBJECT)
+LAYOUT(binding=GPU_RESOURCE_BUFFER_SLOT0_TEXTURE) uniform samplerBuffer ssbo0Buffer;
 ItemBound getItemBound(int i) {
     int offset = 2 * i;
     ItemBound bound;
@@ -37,7 +44,7 @@ ItemBound getItemBound(int i) {
     return bound;
 }
 #else
-layout(std140, binding=0) buffer ssbo0Buffer {
+LAYOUT_STD140(binding=GPU_RESOURCE_BUFFER_SLOT0_STORAGE) buffer ssbo0Buffer {
     ItemBound bounds[];
 };
 ItemBound getItemBound(int i) {
@@ -91,11 +98,6 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
 
-    if (inColor.w < 0.0) {
-        varColor = vec4(colorWheel(float(boundID)/(-inColor.w)), 1.0);
-    } else {
-        varColor = vec4(colorWheel(float(inColor.w)), 1.0);
-    }
+    varColor = mix(vec4(colorWheel(float(params.color.w)), 1.0), vec4(colorWheel(float(boundID)/(-params.color.w)), 1.0), float(params.color.w < 0.0));
     varTexcoord = vec2(cubeVec.w, length(boundDim));
-
 }

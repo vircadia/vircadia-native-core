@@ -13,8 +13,6 @@
 #ifndef hifi_EntityItemPropertiesMacros_h
 #define hifi_EntityItemPropertiesMacros_h
 
-#include <QDateTime>
-
 #include "EntityItemID.h"
 #include <RegisteredMetaTypes.h>
 
@@ -101,8 +99,11 @@
         changedProperties += P;    \
     }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2toScriptValue(e, v); }
-inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3toScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec2& v) { return vec2ToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3ToScriptValue(e, v); }
+inline QScriptValue vec3Color_convertScriptValue(QScriptEngine* e, const glm::vec3& v) { return vec3ColorToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::u8vec3& v) { return u8vec3ToScriptValue(e, v); }
+inline QScriptValue u8vec3Color_convertScriptValue(QScriptEngine* e, const glm::u8vec3& v) { return u8vec3ColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, float v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, int v) { return QScriptValue(v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, bool v) { return QScriptValue(v); }
@@ -111,13 +112,15 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, quint32 v) { return QSc
 inline QScriptValue convertScriptValue(QScriptEngine* e, quint64 v) { return QScriptValue((qsreal)v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QString& v) { return QScriptValue(v); }
 
-inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { return xColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
+inline QScriptValue qVectorVec3Color_convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ColorToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat>& v) {return qVectorQuatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
+
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QRect& v) { return qRectToScriptValue(e, v); }
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
     QByteArray b64 = v.toBase64();
@@ -128,8 +131,6 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) 
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { return aaCubeToScriptValue(e, v); }
 
-
-
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(X,G,g,P,p) \
     if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
         (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
@@ -138,6 +139,18 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
             groupProperties = engine->newObject(); \
         } \
         QScriptValue V = convertScriptValue(engine, get##P()); \
+        groupProperties.setProperty(#p, V); \
+        properties.setProperty(#g, groupProperties); \
+    }
+
+#define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_TYPED(X,G,g,P,p,T) \
+    if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
+        (!skipDefaults || defaultEntityProperties.get##G().get##P() != get##P())) { \
+        QScriptValue groupProperties = properties.property(#g); \
+        if (!groupProperties.isValid()) { \
+            groupProperties = engine->newObject(); \
+        } \
+        QScriptValue V = T##_convertScriptValue(engine, get##P()); \
         groupProperties.setProperty(#p, V); \
         properties.setProperty(#g, groupProperties); \
     }
@@ -155,9 +168,16 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
     }
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(p,P) \
-    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+    if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, _##P); \
+        properties.setProperty(#P, V); \
+    }
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(p,P,T) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
+        QScriptValue V = T##_convertScriptValue(engine, _##P); \
         properties.setProperty(#P, V); \
     }
 
@@ -165,15 +185,22 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
     properties.setProperty(#P, G);
 
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, G) \
-    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+    if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
     }
 
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(p, P, G, T) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
+        QScriptValue V = T##_convertScriptValue(engine, G); \
+        properties.setProperty(#P, V); \
+    }
+
 // same as COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER but uses #X instead of #P in the setProperty() step
 #define COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, X, G) \
-    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+    if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(p)) && \
         (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#X, V); \
@@ -197,23 +224,13 @@ inline quint32 quint32_convertFromScriptValue(const QScriptValue& v, bool& isVal
 }
 inline quint16 quint16_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
+inline uint32_t uint32_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
 inline uint8_t uint8_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return (uint8_t)(0xff & v.toVariant().toInt(&isValid)); }
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
-
-
-
-inline QDateTime QDateTime_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = true;
-    auto result = QDateTime::fromString(v.toVariant().toString().trimmed(), Qt::ISODate);
-    // result.setTimeSpec(Qt::OffsetFromUTC);
-    return result;
-}
-
-
 
 inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
@@ -222,49 +239,31 @@ inline QByteArray QByteArray_convertFromScriptValue(const QScriptValue& v, bool&
 }
 
 inline glm::vec2 vec2_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = false; /// assume it can't be converted
-    QScriptValue x = v.property("x");
-    QScriptValue y = v.property("y");
-    if (x.isValid() && y.isValid()) {
-        glm::vec4 newValue(0);
-        newValue.x = x.toVariant().toFloat();
-        newValue.y = y.toVariant().toFloat();
-        isValid = !glm::isnan(newValue.x) &&
-            !glm::isnan(newValue.y);
-        if (isValid) {
-            return newValue;
-        }
-    }
-    return glm::vec2(0);
+    isValid = true;
+    glm::vec2 vec2;
+    vec2FromScriptValue(v, vec2);
+    return vec2;
 }
 
 inline glm::vec3 vec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
-    isValid = false; /// assume it can't be converted
-    QScriptValue x = v.property("x");
-    QScriptValue y = v.property("y");
-    QScriptValue z = v.property("z");
-    if (!x.isValid()) {
-        x = v.property("red");
-    }
-    if (!y.isValid()) {
-        y = v.property("green");
-    }
-    if (!z.isValid()) {
-        z = v.property("blue");
-    }
-    if (x.isValid() && y.isValid() && z.isValid()) {
-        glm::vec3 newValue(0);
-        newValue.x = x.toVariant().toFloat();
-        newValue.y = y.toVariant().toFloat();
-        newValue.z = z.toVariant().toFloat();
-        isValid = !glm::isnan(newValue.x) &&
-                  !glm::isnan(newValue.y) &&
-                  !glm::isnan(newValue.z);
-        if (isValid) {
-            return newValue;
-        }
-    }
-    return glm::vec3(0);
+    isValid = true;
+    glm::vec3 vec3;
+    vec3FromScriptValue(v, vec3);
+    return vec3;
+}
+
+inline glm::vec3 vec3Color_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    glm::vec3 vec3;
+    vec3FromScriptValue(v, vec3);
+    return vec3;
+}
+
+inline glm::u8vec3 u8vec3Color_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    glm::u8vec3 vec3;
+    u8vec3FromScriptValue(v, vec3);
+    return vec3;
 }
 
 inline AACube AACube_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
@@ -317,30 +316,12 @@ inline glm::quat quat_convertFromScriptValue(const QScriptValue& v, bool& isVali
     return glm::quat();
 }
 
-inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 
-    xColor newValue { 255, 255, 255 };
-    isValid = false; /// assume it can't be converted
-    QScriptValue r = v.property("red");
-    QScriptValue g = v.property("green");
-    QScriptValue b = v.property("blue");
-    if (!r.isValid()) {
-        r = v.property("x");
-    }
-    if (!g.isValid()) {
-        g = v.property("y");
-    }
-    if (!b.isValid()) {
-        b = v.property("z");
-    }
-    if (r.isValid() && g.isValid() && b.isValid()) {
-        newValue.red = r.toVariant().toInt();
-        newValue.green = g.toVariant().toInt();
-        newValue.blue = b.toVariant().toInt();
-        isValid = true;
-    }
-    return newValue;
+inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    QRect rect;
+    qRectFromScriptValue(v, rect);
+    return rect;
 }
-
 
 #define COPY_PROPERTY_IF_CHANGED(P) \
 {                                   \
@@ -402,13 +383,29 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         }                                                                \
     }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S)               \
-    QScriptValue P = object.property(#P);                         \
-    if (P.isValid()) {                                            \
-        QString newValue = P.toVariant().toString();              \
-        if (_defaultSettings || newValue != get##S##AsString()) { \
-            set##S##FromString(newValue);                         \
-        }                                                         \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S)                    \
+    {                                                                 \
+        QScriptValue P = object.property(#P);                         \
+        if (P.isValid()) {                                            \
+            QString newValue = P.toVariant().toString();              \
+            if (_defaultSettings || newValue != get##S##AsString()) { \
+                set##S##FromString(newValue);                         \
+            }                                                         \
+        }                                                             \
+    }
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_ENUM(G, P, S)               \
+    {                                                                     \
+        QScriptValue G = object.property(#G);                             \
+        if (G.isValid()) {                                                \
+            QScriptValue P = G.property(#P);                              \
+            if (P.isValid()) {                                            \
+                QString newValue = P.toVariant().toString();              \
+                if (_defaultSettings || newValue != get##S##AsString()) { \
+                    set##S##FromString(newValue);                         \
+                }                                                         \
+            }                                                             \
+        }                                                                 \
     }
 
 #define DEFINE_PROPERTY_GROUP(N, n, T)           \
@@ -420,10 +417,32 @@ inline xColor xColor_convertFromScriptValue(const QScriptValue& v, bool& isValid
         static T _static##N; 
 
 #define ADD_PROPERTY_TO_MAP(P, N, n, T) \
-        _propertyStringsToEnums[#n] = P;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #n; \
+    }
+
+#define ADD_PROPERTY_TO_MAP_WITH_RANGE(P, N, n, T, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #n; \
+    }
 
 #define ADD_GROUP_PROPERTY_TO_MAP(P, G, g, N, n) \
-        _propertyStringsToEnums[#g "." #n] = P;
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #g "." #n; \
+    }
+
+#define ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(P, G, g, N, n, M, X) \
+    { \
+        EntityPropertyInfo propertyInfo = EntityPropertyInfo(P, M, X); \
+        _propertyInfos[#g "." #n] = propertyInfo; \
+		_enumsToPropertyStrings[P] = #g "." #n; \
+    }
 
 #define DEFINE_CORE(N, n, T, V) \
     public: \

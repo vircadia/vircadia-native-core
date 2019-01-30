@@ -18,8 +18,8 @@ import QtGraphicalEffects 1.0
 import QtWebEngine 1.5
 import QtWebChannel 1.0
 
-import "../styles-uit"
-import "../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import "../windows"
 import "../controls"
 

@@ -10,8 +10,8 @@
 
 import QtQuick 2.5
 
-import "../controls-uit" as HifiControls
-import "../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 import "../windows"
 import "preferences"
 
@@ -70,6 +70,15 @@ ScrollingWindow {
                 }
             }
 
+            var useKeyboardPreference = findPreference("User Interface", "Use Virtual Keyboard");
+            var keyboardInputPreference = findPreference("User Interface", "Keyboard laser / mallets");
+            if (useKeyboardPreference && keyboardInputPreference) {
+                keyboardInputPreference.visible = useKeyboardPreference.value;
+                useKeyboardPreference.valueChanged.connect(function() {
+                    keyboardInputPreference.visible = useKeyboardPreference.value;
+                });
+            }
+
             if (sections.length) {
                 // Default sections to expanded/collapsed as appropriate for dialog.
                 if (sections.length === 1) {
@@ -111,5 +120,33 @@ ScrollingWindow {
             color: 2//hifi.buttons.white
             onClicked: root.restoreAll()
         }
+    }
+
+    function findPreference(category, name) {
+        var section = null;
+        var preference = null;
+        var i;
+
+        // Find category section.
+        i = 0;
+        while (!section && i < sections.length) {
+            if (sections[i].name === category) {
+                section = sections[i];
+            }
+            i++;
+        }
+
+        // Find named preference.
+        if (section) {
+            i = 0;
+            while (!preference && i < section.preferences.length) {
+                if (section.preferences[i].preference && section.preferences[i].preference.name === name) {
+                    preference = section.preferences[i];
+                }
+                i++;
+            }
+        }
+
+        return preference;
     }
 }

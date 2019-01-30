@@ -20,7 +20,7 @@
 
 #include <controllers/UserInputMapper.h>
 
-const QString SpacemouseManager::NAME { "Spacemouse" };
+const char* SpacemouseManager::NAME { "Spacemouse" };
 
 const float MAX_AXIS = 75.0f;  // max forward = 2x speed
 #define LOGITECH_VENDOR_ID 0x46d
@@ -116,8 +116,8 @@ controller::Input::NamedVector SpacemouseDevice::getAvailableInputs() const {
         makePair(TRANSLATE_X, "TranslateX"),
         makePair(TRANSLATE_Y, "TranslateY"),
         makePair(TRANSLATE_Z, "TranslateZ"),
-        //makePair(ROTATE_X, "RotateX"),
-        //makePair(ROTATE_Y, "RotateY"),
+        makePair(ROTATE_X, "RotateX"),
+        makePair(ROTATE_Y, "RotateY"),
         makePair(ROTATE_Z, "RotateZ"),
 
     };

@@ -11,7 +11,7 @@
 import QtQuick 2.5
 
 import "../../../../dialogs"
-import "../../../../controls-uit"
+import controlsUit 1.0
 import "../"
 
 Preference {
@@ -72,7 +72,6 @@ Preference {
                 });
 
                 browser.selectedFile.connect(function(fileUrl){
-                    console.log(fileUrl);
                     dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
                 });
                 

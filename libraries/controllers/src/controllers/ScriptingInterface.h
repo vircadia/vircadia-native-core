@@ -26,6 +26,7 @@
 #include <QThread>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
+#include <QMutex>
 
 #include <QtQml/QJSValue>
 #include <QtScript/QScriptValue>
@@ -431,6 +432,13 @@ namespace controller {
          */
         Q_INVOKABLE QString getInputRecorderSaveDirectory();
 
+        /**jsdoc
+        * Get all the active and enabled (running) input devices
+        * @function Controller.getRunningInputDevices
+        * @returns {string[]} An array of strings with the names
+        */
+        Q_INVOKABLE QStringList getRunningInputDeviceNames();
+
         bool isMouseCaptured() const { return _mouseCaptured; }
         bool isTouchCaptured() const { return _touchCaptured; }
         bool isWheelCaptured() const { return _wheelCaptured; }
@@ -531,6 +539,8 @@ namespace controller {
          */
         virtual void releaseActionEvents() { _actionsCaptured = false; }
 
+        void updateRunningInputDevices(const QString& deviceName, bool isRunning, const QStringList& runningDevices);
+
     signals:
         /**jsdoc
          * Triggered when an action occurs.
@@ -590,6 +600,17 @@ namespace controller {
          */
         void hardwareChanged();
 
+        /**jsdoc
+        * Triggered when a device is enabled/disabled
+        * Enabling/Disabling Leapmotion on settings/controls will trigger this signal.
+        * @function Controller.deviceRunningChanged
+        * @param {string} deviceName - The name of the device that is getting enabled/disabled
+        * @param {boolean} isEnabled - Return if the device is enabled.
+        * @returns {Signal}
+        */
+        void inputDeviceRunningChanged(QString deviceName, bool isRunning);
+
+
     private:
         // Update the exposed variant maps reporting active hardware
         void updateMaps();
@@ -598,10 +619,14 @@ namespace controller {
         QVariantMap _actions;
         QVariantMap _standard;
 
+        QStringList _runningInputDeviceNames;
+
         std::atomic<bool> _mouseCaptured{ false };
         std::atomic<bool> _touchCaptured { false };
         std::atomic<bool> _wheelCaptured { false };
         std::atomic<bool> _actionsCaptured { false };
+
+        QMutex _runningDevicesMutex;
     };
 
 }

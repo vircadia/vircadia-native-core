@@ -286,8 +286,15 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
 void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) {
     // removes
     for (auto object : transaction.objectsToRemove) {
+        bumpAndPruneContacts(object);
         btRigidBody* body = object->getRigidBody();
         if (body) {
+            if (body->isStaticObject() && _activeStaticBodies.size() > 0) {
+                std::set<btRigidBody*>::iterator itr = _activeStaticBodies.find(body);
+                if (itr != _activeStaticBodies.end()) {
+                    _activeStaticBodies.erase(itr);
+                }
+            }
             removeDynamicsForBody(body);
             _dynamicsWorld->removeRigidBody(body);
 
@@ -320,7 +327,7 @@ void PhysicsEngine::processTransaction(PhysicsEngine::Transaction& transaction) 
         }
         if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
             _activeStaticBodies.insert(object->getRigidBody());
-        }
+        }       
     }
     // activeStaticBodies have changed (in an Easy way) and need their Aabbs updated
     // but we've configured Bullet to NOT update them automatically (for improved performance)
@@ -898,11 +905,12 @@ void PhysicsEngine::setShowBulletConstraintLimits(bool value) {
 }
 
 struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
-    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject) :
+    AllContactsCallback(int32_t mask, int32_t group, const ShapeInfo& shapeInfo, const Transform& transform, btCollisionObject* myAvatarCollisionObject, float threshold) :
         btCollisionWorld::ContactResultCallback(),
         collisionObject(),
         contacts(),
-        myAvatarCollisionObject(myAvatarCollisionObject) {
+        myAvatarCollisionObject(myAvatarCollisionObject),
+        threshold(threshold) {
         const btCollisionShape* collisionShape = ObjectMotionState::getShapeManager()->getShape(shapeInfo);
 
         collisionObject.setCollisionShape(const_cast<btCollisionShape*>(collisionShape));
@@ -924,24 +932,32 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
     btCollisionObject collisionObject;
     std::vector<ContactTestResult> contacts;
     btCollisionObject* myAvatarCollisionObject;
+    btScalar threshold;
 
     btScalar addSingleResult(btManifoldPoint& cp, const btCollisionObjectWrapper* colObj0, int partId0, int index0, const btCollisionObjectWrapper* colObj1, int partId1, int index1) override {
+        if (cp.m_distance1 > -threshold) {
+            return 0;
+        }
+
         const btCollisionObject* otherBody;
         btVector3 penetrationPoint;
         btVector3 otherPenetrationPoint;
+        btVector3 normal;
         if (colObj0->m_collisionObject == &collisionObject) {
             otherBody = colObj1->m_collisionObject;
             penetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
             otherPenetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
+            normal = -cp.m_normalWorldOnB;
         } else {
             otherBody = colObj0->m_collisionObject;
             penetrationPoint = getWorldPoint(cp.m_localPointA, colObj0->getWorldTransform());
             otherPenetrationPoint = getWorldPoint(cp.m_localPointB, colObj1->getWorldTransform());
+            normal = cp.m_normalWorldOnB;
         }
 
         // TODO: Give MyAvatar a motion state so we don't have to do this
         if ((m_collisionFilterMask & BULLET_COLLISION_GROUP_MY_AVATAR) && myAvatarCollisionObject && myAvatarCollisionObject == otherBody) {
-            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+            contacts.emplace_back(Physics::getSessionUUID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint), bulletToGLM(normal));
             return 0;
         }
 
@@ -957,7 +973,7 @@ struct AllContactsCallback : public btCollisionWorld::ContactResultCallback {
         }
 
         // This is the correct object type. Add it to the list.
-        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint));
+        contacts.emplace_back(candidate->getObjectID(), bulletToGLM(penetrationPoint), bulletToGLM(otherPenetrationPoint), bulletToGLM(normal));
 
         return 0;
     }
@@ -968,14 +984,14 @@ protected:
     }
 };
 
-std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group) const {
+std::vector<ContactTestResult> PhysicsEngine::contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group, float threshold) const {
     // TODO: Give MyAvatar a motion state so we don't have to do this
     btCollisionObject* myAvatarCollisionObject = nullptr;
     if ((mask & USER_COLLISION_GROUP_MY_AVATAR) && _myAvatarController) {
         myAvatarCollisionObject = _myAvatarController->getCollisionObject();
     }
 
-    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject);
+    auto contactCallback = AllContactsCallback((int32_t)mask, (int32_t)group, regionShapeInfo, regionTransform, myAvatarCollisionObject, threshold);
     _dynamicsWorld->contactTest(&contactCallback.collisionObject, contactCallback);
 
     return contactCallback.contacts;

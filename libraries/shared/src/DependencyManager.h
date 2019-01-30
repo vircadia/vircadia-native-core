@@ -27,16 +27,16 @@
 class Dependency {
 public:
     typedef std::function<void(Dependency* pointer)> DeleterFunction;
-    
+
 protected:
     virtual ~Dependency() {}
     virtual void customDeleter() {
         _customDeleter(this);
     }
-    
+
     void setCustomDeleter(DeleterFunction customDeleter) { _customDeleter = customDeleter; }
     DeleterFunction _customDeleter = [](Dependency* pointer) { delete pointer; };
-    
+
     friend class DependencyManager;
 };
 
@@ -49,10 +49,10 @@ class DependencyManager {
 public:
     template<typename T>
     static QSharedPointer<T> get();
-    
+
     template<typename T>
     static bool isSet();
-    
+
     template<typename T, typename ...Args>
     static QSharedPointer<T> set(Args&&... args);
 
@@ -61,10 +61,10 @@ public:
 
     template<typename T>
     static void destroy();
-    
+
     template<typename Base, typename Derived>
     static void registerInheritance();
-    
+
     template <typename T>
     static size_t typeHash() {
 #ifdef Q_OS_ANDROID
@@ -74,31 +74,46 @@ public:
 #endif
         return hashCode;
     }
+
+    static void prepareToExit() { manager()._exiting = true; }
+
 private:
     static DependencyManager& manager();
 
     template<typename T>
     size_t getHashCode();
-    
+
     QSharedPointer<Dependency>& safeGet(size_t hashCode);
-    
+
     QHash<size_t, QSharedPointer<Dependency>> _instanceHash;
     QHash<size_t, size_t> _inheritanceHash;
+
+    bool _exiting { false };
 };
 
 template <typename T>
 QSharedPointer<T> DependencyManager::get() {
     static size_t hashCode = manager().getHashCode<T>();
     static QWeakPointer<T> instance;
-    
+
     if (instance.isNull()) {
         instance = qSharedPointerCast<T>(manager().safeGet(hashCode));
-        
+
+#ifndef QT_NO_DEBUG
+        // debug builds...
         if (instance.isNull()) {
             qWarning() << "DependencyManager::get(): No instance available for" << typeid(T).name();
         }
+#else
+        // for non-debug builds, don't print "No instance available" during shutdown, because
+        // the act of printing this often causes crashes (because the LogHandler has-been/is-being
+        // deleted).
+        if (!manager()._exiting && instance.isNull()) {
+            qWarning() << "DependencyManager::get(): No instance available for" << typeid(T).name();
+        }
+#endif
     }
-    
+
     return instance.toStrongRef();
 }
 
@@ -159,12 +174,12 @@ template<typename T>
 size_t DependencyManager::getHashCode() {
     size_t hashCode = typeHash<T>();
     auto derivedHashCode = _inheritanceHash.find(hashCode);
-    
+
     while (derivedHashCode != _inheritanceHash.end()) {
         hashCode = derivedHashCode.value();
         derivedHashCode = _inheritanceHash.find(hashCode);
     }
-    
+
     return hashCode;
 }
 

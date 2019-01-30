@@ -79,7 +79,7 @@ public:
 
     void updateLightStage(const LightStagePointer& lightStage);
 
-    void updateLightFrame(const LightStage::Frame& lightFrame, bool points = true, bool spots = true);
+    void updateLightFrame(const LightStage::FramePointer& lightFrame, bool points = true, bool spots = true);
 
     glm::ivec3  updateClusters();
 
@@ -167,16 +167,16 @@ protected:
 
 class LightClusteringPass {
 public:
-    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, LightingModelPointer, LinearDepthFramebufferPointer>;
-    using Outputs = LightClustersPointer;
+    using Input = render::VaryingSet4<DeferredFrameTransformPointer, LightingModelPointer, LightStage::FramePointer, LinearDepthFramebufferPointer>;
+    using Output = LightClustersPointer;
     using Config = LightClusteringPassConfig;
-    using JobModel = render::Job::ModelIO<LightClusteringPass, Inputs, Outputs, Config>;
+    using JobModel = render::Job::ModelIO<LightClusteringPass, Input, Output, Config>;
     
     LightClusteringPass();
     
     void configure(const Config& config);
     
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
     
 protected:
     LightClustersPointer _lightClusters;
@@ -213,7 +213,7 @@ protected:
 
 class DebugLightClusters {
 public:
-    using Inputs = render::VaryingSet5 < DeferredFrameTransformPointer, DeferredFramebufferPointer, LightingModelPointer, LinearDepthFramebufferPointer, LightClustersPointer>;
+    using Inputs = render::VaryingSet4 < DeferredFrameTransformPointer, LightingModelPointer, LinearDepthFramebufferPointer, LightClustersPointer>;
     using Config = DebugLightClustersConfig;
     using JobModel = render::Job::ModelI<DebugLightClusters, Inputs, Config>;
 

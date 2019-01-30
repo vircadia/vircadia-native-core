@@ -33,6 +33,7 @@ OffscreenGLCanvas::OffscreenGLCanvas() :
     _context(new QOpenGLContext),
     _offscreenSurface(new QOffscreenSurface)
 {
+    setFormat(getDefaultOpenGLSurfaceFormat());
 }
 
 OffscreenGLCanvas::~OffscreenGLCanvas() {
@@ -49,12 +50,15 @@ OffscreenGLCanvas::~OffscreenGLCanvas() {
 
 }
 
+void OffscreenGLCanvas::setFormat(const QSurfaceFormat& format) {
+    _context->setFormat(format);
+}
+    
 bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     if (nullptr != sharedContext) {
         sharedContext->doneCurrent();
         _context->setShareContext(sharedContext);
     }
-    _context->setFormat(getDefaultOpenGLSurfaceFormat());
     if (!_context->create()) {
         qFatal("Failed to create OffscreenGLCanvas context");
     }
@@ -69,36 +73,14 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
     if (!_context->makeCurrent(_offscreenSurface)) {
         qFatal("Unable to make offscreen surface current");
     }
+    _context->doneCurrent();
 #else
     if (!_offscreenSurface->isValid()) {
         qFatal("Offscreen surface is invalid");
     }
 #endif
     
-    if (gl::Context::enableDebugLogger()) {
-        _context->makeCurrent(_offscreenSurface);
-        QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(this);
-        connect(logger, &QOpenGLDebugLogger::messageLogged, this, &OffscreenGLCanvas::onMessageLogged);
-        logger->initialize();
-        logger->enableMessages();
-        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-        _context->doneCurrent();
-    }
-
     return true;
-}
-
-void OffscreenGLCanvas::onMessageLogged(const QOpenGLDebugMessage& debugMessage) {
-    auto severity = debugMessage.severity(); 
-    switch (severity) {
-    case QOpenGLDebugMessage::NotificationSeverity:
-    case QOpenGLDebugMessage::LowSeverity:
-        return;
-    default:
-        break;
-    }
-    qDebug(glLogging) << debugMessage;
-    return;
 }
 
 bool OffscreenGLCanvas::makeCurrent() {

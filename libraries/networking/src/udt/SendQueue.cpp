@@ -61,6 +61,9 @@ private:
     Mutex2& _mutex2;
 };
 
+const microseconds SendQueue::MAXIMUM_ESTIMATED_TIMEOUT = seconds(5);
+const microseconds SendQueue::MINIMUM_ESTIMATED_TIMEOUT = milliseconds(10);
+
 std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber,
                                              MessageNumber currentMessageNumber, bool hasReceivedHandshakeACK) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
@@ -134,6 +137,7 @@ void SendQueue::stop() {
 }
     
 int SendQueue::sendPacket(const Packet& packet) {
+    _lastPacketSentAt = std::chrono::high_resolution_clock::now();
     return _socket->writeDatagram(packet.getData(), packet.getDataSize(), _destination);
 }
     
@@ -403,6 +407,7 @@ bool SendQueue::maybeResendPacket() {
                 Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
 
                 auto wireSize = resendPacket.getWireSize();
+                auto payloadSize = resendPacket.getPayloadSize();
                 auto sequenceNumber = it->first;
 
                 if (level != Packet::NoObfuscation) {
@@ -438,7 +443,8 @@ bool SendQueue::maybeResendPacket() {
                     sentLocker.unlock();
                 }
                 
-                emit packetRetransmitted(wireSize, sequenceNumber, p_high_resolution_clock::now());
+                emit packetRetransmitted(wireSize, payloadSize, sequenceNumber,
+                                         p_high_resolution_clock::now());
                 
                 // Signal that we did resend a packet
                 return true;
@@ -481,6 +487,7 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
                 auto cvStatus = _emptyCondition.wait_for(locker, EMPTY_QUEUES_INACTIVE_TIMEOUT);
                 
                 if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()) {
+
 #ifdef UDT_CONNECTION_DEBUG
                     qCDebug(networking) << "SendQueue to" << _destination << "has been empty for"
                         << EMPTY_QUEUES_INACTIVE_TIMEOUT.count()
@@ -500,12 +507,27 @@ bool SendQueue::isInactive(bool attemptedToSendPacket) {
                 // We think the client is still waiting for data (based on the sequence number gap)
                 // Let's wait either for a response from the client or until the estimated timeout
                 // (plus the sync interval to allow the client to respond) has elapsed
-                auto waitDuration = std::chrono::microseconds(_estimatedTimeout + _syncInterval);
-                
+
+                auto estimatedTimeout = std::chrono::microseconds(_estimatedTimeout);
+
+                // Clamp timeout beween 10 ms and 5 s
+                estimatedTimeout = std::min(MAXIMUM_ESTIMATED_TIMEOUT, std::max(MINIMUM_ESTIMATED_TIMEOUT, estimatedTimeout));
+
                 // use our condition_variable_any to wait
-                auto cvStatus = _emptyCondition.wait_for(locker, waitDuration);
-                
-                if (cvStatus == std::cv_status::timeout && (_packets.isEmpty() || isFlowWindowFull()) && _naks.isEmpty()
+                auto cvStatus = _emptyCondition.wait_for(locker, estimatedTimeout);
+
+                // when we wake-up check if we're "stuck" either if we've slept for the estimated timeout
+                // or it has been that long since the last time we sent a packet
+
+                // we are stuck if all of the following are true
+                // - there are no new packets to send or the flow window is full and we can't send any new packets
+                // - there are no packets to resend
+                // - the client has yet to ACK some sent packets
+                auto now = std::chrono::high_resolution_clock::now();
+
+                if ((cvStatus == std::cv_status::timeout || (now - _lastPacketSentAt > estimatedTimeout))
+                    && (_packets.isEmpty() || isFlowWindowFull())
+                    && _naks.isEmpty()
                     && SequenceNumber(_lastACKSequenceNumber) < _currentSequenceNumber) {
                     // after a timeout if we still have sent packets that the client hasn't ACKed we
                     // add them to the loss list

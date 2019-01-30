@@ -10,7 +10,7 @@
 #define hifi_RenderCommonTask_h
 
 #include <gpu/Pipeline.h>
-#include <render/RenderFetchCullSortTask.h>
+#include "LightStage.h"
 #include "LightingModel.h"
 
 class BeginGPURangeTimer {
@@ -106,10 +106,11 @@ public:
         FRUSTUM_COUNT
     };
 
-    using Output = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
-    using JobModel = render::Job::ModelO<ExtractFrustums, Output>;
+    using Inputs = LightStage::ShadowFramePointer;
+    using Outputs = render::VaryingArray<ViewFrustumPointer, FRUSTUM_COUNT>;
+    using JobModel = render::Job::ModelIO<ExtractFrustums, Inputs, Outputs>;
 
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output);
 };
 
 #endif // hifi_RenderDeferredTask_h

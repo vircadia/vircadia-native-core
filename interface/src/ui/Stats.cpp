@@ -26,10 +26,10 @@
 #include <OffscreenUi.h>
 #include <PerfStat.h>
 #include <plugins/DisplayPlugin.h>
+#include <PickManager.h>
 
 #include <gl/Context.h>
 
-#include "BandwidthRecorder.h"
 #include "Menu.h"
 #include "Util.h"
 #include "SequenceNumberStats.h"
@@ -105,6 +105,10 @@ extern std::atomic<size_t> DECIMATED_TEXTURE_COUNT;
 extern std::atomic<size_t> RECTIFIED_TEXTURE_COUNT;
 
 void Stats::updateStats(bool force) {
+
+    if (qApp->isInterstitialMode()) {
+        return;
+    }
     QQuickItem* parent = parentItem();
     if (!force) {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -147,20 +151,39 @@ void Stats::updateStats(bool force) {
     }
     STAT_UPDATE(gameLoopRate, (int)qApp->getGameLoopRate());
 
-    auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    STAT_UPDATE(packetInCount, (int)bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
-    STAT_UPDATE(packetOutCount, (int)bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond());
-    STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
-    STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
+    auto pickManager = DependencyManager::get<PickManager>();
+    if (pickManager && (_expanded || force)) {
+        std::vector<int> totalPicks = pickManager->getTotalPickCounts();
+        STAT_UPDATE(stylusPicksCount, totalPicks[PickQuery::Stylus]);
+        STAT_UPDATE(rayPicksCount, totalPicks[PickQuery::Ray]);
+        STAT_UPDATE(parabolaPicksCount, totalPicks[PickQuery::Parabola]);
+        STAT_UPDATE(collisionPicksCount, totalPicks[PickQuery::Collision]);
+        std::vector<QVector4D> updatedPicks = pickManager->getUpdatedPickCounts();
+        STAT_UPDATE(stylusPicksUpdated, updatedPicks[PickQuery::Stylus]);
+        STAT_UPDATE(rayPicksUpdated, updatedPicks[PickQuery::Ray]);
+        STAT_UPDATE(parabolaPicksUpdated, updatedPicks[PickQuery::Parabola]);
+        STAT_UPDATE(collisionPicksUpdated, updatedPicks[PickQuery::Collision]);
+    }
 
-    STAT_UPDATE_FLOAT(assetMbpsIn, (float)bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
-    STAT_UPDATE_FLOAT(assetMbpsOut, (float)bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
+    STAT_UPDATE(packetInCount, nodeList->getInboundPPS());
+    STAT_UPDATE(packetOutCount, nodeList->getOutboundPPS());
+    STAT_UPDATE_FLOAT(mbpsIn, nodeList->getInboundKbps() / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(mbpsOut, nodeList->getOutboundKbps() / 1000.0f, 0.01f);
 
-    // Second column: ping
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
     SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+
+    if (assetServerNode) {
+        STAT_UPDATE_FLOAT(assetMbpsIn, assetServerNode->getInboundKbps() / 1000.0f, 0.01f);
+        STAT_UPDATE_FLOAT(assetMbpsOut, assetServerNode->getOutboundKbps() / 1000.0f, 0.01f);
+    } else {
+        STAT_UPDATE_FLOAT(assetMbpsIn, 0.0f, 0.01f);
+        STAT_UPDATE_FLOAT(assetMbpsOut, 0.0f, 0.01f);
+    }
+
+    // Second column: ping
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1); 
     const int mixerLossRate = (int)roundf(_audioStats->data()->getMixerStream()->lossRateWindow() * 100.0f);
     const int clientLossRate = (int)roundf(_audioStats->data()->getClientStream()->lossRateWindow() * 100.0f);
@@ -179,7 +202,7 @@ void Stats::updateStats(bool force) {
         // TODO: this should also support entities
         if (node->getType() == NodeType::EntityServer) {
             totalPingOctree += node->getPingMs();
-            totalEntityKbps += node->getInboundBandwidth();
+            totalEntityKbps += node->getInboundKbps();
             octreeServerCount++;
             if (pingOctreeMax < node->getPingMs()) {
                 pingOctreeMax = node->getPingMs();
@@ -192,14 +215,6 @@ void Stats::updateStats(bool force) {
 
     // Third column, avatar stats
     auto myAvatar = avatarManager->getMyAvatar();
-    auto animStack = myAvatar->getSkeletonModel()->getRig().getAnimStack();
-
-    _animStackNames.clear();
-    for (auto animStackIterator = animStack.begin(); animStackIterator != animStack.end(); ++animStackIterator) {
-        _animStackNames << animStackIterator->first + ":   " +  QString::number(animStackIterator->second,'f',3);
-    }
-    emit animStackNamesChanged();
-
     glm::vec3 avatarPos = myAvatar->getWorldPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
     STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getWorldVelocity()), 0.01f);
@@ -207,10 +222,10 @@ void Stats::updateStats(bool force) {
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            STAT_UPDATE(avatarMixerInKbps, (int)roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerInPps, (int)roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerOutKbps, (int)roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerOutPps, (int)roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInKbps, (int)roundf(avatarMixer->getInboundKbps()));
+            STAT_UPDATE(avatarMixerInPps, avatarMixer->getInboundPPS());
+            STAT_UPDATE(avatarMixerOutKbps, (int)roundf(avatarMixer->getOutboundKbps()));
+            STAT_UPDATE(avatarMixerOutPps, avatarMixer->getOutboundPPS());
         } else {
             STAT_UPDATE(avatarMixerInKbps, -1);
             STAT_UPDATE(avatarMixerInPps, -1);
@@ -222,17 +237,15 @@ void Stats::updateStats(bool force) {
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         auto audioClient = DependencyManager::get<AudioClient>().data();
         if (audioMixerNode || force) {
-            STAT_UPDATE(audioMixerKbps, (int)roundf(
-                bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
-                bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerPps, (int)roundf(
-                bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
-                bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerKbps, (int)roundf(audioMixerNode->getInboundKbps() +
+                                                    audioMixerNode->getOutboundKbps()));
+            STAT_UPDATE(audioMixerPps, audioMixerNode->getInboundPPS() +
+                                       audioMixerNode->getOutboundPPS());
 
-            STAT_UPDATE(audioMixerInKbps, (int)roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerInPps, (int)roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerOutKbps, (int)roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerOutPps, (int)roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerInKbps, (int)roundf(audioMixerNode->getInboundKbps()));
+            STAT_UPDATE(audioMixerInPps, audioMixerNode->getInboundPPS());
+            STAT_UPDATE(audioMixerOutKbps, (int)roundf(audioMixerNode->getOutboundKbps()));
+            STAT_UPDATE(audioMixerOutPps, audioMixerNode->getOutboundPPS());
             STAT_UPDATE(audioAudioInboundPPS, (int)audioClient->getAudioInboundPPS());
             STAT_UPDATE(audioSilentInboundPPS, (int)audioClient->getSilentInboundPPS());
             STAT_UPDATE(audioOutboundPPS, (int)audioClient->getAudioOutboundPPS());
@@ -256,8 +269,8 @@ void Stats::updateStats(bool force) {
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
         STAT_UPDATE(downloads, loadingRequests.size());
-        STAT_UPDATE(downloadLimit, ResourceCache::getRequestLimit())
-        STAT_UPDATE(downloadsPending, ResourceCache::getPendingRequestCount());
+        STAT_UPDATE(downloadLimit, (int)ResourceCache::getRequestLimit())
+        STAT_UPDATE(downloadsPending, (int)ResourceCache::getPendingRequestCount());
         STAT_UPDATE(processing, DependencyManager::get<StatTracker>()->getStat("Processing").toInt());
         STAT_UPDATE(processingPending, DependencyManager::get<StatTracker>()->getStat("PendingProcessing").toInt());
 
@@ -286,7 +299,7 @@ void Stats::updateStats(bool force) {
         //    downloads << (int)(resource->getProgress() * 100.0f) << "% ";
         //}
         //downloads << "(" <<  << " pending)";
-    } // expanded avatar column
+    }
 
     // Fourth column, octree stats
     int serverCount = 0;
@@ -355,27 +368,35 @@ void Stats::updateStats(bool force) {
     STAT_UPDATE(engineFrameTime, (float) config->getCPURunTime());
     STAT_UPDATE(avatarSimulationTime, (float)avatarManager->getAvatarSimulationTime());
 
-    STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
-    STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));
-    STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
+    if (_expanded) {
+        STAT_UPDATE(gpuBuffers, (int)gpu::Context::getBufferGPUCount());
+        STAT_UPDATE(gpuBufferMemory, (int)BYTES_TO_MB(gpu::Context::getBufferGPUMemSize()));
+        STAT_UPDATE(gpuTextures, (int)gpu::Context::getTextureGPUCount());
 
-    STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
+        STAT_UPDATE(glContextSwapchainMemory, (int)BYTES_TO_MB(gl::Context::getSwapchainMemoryUsage()));
 
-    STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
-    STAT_UPDATE(texturePendingTransfers, (int)BYTES_TO_MB(gpu::Context::getTexturePendingGPUTransferMemSize()));
-    STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Context::getTextureGPUMemSize()));
-    STAT_UPDATE(gpuTextureResidentMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResidentGPUMemSize()));
-    STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Context::getTextureFramebufferGPUMemSize()));
-    STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
-    STAT_UPDATE(gpuTextureResourceIdealMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceIdealGPUMemSize()));
-    STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
-    STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
+        STAT_UPDATE(qmlTextureMemory, (int)BYTES_TO_MB(OffscreenQmlSurface::getUsedTextureMemory()));
+        STAT_UPDATE(texturePendingTransfers, (int)BYTES_TO_MB(gpu::Context::getTexturePendingGPUTransferMemSize()));
+        STAT_UPDATE(gpuTextureMemory, (int)BYTES_TO_MB(gpu::Context::getTextureGPUMemSize()));
+        STAT_UPDATE(gpuTextureResidentMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResidentGPUMemSize()));
+        STAT_UPDATE(gpuTextureFramebufferMemory, (int)BYTES_TO_MB(gpu::Context::getTextureFramebufferGPUMemSize()));
+        STAT_UPDATE(gpuTextureResourceMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceGPUMemSize()));
+        STAT_UPDATE(gpuTextureResourceIdealMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourceIdealGPUMemSize()));
+        STAT_UPDATE(gpuTextureResourcePopulatedMemory, (int)BYTES_TO_MB(gpu::Context::getTextureResourcePopulatedGPUMemSize()));
+        STAT_UPDATE(gpuTextureExternalMemory, (int)BYTES_TO_MB(gpu::Context::getTextureExternalGPUMemSize()));
 #if !defined(Q_OS_ANDROID)
-    STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
+        STAT_UPDATE(gpuTextureMemoryPressureState, getTextureMemoryPressureModeString());
 #endif
-    STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize()));
-    STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
-    STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
+        STAT_UPDATE(gpuFreeMemory, (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize()));
+        STAT_UPDATE(rectifiedTextureCount, (int)RECTIFIED_TEXTURE_COUNT.load());
+        STAT_UPDATE(decimatedTextureCount, (int)DECIMATED_TEXTURE_COUNT.load());
+    }
+
+    gpu::ContextStats gpuFrameStats;
+    gpuContext->getFrameStats(gpuFrameStats);
+
+    STAT_UPDATE(drawcalls, gpuFrameStats._DSNumDrawcalls);
+
 
     // Incoming packets
     QLocale locale(QLocale::English);

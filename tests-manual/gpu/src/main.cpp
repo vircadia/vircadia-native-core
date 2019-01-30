@@ -102,14 +102,12 @@ class MyTestWindow : public TestWindow {
 #ifdef INTERACTIVE
         t = _time.elapsed() * 1e-3f;
 #endif
-        glm::vec3 unitscale { 1.0f };
-        glm::vec3 up { 0.0f, 1.0f, 0.0f };
+        static const glm::vec3 up { 0.0f, 1.0f, 0.0f };
 
         float distance = 3.0f;
         glm::vec3 camera_position { distance * sinf(t), 0.5f, distance * cosf(t) };
 
         static const vec3 camera_focus(0);
-        static const vec3 camera_up(0, 1, 0);
         _camera = glm::inverse(glm::lookAt(camera_position, camera_focus, up));
 
         ViewFrustum frustum;

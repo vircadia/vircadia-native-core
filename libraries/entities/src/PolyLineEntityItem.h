@@ -23,7 +23,7 @@ class PolyLineEntityItem : public EntityItem {
     ALLOW_INSTANTIATION // This class can be instantiated
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -41,35 +41,22 @@ class PolyLineEntityItem : public EntityItem {
                                                  EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                  bool& somethingChanged) override;
 
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    glm::u8vec3 getColor() const;
+    void setColor(const glm::u8vec3& value);
 
-    void setColor(const rgbColor& value) {
-        _strokeColorsChanged = true;
-        memcpy(_color, value, sizeof(_color));
-    }
-    void setColor(const xColor& value) {
-        _strokeColorsChanged = true;
-        _color[RED_INDEX] = value.red;
-        _color[GREEN_INDEX] = value.green;
-        _color[BLUE_INDEX] = value.blue;
-    }
-
-    void setLineWidth(float lineWidth){ _lineWidth = lineWidth; }
-    float getLineWidth() const{ return _lineWidth; }
-
-    bool setLinePoints(const QVector<glm::vec3>& points);
-    bool appendPoint(const glm::vec3& point);
+    static const int MAX_POINTS_PER_LINE;
+    void setLinePoints(const QVector<glm::vec3>& points);
     QVector<glm::vec3> getLinePoints() const;
 
-    bool setNormals(const QVector<glm::vec3>& normals);
+    static const float DEFAULT_LINE_WIDTH;
+    void setStrokeWidths(const QVector<float>& strokeWidths);
+    QVector<float> getStrokeWidths() const;
+
+    void setNormals(const QVector<glm::vec3>& normals);
     QVector<glm::vec3> getNormals() const;
 
-    bool setStrokeColors(const QVector<glm::vec3>& strokeColors);
+    void setStrokeColors(const QVector<glm::vec3>& strokeColors);
     QVector<glm::vec3> getStrokeColors() const;
-
-    bool setStrokeWidths(const QVector<float>& strokeWidths);
-    QVector<float> getStrokeWidths() const;
 
     void setIsUVModeStretch(bool isUVModeStretch){ _isUVModeStretch = isUVModeStretch; }
     bool getIsUVModeStretch() const{ return _isUVModeStretch; }
@@ -77,16 +64,20 @@ class PolyLineEntityItem : public EntityItem {
     QString getTextures() const;
     void setTextures(const QString& textures);
 
-    virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
+    void setGlow(bool glow) { _glow = glow; }
+    bool getGlow() const { return _glow; }
+
+    void setFaceCamera(bool faceCamera) { _faceCamera = faceCamera; }
+    bool getFaceCamera() const { return _faceCamera; }
 
     bool pointsChanged() const { return _pointsChanged; } 
     bool normalsChanged() const { return _normalsChanged; }
-    bool strokeColorsChanged() const { return _strokeColorsChanged; }
-    bool strokeWidthsChanged() const { return _strokeWidthsChanged; }
-    bool texturesChanged() const { return _texturesChangedFlag; }
-    void resetTexturesChanged() { _texturesChangedFlag = false; }
-    void resetPolyLineChanged() { _strokeColorsChanged = _strokeWidthsChanged = _normalsChanged = _pointsChanged = false; }
+    bool colorsChanged() const { return _colorsChanged; }
+    bool widthsChanged() const { return _widthsChanged; }
+    bool texturesChanged() const { return _texturesChanged; }
 
+    void resetTexturesChanged() { _texturesChanged = false; }
+    void resetPolyLineChanged() { _colorsChanged = _widthsChanged = _normalsChanged = _pointsChanged = false; }
 
     // never have a ray intersection pick a PolyLineEntityItem.
     virtual bool supportsDetailedIntersection() const override { return true; }
@@ -99,30 +90,26 @@ class PolyLineEntityItem : public EntityItem {
                                                   BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const override { return false; }
 
-    // disable these external interfaces as PolyLineEntities caculate their own dimensions based on the points they contain
-    virtual void setRegistrationPoint(const glm::vec3& value) override {}; // FIXME: this is suspicious! 
-
     virtual void debugDump() const override;
-    static const float DEFAULT_LINE_WIDTH;
-    static const int MAX_POINTS_PER_LINE;
 private:
-    void calculateScaleAndRegistrationPoint();
+    void computeAndUpdateDimensionsAndPosition();
     
  protected:
-    rgbColor _color;
-    float _lineWidth { DEFAULT_LINE_WIDTH };
-    bool _pointsChanged { true };
-    bool _normalsChanged { true };
-    bool _strokeColorsChanged { true };
-    bool _strokeWidthsChanged { true };
+    glm::u8vec3 _color;
     QVector<glm::vec3> _points;
     QVector<glm::vec3> _normals;
-    QVector<glm::vec3> _strokeColors;
-    QVector<float> _strokeWidths;
+    QVector<glm::vec3> _colors;
+    QVector<float> _widths;
     QString _textures;
     bool _isUVModeStretch;
-    bool _texturesChangedFlag { false };
-    mutable QReadWriteLock _quadReadWriteLock;
+    bool _glow;
+    bool _faceCamera;
+
+    bool _pointsChanged { false };
+    bool _normalsChanged { false };
+    bool _colorsChanged { false };
+    bool _widthsChanged { false };
+    bool _texturesChanged { false };
 };
 
 #endif // hifi_PolyLineEntityItem_h

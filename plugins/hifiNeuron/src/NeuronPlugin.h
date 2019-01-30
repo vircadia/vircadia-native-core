@@ -30,7 +30,7 @@ public:
     virtual bool isSupported() const override;
     virtual const QString getName() const override { return NAME; }
     const QString getID() const override { return NEURON_ID_STRING; }
-
+    bool isRunning() const override { return _active && _enabled; }
     virtual bool activate() override;
     virtual void deactivate() override;
 
@@ -52,6 +52,7 @@ protected:
         friend class NeuronPlugin;
 
         InputDevice() : controller::InputDevice("Neuron") {}
+        virtual ~InputDevice() = default;
 
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
@@ -67,7 +68,6 @@ protected:
     static const char* NAME;
     static const char* NEURON_ID_STRING;
 
-    bool _enabled;
     QString _serverAddress;
     int _serverPort;
     void* _socketRef;

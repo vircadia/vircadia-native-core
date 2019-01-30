@@ -4,7 +4,7 @@ import QtWebChannel 1.0
 
 import QtQuick.Controls 2.2
 
-import "../styles-uit" as StylesUIt
+import stylesUit 1.0 as StylesUIt
 
 Item {
     id: flick
@@ -26,6 +26,8 @@ Item {
 
     property bool interactive: false
 
+    property bool blurOnCtrlShift: true
+
     StylesUIt.HifiConstants {
         id: hifi
     }
@@ -34,10 +36,34 @@ Item {
         webViewCore.stop();
     }
 
+    Timer {
+        id: delayedUnfocuser
+        repeat: false
+        interval: 200
+        onTriggered: {
+
+            // The idea behind this is to delay unfocusing, so that fast lower/raise will not result actual unfocusing.
+            // Fast lower/raise happens every time keyboard is being re-raised (see the code below in OffscreenQmlSurface::setKeyboardRaised)
+            //
+            // if (raised) {
+            //    item->setProperty("keyboardRaised", QVariant(!raised));
+            // }
+            //
+            // item->setProperty("keyboardRaised", QVariant(raised));
+            //
+
+            webViewCore.runJavaScript("if (document.activeElement) document.activeElement.blur();", function(result) {
+                console.log('unfocus completed: ', result);
+            });
+        }
+    }
+
     function unfocus() {
-        webViewCore.runJavaScript("if (document.activeElement) document.activeElement.blur();", function(result) {
-            console.log('unfocus completed: ', result);
-        });
+        delayedUnfocuser.start();
+    }
+
+    function stopUnfocus() {
+        delayedUnfocuser.stop();
     }
 
     function onLoadingChanged(loadRequest) {
@@ -156,8 +182,8 @@ Item {
     }
 
     Keys.onPressed: {
-        if ((event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
-            webViewCore.focus = false;
+        if (blurOnCtrlShift && (event.modifiers & Qt.ShiftModifier) && (event.modifiers & Qt.ControlModifier)) {
+            webViewCore.focus = false; 
         }
     }
 }

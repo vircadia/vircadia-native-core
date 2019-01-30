@@ -1,0 +1,36 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$> 
+// Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Hifi Engine Team.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include MeshDeformer.slh@>
+<$declareMeshDeformer(_SCRIBE_NULL, _SCRIBE_NULL, 1, 1, 1)$>
+<$declareMeshDeformerActivation(1, 1)$>
+
+<@include render-utils/ShaderConstants.h@>
+
+layout(location=RENDER_UTILS_ATTR_POSITION_WS) out vec4 _positionWS;
+
+void main(void) {
+    vec4 deformedPosition = vec4(0.0, 0.0, 0.0, 0.0);
+    evalMeshDeformer(inPosition, deformedPosition, 
+                    meshDeformer_doSkinning(_drawCallInfo.y), inSkinClusterIndex, inSkinClusterWeight,
+                    meshDeformer_doBlendshape(_drawCallInfo.y), gl_VertexID);
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, deformedPosition, gl_Position)$>
+    <$transformModelToWorldPos(obj, deformedPosition, _positionWS)$>
+}

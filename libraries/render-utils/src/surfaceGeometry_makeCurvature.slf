@@ -25,7 +25,7 @@ struct SurfaceGeometryParams {
     vec4 curvatureInfo;
 };
 
-layout(binding= RENDER_UTILS_BUFFER_SG_PARAMS) uniform surfaceGeometryParamsBuffer {
+LAYOUT(binding= RENDER_UTILS_BUFFER_SG_PARAMS) uniform surfaceGeometryParamsBuffer {
     SurfaceGeometryParams params;
 };
 
@@ -46,7 +46,7 @@ bool isFullResolution() {
 }
 
 
-layout(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_DEPTH) uniform sampler2D linearDepthMap;
 
 float getZEye(ivec2 pixel) {
     return -texelFetch(linearDepthMap, pixel, 0).x;
@@ -59,7 +59,7 @@ vec2 sideToFrameTexcoord(vec2 side, vec2 texcoordPos) {
     return vec2((texcoordPos.x + side.x) * side.y, texcoordPos.y);
 }
 
-layout(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SG_NORMAL) uniform sampler2D normalMap;
 
 vec3 getRawNormal(vec2 texcoord) {
     return texture(normalMap, texcoord).xyz;
@@ -67,11 +67,7 @@ vec3 getRawNormal(vec2 texcoord) {
 
 vec3 getWorldNormal(vec2 texcoord) {
     vec3 rawNormal = getRawNormal(texcoord);
-    if (isFullResolution()) {
-        return unpackNormal(rawNormal);
-    } else {
-        return normalize((rawNormal - vec3(0.5)) * 2.0);
-    }
+    return mix(normalize((rawNormal - vec3(0.5)) * 2.0), unpackNormal(rawNormal), float(isFullResolution()));
 }
 
 vec3 getWorldNormalDiff(vec2 texcoord, vec2 delta) {
@@ -93,7 +89,7 @@ void main(void) {
     vec2 texcoordPos;
     ivec4 stereoSide;
     ivec2 framePixelPos = getPixelPosTexcoordPosAndSide(gl_FragCoord.xy, pixelPos, texcoordPos, stereoSide);
-    vec2 stereoSideClip = vec2(stereoSide.x, (isStereo() ? 0.5 : 1.0));
+    vec2 stereoSideClip = vec2(stereoSide.x, 1.0 - 0.5 * float(isStereo()));
 
     // Texcoord to fetch in the deferred texture are the exact UVs comming from vertex shader
     // sideToFrameTexcoord(stereoSideClip, texcoordPos);
@@ -128,8 +124,8 @@ void main(void) {
 
     // Calculate dF/du and dF/dv
     vec2 viewportScale = perspectiveScale * getInvWidthHeight();
-    vec2 du = vec2( viewportScale.x * (float(stereoSide.w) > 0.0 ? 0.5 : 1.0), 0.0f );
-    vec2 dv = vec2( 0.0f, viewportScale.y );
+    vec2 du = vec2(viewportScale.x * (1.0 - 0.5 * float(stereoSide.w > 0)), 0.0);
+    vec2 dv = vec2( 0.0f, viewportScale.y);
 
     vec4 dFdu = vec4(getWorldNormalDiff(frameTexcoordPos, du), getEyeDepthDiff(frameTexcoordPos, du));
     vec4 dFdv = vec4(getWorldNormalDiff(frameTexcoordPos, dv), getEyeDepthDiff(frameTexcoordPos, dv));

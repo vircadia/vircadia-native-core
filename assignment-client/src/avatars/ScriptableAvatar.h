@@ -16,6 +16,7 @@
 #include <AnimSkeleton.h>
 #include <AvatarData.h>
 #include <ScriptEngine.h>
+#include <EntityItem.h>
 
 /**jsdoc
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
@@ -122,6 +123,10 @@
 
 class ScriptableAvatar : public AvatarData, public Dependency {
     Q_OBJECT
+
+    using Clock = std::chrono::system_clock;
+    using TimePoint = Clock::time_point;
+
 public:
 
     ScriptableAvatar();
@@ -153,19 +158,86 @@ public:
      */
     Q_INVOKABLE AnimationDetails getAnimationDetails();
 
+    /**jsdoc
+    * Get the names of all the joints in the current avatar.
+    * @function MyAvatar.getJointNames
+    * @returns {string[]} The joint names.
+    * @example <caption>Report the names of all the joints in your current avatar.</caption>
+    * print(JSON.stringify(MyAvatar.getJointNames()));
+    */
+    Q_INVOKABLE virtual QStringList getJointNames() const override;
+
+    /**jsdoc
+    * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by
+    * {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
+    * @function MyAvatar.getJointIndex
+    * @param {string} name - The name of the joint.
+    * @returns {number} The index of the joint.
+    * @example <caption>Report the index of your avatar's left arm joint.</caption>
+    * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm"));
+    */
+    /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
+    Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
+
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+
+    int sendAvatarDataPacket(bool sendAll = false) override;
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false) override;
 
-private slots:
+    void setHasProceduralBlinkFaceMovement(bool hasProceduralBlinkFaceMovement);
+    bool getHasProceduralBlinkFaceMovement() const override { return _headData->getHasProceduralBlinkFaceMovement(); }
+    void setHasProceduralEyeFaceMovement(bool hasProceduralEyeFaceMovement);
+    bool getHasProceduralEyeFaceMovement() const override { return _headData->getHasProceduralEyeFaceMovement(); }
+    void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
+    bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
+
+     /**jsdoc
+     * Potentially Very Expensive.  Do not use.
+     * @function Avatar.getAvatarEntityData
+     * @returns {object}
+     */
+    Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
+
+    /**jsdoc
+    * @function MyAvatar.setAvatarEntityData
+    * @param {object} avatarEntityData
+    */
+    Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
+
+    /**jsdoc
+     * @function MyAvatar.updateAvatarEntity
+     * @param {Uuid} entityID
+     * @param {string} entityData
+     */
+    Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
+
+public slots:
     void update(float deltatime);
-    
+
+    /**jsdoc
+    * @function MyAvatar.setJointMappingsFromNetworkReply
+    */
+    void setJointMappingsFromNetworkReply();
+
 private:
     AnimationPointer _animation;
     AnimationDetails _animationDetails;
     QStringList _maskedJoints;
     AnimationPointer _bind; // a sleazy way to get the skeleton, given the various library/cmake dependencies
     std::shared_ptr<AnimSkeleton> _animSkeleton;
+    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _fstJointNames; ///< in order of depth-first traversal
+    QUrl _skeletonFBXURL;
+    mutable QScriptEngine _scriptEngine;
+    std::map<QUuid, EntityItemPointer> _entities;
+
+    /// Loads the joint indices, names from the FST file (if any)
+    void updateJointMappings();
+
+    quint64 _lastSendAvatarDataTime { 0 };
+
+    TimePoint _nextTraitsSendWindow;
 };
 
 #endif // hifi_ScriptableAvatar_h

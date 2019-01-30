@@ -24,9 +24,12 @@ public:
 
     int nodesBroadcastedTo { 0 };
     int downstreamMixersBroadcastedTo { 0 };
-    int numPacketsSent { 0 };
-    int numBytesSent { 0 };
-    int numIdentityPackets { 0 };
+    int numDataBytesSent { 0 };
+    int numTraitsBytesSent { 0 };
+    int numIdentityBytesSent { 0 };
+    int numDataPacketsSent { 0 };
+    int numTraitsPacketsSent { 0 };
+    int numIdentityPacketsSent { 0 };
     int numOthersIncluded { 0 };
     int overBudgetAvatars { 0 };
 
@@ -45,9 +48,13 @@ public:
         // sending job stats
         nodesBroadcastedTo = 0;
         downstreamMixersBroadcastedTo = 0;
-        numPacketsSent = 0;
-        numBytesSent = 0;
-        numIdentityPackets = 0;
+
+        numDataBytesSent = 0;
+        numTraitsBytesSent = 0;
+        numIdentityBytesSent = 0;
+        numDataPacketsSent = 0;
+        numTraitsPacketsSent = 0;
+        numIdentityPacketsSent = 0;
         numOthersIncluded = 0;
         overBudgetAvatars = 0;
 
@@ -65,9 +72,12 @@ public:
 
         nodesBroadcastedTo += rhs.nodesBroadcastedTo;
         downstreamMixersBroadcastedTo += rhs.downstreamMixersBroadcastedTo;
-        numPacketsSent += rhs.numPacketsSent;
-        numBytesSent += rhs.numBytesSent;
-        numIdentityPackets += rhs.numIdentityPackets;
+        numDataBytesSent += rhs.numDataBytesSent;
+        numTraitsBytesSent += rhs.numTraitsBytesSent;
+        numIdentityBytesSent += rhs.numIdentityBytesSent;
+        numDataPacketsSent += rhs.numDataPacketsSent;
+        numTraitsPacketsSent += rhs.numTraitsPacketsSent;
+        numIdentityPacketsSent += rhs.numIdentityPacketsSent;
         numOthersIncluded += rhs.numOthersIncluded;
         overBudgetAvatars += rhs.overBudgetAvatars;
 
@@ -101,8 +111,13 @@ public:
     void harvestStats(AvatarMixerSlaveStats& stats);
 
 private:
-    int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
+    int sendIdentityPacket(NLPacketList& packet, const AvatarMixerClientData* nodeData, const Node& destinationNode);
     int sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode);
+
+    qint64 addTraitsNodeHeader(AvatarMixerClientData* listeningNodeData,
+                               const AvatarMixerClientData* sendingNodeData,
+                               NLPacketList& traitsPacketList,
+                               qint64 bytesWritten);
 
     qint64 addChangedTraitsToBulkPacket(AvatarMixerClientData* listeningNodeData,
                                         const AvatarMixerClientData* sendingNodeData,

@@ -82,24 +82,27 @@ void Image3DOverlay::render(RenderArgs* args) {
     float imageHeight = _texture->getHeight();
 
     QRect fromImage;
-    if (_fromImage.isNull()) {
+    if (_fromImage.width() <= 0) {
         fromImage.setX(0);
-        fromImage.setY(0);
         fromImage.setWidth(imageWidth);
-        fromImage.setHeight(imageHeight);
     } else {
         float scaleX = imageWidth / _texture->getOriginalWidth();
-        float scaleY = imageHeight / _texture->getOriginalHeight();
-
         fromImage.setX(scaleX * _fromImage.x());
-        fromImage.setY(scaleY * _fromImage.y());
         fromImage.setWidth(scaleX * _fromImage.width());
+    }
+
+    if (_fromImage.height() <= 0) {
+        fromImage.setY(0);
+        fromImage.setHeight(imageHeight);
+    } else {
+        float scaleY = imageHeight / _texture->getOriginalHeight();
+        fromImage.setY(scaleY * _fromImage.y());
         fromImage.setHeight(scaleY * _fromImage.height());
     }
 
     float maxSize = glm::max(fromImage.width(), fromImage.height());
-    float x = fromImage.width() / (2.0f * maxSize);
-    float y = -fromImage.height() / (2.0f * maxSize);
+    float x = _keepAspectRatio ? fromImage.width() / (2.0f * maxSize) : 0.5f;
+    float y = _keepAspectRatio ? -fromImage.height() / (2.0f * maxSize) : -0.5f;
 
     glm::vec2 topLeft(-x, -y);
     glm::vec2 bottomRight(x, y);
@@ -107,17 +110,16 @@ void Image3DOverlay::render(RenderArgs* args) {
     glm::vec2 texCoordBottomRight((fromImage.x() + fromImage.width() - 0.5f) / imageWidth,
                                   (fromImage.y() + fromImage.height() - 0.5f) / imageHeight);
 
-    const float MAX_COLOR = 255.0f;
-    xColor color = getColor();
     float alpha = getAlpha();
+    glm::u8vec3 color = getColor();
+    glm::vec4 imageColor(toGlm(color), alpha);
 
     batch->setModelTransform(getRenderTransform());
     batch->setResourceTexture(0, _texture->getGPUTexture());
 
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-        glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha),
-        _geometryId
+        imageColor, _geometryId
     );
 
     batch->setResourceTexture(0, nullptr); // restore default white color after me
@@ -177,6 +179,11 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
         }
     }
 
+    auto keepAspectRatioValue = properties["keepAspectRatio"];
+    if (keepAspectRatioValue.isValid()) {
+        _keepAspectRatio = keepAspectRatioValue.toBool();
+    }
+
     auto emissiveValue = properties["emissive"];
     if (emissiveValue.isValid()) {
         _emissive = emissiveValue.toBool();
@@ -215,7 +222,7 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
@@ -225,6 +232,8 @@ void Image3DOverlay::setProperties(const QVariantMap& properties) {
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
  * @property {Vec2} dimensions=1,1 - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ *
+ * @property {bool} keepAspectRatio=true - overlays will maintain the aspect ratio when the subImage is applied.
  *
  * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
  *     parallel to the user's avatar's "up" direction.
@@ -241,11 +250,11 @@ QVariant Image3DOverlay::getProperty(const QString& property) {
     if (property == "subImage") {
         return _fromImage;
     }
-    if (property == "offsetPosition") {
-        return vec3toVariant(getOffsetPosition());
-    }
     if (property == "emissive") {
         return _emissive;
+    }
+    if (property == "keepAspectRatio") {
+        return _keepAspectRatio;
     }
 
     return Billboard3DOverlay::getProperty(property);

@@ -28,8 +28,8 @@ const glm::quat identity = glm::quat();
 const glm::quat quaterTurnAroundZ = glm::angleAxis(0.5f * PI, zAxis);
 
 
-void makeTestFBXJoints(FBXGeometry& geometry) {
-    FBXJoint joint;
+void makeTestFBXJoints(HFMModel& hfmModel) {
+    HFMJoint joint;
     joint.isFree = false;
     joint.freeLineage.clear();
     joint.parentIndex = -1;
@@ -60,29 +60,29 @@ void makeTestFBXJoints(FBXGeometry& geometry) {
     joint.name = "A";
     joint.parentIndex = -1;
     joint.translation = origin;
-    geometry.joints.push_back(joint);
+    hfmModel.joints.push_back(joint);
 
     joint.name = "B";
     joint.parentIndex = 0;
     joint.translation = xAxis;
-    geometry.joints.push_back(joint);
+    hfmModel.joints.push_back(joint);
 
     joint.name = "C";
     joint.parentIndex = 1;
     joint.translation = xAxis;
-    geometry.joints.push_back(joint);
+    hfmModel.joints.push_back(joint);
 
     joint.name = "D";
     joint.parentIndex = 2;
     joint.translation = xAxis;
-    geometry.joints.push_back(joint);
+    hfmModel.joints.push_back(joint);
 
     // compute each joint's transform
-    for (int i = 1; i < (int)geometry.joints.size(); ++i) {
-        FBXJoint& j = geometry.joints[i];
+    for (int i = 1; i < (int)hfmModel.joints.size(); ++i) {
+        HFMJoint& j = hfmModel.joints[i];
         int parentIndex = j.parentIndex;
         // World = ParentWorld * T * (Roff * Rp) * Rpre * R * Rpost * (Rp-1 * Soff * Sp * S * Sp-1)
-        j.transform = geometry.joints[parentIndex].transform *
+        j.transform = hfmModel.joints[parentIndex].transform *
             glm::translate(j.translation) *
             j.preTransform *
             glm::mat4_cast(j.preRotation * j.rotation * j.postRotation) *
@@ -96,12 +96,12 @@ void AnimInverseKinematicsTests::testSingleChain() {
 
     AnimContext context(false, false, false, glm::mat4(), glm::mat4());
 
-    FBXGeometry geometry;
-    makeTestFBXJoints(geometry);
+    HFMModel hfmModel;
+    makeTestFBXJoints(hfmModel);
 
     // create a skeleton and doll
     AnimPose offset;
-    AnimSkeleton::Pointer skeletonPtr = std::make_shared<AnimSkeleton>(geometry);
+    AnimSkeleton::Pointer skeletonPtr = std::make_shared<AnimSkeleton>(hfmModel);
     AnimInverseKinematics ikDoll("doll");
 
     ikDoll.setSkeleton(skeletonPtr);
@@ -119,7 +119,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         poses.push_back(pose);
 
         pose.trans() = xAxis;
-        for (int i = 1; i < (int)geometry.joints.size(); ++i) {
+        for (int i = 1; i < (int)hfmModel.joints.size(); ++i) {
             poses.push_back(pose);
         }
         ikDoll.loadPoses(poses);

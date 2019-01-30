@@ -212,17 +212,11 @@ void PacketReceiver::handleVerifiedPacket(std::unique_ptr<udt::Packet> packet) {
     auto nlPacket = NLPacket::fromBase(std::move(packet));
     auto receivedMessage = QSharedPointer<ReceivedMessage>::create(*nlPacket);
 
-    _inPacketCount += 1;
-    _inByteCount += nlPacket->size();
-
     handleVerifiedMessage(receivedMessage, true);
 }
 
 void PacketReceiver::handleVerifiedMessagePacket(std::unique_ptr<udt::Packet> packet) {
     auto nlPacket = NLPacket::fromBase(std::move(packet));
-
-    _inPacketCount += 1;
-    _inByteCount += nlPacket->size();
 
     auto key = std::pair<HifiSockAddr, udt::Packet::MessageNumber>(nlPacket->getSenderSockAddr(), nlPacket->getMessageNumber());
     auto it = _pendingMessages.find(key);
@@ -282,10 +276,6 @@ void PacketReceiver::handleVerifiedMessage(QSharedPointer<ReceivedMessage> recei
         {
             QMutexLocker directConnectLocker(&_directConnectSetMutex);
             connectionType = _directlyConnectedObjects.contains(listener.object) ? Qt::DirectConnection : Qt::AutoConnection;
-        }
-
-        if (matchingNode) {
-            matchingNode->recordBytesReceived(receivedMessage->getSize());
         }
 
         QMetaMethod metaMethod = listener.method;

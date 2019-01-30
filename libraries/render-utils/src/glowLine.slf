@@ -22,9 +22,9 @@ void main(void) {
     float alpha = 1.0 - abs(distanceFromCenter);
     
     // Convert from a linear alpha curve to a sharp peaked one
-	alpha = _color.a * pow(alpha, 10.0);
-	
-	// Drop everything where the curve falls off to nearly nothing
+    alpha = _color.a * pow(alpha, 10.0);
+    
+    // Drop everything where the curve falls off to nearly nothing
     if (alpha <= 0.05) {
         discard;
     }

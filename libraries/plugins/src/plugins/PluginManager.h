@@ -13,12 +13,12 @@
 
 #include "Forward.h"
 
-
-class PluginManager;
+class QPluginLoader;
 using PluginManagerPointer = QSharedPointer<PluginManager>;
 
 class PluginManager : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
+    Q_OBJECT
 
 public:
     static PluginManagerPointer getInstance();
@@ -27,6 +27,7 @@ public:
     const InputPluginList& getInputPlugins();
     const CodecPluginList& getCodecPlugins();
     const SteamClientPluginPointer getSteamClientPlugin();
+    const OculusPlatformPluginPointer getOculusPlatformPlugin();
 
     DisplayPluginList getPreferredDisplayPlugins();
     void setPreferredDisplayPlugins(const QStringList& displays);
@@ -44,6 +45,13 @@ public:
     void setInputPluginProvider(const InputPluginProvider& provider);
     void setCodecPluginProvider(const CodecPluginProvider& provider);
     void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
+    QStringList getRunningInputDeviceNames() const;
+
+    using PluginFilter = std::function<bool(const QJsonObject&)>;
+    void setPluginFilter(PluginFilter pluginFilter) { _pluginFilter = pluginFilter; }
+
+signals:
+    void inputDeviceRunningChanged(const QString& pluginName, bool isRunning, const QStringList& runningDevices);
     
 private:
     PluginManager() = default;
@@ -55,4 +63,19 @@ private:
     PluginContainer* _container { nullptr };
     DisplayPluginList _displayPlugins;
     InputPluginList _inputPlugins;
+    PluginFilter _pluginFilter { [](const QJsonObject&) { return true; } };
+
+    using Loader = QSharedPointer<QPluginLoader>;
+    using LoaderList = QList<Loader>;
+
+    const LoaderList& getLoadedPlugins() const;
 };
+
+// TODO: we should define this value in CMake, and then use CMake
+// templating to generate the individual plugin.json files, so that we
+// don't have to update every plugin.json file whenever we update this
+// value.  The value should match "version" in
+//   plugins/*/src/plugin.json
+//   plugins/oculus/src/oculus.json
+//   etc
+static const int HIFI_PLUGIN_INTERFACE_VERSION = 1;

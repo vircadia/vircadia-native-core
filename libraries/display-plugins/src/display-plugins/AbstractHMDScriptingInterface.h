@@ -15,11 +15,12 @@
 // These properties have JSDoc documentation in HMDScriptingInterface.h.
 class AbstractHMDScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool active READ isHMDMode)
+    Q_PROPERTY(bool active READ isHMDMode NOTIFY mountedChanged)
     Q_PROPERTY(float ipd READ getIPD)
     Q_PROPERTY(float eyeHeight READ getEyeHeight)
     Q_PROPERTY(float playerHeight READ getPlayerHeight)
     Q_PROPERTY(float ipdScale READ getIPDScale WRITE setIPDScale NOTIFY IPDScaleChanged)
+    Q_PROPERTY(bool mounted READ isMounted NOTIFY mountedChanged)
 
 public:
     AbstractHMDScriptingInterface();
@@ -29,6 +30,7 @@ public:
     float getIPDScale() const;
     void setIPDScale(float ipdScale);
     bool isHMDMode() const;
+    virtual bool isMounted() const = 0;
 
 signals:
     /**jsdoc
@@ -41,7 +43,7 @@ signals:
     /**jsdoc
      * Triggered when Interface's display mode changes and when the user puts on or takes off their HMD.
      * @function HMD.displayModeChanged
-     * @param {boolean} isHMDMode - <code>true</code> if the display mode is HMD, otherwise <code>false</code>. This is the 
+     * @param {boolean} isHMDMode - <code>true</code> if the display mode is HMD, otherwise <code>false</code>. This is the
      *     same value as provided by <code>HMD.active</code>.
      * @returns {Signal}
      * @example <caption>Report when the display mode changes.</caption>

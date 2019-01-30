@@ -30,7 +30,6 @@
 
 #include "GLShared.h"
 
-
 // Different versions for the stereo drawcall
 // Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
 #if defined(USE_GLES)
@@ -39,7 +38,6 @@
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
 #define GPU_STEREO_TECHNIQUE_INSTANCED
 #endif
-
 
 // Let these be configured by the one define picked above
 #ifdef GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
@@ -67,8 +65,8 @@ class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend>
 protected:
     explicit GLBackend(bool syncCache);
     GLBackend();
-public:
 
+public:
 #if defined(USE_GLES)
     // https://www.khronos.org/registry/OpenGL-Refpages/es3/html/glGet.xhtml
     static const GLint MIN_REQUIRED_TEXTURE_IMAGE_UNITS = 16;
@@ -106,11 +104,13 @@ public:
     // Let's try to avoid to do that as much as possible!
     void syncCache() final override;
 
+    void syncProgram(const gpu::ShaderPointer& program) override;
+
     // This is the ugly "download the pixels to sysmem for taking a snapshot"
     // Just avoid using it, it's ugly and will break performances
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer,
-                                     const Vec4i& region, QImage& destImage) final override;
-
+                                     const Vec4i& region,
+                                     QImage& destImage) final override;
 
     // this is the maximum numeber of available input buffers
     size_t getNumInputBuffers() const { return _input._invalidBuffers.size(); }
@@ -131,7 +131,6 @@ public:
     static const int MAX_NUM_RESOURCE_TABLE_TEXTURES = 2;
     size_t getMaxNumResourceTextureTables() const { return MAX_NUM_RESOURCE_TABLE_TEXTURES; }
 
-
     // Draw Stage
     virtual void do_draw(const Batch& batch, size_t paramOffset) = 0;
     virtual void do_drawIndexed(const Batch& batch, size_t paramOffset) = 0;
@@ -146,6 +145,7 @@ public:
     virtual void do_setIndexBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_setIndirectBuffer(const Batch& batch, size_t paramOffset) final;
     virtual void do_generateTextureMips(const Batch& batch, size_t paramOffset) final;
+    virtual void do_generateTextureMipsWithPipeline(const Batch& batch, size_t paramOffset) final;
 
     // Transform Stage
     virtual void do_setModelTransform(const Batch& batch, size_t paramOffset) final;
@@ -183,7 +183,6 @@ public:
     // Reset stages
     virtual void do_resetStages(const Batch& batch, size_t paramOffset) final;
 
-    
     virtual void do_disableContextViewCorrection(const Batch& batch, size_t paramOffset) final;
     virtual void do_restoreContextViewCorrection(const Batch& batch, size_t paramOffset) final;
 
@@ -203,7 +202,7 @@ public:
     virtual void do_popProfileRange(const Batch& batch, size_t paramOffset) final;
 
     // TODO: As long as we have gl calls explicitely issued from interface
-    // code, we need to be able to record and batch these calls. THe long 
+    // code, we need to be able to record and batch these calls. THe long
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
     virtual void do_glUniform1i(const Batch& batch, size_t paramOffset) final;
     virtual void do_glUniform1f(const Batch& batch, size_t paramOffset) final;
@@ -228,7 +227,9 @@ public:
     virtual void do_setStateAntialiasedLineEnable(bool enable) final;
     virtual void do_setStateDepthBias(Vec2 bias) final;
     virtual void do_setStateDepthTest(State::DepthTest test) final;
-    virtual void do_setStateStencil(State::StencilActivation activation, State::StencilTest frontTest, State::StencilTest backTest) final;
+    virtual void do_setStateStencil(State::StencilActivation activation,
+                                    State::StencilTest frontTest,
+                                    State::StencilTest backTest) final;
     virtual void do_setStateAlphaToCoverageEnable(bool enable) final;
     virtual void do_setStateSampleMask(uint32 mask) final;
     virtual void do_setStateBlend(State::BlendFunction blendFunction) final;
@@ -239,6 +240,7 @@ public:
     virtual GLuint getFramebufferID(const FramebufferPointer& framebuffer) = 0;
     virtual GLuint getTextureID(const TexturePointer& texture) final;
     virtual GLuint getBufferID(const Buffer& buffer) = 0;
+    virtual GLuint getBufferIDUnsynced(const Buffer& buffer) = 0;
     virtual GLuint getQueryID(const QueryPointer& query) = 0;
 
     virtual GLFramebuffer* syncGPUObject(const Framebuffer& framebuffer) = 0;
@@ -256,30 +258,52 @@ public:
     virtual void releaseQuery(GLuint id) const;
     virtual void queueLambda(const std::function<void()> lambda) const;
 
-    bool isTextureManagementSparseEnabled() const override { return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures()); }
+    bool isTextureManagementSparseEnabled() const override {
+        return (_textureManagement._sparseCapable && Texture::getEnableSparseTextures());
+    }
 
 protected:
     virtual GLint getRealUniformLocation(GLint location) const;
+
+    virtual void draw(GLenum mode, uint32 numVertices, uint32 startVertex) = 0;
 
     void recycle() const override;
 
     // FIXME instead of a single flag, create a features struct similar to
     // https://www.khronos.org/registry/vulkan/specs/1.0/man/html/VkPhysicalDeviceFeatures.html
-    virtual bool supportsBindless() const { return false;  }
+    virtual bool supportsBindless() const { return false; }
 
     static const size_t INVALID_OFFSET = (size_t)-1;
-    bool _inRenderTransferPass { false };
-    int _currentDraw { -1 };
-
-    std::list<std::string> profileRanges;
+    bool _inRenderTransferPass{ false };
+    int _currentDraw{ -1 };
+    
+    struct FrameTrash {
+        GLsync fence = nullptr;
+        std::list<std::pair<GLuint, Size>> buffersTrash;
+        std::list<std::pair<GLuint, Size>> texturesTrash;
+        std::list<std::pair<GLuint, Texture::ExternalRecycler>> externalTexturesTrash;
+        std::list<GLuint> framebuffersTrash;
+        std::list<GLuint> shadersTrash;
+        std::list<GLuint> programsTrash;
+        std::list<GLuint> queriesTrash;
+        
+        void swap(FrameTrash& other) {
+            buffersTrash.swap(other.buffersTrash);
+            texturesTrash.swap(other.texturesTrash);
+            externalTexturesTrash.swap(other.externalTexturesTrash);
+            framebuffersTrash.swap(other.framebuffersTrash);
+            shadersTrash.swap(other.shadersTrash);
+            programsTrash.swap(other.programsTrash);
+            queriesTrash.swap(other.queriesTrash);
+        }
+        
+        void cleanup();
+    };
+    
     mutable Mutex _trashMutex;
-    mutable std::list<std::pair<GLuint, Size>> _buffersTrash;
-    mutable std::list<std::pair<GLuint, Size>> _texturesTrash;
-    mutable std::list<std::pair<GLuint, Texture::ExternalRecycler>> _externalTexturesTrash;
-    mutable std::list<GLuint> _framebuffersTrash;
-    mutable std::list<GLuint> _shadersTrash;
-    mutable std::list<GLuint> _programsTrash;
-    mutable std::list<GLuint> _queriesTrash;
+    mutable FrameTrash _currentFrameTrash;
+    mutable std::list<FrameTrash> _previousFrameTrashes;
+    std::list<std::string> profileRanges;
     mutable std::list<std::function<void()>> _lambdaQueue;
 
     void renderPassTransfer(const Batch& batch);
@@ -298,46 +322,36 @@ protected:
     virtual void updateInput() = 0;
 
     struct InputStageState {
-        bool _invalidFormat { true };
-        bool _lastUpdateStereoState{ false }; 
+        bool _invalidFormat{ true };
+        bool _lastUpdateStereoState{ false };
         bool _hadColorAttribute{ true };
-        Stream::FormatPointer _format;
+        FormatReference _format{ GPU_REFERENCE_INIT_VALUE };
         std::string _formatKey;
 
         typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
-        ActivationCache _attributeActivation { 0 };
+        ActivationCache _attributeActivation{ 0 };
 
         typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
 
         BuffersState _invalidBuffers{ 0 };
         BuffersState _attribBindingBuffers{ 0 };
 
-        Buffers _buffers;
-        Offsets _bufferOffsets;
-        Offsets _bufferStrides;
-        std::vector<GLuint> _bufferVBOs;
+        std::array<BufferReference, MAX_NUM_INPUT_BUFFERS> _buffers{};
+        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferOffsets{};
+        std::array<Offset, MAX_NUM_INPUT_BUFFERS> _bufferStrides{};
+        std::array<GLuint, MAX_NUM_INPUT_BUFFERS> _bufferVBOs{};
 
         glm::vec4 _colorAttribute{ 0.0f };
 
-        BufferPointer _indexBuffer;
-        Offset _indexBufferOffset { 0 };
-        Type _indexBufferType { UINT32 };
-        
-        BufferPointer _indirectBuffer;
+        BufferReference _indexBuffer{};
+        Offset _indexBufferOffset{ 0 };
+        Type _indexBufferType{ UINT32 };
+
+        BufferReference _indirectBuffer{};
         Offset _indirectBufferOffset{ 0 };
         Offset _indirectBufferStride{ 0 };
 
-        GLuint _defaultVAO { 0 };
-
-        InputStageState() :
-            _invalidFormat(true),
-            _format(0),
-            _formatKey(),
-            _attributeActivation(0),
-            _buffers(_invalidBuffers.size(), BufferPointer(0)),
-            _bufferOffsets(_invalidBuffers.size(), 0),
-            _bufferStrides(_invalidBuffers.size(), 0),
-            _bufferVBOs(_invalidBuffers.size(), 0) {}
+        GLuint _defaultVAO{ 0 };
     } _input;
 
     virtual void initTransform() = 0;
@@ -348,7 +362,7 @@ protected:
     virtual void resetTransformStage();
 
     // Allows for correction of the camera pose to account for changes
-    // between the time when a was recorded and the time(s) when it is 
+    // between the time when a was recorded and the time(s) when it is
     // executed
     // Prev is the previous correction used at previous frame
     struct CameraCorrection {
@@ -363,9 +377,12 @@ protected:
         struct Cameras {
             TransformCamera _cams[2];
 
-            Cameras() {};
+            Cameras(){};
             Cameras(const TransformCamera& cam) { memcpy(_cams, &cam, sizeof(TransformCamera)); };
-            Cameras(const TransformCamera& camL, const TransformCamera& camR) { memcpy(_cams, &camL, sizeof(TransformCamera)); memcpy(_cams + 1, &camR, sizeof(TransformCamera)); };
+            Cameras(const TransformCamera& camL, const TransformCamera& camR) {
+                memcpy(_cams, &camL, sizeof(TransformCamera));
+                memcpy(_cams + 1, &camR, sizeof(TransformCamera));
+            };
         };
 
         using CameraBufferElement = Cameras;
@@ -379,25 +396,24 @@ protected:
 
         mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
 
-        GLuint _objectBuffer { 0 };
-        GLuint _cameraBuffer { 0 };
-        GLuint _drawCallInfoBuffer { 0 };
-        GLuint _objectBufferTexture { 0 };
-        size_t _cameraUboSize { 0 };
+        GLuint _objectBuffer{ 0 };
+        GLuint _cameraBuffer{ 0 };
+        GLuint _drawCallInfoBuffer{ 0 };
+        GLuint _objectBufferTexture{ 0 };
+        size_t _cameraUboSize{ 0 };
         bool _viewIsCamera{ false };
-        bool _skybox { false };
+        bool _skybox{ false };
         Transform _view;
         CameraCorrection _correction;
         bool _viewCorrectionEnabled{ true };
 
-
         Mat4 _projection;
-        Vec4i _viewport { 0, 0, 1, 1 };
-        Vec2 _depthRange { 0.0f, 1.0f };
+        Vec4i _viewport{ 0, 0, 1, 1 };
+        Vec2 _depthRange{ 0.0f, 1.0f };
         Vec2 _projectionJitter{ 0.0f, 0.0f };
-        bool _invalidView { false };
-        bool _invalidProj { false };
-        bool _invalidViewport { false };
+        bool _invalidView{ false };
+        bool _invalidProj{ false };
+        bool _invalidViewport{ false };
 
         bool _enabledDrawcallInfoBuffer{ false };
 
@@ -416,35 +432,41 @@ protected:
 
     struct UniformStageState {
         struct BufferState {
-            BufferPointer buffer;
+            BufferReference buffer{};
             GLintptr offset{ 0 };
             GLsizeiptr size{ 0 };
-            BufferState(const BufferPointer& buffer = nullptr, GLintptr offset = 0, GLsizeiptr size = 0);
-            bool operator ==(BufferState& other) const {
-                return offset == other.offset && size == other.size && buffer == other.buffer;
+
+            BufferState& operator=(const BufferState& other) = delete;
+            void reset() {
+                gpu::reset(buffer);
+                offset = 0;
+                size = 0;
+            }
+            bool compare(const BufferPointer& buffer, GLintptr offset, GLsizeiptr size) {
+                const auto& self = *this;
+                return (self.offset == offset && self.size == size && gpu::compare(self.buffer, buffer));
             }
         };
 
         // MAX_NUM_UNIFORM_BUFFERS-1 is the max uniform index BATCHES are allowed to set, but
-        // MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS is used here because the backend sets some 
-        // internal UBOs for things like camera correction 
+        // MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS is used here because the backend sets some
+        // internal UBOs for things like camera correction
         std::array<BufferState, MIN_REQUIRED_UNIFORM_BUFFER_BINDINGS> _buffers;
     } _uniform;
 
-    // Helper function that provides common code 
+    // Helper function that provides common code
     void bindUniformBuffer(uint32_t slot, const BufferPointer& buffer, GLintptr offset = 0, GLsizeiptr size = 0);
     void releaseUniformBuffer(uint32_t slot);
     void resetUniformStage();
 
     // update resource cache and do the gl bind/unbind call with the current gpu::Buffer cached at slot s
     // This is using different gl object  depending on the gl version
-    virtual bool bindResourceBuffer(uint32_t slot, BufferPointer& buffer) = 0;
+    virtual bool bindResourceBuffer(uint32_t slot, const BufferPointer& buffer) = 0;
     virtual void releaseResourceBuffer(uint32_t slot) = 0;
 
-    // Helper function that provides common code used by do_setResourceTexture and 
+    // Helper function that provides common code used by do_setResourceTexture and
     // do_setResourceTextureTable (in non-bindless mode)
     void bindResourceTexture(uint32_t slot, const TexturePointer& texture);
-
 
     // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);
@@ -452,9 +474,12 @@ protected:
     void resetResourceStage();
 
     struct ResourceStageState {
-        std::array<BufferPointer, MAX_NUM_RESOURCE_BUFFERS> _buffers;
-        std::array<TexturePointer, MAX_NUM_RESOURCE_TEXTURES> _textures;
-        //Textures _textures { { MAX_NUM_RESOURCE_TEXTURES } };
+        struct TextureState {
+            TextureReference _texture{};
+            GLenum _target;
+        };
+        std::array<BufferReference, MAX_NUM_RESOURCE_BUFFERS> _buffers{};
+        std::array<TextureState, MAX_NUM_RESOURCE_TEXTURES> _textures{};
         int findEmptyTextureSlot() const;
     } _resource;
 
@@ -469,21 +494,22 @@ protected:
     void resetPipelineStage();
 
     struct PipelineStageState {
-        PipelinePointer _pipeline;
+        PipelineReference _pipeline{};
 
-        GLuint _program { 0 };
-        bool _cameraCorrection { false };
-        GLShader* _programShader { nullptr };
-        bool _invalidProgram { false };
+        GLuint _program{ 0 };
+        bool _cameraCorrection{ false };
+        GLShader* _programShader{ nullptr };
+        bool _invalidProgram{ false };
 
-        BufferView _cameraCorrectionBuffer { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
-        BufferView _cameraCorrectionBufferIdentity { gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr )) };
+        BufferView _cameraCorrectionBuffer{ gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr)) };
+        BufferView _cameraCorrectionBufferIdentity{ gpu::BufferView(
+            std::make_shared<gpu::Buffer>(sizeof(CameraCorrection), nullptr)) };
 
         State::Data _stateCache{ State::DEFAULT };
-        State::Signature _stateSignatureCache { 0 };
+        State::Signature _stateSignatureCache{ 0 };
 
-        GLState* _state { nullptr };
-        bool _invalidState { false };
+        GLState* _state{ nullptr };
+        bool _invalidState{ false };
 
         PipelineStageState() {
             _cameraCorrectionBuffer.edit<CameraCorrection>() = CameraCorrection();
@@ -492,18 +518,21 @@ protected:
         }
     } _pipeline;
 
-    // Backend dependant compilation of the shader
+    // Backend dependent compilation of the shader
     virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const;
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
-    virtual std::string getBackendShaderHeader() const = 0;
+
     // For a program, this will return a string containing all the source files (without any 
     // backend headers or defines).  For a vertex, fragment or geometry shader, this will 
     // return the fully customized shader with all the version and backend specific 
     // preprocessor directives
     // The program string returned can be used as a key for a cache of shader binaries
     // The shader strings can be reliably sent to the low level `compileShader` functions
-    virtual std::string getShaderSource(const Shader& shader, int version) final;
+    virtual std::string getShaderSource(const Shader& shader, shader::Variant version) final;
+    shader::Variant getShaderVariant() const { return isStereo() ? shader::Variant::Stereo : shader::Variant::Mono; }
+    virtual shader::Dialect getShaderDialect() const = 0;
+
     class ElementResource {
     public:
         gpu::Element _element;
@@ -515,22 +544,22 @@ protected:
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();
     void resetOutputStage();
-    
+
     struct OutputStageState {
-        FramebufferPointer _framebuffer { nullptr };
-        GLuint _drawFBO { 0 };
+        FramebufferReference _framebuffer{};
+        GLuint _drawFBO{ 0 };
     } _output;
 
     void resetQueryStage();
     struct QueryStageState {
-        uint32_t _rangeQueryDepth { 0 };
+        uint32_t _rangeQueryDepth{ 0 };
     } _queryStage;
 
     void resetStages();
 
     // Stores cached binary versions of the shaders for quicker startup on subsequent runs
-    // Note that shaders in the cache can still fail to load due to hardware or driver 
-    // changes that invalidate the cached binary, in which case we fall back on compiling 
+    // Note that shaders in the cache can still fail to load due to hardware or driver
+    // changes that invalidate the cached binary, in which case we fall back on compiling
     // the source again
     struct ShaderBinaryCache {
         std::mutex _mutex;
@@ -542,11 +571,13 @@ protected:
     virtual void killShaderBinaryCache();
 
     struct TextureManagementStageState {
-        bool _sparseCapable { false };
+        bool _sparseCapable{ false };
         GLTextureTransferEnginePointer _transferEngine;
     } _textureManagement;
     virtual void initTextureManagementStage();
     virtual void killTextureManagementStage();
+
+    GLuint _mipGenerationFramebufferId{ 0 };
 
     typedef void (GLBackend::*CommandCall)(const Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
@@ -555,6 +586,6 @@ protected:
     friend class GLShader;
 };
 
-} }
+}}  // namespace gpu::gl
 
 #endif

@@ -32,7 +32,7 @@ class ReadBitstreamToTreeParams;
 /**jsdoc
  * A skybox is defined by the following properties.
  * @typedef {object} Entities.Skybox
- * @property {Color} color=0,0,0 - Sets the color of the sky if <code>url</code> is <code>""</code>, otherwise modifies the 
+ * @property {Color} color=0,0,0 - Sets the color of the sky if <code>url</code> is <code>""</code>, otherwise modifies the
  *     color of the cube map image.
  * @property {string} url="" - A cube map image that is used to render the sky.
  */
@@ -83,16 +83,8 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    glm::vec3 getColorVec3() const {
-        const quint8 MAX_COLOR = 255;
-        glm::vec3 color = { (float)_color.red / (float)MAX_COLOR,
-                            (float)_color.green / (float)MAX_COLOR,
-                            (float)_color.blue / (float)MAX_COLOR };
-        return color;
-    }
-
-    static const xColor DEFAULT_COLOR;
-    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, xColor, DEFAULT_COLOR);
+    static const glm::u8vec3 DEFAULT_COLOR;
+    DEFINE_PROPERTY_REF(PROP_SKYBOX_COLOR, Color, color, glm::u8vec3, DEFAULT_COLOR);
     DEFINE_PROPERTY_REF(PROP_SKYBOX_URL, URL, url, QString, "");
 };
 

@@ -37,6 +37,7 @@ class OpenVrDisplayPlugin : public HmdDisplayPlugin {
 public:
     bool isSupported() const override;
     const QString getName() const override;
+    bool getSupportsAutoSwitch() override final { return true; }
 
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override;
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override;
@@ -64,6 +65,8 @@ public:
     QString getPreferredAudioInDevice() const override;
     QString getPreferredAudioOutDevice() const override;
 
+    QRectF getPlayAreaRect() override;
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
@@ -76,7 +79,6 @@ protected:
 
 private:
     vr::IVRSystem* _system { nullptr };
-    std::atomic<vr::EDeviceActivityLevel> _hmdActivityLevel { vr::k_EDeviceActivityLevel_Unknown };
     std::atomic<uint32_t> _keyboardSupressionCount{ 0 };
 
     vr::HmdMatrix34_t _lastGoodHMDPose;

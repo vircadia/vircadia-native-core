@@ -15,12 +15,14 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <QColor>
+#include <gpu/Forward.h>
 
 namespace gpu {
 class Batch;
 }
 class Font;
 
+#include "text/Font.h"
 #include "text/EffectType.h"
 #include "text/FontFamilies.h"
 
@@ -37,7 +39,7 @@ public:
     float getFontSize() const; // Pixel size
     
     void draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color = glm::vec4(1.0f),
-              const glm::vec2& bounds = glm::vec2(-1.0f), bool layered = false);
+              const glm::vec2& bounds = glm::vec2(-1.0f));
 
 private:
     TextRenderer3D(const char* family, float pointSize, int weight = -1, bool italic = false,
@@ -51,7 +53,7 @@ private:
 
     // text color
     glm::vec4 _color;
-
+    Font::DrawInfo _drawInfo;
     std::shared_ptr<Font> _font;
 };
 

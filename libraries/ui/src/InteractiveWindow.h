@@ -84,6 +84,8 @@ private:
     Q_INVOKABLE void setPresentationMode(int presentationMode);
     Q_INVOKABLE int getPresentationMode() const;
 
+    Q_INVOKABLE void parentNativeWindowToMainWindow();
+
 public slots:
 
     /**jsdoc

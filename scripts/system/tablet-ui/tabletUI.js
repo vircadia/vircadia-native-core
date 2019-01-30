@@ -19,11 +19,12 @@
     var tabletRezzed = false;
     var activeHand = null;
     var DEFAULT_WIDTH = 0.4375;
-    var DEFAULT_TABLET_SCALE = 70;
+    var DEFAULT_DESKTOP_TABLET_SCALE = 75;
+    var DEFAULT_HMD_TABLET_SCALE = 60;
     var preMakeTime = Date.now();
     var validCheckTime = Date.now();
     var debugTablet = false;
-    var tabletScalePercentage = 70.0;
+    var tabletScalePercentage = DEFAULT_HMD_TABLET_SCALE;
     var UIWebTablet = null;
     var MSECS_PER_SEC = 1000.0;
     var MUTE_MICROPHONE_MENU_ITEM = "Mute Microphone";
@@ -66,14 +67,14 @@
     }
 
     function getTabletScalePercentageFromSettings() {
-        checkTablet()
+        checkTablet();
         var toolbarMode = gTablet.toolbarMode;
-        var tabletScalePercentage = DEFAULT_TABLET_SCALE;
+        var tabletScalePercentage = DEFAULT_HMD_TABLET_SCALE;
         if (!toolbarMode) {
             if (HMD.active) {
-                tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_TABLET_SCALE;
+                tabletScalePercentage = Settings.getValue("hmdTabletScale") || DEFAULT_HMD_TABLET_SCALE;
             } else {
-                tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_TABLET_SCALE;
+                tabletScalePercentage = Settings.getValue("desktopTabletScale") || DEFAULT_DESKTOP_TABLET_SCALE;
             }
         }
         return tabletScalePercentage;
@@ -107,7 +108,7 @@
         tabletScalePercentage = getTabletScalePercentageFromSettings();
         UIWebTablet = new WebTablet("hifi/tablet/TabletRoot.qml",
                                     DEFAULT_WIDTH * (tabletScalePercentage / 100),
-                                    null, activeHand, true, null, false);
+                                    null, activeHand, null, false);
         UIWebTablet.register();
         HMD.tabletID = UIWebTablet.tabletEntityID;
         HMD.homeButtonID = UIWebTablet.homeButtonID;
@@ -306,7 +307,7 @@
         }
         wantsMenu = clicked;
     });
-    
+
     clickMapping.from(Controller.Standard.Start).peek().to(function (clicked) {
     if (clicked) {
         //activeHudPoint2dGamePad();

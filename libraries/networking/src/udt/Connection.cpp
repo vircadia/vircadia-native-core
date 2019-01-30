@@ -31,6 +31,7 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+    QObject(parentSocket),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -192,10 +193,19 @@ void Connection::recordSentPackets(int wireSize, int payloadSize,
     _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
 }
 
-void Connection::recordRetransmission(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
-    _stats.record(ConnectionStats::Stats::Retransmission);
+void Connection::recordRetransmission(int wireSize, int payloadSize,
+                                      SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
+    _stats.recordRetransmittedPackets(payloadSize, wireSize);
 
-    _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
+    _congestionControl->onPacketReSent(wireSize, seqNum, timePoint);
+}
+
+void Connection::recordSentUnreliablePackets(int wireSize, int payloadSize) {
+    _stats.recordUnreliableSentPackets(payloadSize, wireSize);
+}
+
+void Connection::recordReceivedUnreliablePackets(int wireSize, int payloadSize) {
+    _stats.recordUnreliableReceivedPackets(payloadSize, wireSize);
 }
 
 void Connection::sendACK() {
@@ -212,7 +222,7 @@ void Connection::sendACK() {
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*_ackPacket, _destination);
     
-    _stats.record(ConnectionStats::Stats::SentACK);
+    _stats.recordSentACK(_ackPacket->getWireSize());
 }
 
 SequenceNumber Connection::nextACK() const {
@@ -270,7 +280,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     sendACK();
     
     if (wasDuplicate) {
-        _stats.record(ConnectionStats::Stats::Duplicate);
+        _stats.recordDuplicatePackets(payloadSize, packetSize);
     } else {
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
@@ -303,7 +313,7 @@ void Connection::processControl(ControlPacketPointer controlPacket) {
                 // where the other end expired our connection. Let's reset.
 
 #ifdef UDT_CONNECTION_DEBUG
-                qCDebug(networking) << "Got  HandshakeRequest from" << _destination << ", stopping SendQueue";
+                qCDebug(networking) << "Got HandshakeRequest from" << _destination << ", stopping SendQueue";
 #endif
                 _hasReceivedHandshakeACK = false;
                 stopSendQueue();
@@ -318,7 +328,7 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     controlPacket->readPrimitive(&ack);
     
     // update the total count of received ACKs
-    _stats.record(ConnectionStats::Stats::ReceivedACK);
+    _stats.recordReceivedACK(controlPacket->getWireSize());
     
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {
@@ -327,19 +337,19 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
         return;
     }
     
-    if (ack <= _lastReceivedACK) {
+    if (ack < _lastReceivedACK) {
         // this is an out of order ACK, bail
-        // or
-        // processing an already received ACK, bail
         return;
     }
-    
-    _lastReceivedACK = ack;
-    
-    // ACK the send queue so it knows what was received
-    getSendQueue().ack(ack);
 
-    
+    if (ack > _lastReceivedACK) {
+        // this is not a repeated ACK, so update our member and tell the send queue
+        _lastReceivedACK = ack;
+
+        // ACK the send queue so it knows what was received
+        getSendQueue().ack(ack);
+    }
+
     // give this ACK to the congestion control and update the send queue parameters
     updateCongestionControlAndSendQueue([this, ack, &controlPacket] {
         if (_congestionControl->onACK(ack, controlPacket->getReceiveTime())) {

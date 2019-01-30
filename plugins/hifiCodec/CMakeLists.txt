@@ -9,10 +9,7 @@
 set(TARGET_NAME hifiCodec)
 setup_hifi_client_server_plugin()
 link_hifi_libraries(audio plugins)
-add_dependency_external_projects(hifiAudioCodec)
-target_include_directories(${TARGET_NAME} PRIVATE ${HIFIAUDIOCODEC_INCLUDE_DIRS})
-target_link_libraries(${TARGET_NAME} ${HIFIAUDIOCODEC_LIBRARIES})
-
+target_hifiAudioCodec()
 if (BUILD_SERVER)
   install_beside_console()
 endif ()

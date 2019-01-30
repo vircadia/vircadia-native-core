@@ -14,7 +14,6 @@
 #include <gpu/Batch.h>
 
 #include <NodeList.h>
-#include <recording/Deck.h>
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <trackers/FaceTracker.h>

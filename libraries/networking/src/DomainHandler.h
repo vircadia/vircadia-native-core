@@ -19,6 +19,9 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <shared/ReadWriteLockable.h>
+#include <SettingHandle.h>
+
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"
 #include "NLPacket.h"
@@ -50,6 +53,11 @@ public:
 
     QString getHostname() const { return _domainURL.host(); }
 
+    QUrl getErrorDomainURL(){ return _errorDomainURL; }
+    void setErrorDomainURL(const QUrl& url);
+
+    int getLastDomainConnectionError() { return _lastDomainConnectionError; }
+
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
 
@@ -78,8 +86,12 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     bool isServerless() const { return _domainURL.scheme() != URL_SCHEME_HIFI; }
+    bool getInterstitialModeEnabled() const;
+    void setInterstitialModeEnabled(bool enableInterstitialMode);
 
     void connectedToServerless(std::map<QString, QString> namedPaths);
+
+    void loadedErrorDomain(std::map<QString, QString> namedPaths);
 
     QString getViewPointFromNamedPath(QString namedPath);
 
@@ -135,6 +147,11 @@ public:
      *       <td><code>4</code></td>
      *       <td>The domain already has its maximum number of users.</td>
      *     </tr>
+     *     <tr>
+     *       <td><strong>TimedOut</strong></td>
+     *       <td><code>5</code></td>
+     *       <td>Connecting to the domain timed out.</td>
+     *     </tr>
      *   </tbody>
      * </table>
      * @typedef {number} Window.ConnectionRefusedReason
@@ -144,7 +161,8 @@ public:
         ProtocolMismatch,
         LoginError,
         NotAuthorized,
-        TooManyUsers
+        TooManyUsers,
+        TimedOut
     };
 
 public slots:
@@ -156,6 +174,11 @@ public slots:
     void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
     void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
     void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
+
+    // sets domain handler in error state.
+    void setRedirectErrorState(QUrl errorUrl, QString reasonMessage = "", int reason = -1, const QString& extraInfo = "");
+
+    bool isInErrorState() { return _isInErrorState; }
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -179,6 +202,8 @@ signals:
     void settingsReceiveFail();
 
     void domainConnectionRefused(QString reasonMessage, int reason, const QString& extraInfo);
+    void redirectToErrorDomainURL(QUrl errorDomainURL);
+    void redirectErrorStateChanged(bool isInErrorState);
 
     void limitOfSilentDomainCheckInsReached();
 
@@ -187,9 +212,12 @@ private:
     void sendDisconnectPacket();
     void hardReset();
 
+    bool isHardRefusal(int reasonCode);
+
     QUuid _uuid;
     Node::LocalID _localID;
     QUrl _domainURL;
+    QUrl _errorDomainURL;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     QUuid _connectionToken;
@@ -198,9 +226,16 @@ private:
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected { false };
+    bool _isInErrorState { false };
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
+    mutable ReadWriteLockable _interstitialModeSettingLock;
+#ifdef Q_OS_ANDROID
+    Setting::Handle<bool> _enableInterstitialMode{ "enableInterstitialMode", false };
+#else
+    Setting::Handle<bool> _enableInterstitialMode { "enableInterstitialMode", false };
+#endif
 
     QSet<QString> _domainConnectionRefusals;
     bool _hasCheckedForAccessToken { false };
@@ -210,6 +245,9 @@ private:
     QTimer _apiRefreshTimer;
 
     std::map<QString, QString> _namedPaths;
+
+    // domain connection error upon connection refusal.
+    int _lastDomainConnectionError{ -1 };
 };
 
 const QString DOMAIN_SPAWNING_POINT { "/0, -10, 0" };

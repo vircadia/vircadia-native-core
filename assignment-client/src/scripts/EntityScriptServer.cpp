@@ -583,15 +583,29 @@ void EntityScriptServer::handleOctreePacket(QSharedPointer<ReceivedMessage> mess
 void EntityScriptServer::aboutToFinish() {
     shutdownScriptEngine();
 
+    DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
+    DependencyManager::get<ResourceManager>()->cleanup();
+
+    DependencyManager::destroy<AudioScriptingInterface>();
+    DependencyManager::destroy<SoundCacheScriptingInterface>();
+    DependencyManager::destroy<ResourceScriptingInterface>();
+    DependencyManager::destroy<EntityScriptingInterface>();
+
+    DependencyManager::destroy<SoundCache>();
+    DependencyManager::destroy<ScriptCache>();
+
+    DependencyManager::destroy<ResourceManager>();
+    DependencyManager::destroy<ResourceCacheSharedItems>();
+
+    DependencyManager::destroy<MessagesClient>();
+
     DependencyManager::destroy<AssignmentDynamicFactory>();
     DependencyManager::destroy<AssignmentParentFinder>();
+    DependencyManager::destroy<AvatarHashMap>();
 
-    DependencyManager::get<ResourceManager>()->cleanup();
 
     DependencyManager::destroy<PluginManager>();
 
-    DependencyManager::destroy<ResourceScriptingInterface>();
-    DependencyManager::destroy<EntityScriptingInterface>();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();

@@ -223,8 +223,8 @@ void SunSkyStage::setSunDirection(const Vec3& direction) {
     }
 }
 
-// THe sun declinaison calculus is taken from https://en.wikipedia.org/wiki/Position_of_the_Sun
-double evalSunDeclinaison(double dayNumber) {
+// The sun declination calculus is taken from https://en.wikipedia.org/wiki/Position_of_the_Sun
+double evalSunDeclination(double dayNumber) {
     return -(23.0 + 44.0/60.0)*cos(glm::radians((360.0/365.0)*(dayNumber + 10.0)));
 }
 
@@ -235,8 +235,8 @@ void SunSkyStage::updateGraphicsObject() const {
     float sunLongitude = _earthSunModel.getLongitude() + (MAX_LONGITUDE * signedNormalizedDayTime);
     _earthSunModel.setSunLongitude(sunLongitude);
 
-    // And update the sunLAtitude as the declinaison depending of the time of the year
-    _earthSunModel.setSunLatitude(evalSunDeclinaison(_yearTime)); 
+    // And update the sunLatitude as the declination depending of the time of the year
+    _earthSunModel.setSunLatitude(evalSunDeclination(_yearTime)); 
 
     if (isSunModelEnabled()) {
         Vec3d sunLightDir = -_earthSunModel.getSurfaceSunDir();

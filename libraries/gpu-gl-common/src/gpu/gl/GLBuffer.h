@@ -49,6 +49,16 @@ public:
         }
     }
 
+    template <typename GLBufferType>
+    static GLuint getIdUnsynced(GLBackend& backend, const Buffer& buffer) {
+        GLBufferType* object = Backend::getGPUObject<GLBufferType>(buffer);
+        if (object) {
+            return object->_buffer;
+        } else {
+            return 0;
+        }
+    }
+
     const GLuint& _buffer { _id };
     const GLuint _size;
     const Stamp _stamp;

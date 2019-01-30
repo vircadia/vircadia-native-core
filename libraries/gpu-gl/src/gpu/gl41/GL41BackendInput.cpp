@@ -35,14 +35,15 @@ void GL41Backend::updateInput() {
 
     if (_input._invalidFormat || _input._invalidBuffers.any()) {
 
+        auto format = acquire(_input._format);
         if (_input._invalidFormat) {
             InputStageState::ActivationCache newActivation;
 
             _stats._ISNumFormatChanges++;
 
             // Check expected activation
-            if (_input._format) {
-                for (auto& it : _input._format->getAttributes()) {
+            if (format) {
+                for (auto& it : format->getAttributes()) {
                     const Stream::Attribute& attrib = (it).second;
                     uint8_t locationCount = attrib._element.getLocationCount();
                     for (int i = 0; i < locationCount; ++i) {
@@ -69,17 +70,18 @@ void GL41Backend::updateInput() {
         }
 
         // now we need to bind the buffers and assign the attrib pointers
-        if (_input._format) {
+        if (format) {
             bool hasColorAttribute{ false };
 
-            const Buffers& buffers = _input._buffers;
-            const Offsets& offsets = _input._bufferOffsets;
-            const Offsets& strides = _input._bufferStrides;
+            const auto& buffers = _input._buffers;
+            const auto& offsets = _input._bufferOffsets;
+            const auto& strides = _input._bufferStrides;
 
-            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
-            auto& inputChannels = _input._format->getChannels();
-            _stats._ISNumInputBufferChanges++;
-
+            const auto& attributes = format->getAttributes();
+            const auto& inputChannels = format->getChannels();
+            int numInvalids = (int)_input._invalidBuffers.count();
+            _stats._ISNumInputBufferChanges += numInvalids;
+            
             GLuint boundVBO = 0;
             for (auto& channelIt : inputChannels) {
                 const Stream::Format::ChannelMap::value_type::second_type& channel = (channelIt).second;

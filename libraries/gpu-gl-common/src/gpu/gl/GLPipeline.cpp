@@ -24,7 +24,7 @@ GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
     }
 
     // No object allocated yet, let's see if it's worth it...
-    ShaderPointer shader = pipeline.getProgram();
+    const auto& shader = pipeline.getProgram();
 
     // If this pipeline's shader has already failed to compile, don't try again
     if (shader->compilationHasFailed()) {
@@ -37,7 +37,7 @@ GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
         return nullptr;
     }
 
-    StatePointer state = pipeline.getState();
+    const auto& state = pipeline.getState();
     GLState* stateObject = GLState::sync(*state);
     if (stateObject == nullptr) {
         return nullptr;
@@ -52,7 +52,7 @@ GLPipeline* GLPipeline::sync(GLBackend& backend, const Pipeline& pipeline) {
     // Special case for view correction matrices, any pipeline that declares the correction buffer
     // uniform will automatically have it provided without any client code necessary.
     // Required for stable lighting in the HMD.
-    object->_cameraCorrection = shader->getUniformBuffers().isValid(gpu::slot::buffer::CameraCorrection);
+    object->_cameraCorrection = shader->getReflection().validUniformBuffer(gpu::slot::buffer::CameraCorrection);
     object->_program = programObject;
     object->_state = stateObject;
 

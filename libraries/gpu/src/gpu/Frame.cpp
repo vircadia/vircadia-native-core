@@ -25,12 +25,14 @@ Frame::~Frame() {
 }
 
 void Frame::finish() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     for (const auto& batch : batches) {
         batch->finishFrame(bufferUpdates);
     }
 }
 
 void Frame::preRender() {
+    PROFILE_RANGE(render_gpu, __FUNCTION__);
     for (auto& update : bufferUpdates) {
         update.apply();
     }

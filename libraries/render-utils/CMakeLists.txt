@@ -7,6 +7,7 @@ link_hifi_libraries(shared task ktx gpu shaders graphics graphics-scripting mode
 include_hifi_library_headers(audio)
 include_hifi_library_headers(networking)
 include_hifi_library_headers(octree)
+include_hifi_library_headers(hfm)
 
 # tell CMake to exclude qrc_fonts.cpp for policy CMP0071
 set_property(SOURCE qrc_fonts.cpp PROPERTY SKIP_AUTOMOC ON)

@@ -319,6 +319,7 @@ public:
         glBindVertexArray(0);
         glDeleteVertexArrays(1, &_vao);
         _canvas->doneCurrent();
+        _canvas->moveToThread(_plugin.thread());
     }
 
     void update(const CompositeInfo& newCompositeInfo) { _queue.push(newCompositeInfo); }
@@ -463,7 +464,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     auto chaperone = vr::VRChaperone();
     if (chaperone) {
         float const UI_RADIUS = 1.0f;
-        float const UI_HEIGHT = 1.6f;
+        float const UI_HEIGHT = 0.0f;
         float const UI_Z_OFFSET = 0.5;
 
         float xSize, zSize;
@@ -485,6 +486,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
                 _submitCanvas->doneCurrent();
             });
         }
+        _submitCanvas->moveToThread(_submitThread.get());
     }
 
     return Parent::internalActivate();
@@ -669,8 +671,6 @@ void OpenVrDisplayPlugin::postPreview() {
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
 
-    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-
     if (!_threadedSubmit) {
         vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses,
                                          vr::k_unMaxTrackedDeviceCount);
@@ -690,7 +690,7 @@ void OpenVrDisplayPlugin::postPreview() {
 }
 
 bool OpenVrDisplayPlugin::isHmdMounted() const {
-    return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+    return isHeadInHeadset();
 }
 
 void OpenVrDisplayPlugin::updatePresentPose() {
@@ -749,4 +749,38 @@ QString OpenVrDisplayPlugin::getPreferredAudioOutDevice() const {
         device = AudioClient::getWinDeviceName(deviceW.data());
     }
     return device;
+}
+
+QRectF OpenVrDisplayPlugin::getPlayAreaRect() {
+    auto chaperone = vr::VRChaperone();
+    if (!chaperone) {
+        qWarning() << "No chaperone";
+        return QRectF();
+    }
+
+    if (chaperone->GetCalibrationState() >= vr::ChaperoneCalibrationState_Error) {
+        qWarning() << "Chaperone status =" << chaperone->GetCalibrationState();
+        return QRectF();
+    }
+
+    vr::HmdQuad_t rect;
+    if (!chaperone->GetPlayAreaRect(&rect)) {
+        qWarning() << "Chaperone rect not obtained";
+        return QRectF();
+    }
+
+    auto minXZ = transformPoint(_sensorResetMat, toGlm(rect.vCorners[0]));
+    auto maxXZ = minXZ;
+    for (int i = 1; i < 4; i++) {
+        auto point = transformPoint(_sensorResetMat, toGlm(rect.vCorners[i]));
+        minXZ.x = std::min(minXZ.x, point.x);
+        minXZ.z = std::min(minXZ.z, point.z);
+        maxXZ.x = std::max(maxXZ.x, point.x);
+        maxXZ.z = std::max(maxXZ.z, point.z);
+    }
+
+    glm::vec2 center = glm::vec2((minXZ.x + maxXZ.x) / 2, (minXZ.z + maxXZ.z) / 2);
+    glm::vec2 dimensions = glm::vec2(maxXZ.x - minXZ.x, maxXZ.z - minXZ.z);
+
+    return QRectF(center.x, center.y, dimensions.x, dimensions.y);
 }

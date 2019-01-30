@@ -20,6 +20,7 @@ Windows.ScrollingWindow {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
+    signal screenChanged(var type, var url);
 
     property var rootMenu;
     property string subMenu: ""
@@ -69,6 +70,8 @@ Windows.ScrollingWindow {
             if (loader.item.hasOwnProperty("closeButtonVisible")) {
                 loader.item.closeButtonVisible = false;
             }
+            
+            screenChanged("Web", url);
         });
     }
 
@@ -129,8 +132,21 @@ Windows.ScrollingWindow {
 
         height: pane.scrollHeight
         width: pane.contentWidth
-        anchors.left: parent.left
-        anchors.top: parent.top
+
+        // this might be looking not clear from the first look
+        // but loader.parent is not tabletRoot and it can be null!
+        // unfortunately we can't use conditional bindings here due to https://bugreports.qt.io/browse/QTBUG-22005
+
+        onParentChanged: {
+            if (parent) {
+                anchors.left = Qt.binding(function() { return parent.left })
+                anchors.top = Qt.binding(function() { return parent.top })
+            } else {
+                anchors.left = undefined
+                anchors.top = undefined
+            }
+        }
+
         signal loaded;
         
         onWidthChanged: {
@@ -166,7 +182,25 @@ Windows.ScrollingWindow {
                 
                 if (callback) {
                     callback();
+                }                
+
+                var type = "Unknown";
+                if (newSource === "") {
+                    type = "Closed";
+                } else if (newSource === "hifi/tablet/TabletMenu.qml") {
+                    type = "Menu";
+                } else if (newSource === "hifi/tablet/TabletHome.qml") {
+                    type = "Home";
+                } else if (newSource === "hifi/tablet/TabletWebView.qml") {
+                    // Handled in `callback()`
+                    return;
+                } else if (newSource.toLowerCase().indexOf(".qml") > -1) {
+                    type = "QML";
+                } else {
+                    console.log("newSource is of unknown type!");
                 }
+                
+                screenChanged(type, newSource);
             });
         }
     }

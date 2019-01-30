@@ -15,7 +15,7 @@
 
 #include "Application.h"
 
-const xColor Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
+const glm::u8vec3 Overlay::DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 const float Overlay::DEFAULT_ALPHA = 0.7f;
 
 Overlay::Overlay() :
@@ -57,7 +57,7 @@ Overlay::~Overlay() {
 
 void Overlay::setProperties(const QVariantMap& properties) {
     bool valid;
-    auto color = xColorFromVariant(properties["color"], valid);
+    auto color = u8vec3FromVariant(properties["color"], valid);
     if (valid) {
         _color = color;
     }
@@ -116,7 +116,7 @@ QVariant Overlay::getProperty(const QString& property) {
         return QVariant(getType());
     }
     if (property == "color") {
-        return xColorToVariant(_color);
+        return u8vec3ColortoVariant(_color);
     }
     if (property == "alpha") {
         return _alpha;
@@ -143,21 +143,21 @@ QVariant Overlay::getProperty(const QString& property) {
     return QVariant();
 }
 
-xColor Overlay::getColor() { 
+glm::u8vec3 Overlay::getColor() {
     if (_colorPulse == 0.0f) {
         return _color; 
     }
 
     float pulseLevel = updatePulse();
-    xColor result = _color;
+    glm::u8vec3 result = _color;
     if (_colorPulse < 0.0f) {
-        result.red *= (1.0f - pulseLevel);
-        result.green *= (1.0f - pulseLevel);
-        result.blue *= (1.0f - pulseLevel);
+        result.x *= (1.0f - pulseLevel);
+        result.y *= (1.0f - pulseLevel);
+        result.z *= (1.0f - pulseLevel);
     } else {
-        result.red *= pulseLevel;
-        result.green *= pulseLevel;
-        result.blue *= pulseLevel;
+        result.x *= pulseLevel;
+        result.y *= pulseLevel;
+        result.z *= pulseLevel;
     }
     return result;
 }
@@ -247,7 +247,7 @@ void Overlay::removeMaterial(graphics::MaterialPointer material, const std::stri
 }
 
 render::ItemKey Overlay::getKey() {
-    auto builder = render::ItemKey::Builder().withTypeShape();
+    auto builder = render::ItemKey::Builder().withTypeShape().withTypeMeta();
 
     builder.withViewSpace();
     builder.withLayer(render::hifi::LAYER_2D);

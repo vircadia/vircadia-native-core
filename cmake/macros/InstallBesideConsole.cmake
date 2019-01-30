@@ -66,8 +66,8 @@ macro(install_beside_console)
       install(CODE "
         set(MACOSX_BUNDLE_EXECUTABLE_NAME domain-server)
         set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.server-components)
-        set(MACOSX_BUNDLE_BUNDLE_NAME Sandbox\\ Components)
-        configure_file(${HF_CMAKE_DIR}/templates/MacOSXBundleSandboxComponentsInfo.plist.in ${ESCAPED_BUNDLE_NAME}/Contents/Info.plist)
+        set(MACOSX_BUNDLE_BUNDLE_NAME Console\\ Components)
+        configure_file(${HF_CMAKE_DIR}/templates/MacOSXBundleConsoleComponentsInfo.plist.in ${ESCAPED_BUNDLE_NAME}/Contents/Info.plist)
         execute_process(COMMAND ${MACDEPLOYQT_COMMAND} ${ESCAPED_BUNDLE_NAME} -verbose=2 -executable=${ESCAPED_EXECUTABLE_NAME})"
         COMPONENT ${SERVER_COMPONENT}
       )

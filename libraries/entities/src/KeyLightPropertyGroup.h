@@ -84,13 +84,13 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
-    static const xColor DEFAULT_KEYLIGHT_COLOR;
+    static const glm::u8vec3 DEFAULT_KEYLIGHT_COLOR;
     static const float DEFAULT_KEYLIGHT_INTENSITY;
     static const float DEFAULT_KEYLIGHT_AMBIENT_INTENSITY;
     static const glm::vec3 DEFAULT_KEYLIGHT_DIRECTION;
     static const bool DEFAULT_KEYLIGHT_CAST_SHADOWS;
 
-    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, Color, color, xColor, DEFAULT_KEYLIGHT_COLOR);
+    DEFINE_PROPERTY_REF(PROP_KEYLIGHT_COLOR, Color, color, glm::u8vec3, DEFAULT_KEYLIGHT_COLOR);
     DEFINE_PROPERTY(PROP_KEYLIGHT_INTENSITY, Intensity, intensity, float, DEFAULT_KEYLIGHT_INTENSITY);
     DEFINE_PROPERTY_REF(PROP_KEYLIGHT_DIRECTION, Direction, direction, glm::vec3, DEFAULT_KEYLIGHT_DIRECTION);
     DEFINE_PROPERTY(PROP_KEYLIGHT_CAST_SHADOW, CastShadows, castShadows, bool, DEFAULT_KEYLIGHT_CAST_SHADOWS);

@@ -37,6 +37,7 @@ GLShader* GLShader::sync(GLBackend& backend, const Shader& shader, const Shader:
     if (object) {
         return object;
     }
+    PROFILE_RANGE(render, "/GLShader::sync");
     // need to have a gpu object?
     if (shader.isProgram()) {
         GLShader* tempObject = backend.compileBackendProgram(shader, handler);

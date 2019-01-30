@@ -1,0 +1,13 @@
+git fetch
+git checkout feature/quest_move_interface
+export VERSION_CODE=1
+export RELEASE_NUMBER=1
+export RELEASE_TYPE=DEV
+export ANDROID_APP=interface
+touch ~/.gradle/gradle.properties
+echo HIFI_ANDROID_KEYSTORE=/home/jenkins/keystore.jks > ~/.gradle/gradle.properties
+echo HIFI_ANDROID_KEYSTORE_PASSWORD=password >> ~/.gradle/gradle.properties
+echo HIFI_ANDROID_KEY_ALIAS=key0 >> ~/.gradle/gradle.properties
+echo HIFI_ANDROID_KEY_PASSWORD=password >> ~/.gradle/gradle.properties
+./build_android.sh
+cp ./apps/${ANDROID_APP}/build/outputs/apk/release/${ANDROID_APP}-release.apk ${ANDROID_APP}.apk

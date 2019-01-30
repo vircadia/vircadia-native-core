@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <FBXReader.h>
+#include <FBXSerializer.h>
 #include "AnimPose.h"
 
 class AnimSkeleton {
@@ -23,8 +23,9 @@ public:
     using Pointer = std::shared_ptr<AnimSkeleton>;
     using ConstPointer = std::shared_ptr<const AnimSkeleton>;
 
-    explicit AnimSkeleton(const FBXGeometry& fbxGeometry);
-    explicit AnimSkeleton(const std::vector<FBXJoint>& joints);
+    explicit AnimSkeleton(const HFMModel& hfmModel);
+    explicit AnimSkeleton(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
+
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
@@ -62,11 +63,12 @@ public:
     void dump(const AnimPoseVec& poses) const;
 
     std::vector<int> lookUpJointIndices(const std::vector<QString>& jointNames) const;
+    const HFMCluster getClusterBindMatricesOriginalValues(const int meshIndex, const int clusterIndex) const { return _clusterBindMatrixOriginalValues[meshIndex][clusterIndex]; }
 
 protected:
-    void buildSkeletonFromJoints(const std::vector<FBXJoint>& joints);
+    void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
 
-    std::vector<FBXJoint> _joints;
+    std::vector<HFMJoint> _joints;
     int _jointsSize { 0 };
     AnimPoseVec _relativeDefaultPoses;
     AnimPoseVec _absoluteDefaultPoses;
@@ -76,6 +78,7 @@ protected:
     std::vector<int> _nonMirroredIndices;
     std::vector<int> _mirrorMap;
     QHash<QString, int> _jointIndicesByName;
+    std::vector<std::vector<HFMCluster>> _clusterBindMatrixOriginalValues;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

@@ -197,11 +197,13 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
-void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Output& output) {
+void ExtractFrustums::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
     RenderArgs* args = renderContext->args;
+
+    const auto& shadowFrame = inputs;
 
     // Return view frustum
     auto& viewFrustum = output[VIEW_FRUSTUM].edit<ViewFrustumPointer>();
@@ -212,20 +214,18 @@ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, Out
     }
 
     // Return shadow frustum
-    auto lightStage = args->_scene->getStage<LightStage>(LightStage::getName());
+    LightStage::ShadowPointer globalShadow;
+    if (shadowFrame && !shadowFrame->_objects.empty() && shadowFrame->_objects[0]) {
+        globalShadow = shadowFrame->_objects[0];
+    }
     for (auto i = 0; i < SHADOW_CASCADE_FRUSTUM_COUNT; i++) {
         auto& shadowFrustum = output[SHADOW_CASCADE0_FRUSTUM+i].edit<ViewFrustumPointer>();
-        if (lightStage) {
-            auto globalShadow = lightStage->getCurrentKeyShadow();
-
-            if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
-                auto& cascade = globalShadow->getCascade(i);
-                shadowFrustum = cascade.getFrustum();
-            } else {
-                shadowFrustum.reset();
-            }
+        if (globalShadow && i<(int)globalShadow->getCascadeCount()) {
+            auto& cascade = globalShadow->getCascade(i);
+            shadowFrustum = cascade.getFrustum();
         } else {
             shadowFrustum.reset();
         }
     }
 }
+

@@ -10,9 +10,9 @@
 #include <memory>
 #include <glm/glm.hpp>
 #include <glm/gtc/packing.hpp>
-#include <glm/detail/type_vec.hpp>
 
 #include "GpuHelpers.h"
+#include "GLMHelpers.h"
 
 namespace graphics {
     class Mesh;
@@ -55,18 +55,16 @@ namespace buffer_helpers {
         tangent = glm::clamp(tangent, -1.0f, 1.0f);
         normal *= 511.0f;
         tangent *= 511.0f;
-        normal = glm::round(normal);
-        tangent = glm::round(tangent);
 
         glm::detail::i10i10i10i2 normalStruct;
         glm::detail::i10i10i10i2 tangentStruct;
-        normalStruct.data.x = int(normal.x);
-        normalStruct.data.y = int(normal.y);
-        normalStruct.data.z = int(normal.z);
+        normalStruct.data.x = fastLrintf(normal.x);
+        normalStruct.data.y = fastLrintf(normal.y);
+        normalStruct.data.z = fastLrintf(normal.z);
         normalStruct.data.w = 0;
-        tangentStruct.data.x = int(tangent.x);
-        tangentStruct.data.y = int(tangent.y);
-        tangentStruct.data.z = int(tangent.z);
+        tangentStruct.data.x = fastLrintf(tangent.x);
+        tangentStruct.data.y = fastLrintf(tangent.y);
+        tangentStruct.data.z = fastLrintf(tangent.z);
         tangentStruct.data.w = 0;
         packedNormal = normalStruct.pack;
         packedTangent = tangentStruct.pack;

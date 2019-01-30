@@ -24,11 +24,22 @@ struct AudioMixerStats {
     int totalMixes { 0 };
 
     int hrtfRenders { 0 };
-    int hrtfSilentRenders { 0 };
-    int hrtfThrottleRenders { 0 };
+    int hrtfResets { 0 };
+    int hrtfUpdates { 0 };
 
     int manualStereoMixes { 0 };
     int manualEchoMixes { 0 };
+
+    int skippedToActive { 0 };
+    int skippedToInactive { 0 };
+    int inactiveToSkipped { 0 };
+    int inactiveToActive { 0 };
+    int activeToSkipped { 0 };
+    int activeToInactive { 0 };
+
+    int skipped { 0 };
+    int inactive { 0 };
+    int active { 0 };
 
 #ifdef HIFI_AUDIO_MIXER_DEBUG
     uint64_t mixTime { 0 };

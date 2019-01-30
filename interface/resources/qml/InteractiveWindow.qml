@@ -12,9 +12,9 @@ import QtQuick 2.3
 
 import "windows" as Windows
 import "controls"
-import "controls-uit" as Controls
+import controlsUit 1.0 as Controls
 import "styles"
-import "styles-uit"
+import stylesUit 1.0
 
 Windows.Window {
     id: root;
@@ -54,7 +54,7 @@ Windows.Window {
     onSourceChanged: {
         if (dynamicContent) {
             dynamicContent.destroy();
-            dynamicContent = null; 
+            dynamicContent = null;
         }
         QmlSurface.load(source, contentHolder, function(newObject) {
             dynamicContent = newObject;
@@ -117,7 +117,7 @@ Windows.Window {
             console.error("presentationMode should be set.");
         }
     }
-    
+
     Component.onCompleted: {
         // Fix for parent loss on OSX:
         parent.heightChanged.connect(updateContentParent);
@@ -146,7 +146,8 @@ Windows.Window {
             Qt.WindowCloseButtonHint |
             Qt.WindowMaximizeButtonHint |
             Qt.WindowMinimizeButtonHint;
-        if ((flags & Desktop.ALWAYS_ON_TOP) === Desktop.ALWAYS_ON_TOP) {
+        // only use the always on top feature for non Windows OS
+        if (Qt.platform.os !== "windows" && (flags & Desktop.ALWAYS_ON_TOP)) {
             nativeWindowFlags |= Qt.WindowStaysOnTopHint;
         }
         nativeWindow.flags = nativeWindowFlags;
@@ -214,7 +215,7 @@ Windows.Window {
             nativeWindow.raise();
         }
     }
-    
+
     // Handle message traffic from our loaded QML to the script that launched us
     signal sendToScript(var message);
 

@@ -19,11 +19,10 @@
 #include <time.h>
 #include <mutex>
 #include <thread>
-#include <set>
 #include <unordered_map>
+#include <chrono>
 
 #include <glm/glm.hpp>
-
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -127,82 +126,10 @@ void usecTimestampNowForceClockSkew(qint64 clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-static std::atomic<qint64> TIME_REFERENCE { 0 }; // in usec
-static std::once_flag usecTimestampNowIsInitialized;
-static QElapsedTimer timestampTimer;
-
 quint64 usecTimestampNow(bool wantDebug) {
-    std::call_once(usecTimestampNowIsInitialized, [&] {
-        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
-        timestampTimer.start();
-    });
-    
-    quint64 now;
-    quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
-    quint64 usecsElapsed = nsecsElapsed / NSECS_PER_USEC;  // nsec to usec
-    
-    // QElapsedTimer may not advance if the CPU has gone to sleep. In which case it
-    // will begin to deviate from real time. We detect that here, and reset if necessary
-    quint64 msecsCurrentTime = QDateTime::currentMSecsSinceEpoch();
-    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / USECS_PER_MSEC; // usecs to msecs
-    int possibleSkew = msecsEstimate - msecsCurrentTime;
-    const int TOLERANCE = 10 * MSECS_PER_SECOND; // up to 10 seconds of skew is tolerated
-    if (abs(possibleSkew) > TOLERANCE) {
-        // reset our TIME_REFERENCE and timer
-        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * USECS_PER_MSEC; // ms to usec
-        timestampTimer.restart();
-        now = TIME_REFERENCE + ::usecTimestampNowAdjust;
-
-        if (wantDebug) {
-            qCDebug(shared) << "usecTimestampNow() - resetting QElapsedTimer. ";
-            qCDebug(shared) << "    msecsCurrentTime:" << msecsCurrentTime;
-            qCDebug(shared) << "       msecsEstimate:" << msecsEstimate;
-            qCDebug(shared) << "        possibleSkew:" << possibleSkew;
-            qCDebug(shared) << "           TOLERANCE:" << TOLERANCE;
-            
-            qCDebug(shared) << "        nsecsElapsed:" << nsecsElapsed;
-            qCDebug(shared) << "        usecsElapsed:" << usecsElapsed;
-
-            QDateTime currentLocalTime = QDateTime::currentDateTime();
-
-            quint64 msecsNow = now / 1000; // usecs to msecs
-            QDateTime nowAsString;
-            nowAsString.setMSecsSinceEpoch(msecsNow);
-
-            qCDebug(shared) << "                 now:" << now;
-            qCDebug(shared) << "            msecsNow:" << msecsNow;
-
-            qCDebug(shared) << "         nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
-            qCDebug(shared) << "    currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
-        }
-    } else {
-        now = TIME_REFERENCE + usecsElapsed + ::usecTimestampNowAdjust;
-    }
-
-    if (wantDebug) {
-        QDateTime currentLocalTime = QDateTime::currentDateTime();
-
-        quint64 msecsNow = now / 1000; // usecs to msecs
-        QDateTime nowAsString;
-        nowAsString.setMSecsSinceEpoch(msecsNow);
-
-        quint64 msecsTimeReference = TIME_REFERENCE / 1000; // usecs to msecs
-        QDateTime timeReferenceAsString;
-        timeReferenceAsString.setMSecsSinceEpoch(msecsTimeReference);
-
-        qCDebug(shared) << "usecTimestampNow() - details... ";
-        qCDebug(shared) << "           TIME_REFERENCE:" << TIME_REFERENCE;
-        qCDebug(shared) << "    timeReferenceAsString:" << timeReferenceAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
-        qCDebug(shared) << "   usecTimestampNowAdjust:" << usecTimestampNowAdjust;
-        qCDebug(shared) << "             nsecsElapsed:" << nsecsElapsed;
-        qCDebug(shared) << "             usecsElapsed:" << usecsElapsed;
-        qCDebug(shared) << "                      now:" << now;
-        qCDebug(shared) << "                 msecsNow:" << msecsNow;
-        qCDebug(shared) << "              nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
-        qCDebug(shared) << "         currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
-    }
-    
-    return now;
+    using namespace std::chrono;
+    static const auto unixEpoch = system_clock::from_time_t(0);
+    return duration_cast<microseconds>(system_clock::now() - unixEpoch).count() + usecTimestampNowAdjust;
 }
 
 float secTimestampNow() {
@@ -420,7 +347,7 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
     }
 
     auto voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
-    auto voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
+    auto voxelBufferSize = voxelSizeInBytes + sizeof(glm::u8vec3); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];

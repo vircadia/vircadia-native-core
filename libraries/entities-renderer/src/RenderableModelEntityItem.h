@@ -24,8 +24,6 @@
 
 #include "RenderableEntityItem.h"
 
-
-
 class Model;
 class EntityTreeRenderer;
 
@@ -62,7 +60,7 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     void doInitialModelSimulation();
     void updateModelBounds();
 
@@ -81,6 +79,7 @@ public:
 
     virtual bool isReadyToComputeShape() const override;
     virtual void computeShapeInfo(ShapeInfo& shapeInfo) override;
+    bool computeShapeFailedToLoad();
 
     virtual bool contains(const glm::vec3& point) const override;
     void stopModelOverrideIfNoParent();
@@ -95,6 +94,7 @@ public:
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual int getJointParent(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
 
@@ -113,21 +113,25 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    bool getMeshes(MeshProxyList& result) override; // deprecated
+    void setAnimationURL(const QString& url) override;
+    bool needsAnimationReset() const;
+    QString getAnimationURLAndReset();
 
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
+    bool readyToAnimate() const;
+    void fetchCollisionGeometryResource();
 
-    void getCollisionGeometryResource();
     GeometryResource::Pointer _compoundShapeResource;
-    bool _jointMapCompleted { false };
-    bool _originalTexturesRead { false };
     std::vector<int> _jointMap;
     QVariantMap _originalTextures;
+    bool _jointMapCompleted { false };
+    bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
+    bool _needsAnimationReset { false };
 };
 
 namespace render { namespace entities { 
@@ -165,18 +169,18 @@ protected:
     render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
+    void setRenderLayer(RenderLayer value) override;
+    void setPrimitiveMode(PrimitiveMode value) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
-    void mapJoints(const TypedEntityPointer& entity, const QStringList& modelJointNames);
-    bool jointsMapped() const { return _jointMappingCompleted; }
+    void mapJoints(const TypedEntityPointer& entity, const ModelPointer& model);
 
     // Transparency is handled in ModelMeshPartPayload
     virtual bool isTransparent() const override { return false; }
 
     bool _hasModel { false };
     ModelPointer _model;
-    GeometryResource::Pointer _compoundShapeResource;
     QString _lastTextures;
     bool _texturesLoaded { false };
     int _lastKnownCurrentFrame { -1 };
@@ -187,7 +191,7 @@ private:
     const void* _collisionMeshKey { nullptr };
 
     // used on client side
-    bool _jointMappingCompleted{ false };
+    bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
     QUrl _parsedModelURL;

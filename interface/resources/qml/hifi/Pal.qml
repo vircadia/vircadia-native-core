@@ -15,8 +15,8 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
-import "../styles-uit"
-import "../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
@@ -48,7 +48,7 @@ Rectangle {
     HifiModels.PSFListModel {
         id: connectionsUserModel;
         http: http;
-        endpoint: "/api/v1/users?filter=connections";
+        endpoint: "/api/v1/users/connections";
         property var sortColumn: connectionsTable.getColumn(connectionsTable.sortIndicatorColumn);
         sortProperty: switch (sortColumn && sortColumn.role) {
             case 'placeName':
@@ -61,7 +61,7 @@ Rectangle {
                 'username';
         }
         sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
-        itemsPerPage: 10;
+        itemsPerPage: 1000;
         listView: connectionsTable;
         processPage: function (data) {
             return data.users.map(function (user) {
@@ -271,6 +271,8 @@ Rectangle {
                             connectionsUserModel.getFirstPage();
                         }
                         activeTab = "connectionsTab";
+                        connectionsOnlineDot.visible = false;
+                        pal.sendToScript({method: 'hideNotificationDot'});
                         connectionsHelpText.color = hifi.colors.blueAccent;
                     }
                 }
@@ -298,6 +300,16 @@ Rectangle {
                             }
                         }
                     }
+                    Rectangle {
+                        id: connectionsOnlineDot;
+                        visible: false;
+                        width: 10;
+                        height: width;
+                        radius: width;
+                        color: "#EF3B4E"
+                        anchors.left: parent.left;
+                        anchors.verticalCenter: parent.verticalCenter;
+                    }
                     // "CONNECTIONS" text
                     RalewaySemiBold {
                         id: connectionsTabSelectorText;
@@ -305,7 +317,11 @@ Rectangle {
                         // Text size
                         size: hifi.fontSizes.tabularData;
                         // Anchors
-                        anchors.fill: parent;
+                        anchors.left: connectionsOnlineDot.visible ? connectionsOnlineDot.right : parent.left;
+                        anchors.leftMargin: connectionsOnlineDot.visible ? 4 : 0;
+                        anchors.top: parent.top;
+                        anchors.bottom: parent.bottom;
+                        anchors.right: parent.right;
                         // Style
                         font.capitalization: Font.AllUppercase;
                         color: activeTab === "connectionsTab" ? hifi.colors.blueAccent : hifi.colors.baseGray;
@@ -326,7 +342,7 @@ Rectangle {
                         anchors.left: connectionsTabSelectorTextContainer.left;
                         anchors.top: connectionsTabSelectorTextContainer.top;
                         anchors.topMargin: 1;
-                        anchors.leftMargin: connectionsTabSelectorTextMetrics.width + 42;
+                        anchors.leftMargin: connectionsTabSelectorTextMetrics.width + 42 + connectionsOnlineDot.width + connectionsTabSelectorText.anchors.leftMargin;
                         RalewayRegular {
                             id: connectionsHelpText;
                             text: "[?]";
@@ -780,6 +796,12 @@ Rectangle {
             headerVisible: true;
             sortIndicatorColumn: settings.connectionsSortIndicatorColumn;
             sortIndicatorOrder: settings.connectionsSortIndicatorOrder;
+            onSortIndicatorColumnChanged: {
+                settings.connectionsSortIndicatorColumn = sortIndicatorColumn;
+            }
+            onSortIndicatorOrderChanged: {
+                settings.connectionsSortIndicatorOrder = sortIndicatorOrder;
+            }
 
             TableViewColumn {
                 id: connectionsUserNameHeader;
@@ -1193,7 +1215,7 @@ Rectangle {
                 if (userIndex !== -1) {
                     ['userName', 'admin', 'connection', 'profileUrl', 'placeName'].forEach(function (name) {
                         var value = message.params[name];
-                        if (value === undefined) {
+                        if (value === undefined || value == "") {
                             return;
                         }
                         nearbyUserModel.setProperty(userIndex, name, value);
@@ -1261,8 +1283,11 @@ Rectangle {
         case 'http.response':
             http.handleHttpResponse(message);
             break;
+        case 'changeConnectionsDotStatus':
+            connectionsOnlineDot.visible = message.shouldShowDot;
+            break;
         default:
-            console.log('Unrecognized message:', JSON.stringify(message));
+            console.log('Pal.qml: Unrecognized message');
         }
     }
     function sortModel() {

@@ -395,7 +395,7 @@
             Script.clearInterval(updateTimer);
 
             Messages.messageReceived.disconnect(onMessageReceived);
-            Messages.subscribe(HIFI_RECORDER_CHANNEL);
+            Messages.unsubscribe(HIFI_RECORDER_CHANNEL);
         }
 
         return {

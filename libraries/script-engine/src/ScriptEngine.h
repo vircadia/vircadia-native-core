@@ -145,6 +145,9 @@ public:
 
     QString getFilename() const;
 
+
+    QList<EntityItemID> getListOfEntityScriptIDs();
+
     /**jsdoc
      * Stop the current script.
      * @function Script.stop
@@ -461,7 +464,9 @@ public:
      * @returns {boolean}
      */
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
-        return _entityScripts.contains(entityID) && _entityScripts[entityID].status == EntityScriptStatus::RUNNING;
+        QReadLocker locker { &_entityScriptsLock };
+        auto it = _entityScripts.constFind(entityID);
+        return it != _entityScripts.constEnd() && it->status == EntityScriptStatus::RUNNING;
     }
     QVariant cloneEntityScriptDetails(const EntityItemID& entityID);
     QFuture<QVariant> getLocalEntityScriptDetails(const EntityItemID& entityID) override;
@@ -559,6 +564,9 @@ public:
     void clearDebugLogWindow();
     int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
+    bool hasEntityScriptDetails(const EntityItemID& entityID) const;
+
+    void setScriptEngines(QSharedPointer<ScriptEngines>& scriptEngines) { _scriptEngines = scriptEngines; }
 
 public slots:
 
@@ -709,6 +717,13 @@ signals:
     // script is updated (goes from RUNNING to ERROR_RUNNING_SCRIPT, for example)
     void entityScriptDetailsUpdated();
 
+    /**jsdoc
+     * @function Script.entityScriptPreloadFinished
+     * @returns {Signal}
+     */
+    // Emitted when an entity script has finished running preload
+    void entityScriptPreloadFinished(const EntityItemID& entityID);
+
 protected:
     void init();
 
@@ -737,7 +752,6 @@ protected:
     void updateEntityScriptStatus(const EntityItemID& entityID, const EntityScriptStatus& status, const QString& errorInfo = QString());
     void setEntityScriptDetails(const EntityItemID& entityID, const EntityScriptDetails& details);
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
-    void processDeferredEntityLoads(const QString& entityScript, const EntityItemID& leaderID);
 
     QObject* setupTimerWithInterval(const QScriptValue& function, int intervalMS, bool isSingleShot);
     void stopTimer(QTimer* timer);
@@ -756,8 +770,8 @@ protected:
      */
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success, const QString& status);
 
-    EntityItemID currentEntityIdentifier {}; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
-    QUrl currentSandboxURL {}; // The toplevel url string for the entity script that loaded the code being executed, else empty.
+    EntityItemID currentEntityIdentifier; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
+    QUrl currentSandboxURL; // The toplevel url string for the entity script that loaded the code being executed, else empty.
     void doWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, std::function<void()> operation);
     void callWithEnvironment(const EntityItemID& entityID, const QUrl& sandboxURL, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
@@ -771,9 +785,8 @@ protected:
     bool _isInitialized { false };
     QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
+    mutable QReadWriteLock _entityScriptsLock { QReadWriteLock::Recursive };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
-    QHash<QString, EntityItemID> _occupiedScriptURLs;
-    QList<DeferredLoadEntity> _deferredEntityLoads;
     EntityScriptContentAvailableMap _contentAvailableQueue;
 
     bool _isThreaded { false };
@@ -806,6 +819,8 @@ protected:
     static const QString _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS;
 
     Setting::Handle<bool> _enableExtendedJSExceptions { _SETTINGS_ENABLE_EXTENDED_EXCEPTIONS, true };
+
+    QWeakPointer<ScriptEngines> _scriptEngines;
 };
 
 ScriptEnginePointer scriptEngineFactory(ScriptEngine::Context context,

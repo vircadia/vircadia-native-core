@@ -38,6 +38,10 @@ public:
         return _inputPlugins;
     }
 
+    virtual void destroyInputPlugins() override {
+        _inputPlugins.clear();
+    }
+
 private:
     InputPluginList _inputPlugins;
 };

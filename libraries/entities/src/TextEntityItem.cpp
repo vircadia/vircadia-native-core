@@ -25,9 +25,10 @@
 
 const QString TextEntityItem::DEFAULT_TEXT("");
 const float TextEntityItem::DEFAULT_LINE_HEIGHT = 0.1f;
-const xColor TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
-const xColor TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
-const bool TextEntityItem::DEFAULT_FACE_CAMERA = false;
+const glm::u8vec3 TextEntityItem::DEFAULT_TEXT_COLOR = { 255, 255, 255 };
+const float TextEntityItem::DEFAULT_TEXT_ALPHA = 1.0f;
+const glm::u8vec3 TextEntityItem::DEFAULT_BACKGROUND_COLOR = { 0, 0, 0};
+const float TextEntityItem::DEFAULT_MARGIN = 0.0f;
 
 EntityItemPointer TextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new TextEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
@@ -39,21 +40,30 @@ TextEntityItem::TextEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _type = EntityTypes::Text;
 }
 
-const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
-
 void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
+    const float TEXT_ENTITY_ITEM_FIXED_DEPTH = 0.01f;
     // NOTE: Text Entities always have a "depth" of 1cm.
     EntityItem::setUnscaledDimensions(glm::vec3(value.x, value.y, TEXT_ENTITY_ITEM_FIXED_DEPTH));
 }
 
-EntityItemProperties TextEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
+
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColorX);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColorX);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(faceCamera, getFaceCamera);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textAlpha, getTextAlpha);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundAlpha, getBackgroundAlpha);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(leftMargin, getLeftMargin);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rightMargin, getRightMargin);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(topMargin, getTopMargin);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(bottomMargin, getBottomMargin);
     return properties;
 }
 
@@ -61,11 +71,22 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(text, setText);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textColor, setTextColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textAlpha, setTextAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundColor, setBackgroundColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(faceCamera, setFaceCamera);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundAlpha, setBackgroundAlpha);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(leftMargin, setLeftMargin);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rightMargin, setRightMargin);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(topMargin, setTopMargin);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(bottomMargin, setBottomMargin);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -89,27 +110,50 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
+
     READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
-    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, rgbColor, setTextColor);
-    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, rgbColor, setBackgroundColor);
-    READ_ENTITY_PROPERTY(PROP_FACE_CAMERA, bool, setFaceCamera);
+    READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, glm::u8vec3, setTextColor);
+    READ_ENTITY_PROPERTY(PROP_TEXT_ALPHA, float, setTextAlpha);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, glm::u8vec3, setBackgroundColor);
+    READ_ENTITY_PROPERTY(PROP_BACKGROUND_ALPHA, float, setBackgroundAlpha);
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
+    READ_ENTITY_PROPERTY(PROP_LEFT_MARGIN, float, setLeftMargin);
+    READ_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, float, setRightMargin);
+    READ_ENTITY_PROPERTY(PROP_TOP_MARGIN, float, setTopMargin);
+    READ_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, float, setBottomMargin);
     
     return bytesRead;
 }
 
 EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+
+    requestedProperties += _pulseProperties.getEntityProperties(params);
     requestedProperties += PROP_TEXT;
     requestedProperties += PROP_LINE_HEIGHT;
     requestedProperties += PROP_TEXT_COLOR;
+    requestedProperties += PROP_TEXT_ALPHA;
     requestedProperties += PROP_BACKGROUND_COLOR;
-    requestedProperties += PROP_FACE_CAMERA;
+    requestedProperties += PROP_BACKGROUND_ALPHA;
+    requestedProperties += PROP_BILLBOARD_MODE;
+    requestedProperties += PROP_LEFT_MARGIN;
+    requestedProperties += PROP_RIGHT_MARGIN;
+    requestedProperties += PROP_TOP_MARGIN;
+    requestedProperties += PROP_BOTTOM_MARGIN;
+
     return requestedProperties;
 }
 
 void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -118,11 +162,22 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
+
     APPEND_ENTITY_PROPERTY(PROP_TEXT, getText());
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, getTextColor());
+    APPEND_ENTITY_PROPERTY(PROP_TEXT_ALPHA, getTextAlpha());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, getBackgroundColor());
-    APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, getFaceCamera());
+    APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_ALPHA, getBackgroundAlpha());
+    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
+    APPEND_ENTITY_PROPERTY(PROP_LEFT_MARGIN, getLeftMargin());
+    APPEND_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, getRightMargin());
+    APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, getTopMargin());
+    APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, getBottomMargin());
     
 }
 
@@ -206,69 +261,118 @@ float TextEntityItem::getLineHeight() const {
     return result;
 }
 
-const rgbColor& TextEntityItem::getTextColor() const { 
-    return _textColor;
+void TextEntityItem::setTextColor(const glm::u8vec3& value) {
+    withWriteLock([&] {
+        _textColor = value;
+    });
 }
 
-const rgbColor& TextEntityItem::getBackgroundColor() const {
-    return _backgroundColor;
+glm::u8vec3 TextEntityItem::getTextColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _textColor;
+    });
 }
 
-xColor TextEntityItem::getTextColorX() const { 
-    xColor result;
+void TextEntityItem::setTextAlpha(float value) {
+    withWriteLock([&] {
+        _textAlpha = value;
+    });
+}
+
+float TextEntityItem::getTextAlpha() const {
+    return resultWithReadLock<float>([&] {
+        return _textAlpha;
+    });
+}
+
+void TextEntityItem::setBackgroundColor(const glm::u8vec3& value) {
+    withWriteLock([&] {
+        _backgroundColor = value;
+    });
+}
+
+glm::u8vec3 TextEntityItem::getBackgroundColor() const {
+    return resultWithReadLock<glm::u8vec3>([&] {
+        return _backgroundColor;
+    });
+}
+
+void TextEntityItem::setBackgroundAlpha(float value) {
+    withWriteLock([&] {
+        _backgroundAlpha = value;
+    });
+}
+
+float TextEntityItem::getBackgroundAlpha() const {
+    return resultWithReadLock<float>([&] {
+        return _backgroundAlpha;
+    });
+}
+
+BillboardMode TextEntityItem::getBillboardMode() const {
+    BillboardMode result;
     withReadLock([&] {
-        result = { _textColor[RED_INDEX], _textColor[GREEN_INDEX], _textColor[BLUE_INDEX] };
+        result = _billboardMode;
     });
     return result;
 }
 
-void TextEntityItem::setTextColor(const rgbColor& value) { 
+void TextEntityItem::setBillboardMode(BillboardMode value) {
     withWriteLock([&] {
-        memcpy(_textColor, value, sizeof(_textColor));
+        _billboardMode = value;
     });
 }
 
-void TextEntityItem::setTextColor(const xColor& value) {
+void TextEntityItem::setLeftMargin(float value) {
     withWriteLock([&] {
-        _textColor[RED_INDEX] = value.red;
-        _textColor[GREEN_INDEX] = value.green;
-        _textColor[BLUE_INDEX] = value.blue;
+        _leftMargin = value;
     });
 }
 
-xColor TextEntityItem::getBackgroundColorX() const { 
-    xColor result;
-    withReadLock([&] {
-        result = { _backgroundColor[RED_INDEX], _backgroundColor[GREEN_INDEX], _backgroundColor[BLUE_INDEX] };
+float TextEntityItem::getLeftMargin() const {
+    return resultWithReadLock<float>([&] {
+        return _leftMargin;
     });
-    return result;
 }
 
-void TextEntityItem::setBackgroundColor(const rgbColor& value) { 
+void TextEntityItem::setRightMargin(float value) {
     withWriteLock([&] {
-        memcpy(_backgroundColor, value, sizeof(_backgroundColor));
+        _rightMargin = value;
     });
 }
 
-void TextEntityItem::setBackgroundColor(const xColor& value) {
+float TextEntityItem::getRightMargin() const {
+    return resultWithReadLock<float>([&] {
+        return _rightMargin;
+    });
+}
+
+void TextEntityItem::setTopMargin(float value) {
     withWriteLock([&] {
-        _backgroundColor[RED_INDEX] = value.red;
-        _backgroundColor[GREEN_INDEX] = value.green;
-        _backgroundColor[BLUE_INDEX] = value.blue;
+        _topMargin = value;
     });
 }
 
-bool TextEntityItem::getFaceCamera() const { 
-    bool result;
-    withReadLock([&] {
-        result = _faceCamera;
+float TextEntityItem::getTopMargin() const {
+    return resultWithReadLock<float>([&] {
+        return _topMargin;
     });
-    return result;
 }
 
-void TextEntityItem::setFaceCamera(bool value) { 
+void TextEntityItem::setBottomMargin(float value) {
     withWriteLock([&] {
-        _faceCamera = value;
+        _bottomMargin = value;
     });
 }
 
+float TextEntityItem::getBottomMargin() const {
+    return resultWithReadLock<float>([&] {
+        return _bottomMargin;
+    });
+}
+
+PulsePropertyGroup TextEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
+    });
+}

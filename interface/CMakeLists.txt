@@ -190,8 +190,6 @@ if (WIN32)
     add_dependency_external_projects(sixense)
   endif ()
 
-  add_dependency_external_projects(sdl2)
-  add_dependency_external_projects(OpenVR)
   add_dependency_external_projects(neuron)
   add_dependency_external_projects(wasapi)
   add_dependency_external_projects(steamworks)
@@ -208,7 +206,7 @@ endif()
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
   pointers
-  recording fbx networking model-networking entities avatars trackers
+  recording hfm fbx networking model-networking model-baker entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
@@ -332,6 +330,10 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
+    # add redirect json to macOS builds.
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
+      "${RESOURCES_DEV_DIR}/serverless/redirect.json"
   )
 
   # call the fixup_interface macro to add required bundling commands for installation
@@ -360,6 +362,9 @@ else()
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/tutorial.json"
       "${RESOURCES_DEV_DIR}/serverless/tutorial.json"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+      "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
+      "${RESOURCES_DEV_DIR}/serverless/redirect.json"
     # copy JSDoc files beside the executable
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${CMAKE_SOURCE_DIR}/tools/jsdoc/out"

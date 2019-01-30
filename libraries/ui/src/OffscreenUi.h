@@ -243,6 +243,9 @@ signals:
 //    void fileDialogResponse(QString response);
 //    void assetDialogResponse(QString response);
 //    void inputDialogResponse(QVariant response);
+    void desktopReady();
+    void keyboardFocusActive();
+
 public slots:
     void removeModalDialog(QObject* modal);
 

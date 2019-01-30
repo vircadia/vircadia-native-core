@@ -78,6 +78,7 @@ private:
     quint64 _lastTimeDebug;
 
     QString _persistAsFileType;
+    QByteArray _cachedJSONData;
 };
 
 #endif // hifi_OctreePersistThread_h

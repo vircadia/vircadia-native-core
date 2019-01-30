@@ -40,6 +40,12 @@ void release(IAudioClient* audioClient) {
 }
 
 void AudioClient::checkPeakValues() {
+    // Guard against running during shutdown
+    Lock timerMutex(_checkPeakValuesMutex);
+    if (nullptr == _checkPeakValuesTimer) {
+        return;
+    }
+
     // prepare the windows environment
     CoInitialize(NULL);
 

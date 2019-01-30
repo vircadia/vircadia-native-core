@@ -34,6 +34,12 @@
 #include <udt/PacketHeaders.h>
 
 #include "MaterialMappingMode.h"
+#include "BillboardMode.h"
+#include "RenderLayer.h"
+#include "PrimitiveMode.h"
+#include "WebInputMode.h"
+#include "PulseMode.h"
+#include "GizmoType.h"
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -143,12 +149,6 @@ public:
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const nodeColor& color);
 
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendValue(const xColor& color);
-
-    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendValue(const rgbColor& color);
-
     /// appends a unsigned 8 bit int to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(uint8_t value);
 
@@ -169,6 +169,9 @@ public:
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
+
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const glm::u8vec3& value);
 
     /// appends a QVector of vec3s to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QVector<glm::vec3>& value);
@@ -199,6 +202,9 @@ public:
 
     /// appends an AACube value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const AACube& aaCube);
+
+    /// appends an QRect value to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QRect& rect);
 
     /// appends a position to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendPosition(const glm::vec3& value);
@@ -253,26 +259,32 @@ public:
     static quint64 getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
     
     static int unpackDataFromBytes(const unsigned char* dataBytes, float& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, bool& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, quint64& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint32_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint16_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, uint8_t& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
-    static int unpackDataFromBytes(const unsigned char* dataBytes, rgbColor& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, MaterialMappingMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, BillboardMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, RenderLayer& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, PrimitiveMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, WebInputMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, PulseMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, GizmoType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, glm::u8vec3& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QString& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
-    static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::quat>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<bool>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, AACube& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QRect& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

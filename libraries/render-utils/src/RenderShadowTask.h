@@ -19,11 +19,14 @@
 
 #include "Shadows_shared.slh"
 
+#include "LightingModel.h"
+#include "LightStage.h"
+
 class ViewFrustum;
 
 class RenderShadowMap {
 public:
-    using Inputs = render::VaryingSet2<render::ShapeBounds, AABox>;
+    using Inputs = render::VaryingSet3<render::ShapeBounds, AABox, LightStage::ShadowFramePointer>;
     using JobModel = render::Job::ModelI<RenderShadowMap, Inputs>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber, unsigned int cascadeIndex) : _shapePlumber{ shapePlumber }, _cascadeIndex{ cascadeIndex } {}
@@ -34,11 +37,12 @@ protected:
     unsigned int _cascadeIndex;
 };
 
-class RenderShadowTaskConfig : public render::Task::Config::Persistent {
+//class RenderShadowTaskConfig : public render::Task::Config::Persistent {
+class RenderShadowTaskConfig : public render::Task::Config {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
 public:
-    RenderShadowTaskConfig() : render::Task::Config::Persistent(QStringList() << "Render" << "Engine" << "Shadows", true) {}
+   // RenderShadowTaskConfig() : render::Task::Config::Persistent(QStringList() << "Render" << "Engine" << "Shadows", true) {}
+    RenderShadowTaskConfig() {}
 
 signals:
     void dirty();
@@ -48,9 +52,10 @@ class RenderShadowTask {
 public:
 
     // There is one AABox per shadow cascade
-    using Output = render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>;
+    using Input = render::VaryingSet2<LightStage::FramePointer, LightingModelPointer>;
+    using Output = render::VaryingSet2<render::VaryingArray<AABox, SHADOW_CASCADE_MAX_COUNT>, LightStage::ShadowFramePointer>;
     using Config = RenderShadowTaskConfig;
-    using JobModel = render::Task::ModelO<RenderShadowTask, Output, Config>;
+    using JobModel = render::Task::ModelIO<RenderShadowTask, Input, Output, Config>;
 
     RenderShadowTask() {}
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cameraCullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00);
@@ -98,13 +103,14 @@ signals:
 
 class RenderShadowSetup {
 public:
-    using Outputs = render::VaryingSet3<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer>;
+    using Input = RenderShadowTask::Input;
+    using Output = render::VaryingSet5<RenderArgs::RenderMode, glm::ivec2, ViewFrustumPointer, LightStage::ShadowFramePointer, graphics::LightPointer>;
     using Config = RenderShadowSetupConfig;
-    using JobModel = render::Job::ModelO<RenderShadowSetup, Outputs, Config>;
+    using JobModel = render::Job::ModelIO<RenderShadowSetup, Input, Output, Config>;
 
     RenderShadowSetup();
     void configure(const Config& configuration);
-    void run(const render::RenderContextPointer& renderContext, Outputs& output);
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 private:
 
@@ -115,25 +121,28 @@ private:
         float _slope;
     } _bias[SHADOW_CASCADE_MAX_COUNT];
 
+    LightStage::ShadowFrame::Object _globalShadowObject;
+    LightStage::ShadowFramePointer _shadowFrameCache;
+
     void setConstantBias(int cascadeIndex, float value);
     void setSlopeBias(int cascadeIndex, float value);
 };
 
 class RenderShadowCascadeSetup {
 public:
-    using Outputs = render::VaryingSet2<render::ItemFilter, ViewFrustumPointer>;
-    using JobModel = render::Job::ModelO<RenderShadowCascadeSetup, Outputs>;
+    using Inputs = LightStage::ShadowFramePointer;
+    using Outputs = render::VaryingSet3<render::ItemFilter, ViewFrustumPointer, RenderShadowTask::CullFunctor>;
+    using JobModel = render::Job::ModelIO<RenderShadowCascadeSetup, Inputs, Outputs>;
 
-    RenderShadowCascadeSetup(unsigned int cascadeIndex, RenderShadowTask::CullFunctor& cullFunctor, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) : 
-    _cascadeIndex{ cascadeIndex }, _cullFunctor{ cullFunctor }, _tagBits(tagBits), _tagMask(tagMask) {}
-    void run(const render::RenderContextPointer& renderContext, Outputs& output);
+    RenderShadowCascadeSetup(unsigned int cascadeIndex, uint8_t tagBits = 0x00, uint8_t tagMask = 0x00) :
+        _cascadeIndex(cascadeIndex), _tagBits(tagBits), _tagMask(tagMask) {}
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& input, Outputs& output);
 
 private:
-
     unsigned int _cascadeIndex;
-    RenderShadowTask::CullFunctor& _cullFunctor;
-    uint8_t _tagBits{ 0x00 };
-    uint8_t _tagMask{ 0x00 };
+    uint8_t _tagBits { 0x00 };
+    uint8_t _tagMask { 0x00 };
 };
 
 class RenderShadowCascadeTeardown {
@@ -145,27 +154,18 @@ public:
 
 class RenderShadowTeardown {
 public:
-    using Input = RenderShadowSetup::Outputs;
+    using Input = RenderShadowSetup::Output;
     using JobModel = render::Job::ModelI<RenderShadowTeardown, Input>;
     void run(const render::RenderContextPointer& renderContext, const Input& input);
 };
 
 class CullShadowBounds {
 public:
-    using Inputs = render::VaryingSet3<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer>;
+    using Inputs = render::VaryingSet5<render::ShapeBounds, render::ItemFilter, ViewFrustumPointer, graphics::LightPointer, RenderShadowTask::CullFunctor>;
     using Outputs = render::VaryingSet2<render::ShapeBounds, AABox>;
     using JobModel = render::Job::ModelIO<CullShadowBounds, Inputs, Outputs>;
 
-    CullShadowBounds(render::CullFunctor cullFunctor) :
-        _cullFunctor{ cullFunctor } {
-    }
-
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
-
-private:
-
-    render::CullFunctor _cullFunctor;
-
 };
 
 #endif // hifi_RenderShadowTask_h

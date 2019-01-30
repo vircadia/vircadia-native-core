@@ -21,11 +21,7 @@
 #include <controllers/UserInputMapper.h>
 
 using namespace bilateral;
-
-// TODO: make these configurable per pick
-static const float WEB_STYLUS_LENGTH = 0.2f;
-static const float WEB_TOUCH_Y_OFFSET = 0.105f;  // how far forward (or back with a negative number) to slide stylus in hand
-static const glm::vec3 TIP_OFFSET = glm::vec3(0.0f, WEB_STYLUS_LENGTH - WEB_TOUCH_Y_OFFSET, 0.0f);
+float StylusPick::WEB_STYLUS_LENGTH = 0.2f;
 
 struct SideData {
     QString avatarJoint;
@@ -64,9 +60,8 @@ bool StylusPickResult::checkOrFilterAgainstMaxDistance(float maxDistance) {
     return distance < maxDistance;
 }
 
-StylusPick::StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled) :
-    Pick(filter, maxDistance, enabled),
-    _side(side)
+StylusPick::StylusPick(Side side, const PickFilter& filter, float maxDistance, bool enabled, const glm::vec3& tipOffset) :
+    Pick(StylusTip(side, tipOffset), filter, maxDistance, enabled)
 {
 }
 
@@ -91,7 +86,7 @@ static StylusTip getFingerWorldLocation(Side side) {
 }
 
 // controllerWorldLocation is where the controller would be, in-world, with an added offset
-static StylusTip getControllerWorldLocation(Side side) {
+static StylusTip getControllerWorldLocation(Side side, const glm::vec3& tipOffset) {
     static const std::array<controller::Input, 2> INPUTS{ { UserInputMapper::makeStandardInput(SIDES[0].channel),
                                                            UserInputMapper::makeStandardInput(SIDES[1].channel) } };
     const auto sideIndex = index(side);
@@ -115,7 +110,7 @@ static StylusTip getControllerWorldLocation(Side side) {
         // add to the real position so the grab-point is out in front of the hand, a bit
         result.position += result.orientation * (sideData.grabPointSphereOffset * sensorScaleFactor);
         // move the stylus forward a bit
-        result.position += result.orientation * (TIP_OFFSET * sensorScaleFactor);
+        result.position += result.orientation * (tipOffset * sensorScaleFactor);
 
         auto worldControllerPos = avatarPosition + avatarOrientation * pose.translation;
         // compute tip velocity from hand controller motion, it is more accurate than computing it from previous positions.
@@ -130,9 +125,9 @@ static StylusTip getControllerWorldLocation(Side side) {
 StylusTip StylusPick::getMathematicalPick() const {
     StylusTip result;
     if (qApp->getPreferAvatarFingerOverStylus()) {
-        result = getFingerWorldLocation(_side);
+        result = getFingerWorldLocation(_mathPick.side);
     } else {
-        result = getControllerWorldLocation(_side);
+        result = getControllerWorldLocation(_mathPick.side, _mathPick.tipOffset);
     }
     return result;
 }
@@ -225,4 +220,16 @@ PickResultPointer StylusPick::getAvatarIntersection(const StylusTip& pick) {
 
 PickResultPointer StylusPick::getHUDIntersection(const StylusTip& pick) {
     return std::make_shared<StylusPickResult>(pick.toVariantMap());
+}
+
+Transform StylusPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    auto stylusResult = std::static_pointer_cast<StylusPickResult>(result);
+    Transform transform;
+    transform.setTranslation(stylusResult->intersection);
+    return transform;
 }

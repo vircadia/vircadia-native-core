@@ -31,8 +31,8 @@ MaterialEntityItem::~MaterialEntityItem() {
     removeMaterial();
 }
 
-EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties MaterialEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialURL, getMaterialURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingMode, getMaterialMappingMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(priority, getPriority);
@@ -41,6 +41,7 @@ EntityItemProperties MaterialEntityItem::getProperties(EntityPropertyFlags desir
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingScale, getMaterialMappingScale);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialMappingRot, getMaterialMappingRot);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialData, getMaterialData);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(materialRepeat, getMaterialRepeat);
     return properties;
 }
 
@@ -55,6 +56,7 @@ bool MaterialEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingScale, setMaterialMappingScale);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialMappingRot, setMaterialMappingRot);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialData, setMaterialData);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(materialRepeat, setMaterialRepeat);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -85,6 +87,7 @@ int MaterialEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, glm::vec2, setMaterialMappingScale);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
     READ_ENTITY_PROPERTY(PROP_MATERIAL_DATA, QString, setMaterialData);
+    READ_ENTITY_PROPERTY(PROP_MATERIAL_REPEAT, bool, setMaterialRepeat);
 
     return bytesRead;
 }
@@ -99,6 +102,7 @@ EntityPropertyFlags MaterialEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_MATERIAL_MAPPING_SCALE;
     requestedProperties += PROP_MATERIAL_MAPPING_ROT;
     requestedProperties += PROP_MATERIAL_DATA;
+    requestedProperties += PROP_MATERIAL_REPEAT;
     return requestedProperties;
 }
 
@@ -119,6 +123,7 @@ void MaterialEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, getMaterialMappingScale());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, getMaterialMappingRot());
     APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, getMaterialData());
+    APPEND_ENTITY_PROPERTY(PROP_MATERIAL_REPEAT, getMaterialRepeat());
 }
 
 void MaterialEntityItem::debugDump() const {
@@ -128,6 +133,7 @@ void MaterialEntityItem::debugDump() const {
     qCDebug(entities) << "           material url:" << _materialURL;
     qCDebug(entities) << "  current material name:" << _currentMaterialName.c_str();
     qCDebug(entities) << "  material mapping mode:" << _materialMappingMode;
+    qCDebug(entities) << "        material repeat:" << _materialRepeat;
     qCDebug(entities) << "               priority:" << _priority;
     qCDebug(entities) << "   parent material name:" << _parentMaterialName;
     qCDebug(entities) << "   material mapping pos:" << _materialMappingPos;
@@ -140,7 +146,12 @@ void MaterialEntityItem::debugDump() const {
 }
 
 void MaterialEntityItem::setUnscaledDimensions(const glm::vec3& value) {
-    EntityItem::setUnscaledDimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    _desiredDimensions = value;
+    if (_materialMappingMode == MaterialMappingMode::UV) {
+        EntityItem::setUnscaledDimensions(ENTITY_ITEM_DEFAULT_DIMENSIONS);
+    } else if (_materialMappingMode == MaterialMappingMode::PROJECTED) {
+        EntityItem::setUnscaledDimensions(value);
+    }
 }
 
 std::shared_ptr<NetworkMaterial> MaterialEntityItem::getMaterial() const {
@@ -208,6 +219,23 @@ void MaterialEntityItem::setMaterialData(const QString& materialData) {
     }
 }
 
+void MaterialEntityItem::setMaterialMappingMode(MaterialMappingMode mode) {
+    if (_materialMappingMode != mode) {
+        removeMaterial();
+        _materialMappingMode = mode;
+        setUnscaledDimensions(_desiredDimensions);
+        applyMaterial();
+    }
+}
+
+void MaterialEntityItem::setMaterialRepeat(bool repeat) {
+    if (_materialRepeat != repeat) {
+        removeMaterial();
+        _materialRepeat = repeat;
+        applyMaterial();
+    }
+}
+
 void MaterialEntityItem::setMaterialMappingPos(const glm::vec2& materialMappingPos) {
     if (_materialMappingPos != materialMappingPos) {
         removeMaterial();
@@ -256,6 +284,22 @@ void MaterialEntityItem::setParentID(const QUuid& parentID) {
     }
 }
 
+void MaterialEntityItem::locationChanged(bool tellPhysics) {
+    EntityItem::locationChanged();
+    if (_materialMappingMode == MaterialMappingMode::PROJECTED) {
+        removeMaterial();
+        applyMaterial();
+    }
+}
+
+void MaterialEntityItem::dimensionsChanged() {
+    EntityItem::dimensionsChanged();
+    if (_materialMappingMode == MaterialMappingMode::PROJECTED) {
+        removeMaterial();
+        applyMaterial();
+    }
+}
+
 void MaterialEntityItem::removeMaterial() {
     graphics::MaterialPointer material = getMaterial();
     if (!material) {
@@ -289,11 +333,19 @@ void MaterialEntityItem::applyMaterial() {
     if (!material || parentID.isNull()) {
         return;
     }
+
     Transform textureTransform;
-    textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0));
-    textureTransform.setRotation(glm::vec3(0, 0, glm::radians(_materialMappingRot)));
-    textureTransform.setScale(glm::vec3(_materialMappingScale, 1));
-    material->setTextureTransforms(textureTransform);
+    if (_materialMappingMode == MaterialMappingMode::UV) {
+        textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0.0f));
+        textureTransform.setRotation(glm::vec3(0.0f, 0.0f, glm::radians(_materialMappingRot)));
+        textureTransform.setScale(glm::vec3(_materialMappingScale, 1.0f));
+    } else if (_materialMappingMode == MaterialMappingMode::PROJECTED) {
+        textureTransform = getTransform();
+        textureTransform.postScale(getUnscaledDimensions());
+        // Pass the inverse transform here so we don't need to compute it in the shaders
+        textureTransform.evalFromRawMatrix(textureTransform.getInverseMatrix());
+    }
+    material->setTextureTransforms(textureTransform, _materialMappingMode, _materialRepeat);
 
     graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, getPriority());
 
@@ -314,8 +366,25 @@ void MaterialEntityItem::applyMaterial() {
     _retryApply = true;
 }
 
+AACube MaterialEntityItem::calculateInitialQueryAACube(bool& success) {
+    AACube aaCube = EntityItem::calculateInitialQueryAACube(success);
+    // A Material entity's queryAACube contains its parent's queryAACube
+    auto parent = getParentPointer(success);
+    if (success && parent) {
+        success = false;
+        AACube parentQueryAACube = parent->calculateInitialQueryAACube(success);
+        if (success) {
+            aaCube += parentQueryAACube.getMinimumPoint();
+            aaCube += parentQueryAACube.getMaximumPoint();
+        }
+    }
+    return aaCube;
+}
+
 void MaterialEntityItem::postParentFixup() {
     removeMaterial();
+    _queryAACubeSet = false; // force an update so we contain our parent
+    updateQueryAACube();
     applyMaterial();
 }
 

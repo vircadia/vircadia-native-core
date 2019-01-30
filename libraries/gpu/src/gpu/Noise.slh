@@ -231,7 +231,8 @@ float snoise(vec2 v) {
 
     // Other corners
     vec2 i1;
-    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    float check = float(x0.x > x0.y);
+    i1 = vec2(check, 1.0 - check);
     vec4 x12 = x0.xyxy + C.xxzz;
     x12.xy -= i1;
 
@@ -284,14 +285,14 @@ float hifi_noise(in vec2 x) {
 // https://www.shadertoy.com/view/MdX3Rr
 // https://en.wikipedia.org/wiki/Fractional_Brownian_motion
 float hifi_fbm(in vec2 p) {
-	const mat2 m2 = mat2(0.8, -0.6, 0.6, 0.8);
-	float f = 0.0;
-	f += 0.5000 * hifi_noise(p); p = m2 * p * 2.02;
-	f += 0.2500 * hifi_noise(p); p = m2 * p * 2.03;
-	f += 0.1250 * hifi_noise(p); p = m2 * p * 2.01;
-	f += 0.0625 * hifi_noise(p);
+    const mat2 m2 = mat2(0.8, -0.6, 0.6, 0.8);
+    float f = 0.0;
+    f += 0.5000 * hifi_noise(p); p = m2 * p * 2.02;
+    f += 0.2500 * hifi_noise(p); p = m2 * p * 2.03;
+    f += 0.1250 * hifi_noise(p); p = m2 * p * 2.01;
+    f += 0.0625 * hifi_noise(p);
 
-	return f / 0.9375;
+    return f / 0.9375;
 }
 
 <@endif@>

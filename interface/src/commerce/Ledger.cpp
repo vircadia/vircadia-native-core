@@ -63,6 +63,7 @@ Handler(balance)
 Handler(inventory)
 Handler(transferAssetToNode)
 Handler(transferAssetToUsername)
+Handler(authorizeAssetTransfer)
 Handler(alreadyOwned)
 Handler(availableUpdates)
 Handler(updateItem)
@@ -72,7 +73,7 @@ void Ledger::send(const QString& endpoint, const QString& success, const QString
     const QString URL = "/api/v1/commerce/";
     JSONCallbackParameters callbackParams(this, success, fail);
 #if defined(DEV_BUILD)  // Don't expose user's personal data in the wild. But during development this can be handy.
-    qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+    qCInfo(commerce) << "Sending" << QJsonDocument(request).toJson(QJsonDocument::Compact);
 #endif
     accountManager->sendRequest(URL + endpoint,
         authType,
@@ -203,6 +204,7 @@ QString transactionString(const QJsonObject& valueObject) {
     int sentMoney = valueObject["sent_money"].toInt();
     int receivedMoney = valueObject["received_money"].toInt();
     int dateInteger = valueObject["created_at"].toInt();
+    QString transactionType = valueObject["transaction_type"].toString();
     QString message = valueObject["message"].toString();
     QDateTime createdAt(QDateTime::fromSecsSinceEpoch(dateInteger, Qt::UTC));
     QString result;
@@ -210,8 +212,12 @@ QString transactionString(const QJsonObject& valueObject) {
     if (sentCerts <= 0 && receivedCerts <= 0 && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
         // this is an hfc transfer.
         if (sentMoney > 0) {
-            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
-            result += QString("Money sent to %1").arg(recipient);
+            if (transactionType == "escrow") {
+                result += QString("Money transferred to coupon");
+            } else {
+                QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
+                result += QString("Money sent to %1").arg(recipient);
+            }
         } else {
             QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Money from %1").arg(sender);
@@ -219,11 +225,19 @@ QString transactionString(const QJsonObject& valueObject) {
         if (!message.isEmpty()) {
             result += QString("<br>with memo: <i>\"%1\"</i>").arg(message);
         }
-    } else if (sentMoney <= 0 && receivedMoney <= 0 && (sentCerts > 0 || receivedCerts > 0) && !KNOWN_USERS.contains(valueObject["sender_name"].toString())) {
+    } else if (sentMoney <= 0 && receivedMoney <= 0 && 
+               (sentCerts > 0 || receivedCerts > 0) && 
+               !KNOWN_USERS.contains(valueObject["sender_name"].toString()) &&
+               !KNOWN_USERS.contains(valueObject["recipient_name"].toString())
+        ) {
         // this is a non-HFC asset transfer.
         if (sentCerts > 0) {
-            QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
-            result += QString("Gift sent to %1").arg(recipient);
+            if (transactionType == "escrow") {
+                result += QString("Item transferred to coupon");
+            } else {
+                QString recipient = userLink(valueObject["recipient_name"].toString(), valueObject["place_name"].toString());
+                result += QString("Gift sent to %1").arg(recipient);
+            }
         } else {
             QString sender = userLink(valueObject["sender_name"].toString(), valueObject["place_name"].toString());
             result += QString("Gift from %1").arg(sender);
@@ -240,7 +254,6 @@ QString transactionString(const QJsonObject& valueObject) {
     return result;
 }
 
-static const QString MARKETPLACE_ITEMS_BASE_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/marketplace/items/";
 void Ledger::historySuccess(QNetworkReply* reply) {
     // here we send a historyResult with some extra stuff in it
     // Namely, the styled text we'd like to show.  The issue is the
@@ -425,6 +438,7 @@ void Ledger::transferAssetToUsername(const QString& hfc_key, const QString& user
     transaction["username"] = username;
     transaction["quantity"] = amount;
     transaction["message"] = optionalMessage;
+    transaction["place_name"] = DependencyManager::get<AddressManager>()->getPlaceName();
     if (!certificateID.isEmpty()) {
         transaction["certificate_id"] = certificateID;
     }
@@ -435,6 +449,20 @@ void Ledger::transferAssetToUsername(const QString& hfc_key, const QString& user
     } else {
         signedSend("transaction", transactionString, hfc_key, "transfer_asset_to_user", "transferAssetToUsernameSuccess", "transferAssetToUsernameFailure");
     }
+}
+
+void Ledger::authorizeAssetTransfer(const QString& hfc_key, const QString& couponID, const QString& certificateID, const int& amount, const QString& optionalMessage) {
+    QJsonObject transaction;
+    transaction["public_key"] = hfc_key;
+    transaction["coupon_id"] = couponID;
+    transaction["quantity"] = amount;
+    transaction["message"] = optionalMessage;
+    if (!certificateID.isEmpty()) {
+        transaction["certificate_id"] = certificateID;
+    }
+    QJsonDocument transactionDoc{ transaction };
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+    signedSend("transaction", transactionString, hfc_key, "authorize", "authorizeAssetTransferSuccess", "authorizeAssetTransferFailure");
 }
 
 void Ledger::alreadyOwned(const QString& marketplaceId) {
@@ -451,7 +479,7 @@ void Ledger::alreadyOwned(const QString& marketplaceId) {
     }
 }
 
-void Ledger::getAvailableUpdates(const QString& itemId) {
+void Ledger::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto wallet = DependencyManager::get<Wallet>();
     QString endpoint = "available_updates";
     QJsonObject request;
@@ -459,6 +487,8 @@ void Ledger::getAvailableUpdates(const QString& itemId) {
     if (!itemId.isEmpty()) {
         request["marketplace_item_id"] = itemId;
     }
+    request["per_page"] = itemsPerPage;
+    request["page"] = pageNumber;
     send(endpoint, "availableUpdatesSuccess", "availableUpdatesFailure", QNetworkAccessManager::PutOperation, AccountManagerAuth::Required, request);
 }
 

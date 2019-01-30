@@ -14,6 +14,7 @@
 #include <DependencyManager.h>
 #include <PhysicsEngine.h>
 #include <Pick.h>
+#include <PickFilter.h>
 
 /**jsdoc
  * The Picks API lets you create and manage objects for repeatedly calculating intersections in different ways.
@@ -23,41 +24,62 @@
  * @hifi-interface
  * @hifi-client-entity
  *
- * @property {number} PICK_NOTHING A filter flag. Don't intersect with anything. <em>Read-only.</em>
- * @property {number} PICK_ENTITIES A filter flag. Include entities when intersecting. <em>Read-only.</em>
- * @property {number} PICK_OVERLAYS A filter flag. Include overlays when intersecting. <em>Read-only.</em>
- * @property {number} PICK_AVATARS A filter flag. Include avatars when intersecting. <em>Read-only.</em>
- * @property {number} PICK_HUD A filter flag. Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>
- * @property {number} PICK_COARSE A filter flag. Pick against coarse meshes, instead of exact meshes. <em>Read-only.</em>
- * @property {number} PICK_INCLUDE_INVISIBLE A filter flag. Include invisible objects when intersecting. <em>Read-only.</em>
- * @property {number} PICK_INCLUDE_NONCOLLIDABLE A filter flag. Include non-collidable objects when intersecting. 
- *     <em>Read-only.</em>
- * @property {number} PICK_ALL_INTERSECTIONS <em>Read-only.</em>
- * @property {number} INTERSECTED_NONE An intersection type. Intersected nothing with the given filter flags. 
- *     <em>Read-only.</em>
+ * @property {number} PICK_ENTITIES A filter flag. Include domain and avatar entities when intersecting. <em>Read-only.</em>.  Deprecated.
+ * @property {number} PICK_OVERLAYS A filter flag. Include local entities when intersecting. <em>Read-only.</em>. Deprecated.
+ *
+ * @property {number} PICK_DOMAIN_ENTITIES A filter flag. Include domain entities when intersecting. <em>Read-only.</em>.
+ * @property {number} PICK_AVATAR_ENTITIES A filter flag. Include avatar entities when intersecting. <em>Read-only.</em>.
+ * @property {number} PICK_LOCAL_ENTITIES A filter flag. Include local entities when intersecting. <em>Read-only.</em>.
+ * @property {number} PICK_AVATARS A filter flag. Include avatars when intersecting. <em>Read-only.</em>.
+ * @property {number} PICK_HUD A filter flag. Include the HUD sphere when intersecting in HMD mode. <em>Read-only.</em>.
+ *
+ * @property {number} PICK_INCLUDE_VISIBLE A filter flag. Include visible objects when intersecting. <em>Read-only.</em>.
+ * @property {number} PICK_INCLUDE_INVISIBLE A filter flag. Include invisible objects when intersecting. <em>Read-only.</em>.
+ *
+ * @property {number} PICK_INCLUDE_COLLIDABLE A filter flag. Include collidable objects when intersecting. <em>Read-only.</em>.
+ * @property {number} PICK_INCLUDE_NONCOLLIDABLE A filter flag. Include non-collidable objects when intersecting. <em>Read-only.</em>.
+ *
+ * @property {number} PICK_PRECISE A filter flag. Pick against exact meshes. <em>Read-only.</em>.
+ * @property {number} PICK_COARSE A filter flag. Pick against coarse meshes. <em>Read-only.</em>.
+ *
+ * @property {number} PICK_ALL_INTERSECTIONS <em>Read-only.</em>.
+ *
+ * @property {number} INTERSECTED_NONE An intersection type. Intersected nothing with the given filter flags. <em>Read-only.</em>
  * @property {number} INTERSECTED_ENTITY An intersection type. Intersected an entity. <em>Read-only.</em>
  * @property {number} INTERSECTED_OVERLAY An intersection type. Intersected an overlay. <em>Read-only.</em>
  * @property {number} INTERSECTED_AVATAR An intersection type. Intersected an avatar. <em>Read-only.</em>
  * @property {number} INTERSECTED_HUD An intersection type. Intersected the HUD sphere. <em>Read-only.</em>
- * @property {number} perFrameTimeBudget - The max number of usec to spend per frame updating Pick results. <em>Read-only.</em>
+ * @property {number} perFrameTimeBudget - The max number of usec to spend per frame updating Pick results.
  */
 
 class PickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
-    Q_PROPERTY(unsigned int PICK_NOTHING READ PICK_NOTHING CONSTANT)
     Q_PROPERTY(unsigned int PICK_ENTITIES READ PICK_ENTITIES CONSTANT)
     Q_PROPERTY(unsigned int PICK_OVERLAYS READ PICK_OVERLAYS CONSTANT)
+
+    Q_PROPERTY(unsigned int PICK_DOMAIN_ENTITIES READ PICK_DOMAIN_ENTITIES CONSTANT)
+    Q_PROPERTY(unsigned int PICK_AVATAR_ENTITIES READ PICK_AVATAR_ENTITIES CONSTANT)
+    Q_PROPERTY(unsigned int PICK_LOCAL_ENTITIES READ PICK_LOCAL_ENTITIES CONSTANT)
     Q_PROPERTY(unsigned int PICK_AVATARS READ PICK_AVATARS CONSTANT)
     Q_PROPERTY(unsigned int PICK_HUD READ PICK_HUD CONSTANT)
-    Q_PROPERTY(unsigned int PICK_COARSE READ PICK_COARSE CONSTANT)
+
+    Q_PROPERTY(unsigned int PICK_INCLUDE_VISIBLE READ PICK_INCLUDE_VISIBLE CONSTANT)
     Q_PROPERTY(unsigned int PICK_INCLUDE_INVISIBLE READ PICK_INCLUDE_INVISIBLE CONSTANT)
+
+    Q_PROPERTY(unsigned int PICK_INCLUDE_COLLIDABLE READ PICK_INCLUDE_COLLIDABLE CONSTANT)
     Q_PROPERTY(unsigned int PICK_INCLUDE_NONCOLLIDABLE READ PICK_INCLUDE_NONCOLLIDABLE CONSTANT)
+
+    Q_PROPERTY(unsigned int PICK_PRECISE READ PICK_PRECISE CONSTANT)
+    Q_PROPERTY(unsigned int PICK_COARSE READ PICK_COARSE CONSTANT)
+
     Q_PROPERTY(unsigned int PICK_ALL_INTERSECTIONS READ PICK_ALL_INTERSECTIONS CONSTANT)
+
     Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_OVERLAY READ INTERSECTED_OVERLAY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_AVATAR READ INTERSECTED_AVATAR CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
+    Q_PROPERTY(unsigned int perFrameTimeBudget READ getPerFrameTimeBudget WRITE setPerFrameTimeBudget)
     SINGLETON_DEPENDENCY
 
 public:
@@ -72,11 +94,13 @@ public:
      * Adds a new Pick.
      * Different {@link PickType}s use different properties, and within one PickType, the properties you choose can lead to a wide range of behaviors.  For example,
      *   with PickType.Ray, depending on which optional parameters you pass, you could create a Static Ray Pick, a Mouse Ray Pick, or a Joint Ray Pick.
+     * Picks created with this method always intersect at least visible and collidable things
      * @function Picks.createPick
      * @param {PickType} type A PickType that specifies the method of picking to use
      * @param {Picks.RayPickProperties|Picks.StylusPickProperties|Picks.ParabolaPickProperties|Picks.CollisionPickProperties} properties A PickProperties object, containing all the properties for initializing this Pick
      * @returns {number} The ID of the created Pick.  Used for managing the Pick.  0 if invalid.
      */
+    // TODO: expand Pointers to be able to be fully configurable with PickFilters
     Q_INVOKABLE unsigned int createPick(const PickQuery::PickType type, const QVariant& properties);
 
     /**jsdoc
@@ -152,9 +176,6 @@ public:
      * @property {CollisionRegion} collisionRegion The CollisionRegion that was used. Valid even if there was no intersection.
      */
 
-    // TODO: Add this to the CollisionPickResult jsdoc once model collision picks are working
-    //* @property {boolean} loaded If the CollisionRegion was successfully loaded (may be false if a model was used)
-
     /**jsdoc
     * Information about the Collision Pick's intersection with an object
     *
@@ -170,6 +191,7 @@ public:
      * @typedef {object} CollisionContact
      * @property {Vec3} pointOnPick A point representing a penetration of the object's surface into the volume of the pick, in world space.
      * @property {Vec3} pointOnObject A point representing a penetration of the pick's surface into the volume of the found object, in world space.
+     * @property {Vec3} normalOnPick The normalized vector pointing away from the pick, representing the direction of collision.
      */
 
     /**jsdoc
@@ -229,61 +251,80 @@ public:
      */
     Q_INVOKABLE bool isMouse(unsigned int uid);
 
-    // FIXME: Move to other property definitions.
-    Q_PROPERTY(unsigned int perFrameTimeBudget READ getPerFrameTimeBudget WRITE setPerFrameTimeBudget)
-
     unsigned int getPerFrameTimeBudget() const;
     void setPerFrameTimeBudget(unsigned int numUsecs);
 
 public slots:
 
     /**jsdoc
-     * @function Picks.PICK_NOTHING
-     * @returns {number}
-     */
-    static constexpr unsigned int PICK_NOTHING() { return 0; }
-
-    /**jsdoc
      * @function Picks.PICK_ENTITIES
      * @returns {number}
      */
-    static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_ENTITIES); }
-
+    static constexpr unsigned int PICK_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES) | PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }
     /**jsdoc
      * @function Picks.PICK_OVERLAYS
      * @returns {number}
      */
-    static constexpr unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_OVERLAYS); }
+    static constexpr unsigned int PICK_OVERLAYS() { return PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES); }
 
+    /**jsdoc
+     * @function Picks.PICK_DOMAIN_ENTITIES
+     * @returns {number}
+     */
+    static constexpr unsigned int PICK_DOMAIN_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::DOMAIN_ENTITIES); }
+    /**jsdoc
+     * @function Picks.PICK_AVATAR_ENTITIES
+     * @returns {number}
+     */
+    static constexpr unsigned int PICK_AVATAR_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::AVATAR_ENTITIES); }
+    /**jsdoc
+     * @function Picks.PICK_LOCAL_ENTITIES
+     * @returns {number}
+     */
+    static constexpr unsigned int PICK_LOCAL_ENTITIES() { return PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES); }
     /**jsdoc
      * @function Picks.PICK_AVATARS
      * @returns {number}
      */
-    static constexpr unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_AVATARS); }
-
+    static constexpr unsigned int PICK_AVATARS() { return PickFilter::getBitMask(PickFilter::FlagBit::AVATARS); }
     /**jsdoc
      * @function Picks.PICK_HUD
      * @returns {number}
      */
-    static constexpr unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_HUD); }
+    static constexpr unsigned int PICK_HUD() { return PickFilter::getBitMask(PickFilter::FlagBit::HUD); }
 
     /**jsdoc
-     * @function Picks.PICK_COARSE
+     * @function Picks.PICK_INCLUDE_VISIBLE
      * @returns {number}
      */
-    static constexpr unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_COARSE); }
-
+    static constexpr unsigned int PICK_INCLUDE_VISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE); }
     /**jsdoc
      * @function Picks.PICK_INCLUDE_INVISIBLE
      * @returns {number}
      */
-    static constexpr unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
+    static constexpr unsigned int PICK_INCLUDE_INVISIBLE() { return PickFilter::getBitMask(PickFilter::FlagBit::INVISIBLE); }
 
+    /**jsdoc
+     * @function Picks.PICK_INCLUDE_COLLIDABLE
+     * @returns {number}
+     */
+    static constexpr unsigned int PICK_INCLUDE_COLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::COLLIDABLE); }
     /**jsdoc
      * @function Picks.PICK_INCLUDE_NONCOLLIDABLE
      * @returns {number}
      */
-    static constexpr unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
+    static constexpr unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return PickFilter::getBitMask(PickFilter::FlagBit::NONCOLLIDABLE); }
+
+    /**jsdoc
+     * @function Picks.PICK_PRECISE
+     * @returns {number}
+     */
+    static constexpr unsigned int PICK_PRECISE() { return PickFilter::getBitMask(PickFilter::FlagBit::PRECISE); }
+    /**jsdoc
+     * @function Picks.PICK_COARSE
+     * @returns {number}
+     */
+    static constexpr unsigned int PICK_COARSE() { return PickFilter::getBitMask(PickFilter::FlagBit::COARSE); }
 
     /**jsdoc
      * @function Picks.PICK_ALL_INTERSECTIONS
@@ -320,6 +361,9 @@ public slots:
      * @returns {number}
      */
     static constexpr unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+
+protected:
+    static void setParentTransform(std::shared_ptr<PickQuery> pick, const QVariantMap& propMap);
 };
 
 #endif // hifi_PickScriptingInterface_h

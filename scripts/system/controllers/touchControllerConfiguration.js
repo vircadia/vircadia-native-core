@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* globals TOUCH_CONTROLLER_CONFIGURATION_LEFT:true TOUCH_CONTROLLER_CONFIGURATION_RIGHT:true */
+/* globals TOUCH_CONTROLLER_CONFIGURATION_LEFT:true, TOUCH_CONTROLLER_CONFIGURATION_RIGHT:true,
+   Quat, Vec3, Script, MyAvatar, Controller */
 /* eslint camelcase: ["error", { "properties": "never" }] */
 
 var leftBaseRotation = Quat.multiply(
@@ -22,9 +23,9 @@ var rightBaseRotation = Quat.multiply(
 
 // keep these in sync with the values from OculusHelpers.cpp
 var CONTROLLER_LENGTH_OFFSET = 0.0762;
-var CONTROLLER_LATERAL_OFFSET = 0.0381;
-var CONTROLLER_VERTICAL_OFFSET = 0.0381;
-var CONTROLLER_FORWARD_OFFSET = 0.1524;
+// var CONTROLLER_LATERAL_OFFSET = 0.0381;
+// var CONTROLLER_VERTICAL_OFFSET = 0.0381;
+// var CONTROLLER_FORWARD_OFFSET = 0.1524;
 
 var leftBasePosition = Vec3.multiplyQbyV(leftBaseRotation, {
     x: -CONTROLLER_LENGTH_OFFSET / 2.0,

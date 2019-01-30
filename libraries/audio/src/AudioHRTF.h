@@ -13,6 +13,7 @@
 #define hifi_AudioHRTF_h
 
 #include <stdint.h>
+#include <string.h>
 
 static const int HRTF_AZIMUTHS = 72;    // 360 / 5-degree steps
 static const int HRTF_TAPS = 64;        // minimum-phase FIR coefficients
@@ -28,6 +29,10 @@ static const float HRTF_AZIMUTH_REF = 2.0f;     // IRCAM Listen HRTF was recorde
 static const float HRTF_NEARFIELD_MAX = 1.0f;   // distance in meters
 static const float HRTF_NEARFIELD_MIN = 0.125f; // distance in meters
 static const float HRTF_HEAD_RADIUS = 0.0875f;  // average human head in meters
+
+// Distance attenuation
+static const float ATTN_DISTANCE_REF = 2.0f;    // distance where attn is 0dB
+static const float ATTN_GAIN_MAX = 16.0f;       // max gain allowed by distance attn (+24dB)
 
 class AudioHRTF {
 
@@ -46,15 +51,43 @@ public:
     void render(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
 
     //
-    // Fast path when input is known to be silent
+    // Fast path when input is known to be silent and state as been flushed
     //
-    void renderSilent(int16_t* input, float* output, int index, float azimuth, float distance, float gain, int numFrames);
+    void setParameterHistory(float azimuth, float distance, float gain) {
+        // new parameters become old
+        _azimuthState = azimuth;
+        _distanceState = distance;
+        _gainState = gain;
+    }
 
     //
     // HRTF local gain adjustment in amplitude (1.0 == unity)
     //
     void setGainAdjustment(float gain) { _gainAdjust = HRTF_GAIN * gain; };
     float getGainAdjustment() { return _gainAdjust; }
+
+    // clear internal state, but retain settings
+    void reset() {
+        if (!_resetState) {
+            // FIR history
+            memset(_firState, 0, sizeof(_firState));
+
+            // integer delay history
+            memset(_delayState, 0, sizeof(_delayState));
+
+            // biquad history
+            memset(_bqState, 0, sizeof(_bqState));
+
+            // parameter history
+            _azimuthState = 0.0f;
+            _distanceState = 0.0f;
+            _gainState = 0.0f;
+
+            // _gainAdjust is retained
+
+            _resetState = true;
+        }
+    }
 
 private:
     AudioHRTF(const AudioHRTF&) = delete;
@@ -88,7 +121,7 @@ private:
     // global and local gain adjustment
     float _gainAdjust = HRTF_GAIN;
 
-    bool _silentState = false;
+    bool _resetState = true;
 };
 
 #endif // AudioHRTF_h

@@ -13,6 +13,8 @@
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
 
+#include "Context.h"
+
 size_t evalGLFormatSwapchainPixelSize(const QSurfaceFormat& format) {
     size_t pixelSize = format.redBufferSize() + format.greenBufferSize() + format.blueBufferSize() + format.alphaBufferSize();
     // We don't apply the length of the swap chain into this pixelSize since it is not vsible for the Process (on windows).
@@ -34,13 +36,53 @@ bool gl::disableGl45() {
 #endif
 }
 
+#ifdef Q_OS_MAC
+#define SERIALIZE_GL_RENDERING
+#endif
+
+#ifdef SERIALIZE_GL_RENDERING
+
+// This terrible terrible hack brought to you by the complete lack of reasonable
+// OpenGL debugging tools on OSX.  Without this serialization code, the UI textures
+// frequently become 'glitchy' and get composited onto the main scene in what looks
+// like a partially rendered state.
+// This looks very much like either state bleeding across the contexts, or bad
+// synchronization for the shared OpenGL textures.  However, previous attempts to resolve
+// it, even with gratuitous use of glFinish hasn't improved the situation
+
+static std::mutex _globalOpenGLLock;
+
+void gl::globalLock() {
+    _globalOpenGLLock.lock();
+}
+
+void gl::globalRelease(bool finish) {
+    if (finish) {
+        glFinish();
+    }
+    _globalOpenGLLock.unlock();
+}
+
+#else
+
+void gl::globalLock() {}
+void gl::globalRelease(bool finish) {}
+
+#endif
+
+
 void gl::getTargetVersion(int& major, int& minor) {
 #if defined(USE_GLES)
     major = 3;
     minor = 2;
 #else
+#if defined(Q_OS_MAC)
+    major = 4;
+    minor = 1;
+#else
     major = 4;
     minor = disableGl45() ? 1 : 5;
+#endif
 #endif
 }
 
@@ -57,6 +99,9 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
 #else
         format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
 #endif
+        if (gl::Context::enableDebugLogger()) {
+            format.setOption(QSurfaceFormat::DebugContext);
+        }
         // Qt Quick may need a depth and stencil buffer. Always make sure these are available.
         format.setDepthBufferSize(DEFAULT_GL_DEPTH_BUFFER_BITS);
         format.setStencilBufferSize(DEFAULT_GL_STENCIL_BUFFER_BITS);
@@ -64,7 +109,6 @@ const QSurfaceFormat& getDefaultOpenGLSurfaceFormat() {
         ::gl::getTargetVersion(major, minor);
         format.setMajorVersion(major);
         format.setMinorVersion(minor);
-        QSurfaceFormat::setDefaultFormat(format);
     });
     return format;
 }
@@ -154,11 +198,48 @@ namespace gl {
 
 
     bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
+        // Disabling error checking macro on Android debug builds for now, 
+        // as it throws off performance testing, which must be done on 
+        // Debug builds
+#if defined(DEBUG) && !defined(Q_OS_ANDROID)
         return checkGLError(name);
 #else
         Q_UNUSED(name);
         return false;
 #endif
+    }
+
+    // Enables annotation of captures made by tools like renderdoc
+    bool khrDebugEnabled() {
+        static std::once_flag once;
+        static bool khrDebug = false;
+        std::call_once(once, [&] {
+            khrDebug = nullptr != glPushDebugGroupKHR;
+        });
+        return khrDebug;
+    }
+
+    // Enables annotation of captures made by tools like renderdoc
+    bool extDebugMarkerEnabled() {
+        static std::once_flag once;
+        static bool extMarker = false;
+        std::call_once(once, [&] {
+            extMarker = nullptr != glPushGroupMarkerEXT;
+        });
+        return extMarker;
+    }
+
+    bool debugContextEnabled() {
+#if defined(Q_OS_MAC)
+        // OSX does not support GL_KHR_debug or GL_ARB_debug_output
+        static bool enableDebugLogger = false;
+#elif defined(DEBUG) || defined(USE_GLES)
+        //static bool enableDebugLogger = true;
+        static bool enableDebugLogger = false;
+#else
+        static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
+        static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+        return enableDebugLogger;
     }
 }

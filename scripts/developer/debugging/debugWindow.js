@@ -19,11 +19,28 @@ if (scripts.length >= 2) {
     return;
 }
 
+var SUPPRESS_DEFAULT_SCRIPTS_MENU_NAME  = "Developer"
+var SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME = "Suppress messages from default scripts in Debug Window";
+var DEBUG_WINDOW_SUPPRESS_DEFAULTS_SCRIPTS = 'debugWindowSuppressDefaultScripts';
+var suppressDefaultScripts = Settings.getValue(DEBUG_WINDOW_SUPPRESS_DEFAULTS_SCRIPTS, false)
+Menu.addMenuItem({
+    menuName: SUPPRESS_DEFAULT_SCRIPTS_MENU_NAME,
+    menuItemName: SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME,
+    isCheckable: true,
+    isChecked: suppressDefaultScripts
+});
+
+Menu.menuItemEvent.connect(function(menuItem) {
+    if (menuItem === SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME) {
+        suppressDefaultScripts = Menu.isOptionChecked(SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME);
+    }
+});
+
 // Set up the qml ui
 var qml = Script.resolvePath('debugWindow.qml');
 
 var HMD_DEBUG_WINDOW_GEOMETRY_KEY = 'hmdDebugWindowGeometry';
-var hmdDebugWindowGeometryValue = Settings.getValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY)
+var hmdDebugWindowGeometryValue = Settings.getValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY);
 
 var windowWidth = 400;
 var windowHeight = 900;
@@ -34,12 +51,13 @@ var windowY = 0;
 
 if (hmdDebugWindowGeometryValue !== '') {
     var geometry = JSON.parse(hmdDebugWindowGeometryValue);
-
-    windowWidth = geometry.width
-    windowHeight = geometry.height
-    windowX = geometry.x
-    windowY = geometry.y
-    hasPosition = true;
+    if ((geometry.x !== 0) && (geometry.y !== 0)) {
+        windowWidth = geometry.width;
+        windowHeight = geometry.height;
+        windowX = geometry.x;
+        windowY = geometry.y;
+        hasPosition = true;
+    }
 }
 
 var window = new OverlayWindow({
@@ -50,9 +68,29 @@ var window = new OverlayWindow({
 
 if (hasPosition) {
     window.setPosition(windowX, windowY);
+};
+
+function recenterWindow() {
+    window.setPosition(100, 100);
 }
 
+window.visibleChanged.connect(function() {
+    if (!window.visible) {
+        window.setVisible(true);
+        recenterWindow();
+    }
+});
+
+HMD.displayModeChanged.connect(function(isHMDMode) {
+    recenterWindow();
+});
+
 window.closed.connect(function () { Script.stop(); });
+
+function shouldLogMessage(scriptFileName) {
+    return !suppressDefaultScripts
+        || (scriptFileName !== "defaultScripts.js" && scriptFileName != "controllerScripts.js");
+}
 
 var getFormattedDate = function() {
     var date = new Date();
@@ -60,11 +98,13 @@ var getFormattedDate = function() {
 };
 
 var sendToLogWindow = function(type, message, scriptFileName) {
-    var typeFormatted = "";
-    if (type) {
-        typeFormatted = type + " - ";
+    if (shouldLogMessage(scriptFileName)) {
+        var typeFormatted = "";
+        if (type) {
+            typeFormatted = type + " - ";
+        }
+        window.sendToQml("[" + getFormattedDate() + "] " + "[" + scriptFileName + "] " + typeFormatted + message);
     }
-    window.sendToQml("[" + getFormattedDate() + "] " + "[" + scriptFileName + "] " + typeFormatted + message);
 };
 
 ScriptDiscoveryService.printedMessage.connect(function(message, scriptFileName) {
@@ -88,15 +128,19 @@ ScriptDiscoveryService.clearDebugWindow.connect(function() {
 });
 
 Script.scriptEnding.connect(function () {
+    Settings.setValue(DEBUG_WINDOW_SUPPRESS_DEFAULTS_SCRIPTS,
+                      Menu.isOptionChecked(SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME));
+    Menu.removeMenuItem(SUPPRESS_DEFAULT_SCRIPTS_MENU_NAME, SUPPRESS_DEFAULT_SCRIPTS_ITEM_NAME);
+
     var geometry = JSON.stringify({
         x: window.position.x,
         y: window.position.y,
         width: window.size.x,
         height: window.size.y
-    })
+    });
 
     Settings.setValue(HMD_DEBUG_WINDOW_GEOMETRY_KEY, geometry);
     window.close();
-})
+});
 
 }());

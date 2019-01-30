@@ -24,7 +24,6 @@ public:
     virtual AABox getBounds() const override;
 
     const glm::vec3& getDimensions() const { return _localBoundingBox.getDimensions(); }
-    void setDimensions(float value) { setDimensions(glm::vec3(value)); }
     void setDimensions(const glm::vec3& value);
 
     void setProperties(const QVariantMap& properties) override;
@@ -37,7 +36,7 @@ public:
 
 protected:
     // Centered local bounding box
-    AABox _localBoundingBox{ vec3(0.0f), 1.0f };
+    AABox _localBoundingBox { vec3(-0.5), 1.0f };
 
     Transform evalRenderTransform() override;
 };

@@ -175,15 +175,15 @@ void LightClusters::updateLightStage(const LightStagePointer& lightStage) {
     
   }
 
-void LightClusters::updateLightFrame(const LightStage::Frame& lightFrame, bool points, bool spots) {
+void LightClusters::updateLightFrame(const LightStage::FramePointer& lightFrame, bool points, bool spots) {
 
     // start fresh
     _visibleLightIndices.clear();
 
     // Now gather the lights
     // gather lights
-    auto& srcPointLights = lightFrame._pointLights;
-    auto& srcSpotLights = lightFrame._spotLights;
+    auto& srcPointLights = lightFrame->_pointLights;
+    auto& srcSpotLights = lightFrame->_spotLights;
     int numPointLights = (int)srcPointLights.size();
     int numSpotLights = (int)srcSpotLights.size();
 
@@ -543,12 +543,13 @@ void LightClusteringPass::configure(const Config& config) {
     _freeze = config.freeze;
 }
 
-void LightClusteringPass::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
+void LightClusteringPass::run(const render::RenderContextPointer& renderContext, const Input& inputs, Output& output) {
     auto args = renderContext->args;
     
     auto deferredTransform = inputs.get0();
     auto lightingModel = inputs.get1();
-    auto surfaceGeometryFramebuffer = inputs.get2();
+    auto lightFrame = inputs.get2();
+    auto surfaceGeometryFramebuffer = inputs.get3();
 
     // first update the Grid with the new frustum
     if (!_freeze) {
@@ -559,7 +560,7 @@ void LightClusteringPass::run(const render::RenderContextPointer& renderContext,
     auto lightStage = renderContext->_scene->getStage<LightStage>();
     assert(lightStage);
     _lightClusters->updateLightStage(lightStage);
-    _lightClusters->updateLightFrame(lightStage->_currentFrame, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
+    _lightClusters->updateLightFrame(lightFrame, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
     
     auto clusteringStats = _lightClusters->updateClusters();
 
@@ -637,10 +638,9 @@ void DebugLightClusters::run(const render::RenderContextPointer& renderContext, 
     }
 
     auto deferredTransform = inputs.get0();
-    auto deferredFramebuffer = inputs.get1();
-    auto lightingModel = inputs.get2();
-    auto linearDepthTarget = inputs.get3();
-    auto lightClusters = inputs.get4();
+    auto lightingModel = inputs.get1();
+    auto linearDepthTarget = inputs.get2();
+    auto lightClusters = inputs.get3();
 
     auto args = renderContext->args;
 

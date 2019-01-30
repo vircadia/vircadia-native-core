@@ -4,7 +4,7 @@
     var mod = Script.require('../exceptions/exception.js');
     return {
         preload: function(uuid) {
-            print("entityConstructorRequireException::preload (never happens)", uuid, Script.resolvePath(''), mod);
+            print("entityConstructorRequireException::preload (never happens)", uuid, mod);
         },
     };
 });

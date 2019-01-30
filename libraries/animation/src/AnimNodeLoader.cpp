@@ -221,26 +221,26 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
 static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUrl) {
     auto idVal = jsonObj.value("id");
     if (!idVal.isString()) {
-        qCCritical(animation) << "AnimNodeLoader, bad string \"id\", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad string \"id\"";
         return nullptr;
     }
     QString id = idVal.toString();
 
     auto typeVal = jsonObj.value("type");
     if (!typeVal.isString()) {
-        qCCritical(animation) << "AnimNodeLoader, bad object \"type\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad object \"type\", id =" << id;
         return nullptr;
     }
     QString typeStr = typeVal.toString();
     AnimNode::Type type = stringToAnimNodeType(typeStr);
     if (type == AnimNode::Type::NumTypes) {
-        qCCritical(animation) << "AnimNodeLoader, unknown node type" << typeStr << ", id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, unknown node type" << typeStr << ", id =" << id;
         return nullptr;
     }
 
     auto dataValue = jsonObj.value("data");
     if (!dataValue.isObject()) {
-        qCCritical(animation) << "AnimNodeLoader, bad string \"data\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad string \"data\", id =" << id;
         return nullptr;
     }
     auto dataObj = dataValue.toObject();
@@ -263,13 +263,13 @@ static AnimNode::Pointer loadNode(const QJsonObject& jsonObj, const QUrl& jsonUr
 
     auto childrenValue = jsonObj.value("children");
     if (!childrenValue.isArray()) {
-        qCCritical(animation) << "AnimNodeLoader, bad array \"children\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad array \"children\", id =" << id;
         return nullptr;
     }
     auto childrenArray = childrenValue.toArray();
     for (const auto& childValue : childrenArray) {
         if (!childValue.isObject()) {
-            qCCritical(animation) << "AnimNodeLoader, bad object in \"children\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad object in \"children\", id =" << id;
             return nullptr;
         }
         AnimNode::Pointer child = loadNode(childValue.toObject(), jsonUrl);
@@ -353,14 +353,14 @@ static AnimNode::Pointer loadBlendLinearMoveNode(const QJsonObject& jsonObj, con
     std::vector<float> characteristicSpeeds;
     auto speedsValue = jsonObj.value("characteristicSpeeds");
     if (!speedsValue.isArray()) {
-        qCCritical(animation) << "AnimNodeLoader, bad array \"characteristicSpeeds\" in blendLinearMove node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad array \"characteristicSpeeds\" in blendLinearMove node, id =" << id;
         return nullptr;
     }
 
     auto speedsArray = speedsValue.toArray();
     for (const auto& speedValue : speedsArray) {
         if (!speedValue.isDouble()) {
-            qCCritical(animation) << "AnimNodeLoader, bad number in \"characteristicSpeeds\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad number in \"characteristicSpeeds\", id =" << id;
             return nullptr;
         }
         float speedVal = (float)speedValue.toDouble();
@@ -434,7 +434,7 @@ static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QStri
 
     auto boneSetEnum = stringToBoneSetEnum(boneSet);
     if (boneSetEnum == AnimOverlay::NumBoneSets) {
-        qCCritical(animation) << "AnimNodeLoader, unknown bone set =" << boneSet << ", defaulting to \"fullBody\", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, unknown bone set =" << boneSet << ", defaulting to \"fullBody\"";
         boneSetEnum = AnimOverlay::FullBodyBoneSet;
     }
 
@@ -470,14 +470,14 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
 
     auto jointsValue = jsonObj.value("joints");
     if (!jointsValue.isArray()) {
-        qCCritical(animation) << "AnimNodeLoader, bad array \"joints\" in controller node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad array \"joints\" in controller node, id =" << id;
         return nullptr;
     }
 
     auto jointsArray = jointsValue.toArray();
     for (const auto& jointValue : jointsArray) {
         if (!jointValue.isObject()) {
-            qCCritical(animation) << "AnimNodeLoader, bad state object in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"joints\", id =" << id;
             return nullptr;
         }
         auto jointObj = jointValue.toObject();
@@ -490,13 +490,13 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
 
         AnimManipulator::JointVar::Type jointVarRotationType = stringToAnimManipulatorJointVarType(rotationType);
         if (jointVarRotationType == AnimManipulator::JointVar::Type::NumTypes) {
-            qCWarning(animation) << "AnimNodeLoader, bad rotationType in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCWarning(animation) << "AnimNodeLoader, bad rotationType in \"joints\", id =" << id;
             jointVarRotationType = AnimManipulator::JointVar::Type::Default;
         }
 
         AnimManipulator::JointVar::Type jointVarTranslationType = stringToAnimManipulatorJointVarType(translationType);
         if (jointVarTranslationType == AnimManipulator::JointVar::Type::NumTypes) {
-            qCWarning(animation) << "AnimNodeLoader, bad translationType in \"joints\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCWarning(animation) << "AnimNodeLoader, bad translationType in \"joints\", id =" << id;
             jointVarTranslationType = AnimManipulator::JointVar::Type::Default;
         }
 
@@ -512,14 +512,14 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
 
     auto targetsValue = jsonObj.value("targets");
     if (!targetsValue.isArray()) {
-        qCCritical(animation) << "AnimNodeLoader, bad array \"targets\" in inverseKinematics node, id =" << id << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad array \"targets\" in inverseKinematics node, id =" << id;
         return nullptr;
     }
 
     auto targetsArray = targetsValue.toArray();
     for (const auto& targetValue : targetsArray) {
         if (!targetValue.isObject()) {
-            qCCritical(animation) << "AnimNodeLoader, bad state object in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"targets\", id =" << id;
             return nullptr;
         }
         auto targetObj = targetValue.toObject();
@@ -536,7 +536,7 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
 
         auto flexCoefficientsValue = targetObj.value("flexCoefficients");
         if (!flexCoefficientsValue.isArray()) {
-            qCCritical(animation) << "AnimNodeLoader, bad or missing flexCoefficients array in \"targets\", id =" << id << ", url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad or missing flexCoefficients array in \"targets\", id =" << id;
             return nullptr;
         }
         auto flexCoefficientsArray = flexCoefficientsValue.toArray();
@@ -554,9 +554,10 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         AnimInverseKinematics::SolutionSource solutionSourceType = stringToSolutionSourceEnum(solutionSource);
         if (solutionSourceType != AnimInverseKinematics::SolutionSource::NumSolutionSources) {
             node->setSolutionSource(solutionSourceType);
-        } else {
-            qCWarning(animation) << "AnimNodeLoader, bad solutionSourceType in \"solutionSource\", id = " << id << ", url = " << jsonUrl.toDisplayString();
         }
+    }
+    else {
+        qCWarning(animation) << "AnimNodeLoader, bad solutionSourceType in \"solutionSource\", id = " << id;
     }
 
     READ_OPTIONAL_STRING(solutionSourceVar, jsonObj);
@@ -622,7 +623,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 
     auto statesValue = jsonObj.value("states");
     if (!statesValue.isArray()) {
-        qCCritical(animation) << "AnimNodeLoader, bad array \"states\" in stateMachine node, id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad array \"states\" in stateMachine node, id =" << nodeId;
         return false;
     }
 
@@ -641,7 +642,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
     auto statesArray = statesValue.toArray();
     for (const auto& stateValue : statesArray) {
         if (!stateValue.isObject()) {
-            qCCritical(animation) << "AnimNodeLoader, bad state object in \"states\", id =" << nodeId << ", url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad state object in \"states\", id =" << nodeId;
             return false;
         }
         auto stateObj = stateValue.toObject();
@@ -657,7 +658,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 
         auto iter = childMap.find(id);
         if (iter == childMap.end()) {
-            qCCritical(animation) << "AnimNodeLoader, could not find stateMachine child (state) with nodeId =" << nodeId << "stateId =" << id << "url =" << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, could not find stateMachine child (state) with nodeId =" << nodeId << "stateId =" << id;
             return false;
         }
 
@@ -665,7 +666,7 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         if (!interpType.isEmpty()) {
             interpTypeEnum = stringToInterpType(interpType);
             if (interpTypeEnum == AnimStateMachine::InterpType::NumTypes) {
-                qCCritical(animation) << "AnimNodeLoader, bad interpType on stateMachine state, nodeId = " << nodeId << "stateId =" << id << "url = " << jsonUrl.toDisplayString();
+                qCCritical(animation) << "AnimNodeLoader, bad interpType on stateMachine state, nodeId = " << nodeId << "stateId =" << id;
                 return false;
             }
         }
@@ -688,14 +689,14 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
 
         auto transitionsValue = stateObj.value("transitions");
         if (!transitionsValue.isArray()) {
-            qCritical(animation) << "AnimNodeLoader, bad array \"transitions\" in stateMachine node, stateId =" << id << "nodeId =" << nodeId << "url =" << jsonUrl.toDisplayString();
+            qCritical(animation) << "AnimNodeLoader, bad array \"transitions\" in stateMachine node, stateId =" << id << "nodeId =" << nodeId;
             return false;
         }
 
         auto transitionsArray = transitionsValue.toArray();
         for (const auto& transitionValue : transitionsArray) {
             if (!transitionValue.isObject()) {
-                qCritical(animation) << "AnimNodeLoader, bad transition object in \"transtions\", stateId =" << id << "nodeId =" << nodeId << "url =" << jsonUrl.toDisplayString();
+                qCritical(animation) << "AnimNodeLoader, bad transition object in \"transtions\", stateId =" << id << "nodeId =" << nodeId;
                 return false;
             }
             auto transitionObj = transitionValue.toObject();
@@ -714,14 +715,14 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         if (iter != stateMap.end()) {
             srcState->addTransition(AnimStateMachine::State::Transition(transition.second.first, iter->second));
         } else {
-            qCCritical(animation) << "AnimNodeLoader, bad state machine transtion from srcState =" << srcState->_id << "dstState =" << transition.second.second << "nodeId =" << nodeId << "url = " << jsonUrl.toDisplayString();
+            qCCritical(animation) << "AnimNodeLoader, bad state machine transtion from srcState =" << srcState->_id << "dstState =" << transition.second.second << "nodeId =" << nodeId;
             return false;
         }
     }
 
     auto iter = stateMap.find(currentState);
     if (iter == stateMap.end()) {
-        qCCritical(animation) << "AnimNodeLoader, bad currentState =" << currentState << "could not find child node" << "id =" << nodeId << "url = " << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad currentState =" << currentState << "could not find child node" << "id =" << nodeId;
     }
     smNode->setCurrentState(iter->second);
 
@@ -745,7 +746,7 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
     QJsonParseError error;
     auto doc = QJsonDocument::fromJson(contents, &error);
     if (error.error != QJsonParseError::NoError) {
-        qCCritical(animation) << "AnimNodeLoader, failed to parse json, error =" << error.errorString() << ", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, failed to parse json, error =" << error.errorString();
         return nullptr;
     }
     QJsonObject obj = doc.object();
@@ -753,7 +754,7 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
     // version
     QJsonValue versionVal = obj.value("version");
     if (!versionVal.isString()) {
-        qCCritical(animation) << "AnimNodeLoader, bad string \"version\", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad string \"version\"";
         return nullptr;
     }
     QString version = versionVal.toString();
@@ -761,14 +762,14 @@ AnimNode::Pointer AnimNodeLoader::load(const QByteArray& contents, const QUrl& j
     // check version
     // AJT: TODO version check
     if (version != "1.0" && version != "1.1") {
-        qCCritical(animation) << "AnimNodeLoader, bad version number" << version << "expected \"1.0\", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad version number" << version << "expected \"1.0\"";
         return nullptr;
     }
 
     // root
     QJsonValue rootVal = obj.value("root");
     if (!rootVal.isObject()) {
-        qCCritical(animation) << "AnimNodeLoader, bad object \"root\", url =" << jsonUrl.toDisplayString();
+        qCCritical(animation) << "AnimNodeLoader, bad object \"root\"";
         return nullptr;
     }
 

@@ -13,11 +13,29 @@
 #include "avatar/AvatarManager.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
+#include "PickManager.h"
+
+PickRay RayPick::getMathematicalPick() const {
+    if (!parentTransform) {
+        return _mathPick;
+    }
+
+    Transform currentParentTransform = parentTransform->getTransform();
+    glm::vec3 origin = currentParentTransform.transform(_mathPick.origin);
+    glm::vec3 direction = glm::normalize(currentParentTransform.transformDirection(_mathPick.direction));
+    return PickRay(origin, direction);
+}
 
 PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
+    PickFilter searchFilter = getFilter();
+    if (DependencyManager::get<PickManager>()->getForceCoarsePicking()) {
+        searchFilter.setFlag(PickFilter::COARSE, true);
+        searchFilter.setFlag(PickFilter::PRECISE, false);
+    }
+
     RayToEntityIntersectionResult entityRes =
-        DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
-            getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
+        DependencyManager::get<EntityScriptingInterface>()->evalRayIntersectionVector(pick, searchFilter,
+            getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
     if (entityRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, pick, entityRes.surfaceNormal, entityRes.extraInfo);
     } else {
@@ -26,8 +44,9 @@ PickResultPointer RayPick::getEntityIntersection(const PickRay& pick) {
 }
 
 PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
+    bool precisionPicking = !(getFilter().isCoarse() || DependencyManager::get<PickManager>()->getForceCoarsePicking());
     RayToOverlayIntersectionResult overlayRes =
-        qApp->getOverlays().findRayIntersectionVector(pick, !getFilter().doesPickCoarse(),
+        qApp->getOverlays().findRayIntersectionVector(pick, precisionPicking,
             getIncludeItemsAs<OverlayID>(), getIgnoreItemsAs<OverlayID>(), !getFilter().doesPickInvisible(), !getFilter().doesPickNonCollidable());
     if (overlayRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, pick, overlayRes.surfaceNormal, overlayRes.extraInfo);
@@ -37,7 +56,7 @@ PickResultPointer RayPick::getOverlayIntersection(const PickRay& pick) {
 }
 
 PickResultPointer RayPick::getAvatarIntersection(const PickRay& pick) {
-    RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>());
+    RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(pick, getIncludeItemsAs<EntityItemID>(), getIgnoreItemsAs<EntityItemID>(), true);
     if (avatarRes.intersects) {
         return std::make_shared<RayPickResult>(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection, pick, avatarRes.surfaceNormal, avatarRes.extraInfo);
     } else {
@@ -48,6 +67,18 @@ PickResultPointer RayPick::getAvatarIntersection(const PickRay& pick) {
 PickResultPointer RayPick::getHUDIntersection(const PickRay& pick) {
     glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateRayUICollisionPoint(pick.origin, pick.direction);
     return std::make_shared<RayPickResult>(IntersectionType::HUD, QUuid(), glm::distance(pick.origin, hudRes), hudRes, pick);
+}
+
+Transform RayPick::getResultTransform() const {
+    PickResultPointer result = getPrevPickResult();
+    if (!result) {
+        return Transform();
+    }
+
+    auto rayResult = std::static_pointer_cast<RayPickResult>(result);
+    Transform transform;
+    transform.setTranslation(rayResult->intersection);
+    return transform;
 }
 
 glm::vec3 RayPick::intersectRayWithXYPlane(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& point, const glm::quat& rotation, const glm::vec3& registration) {

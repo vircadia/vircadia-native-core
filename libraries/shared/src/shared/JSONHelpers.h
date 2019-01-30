@@ -15,7 +15,9 @@
 QJsonValue toJsonValue(const quat& q);
 QJsonValue toJsonValue(const vec3& v);
 QJsonValue toJsonValue(const vec4& v);
+QJsonValue toJsonValueHelper(const QVariant& variant, int type);
 QJsonValue toJsonValue(const QObject& o);
+QJsonValue toJsonValue(const QObject& o, const std::vector<QString>& props);
 
 quat quatFromJsonValue(const QJsonValue& q);
 vec3 vec3FromJsonValue(const QJsonValue& v);

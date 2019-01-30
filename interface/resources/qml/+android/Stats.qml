@@ -10,6 +10,7 @@ Item {
     property int modality: Qt.NonModal
     implicitHeight: row.height
     implicitWidth: row.width
+    visible: false
 
     Component.onCompleted: {
         stats.parentChanged.connect(fill);
@@ -191,13 +192,13 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
-                            "Silent: " + root.audioSilentInboundPPS + " pps";
+                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
+                        root.audioMixerOutPps + "pps";
                     }
                     StatText {
                         visible: root.expanded;
-                        text: "Audio Mixer Out: " + root.audioMixerOutKbps + " kbps, " +
-                            root.audioMixerOutPps + "pps";
+                        text: "Audio In Audio: " + root.audioAudioInboundPPS + " pps, " +
+                            "Silent: " + root.audioSilentInboundPPS + " pps";
                     }
                     StatText {
                         visible: root.expanded;
@@ -265,19 +266,26 @@ Item {
                         text: "GPU: " + root.gpuFrameTime.toFixed(1) + " ms"
                     }
                     StatText {
+                        text: "Drawcalls: " + root.drawcalls
+                    }
+                    StatText {
                         text: "Triangles: " + root.triangles +
                             " / Material Switches: " + root.materialSwitches
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "GPU Free Memory: " + root.gpuFreeMemory + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "GPU Textures: ";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  Count: " + root.gpuTextures;
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  Pressure State: " + root.gpuTextureMemoryPressureState;
                     }
                     StatText {
@@ -287,27 +295,35 @@ Item {
                         text: "       " + root.gpuTextureResourceMemory + " / " + root.gpuTextureResourcePopulatedMemory + " / " + root.texturePendingTransfers + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  Resident Memory: " + root.gpuTextureResidentMemory + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  Framebuffer Memory: " + root.gpuTextureFramebufferMemory + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  External Memory: " + root.gpuTextureExternalMemory + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "GPU Buffers: "
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  Count: " + root.gpuBuffers;
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "  Memory: " + root.gpuBufferMemory + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "GL Swapchain Memory: " + root.glContextSwapchainMemory + " MB";
                     }
                     StatText {
+                        visible: root.expanded;
                         text: "QML Texture Memory: " + root.qmlTextureMemory + " MB";
                     }
                     StatText {

@@ -19,6 +19,7 @@
 
 AudioInjectorOptions::AudioInjectorOptions() :
     position(0.0f, 0.0f, 0.0f),
+    positionSet(true),  // default to legacy behavior
     volume(1.0f),
     loop(false),
     orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
@@ -29,12 +30,13 @@ AudioInjectorOptions::AudioInjectorOptions() :
     secondOffset(0.0f),
     pitch(1.0f)
 {
-
 }
 
 QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInjectorOptions& injectorOptions) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("position", vec3toScriptValue(engine, injectorOptions.position));
+    if (injectorOptions.positionSet) {
+        obj.setProperty("position", vec3ToScriptValue(engine, injectorOptions.position));
+    }
     obj.setProperty("volume", injectorOptions.volume);
     obj.setProperty("loop", injectorOptions.loop);
     obj.setProperty("orientation", quatToScriptValue(engine, injectorOptions.orientation));
@@ -68,12 +70,18 @@ void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOpt
         return;
     }
 
+    if (injectorOptions.positionSet == false) {
+        qWarning() << "Audio injector options: injectorOptionsFromScriptValue() called more than once?";
+    }
+    injectorOptions.positionSet = false;
+
     QScriptValueIterator it(object);
     while (it.hasNext()) {
         it.next();
 
         if (it.name() == "position") {
             vec3FromScriptValue(object.property("position"), injectorOptions.position);
+            injectorOptions.positionSet = true;
         } else if (it.name() == "orientation") {
             quatFromScriptValue(object.property("orientation"), injectorOptions.orientation);
         } else if (it.name() == "volume") {

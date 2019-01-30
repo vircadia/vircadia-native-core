@@ -68,6 +68,20 @@ vec4 vec4FromJsonValue(const QJsonValue& v) {
     return glmFromJson<vec4>(v);
 }
 
+QJsonValue toJsonValueHelper(const QVariant& variant, int type) {
+    // User-registered types need explicit conversion
+    if (type == qMetaTypeId<quat>()) {
+        return toJsonValue(variant.value<quat>());
+    } else if (type == qMetaTypeId<vec3>()) {
+        return toJsonValue(variant.value<vec3>());
+    } else if (type == qMetaTypeId<vec4>()) {
+        return toJsonValue(variant.value<vec4>());
+    } else {
+        // Qt types are converted automatically
+        return QJsonValue::fromVariant(variant);
+    }
+}
+
 QJsonValue toJsonValue(const QObject& o) {
     QJsonObject json{};
 
@@ -76,20 +90,8 @@ QJsonValue toJsonValue(const QObject& o) {
     for (int i = meta->propertyOffset(); i < meta->propertyCount(); ++i) {
         QString name = QString::fromLatin1(meta->property(i).name());
         auto type = meta->property(i).userType();
-        QVariant variant{ meta->property(i).read(&o) };
-        QJsonValue value;
-
-        // User-registered types need explicit conversion
-        if (type == qMetaTypeId<quat>()) {
-            value = toJsonValue(variant.value<quat>());
-        } else if (type == qMetaTypeId<vec3>()) {
-            value = toJsonValue(variant.value<vec3>());
-        } else if (type == qMetaTypeId<vec4>()) {
-            value = toJsonValue(variant.value<vec4>());
-        } else {
-            // Qt types are converted automatically
-            value = QJsonValue::fromVariant(variant);
-        }
+        QVariant variant { meta->property(i).read(&o) };
+        QJsonValue value = toJsonValueHelper(variant, type);
 
         json.insert(name, value);
     }
@@ -101,6 +103,24 @@ QJsonValue toJsonValue(const QObject& o) {
         if (!childJson.empty()) {
             json.insert(child->objectName(), childJson);
         }
+    }
+
+    return json;
+}
+
+QJsonValue toJsonValue(const QObject& o, const std::vector<QString>& props) {
+    QJsonObject json {};
+
+    const auto& meta = o.metaObject();
+    // Only add the properties in props
+    for (auto& prop : props) {
+        int i = meta->indexOfProperty(prop.toStdString().c_str());
+        QString name = QString::fromLatin1(meta->property(i).name());
+        auto type = meta->property(i).userType();
+        QVariant variant { meta->property(i).read(&o) };
+        QJsonValue value = toJsonValueHelper(variant, type);
+
+        json.insert(name, value);
     }
 
     return json;

@@ -18,7 +18,7 @@
 #include "AACube.h"
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
-
+#include "Grab.h"
 
 class SpatiallyNestable;
 using SpatiallyNestableWeakPointer = std::weak_ptr<SpatiallyNestable>;
@@ -46,6 +46,8 @@ public:
 
     virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
+
+    virtual bool isMyAvatar() const { return false; }
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
     virtual void setParentJointIndex(quint16 parentJointIndex);
@@ -76,7 +78,7 @@ public:
     static QString nestableTypeToString(NestableType nestableType);
 
 
-    virtual bool isParentPathComplete() const;
+    virtual bool isParentPathComplete(int depth = 0) const;
 
 
     // world frame
@@ -112,6 +114,7 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
+    virtual AACube calculateInitialQueryAACube(bool& success);
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAACubeNeedsUpdate() const;
@@ -163,6 +166,8 @@ public:
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const { return glm::vec3(1.0f); }
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { return glm::vec3(); }
+    virtual int getJointParent(int index) const { return -1; }
+
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {return false; }
 
@@ -187,8 +192,8 @@ public:
     bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
     virtual SpatialParentTree* getParentTree() const { return nullptr; }
 
-    bool hasAncestorOfType(NestableType nestableType) const;
-    const QUuid findAncestorOfType(NestableType nestableType) const;
+    bool hasAncestorOfType(NestableType nestableType, int depth = 0) const;
+    const QUuid findAncestorOfType(NestableType nestableType, int depth = 0) const;
     SpatiallyNestablePointer getParentPointer(bool& success) const;
     static SpatiallyNestablePointer findByID(QUuid id, bool& success);
 
@@ -211,6 +216,11 @@ public:
     virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
     virtual void parentDeleted() { } // called on children of a deleted parent
 
+    virtual void addGrab(GrabPointer grab);
+    virtual void removeGrab(GrabPointer grab);
+    bool hasGrabs();
+    virtual QUuid getEditSenderID();
+
 protected:
     QUuid _id;
     mutable SpatiallyNestableWeakPointer _parent;
@@ -230,6 +240,9 @@ protected:
     quint64 _translationChanged { 0 };
     quint64 _rotationChanged { 0 };
 
+    mutable ReadWriteLockable _grabsLock;
+    QSet<GrabPointer> _grabs;
+
 private:
     SpatiallyNestable() = delete;
     const NestableType _nestableType; // EntityItem or an AvatarData
@@ -246,6 +259,8 @@ private:
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
     bool _queryAACubeIsPuffed { false };
+
+    void breakParentingLoop() const;
 };
 
 

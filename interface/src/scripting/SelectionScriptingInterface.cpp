@@ -421,7 +421,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     auto colorVariant = properties["outlineUnoccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._outlineUnoccluded.color = toGlm(color);
         }
@@ -429,7 +429,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["outlineOccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._outlineOccluded.color = toGlm(color);
         }
@@ -437,7 +437,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["fillUnoccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._fillUnoccluded.color = toGlm(color);
         }
@@ -445,7 +445,7 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
     colorVariant = properties["fillOccludedColor"];
     if (colorVariant.isValid()) {
         bool isValid;
-        auto color = xColorFromVariant(colorVariant, isValid);
+        auto color = u8vec3FromVariant(colorVariant, isValid);
         if (isValid) {
             _style._fillOccluded.color = toGlm(color);
         }
@@ -497,10 +497,11 @@ bool SelectionHighlightStyle::fromVariantMap(const QVariantMap& properties) {
 QVariantMap SelectionHighlightStyle::toVariantMap() const {
     QVariantMap properties;
 
-    properties["outlineUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineUnoccluded.color));
-    properties["outlineOccludedColor"] = xColorToVariant(xColorFromGlm(_style._outlineOccluded.color));
-    properties["fillUnoccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillUnoccluded.color));
-    properties["fillOccludedColor"] = xColorToVariant(xColorFromGlm(_style._fillOccluded.color));
+    const float MAX_COLOR = 255.0f;
+    properties["outlineUnoccludedColor"] = u8vec3ColortoVariant(_style._outlineUnoccluded.color * MAX_COLOR);
+    properties["outlineOccludedColor"] = u8vec3ColortoVariant(_style._outlineOccluded.color * MAX_COLOR);
+    properties["fillUnoccludedColor"] = u8vec3ColortoVariant(_style._fillUnoccluded.color * MAX_COLOR);
+    properties["fillOccludedColor"] = u8vec3ColortoVariant(_style._fillOccluded.color * MAX_COLOR);
 
     properties["outlineUnoccludedAlpha"] = _style._outlineUnoccluded.alpha;
     properties["outlineOccludedAlpha"] = _style._outlineOccluded.alpha;

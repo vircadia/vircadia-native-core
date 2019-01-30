@@ -50,6 +50,8 @@ public:
     virtual void setRenderState(const std::string& state) = 0;
     virtual void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) = 0;
     
+    virtual QVariantMap toVariantMap() const = 0;
+
     virtual void setPrecisionPicking(bool precisionPicking);
     virtual void setIgnoreItems(const QVector<QUuid>& ignoreItems) const;
     virtual void setIncludeItems(const QVector<QUuid>& includeItems) const;
@@ -89,6 +91,7 @@ protected:
 
     virtual bool shouldHover(const PickResultPointer& pickResult) { return true; }
     virtual bool shouldTrigger(const PickResultPointer& pickResult) { return true; }
+    virtual PickResultPointer getPickResultCopy(const PickResultPointer& pickResult) const = 0;
     virtual PickResultPointer getVisualPickResult(const PickResultPointer& pickResult) { return pickResult; };
 
     static const float POINTER_MOVE_DELAY;

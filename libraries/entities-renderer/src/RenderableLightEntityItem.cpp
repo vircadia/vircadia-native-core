@@ -41,7 +41,7 @@ void LightEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPoint
     float largestDiameter = glm::compMax(dimensions);
     light->setMaximumRadius(largestDiameter / 2.0f);
 
-    light->setColor(toGlm(entity->getXColor()));
+    light->setColor(toGlm(entity->getColor()));
 
     float intensity = entity->getIntensity();//* entity->getFadingRatio();
     light->setIntensity(intensity);

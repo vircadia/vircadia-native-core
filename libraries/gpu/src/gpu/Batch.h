@@ -48,6 +48,7 @@ public:
         using Index = uint16_t;
 
         DrawCallInfo(Index idx) : index(idx) {}
+        DrawCallInfo(Index idx, Index user) : index(idx), unused(user) {}
 
         Index index { 0 };
         uint16_t unused { 0 }; // Reserved space for later
@@ -88,13 +89,14 @@ public:
     void captureDrawCallInfo();
     void captureNamedDrawCallInfo(std::string name);
 
-    Batch(const char* name = nullptr);
+    Batch(const std::string& name = "");
     // Disallow copy construction and assignement of batches
     Batch(const Batch& batch) = delete;
     Batch& operator=(const Batch& batch) = delete;
     ~Batch();
 
-    void setName(const char* name);
+    void setName(const std::string& name);
+    const std::string& getName() const { return _name; }
     void clear();
 
     // Batches may need to override the context level stereo settings
@@ -110,6 +112,14 @@ public:
     void enableSkybox(bool enable = true);
     bool isSkyboxEnabled() const;
 
+    // Drawcall Uniform value
+    // One 16bit word uniform value is available during the drawcall
+    // its value must be set before each drawcall
+    void setDrawcallUniform(uint16 uniform);
+    // It is reset to the reset value between each drawcalls
+    // The reset value is 0 by default and can be changed as a batch state with this call
+    void setDrawcallUniformReset(uint16 resetUniform);
+
     // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
     void drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex = 0);
@@ -119,7 +129,7 @@ public:
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
-    BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
+    const BufferPointer& getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
 
     // Input Stage
     // InputFormat
@@ -216,6 +226,8 @@ public:
 
     // Generate the mips for a texture
     void generateTextureMips(const TexturePointer& texture);
+    // Generate the mips for a texture using the current pipeline
+    void generateTextureMipsWithPipeline(const TexturePointer& destTexture, int numMips = -1);
 
     // Query Section
     void beginQuery(const QueryPointer& query);
@@ -316,6 +328,7 @@ public:
         COMMAND_clearFramebuffer,
         COMMAND_blit,
         COMMAND_generateTextureMips,
+        COMMAND_generateTextureMipsWithPipeline,
 
         COMMAND_advance,
 
@@ -417,10 +430,7 @@ public:
             }
 
             const Data& get(uint32 offset) const {
-                if (offset >= _items.size()) {
-                    static const Data EMPTY;
-                    return EMPTY;
-                }
+                assert((offset < _items.size()));
                 return (_items.data() + offset)->_data;
             }
 
@@ -429,6 +439,18 @@ public:
             }
         };
     };
+
+    using CommandHandler = std::function<void(Command, const Param*)>;
+
+    void forEachCommand(const CommandHandler& handler) const {
+        size_t count = _commands.size();
+        for (size_t i = 0; i < count; ++i) {
+            const auto command = _commands[i];
+            const auto offset = _commandOffsets[i];
+            const Param* params = _params.data() + offset;
+            handler(command, params);
+        }
+    }
 
     typedef Cache<BufferPointer>::Vector BufferCaches;
     typedef Cache<TexturePointer>::Vector TextureCaches;
@@ -501,12 +523,15 @@ public:
 
     NamedBatchDataMap _namedData;
 
+    uint16_t _drawcallUniform{ 0 };
+    uint16_t _drawcallUniformReset{ 0 };
+
     glm::vec2 _projectionJitter{ 0.0f, 0.0f };
     bool _enableStereo{ true };
     bool _enableSkybox { false };
 
 protected:
-    const char* _name;
+    std::string _name;
 
     friend class Context;
     friend class Frame;

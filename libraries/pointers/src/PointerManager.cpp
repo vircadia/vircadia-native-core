@@ -77,6 +77,15 @@ PickResultPointer PointerManager::getPrevPickResult(unsigned int uid) const {
     return result;
 }
 
+QVariantMap PointerManager::getPointerProperties(unsigned int uid) const {
+    auto pointer = find(uid);
+    if (pointer) {
+        return pointer->toVariantMap();
+    } else {
+        return QVariantMap();
+    }
+}
+
 void PointerManager::update() {
     auto cachedPointers = resultWithReadLock<std::unordered_map<unsigned int, std::shared_ptr<Pointer>>>([&] {
         return _pointers;

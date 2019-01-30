@@ -40,7 +40,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
                 target.setProperty(name, value.getString());
                 break;
             case AnimVariant::Type::Vec3:
-                target.setProperty(name, vec3toScriptValue(engine, value.getVec3()));
+                target.setProperty(name, vec3ToScriptValue(engine, value.getVec3()));
                 break;
             case AnimVariant::Type::Quat:
                 target.setProperty(name, quatToScriptValue(engine, value.getQuat()));
@@ -67,6 +67,7 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
     }
     return target;
 }
+
 void AnimVariantMap::copyVariantsFrom(const AnimVariantMap& other) {
     for (auto& pair : other._map) {
         _map[pair.first] = pair.second;
@@ -123,4 +124,54 @@ void AnimVariantMap::animVariantMapFromScriptValue(const QScriptValue& source) {
             Q_ASSERT(false);
         }
     }
+}
+
+std::map<QString, QString> AnimVariantMap::toDebugMap() const {
+    std::map<QString, QString> result;
+    for (auto& pair : _map) {
+        switch (pair.second.getType()) {
+        case AnimVariant::Type::Bool:
+            result[pair.first] = QString("%1").arg(pair.second.getBool());
+            break;
+        case AnimVariant::Type::Int:
+            result[pair.first] = QString("%1").arg(pair.second.getInt());
+            break;
+        case AnimVariant::Type::Float:
+            result[pair.first] = QString::number(pair.second.getFloat(), 'f', 3);
+            break;
+        case AnimVariant::Type::Vec3: {
+            // To prevent filling up debug stats, don't show vec3 values
+            /*
+            glm::vec3 value = pair.second.getVec3();
+            result[pair.first] = QString("(%1, %2, %3)").
+                arg(QString::number(value.x, 'f', 3)).
+                arg(QString::number(value.y, 'f', 3)).
+                arg(QString::number(value.z, 'f', 3));
+            */
+            break;
+        }
+        case AnimVariant::Type::Quat: {
+            // To prevent filling up the anim stats, don't show quat values
+            /*
+            glm::quat value = pair.second.getQuat();
+            result[pair.first] = QString("(%1, %2, %3, %4)").
+                arg(QString::number(value.x, 'f', 3)).
+                arg(QString::number(value.y, 'f', 3)).
+                arg(QString::number(value.z, 'f', 3)).
+                arg(QString::number(value.w, 'f', 3));
+            break;
+            */
+        }
+        case AnimVariant::Type::String:
+            // To prevent filling up anim stats, don't show string values
+            /*
+            result[pair.first] = pair.second.getString();
+            break;
+            */
+        default:
+            // invalid AnimVariant::Type
+            assert(false);
+        }
+    }
+    return result;
 }

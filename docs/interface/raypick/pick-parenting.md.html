@@ -1,0 +1,280 @@
+<meta charset="utf-8">
+**Pick Parenting**
+
+# What is a pick?
+
+A pick calculates spatial information about the world on on the client.
+Picks are immutable to allow efficient use by scripts. There are currently four types of picks:
+
+- Ray pick - Finds the first intersected object along a straight path
+- Parabola pick - Finds the first intersected object along a parabolic path
+- Stylus pick - Finds the distance between a point and the XZ planes of a list of whitelisted objects
+- Collision pick - Uses a volume to check for collisions in the physics engine
+
+With the exception of collision picks, all picks use the visible appearance of the object to check for collisions.
+
+# What is parenting?
+
+Parenting allows an object's position, orientation, and scale (where applicable) to be calculated to another object. This collection of state defines the transform of the object.
+
+Pick parenting allows the pick's transform to be calculated relative to another object, without creating a new pick.
+
+# What can be parented to what?
+
+This object...       |                | Entity | My Avatar | 3D Overlay | Pick^1 | Pointer^1 
+---------------------|----------------|--------|-----------|------------|--------|-----------
+Can be parented to...| Entity         | yes    | yes       | yes        | yes    | yes       
+                     | My Avatar      | yes    | no        | yes        | yes    | yes       
+                     | Other Avatar   | yes    | yes       | yes        | yes    | yes       
+                     | 3D Overlay     | yes    | yes       | yes        | yes    | yes       
+                     | Pick           | no     | no        | no         | yes    | yes       
+                     | Pointer        | no     | no        | no         | no     | no        
+                     | The Mouse      | no     | no        | no         | yes    | yes       
+
+- ^1 Excluding stylus, which can only be parented to My Avatar's hands for now
+
+# How pick parenting works
+
+This section describes what happens when picks are parented to things.
+Since pointers use picks to calculate their results, the rules below
+also apply when pointers are parented to things.
+
+## Parent transform exposed
+
+The way a pick is moved/rescaled depends on its parent. In particular,
+parenting to a pick actually parents to the pick's result, which
+has no notion of scale. A pick can also be transformed relative to
+a joint on a model, such as an avatar's hand.
+
+Parent type:              | Entity/Avatar   | 3D Overlay   | Pick   
+--------------------------|-----------------|--------------|--------
+Has position              | yes             | yes          | yes    
+Has orientation           | yes             | yes          | no     
+Has scale                 | yes             | yes          | no     
+Can have joints           | yes             | no           | no     
+
+## Entity or overlay parent
+
+Parenting a pick to an entity or overlay works similarly to
+parenting entities to other things. However, unlike entities,
+picks with scale will rescale their dimensions when
+their parent rescales.
+
+************************************************************************
+*            May have a joint, otherwise parent to the parent's origin *
+*                       |                                              *
+*         scale  ^   +--+------+  ^                  --+ orientation   *
+*   determined  /   /   |     /|  |orientation          \  offset      *
+*        from  /   /    v    / |  |                      v             *
+* dimensions  /   /     o   /..|......................  ^              *
+*            +-> +---------+   | ------------.       . /               *
+*            |   |         |  /     position  +----> */   <----+       *
+*            |   |         | /      offset                    child    *
+*            |   |         |/                       ^         transform*
+*            v   +---------+                       /      <---+        *
+*             .                                   +-> dimensions       *
+*               . . . . . . . . . . . . . .       |   relative         *
+*                                          . . .  v   to parent        *
+************************************************************************
+
+!!! WARNING
+    Skew is not supported for collision picks. Scaling a parent entity or
+    overlay non-uniformly can lead to inaccurate shapes for the child
+    collision pick.
+
+## Avatar parent
+
+A pick parented to an avatar behaves like a wearable. It will maintain
+its position relative to some point on the avatar's body. If the pick
+has scale (currently only collision picks), then the pick will rescale
+when the avatar rescales.
+
+****************************************************************
+*   Avatar       .---.   hand     ^           -.               *
+*      |        |     |  joint   /              |              *
+*      '----->  |     |   \     /orientation    |              *
+*                '-+-'     +-> o                |              *
+*                  |          / ^   position    |relative      *
+*                  +---------'  +-----          |avatar        *
+*                  |                            |scale         *
+*                  |    if not a joint,         |factor        *
+*                  |    parent to the           |(default: 1)  *
+*                  |    avatar's origin         |              *
+*                  |\      |                    |uniform scale *
+*                  | \     |                    |   ^          *
+*                  |  \    |                    |   +->        *
+*                  | o \ <-+                  -'    v          *
+****************************************************************
+
+***************************************************************
+*                                        orientation offset   *
+*                                         <-----+             *
+*                                         ^      \            *
+*                                          \                  *
+*                                           \       child     *
+*   Avatar       .---.   hand     .......... *  <-- transform *
+*      |        |     |  joint   .          ^         |       *
+*      '----->  |     |   \     .          /          v       *
+*                '-+-'     +-> o ---------+       ^           *
+*                  |          /  position         +-> scale   *
+*                  +---------'    offset          v  relative *
+*                  |                               to avatar  *
+***************************************************************
+
+## Pick parent
+
+Picks can also be parented to other picks.
+When this is done, the child pick is actually parented to
+the parent pick's result, not the pick itself.
+
+A pick parented to another pick will have its position changed,
+but not its orientation or scale.
+
+### Ray pick parent
+
+**********************************
+*    position                    *
+*   o                            *
+*    \ \ orientation             *
+*     \ \                        *
+*      \ v    . . . .            *
+*       \   .                    *
+*        \ .   result transform  *
+*         *  <-- no scale        *
+*        .       no orientation  *
+*       .                        *
+**********************************
+
+### Parabola pick parent
+
+**************************************************************
+*                     .------.     acceleration              *
+*                    +        +        |            ^        *
+*    speed x   ^    /          \   .   |            |        *
+* orientation /    /            \ .    v            |        *
+*            /    /              *         y axis to rotate  *
+*                |             . ^         acceleration with *
+*                o            .  |                           *
+*            position      result transform                  *
+*                            no scale                        *
+*                            no orientation                  *
+**************************************************************
+
+### Stylus pick parent
+
+********************************************
+*                                          *
+*                                          *
+*               .                          *
+*                 .                        *
+*                   .                      *
+*   .---.  avatar    *                     *
+*  |     |  hand    / ^.                   *
+*  |     |   \     /   \ .                 *
+*   '-+-'     +-> o     \                  *
+*     |          /       result transform  *
+*     +---------'         no scale         *
+*     |                   no orientation   *
+********************************************
+
+### Collision pick parent
+
+********************************************
+*                                          *
+*       .---.                              *
+*      |     | <-- collision pick          *
+*      |     |                             *
+*      |  *<-+--- result transform at      *
+*      |     |    collision pick position  *
+*      |     |     no scale                *
+* . . . '---' . .  no orientation          *
+*                                          *
+********************************************
+
+# Effect of scale on picks
+
+Scale affects the position and shape of picks, which in turn affects the pick result.
+Scale currently does not affect the max distance of a pick.
+
+## Ray and stylus pick scaling
+
+Rescaling the parent of a ray pick or stylus pick can result in a translation of the pick.
+
+***************************************
+*  before            after            *
+*                                     *
+*                               pick  *
+*        pick   +--------------+ ^    *
+*         ^     |              |/     *
+* +-----+/      |              o      *
+* |     o       |              |      *
+* |     |       |              |      *
+* +-----+       |              |      *
+*  parent       |              |      *
+*               +--------------+      *
+*                    parent           *
+*                                     *
+***************************************
+
+## Parabola pick scaling
+
+***************************************************************************
+*  before            after                 after                          *
+*                     (scaleWithParent      (scaleWithParent              *
+*                      is false)             is true)                     *
+*                                                                         *
+*                                                       .----.            *
+*                                                      +      +           *
+*                                .--.                 /        \          *
+*                               +    +               /          \         *
+*          .--.                /      \             /            \        *
+*         +    +              /pick    \           /pick          \       *
+*        /      \    +-------o            +-------o                       *
+*       /pick    \   |       |            |       |                       *
+*  +---o             |       |            |       |                       *
+*  |   |             |       |            |       |                       *
+*  +---+             +-------+            +-------+                       *
+* parent              parent               parent                         *
+***************************************************************************
+
+## Collision pick scaling
+
+Collision picks use the full transform of their parent (position, orientation, and scale/dimensions).
+When first created, a collision pick's transform is defined in world space.
+As the parent rescales, the collision pick rescales proportionally.
+
+The collision pick's threshold also rescales. The change is proportional to the largest
+dimension of the parent. So, if the largest dimension of the parent was 3.0 and is now 6.0,
+the threshold doubles.
+
+**************************************************************************************
+*                                                                                    *
+*   before                  after                       after                        *
+*                            (scaleWithParent            (scaleWithParent            *
+*                             is false)                   is true)                   *
+*                                                                                    *
+*                                                        pick                        *
+*                                                        +------------+              *
+*                                                        |            |              *
+*                               pick                     |  ........  |              *
+*                               +-----+                  |  .      .  |              *
+*                               |.....|                  |  .      .  |              *
+*                               |.   .|   theshold       |  .      .  |              *
+*    pick                       |.....|___   |           |  .      .  |              *
+*    +-----+                    +-----+--- <-+           |  ........  +___           *
+*    |.....|                                             |            |  theshold    *
+*    |.   .|   theshold                                  +------------+---           *
+*    |.....|___   |                                                                  *
+*    +-----+--- <-+                                                                  *
+*                             +----------+                +----------+               *
+*     +---+                  /            \              /            \              *
+*    +-----+                +--------------+            +--------------+             *
+*    parent                   parent                      parent                     *
+*                                                                                    *
+**************************************************************************************
+
+
+
+<style class="fallback">body{visibility:hidden}</style><script>markdeepOptions={tocStyle:'medium'};</script>
+<link rel="stylesheet" href="../../markdeep_apidoc.css?">
+<!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="../../markdeep.min.js"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

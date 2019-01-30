@@ -29,6 +29,7 @@ float calculateRenderAccuracy(const glm::vec3& position,
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
+float getPerspectiveAccuracyAngleTan(float octreeSizeScale, int boundaryLevelAdjust);
 float getPerspectiveAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust);
 float getOrthographicAccuracySize(float octreeSizeScale, int boundaryLevelAdjust);
 
@@ -37,7 +38,5 @@ const float MIN_ELEMENT_ANGULAR_DIAMETER = 0.0043301f; // radians
 // NOTE: the entity bounding cube is larger than the smallest possible containing octree element by sqrt(3)
 const float MIN_ENTITY_ANGULAR_DIAMETER = MIN_ELEMENT_ANGULAR_DIAMETER * SQRT_THREE;
 const float MIN_VISIBLE_DISTANCE = 0.0001f; // helps avoid divide-by-zero check
-
-bool isAngularSizeBigEnough(glm::vec3 position, const AACube& cube, float lodScaleFactor, float minDiameter);
 
 #endif // hifi_OctreeUtils_h

@@ -22,24 +22,6 @@
 #include "GLMHelpers.h"
 
 /**jsdoc
- * A 3-dimensional vector. See also the {@link Vec3(0)|Vec3} object.
- *
- * @typedef {object} Vec3
- * @property {number} x - X-coordinate of the vector.
- * @property {number} y - Y-coordinate of the vector.
- * @property {number} z - Z-coordinate of the vector.
- */
-
-/**jsdoc
- * A color vector. See also the {@link Vec3(0)|Vec3} object.
- *
- * @typedef {object} Vec3Color
- * @property {number} x - Red component value. Integer in the range <code>0</code> - <code>255</code>.
- * @property {number} y - Green component value. Integer in the range <code>0</code> - <code>255</code>.
- * @property {number} z - Blue component value. Integer in the range <code>0</code> - <code>255</code>.
- */
-
-/**jsdoc
  * The Vec3 API facilities for generating and manipulating 3-dimensional vectors. High Fidelity uses a right-handed 
  * Cartesian coordinate system where the y-axis is the "up" and the negative z-axis is the "front" direction.
  * <img alt="High Fidelity coordinate system" src="https://docs.highfidelity.com/images/opengl-coord-system.jpg" />

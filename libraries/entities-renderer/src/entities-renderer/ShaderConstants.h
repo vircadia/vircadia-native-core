@@ -15,7 +15,6 @@
 #define ENTITIES_SHADER_CONSTANTS_H
 
 // Polyvox
-#define ENTITIES_UNIFORM_POLYVOX_VOXEL_SIZE 0
 #define ENTITIES_TEXTURE_POLYVOX_XMAP 0
 #define ENTITIES_TEXTURE_POLYVOX_YMAP 1
 #define ENTITIES_TEXTURE_POLYVOX_ZMAP 2
@@ -25,17 +24,6 @@
 // <!
 
 namespace entities_renderer { namespace slot {
-
-namespace uniform {
-enum Uniform {
-    PolyvoxVoxelSize = ENTITIES_UNIFORM_POLYVOX_VOXEL_SIZE,
-};
-}
-
-namespace buffer {
-enum Buffer {
-};
-} // namespace buffer
 
 namespace texture {
 enum Texture {

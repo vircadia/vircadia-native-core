@@ -20,7 +20,7 @@
 layout(location=0) out vec4 _fragColor0;
 
 // the albedo texture
-layout(binding=0) uniform sampler2D originalTexture;
+LAYOUT(binding=0) uniform sampler2D originalTexture;
 
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;

@@ -12,6 +12,7 @@
 
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include <QtQuick/QQuickWindow>
 
@@ -65,6 +66,7 @@ void RenderEventHandler::onInitalize() {
         qFatal("Unable to make QML rendering context current on render thread");
     }
     _shared->initializeRenderControl(_canvas.getContext());
+    _initialized = true;
 }
 
 void RenderEventHandler::resize() {
@@ -114,6 +116,7 @@ void RenderEventHandler::onRender() {
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__);
 
+    gl::globalLock();
     if (!_shared->preRender()) {
         return;
     }
@@ -139,32 +142,36 @@ void RenderEventHandler::onRender() {
         glGenerateMipmap(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, 0);
         auto fence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        // Fence will be used in another thread / context, so a flush is required
         glFlush();
         _shared->updateTextureAndFence({ texture, fence });
-        // Fence will be used in another thread / context, so a flush is required
         _shared->_quickWindow->resetOpenGLState();
     }
+    gl::globalRelease();
 }
 
 void RenderEventHandler::onQuit() {
-    if (_canvas.getContext() != QOpenGLContextWrapper::currentContext()) {
-        qFatal("QML rendering context not current on render thread");
-    }
+    if (_initialized) {
+        if (_canvas.getContext() != QOpenGLContextWrapper::currentContext()) {
+            qFatal("QML rendering context not current on render thread");
+        }
 
-    if (_depthStencil) {
-        glDeleteRenderbuffers(1, &_depthStencil);
-        _depthStencil = 0;
-    }
+        if (_depthStencil) {
+            glDeleteRenderbuffers(1, &_depthStencil);
+            _depthStencil = 0;
+        }
 
-    if (_fbo) {
-        glDeleteFramebuffers(1, &_fbo);
-        _fbo = 0;
-    }
+        if (_fbo) {
+            glDeleteFramebuffers(1, &_fbo);
+            _fbo = 0;
+        }
 
-    _shared->shutdownRendering(_canvas, _currentSize);
-    _canvas.doneCurrent();
+        _shared->shutdownRendering(_canvas, _currentSize);
+        _canvas.doneCurrent();
+    }
     _canvas.moveToThreadWithContext(qApp->thread());
     moveToThread(qApp->thread());
     QThread::currentThread()->quit();
 }
+
 #endif

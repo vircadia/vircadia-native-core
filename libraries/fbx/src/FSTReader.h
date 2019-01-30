@@ -18,6 +18,7 @@
 static const QString NAME_FIELD = "name";
 static const QString TYPE_FIELD = "type";
 static const QString FILENAME_FIELD = "filename";
+static const QString MARKETPLACE_ID_FIELD = "marketplaceID";
 static const QString TEXDIR_FIELD = "texdir";
 static const QString LOD_FIELD = "lod";
 static const QString JOINT_INDEX_FIELD = "jointIndex";
@@ -29,6 +30,7 @@ static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
 static const QString BLENDSHAPE_FIELD = "bs";
 static const QString SCRIPT_FIELD = "script";
+static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
 
 class FSTReader {
 public:

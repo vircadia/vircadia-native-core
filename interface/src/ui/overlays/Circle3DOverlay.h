@@ -39,8 +39,8 @@ public:
     float getMinorTickMarksAngle() const { return _minorTickMarksAngle; }
     float getMajorTickMarksLength() const { return _majorTickMarksLength; }
     float getMinorTickMarksLength() const { return _minorTickMarksLength; }
-    xColor getMajorTickMarksColor() const { return _majorTickMarksColor; }
-    xColor getMinorTickMarksColor() const { return _minorTickMarksColor; }
+    glm::u8vec3 getMajorTickMarksColor() const { return _majorTickMarksColor; }
+    glm::u8vec3 getMinorTickMarksColor() const { return _minorTickMarksColor; }
     
     void setStartAt(float value) { _startAt = value; }
     void setEndAt(float value) { _endAt = value; }
@@ -51,8 +51,8 @@ public:
     void setMinorTickMarksAngle(float value) { _minorTickMarksAngle = value; }
     void setMajorTickMarksLength(float value) { _majorTickMarksLength = value; }
     void setMinorTickMarksLength(float value) { _minorTickMarksLength = value; }
-    void setMajorTickMarksColor(const xColor& value) { _majorTickMarksColor = value; }
-    void setMinorTickMarksColor(const xColor& value) { _minorTickMarksColor = value; }
+    void setMajorTickMarksColor(const glm::u8vec3& value) { _majorTickMarksColor = value; }
+    void setMinorTickMarksColor(const glm::u8vec3& value) { _minorTickMarksColor = value; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                      BoxFace& face, glm::vec3& surfaceNormal, bool precisionPicking = false) override;
@@ -67,10 +67,10 @@ protected:
     float _outerRadius { 1 };
     float _innerRadius { 0 };
 
-    xColor _innerStartColor { DEFAULT_OVERLAY_COLOR };
-    xColor _innerEndColor { DEFAULT_OVERLAY_COLOR };
-    xColor _outerStartColor { DEFAULT_OVERLAY_COLOR };
-    xColor _outerEndColor { DEFAULT_OVERLAY_COLOR };
+    glm::u8vec3 _innerStartColor { DEFAULT_OVERLAY_COLOR };
+    glm::u8vec3 _innerEndColor { DEFAULT_OVERLAY_COLOR };
+    glm::u8vec3 _outerStartColor { DEFAULT_OVERLAY_COLOR };
+    glm::u8vec3 _outerEndColor { DEFAULT_OVERLAY_COLOR };
     float _innerStartAlpha { DEFAULT_ALPHA };
     float _innerEndAlpha { DEFAULT_ALPHA };
     float _outerStartAlpha { DEFAULT_ALPHA };
@@ -81,8 +81,8 @@ protected:
     float _minorTickMarksAngle { 0 };
     float _majorTickMarksLength { 0 };
     float _minorTickMarksLength { 0 };
-    xColor _majorTickMarksColor { DEFAULT_OVERLAY_COLOR };
-    xColor _minorTickMarksColor { DEFAULT_OVERLAY_COLOR };
+    glm::u8vec3 _majorTickMarksColor { DEFAULT_OVERLAY_COLOR };
+    glm::u8vec3 _minorTickMarksColor { DEFAULT_OVERLAY_COLOR };
     gpu::Primitive _solidPrimitive { gpu::TRIANGLE_FAN };
     int _quadVerticesID { 0 };
     int _lineVerticesID { 0 };

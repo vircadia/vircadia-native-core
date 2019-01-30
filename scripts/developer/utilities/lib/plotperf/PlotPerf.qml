@@ -48,6 +48,11 @@ Item {
     
 
     property var valueMax : 1
+    property var valueMin : 0
+
+    property var displayMinAt0 : true
+    property var _displayMaxValue : 1
+    property var _displayMinValue : 0
 
     property var _values
     property var tick : 0
@@ -71,7 +76,9 @@ Item {
                 value: value,
                 fromBinding: isBinding,
                 valueMax: 1,
+                valueMin: 0,
                 numSamplesConstantMax: 0,
+                numSamplesConstantMin: 0,
                 valueHistory: new Array(),
                 label: (plot["label"] !== undefined ? plot["label"] : ""),
                 color: (plot["color"] !== undefined ? plot["color"] : "white"),
@@ -90,6 +97,11 @@ Item {
             _values[i].valueMax *= 0.25 // Fast reduce the max value  as we click                   
         }
     }
+    function resetMin() {
+        for (var i = 0; i < _values.length; i++) {
+            _values[i].valueMin *= 0.25 // Fast reduce the min value  as we click                   
+        }
+    }
 
     function pullFreshValues() {
         // Wait until values are created to begin pulling
@@ -99,6 +111,7 @@ Item {
         tick++;
                 
         var currentValueMax = 0
+        var currentValueMin = 0
         for (var i = 0; i < _values.length; i++) {
 
             var currentVal = (+_values[i].object[_values[i].value]) * _values[i].scale;
@@ -112,26 +125,47 @@ Item {
                     _values[i].valueMax *= 0.99
                     _values[i].numSamplesConstantMax = 0
                 }
+                if (lostValue <= _values[i].valueMin) {
+                    _values[i].valueMin *= 0.99
+                    _values[i].numSamplesConstantMin = 0
+                }
             }
 
             if (_values[i].valueMax < currentVal) {
                 _values[i].valueMax = currentVal;
                 _values[i].numSamplesConstantMax = 0 
             }                    
+            if (_values[i].valueMin > currentVal) {
+                _values[i].valueMin = currentVal;
+                _values[i].numSamplesConstantMin = 0 
+            }   
 
             if (_values[i].numSamplesConstantMax > VALUE_HISTORY_SIZE) {
                 _values[i].numSamplesConstantMax = 0     
                 _values[i].valueMax *= 0.95 // lower slowly the current max if no new above max since a while                      
             }
- 
+            if (_values[i].numSamplesConstantMin > VALUE_HISTORY_SIZE) {
+                _values[i].numSamplesConstantMin = 0     
+                _values[i].valueMin *= 0.95 // lower slowly the current min if no new above min since a while                      
+            }
+
             if (currentValueMax < _values[i].valueMax) {
                 currentValueMax = _values[i].valueMax
+            }
+            if (currentValueMin > _values[i].valueMin) {
+                currentValueMin = _values[i].valueMin
             }
         }
 
         if ((valueMax < currentValueMax) || (tick % VALUE_HISTORY_SIZE == 0)) {
             valueMax = currentValueMax;
         }
+        if ((valueMin > currentValueMin) || (tick % VALUE_HISTORY_SIZE == 0)) {
+            valueMin = currentValueMin;
+        }
+        _displayMaxValue = valueMax;
+        _displayMinValue = ( displayMinAt0 ? 0 : valueMin )
+
         mycanvas.requestPaint()
     }
 
@@ -152,10 +186,10 @@ Item {
             }
 
             function pixelFromVal(val, valScale) {
-                return lineHeight + (height - lineHeight) * (1 - (0.9) * val / valueMax);
+                return lineHeight + (height - lineHeight) * (1 - (0.99) * (val - _displayMinValue) / (_displayMaxValue - _displayMinValue));
             }
             function valueFromPixel(pixY) {
-                return ((pixY - lineHeight) / (height - lineHeight) - 1) * valueMax / (-0.9);
+                return _displayMinValue + (((pixY - lineHeight) / (height - lineHeight) - 1) * (_displayMaxValue - _displayMinValue) / (-0.99));
             }
             function plotValueHistory(ctx, valHistory, color) {
                 var widthStep= width / (valHistory.length - 1);
@@ -183,8 +217,10 @@ Item {
             function displayTitle(ctx, text, maxVal) {
                 ctx.fillStyle = "grey";
                 ctx.textAlign = "right";
-                ctx.fillText(displayValue(valueFromPixel(lineHeight), root.valueUnit), width, lineHeight);
+                ctx.fillText("max " + displayValue(_displayMaxValue, root.valueUnit), width, pixelFromVal(_displayMaxValue));
                 
+                ctx.fillText("min " + displayValue(_displayMinValue, root.valueUnit), width, pixelFromVal(_displayMinValue));
+               
                 ctx.fillStyle = "white";
                 ctx.textAlign = "left";
                 ctx.fillText(text, 0, lineHeight);
@@ -193,15 +229,37 @@ Item {
                 ctx.fillStyle = Qt.rgba(0, 0, 0, root.backgroundOpacity);
                 ctx.fillRect(0, 0, width, height);
                 
-                ctx.strokeStyle= "grey";
+              /*  ctx.strokeStyle= "grey";
                 ctx.lineWidth="2";
 
                 ctx.beginPath();
                 ctx.moveTo(0, lineHeight + 1); 
-                ctx.lineTo(width, lineHeight + 1); 
+                ctx.lineTo(width, lineHeight + 1);
                 ctx.moveTo(0, height); 
                 ctx.lineTo(width, height); 
+                ctx.stroke();*/
+            }
+
+            function displayMaxZeroMin(ctx) {
+                var maxY = pixelFromVal(_displayMaxValue);
+                
+                ctx.strokeStyle= "LightSlateGray";
+                ctx.lineWidth="1";
+                ctx.beginPath();
+                ctx.moveTo(0, maxY); 
+                ctx.lineTo(width, maxY);
                 ctx.stroke();
+
+                if (_displayMinValue != 0) { 
+                    var zeroY = pixelFromVal(0);
+                    var minY = pixelFromVal(_displayMinValue);
+                    ctx.beginPath();
+                    ctx.moveTo(0, zeroY); 
+                    ctx.lineTo(width, zeroY);
+                    ctx.moveTo(0, minY); 
+                    ctx.lineTo(width, minY);
+                    ctx.stroke();
+                } 
             }
             
             var ctx = getContext("2d");
@@ -215,7 +273,9 @@ Item {
                 displayValueLegend(ctx, _values[i], i)
             }
 
-            displayTitle(ctx, title, valueMax)
+            displayMaxZeroMin(ctx);
+
+            displayTitle(ctx, title, _displayMaxValue)
         }
     }
 
@@ -225,6 +285,7 @@ Item {
 
         onClicked: {
             resetMax();
+            resetMin();
         }
     }
 }

@@ -50,7 +50,7 @@
 #include "OctreeLogging.h"
 #include "OctreeQueryNode.h"
 #include "OctreeUtils.h"
-
+#include "OctreeEntitiesFileParser.h"
 
 QVector<QString> PERSIST_EXTENSIONS = {"json", "json.gz"};
 
@@ -68,53 +68,10 @@ Octree::~Octree() {
     eraseAllOctreeElements(false);
 }
 
-
-// Inserts the value and key into three arrays sorted by the key array, the first array is the value,
-// the second array is a sorted key for the value, the third array is the index for the value in it original
-// non-sorted array
-// returns -1 if size exceeded
-// originalIndexArray is optional
-int insertOctreeElementIntoSortedArrays(const OctreeElementPointer& value, float key, int originalIndex,
-                                        OctreeElementPointer* valueArray, float* keyArray, int* originalIndexArray,
-                                        int currentCount, int maxCount) {
-
-    if (currentCount < maxCount) {
-        int i = 0;
-        if (currentCount > 0) {
-            while (i < currentCount && key > keyArray[i]) {
-                i++;
-            }
-            // i is our desired location
-            // shift array elements to the right
-            if (i < currentCount && i+1 < maxCount) {
-                for (int j = currentCount - 1; j > i; j--) {
-                    valueArray[j] = valueArray[j - 1];
-                    keyArray[j] = keyArray[j - 1];
-                }
-            }
-        }
-        // place new element at i
-        valueArray[i] = value;
-        keyArray[i] = key;
-        if (originalIndexArray) {
-            originalIndexArray[i] = originalIndex;
-        }
-        return currentCount + 1;
-    }
-    return -1; // error case
-}
-
-
-
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
 void Octree::recurseTreeWithOperation(const RecurseOctreeOperation& operation, void* extraData) {
     recurseElementWithOperation(_rootElement, operation, extraData);
-}
-
-// Recurses voxel tree calling the RecurseOctreePostFixOperation function for each element in post-fix order.
-void Octree::recurseTreeWithPostOperation(const RecurseOctreeOperation& operation, void* extraData) {
-    recurseElementWithPostOperation(_rootElement, operation, extraData);
 }
 
 // Recurses voxel element with an operation function
@@ -129,71 +86,53 @@ void Octree::recurseElementWithOperation(const OctreeElementPointer& element, co
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             OctreeElementPointer child = element->getChildAtIndex(i);
             if (child) {
-                recurseElementWithOperation(child, operation, extraData, recursionCount+1);
+                recurseElementWithOperation(child, operation, extraData, recursionCount + 1);
             }
         }
     }
 }
 
-// Recurses voxel element with an operation function
-void Octree::recurseElementWithPostOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
-                                             void* extraData, int recursionCount) {
+void Octree::recurseTreeWithOperationSorted(const RecurseOctreeOperation& operation, const RecurseOctreeSortingOperation& sortingOperation, void* extraData) {
+    recurseElementWithOperationSorted(_rootElement, operation, sortingOperation, extraData);
+}
+
+// Recurses voxel element with an operation function, calling operation on its children in a specific order
+bool Octree::recurseElementWithOperationSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
+                                               const RecurseOctreeSortingOperation& sortingOperation, void* extraData, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-        return;
+        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperationSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+        // If we go too deep, we want to keep searching other paths
+        return true;
     }
 
+    bool keepSearching = operation(element, extraData);
+
+    std::vector<SortedChild> sortedChildren;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElementPointer child = element->getChildAtIndex(i);
         if (child) {
-            recurseElementWithPostOperation(child, operation, extraData, recursionCount+1);
-        }
-    }
-    operation(element, extraData);
-}
-
-// Recurses voxel tree calling the RecurseOctreeOperation function for each element.
-// stops recursion if operation function returns false.
-void Octree::recurseTreeWithOperationDistanceSorted(const RecurseOctreeOperation& operation,
-                                                       const glm::vec3& point, void* extraData) {
-
-    recurseElementWithOperationDistanceSorted(_rootElement, operation, point, extraData);
-}
-
-// Recurses voxel element with an operation function
-void Octree::recurseElementWithOperationDistanceSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
-                                                       const glm::vec3& point, void* extraData, int recursionCount) {
-
-    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        HIFI_FCDEBUG(octree(), "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
-        return;
-    }
-
-    if (operation(element, extraData)) {
-        // determine the distance sorted order of our children
-        OctreeElementPointer sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-        float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        int currentCount = 0;
-
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            OctreeElementPointer childElement = element->getChildAtIndex(i);
-            if (childElement) {
-                // chance to optimize, doesn't need to be actual distance!! Could be distance squared
-                float distanceSquared = childElement->distanceSquareToPoint(point);
-                currentCount = insertOctreeElementIntoSortedArrays(childElement, distanceSquared, i,
-                                                                   sortedChildren, (float*)&distancesToChildren,
-                                                                   (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
-            }
-        }
-
-        for (int i = 0; i < currentCount; i++) {
-            OctreeElementPointer childElement = sortedChildren[i];
-            if (childElement) {
-                recurseElementWithOperationDistanceSorted(childElement, operation, point, extraData);
+            float priority = sortingOperation(child, extraData);
+            if (priority < FLT_MAX) {
+                sortedChildren.emplace_back(priority, child);
             }
         }
     }
+
+    if (sortedChildren.size() > 1) {
+        static auto comparator = [](const SortedChild& left, const SortedChild& right) { return left.first < right.first; };
+        std::sort(sortedChildren.begin(), sortedChildren.end(), comparator);
+    }
+
+    for (auto it = sortedChildren.begin(); it != sortedChildren.end(); ++it) {
+        const SortedChild& sortedChild = *it;
+        // Our children were sorted, so if one hits something, we don't need to check the others
+        if (!recurseElementWithOperationSorted(sortedChild.second, operation, sortingOperation, extraData, recursionCount + 1)) {
+            return false;
+        }
+    }
+    // We checked all our children and didn't find anything.
+    // Stop if we hit something in this element.  Continue if we didn't.
+    return keepSearching;
 }
 
 void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
@@ -740,15 +679,12 @@ bool Octree::readFromFile(const char* fileName) {
     QFile file(qFileName);
 
     if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << "unable to open for reading: " << fileName;
         return false;
     }
 
     QDataStream fileInputStream(&file);
     QFileInfo fileInfo(qFileName);
     uint64_t fileLength = fileInfo.size();
-
-    qCDebug(octree) << "Loading file" << qFileName << "...";
 
     bool success = readFromStream(fileLength, fileInputStream);
 
@@ -795,11 +731,17 @@ QString getMarketplaceID(const QString& urlString) {
     return QString();
 }
 
-bool Octree::readFromURL(const QString& urlString) {
+bool Octree::readFromURL(
+    const QString& urlString,
+    const bool isObservable,
+    const qint64 callerId
+) {
     QString trimmedUrl = urlString.trimmed();
     QString marketplaceID = getMarketplaceID(trimmedUrl);
-    auto request =
-        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, trimmedUrl));
+    qDebug() << "!!!!! going to createResourceRequest " << callerId;
+    auto request = std::unique_ptr<ResourceRequest>(
+        DependencyManager::get<ResourceManager>()->createResourceRequest(
+            this, trimmedUrl, isObservable, callerId, "Octree::readFromURL"));
 
     if (!request) {
         return false;
@@ -829,7 +771,11 @@ bool Octree::readFromURL(const QString& urlString) {
 }
 
 
-bool Octree::readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID) {
+bool Octree::readFromStream(
+    uint64_t streamLength,
+    QDataStream& inputStream,
+    const QString& marketplaceID
+) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
@@ -846,31 +792,33 @@ bool Octree::readFromStream(uint64_t streamLength, QDataStream& inputStream, con
 }
 
 
+namespace {
 // hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
 // the entity later, but this helps us move things along for now
-QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QString& marketplaceID) {
+QVariantMap addMarketplaceIDToDocumentEntities(QVariantMap& doc, const QString& marketplaceID) {
     if (!marketplaceID.isEmpty()) {
-        QJsonDocument newDoc;
-        QJsonObject rootObj = doc.object();
-        QJsonArray newEntitiesArray;
+        QVariantList newEntitiesArray;
 
         // build a new entities array
-        auto entitiesArray = rootObj["Entities"].toArray();
-        for(auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
-            auto entity = (*it).toObject();
+        auto entitiesArray = doc["Entities"].toList();
+        for (auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
+            auto entity = (*it).toMap();
             entity["marketplaceID"] = marketplaceID;
             newEntitiesArray.append(entity);
         }
-        rootObj["Entities"] = newEntitiesArray;
-        newDoc.setObject(rootObj);
-        return newDoc;
+        doc["Entities"] = newEntitiesArray;
     }
     return doc;
 }
 
+}  // Unnamed namepsace
 const int READ_JSON_BUFFER_SIZE = 2048;
 
-bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
+bool Octree::readJSONFromStream(
+    uint64_t streamLength,
+    QDataStream& inputStream,
+    const QString& marketplaceID /*=""*/
+) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
 
@@ -889,12 +837,18 @@ bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream,
         jsonBuffer += QByteArray(rawData, got);
     }
 
-    QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
-    if (!marketplaceID.isEmpty()) {
-        asDocument = addMarketplaceIDToDocumentEntities(asDocument, marketplaceID);
+    OctreeEntitiesFileParser octreeParser;
+    octreeParser.setEntitiesString(jsonBuffer);
+    QVariantMap asMap;
+    if (!octreeParser.parseEntities(asMap)) {
+        qCritical() << "Couldn't parse Entities JSON:" << octreeParser.getErrorString().c_str();
+        return false;
     }
-    QVariant asVariant = asDocument.toVariant();
-    QVariantMap asMap = asVariant.toMap();
+
+    if (!marketplaceID.isEmpty()) {
+        addMarketplaceIDToDocumentEntities(asMap, marketplaceID);
+    }
+
     bool success = readFromMap(asMap);
     delete[] rawData;
     return success;
@@ -939,26 +893,52 @@ bool Octree::toJSONDocument(QJsonDocument* doc, const OctreeElementPointer& elem
         return false;
     }
 
-    *doc = QJsonDocument::fromVariant(entityDescription);
+
+    bool noEntities = entityDescription["Entities"].toList().empty();
+    QJsonDocument jsonDocTree = QJsonDocument::fromVariant(entityDescription);
+    QJsonValue entitiesJson = jsonDocTree["Entities"];
+    if (entitiesJson.isNull() || (entitiesJson.toArray().empty() && !noEntities)) {
+        // Json version of entities too large.
+        return false;
+    } else {
+        *doc = jsonDocTree;
+    }
+
+    return true;
+}
+
+bool Octree::toJSONString(QString& jsonString, const OctreeElementPointer& element) {
+    OctreeElementPointer top;
+    if (element) {
+        top = element;
+    } else {
+        top = _rootElement;
+    }
+
+    jsonString += QString("{\n  \"DataVersion\": %1,\n  \"Entities\": [").arg(_persistDataVersion);
+
+    writeToJSON(jsonString, top);
+
+    // include the "bitstream" version
+    PacketType expectedType = expectedDataPacketType();
+    PacketVersion expectedVersion = versionForPacketType(expectedType);
+
+    jsonString += QString("\n    ],\n  \"Id\": \"%1\",\n  \"Version\": %2\n}\n").arg(_persistID.toString()).arg((int)expectedVersion);
+
     return true;
 }
 
 bool Octree::toJSON(QByteArray* data, const OctreeElementPointer& element, bool doGzip) {
-    QJsonDocument doc;
-    if (!toJSONDocument(&doc, element)) {
-        qCritical("Failed to convert Entities to QVariantMap while converting to json.");
-        return false;
-    }
+    QString jsonString;
+    toJSONString(jsonString);
 
     if (doGzip) {
-        QByteArray jsonData = doc.toJson();
-
-        if (!gzip(jsonData, *data, -1)) {
+        if (!gzip(jsonString.toUtf8(), *data, -1)) {
             qCritical("Unable to gzip data while saving to json.");
             return false;
         }
     } else {
-        *data = doc.toJson();
+        *data = jsonString.toUtf8();
     }
 
     return true;

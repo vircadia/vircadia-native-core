@@ -90,10 +90,10 @@ bool operator==(const Properties& a, const Properties& b) {
     return
         (a.color == b.color) &&
         (a.alpha == b.alpha) &&
+        (a.radiusStart == b.radiusStart) &&
         (a.radius == b.radius) &&
         (a.spin == b.spin) &&
         (a.rotateWithEntity == b.rotateWithEntity) &&
-        (a.radiusStart == b.radiusStart) &&
         (a.lifespan == b.lifespan) &&
         (a.maxParticles == b.maxParticles) &&
         (a.emission == b.emission) &&
@@ -117,18 +117,7 @@ bool Properties::valid() const {
         (alpha.range.start == glm::clamp(alpha.range.start, MINIMUM_ALPHA, MAXIMUM_ALPHA)) &&
         (alpha.range.finish == glm::clamp(alpha.range.finish, MINIMUM_ALPHA, MAXIMUM_ALPHA)) &&
         (alpha.gradient.spread == glm::clamp(alpha.gradient.spread, MINIMUM_ALPHA, MAXIMUM_ALPHA)) &&
-        (lifespan == glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN)) &&
-        (emission.rate == glm::clamp(emission.rate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE)) &&
-        (emission.speed.target == glm::clamp(emission.speed.target, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
-        (emission.speed.spread == glm::clamp(emission.speed.spread, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
-        (emission.dimensions == glm::clamp(emission.dimensions, vec3(MINIMUM_EMIT_DIMENSION), vec3(MAXIMUM_EMIT_DIMENSION))) &&
         (radiusStart == glm::clamp(radiusStart, MINIMUM_EMIT_RADIUS_START, MAXIMUM_EMIT_RADIUS_START)) &&
-        (polar.start == glm::clamp(polar.start, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
-        (polar.finish == glm::clamp(polar.finish, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
-        (azimuth.start == glm::clamp(azimuth.start, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)) &&
-        (azimuth.finish == glm::clamp(azimuth.finish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)) &&
-        (emission.acceleration.target == glm::clamp(emission.acceleration.target, vec3(MINIMUM_EMIT_ACCELERATION), vec3(MAXIMUM_EMIT_ACCELERATION))) &&
-        (emission.acceleration.spread == glm::clamp(emission.acceleration.spread, vec3(MINIMUM_ACCELERATION_SPREAD), vec3(MAXIMUM_ACCELERATION_SPREAD))) &&
         (radius.gradient.target == glm::clamp(radius.gradient.target, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
         (radius.range.start == glm::clamp(radius.range.start, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
         (radius.range.finish == glm::clamp(radius.range.finish, MINIMUM_PARTICLE_RADIUS, MAXIMUM_PARTICLE_RADIUS)) &&
@@ -136,7 +125,19 @@ bool Properties::valid() const {
         (spin.gradient.target == glm::clamp(spin.gradient.target, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
         (spin.range.start == glm::clamp(spin.range.start, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
         (spin.range.finish == glm::clamp(spin.range.finish, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
-        (spin.gradient.spread == glm::clamp(spin.gradient.spread, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN));
+        (spin.gradient.spread == glm::clamp(spin.gradient.spread, MINIMUM_PARTICLE_SPIN, MAXIMUM_PARTICLE_SPIN)) &&
+        (lifespan == glm::clamp(lifespan, MINIMUM_LIFESPAN, MAXIMUM_LIFESPAN)) &&
+        (maxParticles == glm::clamp(maxParticles, MINIMUM_MAX_PARTICLES, MAXIMUM_MAX_PARTICLES)) &&
+        (emission.rate == glm::clamp(emission.rate, MINIMUM_EMIT_RATE, MAXIMUM_EMIT_RATE)) &&
+        (emission.speed.target == glm::clamp(emission.speed.target, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
+        (emission.speed.spread == glm::clamp(emission.speed.spread, MINIMUM_EMIT_SPEED, MAXIMUM_EMIT_SPEED)) &&
+        (emission.acceleration.target == glm::clamp(emission.acceleration.target, vec3(MINIMUM_EMIT_ACCELERATION), vec3(MAXIMUM_EMIT_ACCELERATION))) &&
+        (emission.acceleration.spread == glm::clamp(emission.acceleration.spread, vec3(MINIMUM_ACCELERATION_SPREAD), vec3(MAXIMUM_ACCELERATION_SPREAD)) &&
+        (emission.dimensions == glm::clamp(emission.dimensions, vec3(MINIMUM_EMIT_DIMENSION), vec3(MAXIMUM_EMIT_DIMENSION))) &&
+        (polar.start == glm::clamp(polar.start, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
+        (polar.finish == glm::clamp(polar.finish, MINIMUM_POLAR, MAXIMUM_POLAR)) &&
+        (azimuth.start == glm::clamp(azimuth.start, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)) &&
+        (azimuth.finish == glm::clamp(azimuth.finish, MINIMUM_AZIMUTH, MAXIMUM_AZIMUTH)));
 }
 
 bool Properties::emitting() const {
@@ -151,9 +152,6 @@ uint64_t Properties::emitIntervalUsecs() const {
     return 0;
 }
 
-const xColor ParticleEffectEntityItem::DEFAULT_XCOLOR = xColor(static_cast<unsigned char>(DEFAULT_COLOR.r), static_cast<unsigned char>(DEFAULT_COLOR.g), static_cast<unsigned char>(DEFAULT_COLOR.b));
-const xColor ParticleEffectEntityItem::DEFAULT_XCOLOR_SPREAD = xColor(static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.r), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.g), static_cast<unsigned char>(DEFAULT_COLOR_SPREAD.b));
-
 EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity(new ParticleEffectEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
@@ -165,7 +163,7 @@ ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityIte
     EntityItem(entityItemID)
 {
     _type = EntityTypes::ParticleEffect;
-    setColor(DEFAULT_COLOR);
+    _visuallyReady = false;
 }
 
 void ParticleEffectEntityItem::setAlpha(float alpha) {
@@ -408,14 +406,20 @@ void ParticleEffectEntityItem::computeAndUpdateDimensions() {
 }
 
 
-EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
-    EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
+EntityItemProperties ParticleEffectEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
+    EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType); // FIXME - this doesn't appear to get used
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxParticles, getMaxParticles);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifespan, getLifespan);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isEmitting, getIsEmitting);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRate, getEmitRate);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitSpeed, getEmitSpeed);
@@ -423,24 +427,30 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitOrientation, getEmitOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitDimensions, getEmitDimensions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitRadiusStart, getEmitRadiusStart);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(polarStart, getPolarStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(polarFinish, getPolarFinish);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(azimuthStart, getAzimuthStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(azimuthFinish, getAzimuthFinish);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitAcceleration, getEmitAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(accelerationSpread, getAccelerationSpread);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleRadius, getParticleRadius);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusSpread, getRadiusSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusStart, getRadiusStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(radiusFinish, getRadiusFinish);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorSpread, getColorSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorStart, getColorStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(colorFinish, getColorFinish);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaSpread, getAlphaSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaStart, getAlphaStart);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alphaFinish, getAlphaFinish);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(emitterShouldTrail, getEmitterShouldTrail);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(particleSpin, getParticleSpin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(spinSpread, getSpinSpread);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(spinStart, getSpinStart);
@@ -453,11 +463,18 @@ EntityItemProperties ParticleEffectEntityItem::getProperties(EntityPropertyFlags
 bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, setShapeType);
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxParticles, setMaxParticles);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifespan, setLifespan);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isEmitting, setIsEmitting);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRate, setEmitRate);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitSpeed, setEmitSpeed);
@@ -465,24 +482,30 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitOrientation, setEmitOrientation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitDimensions, setEmitDimensions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitRadiusStart, setEmitRadiusStart);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(polarStart, setPolarStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(polarFinish, setPolarFinish);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(azimuthStart, setAzimuthStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(azimuthFinish, setAzimuthFinish);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitAcceleration, setEmitAcceleration);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(accelerationSpread, setAccelerationSpread);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleRadius, setParticleRadius);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusSpread, setRadiusSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusStart, setRadiusStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(radiusFinish, setRadiusFinish);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorSpread, setColorSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorStart, setColorStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(colorFinish, setColorFinish);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaSpread, setAlphaSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaStart, setAlphaStart);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alphaFinish, setAlphaFinish);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(emitterShouldTrail, setEmitterShouldTrail);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(particleSpin, setParticleSpin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(spinSpread, setSpinSpread);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(spinStart, setSpinStart);
@@ -502,26 +525,10 @@ bool ParticleEffectEntityItem::setProperties(const EntityItemProperties& propert
     return somethingChanged;
 }
 
-void ParticleEffectEntityItem::setColor(const vec3& value) {
+void ParticleEffectEntityItem::setColor(const glm::u8vec3& value) {
     withWriteLock([&] {
         _particleProperties.color.gradient.target = value;
     });
-}
-
-void ParticleEffectEntityItem::setColor(const xColor& value) {
-    withWriteLock([&] {
-        _particleProperties.color.gradient.target.r = value.red;
-        _particleProperties.color.gradient.target.g = value.green;
-        _particleProperties.color.gradient.target.b = value.blue;
-    });
-}
-
-xColor ParticleEffectEntityItem::getXColor() const {
-    xColor color;
-    color.red = _particleProperties.color.gradient.target.r;
-    color.green = _particleProperties.color.gradient.target.g;
-    color.blue = _particleProperties.color.gradient.target.b;
-    return color;
 }
 
 int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
@@ -532,39 +539,49 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_COLOR, xColor, setColor);
-    READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
-    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
-    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
-    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
-
-    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, vec3, setEmitAcceleration);
-    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, vec3, setAccelerationSpread);
-    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
+    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
-    READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
-    READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
-    READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
+    READ_ENTITY_PROPERTY(PROP_MAX_PARTICLES, quint32, setMaxParticles);
+    READ_ENTITY_PROPERTY(PROP_LIFESPAN, float, setLifespan);
 
-    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, xColor, setColorSpread);
-    READ_ENTITY_PROPERTY(PROP_COLOR_START, vec3, setColorStart);
-    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, vec3, setColorFinish);
-    READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
-    READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
-    READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
-    READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
-
+    READ_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
+    READ_ENTITY_PROPERTY(PROP_EMIT_RATE, float, setEmitRate);
     READ_ENTITY_PROPERTY(PROP_EMIT_SPEED, float, setEmitSpeed);
     READ_ENTITY_PROPERTY(PROP_SPEED_SPREAD, float, setSpeedSpread);
     READ_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, quat, setEmitOrientation);
-    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, vec3, setEmitDimensions);
+    READ_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, glm::vec3, setEmitDimensions);
     READ_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
+
     READ_ENTITY_PROPERTY(PROP_POLAR_START, float, setPolarStart);
     READ_ENTITY_PROPERTY(PROP_POLAR_FINISH, float, setPolarFinish);
     READ_ENTITY_PROPERTY(PROP_AZIMUTH_START, float, setAzimuthStart);
     READ_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
+
+    READ_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, glm::vec3, setEmitAcceleration);
+    READ_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, glm::vec3, setAccelerationSpread);
+
+    READ_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, float, setParticleRadius);
+    READ_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, float, setRadiusSpread);
+    READ_ENTITY_PROPERTY(PROP_RADIUS_START, float, setRadiusStart);
+    READ_ENTITY_PROPERTY(PROP_RADIUS_FINISH, float, setRadiusFinish);
+
+    READ_ENTITY_PROPERTY(PROP_COLOR_SPREAD, u8vec3Color, setColorSpread);
+    READ_ENTITY_PROPERTY(PROP_COLOR_START, vec3Color, setColorStart);
+    READ_ENTITY_PROPERTY(PROP_COLOR_FINISH, vec3Color, setColorFinish);
+
+    READ_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, float, setAlphaSpread);
+    READ_ENTITY_PROPERTY(PROP_ALPHA_START, float, setAlphaStart);
+    READ_ENTITY_PROPERTY(PROP_ALPHA_FINISH, float, setAlphaFinish);
 
     READ_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
 
@@ -580,36 +597,46 @@ int ParticleEffectEntityItem::readEntitySubclassDataFromBuffer(const unsigned ch
 EntityPropertyFlags ParticleEffectEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
 
-    requestedProperties += PROP_COLOR;
     requestedProperties += PROP_SHAPE_TYPE;
+    requestedProperties += PROP_COLOR;
+    requestedProperties += PROP_ALPHA;
+    requestedProperties += _pulseProperties.getEntityProperties(params);
+    requestedProperties += PROP_TEXTURES;
+
     requestedProperties += PROP_MAX_PARTICLES;
     requestedProperties += PROP_LIFESPAN;
+
     requestedProperties += PROP_EMITTING_PARTICLES;
     requestedProperties += PROP_EMIT_RATE;
-    requestedProperties += PROP_EMIT_ACCELERATION;
-    requestedProperties += PROP_ACCELERATION_SPREAD;
-    requestedProperties += PROP_PARTICLE_RADIUS;
-    requestedProperties += PROP_TEXTURES;
-    requestedProperties += PROP_RADIUS_SPREAD;
-    requestedProperties += PROP_RADIUS_START;
-    requestedProperties += PROP_RADIUS_FINISH;
-    requestedProperties += PROP_COLOR_SPREAD;
-    requestedProperties += PROP_COLOR_START;
-    requestedProperties += PROP_COLOR_FINISH;
-    requestedProperties += PROP_ALPHA;
-    requestedProperties += PROP_ALPHA_SPREAD;
-    requestedProperties += PROP_ALPHA_START;
-    requestedProperties += PROP_ALPHA_FINISH;
     requestedProperties += PROP_EMIT_SPEED;
     requestedProperties += PROP_SPEED_SPREAD;
     requestedProperties += PROP_EMIT_ORIENTATION;
     requestedProperties += PROP_EMIT_DIMENSIONS;
     requestedProperties += PROP_EMIT_RADIUS_START;
+
     requestedProperties += PROP_POLAR_START;
     requestedProperties += PROP_POLAR_FINISH;
     requestedProperties += PROP_AZIMUTH_START;
     requestedProperties += PROP_AZIMUTH_FINISH;
+
+    requestedProperties += PROP_EMIT_ACCELERATION;
+    requestedProperties += PROP_ACCELERATION_SPREAD;
+
+    requestedProperties += PROP_PARTICLE_RADIUS;
+    requestedProperties += PROP_RADIUS_SPREAD;
+    requestedProperties += PROP_RADIUS_START;
+    requestedProperties += PROP_RADIUS_FINISH;
+
+    requestedProperties += PROP_COLOR_SPREAD;
+    requestedProperties += PROP_COLOR_START;
+    requestedProperties += PROP_COLOR_FINISH;
+
+    requestedProperties += PROP_ALPHA_SPREAD;
+    requestedProperties += PROP_ALPHA_START;
+    requestedProperties += PROP_ALPHA_FINISH;
+
     requestedProperties += PROP_EMITTER_SHOULD_TRAIL;
+
     requestedProperties += PROP_PARTICLE_SPIN;
     requestedProperties += PROP_SPIN_SPREAD;
     requestedProperties += PROP_SPIN_START;
@@ -628,44 +655,55 @@ void ParticleEffectEntityItem::appendSubclassData(OctreePacketData* packetData, 
                                                   OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_COLOR, getXColor());
-    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+
     APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, getMaxParticles());
     APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, getLifespan());
+
+    APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, getIsEmitting());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, getEmitRate());
-    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getEmitAcceleration());
-    APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getAccelerationSpread());
-    APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
-    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
-    APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
-    APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
-    APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getColorStart());
-    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getColorFinish());
-    APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
-    APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
-    APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
-    APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, getAlphaFinish());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, getEmitSpeed());
     APPEND_ENTITY_PROPERTY(PROP_SPEED_SPREAD, getSpeedSpread());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, getEmitOrientation());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, getEmitDimensions());
     APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, getEmitRadiusStart());
+
     APPEND_ENTITY_PROPERTY(PROP_POLAR_START, getPolarStart());
     APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, getPolarFinish());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, getAzimuthStart());
     APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, getAzimuthFinish());
+
+    APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, getEmitAcceleration());
+    APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, getAccelerationSpread());
+
+    APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, getParticleRadius());
+    APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, getRadiusSpread());
+    APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, getRadiusStart());
+    APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, getRadiusFinish());
+
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, getColorSpread());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_START, getColorStart());
+    APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, getColorFinish());
+
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, getAlphaSpread());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, getAlphaStart());
+    APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, getAlphaFinish());
+
     APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, getEmitterShouldTrail());
+
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_SPIN, getParticleSpin());
     APPEND_ENTITY_PROPERTY(PROP_SPIN_SPREAD, getSpinSpread());
     APPEND_ENTITY_PROPERTY(PROP_SPIN_START, getSpinStart());
     APPEND_ENTITY_PROPERTY(PROP_SPIN_FINISH, getSpinFinish());
     APPEND_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, getRotateWithEntity());
 }
-
-
 
 void ParticleEffectEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
@@ -712,20 +750,10 @@ void ParticleEffectEntityItem::setColorFinish(const vec3& colorFinish) {
     });
 }
 
-void ParticleEffectEntityItem::setColorSpread(const xColor& value) {
+void ParticleEffectEntityItem::setColorSpread(const glm::u8vec3& value) {
     withWriteLock([&] {
-        _particleProperties.color.gradient.spread.r = value.red;
-        _particleProperties.color.gradient.spread.g = value.green;
-        _particleProperties.color.gradient.spread.b = value.blue;
+        _particleProperties.color.gradient.spread = value;
     });
-}
-
-xColor ParticleEffectEntityItem::getColorSpread() const {
-    xColor color;
-    color.red = _particleProperties.color.gradient.spread.r;
-    color.green = _particleProperties.color.gradient.spread.g;
-    color.blue = _particleProperties.color.gradient.spread.b;
-    return color;
 }
 
 void ParticleEffectEntityItem::setEmitterShouldTrail(bool emitterShouldTrail) {
@@ -777,4 +805,10 @@ particle::Properties ParticleEffectEntityItem::getParticleProperties() const {
     }
 
     return result; 
+}
+
+PulsePropertyGroup ParticleEffectEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
+    });
 }

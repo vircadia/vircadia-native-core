@@ -79,10 +79,11 @@ bool SDL2Manager::activate() {
         auto preferences = DependencyManager::get<Preferences>();
         static const QString SDL2_PLUGIN { "Game Controller" };
         {
-            auto getter = [this]()->bool { return _isEnabled; };
+            auto getter = [this]()->bool { return _enabled; };
             auto setter = [this](bool value) {
-                _isEnabled = value;
+                _enabled = value;
                 saveSettings();
+                emit deviceStatusChanged(getName(), isRunning());
             };
             auto preference = new CheckPreference(SDL2_PLUGIN, "Enabled", getter, setter);
             preferences->addPreference(preference);
@@ -147,7 +148,7 @@ void SDL2Manager::saveSettings() const {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        settings.setValue(QString(SETTINGS_ENABLED_KEY), _isEnabled);
+        settings.setValue(QString(SETTINGS_ENABLED_KEY), _enabled);
     }
     settings.endGroup();
 }
@@ -157,7 +158,8 @@ void SDL2Manager::loadSettings() {
     QString idString = getID();
     settings.beginGroup(idString);
     {
-        _isEnabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
+        _enabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
+        emit deviceStatusChanged(getName(), isRunning());
     }
     settings.endGroup();
 }
@@ -173,7 +175,7 @@ void SDL2Manager::pluginFocusOutEvent() {
 }
 
 void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
-    if (!_isEnabled) {
+    if (!_enabled) {
         return;
     }
 

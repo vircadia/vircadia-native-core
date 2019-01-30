@@ -17,7 +17,7 @@ float paintStripe(float value, float offset, float scale, float edge) {
     float width = fwidth(value);
     float normalizedWidth = width * scale;
 
-    float x0 = (value + offset) * scale - normalizedWidth / 2;
+    float x0 = (value + offset) * scale - normalizedWidth / 2.0;
     float x1 = x0 + normalizedWidth;
 
     float balance = 1.0 - edge;

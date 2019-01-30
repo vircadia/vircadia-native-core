@@ -13,6 +13,7 @@
 
 #include <assert.h>
 #include <mutex>
+#include <queue>
 
 #include <GLMHelpers.h>
 
@@ -23,6 +24,7 @@
 #include "Pipeline.h"
 #include "Framebuffer.h"
 #include "Frame.h"
+#include "PointerStorage.h"
 
 class QImage;
 
@@ -61,6 +63,7 @@ public:
 
     virtual void render(const Batch& batch) = 0;
     virtual void syncCache() = 0;
+    virtual void syncProgram(const gpu::ShaderPointer& program) = 0;
     virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
 
@@ -160,8 +163,8 @@ public:
     void appendFrameBatch(const BatchPointer& batch);
     FramePointer endFrame();
 
-    BatchPointer acquireBatch(const char* name = nullptr);
-    void releaseBatch(Batch* batch);
+    static BatchPointer acquireBatch(const char* name = nullptr);
+    static void releaseBatch(Batch* batch);
 
     // MUST only be called on the rendering thread
     //
@@ -172,6 +175,11 @@ public:
     //
     // Execute a batch immediately, rather than as part of a frame
     void executeBatch(Batch& batch) const;
+
+    // MUST only be called on the rendering thread
+    //
+    // Execute a batch immediately, rather than as part of a frame
+    void executeBatch(const char* name, std::function<void(Batch&)> lambda) const;
 
     // MUST only be called on the rendering thread
     //
@@ -218,6 +226,8 @@ public:
     // Same as above but grabbed at every end of a frame
     void getFrameStats(ContextStats& stats) const;
 
+	static PipelinePointer createMipGenerationPipeline(const ShaderPointer& pixelShader);
+
     double getFrameTimerGPUAverage() const;
     double getFrameTimerBatchAverage() const;
 
@@ -245,22 +255,44 @@ public:
     static Size getTextureResourcePopulatedGPUMemSize();
     static Size getTextureResourceIdealGPUMemSize();
 
+    struct ProgramsToSync {
+        ProgramsToSync(const std::vector<gpu::ShaderPointer>& programs, std::function<void()> callback, size_t rate) :
+            programs(programs), callback(callback), rate(rate) {}
+
+        std::vector<gpu::ShaderPointer> programs;
+        std::function<void()> callback;
+        size_t rate;
+    };
+
+    void pushProgramsToSync(const std::vector<uint32_t>& programIDs, std::function<void()> callback, size_t rate = 0);
+    void pushProgramsToSync(const std::vector<gpu::ShaderPointer>& programs, std::function<void()> callback, size_t rate = 0);
+
+    void processProgramsToSync();
+
 protected:
     Context(const Context& context);
 
     std::shared_ptr<Backend> _backend;
-    std::mutex _batchPoolMutex;
-    std::list<Batch*> _batchPool;
     bool _frameActive{ false };
     FramePointer _currentFrame;
     RangeTimerPointer _frameRangeTimer;
     StereoState _stereo;
+
+    std::mutex _programsToSyncMutex;
+    std::queue<ProgramsToSync> _programsToSyncQueue;
+    gpu::Shaders _syncedPrograms;
+    size_t _nextProgramToSyncIndex { 0 };
 
     // Sampled at the end of every frame, the stats of all the counters
     mutable ContextStats _frameStats;
 
     static CreateBackend _createBackendCallback;
     static std::once_flag _initialized;
+
+    // Should probably move this functionality to Batch
+    static void clearBatches();
+    static std::mutex _batchPoolMutex;
+    static std::list<Batch*> _batchPool;
 
     friend class Shader;
     friend class Backend;

@@ -48,10 +48,24 @@ AvatarActionHold::~AvatarActionHold() {
             myAvatar->removeHoldAction(this);
         }
     }
+    auto ownerEntity = _ownerEntity.lock();
+    if (ownerEntity) {
+        ownerEntity->setTransitingWithAvatar(false);
+    }
 
 #if WANT_DEBUG
     qDebug() << "AvatarActionHold::~AvatarActionHold" << (void*)this;
 #endif
+}
+
+void AvatarActionHold::removeFromOwner() {
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    if (avatarManager) {
+        auto myAvatar = avatarManager->getMyAvatar();
+        if (myAvatar) {
+            myAvatar->removeHoldAction(this);
+        }
+    }
 }
 
 bool AvatarActionHold::getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
@@ -130,6 +144,15 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
 
         glm::vec3 palmPosition;
         glm::quat palmRotation;
+
+        bool isTransitingWithAvatar = holdingAvatar->getTransit()->isActive();
+        if (isTransitingWithAvatar != _isTransitingWithAvatar) {
+            _isTransitingWithAvatar = isTransitingWithAvatar;
+            auto ownerEntity = _ownerEntity.lock();
+            if (ownerEntity) {
+                ownerEntity->setTransitingWithAvatar(_isTransitingWithAvatar);
+            }
+        }
 
         if (holdingAvatar->isMyAvatar()) {
             std::shared_ptr<MyAvatar> myAvatar = avatarManager->getMyAvatar();
@@ -213,7 +236,7 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
         }
 
         rotation = palmRotation * _relativeRotation;
-        position = palmPosition + rotation * _relativePosition;
+        position = palmPosition + palmRotation * _relativePosition;
 
         // update linearVelocity based on offset via _relativePosition;
         linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
@@ -265,39 +288,37 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             glm::vec3 oneFrameVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
 
             _measuredLinearVelocities[_measuredLinearVelocitiesIndex++] = oneFrameVelocity;
-            if (_measuredLinearVelocitiesIndex >= AvatarActionHold::velocitySmoothFrames) {
-                _measuredLinearVelocitiesIndex = 0;
+            _measuredLinearVelocitiesIndex %= AvatarActionHold::velocitySmoothFrames;
+        }
+
+        if (_kinematicSetVelocity) {
+            glm::vec3 measuredLinearVelocity = _measuredLinearVelocities[0];
+            for (int i = 1; i < AvatarActionHold::velocitySmoothFrames; i++) {
+                // there is a bit of lag between when someone releases the trigger and when the software reacts to
+                // the release.  we calculate the velocity from previous frames but we don't include several
+                // of the most recent.
+                //
+                // if _measuredLinearVelocitiesIndex is
+                //     0 -- ignore i of 3 4 5
+                //     1 -- ignore i of 4 5 0
+                //     2 -- ignore i of 5 0 1
+                //     3 -- ignore i of 0 1 2
+                //     4 -- ignore i of 1 2 3
+                //     5 -- ignore i of 2 3 4
+
+                // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
+                // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+                //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+                //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
+                //     continue;
+                // }
+
+                measuredLinearVelocity += _measuredLinearVelocities[i];
             }
-        }
-
-        glm::vec3 measuredLinearVelocity;
-        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
-            // there is a bit of lag between when someone releases the trigger and when the software reacts to
-            // the release.  we calculate the velocity from previous frames but we don't include several
-            // of the most recent.
-            //
-            // if _measuredLinearVelocitiesIndex is
-            //     0 -- ignore i of 3 4 5
-            //     1 -- ignore i of 4 5 0
-            //     2 -- ignore i of 5 0 1
-            //     3 -- ignore i of 0 1 2
-            //     4 -- ignore i of 1 2 3
-            //     5 -- ignore i of 2 3 4
-
-            // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
-            // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-            //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-            //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
-            //     continue;
-            // }
-
-            measuredLinearVelocity += _measuredLinearVelocities[i];
-        }
-        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
+            measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
                                           // - 3  // 3 because of the 3 we skipped, above
                                           );
 
-        if (_kinematicSetVelocity) {
             rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));
             rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
         }
@@ -356,8 +377,12 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand = _hand;
         }
 
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        holderID = myAvatar->getSessionUUID();
+        ok = true;
+        holderID = EntityDynamicInterface::extractStringArgument("hold", arguments, "holderID", ok, false);
+        if (!ok) {
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            holderID = myAvatar->getSessionUUID();
+        }
 
         ok = true;
         kinematic = EntityDynamicInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
@@ -405,10 +430,13 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _ignoreIK = ignoreIK;
             _active = true;
 
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+
             auto ownerEntity = _ownerEntity.lock();
             if (ownerEntity) {
                 ownerEntity->setDynamicDataDirty(true);
                 ownerEntity->setDynamicDataNeedsTransmit(true);
+                ownerEntity->setTransitingWithAvatar(myAvatar->getTransit()->isActive());
             }
         });
     }

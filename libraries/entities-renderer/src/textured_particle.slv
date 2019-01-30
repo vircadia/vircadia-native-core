@@ -43,7 +43,7 @@ struct ParticleUniforms {
     vec2 spare;
 };
 
-layout(std140, binding=0) uniform particleBuffer {
+LAYOUT_STD140(binding=0) uniform particleBuffer {
     ParticleUniforms particle;
 };
 
@@ -80,10 +80,11 @@ float interpolate3Points(float y1, float y2, float y3, float u) {
         halfSlope = (y3 - y1) / 2.0f;
         float slope12 = y2 - y1;
         float slope23 = y3 - y2;
-        if (abs(halfSlope) > abs(slope12)) {
-            halfSlope = slope12;
-        } else if (abs(halfSlope) > abs(slope23)) {
-            halfSlope = slope23;
+
+        {
+            float check = float(abs(halfSlope) > abs(slope12));
+            halfSlope = mix(halfSlope, slope12, check);
+            halfSlope = mix(halfSlope, slope23, (1.0 - check) * float(abs(halfSlope) > abs(slope23)));
         }
     }
 

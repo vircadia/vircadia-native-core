@@ -12,29 +12,39 @@
 #ifndef hifi_AudioMixerSlave_h
 #define hifi_AudioMixerSlave_h
 
+#include <tbb/concurrent_vector.h>
+
 #include <AABox.h>
 #include <AudioHRTF.h>
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 #include <UUIDHasher.h>
 #include <NodeList.h>
+#include <PositionalAudioStream.h>
 
+#include "AudioMixerClientData.h"
 #include "AudioMixerStats.h"
 
-class PositionalAudioStream;
 class AvatarAudioStream;
 class AudioHRTF;
-class AudioMixerClientData;
 
 class AudioMixerSlave {
 public:
     using ConstIter = NodeList::const_iterator;
+    
+    struct SharedData {
+        AudioMixerClientData::ConcurrentAddedStreams addedStreams;
+        std::vector<Node::LocalID> removedNodes;
+        std::vector<NodeIDStreamID> removedStreams;
+    };
+
+    AudioMixerSlave(SharedData& sharedData) : _sharedData(sharedData) {};
 
     // process packets for a given node (requires no configuration)
     void processPackets(const SharedNodePointer& node);
 
     // configure a round of mixing
-    void configureMix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio);
+    void configureMix(ConstIter begin, ConstIter end, unsigned int frame, int numToRetain);
 
     // mix and broadcast non-ignored streams to the node (requires configuration using configureMix, above)
     // returns true if a mixed packet was sent to the node
@@ -45,13 +55,15 @@ public:
 private:
     // create mix, returns true if mix has audio
     bool prepareMix(const SharedNodePointer& listener);
-    void throttleStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-    void mixStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer);
-    void addStream(AudioMixerClientData& listenerData, const QUuid& streamerID,
-            const AvatarAudioStream& listenerStream, const PositionalAudioStream& streamer,
-            bool throttle);
+    void addStream(AudioMixerClientData::MixableStream& mixableStream,
+                   AvatarAudioStream& listeningNodeStream,
+                   float masterListenerGain, bool isSoloing);
+    void updateHRTFParameters(AudioMixerClientData::MixableStream& mixableStream,
+                              AvatarAudioStream& listeningNodeStream,
+                              float masterListenerGain);
+    void resetHRTFState(AudioMixerClientData::MixableStream& mixableStream);
+
+    void addStreams(Node& listener, AudioMixerClientData& listenerData);
 
     // mixing buffers
     float _mixSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
@@ -61,7 +73,9 @@ private:
     ConstIter _begin;
     ConstIter _end;
     unsigned int _frame { 0 };
-    float _throttlingRatio { 0.0f };
+    int _numToRetain { -1 };
+
+    SharedData& _sharedData;
 };
 
 #endif // hifi_AudioMixerSlave_h

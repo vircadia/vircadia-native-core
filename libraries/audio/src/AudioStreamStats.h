@@ -66,4 +66,6 @@ public:
     PacketStreamStats _packetStreamWindowStats;
 };
 
+static_assert(sizeof(AudioStreamStats) == 152, "AudioStreamStats size isn't right");
+
 #endif  // hifi_AudioStreamStats_h

@@ -16,6 +16,19 @@
 
 #include "DeferredFrameTransform.h"
 
+#include "LightStage.h"
+#include "BackgroundStage.h"
+
+class SetupZones {
+public:
+    using Input = render::ItemBounds;
+    using JobModel = render::Job::ModelI<SetupZones, Input>;
+
+    SetupZones() {}
+
+    void run(const render::RenderContextPointer& context, const Input& input);
+};
+
 class ZoneRendererConfig : public render::Task::Config {
     Q_OBJECT
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
@@ -38,13 +51,14 @@ public:
     static const render::Selection::Name ZONES_SELECTION;
 
 
-    using Inputs = render::ItemBounds;
+    using Input = render::ItemBounds;
+    using Output = render::ItemBounds;
     using Config = ZoneRendererConfig;
-    using JobModel = render::Task::ModelI<ZoneRendererTask, Inputs, Config>;
+    using JobModel = render::Task::ModelIO<ZoneRendererTask, Input, Output, Config>;
 
     ZoneRendererTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
 
@@ -59,7 +73,7 @@ public:
         Config(bool enabled = false) : JobConfig(enabled) {}
     };
 
-    using Inputs = DeferredFrameTransformPointer;
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, LightStage::FramePointer, BackgroundStage::FramePointer>;
     using JobModel = render::Job::ModelI<DebugZoneLighting, Inputs, Config>;
 
     DebugZoneLighting() {}

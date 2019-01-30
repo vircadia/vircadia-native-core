@@ -60,6 +60,8 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
 }
 
 void ModelOverlay::update(float deltatime) {
+    Base3DOverlay::update(deltatime);
+
     if (_updateModel) {
         _updateModel = false;
         _model->setSnapModelToCenter(true);
@@ -112,14 +114,9 @@ void ModelOverlay::update(float deltatime) {
         _model->setVisibleInScene(getVisible(), scene);
         metaDirty = true;
     }
-    if (_drawInFrontDirty) {
-        _drawInFrontDirty = false;
-        _model->setLayeredInFront(getDrawInFront(), scene);
-        metaDirty = true;
-    }
-    if (_drawInHUDDirty) {
-        _drawInHUDDirty = false;
-        _model->setLayeredInHUD(getDrawHUDLayer(), scene);
+    if (_renderLayerDirty) {
+        _renderLayerDirty = false;
+        _model->setHifiRenderLayer(_drawHUDLayer ? render::hifi::LAYER_3D_HUD : (_drawInFront ? render::hifi::LAYER_3D_FRONT : render::hifi::LAYER_3D), scene);
         metaDirty = true;
     }
     if (_groupCulledDirty) {
@@ -173,14 +170,14 @@ void ModelOverlay::setVisible(bool visible) {
 void ModelOverlay::setDrawInFront(bool drawInFront) {
     if (drawInFront != getDrawInFront()) {
         Base3DOverlay::setDrawInFront(drawInFront);
-        _drawInFrontDirty = true;
+        _renderLayerDirty = true;
     }
 }
 
 void ModelOverlay::setDrawHUDLayer(bool drawHUDLayer) {
     if (drawHUDLayer != getDrawHUDLayer()) {
         Base3DOverlay::setDrawHUDLayer(drawHUDLayer);
-        _drawInHUDDirty = true;
+        _renderLayerDirty = true;
     }
 }
 
@@ -380,7 +377,7 @@ vectorType ModelOverlay::mapJoints(mapFunction<itemType> function) const {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.
@@ -446,7 +443,7 @@ QVariant ModelOverlay::getProperty(const QString& property) {
 
     if (property == "jointNames") {
         if (_model && _model->isActive()) {
-            // note: going through Rig because Model::getJointNames() (which proxies to FBXGeometry) was always empty
+            // note: going through Rig because Model::getJointNames() (which proxies to HFMModel) was always empty
             const Rig* rig = &(_model->getRig());
             return mapJoints<QStringList, QString>([rig](int jointIndex) -> QString {
                 return rig->nameOfJoint(jointIndex);
@@ -554,6 +551,7 @@ void ModelOverlay::locationChanged(bool tellPhysics) {
     if (_model && _model->isActive()) {
         _model->setRotation(getWorldOrientation());
         _model->setTranslation(getWorldPosition());
+        _updateModel = true;
     }
 }
 
@@ -574,7 +572,7 @@ void ModelOverlay::animate() {
 
     QVector<JointData> jointsData;
 
-    const QVector<FBXAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
+    const QVector<HFMAnimationFrame>&  frames = _animation->getFramesReference(); // NOTE: getFrames() is too heavy
     int frameCount = frames.size();
     if (frameCount <= 0) {
         return;
@@ -605,11 +603,11 @@ void ModelOverlay::animate() {
         return;
     }
 
-    QStringList animationJointNames = _animation->getGeometry().getJointNames();
-    auto& fbxJoints = _animation->getGeometry().joints;
+    QStringList animationJointNames = _animation->getHFMModel().getJointNames();
+    auto& hfmJoints = _animation->getHFMModel().joints;
 
-    auto& originalFbxJoints = _model->getFBXGeometry().joints;
-    auto& originalFbxIndices = _model->getFBXGeometry().jointIndices;
+    auto& originalHFMJoints = _model->getHFMModel().joints;
+    auto& originalHFMIndices = _model->getHFMModel().jointIndices;
 
     const QVector<glm::quat>& rotations = frames[_lastKnownCurrentFrame].rotations;
     const QVector<glm::vec3>& translations = frames[_lastKnownCurrentFrame].translations;
@@ -626,23 +624,23 @@ void ModelOverlay::animate() {
                     translationMat = glm::translate(translations[index]);
                 }
             } else if (index < animationJointNames.size()) {
-                QString jointName = fbxJoints[index].name;
+                QString jointName = hfmJoints[index].name;
 
-                if (originalFbxIndices.contains(jointName)) {
+                if (originalHFMIndices.contains(jointName)) {
                     // Making sure the joint names exist in the original model the animation is trying to apply onto. If they do, then remap and get its translation.
-                    int remappedIndex = originalFbxIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
-                    translationMat = glm::translate(originalFbxJoints[remappedIndex].translation);
+                    int remappedIndex = originalHFMIndices[jointName] - 1; // JointIndeces seem to always start from 1 and the found index is always 1 higher than actual.
+                    translationMat = glm::translate(originalHFMJoints[remappedIndex].translation);
                 }
             }
             glm::mat4 rotationMat;
             if (index < rotations.size()) {
-                rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
+                rotationMat = glm::mat4_cast(hfmJoints[index].preRotation * rotations[index] * hfmJoints[index].postRotation);
             } else {
-                rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * fbxJoints[index].postRotation);
+                rotationMat = glm::mat4_cast(hfmJoints[index].preRotation * hfmJoints[index].postRotation);
             }
 
-            glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
-                rotationMat * fbxJoints[index].postTransform);
+            glm::mat4 finalMat = (translationMat * hfmJoints[index].preTransform *
+                rotationMat * hfmJoints[index].postTransform);
             auto& jointData = jointsData[j];
             jointData.translation = extractTranslation(finalMat);
             jointData.translationIsDefaultPose = false;

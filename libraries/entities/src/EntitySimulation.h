@@ -104,7 +104,7 @@ protected:
     QMutex _dynamicsMutex { QMutex::Recursive };
 
 protected:
-    SetOfEntities _deadEntities;
+    SetOfEntities _deadEntities; // dead entities that might still be in the _entityTree
 
 private:
     void moveSimpleKinematics();

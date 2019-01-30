@@ -140,8 +140,7 @@ int TabletButtonsProxyModel::buttonIndex(const QString &uuid) {
     return -1;
 }
 
-void TabletButtonsProxyModel::setPageIndex(int pageIndex)
-{
+void TabletButtonsProxyModel::setPageIndex(int pageIndex) {
     if (_pageIndex == pageIndex)
         return;
 
@@ -211,8 +210,9 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         options.stereo = sound->isStereo();
         options.ambisonic = sound->isAmbisonic();
         options.localOnly = true;
+        options.positionSet = false;    // system sound
 
-        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound->getByteArray(), options);
+        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound, options);
     }
 }
 
@@ -367,6 +367,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
 
     if (toolbarMode) {
+#if !defined(DISABLE_QML)
         // create new desktop window
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());
@@ -377,9 +378,11 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         QObject::connect(quickItem, SIGNAL(windowClosed()), this, SLOT(desktopWindowClosed()));
 
         QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
+        QObject::connect(quickItem, SIGNAL(screenChanged(QVariant, QVariant)), this, SIGNAL(screenChanged(QVariant, QVariant)), Qt::DirectConnection);
 
         // forward qml surface events to interface js
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
+#endif
     } else {
         if (_currentPathLoaded != TABLET_HOME_SOURCE_URL) {
             loadHomeScreen(true);
@@ -465,6 +468,9 @@ void TabletProxy::onTabletShown() {
             _showRunningScripts = false;
             pushOntoStack("hifi/dialogs/TabletRunningScripts.qml");
         }
+        if (_currentPathLoaded == TABLET_HOME_SOURCE_URL) {
+            loadHomeScreen(true);
+        }
     }
 }
 
@@ -484,6 +490,7 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
     _qmlTabletRoot = qmlOffscreenSurface ? qmlOffscreenSurface->getRootItem() : nullptr;
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
         QObject::connect(_qmlOffscreenSurface, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)));
+        QObject::connect(_qmlTabletRoot, SIGNAL(screenChanged(QVariant, QVariant)), this, SIGNAL(screenChanged(QVariant, QVariant)));
 
         // forward qml surface events to interface js
         connect(_qmlOffscreenSurface, &OffscreenQmlSurface::fromQml, [this](QVariant message) {
@@ -566,7 +573,6 @@ void TabletProxy::gotoMenuScreen(const QString& submenu) {
         QMetaObject::invokeMethod(root, "setMenuProperties", Q_ARG(QVariant, QVariant::fromValue(menu)), Q_ARG(const QVariant&, QVariant(submenu)));
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, QVariant(VRMENU_SOURCE_URL)));
         _state = State::Menu;
-        emit screenChanged(QVariant("Menu"), QVariant(VRMENU_SOURCE_URL));
         _currentPathLoaded = VRMENU_SOURCE_URL;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         if (_toolbarMode && _desktopWindow) {
@@ -636,9 +642,6 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
     if (root) {
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
         _state = State::QML;
-        if (path != _currentPathLoaded) {
-            emit screenChanged(QVariant("QML"), path);
-        }
         _currentPathLoaded = path;
         QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         if (_toolbarMode && _desktopWindow) {
@@ -745,7 +748,6 @@ void TabletProxy::loadHomeScreen(bool forceOntoHomeScreen) {
             }
         }
         _state = State::Home;
-        emit screenChanged(QVariant("Home"), QVariant(TABLET_HOME_SOURCE_URL));
         _currentPathLoaded = TABLET_HOME_SOURCE_URL;
     }
 }
@@ -806,7 +808,6 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
             QMetaObject::invokeMethod(root, "setResizable", Q_ARG(const QVariant&, QVariant(false)));
         }
         _state = State::Web;
-        emit screenChanged(QVariant("Web"), QVariant(url));
         _currentPathLoaded = QVariant(url);
     } else {
         // tablet is not initialized yet, save information and load when
@@ -884,6 +885,12 @@ OffscreenQmlSurface* TabletProxy::getTabletSurface() {
 
 void TabletProxy::desktopWindowClosed() {
     gotoHomeScreen();
+}
+
+void TabletProxy::unfocus() {
+    if (_qmlOffscreenSurface) {
+        _qmlOffscreenSurface->lowerKeyboard();
+    }
 }
 
 

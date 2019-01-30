@@ -3,11 +3,15 @@ if (WIN32)
 endif (WIN32)
 
 if (POLICY CMP0043)
-  cmake_policy(SET CMP0043 OLD)
+  cmake_policy(SET CMP0043 NEW)
 endif ()
 
 if (POLICY CMP0042)
-  cmake_policy(SET CMP0042 OLD)
+  cmake_policy(SET CMP0042 NEW)
+endif ()
+
+if (POLICY CMP0074)
+  cmake_policy(SET CMP0074 OLD)
 endif ()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -34,7 +38,7 @@ file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
 endforeach()
-unset(HIFI_CUSTOM_MACROS) 
+unset(HIFI_CUSTOM_MACROS)
 
 if (ANDROID)
     set(BUILD_SHARED_LIBS ON)

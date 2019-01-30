@@ -25,6 +25,7 @@
 #include <gpu/Texture.h> 
 
 #include <FBX.h>
+#include <hfm/HFM.h>
 
 using TextureBakerThreadGetter = std::function<QThread*()>;
 using GetMaterialIDCallback = std::function <int(int)>;
@@ -39,7 +40,7 @@ public:
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "");
     virtual ~ModelBaker();
 
-    bool compressMesh(FBXMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
+    bool compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
     QString compressTexture(QString textureFileName, image::TextureUsage::Type = image::TextureUsage::Type::DEFAULT_TEXTURE);
     virtual void setWasAborted(bool wasAborted) override;
 

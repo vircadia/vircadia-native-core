@@ -103,4 +103,6 @@ module.exports = {
     ending: ending
 }
 
+init();
+
 }()); // END LOCAL_SCOPE

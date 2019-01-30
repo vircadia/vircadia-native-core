@@ -35,7 +35,7 @@ namespace controller {
             if (_prevSensorValue.isValid()) {
                 // exponential smoothing filter
                 sensorValue.translation = _translationConstant * sensorValue.getTranslation() + (1.0f - _translationConstant) * _prevSensorValue.getTranslation();
-                sensorValue.rotation = safeMix(sensorValue.getRotation(), _prevSensorValue.getRotation(), _rotationConstant);
+                sensorValue.rotation = safeMix(sensorValue.getRotation(), _prevSensorValue.getRotation(), (1.0f - _rotationConstant));
 
                 // remember previous sensor space value.
                 _prevSensorValue = sensorValue;

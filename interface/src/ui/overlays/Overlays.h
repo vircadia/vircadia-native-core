@@ -44,8 +44,7 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPro
 const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
 
 /**jsdoc
- * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection} or 
- * {@link Overlays.findRayIntersectionVector|findRayIntersectionVector}.
+ * The result of a {@link PickRay} search using {@link Overlays.findRayIntersection|findRayIntersection}.
  * @typedef {object} Overlays.RayToOverlayIntersectionResult
  * @property {boolean} intersects - <code>true</code> if the {@link PickRay} intersected with a 3D overlay, otherwise
  *     <code>false</code>.
@@ -383,7 +382,11 @@ public slots:
     OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
 
     /**jsdoc
-     * Find the closest 3D overlay intersected by a {@link PickRay}.
+     *  Find the closest 3D overlay intersected by a {@link PickRay}. Overlays with their <code>drawInFront</code> property set  
+     * to <code>true</code> have priority over overlays that don't, except that tablet overlays have priority over any  
+     * <code>drawInFront</code> overlays behind them. I.e., if a <code>drawInFront</code> overlay is behind one that isn't  
+     * <code>drawInFront</code>, the <code>drawInFront</code> overlay is returned, but if a tablet overlay is in front of a  
+     * <code>drawInFront</code> overlay, the tablet overlay is returned.
      * @function Overlays.findRayIntersection
      * @param {PickRay} pickRay - The PickRay to use for finding overlays.
      * @param {boolean} [precisionPicking=false] - <em>Unused</em>; exists to match Entity API.
@@ -749,8 +752,6 @@ private:
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
-
-    RayToOverlayIntersectionResult findRayIntersectionForMouseEvent(PickRay ray);
 
 private slots:
     void mousePressPointerEvent(const OverlayID& overlayID, const PointerEvent& event);

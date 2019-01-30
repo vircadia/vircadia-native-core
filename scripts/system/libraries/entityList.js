@@ -9,7 +9,24 @@
 //
 
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
-   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
+   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible,
+   keyUpEventFromUIWindow */
+
+var PROFILING_ENABLED = false;
+var profileIndent = '';
+const PROFILE_NOOP = function(_name, fn, args) {
+    fn.apply(this, args);
+};
+const PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
+    console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
+    var previousIndent = profileIndent;
+    profileIndent += '  ';
+    var before = Date.now();
+    fn.apply(this, args);
+    var delta = Date.now() - before;
+    profileIndent = previousIndent;
+    console.log("PROFILE-Script " + profileIndent + "(" + name + ") End " + delta + "ms");
+};
 
 EntityListTool = function(shouldUseEditTabletApp) {
     var that = {};
@@ -20,7 +37,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
     var ENTITY_LIST_WIDTH = 495;
     var MAX_DEFAULT_CREATE_TOOLS_HEIGHT = 778;
     var entityListWindow = new CreateWindow(
-        Script.resourcesPath() + "qml/hifi/tablet/EditEntityList.qml",
+        Script.resolvePath("EditEntityList.qml"),
         'Entity List',
         'com.highfidelity.create.entityListWindow',
         function () {
@@ -66,18 +83,27 @@ EntityListTool = function(shouldUseEditTabletApp) {
     that.setVisible(false);
 
     function emitJSONScriptEvent(data) {
-        var dataString = JSON.stringify(data);
-        webView.emitScriptEvent(dataString);
-        if (entityListWindow.window) {
-            entityListWindow.window.emitScriptEvent(dataString);
-        }
+        var dataString;
+        PROFILE("Script-JSON.stringify", function() {
+            dataString = JSON.stringify(data);
+        });
+        PROFILE("Script-emitScriptEvent", function() {
+            webView.emitScriptEvent(dataString);
+            if (entityListWindow.window) {
+                entityListWindow.window.emitScriptEvent(dataString);
+            }
+        });
     }
-    
+
     that.toggleVisible = function() {
         that.setVisible(!visible);
     };
 
-    selectionManager.addEventListener(function() {
+    selectionManager.addEventListener(function(isSelectionUpdate, caller) {
+        if (caller === that) {
+            // ignore events that we emitted from the entity list itself
+            return;
+        }
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -89,6 +115,13 @@ EntityListTool = function(shouldUseEditTabletApp) {
             selectedIDs: selectedIDs
         });
     });
+
+    that.setSpaceMode = function(spaceMode) {
+        emitJSONScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        });
+    };
 
     that.clearEntityList = function() {
         emitJSONScriptEvent({
@@ -103,7 +136,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             selectedIDs: selectedIDs
         });
     };
-    
+
     that.deleteEntities = function (deletedIDs) {
         emitJSONScriptEvent({
             type: "deleted",
@@ -116,59 +149,70 @@ EntityListTool = function(shouldUseEditTabletApp) {
     }
 
     that.sendUpdate = function() {
-        var entities = [];
+        PROFILE('Script-sendUpdate', function() {
+            var entities = [];
 
-        var ids;
-        if (filterInView) {
-            ids = Entities.findEntitiesInFrustum(Camera.frustum);
-        } else {
-            ids = Entities.findEntities(MyAvatar.position, searchRadius);
-        }
-
-        var cameraPosition = Camera.position;
-        for (var i = 0; i < ids.length; i++) {
-            var id = ids[i];
-            var properties = Entities.getEntityProperties(id);
-
-            if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
-                var url = "";
-                if (properties.type === "Model") {
-                    url = properties.modelURL;
-                } else if (properties.type === "Material") {
-                    url = properties.materialURL;
+            var ids;
+            PROFILE("findEntities", function() {
+                if (filterInView) {
+                    ids = Entities.findEntitiesInFrustum(Camera.frustum);
+                } else {
+                    ids = Entities.findEntities(MyAvatar.position, searchRadius);
                 }
-                entities.push({
-                    id: id,
-                    name: properties.name,
-                    type: properties.type,
-                    url: url,
-                    locked: properties.locked,
-                    visible: properties.visible,
-                    verticesCount: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.verticesCount) : ""),
-                    texturesCount: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.texturesCount) : ""),
-                    texturesSize: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.texturesSize) : ""),
-                    hasTransparent: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.hasTransparent) : ""),
-                    isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
-                    drawCalls: (properties.renderInfo !== undefined ? 
-                        valueIfDefined(properties.renderInfo.drawCalls) : ""),
-                    hasScript: properties.script !== ""
-                });
+            });
+
+            var cameraPosition = Camera.position;
+            PROFILE("getMultipleProperties", function () {
+                var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID']);
+                for (var i = 0; i < multipleProperties.length; i++) {
+                    var properties = multipleProperties[i];
+
+                    if (!filterInView || Vec3.distance(properties.position, cameraPosition) <= searchRadius) {
+                        var url = "";
+                        if (properties.type === "Model") {
+                            url = properties.modelURL;
+                        } else if (properties.type === "Material") {
+                            url = properties.materialURL;
+                        } else if (properties.type === "Image") {
+                            url = properties.imageURL;
+                        }
+                        entities.push({
+                            id: ids[i],
+                            name: properties.name,
+                            type: properties.type,
+                            url: url,
+                            locked: properties.locked,
+                            visible: properties.visible,
+                            certificateID: properties.certificateID,
+                            verticesCount: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.verticesCount) : ""),
+                            texturesCount: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.texturesCount) : ""),
+                            texturesSize: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.texturesSize) : ""),
+                            hasTransparent: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.hasTransparent) : ""),
+                            isBaked: properties.type === "Model" ? url.toLowerCase().endsWith(".baked.fbx") : false,
+                            drawCalls: (properties.renderInfo !== undefined ?
+                                valueIfDefined(properties.renderInfo.drawCalls) : ""),
+                            hasScript: properties.script !== ""
+                        });
+                    }
+                }
+            });
+
+            var selectedIDs = [];
+            for (var j = 0; j < selectionManager.selections.length; j++) {
+                selectedIDs.push(selectionManager.selections[j]);
             }
-        }
 
-        var selectedIDs = [];
-        for (var j = 0; j < selectionManager.selections.length; j++) {
-            selectedIDs.push(selectionManager.selections[j]);
-        }
-
-        emitJSONScriptEvent({
-            type: "update",
-            entities: entities,
-            selectedIDs: selectedIDs,
+            emitJSONScriptEvent({
+                type: "update",
+                entities: entities,
+                selectedIDs: selectedIDs,
+                spaceMode: SelectionDisplay.getSpaceMode(),
+            });
         });
     };
 
@@ -186,7 +230,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
         try {
             data = JSON.parse(data);
         } catch(e) {
-            print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
+            print("entityList.js: Error parsing JSON");
             return;
         }
 
@@ -196,7 +240,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
             }
-            selectionManager.setSelections(entityIDs);
+            selectionManager.setSelections(entityIDs, that);
             if (data.focus) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
@@ -217,7 +261,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 Window.saveAsync("Select Where to Save", "", "*.json");
             }
         } else if (data.type === "pal") {
-            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+            var sessionIds = {}; // Collect the sessionsIds of all selected entities, w/o duplicates.
             selectionManager.selections.forEach(function (id) {
                 var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
                 if (lastEditedBy) {
@@ -243,6 +287,23 @@ EntityListTool = function(shouldUseEditTabletApp) {
             filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
+        } else if (data.type === "cut") {
+            SelectionManager.cutSelectedEntities();
+        } else if (data.type === "copy") {
+            SelectionManager.copySelectedEntities();
+        } else if (data.type === "paste") {
+            SelectionManager.pasteEntities();
+        } else if (data.type === "duplicate") {
+            SelectionManager.duplicateSelection();
+            that.sendUpdate();
+        } else if (data.type === "rename") {
+            Entities.editEntity(data.entityID, {name: data.name});
+            // make sure that the name also gets updated in the properties window
+            SelectionManager._update();
+        } else if (data.type === "toggleSpaceMode") {
+            SelectionDisplay.toggleSpaceMode();
+        } else if (data.type === 'keyUpEvent') {
+            keyUpEventFromUIWindow(data.keyUpEvent);
         }
     };
 

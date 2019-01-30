@@ -125,7 +125,6 @@
     Script.include("./test_physics_scene.js")
 
     function fromQml(message) {
-        print("fromQml: " + JSON.stringify(message))
         switch (message.method) {
         case "createScene":
             createScene();

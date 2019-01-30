@@ -21,6 +21,7 @@
 
 #include <QtCore/QEasingCurve>
 
+#include "../AxisValue.h"
 #include "../Pose.h"
 
 class QJsonValue;
@@ -35,7 +36,9 @@ namespace controller {
         using Lambda = std::function<float(float)>;
         using Factory = hifi::SimpleFactory<Filter, QString>;
 
-        virtual float apply(float value) const = 0;
+        virtual ~Filter() = default;
+
+        virtual AxisValue apply(AxisValue value) const = 0;
         virtual Pose apply(Pose value) const = 0;
 
         // Factory features

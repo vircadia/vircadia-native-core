@@ -19,6 +19,7 @@
 #include <DependencyManager.h>
 #include <StatTracker.h>
 #include <ResourceManager.h>
+#include <ResourceRequestObserver.h>
 
 Oven* Oven::_staticInstance { nullptr };
 
@@ -31,6 +32,7 @@ Oven::Oven() {
     // Initialize dependencies for OBJ Baker
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ResourceManager>(false);
+    DependencyManager::set<ResourceRequestObserver>();
 }
 
 Oven::~Oven() {

@@ -10,6 +10,7 @@
 #include <QtCore/QFileInfo>
 #include <QtGui/QImage>
 
+#if 0
 #include <gli/texture2d.hpp>
 #include <gli/convert.hpp>
 #include <gli/generate_mipmaps.hpp>
@@ -68,3 +69,4 @@ gpu::TexturePointer processTexture(const QString& sourceFile) {
     // FIXME load the actual KTX texture
     return gpu::TexturePointer();
 }
+#endif

@@ -21,6 +21,7 @@
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
 
+#include "ResourceRequestObserver.h"
 #include "ScriptEngine.h"
 
 const QString METAVERSE_API_URL = NetworkingConstants::METAVERSE_SERVER_URL().toString() + "/api/";
@@ -189,7 +190,7 @@ void XMLHttpRequestClass::send(const QScriptValue& data) {
 }
 
 void XMLHttpRequestClass::doSend() {
-    
+    DependencyManager::get<ResourceRequestObserver>()->update(_url, -1, "XMLHttpRequestClass::doSend");
     _reply = NetworkAccessManager::getInstance().sendCustomRequest(_request, _method.toLatin1(), _sendData);
     connectToReply(_reply);
 

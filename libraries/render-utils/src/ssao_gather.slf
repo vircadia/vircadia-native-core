@@ -1,0 +1,36 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  ssao_gather.frag
+//
+//  Created by Olivier Prat on 09/19/2018.
+//  Copyright 2018 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include ssao.slh@>
+
+// Hack comment
+
+<$declareAmbientOcclusion()$>
+
+// the source occlusion texture
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SSAO_OCCLUSION) uniform sampler2DArray occlusionMaps;
+
+layout(location=0) in vec4 varTexCoord0;
+
+layout(location=0) out vec4 outFragColor;
+
+void main(void) {
+    // Gather the four splits of the occlusion result back into an interleaved full size
+    // result (at the resolution level, of course)
+    ivec2 destPixelCoord = ivec2(gl_FragCoord.xy);
+    ivec2 sourcePixelCoord = destPixelCoord >> SSAO_SPLIT_LOG2_COUNT;
+    ivec2 modPixelCoord = destPixelCoord & (SSAO_SPLIT_COUNT-1);
+    int occlusionMapIndex = modPixelCoord.x + (modPixelCoord.y << SSAO_SPLIT_LOG2_COUNT);
+
+    outFragColor = texelFetch(occlusionMaps, ivec3(sourcePixelCoord, occlusionMapIndex), 0);
+}

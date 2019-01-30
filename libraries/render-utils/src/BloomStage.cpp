@@ -16,16 +16,6 @@
 std::string BloomStage::_stageName { "BLOOM_STAGE"};
 const BloomStage::Index BloomStage::INVALID_INDEX { render::indexed_container::INVALID_INDEX };
 
-FetchBloomStage::FetchBloomStage() {
-    _bloom = std::make_shared<graphics::Bloom>();
-}
-
-void FetchBloomStage::configure(const Config& config) {
-    _bloom->setBloomIntensity(config.bloomIntensity);
-    _bloom->setBloomThreshold(config.bloomThreshold);
-    _bloom->setBloomSize(config.bloomSize);
-}
-
 BloomStage::Index BloomStage::findBloom(const BloomPointer& bloom) const {
     auto found = _bloomMap.find(bloom);
     if (found != _bloomMap.end()) {
@@ -64,16 +54,5 @@ void BloomStageSetup::run(const render::RenderContextPointer& renderContext) {
     auto stage = renderContext->_scene->getStage(BloomStage::getName());
     if (!stage) {
         renderContext->_scene->resetStage(BloomStage::getName(), std::make_shared<BloomStage>());
-    }
-}
-
-void FetchBloomStage::run(const render::RenderContextPointer& renderContext, graphics::BloomPointer& bloom) {
-    auto bloomStage = renderContext->_scene->getStage<BloomStage>();
-    assert(bloomStage);
-
-    bloom = nullptr;
-    if (bloomStage->_currentFrame._blooms.size() != 0) {
-        auto bloomId = bloomStage->_currentFrame._blooms.front();
-        bloom = bloomStage->getBloom(bloomId);
     }
 }

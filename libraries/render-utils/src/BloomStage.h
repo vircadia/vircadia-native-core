@@ -65,6 +65,7 @@ public:
 
         BloomStage::BloomIndices _blooms;
     };
+    using FramePointer = std::shared_ptr<Frame>;
     
     Frame _currentFrame;
 };
@@ -102,17 +103,4 @@ signals:
     void dirty();
 };
 
-class FetchBloomStage {
-public:
-    using Config = FetchBloomConfig;
-    using JobModel = render::Job::ModelO<FetchBloomStage, graphics::BloomPointer, Config>;
-
-    FetchBloomStage();
-
-    void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, graphics::BloomPointer& bloom);
-
-private:
-    graphics::BloomPointer _bloom;
-};
 #endif

@@ -1,6 +1,6 @@
 "use strict";
 /* jslint vars: true, plusplus: true, forin: true*/
-/* globals Tablet, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, Controller, print, getControllerWorldLocation */
+/* globals Script, Entities, MyAvatar, Vec3, Quat */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // createTetherballStick.js
@@ -59,11 +59,7 @@ var ballID = Entities.addEntity({
     restitution: BALL_RESTITUTION,
     dynamic: true,
     collidesWith: "static,dynamic,otherAvatar,",
-    userData: JSON.stringify({
-        grabbableKey: {
-            grabbable: false
-        }
-    })
+    grab: { grabbable: false }
 });
 
 var lineID = Entities.addEntity({
@@ -109,43 +105,38 @@ var STICK_PROPERTIES = {
     },
     shapeType: 'box',
     lifetime: LIFETIME,
-    userData: JSON.stringify({
-        grabbableKey: {
-          invertSolidWhileHeld: true,
-          ignoreIK: false
+    grab: {
+        grabbable: false,
+        grabFollowsController: false,
+        equippable: true,
+        equippableLeftPosition: {
+            x: -0.14998853206634521,
+            y: 0.17033983767032623,
+            z: 0.023199155926704407
         },
-        wearable: {
-          joints: {
-            RightHand: [{
-              x: 0.15539926290512085,
-              y: 0.14493153989315033,
-              z: 0.023641478270292282
-            }, {
-              x: 0.5481458902359009,
-              y: -0.4470711946487427,
-              z: -0.3148134648799896,
-              w: 0.6328644752502441
-            }],
-            LeftHand: [{
-            	x: -0.14998853206634521,
-            	y: 0.17033983767032623,
-            	z: 0.023199155926704407
-            },
-            {
-            	x: 0.6623835563659668,
-            	y: -0.1671387255191803,
-            	z: 0.7071226835250854,
-            	w: 0.1823924481868744
-            }]
-          }
+        equippableLeftRotation: {
+            x: 0.6623835563659668,
+            y: -0.1671387255191803,
+            z: 0.7071226835250854,
+            w: 0.1823924481868744
         },
-        ownerID: MyAvatar.sessionUUID,
-        ballID: ballID,
-        lineID: lineID,
-        actionID: actionID,
-        lifetime: LIFETIME,
-        maxDistanceBetweenBallAndStick: ACTION_DISTANCE * MAX_DISTANCE_MULTIPLIER
-    })
+        equippableRightPosition: {
+            x: 0.15539926290512085,
+            y: 0.14493153989315033,
+            z: 0.023641478270292282
+        },
+        equippableRightRotation: {
+            x: 0.5481458902359009,
+            y: -0.4470711946487427,
+            z: -0.3148134648799896,
+            w: 0.6328644752502441
+        }
+    },
+    ownerID: MyAvatar.sessionUUID,
+    ballID: ballID,
+    lineID: lineID,
+    actionID: actionID,
+    maxDistanceBetweenBallAndStick: ACTION_DISTANCE * MAX_DISTANCE_MULTIPLIER
 };
 
 Entities.addEntity(STICK_PROPERTIES);

@@ -51,9 +51,8 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     }
 
     float alpha = getAlpha();
-    xColor color = getColor();
-    const float MAX_COLOR = 255.0f;
-    glm::vec4 rectangleColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::u8vec3 color = getColor();
+    glm::vec4 rectangleColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
     if (batch) {
@@ -139,7 +138,7 @@ const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.

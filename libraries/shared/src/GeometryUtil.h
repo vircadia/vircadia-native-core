@@ -76,8 +76,8 @@ glm::vec3 addPenetrations(const glm::vec3& currentPenetration, const glm::vec3& 
 
 bool findIntersection(float origin, float direction, float corner, float size, float& distance);
 bool findInsideOutIntersection(float origin, float direction, float corner, float size, float& distance);
-bool findRayAABoxIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& corner, const glm::vec3& scale, float& distance,
-                              BoxFace& face, glm::vec3& surfaceNormal);
+bool findRayAABoxIntersection(const glm::vec3& origin, const glm::vec3& direction, const glm::vec3& invDirection,
+                              const glm::vec3& corner, const glm::vec3& scale, float& distance, BoxFace& face, glm::vec3& surfaceNormal);
 
 bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& direction,
     const glm::vec3& center, float radius, float& distance);

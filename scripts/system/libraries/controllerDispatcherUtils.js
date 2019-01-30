@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global module, Camera, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform,
+/* global module, HMD, MyAvatar, controllerDispatcherPlugins:true, Quat, Vec3, Overlays, Xform, Mat4,
    Selection, Uuid,
    MSECS_PER_SEC:true , LEFT_HAND:true, RIGHT_HAND:true, FORBIDDEN_GRAB_TYPES:true,
    HAPTIC_PULSE_STRENGTH:true, HAPTIC_PULSE_DURATION:true, ZERO_VEC:true, ONE_VEC:true,
@@ -31,6 +31,9 @@
    disableDispatcherModule:true,
    getEnabledModuleByName:true,
    getGrabbableData:true,
+   isAnothersAvatarEntity:true,
+   isAnothersChildEntity:true,
+   entityIsEquippable:true,
    entityIsGrabbable:true,
    entityIsDistanceGrabbable:true,
    getControllerJointIndexCacheTime:true,
@@ -44,21 +47,23 @@
    makeLaserLockInfo:true,
    entityHasActions:true,
    ensureDynamic:true,
-   findGroupParent:true,
+   findGrabbableGroupParent:true,
    BUMPER_ON_VALUE:true,
    getEntityParents:true,
    findHandChildEntities:true,
+   findFarGrabJointChildEntities:true,
    makeLaserParams:true,
    TEAR_AWAY_DISTANCE:true,
    TEAR_AWAY_COUNT:true,
    TEAR_AWAY_CHECK_TIME:true,
+   NEAR_GRAB_DISTANCE: true,
    distanceBetweenPointAndEntityBoundingBox:true,
    entityIsEquipped:true,
-   entityIsFarGrabbedByOther:true,
    highlightTargetEntity:true,
    clearHighlightedEntities:true,
    unhighlightTargetEntity:true,
-   distanceBetweenEntityLocalPositionAndBoundingBox: true
+   distanceBetweenEntityLocalPositionAndBoundingBox: true,
+   worldPositionToRegistrationFrameMatrix: true
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -97,7 +102,11 @@ NEAR_GRAB_RADIUS = 1.0;
 TEAR_AWAY_DISTANCE = 0.15; // ungrab an entity if its bounding-box moves this far from the hand
 TEAR_AWAY_COUNT = 2; // multiply by TEAR_AWAY_CHECK_TIME to know how long the item must be away
 TEAR_AWAY_CHECK_TIME = 0.15; // seconds, duration between checks
-DISPATCHER_HOVERING_LIST = "dispactherHoveringList";
+
+NEAR_GRAB_DISTANCE = 0.14; // Grab an entity if its bounding box is within this distance.
+// Smaller than TEAR_AWAY_DISTANCE for hysteresis.
+
+DISPATCHER_HOVERING_LIST = "dispatcherHoveringList";
 DISPATCHER_HOVERING_STYLE = {
     isOutlineSmooth: true,
     outlineWidth: 0,
@@ -126,13 +135,28 @@ DISPATCHER_PROPERTIES = [
     "parentJointIndex",
     "density",
     "dimensions",
-    "userData",
     "type",
     "href",
     "cloneable",
     "cloneDynamic",
     "localPosition",
-    "localRotation"
+    "localRotation",
+    "grab.grabbable",
+    "grab.grabKinematic",
+    "grab.grabFollowsController",
+    "grab.triggerable",
+    "grab.equippable",
+    "grab.grabDelegateToParent",
+    "grab.equippableLeftPosition",
+    "grab.equippableLeftRotation",
+    "grab.equippableRightPosition",
+    "grab.equippableRightRotation",
+    "grab.equippableIndicatorURL",
+    "grab.equippableIndicatorScale",
+    "grab.equippableIndicatorOffset",
+    "userData",
+    "avatarEntity",
+    "owningAvatarID"
 ];
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
@@ -162,14 +186,14 @@ makeLaserLockInfo = function(targetID, isOverlay, hand, offset) {
     };
 };
 
-makeLaserParams = function(hand, allwaysOn) {
-    if (allwaysOn === undefined) {
-        allwaysOn = false;
+makeLaserParams = function(hand, alwaysOn) {
+    if (alwaysOn === undefined) {
+        alwaysOn = false;
     }
 
     return {
         hand: hand,
-        allwaysOn: allwaysOn
+        alwaysOn: alwaysOn
     };
 };
 
@@ -214,32 +238,109 @@ getGrabbableData = function (ggdProps) {
     } catch (err) {
         userDataParsed = {};
     }
+
     if (userDataParsed.grabbableKey) {
         grabbableData = userDataParsed.grabbableKey;
+    } else {
+        grabbableData = ggdProps.grab;
     }
+
+    // extract grab-related properties, provide defaults if any are missing
     if (!grabbableData.hasOwnProperty("grabbable")) {
         grabbableData.grabbable = true;
     }
-    if (!grabbableData.hasOwnProperty("ignoreIK")) {
-        grabbableData.ignoreIK = true;
+    // kinematic has been renamed to grabKinematic
+    if (!grabbableData.hasOwnProperty("grabKinematic") &&
+        !grabbableData.hasOwnProperty("kinematic")) {
+        grabbableData.grabKinematic = true;
     }
-    if (!grabbableData.hasOwnProperty("kinematic")) {
-        grabbableData.kinematic = true;
+    if (!grabbableData.hasOwnProperty("grabKinematic")) {
+        grabbableData.grabKinematic = grabbableData.kinematic;
     }
-    if (!grabbableData.hasOwnProperty("wantsTrigger")) {
-        grabbableData.wantsTrigger = false;
+    // ignoreIK has been renamed to grabFollowsController
+    if (!grabbableData.hasOwnProperty("grabFollowsController") &&
+        !grabbableData.hasOwnProperty("ignoreIK")) {
+        grabbableData.grabFollowsController = true;
     }
-    if (!grabbableData.hasOwnProperty("triggerable")) {
+    if (!grabbableData.hasOwnProperty("grabFollowsController")) {
+        grabbableData.grabFollowsController = grabbableData.ignoreIK;
+    }
+    // wantsTrigger has been renamed to triggerable
+    if (!grabbableData.hasOwnProperty("triggerable") &&
+        !grabbableData.hasOwnProperty("wantsTrigger")) {
         grabbableData.triggerable = false;
     }
-
+    if (!grabbableData.hasOwnProperty("triggerable")) {
+        grabbableData.triggerable = grabbableData.wantsTrigger;
+    }
+    if (!grabbableData.hasOwnProperty("equippable")) {
+        grabbableData.equippable = false;
+    }
+    if (!grabbableData.hasOwnProperty("equippableLeftPosition")) {
+        grabbableData.equippableLeftPosition = { x: 0, y: 0, z: 0 };
+    }
+    if (!grabbableData.hasOwnProperty("equippableLeftRotation")) {
+        grabbableData.equippableLeftPosition = { x: 0, y: 0, z: 0, w: 1 };
+    }
+    if (!grabbableData.hasOwnProperty("equippableRightPosition")) {
+        grabbableData.equippableRightPosition = { x: 0, y: 0, z: 0 };
+    }
+    if (!grabbableData.hasOwnProperty("equippableRightRotation")) {
+        grabbableData.equippableRightPosition = { x: 0, y: 0, z: 0, w: 1 };
+    }
     return grabbableData;
+};
+
+isAnothersAvatarEntity = function (iaaeProps) {
+    if (!iaaeProps.avatarEntity) {
+        return false;
+    }
+    if (iaaeProps.owningAvatarID === MyAvatar.sessionUUID) {
+        return false;
+    }
+    if (iaaeProps.owningAvatarID === MyAvatar.SELF_ID) {
+        return false;
+    }
+    return true;
+};
+
+isAnothersChildEntity = function (iaceProps) {
+    while (iaceProps.parentID && iaceProps.parentID !== Uuid.NULL) {
+        if (Entities.getNestableType(iaceProps.parentID) == "avatar") {
+            if (iaceProps.parentID == MyAvatar.SELF_ID || iaceProps.parentID == MyAvatar.sessionUUID) {
+                return false; // not another's, it's mine.
+            }
+            return true;
+        }
+        // Entities.getNestableType(iaceProps.parentID) == "entity") {
+        var parentProps = Entities.getEntityProperties(iaceProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = iaceProps.parentID;
+        iaceProps = parentProps;
+    }
+    return false;
+};
+
+
+entityIsEquippable = function (eieProps) {
+    var grabbable = getGrabbableData(eieProps).grabbable;
+    if (!grabbable ||
+        isAnothersAvatarEntity(eieProps) ||
+        isAnothersChildEntity(eieProps) ||
+        FORBIDDEN_GRAB_TYPES.indexOf(eieProps.type) >= 0) {
+        return false;
+    }
+    return true;
 };
 
 entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
+        isAnothersAvatarEntity(eigProps) ||
+        isAnothersChildEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }
@@ -281,17 +382,9 @@ getControllerJointIndex = function (hand) {
     var now = Date.now();
     if (now - getControllerJointIndexCacheTime[hand] > GET_CONTROLLERJOINTINDEX_CACHE_REFRESH_TIME) {
         if (HMD.isHandControllerAvailable()) {
-            var controllerJointIndex = -1;
-            if (Camera.mode === "first person") {
-                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+            var controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
                                                               "_CONTROLLER_RIGHTHAND" :
                                                               "_CONTROLLER_LEFTHAND");
-            } else if (Camera.mode === "third person") {
-                controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                                              "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
-                                                              "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
-            }
-
             getControllerJointIndexCacheTime[hand] = now;
             getControllerJointIndexCache[hand] = controllerJointIndex;
             return controllerJointIndex;
@@ -358,12 +451,16 @@ ensureDynamic = function (entityID) {
     }
 };
 
-findGroupParent = function (controllerData, targetProps) {
-    while (targetProps.parentID &&
+findGrabbableGroupParent = function (controllerData, targetProps) {
+    while (targetProps.grab.grabDelegateToParent &&
+           targetProps.parentID &&
            targetProps.parentID !== Uuid.NULL &&
            Entities.getNestableType(targetProps.parentID) == "entity") {
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
+            break;
+        }
+        if (!entityIsGrabbable(parentProps)) {
             break;
         }
         parentProps.id = targetProps.parentID;
@@ -409,6 +506,18 @@ findHandChildEntities = function(hand) {
                                                         "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
     children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, controllerCRJointIndex));
     children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, controllerCRJointIndex));
+
+    return children.filter(function (childID) {
+        var childType = Entities.getNestableType(childID);
+        return childType == "entity";
+    });
+};
+
+findFarGrabJointChildEntities = function(hand) {
+    // find children of avatar's far-grab joint
+    var farGrabJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ? "_FARGRAB_RIGHTHAND" : "_FARGRAB_LEFTHAND");
+    var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, farGrabJointIndex);
+    children = children.concat(Entities.getChildrenIDsOfJoint(MyAvatar.SELF_ID, farGrabJointIndex));
 
     return children.filter(function (childID) {
         var childType = Entities.getNestableType(childID);
@@ -467,25 +576,28 @@ entityIsEquipped = function(entityID) {
     return equippedInRightHand || equippedInLeftHand;
 };
 
-entityIsFarGrabbedByOther = function(entityID) {
-    // by convention, a far grab sets the tag of its action to be far-grab-*owner-session-id*.
-    var actionIDs = Entities.getActionIDs(entityID);
-    var myFarGrabTag = "far-grab-" + MyAvatar.sessionUUID;
-    for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-        var actionID = actionIDs[actionIndex];
-        var actionArguments = Entities.getActionArguments(entityID, actionID);
-        var tag = actionArguments.tag;
-        if (tag == myFarGrabTag) {
-            // we see a far-grab-*uuid* shaped tag, but it's our tag, so that's okay.
-            continue;
-        }
-        if (tag.slice(0, 9) == "far-grab-") {
-            // we see a far-grab-*uuid* shaped tag and it's not ours, so someone else is grabbing it.
-            return true;
-        }
-    }
-    return false;
+worldPositionToRegistrationFrameMatrix = function(wptrProps, pos) {
+    // get world matrix for intersection point
+    var intersectionMat = new Xform({ x: 0, y: 0, z:0, w: 1 }, pos);
+
+    // calculate world matrix for registrationPoint addjusted entity
+    var DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+    var regRatio = Vec3.subtract(DEFAULT_REGISTRATION_POINT, wptrProps.registrationPoint);
+    var regOffset = Vec3.multiplyVbyV(regRatio, wptrProps.dimensions);
+    var regOffsetRot = Vec3.multiplyQbyV(wptrProps.rotation, regOffset);
+    var modelMat = new Xform(wptrProps.rotation, Vec3.sum(wptrProps.position, regOffsetRot));
+
+    // get inverse of model matrix
+    var modelMatInv = modelMat.inv();
+
+    // transform world intersection point into object's registrationPoint frame
+    var xformMat = Xform.mul(modelMatInv, intersectionMat);
+
+    // convert to Mat4
+    var offsetMat = Mat4.createFromRotAndTrans(xformMat.rot, xformMat.pos);
+    return offsetMat;
 };
+
 
 if (typeof module !== 'undefined') {
     module.exports = {
@@ -496,18 +608,20 @@ if (typeof module !== 'undefined') {
         unhighlightTargetEntity: unhighlightTargetEntity,
         clearHighlightedEntities: clearHighlightedEntities,
         makeRunningValues: makeRunningValues,
-        findGroupParent: findGroupParent,
+        findGrabbableGroupParent: findGrabbableGroupParent,
         LEFT_HAND: LEFT_HAND,
         RIGHT_HAND: RIGHT_HAND,
         BUMPER_ON_VALUE: BUMPER_ON_VALUE,
         TEAR_AWAY_DISTANCE: TEAR_AWAY_DISTANCE,
         propsArePhysical: propsArePhysical,
+        entityIsEquippable: entityIsEquippable,
         entityIsGrabbable: entityIsGrabbable,
         NEAR_GRAB_RADIUS: NEAR_GRAB_RADIUS,
         projectOntoOverlayXYPlane: projectOntoOverlayXYPlane,
         projectOntoEntityXYPlane: projectOntoEntityXYPlane,
         TRIGGER_OFF_VALUE: TRIGGER_OFF_VALUE,
         TRIGGER_ON_VALUE: TRIGGER_ON_VALUE,
-        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST
+        DISPATCHER_HOVERING_LIST: DISPATCHER_HOVERING_LIST,
+        worldPositionToRegistrationFrameMatrix: worldPositionToRegistrationFrameMatrix
     };
 }

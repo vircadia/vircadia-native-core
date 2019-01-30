@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* globals createControllerDisplay:true deleteControllerDisplay:true */
+/* globals createControllerDisplay:true, deleteControllerDisplay:true, Controller, Overlays, Vec3, MyAvatar, Quat */
 
 function clamp(value, min, max) {
     if (value < min) {
@@ -188,7 +188,7 @@ createControllerDisplay = function(config) {
             for (var partName in controller.parts) {
                 var part = controller.parts[partName];
                 var localPosition = Vec3.subtract(part.naturalPosition, controller.naturalPosition);
-                var localRotation = { x: 0, y: 0, z: 0, w: 1 }
+                var localRotation = { x: 0, y: 0, z: 0, w: 1 };
 
                 controllerDisplay.parts[partName] = controller.parts[partName];
 
@@ -203,7 +203,7 @@ createControllerDisplay = function(config) {
                 if (part.defaultTextureLayer) {
                     var textures = {};
                     textures[part.textureName] = part.textureLayers[part.defaultTextureLayer].defaultTextureURL;
-                    properties['textures'] = textures;
+                    properties.textures = textures;
                 }
 
                 var overlayID = Overlays.addOverlay("model", properties);

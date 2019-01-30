@@ -25,52 +25,40 @@ class PolyLineEntityRenderer : public TypedEntityRenderer<PolyLineEntityItem> {
 public:
     PolyLineEntityRenderer(const EntityItemPointer& entity);
 
-    virtual scriptable::ScriptableModelBase getScriptableModel() override;
+    // FIXME: shouldn't always be transparent: take into account texture and glow
+    virtual bool isTransparent() const override { return true; }
+
 protected:
+    virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, 
-                                                Transaction& transaction, 
-                                                const TypedEntityPointer& entity) override;
     virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
 
     virtual ItemKey getKey() override;
     virtual ShapeKey getShapeKey() override;
     virtual void doRender(RenderArgs* args) override;
 
-    virtual bool isTransparent() const override { return true; }
+    void buildPipeline();
+    void updateGeometry();
+    void updateData();
 
-    struct Vertex {
-        Vertex() {}
-        Vertex(const vec3& position, const vec3& normal, const vec2& uv, const vec3& color) : position(position), 
-                                                                                              normal(normal), 
-                                                                                              uv(uv), 
-                                                                                              color(color) {}
-        vec3 position;
-        vec3 normal;
-        vec2 uv;
-        vec3 color;
-    };
+    QVector<glm::vec3> _points;
+    QVector<glm::vec3> _normals;
+    QVector<glm::vec3> _colors;
+    glm::vec3 _color;
+    QVector<float> _widths;
 
-    void updateGeometry(const std::vector<Vertex>& vertices);
-    static std::vector<Vertex> updateVertices(const QVector<glm::vec3>& points, 
-                                              const QVector<glm::vec3>& normals, 
-                                              const QVector<float>& strokeWidths, 
-                                              const QVector<glm::vec3>& strokeColors, 
-                                              const bool isUVModeStretch,
-                                              const float textureAspectRatio);
-
-    Transform _polylineTransform;
-    QVector<glm::vec3> _lastPoints;
-    QVector<glm::vec3> _lastNormals;
-    QVector<glm::vec3> _lastStrokeColors;
-    QVector<float> _lastStrokeWidths;
-    gpu::BufferPointer _verticesBuffer;
-    
-    uint32_t _numVertices { 0 };
-    bool _empty{ true };
     NetworkTexturePointer _texture;
     float _textureAspectRatio { 1.0f };
+    bool _textureLoaded { false };
 
+    bool _isUVModeStretch;
+    bool _faceCamera;
+    bool _glow;
+
+    size_t _numVertices;
+    gpu::BufferPointer _polylineDataBuffer;
+    gpu::BufferPointer _polylineGeometryBuffer;
+    static gpu::PipelinePointer _pipeline;
 };
 
 } } // namespace 

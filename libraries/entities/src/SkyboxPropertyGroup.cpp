@@ -16,15 +16,15 @@
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
-const xColor SkyboxPropertyGroup::DEFAULT_COLOR = { 0, 0, 0 };
+const glm::u8vec3 SkyboxPropertyGroup::DEFAULT_COLOR = { 0, 0, 0 };
 
 void SkyboxPropertyGroup::copyToScriptValue(const EntityPropertyFlags& desiredProperties, QScriptValue& properties, QScriptEngine* engine, bool skipDefaults, EntityItemProperties& defaultEntityProperties) const {
-    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+    COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color, u8vec3Color);
     COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
 }
 
 void SkyboxPropertyGroup::copyFromScriptValue(const QScriptValue& object, bool& _defaultSettings) {
-    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(skybox, color, xColor, setColor);
+    COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(skybox, color, u8vec3Color, setColor);
     COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE(skybox, url, QString, setURL);
 }
 
@@ -71,7 +71,7 @@ bool SkyboxPropertyGroup::decodeFromEditPacket(EntityPropertyFlags& propertyFlag
     bool overwriteLocalData = true;
     bool somethingChanged = false;
 
-    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
 
     DECODE_GROUP_PROPERTY_HAS_CHANGED(PROP_SKYBOX_COLOR, Color);
@@ -143,7 +143,7 @@ int SkyboxPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* d
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, xColor, setColor);
+    READ_ENTITY_PROPERTY(PROP_SKYBOX_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_SKYBOX_URL, QString, setURL);
 
     return bytesRead;

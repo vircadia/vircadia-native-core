@@ -14,16 +14,17 @@
 
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
+#include "AssembleLightingStageTask.h"
 #include "LightingModel.h"
 
 class RenderForwardTask {
 public:
-    using Input = RenderFetchCullSortTask::Output;
+    using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, LightingModelPointer, AssembleLightingStageTask::Output>;
     using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
     RenderForwardTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output);
 };
 
 class PrepareFramebuffer {
@@ -40,7 +41,7 @@ private:
 
 class PrepareForward {
 public:
-    using Inputs = LightingModelPointer;
+    using Inputs = LightStage::FramePointer;
     using JobModel = render::Job::ModelI<PrepareForward, Inputs>;
 
     void run(const render::RenderContextPointer& renderContext,

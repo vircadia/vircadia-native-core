@@ -128,6 +128,8 @@ public:
         uint32 _elementTotalSize { 0 };
         std::string _key;
 
+        friend class Serializer;
+        friend class Deserializer;
         void evaluateCache();
     };
 
@@ -151,6 +153,8 @@ public:
     size_t getNumBuffers() const { return _buffers.size(); }
 
     BufferStream makeRangedStream(uint32 offset, uint32 count = -1) const;
+
+    BufferStream& operator = (const BufferStream& src) = default;
 
 protected:
     Buffers _buffers;

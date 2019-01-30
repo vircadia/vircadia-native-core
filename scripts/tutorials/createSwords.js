@@ -29,11 +29,7 @@ var sword1 = Entities.addEntity({
         angularDamping: 0,
         damping: 0,
         script: SCRIPT_URL,
-        userData:JSON.stringify({
-                grabbableKey:{
-                    grabbable:true
-                }
-            })
+        grab: { grabbable: true }
     });
 
 var sword2 = Entities.addEntity({
@@ -45,11 +41,7 @@ var sword2 = Entities.addEntity({
         angularDamping: 0,
         damping: 0,
         script: SCRIPT_URL,
-        userData:JSON.stringify({
-                grabbableKey:{
-                    grabbable:true
-                }
-            })
+        grab: { grabbable: true }
     });
 
 Script.scriptEnding.connect(function scriptEnding() {

@@ -18,6 +18,17 @@
 
 using namespace task;
 
+JobConfig::~JobConfig() {
+    
+}
+
+void JobConfig::setEnabled(bool enable) {
+    if (_isEnabled != enable) {
+        _isEnabled = enable;
+        emit dirtyEnabled();
+    }
+}
+
 void JobConfig::setPresetList(const QJsonObject& object) {
     for (auto it = object.begin(); it != object.end(); it++) {
         JobConfig* child = findChild<JobConfig*>(it.key(), Qt::FindDirectChildrenOnly);
@@ -68,3 +79,57 @@ void TaskConfig::refresh() {
     _task->applyConfiguration();
 }
 
+TaskConfig* TaskConfig::getRootConfig(const std::string& jobPath, std::string& jobName) const {
+    TaskConfig* root = const_cast<TaskConfig*> (this);
+
+    std::list<std::string> tokens;
+    std::size_t pos = 0, sepPos;
+    while ((sepPos = jobPath.find_first_of('.', pos)) != std::string::npos) {
+        std::string token = jobPath.substr(pos, sepPos - pos);
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+        pos = sepPos + 1;
+    }
+    {
+        std::string token = jobPath.substr(pos, sepPos - pos);
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+
+    if (tokens.empty()) {
+        return root;
+    }
+    else {
+        while (tokens.size() > 1) {
+            auto taskName = tokens.front();
+            tokens.pop_front();
+            root = root->findChild<TaskConfig*>((taskName.empty() ? QString() : QString(taskName.c_str())));
+            if (!root) {
+                return nullptr;
+            }
+        }
+        jobName = tokens.front();
+    }
+    return root;
+}
+
+JobConfig* TaskConfig::getJobConfig(const std::string& jobPath) const {
+    std::string jobName;
+    auto root = getRootConfig(jobPath, jobName);
+
+    if (!root) {
+        return nullptr;
+    } 
+    if (jobName.empty()) {
+        return root;
+    } else {
+
+        auto found = root->findChild<JobConfig*>((jobName.empty() ? QString() : QString(jobName.c_str())));
+        if (!found) {
+            return nullptr;
+        }
+        return found;
+    }
+}

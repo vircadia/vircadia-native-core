@@ -15,8 +15,10 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
+#include <QtCore/QFileInfo>
 
 #include <QtGui/QImage>
+#include <QtGui/QImageWriter>
 #include <QtGui/QOpenGLFramebufferObject>
 
 #include <NumericalConstants.h>
@@ -30,6 +32,7 @@
 #include <gl/OffscreenGLCanvas.h>
 
 #include <gpu/Texture.h>
+#include <gpu/FrameIO.h>
 #include <shaders/Shaders.h>
 #include <gpu/gl/GLShared.h>
 #include <gpu/gl/GLBackend.h>
@@ -88,6 +91,7 @@ public:
         // Move the OpenGL context to the present thread
         // Extra code because of the widget 'wrapper' context
         _context = context;
+        _context->doneCurrent();
         _context->moveToThread(this);
     }
 
@@ -179,7 +183,9 @@ public:
             _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
+                gl::globalLock();
                 currentPlugin->present();
+                gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
             _context->doneCurrent();
@@ -363,56 +369,35 @@ void OpenGLDisplayPlugin::customizeContext() {
     }
 
     if (!_presentPipeline) {
+        gpu::StatePointer blendState = gpu::StatePointer(new gpu::State());
+        blendState->setDepthTest(gpu::State::DepthTest(false));
+        blendState->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        gpu::StatePointer scissorState = gpu::StatePointer(new gpu::State());
+        scissorState->setDepthTest(gpu::State::DepthTest(false));
+        scissorState->setScissorEnable(true);
+
         {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::drawTexture);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setScissorEnable(true);
-            _simplePipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+            _simplePipeline = gpu::Pipeline::create(program, scissorState);
+            _hudPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setScissorEnable(true);
-            _presentPipeline = gpu::Pipeline::create(program, state);
+            _presentPipeline = gpu::Pipeline::create(program, scissorState);
         }
 
         {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _hudPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
+            _mirrorHUDPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawUnitQuadTexcoord);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTextureMirroredX);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _mirrorHUDPipeline = gpu::Pipeline::create(program, state);
-        }
-
-        {
-            auto vs = gpu::Shader::createVertex(shader::gpu::vertex::DrawTransformUnitQuad);
-            auto ps = gpu::Shader::createPixel(shader::gpu::fragment::DrawTexture);
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
-            gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-            state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            _cursorPipeline = gpu::Pipeline::create(program, state);
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTransformedTexture);
+            _cursorPipeline = gpu::Pipeline::create(program, blendState);
         }
     }
     updateCompositeFramebuffer();
@@ -483,11 +468,43 @@ void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
     });
 }
 
-void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor) {
-    renderFromTexture(batch, texture, viewport, scissor, gpu::FramebufferPointer());
+void OpenGLDisplayPlugin::captureFrame(const std::string& filename) const {
+    withOtherThreadContext([&] {
+        using namespace gpu;
+        auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
+        FramebufferPointer framebuffer{ Framebuffer::create("captureFramebuffer") };
+        TextureCapturer captureLambda = [&](const std::string& filename, const gpu::TexturePointer& texture, uint16 layer) {
+            QImage image;
+            if (texture->getUsageType() == TextureUsageType::STRICT_RESOURCE) {
+                image = QImage{ 1, 1, QImage::Format_ARGB32 };
+                auto storedImage = texture->accessStoredMipFace(0, 0);
+                memcpy(image.bits(), storedImage->data(), image.sizeInBytes());
+            //if (texture == textureCache->getWhiteTexture()) {
+            //} else if (texture == textureCache->getBlackTexture()) {
+            //} else if (texture == textureCache->getBlueTexture()) {
+            //} else if (texture == textureCache->getGrayTexture()) {
+            } else {
+                ivec4 rect = { 0, 0, texture->getWidth(), texture->getHeight() };
+                framebuffer->setRenderBuffer(0, texture, layer);
+                glBackend->syncGPUObject(*framebuffer);
+
+                image = QImage{ rect.z, rect.w, QImage::Format_ARGB32 };
+                glBackend->downloadFramebuffer(framebuffer, rect, image);
+            }
+            QImageWriter(filename.c_str()).write(image);
+        };
+
+        if (_currentFrame) {
+            gpu::writeFrame(filename, _currentFrame, captureLambda);
+        }
+    });
 }
 
-void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer copyFbo /*=gpu::FramebufferPointer()*/) {
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor) {
+    renderFromTexture(batch, texture, viewport, scissor, nullptr);
+}
+
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& copyFbo /*=gpu::FramebufferPointer()*/) {
     auto fbo = gpu::FramebufferPointer();
     batch.enableStereo(false);
     batch.resetViewTransform();
@@ -543,6 +560,9 @@ void OpenGLDisplayPlugin::updateFrameData() {
         if (_newFrameQueue.size() > 1) {
             _droppedFrameRate.increment(_newFrameQueue.size() - 1);
         }
+
+        _gpuContext->processProgramsToSync();
+
         while (!_newFrameQueue.empty()) {
             _currentFrame = _newFrameQueue.front();
             _newFrameQueue.pop();
@@ -552,18 +572,26 @@ void OpenGLDisplayPlugin::updateFrameData() {
 }
 
 std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> OpenGLDisplayPlugin::getHUDOperator() {
-    return [this](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (_hudPipeline && hudTexture) {
+    auto hudPipeline = _hudPipeline;
+    auto hudMirrorPipeline = _mirrorHUDPipeline;
+    auto hudStereo = isStereo();
+    auto hudCompositeFramebufferSize = _compositeFramebuffer->getSize();
+    std::array<glm::ivec4, 2> hudEyeViewports;
+    for_each_eye([&](Eye eye) {
+        hudEyeViewports[eye] = eyeViewport(eye);
+    });
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
+        if (hudPipeline && hudTexture) {
             batch.enableStereo(false);
-            batch.setPipeline(mirror ? _mirrorHUDPipeline : _hudPipeline);
+            batch.setPipeline(mirror ? hudMirrorPipeline : hudPipeline);
             batch.setResourceTexture(0, hudTexture);
-            if (isStereo()) {
+            if (hudStereo) {
                 for_each_eye([&](Eye eye) {
-                    batch.setViewportTransform(eyeViewport(eye));
+                    batch.setViewportTransform(hudEyeViewports[eye]);
                     batch.draw(gpu::TRIANGLE_STRIP, 4);
                 });
             } else {
-                batch.setViewportTransform(ivec4(uvec2(0), _compositeFramebuffer->getSize()));
+                batch.setViewportTransform(ivec4(uvec2(0), hudCompositeFramebufferSize));
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
             }
         }
@@ -655,6 +683,7 @@ void OpenGLDisplayPlugin::present() {
     auto frameId = (uint64_t)presentCount();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xffffff00, frameId)
     uint64_t startPresent = usecTimestampNow();
+
     {
         PROFILE_RANGE_EX(render, "updateFrameData", 0xff00ff00, frameId)
         updateFrameData();
@@ -846,7 +875,6 @@ void OpenGLDisplayPlugin::render(std::function<void(gpu::Batch& batch)> f) {
     f(batch);
     _gpuContext->executeBatch(batch);
 }
-
 
 OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 }

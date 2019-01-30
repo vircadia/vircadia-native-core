@@ -32,7 +32,7 @@
     var WAITING_INTERVAL = 100; // ms
     var CONNECTING_INTERVAL = 100; // ms
     var MAKING_CONNECTION_TIMEOUT = 800; // ms
-    var CONNECTING_TIME = 1600; // ms
+    var CONNECTING_TIME = 100; // ms One interval.
     var PARTICLE_RADIUS = 0.15; // m
     var PARTICLE_ANGLE_INCREMENT = 360 / 45; // 1hz
     var HANDSHAKE_SOUND_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/davidkelly/production/audio/4beat_sweep.wav";
@@ -51,6 +51,7 @@
         "emitterShouldTrail": 1,
         "isEmitting": 1,
         "lifespan": 3,
+        "lifetime": 5,
         "maxParticles": 1000,
         "particleRadius": 0.003,
         "polarStart": Math.PI / 2,
@@ -82,6 +83,7 @@
         "emitterShouldTrail": 1,
         "isEmitting": 1,
         "lifespan": 3.6,
+        "lifetime": 5,
         "maxParticles": 4000,
         "particleRadius": 0.048,
         "polarStart": 0,
@@ -229,6 +231,15 @@
         }
         animationData.rightHandRotation = Quat.fromPitchYawRollDegrees(90, 0, 90);
         animationData.rightHandType = 0; // RotationAndPosition, see IKTargets.h
+
+        // turn on the right hand grip overlay
+        animationData.rightHandOverlayAlpha = 1.0;
+
+        // make sure the right hand grip animation is the "grasp", not pointing or thumbs up.
+        animationData.isRightHandGrasp = true;
+        animationData.isRightIndexPoint = false;
+        animationData.isRightThumbRaise = false;
+        animationData.isRightIndexPointAndThumbRaise = false;
     }
     function shakeHandsAnimation() {
         return animationData;
@@ -278,6 +289,11 @@
     }
 
     function updateMakingConnection() {
+        if (!makingConnectionParticleEffect) {
+            particleEffectUpdateTimer = null;
+            return;
+        }
+
         makingConnectionEmitRate = Math.max(makingConnectionEmitRate * MAKING_CONNECTION_DECAY_RATE,
             MAKING_CONNECTION_MINIMUM_EMIT_RATE);
         isMakingConnectionEmitting = true;
@@ -293,6 +309,11 @@
     }
 
     function updateParticleEffect() {
+        if (!particleEffect) {
+            particleEffectUpdateTimer = null;
+            return;
+        }
+
         particleEmitRate = Math.max(PARTICLE_MINIMUM_EMIT_RATE, particleEmitRate * PARTICLE_DECAY_RATE);
         Entities.editEntity(particleEffect, {
             emitRate: particleEmitRate

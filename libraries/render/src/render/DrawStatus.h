@@ -63,6 +63,8 @@ namespace render {
         gpu::PipelinePointer _drawItemStatusPipeline;
 
         gpu::BufferPointer _boundsBuffer;
+        gpu::BufferPointer _instanceBuffer;
+        gpu::Stream::FormatPointer _vertexFormat;
         gpu::TexturePointer _statusIconMap;
     };
 }

@@ -1,3 +1,5 @@
+/* global $, window, MutationObserver */
+
 //
 //  marketplacesInject.js
 //
@@ -11,7 +13,6 @@
 //
 
 (function () {
-
     // Event bridge messages.
     var CLARA_IO_DOWNLOAD = "CLARA.IO DOWNLOAD";
     var CLARA_IO_STATUS = "CLARA.IO STATUS";
@@ -24,8 +25,9 @@
 
     var canWriteAssets = false;
     var xmlHttpRequest = null;
-    var isPreparing = false;  // Explicitly track download request status.
+    var isPreparing = false; // Explicitly track download request status.
 
+    var limitedCommerce = false;
     var commerceMode = false;
     var userIsLoggedIn = false;
     var walletNeedsSetup = false;
@@ -33,7 +35,6 @@
     var messagesWaiting = false;
 
     function injectCommonCode(isDirectoryPage) {
-
         // Supporting styles from marketplaces.css.
         // Glyph font family, size, and spacing adjusted because HiFi-Glyphs cannot be used cross-domain.
         $("head").append(
@@ -59,7 +60,7 @@
         );
 
         // Footer.
-        var isInitialHiFiPage = location.href === marketplaceBaseURL + "/marketplace?";
+        var isInitialHiFiPage = location.href === (marketplaceBaseURL + "/marketplace?");
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
@@ -74,7 +75,9 @@
             (document.referrer !== "") ? window.history.back() : window.location = (marketplaceBaseURL + "/marketplace?");
         });
         $("#all-markets").on("click", function () {
-            EventBridge.emitWebEvent(GOTO_DIRECTORY);
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: GOTO_DIRECTORY
+            }));
         });
     }
 
@@ -90,15 +93,15 @@
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
         $('#exploreHifiMarketplace').on('click', function () {
-            window.location = marketplaceBaseURL + "/marketplace";
+            window.location = marketplaceBaseURL + "/marketplace?";
         });
     }
 
-    emitWalletSetupEvent = function() {
+    emitWalletSetupEvent = function () {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "WALLET_SETUP"
         }));
-    }
+    };
 
     function maybeAddSetupWalletButton() {
         if (!$('body').hasClass("walletsetup-injected") && userIsLoggedIn && walletNeedsSetup) {
@@ -113,7 +116,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px 5px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Setup your Wallet</a> to get money and shop in Marketplace.";
+            span.innerHTML = "<a href='#' onclick='emitWalletSetupEvent(); return false;'>Activate your Wallet</a> to get money and shop in Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";
@@ -167,7 +170,7 @@
 
             var span = document.createElement('span');
             span.style = "margin:10px;color:#1b6420;font-size:15px;";
-            span.innerHTML = "to purchase items from the Marketplace.";
+            span.innerHTML = "to get items from the Marketplace.";
 
             var xButton = document.createElement('a');
             xButton.id = "xButton";
@@ -190,40 +193,6 @@
             dummyRow.classList.add("row");
             dummyRow.style = "height:15px;";
             resultsElement.insertBefore(dummyRow, resultsElement.firstChild);
-        }
-    }
-
-    function maybeAddPurchasesButton() {
-        if (userIsLoggedIn) {
-            // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
-            var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
-            var purchasesElement = document.createElement('a');
-            var dropDownElement = document.getElementById('user-dropdown');
-
-            $('#user-dropdown').find('.username')[0].style = "max-width:80px;white-space:nowrap;overflow:hidden;" +
-                "text-overflow:ellipsis;display:inline-block;position:relative;top:4px;";
-            $('#user-dropdown').find('.caret')[0].style = "position:relative;top:-3px;";
-
-            purchasesElement.id = "purchasesButton";
-            purchasesElement.setAttribute('href', "#");
-            purchasesElement.innerHTML = "";
-            if (messagesWaiting) {
-                purchasesElement.innerHTML += "<span style='width:10px;height:10px;background-color:red;border-radius:50%;display:inline-block;'></span> ";
-            }
-            purchasesElement.innerHTML += "My Purchases";
-            // FRONTEND WEBDEV RANT: The username dropdown should REALLY not be programmed to be on the same
-            //     line as the search bar, overlaid on top of the search bar, floated right, and then relatively bumped up using "top:-50px".
-            $('.navbar-brand').css('margin-right', '10px');
-            purchasesElement.style = "height:100%;margin-top:18px;font-weight:bold;float:right;margin-right:" + (dropDownElement.offsetWidth + 30) +
-                "px;position:relative;z-index:999;";
-            navbarBrandElement.parentNode.insertAdjacentElement('beforeend', purchasesElement);
-            $('#purchasesButton').on('click', function () {
-                EventBridge.emitWebEvent(JSON.stringify({
-                    type: "PURCHASES",
-                    referrerURL: window.location.href,
-                    hasUpdates: messagesWaiting
-                }));
-            });
         }
     }
 
@@ -250,17 +219,12 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price, href, referrer, edition, type) {
+    function buyButtonClicked(id, referrer, edition) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
-            itemName: name,
-            itemPrice: price ? parseInt(price, 10) : 0,
-            itemHref: href,
             referrer: referrer,
-            itemAuthor: author,
-            itemEdition: edition,
-            itemType: type.trim()
+            itemEdition: edition
         }));
     }
 
@@ -281,24 +245,45 @@
                 $(this).attr('href', '#');
             }
             cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+            var costInt = parseInt(cost, 10);
 
             $(this).closest('.col-xs-3').prev().attr("class", 'col-xs-6');
             $(this).closest('.col-xs-3').attr("class", 'col-xs-6');
 
-            var priceElement = $(this).find('.price')
-            priceElement.css({
-                "padding": "3px 5px",
-                "height": "40px",
-                "background": "linear-gradient(#00b4ef, #0093C5)",
-                "color": "#FFF",
-                "font-weight": "600",
-                "line-height": "34px"
-            });
+            var priceElement = $(this).find('.price');
+            var available = true;
+
+            if (priceElement.text() === 'invalidated' ||
+                priceElement.text() === 'sold out' ||
+                priceElement.text() === 'not for sale') {
+                available = false;
+                priceElement.css({
+                    "padding": "3px 5px 10px 5px",
+                    "height": "40px",
+                    "background": "linear-gradient(#a2a2a2, #fefefe)",
+                    "color": "#000",
+                    "font-weight": "600",
+                    "line-height": "34px"
+                });
+            } else {
+                priceElement.css({
+                    "padding": "3px 5px",
+                    "height": "40px",
+                    "background": "linear-gradient(#00b4ef, #0093C5)",
+                    "color": "#FFF",
+                    "font-weight": "600",
+                    "line-height": "34px"
+                });
+            }
 
             if (parseInt(cost) > 0) {
                 priceElement.css({ "width": "auto" });
-                priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
-                    'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+
+                if (available) {
+                    priceElement.html('<span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
+                        'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
+                }
+                
                 priceElement.css({ "min-width": priceElement.width() + 30 });
             }
         });
@@ -310,8 +295,12 @@
             var getString = "GET";
             // Protection against the button getting stuck in the "BUY"/"GET" state.
             // That happens when the browser gets two MOUSEENTER events before getting a
-            // MOUSELEAVE event.
-            if ($this.text() === buyString || $this.text() === getString) {
+            // MOUSELEAVE event. Also, if not available for sale, just return.
+            if ($this.text() === buyString ||
+                $this.text() === getString ||
+                $this.text() === 'invalidated' ||
+                $this.text() === 'sold out' ||
+                $this.text() === 'not for sale' ) {
                 return;
             }
             $this.data('initialHtml', $this.html());
@@ -319,7 +308,8 @@
             var cost = $(this).parent().siblings().text();
             if (parseInt(cost) > 0) {
                 $this.text(buyString);
-            } else {
+            }
+            if (parseInt(cost) == 0) {
                 $this.text(getString);
             }
         });
@@ -331,14 +321,15 @@
 
 
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            var price = $(this).closest('.grid-item').find('.price').text();
+            if (price === 'invalidated' ||
+                price === 'sold out' ||
+                price === 'not for sale') {
+                return false;
+            }
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
-                $(this).closest('.grid-item').find('.item-title').text(),
-                $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                $(this).closest('.grid-item').find('.item-cost').text(),
-                $(this).attr('data-href'),
                 "mainPage",
-                -1,
-                $(this).closest('.grid-item').find('.item-type').text());
+                -1);
         });
     }
 
@@ -355,12 +346,12 @@
     function injectAddScrollbarToCategories() {
         $('#categories-dropdown').on('show.bs.dropdown', function () {
             $('body > div.container').css('display', 'none')
-            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' })
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': 'auto', 'height': 'calc(100vh - 110px)' });
         });
 
         $('#categories-dropdown').on('hide.bs.dropdown', function () {
-            $('body > div.container').css('display', '')
-            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' })
+            $('body > div.container').css('display', '');
+            $('#categories-dropdown > ul.dropdown-menu').css({ 'overflow': '', 'height': '' });
         });
     }
 
@@ -382,7 +373,6 @@
                     mutations.forEach(function (mutation) {
                         injectBuyButtonOnMainPage();
                     });
-                    //observer.disconnect();
                 });
                 var config = { attributes: true, childList: true, characterData: true };
                 observer.observe(target, config);
@@ -390,7 +380,6 @@
                 // Try this here in case it works (it will if the user just pressed the "back" button,
                 //     since that doesn't trigger another AJAX request.
                 injectBuyButtonOnMainPage();
-                maybeAddPurchasesButton();
             }
         }
 
@@ -411,7 +400,12 @@
 
                 var href = purchaseButton.attr('href');
                 purchaseButton.attr('href', '#');
+                var cost = $('.item-cost').text();
+                var costInt = parseInt(cost, 10);
                 var availability = $.trim($('.item-availability').text());
+                if (limitedCommerce && (costInt > 0)) {
+                    availability = '';
+                }
                 if (availability === 'available') {
                     purchaseButton.css({
                         "background": "linear-gradient(#00b4ef, #0093C5)",
@@ -428,14 +422,13 @@
                     });
                 }
 
-                var cost = $('.item-cost').text();
                 var type = $('.item-type').text();
                 var isUpdating = window.location.href.indexOf('edition=') > -1;
                 var urlParams = new URLSearchParams(window.location.search);
                 if (isUpdating) {
                     purchaseButton.html('UPDATE FOR FREE');
                 } else if (availability !== 'available') {
-                    purchaseButton.html('UNAVAILABLE (' + availability + ')');
+                    purchaseButton.html('UNAVAILABLE ' + (availability ? ('(' + availability + ')') : ''));
                 } else if (parseInt(cost) > 0 && $('#side-info').find('#buyItemButton').size() === 0) {
                     purchaseButton.html('PURCHASE <span class="hifi-glyph hifi-glyph-hfc" style="filter:invert(1);background-size:20px;' +
                         'width:20px;height:20px;position:relative;top:5px;"></span> ' + cost);
@@ -444,16 +437,10 @@
                 purchaseButton.on('click', function () {
                     if ('available' === availability || isUpdating) {
                         buyButtonClicked(window.location.pathname.split("/")[3],
-                            $('#top-center').find('h1').text(),
-                            $('#creator').find('.value').text(),
-                            cost,
-                            href,
                             "itemPage",
-                            urlParams.get('edition'),
-                            type);
-                        }
-                    });
-                maybeAddPurchasesButton();
+                            urlParams.get('edition'));
+                    }
+                });
             }
         }
 
@@ -503,127 +490,126 @@
                 $(".top-title .col-sm-4").append(downloadContainer);
                 downloadContainer.append(downloadFBX);
             }
-
-            // Automatic download to High Fidelity.
-            function startAutoDownload() {
-
-                // One file request at a time.
-                if (isPreparing) {
-                    console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
-                    return;
-                }
-
-                // User must be able to write to Asset Server.
-                if (!canWriteAssets) {
-                    console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
-                    EventBridge.emitWebEvent(WARN_USER_NO_PERMISSIONS);
-                    return;
-                }
-
-                // User must be logged in.
-                var loginButton = $("#topnav a[href='/signup']");
-                if (loginButton.length > 0) {
-                    loginButton[0].click();
-                    return;
-                }
-
-                // Obtain zip file to download for requested asset.
-                // Reference: https://clara.io/learn/sdk/api/export
-
-                //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
-                // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to
-                // be successful in generating zip files.
-                var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
-
-                var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
-                var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
-
-                xmlHttpRequest = new XMLHttpRequest();
-                var responseTextIndex = 0;
-                var zipFileURL = "";
-
-                xmlHttpRequest.onreadystatechange = function () {
-                    // Messages are appended to responseText; process the new ones.
-                    var message = this.responseText.slice(responseTextIndex);
-                    var statusMessage = "";
-
-                    if (isPreparing) {  // Ignore messages in flight after finished/cancelled.
-                        var lines = message.split(/[\n\r]+/);
-
-                        for (var i = 0, length = lines.length; i < length; i++) {
-                            if (lines[i].slice(0, 5) === "data:") {
-                                // Parse line.
-                                var data;
-                                try {
-                                    data = JSON.parse(lines[i].slice(5));
-                                }
-                                catch (e) {
-                                    data = {};
-                                }
-
-                                // Extract status message.
-                                if (data.hasOwnProperty("message") && data.message !== null) {
-                                    statusMessage = data.message;
-                                    console.log("Clara.io FBX: " + statusMessage);
-                                }
-
-                                // Extract zip file URL.
-                                if (data.hasOwnProperty("files") && data.files.length > 0) {
-                                    zipFileURL = data.files[0].url;
-                                    if (zipFileURL.slice(-4) !== ".zip") {
-                                        console.log(JSON.stringify(data));  // Data for debugging.
-                                    }
-                                }
-                            }
-                        }
-
-                        if (statusMessage !== "") {
-                            // Update the UI with the most recent status message.
-                            EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                        }
-                    }
-
-                    responseTextIndex = this.responseText.length;
-                };
-
-                // Note: onprogress doesn't have computable total length so can't use it to determine % complete.
-
-                xmlHttpRequest.onload = function () {
-                    var statusMessage = "";
-
-                    if (!isPreparing) {
-                        return;
-                    }
-
-                    isPreparing = false;
-
-                    var HTTP_OK = 200;
-                    if (this.status !== HTTP_OK) {
-                        statusMessage = "Zip file request terminated with " + this.status + " " + this.statusText;
-                        console.log("ERROR: Clara.io FBX: " + statusMessage);
-                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                    } else if (zipFileURL.slice(-4) !== ".zip") {
-                        statusMessage = "Error creating zip file for download.";
-                        console.log("ERROR: Clara.io FBX: " + statusMessage + ": " + zipFileURL);
-                        EventBridge.emitWebEvent(CLARA_IO_STATUS + " " + statusMessage);
-                    } else {
-                        EventBridge.emitWebEvent(CLARA_IO_DOWNLOAD + " " + zipFileURL);
-                        console.log("Clara.io FBX: File download initiated for " + zipFileURL);
-                    }
-
-                    xmlHttpRequest = null;
-                }
-
-                isPreparing = true;
-
-                console.log("Clara.io FBX: Request zip file for " + uuid);
-                EventBridge.emitWebEvent(CLARA_IO_STATUS + " Initiating download");
-
-                xmlHttpRequest.open("POST", url, true);
-                xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
-                xmlHttpRequest.send();
-            }
         }
+    }
+
+    // Automatic download to High Fidelity.
+    function startAutoDownload() {
+        // One file request at a time.
+        if (isPreparing) {
+            console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
+            return;
+        }
+
+        // User must be able to write to Asset Server.
+        if (!canWriteAssets) {
+            console.log("ERROR: Clara.io FBX: File download cancelled because no permissions to write to Asset Server");
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: WARN_USER_NO_PERMISSIONS
+            }));
+            return;
+        }
+
+        // User must be logged in.
+        var loginButton = $("#topnav a[href='/signup']");
+        if (loginButton.length > 0) {
+            loginButton[0].click();
+            return;
+        }
+
+        // Obtain zip file to download for requested asset.
+        // Reference: https://clara.io/learn/sdk/api/export
+
+        //var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?zip=true&centerScene=true&alignSceneGround=true&fbxUnit=Meter&fbxVersion=7&fbxEmbedTextures=true&imageFormat=WebGL";
+        // 13 Jan 2017: Specify FBX version 5 and remove some options in order to make Clara.io site more likely to
+        // be successful in generating zip files.
+        var XMLHTTPREQUEST_URL = "https://clara.io/api/scenes/{uuid}/export/fbx?fbxUnit=Meter&fbxVersion=5&fbxEmbedTextures=true&imageFormat=WebGL";
+
+        var uuid = location.href.match(/\/view\/([a-z0-9\-]*)/)[1];
+        var url = XMLHTTPREQUEST_URL.replace("{uuid}", uuid);
+
+        xmlHttpRequest = new XMLHttpRequest();
+        var responseTextIndex = 0;
+        var zipFileURL = "";
+
+        xmlHttpRequest.onreadystatechange = function () {
+            // Messages are appended to responseText; process the new ones.
+            var message = this.responseText.slice(responseTextIndex);
+            var statusMessage = "";
+
+            if (isPreparing) {  // Ignore messages in flight after finished/cancelled.
+                var lines = message.split(/[\n\r]+/);
+
+                for (var i = 0, length = lines.length; i < length; i++) {
+                    if (lines[i].slice(0, 5) === "data:") {
+                        // Parse line.
+                        var data;
+                        try {
+                            data = JSON.parse(lines[i].slice(5));
+                        }
+                        catch (e) {
+                            data = {};
+                        }
+
+                        // Extract zip file URL.
+                        if (data.hasOwnProperty("files") && data.files.length > 0) {
+                            zipFileURL = data.files[0].url;
+                        }
+                    }
+                }
+
+                if (statusMessage !== "") {
+                    // Update the UI with the most recent status message.
+                    EventBridge.emitWebEvent(JSON.stringify({
+                        type: CLARA_IO_STATUS,
+                        status: statusMessage
+                    }));
+                }
+            }
+
+            responseTextIndex = this.responseText.length;
+        };
+
+        // Note: onprogress doesn't have computable total length so can't use it to determine % complete.
+
+        xmlHttpRequest.onload = function () {
+            var statusMessage = "";
+
+            if (!isPreparing) {
+                return;
+            }
+
+            isPreparing = false;
+
+            var HTTP_OK = 200;
+            if (this.status !== HTTP_OK) {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: CLARA_IO_STATUS,
+                    status: statusMessage
+                }));
+            } else if (zipFileURL.slice(-4) !== ".zip") {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: CLARA_IO_STATUS,
+                    status: (statusMessage + ": " + zipFileURL)
+                }));
+            } else {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: CLARA_IO_DOWNLOAD
+                }));
+            }
+
+            xmlHttpRequest = null;
+        }
+
+        isPreparing = true;
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: CLARA_IO_STATUS,
+            status: "Initiating download"
+        }));
+
+        xmlHttpRequest.open("POST", url, true);
+        xmlHttpRequest.setRequestHeader("Accept", "text/event-stream");
+        xmlHttpRequest.send();
     }
 
     function injectClaraCode() {
@@ -663,7 +649,9 @@
             updateClaraCodeInterval = undefined;
         });
 
-        EventBridge.emitWebEvent(QUERY_CAN_WRITE_ASSETS);
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: QUERY_CAN_WRITE_ASSETS
+        }));
     }
 
     function cancelClaraDownload() {
@@ -673,7 +661,9 @@
             xmlHttpRequest.abort();
             xmlHttpRequest = null;
             console.log("Clara.io FBX: File download cancelled");
-            EventBridge.emitWebEvent(CLARA_IO_CANCELLED_DOWNLOAD);
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: CLARA_IO_CANCELLED_DOWNLOAD
+            }));
         }
     }
 
@@ -708,25 +698,23 @@
 
     function onLoad() {
         EventBridge.scriptEventReceived.connect(function (message) {
-            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
-                canWriteAssets = message.slice(-4) === "true";
-            } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+            message = JSON.parse(message);
+            if (message.type === CAN_WRITE_ASSETS) {
+                canWriteAssets = message.canWriteAssets;
+            } else if (message.type === CLARA_IO_CANCEL_DOWNLOAD) {
                 cancelClaraDownload();
-            } else {
-                var parsedJsonMessage = JSON.parse(message);
-
-                if (parsedJsonMessage.type === "marketplaces") {
-                    if (parsedJsonMessage.action === "commerceSetting") {
-                        commerceMode = !!parsedJsonMessage.data.commerceMode;
-                        userIsLoggedIn = !!parsedJsonMessage.data.userIsLoggedIn;
-                        walletNeedsSetup = !!parsedJsonMessage.data.walletNeedsSetup;
-                        marketplaceBaseURL = parsedJsonMessage.data.metaverseServerURL;
-                        if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
-                            marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
-                        }
-                        messagesWaiting = parsedJsonMessage.data.messagesWaiting;
-                        injectCode();
+            } else if (message.type === "marketplaces") {
+                if (message.action === "commerceSetting") {
+                    limitedCommerce = !!message.data.limitedCommerce;
+                    commerceMode = !!message.data.commerceMode;
+                    userIsLoggedIn = !!message.data.userIsLoggedIn;
+                    walletNeedsSetup = !!message.data.walletNeedsSetup;
+                    marketplaceBaseURL = message.data.metaverseServerURL;
+                    if (marketplaceBaseURL.indexOf('metaverse.') !== -1) {
+                        marketplaceBaseURL = marketplaceBaseURL.replace('metaverse.', '');
                     }
+                    messagesWaiting = message.data.messagesWaiting;
+                    injectCode();
                 }
             }
         });
@@ -739,6 +727,6 @@
     }
 
     // Load / unload.
-    window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
-    window.addEventListener("page:change", onLoad);  // Triggered after Marketplace HTML is changed
+    window.addEventListener("load", onLoad); // More robust to Web site issues than using $(document).ready().
+    window.addEventListener("page:change", onLoad); // Triggered after Marketplace HTML is changed
 }());

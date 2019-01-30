@@ -32,6 +32,15 @@ Mesh::Mesh(const Mesh& mesh) :
 Mesh::~Mesh() {
 }
 
+void Mesh::setVertexFormatAndStream(const gpu::Stream::FormatPointer& vf, const gpu::BufferStreamPointer& vbs) {
+    _vertexFormat = vf;
+    _vertexStream = (*vbs);
+
+    auto attrib = _vertexFormat->getAttribute(gpu::Stream::POSITION);
+    _vertexBuffer = BufferView(vbs->getBuffers()[attrib._channel], vbs->getOffsets()[attrib._channel], vbs->getBuffers()[attrib._channel]->getSize(),
+        (gpu::uint16) vbs->getStrides()[attrib._channel], attrib._element);
+}
+
 void Mesh::setVertexBuffer(const BufferView& buffer) {
     _vertexBuffer = buffer;
     evalVertexFormat();
@@ -107,11 +116,10 @@ Box Mesh::evalPartBound(int partNum) const {
         index += part._startIndex;
         auto endIndex = index;
         endIndex += part._numIndices;
-        auto vertices = &_vertexBuffer.get<Vec3>(part._baseVertex);
         for (;index != endIndex; index++) {
             // skip primitive restart indices
             if ((*index) != PRIMITIVE_RESTART_INDEX) {
-                box += vertices[(*index)];
+                box += _vertexBuffer.get<Vec3>(part._baseVertex + (*index));
             }
         }
     }
@@ -128,11 +136,10 @@ Box Mesh::evalPartsBound(int partStart, int partEnd) const {
         Box partBound;
         auto index = _indexBuffer.cbegin<uint>() + (*part)._startIndex;
         auto endIndex = index + (*part)._numIndices;
-        auto vertices = &_vertexBuffer.get<Vec3>((*part)._baseVertex);
         for (;index != endIndex; index++) {
             // skip primitive restart indices
             if ((*index) != (uint) PRIMITIVE_RESTART_INDEX) {
-                partBound += vertices[(*index)];
+                partBound += _vertexBuffer.get<Vec3>((*part)._baseVertex + (*index));
             }
         }
 

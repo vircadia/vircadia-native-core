@@ -57,11 +57,9 @@ void Grid3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    const float MAX_COLOR = 255.0f;
-
     float alpha = getAlpha();
-    xColor color = getColor();
-    glm::vec4 gridColor(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+    glm::u8vec3 color = getColor();
+    glm::vec4 gridColor(toGlm(color), alpha);
 
     auto batch = args->_batch;
 
@@ -87,7 +85,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
             _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
             _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
-            gridColor, _drawInFront, _geometryId);
+            gridColor, _geometryId);
     }
 }
 
@@ -144,7 +142,7 @@ void Grid3DOverlay::setProperties(const QVariantMap& properties) {
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} isDashedLine=false - If <code>true</code>, a dashed line is drawn on the overlay's edges. Synonym:
- *     <code>dashed</code>.
+ *     <code>dashed</code>.  Deprecated.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of other overlays that don't
  *     have <code>drawInFront</code> set to <code>true</code>, and in front of entities.

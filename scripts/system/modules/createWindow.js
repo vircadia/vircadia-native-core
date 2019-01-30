@@ -125,6 +125,9 @@ module.exports = (function() {
 
             Script.scriptEnding.connect(this, function() {
                 this.window.close();
+                // FIXME: temp solution for reload crash (MS18269),
+                // we should decide on proper object ownership strategy for InteractiveWindow API
+                this.window = null;
             });
         },
         setVisible: function(visible) {

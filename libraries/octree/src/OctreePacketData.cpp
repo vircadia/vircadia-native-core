@@ -38,7 +38,11 @@ void OctreePacketData::changeSettings(bool enableCompression, unsigned int targe
     _enableCompression = enableCompression;
     _targetSize = targetSize;
     _uncompressedByteArray.resize(_targetSize);
-    _compressedByteArray.resize(_targetSize);
+    if (_enableCompression) {
+        _compressedByteArray.resize(_targetSize);
+    } else {
+        _compressedByteArray.resize(0);
+    }
 
     _uncompressed = (unsigned char*)_uncompressedByteArray.data();
     _compressed = (unsigned char*)_compressedByteArray.data();
@@ -73,8 +77,8 @@ bool OctreePacketData::append(const unsigned char* data, int length) {
         _bytesAvailable -= length;
         success = true;
         _dirty = true;
-    } 
-    
+    }
+
     #ifdef WANT_DEBUG
     if (!success) {
         qCDebug(octree) << "OctreePacketData::append(const unsigned char* data, int length) FAILING....";
@@ -93,7 +97,7 @@ bool OctreePacketData::append(unsigned char byte) {
     if (_bytesAvailable > 0) {
         _uncompressed[_bytesInUse] = byte;
         _bytesInUse++;
-        _bytesAvailable--; 
+        _bytesAvailable--;
         success = true;
         _dirty = true;
     }
@@ -106,13 +110,13 @@ bool OctreePacketData::reserveBitMask() {
 
 bool OctreePacketData::reserveBytes(int numberOfBytes) {
     bool success = false;
-    
+
     if (_bytesAvailable >= numberOfBytes) {
         _bytesReserved += numberOfBytes;
         _bytesAvailable -= numberOfBytes;
         success = true;
     }
-    
+
     return success;
 }
 
@@ -184,7 +188,7 @@ bool OctreePacketData::startSubTree(const unsigned char* octcode) {
 
 const unsigned char* OctreePacketData::getFinalizedData() {
     if (!_enableCompression) {
-        return &_uncompressed[0]; 
+        return &_uncompressed[0];
     }
 
     if (_dirty) {
@@ -193,22 +197,22 @@ const unsigned char* OctreePacketData::getFinalizedData() {
         }
         compressContent();
     }
-    return &_compressed[0]; 
+    return &_compressed[0];
 }
 
 int OctreePacketData::getFinalizedSize() {
     if (!_enableCompression) {
-        return _bytesInUse; 
+        return _bytesInUse;
     }
 
     if (_dirty) {
         if (_debug) {
             qCDebug(octree, "getFinalizedSize() _compressedBytes=%d _bytesInUse=%d",_compressedBytes, _bytesInUse);
         }
-        compressContent(); 
+        compressContent();
     }
 
-    return _compressedBytes; 
+    return _compressedBytes;
 }
 
 
@@ -219,7 +223,7 @@ void OctreePacketData::endSubTree() {
 void OctreePacketData::discardSubTree() {
     int bytesInSubTree = _bytesInUse - _subTreeAt;
     _bytesInUse -= bytesInSubTree;
-    _bytesAvailable += bytesInSubTree; 
+    _bytesAvailable += bytesInSubTree;
     _subTreeAt = _bytesInUse; // should be the same actually...
     _dirty = true;
 
@@ -227,7 +231,7 @@ void OctreePacketData::discardSubTree() {
     int reduceBytesOfOctalCodes = _bytesOfOctalCodes - _bytesOfOctalCodesCurrentSubTree;
     _bytesOfOctalCodes = _bytesOfOctalCodesCurrentSubTree;
     _totalBytesOfOctalCodes -= reduceBytesOfOctalCodes;
-    
+
     // if we discard the subtree then reset reserved bytes to the value when we started the subtree
     _bytesReserved = _subTreeBytesReserved;
 }
@@ -239,7 +243,7 @@ LevelDetails OctreePacketData::startLevel() {
 
 void OctreePacketData::discardLevel(LevelDetails key) {
     int bytesInLevel = _bytesInUse - key._startIndex;
-    
+
     // reset statistics...
     int reduceBytesOfOctalCodes = _bytesOfOctalCodes - key._bytesOfOctalCodes;
     int reduceBytesOfBitMasks = _bytesOfBitMasks - key._bytesOfBitmasks;
@@ -257,11 +261,11 @@ void OctreePacketData::discardLevel(LevelDetails key) {
         qCDebug(octree, "discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d",
             debug::valueOf(_dirty), bytesInLevel, _compressedBytes, _bytesInUse);
     }
-            
+
     _bytesInUse -= bytesInLevel;
-    _bytesAvailable += bytesInLevel; 
+    _bytesAvailable += bytesInLevel;
     _dirty = true;
-    
+
     // reserved bytes are reset to the value when the level started
     _bytesReserved = key._bytesReservedAtStart;
 
@@ -297,14 +301,6 @@ bool OctreePacketData::appendValue(const nodeColor& color) {
     return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
 }
 
-bool OctreePacketData::appendValue(const xColor& color) {
-    return appendColor(color.red, color.green, color.blue);
-}
-
-bool OctreePacketData::appendValue(const rgbColor& color) {
-    return appendColor(color[RED_INDEX], color[GREEN_INDEX], color[BLUE_INDEX]);
-}
-
 bool OctreePacketData::appendColor(colorPart red, colorPart green, colorPart blue) {
     // eventually we can make this use a dictionary...
     bool success = false;
@@ -337,7 +333,7 @@ bool OctreePacketData::appendValue(uint8_t value) {
 
 bool OctreePacketData::appendValue(uint16_t value) {
     const unsigned char* data = (const unsigned char*)&value;
-    
+
     int length = sizeof(value);
     bool success = append(data, length);
     if (success) {
@@ -371,7 +367,6 @@ bool OctreePacketData::appendValue(quint64 value) {
 }
 
 bool OctreePacketData::appendValue(float value) {
-    
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
     bool success = append(data, length);
@@ -384,7 +379,7 @@ bool OctreePacketData::appendValue(float value) {
 
 bool OctreePacketData::appendValue(const glm::vec2& value) {
     const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
+    int length = sizeof(glm::vec2);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
@@ -395,13 +390,17 @@ bool OctreePacketData::appendValue(const glm::vec2& value) {
 
 bool OctreePacketData::appendValue(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
-    int length = sizeof(value);
+    int length = sizeof(glm::vec3);
     bool success = append(data, length);
     if (success) {
         _bytesOfValues += length;
         _totalBytesOfValues += length;
     }
     return success;
+}
+
+bool OctreePacketData::appendValue(const glm::u8vec3& color) {
+    return appendColor(color.x, color.y, color.z);
 }
 
 bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
@@ -507,10 +506,11 @@ bool OctreePacketData::appendValue(bool value) {
 
 bool OctreePacketData::appendValue(const QString& string) {
     // TODO: make this a ByteCountCoded leading byte
-    uint16_t length = string.size() + 1; // include NULL
+    QByteArray utf8Array = string.toUtf8();
+    uint16_t length = utf8Array.length(); // no NULL
     bool success = appendValue(length);
     if (success) {
-        success = appendRawData((const unsigned char*)qPrintable(string), length);
+        success = appendRawData((const unsigned char*)utf8Array.constData(), length);
     }
     return success;
 }
@@ -551,6 +551,17 @@ bool OctreePacketData::appendValue(const AACube& aaCube) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QRect& value) {
+    const unsigned char* data = (const unsigned char*)&value;
+    int length = sizeof(QRect);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
+
 bool OctreePacketData::appendPosition(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
     int length = sizeof(value);
@@ -580,13 +591,10 @@ bool OctreePacketData::appendRawData(QByteArray data) {
 AtomicUIntStat OctreePacketData::_compressContentTime { 0 };
 AtomicUIntStat OctreePacketData::_compressContentCalls { 0 };
 
-bool OctreePacketData::compressContent() { 
+bool OctreePacketData::compressContent() {
     PerformanceWarning warn(false, "OctreePacketData::compressContent()", false, &_compressContentTime, &_compressContentCalls);
-    
-    // without compression, we always pass...
-    if (!_enableCompression) {
-        return true;
-    }
+    assert(_dirty);
+    assert(_enableCompression);
 
     _bytesInUseLastCheck = _bytesInUse;
 
@@ -599,11 +607,14 @@ bool OctreePacketData::compressContent() {
 
     QByteArray compressedData = qCompress(uncompressedData, uncompressedSize, MAX_COMPRESSION);
 
-    if (compressedData.size() < (int)MAX_OCTREE_PACKET_DATA_SIZE) {
+    if (compressedData.size() < _compressedByteArray.size()) {
         _compressedBytes = compressedData.size();
         memcpy(_compressed, compressedData.constData(), _compressedBytes);
         _dirty = false;
         success = true;
+    } else {
+        qCWarning(octree) << "OctreePacketData::compressContent -- compressedData.size >= " << _compressedByteArray.size();
+        assert(false);
     }
     return success;
 }
@@ -623,15 +634,19 @@ void OctreePacketData::loadFinalizedContent(const unsigned char* data, int lengt
             memcpy(compressedData.data(), data, _compressedBytes);
 
             QByteArray uncompressedData = qUncompress(compressedData);
-            if (uncompressedData.size() <= _bytesAvailable) {
-                _bytesInUse = uncompressedData.size();
-                _bytesAvailable -= uncompressedData.size();
-                memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
+            if (uncompressedData.size() > _bytesAvailable) {
+                int moreNeeded = uncompressedData.size() - _bytesAvailable;
+                _uncompressedByteArray.resize(_uncompressedByteArray.size() + moreNeeded);
+                _uncompressed = (unsigned char*)_uncompressedByteArray.data();
+                _bytesAvailable += moreNeeded;
             }
+
+            _bytesInUse = uncompressedData.size();
+            _bytesAvailable -= uncompressedData.size();
+            memcpy(_uncompressed, uncompressedData.constData(), _bytesInUse);
         } else {
             memcpy(_uncompressed, data, length);
-            memcpy(_compressed, data, length);
-            _bytesInUse = _compressedBytes = length;
+            _bytesInUse = length;
         }
     } else {
         if (_debug) {
@@ -652,7 +667,7 @@ void OctreePacketData::debugContent() {
         }
     }
     printf("\n");
-    
+
     qCDebug(octree, "OctreePacketData::debugContent()... UNCOMPRESSED DATA.... size=%d",_bytesInUse);
     perline=0;
     for (int i = 0; i < _bytesInUse; i++) {
@@ -673,16 +688,31 @@ void OctreePacketData::debugBytes() {
     qCDebug(octree) << "    _bytesReserved=" << _bytesReserved;
 }
 
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, glm::u8vec3& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QString& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
-    QString value((const char*)dataBytes);
+    QString value = QString::fromUtf8((const char*)dataBytes, length);
     result = value;
     return sizeof(length) + length;
 }
 
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
@@ -694,14 +724,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QUuid&
     }
     return sizeof(length) + length;
 }
-
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, xColor& result) { 
-    result.red = dataBytes[RED_INDEX];
-    result.green = dataBytes[GREEN_INDEX];
-    result.blue = dataBytes[BLUE_INDEX];
-    return sizeof(rgbColor);
-}
-
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::vec3>& result) {
     uint16_t length;
@@ -793,4 +815,9 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, AACube
     memcpy(&cube, dataBytes, sizeof(aaCubeData));
     result = AACube(cube.corner, cube.scale);
     return sizeof(aaCubeData);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QRect& result) {
+    memcpy(&result, dataBytes, sizeof(result));
+    return sizeof(result);
 }

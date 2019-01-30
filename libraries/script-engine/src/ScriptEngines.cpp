@@ -31,6 +31,8 @@ static const QUrl DEFAULT_SCRIPTS_LOCATION { "file:///~//defaultScripts.js" };
 // Using a QVariantList so this is human-readable in the settings file
 static Setting::Handle<QVariantList> runningScriptsHandle(SETTINGS_KEY, { QVariant(DEFAULT_SCRIPTS_LOCATION) });
 
+const int RELOAD_ALL_SCRIPTS_TIMEOUT = 1000;
+
 
 ScriptsModel& getScriptsModel() {
     static ScriptsModel scriptsModel;
@@ -112,7 +114,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
 
             QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
-                qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
+                qCWarning(scriptengine) << "Script.include() ignoring file path"
                                         << "-- outside of standard libraries: "
                                         << url.path()
                                         << defaultScriptsLoc.path();
@@ -191,7 +193,6 @@ void ScriptEngines::shutdownScripting() {
 
             // Gracefully stop the engine's scripting thread
             scriptEngine->stop();
-            removeScriptEngine(scriptEngine);
 
             // We need to wait for the engine to be done running before we proceed, because we don't
             // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
@@ -320,6 +321,7 @@ void ScriptEngines::loadScripts() {
 
     // loads all saved scripts
     auto runningScripts = runningScriptsHandle.get();
+
     for (auto script : runningScripts) {
         auto string = script.toString();
         if (!string.isEmpty()) {
@@ -370,13 +372,10 @@ QStringList ScriptEngines::getRunningScripts() {
 }
 
 void ScriptEngines::stopAllScripts(bool restart) {
-    QVector<QString> toReload;
     QReadLocker lock(&_scriptEnginesHashLock);
 
     if (_isReloading) {
         return;
-    } else {
-        _isReloading = true;
     }
 
     for (QHash<QUrl, ScriptEnginePointer>::const_iterator it = _scriptEnginesHash.constBegin();
@@ -389,33 +388,25 @@ void ScriptEngines::stopAllScripts(bool restart) {
 
         // queue user scripts if restarting
         if (restart && scriptEngine->isUserLoaded()) {
-            toReload << it.key().toString();
+            _isReloading = true;
+            ScriptEngine::Type type = scriptEngine->getType();
+
+            connect(scriptEngine.data(), &ScriptEngine::finished, this, [this, type] (QString scriptName) {
+                reloadScript(scriptName, true)->setType(type);
+            });
         }
 
         // stop all scripts
-        qCDebug(scriptengine) << "stopping script..." << it.key();
         scriptEngine->stop();
-        removeScriptEngine(scriptEngine);
     }
-    // wait for engines to stop (ie: providing time for .scriptEnding cleanup handlers to run) before
-    // triggering reload of any Client scripts / Entity scripts
-    QTimer::singleShot(1000, this, [=]() {
-        for(const auto &scriptName : toReload) {
-            auto scriptEngine = getScriptEngine(scriptName);
-            if (scriptEngine && !scriptEngine->isFinished()) {
-                qCDebug(scriptengine) << "waiting on script:" << scriptName;
-                scriptEngine->waitTillDoneRunning();
-                qCDebug(scriptengine) << "done waiting on script:" << scriptName;
-            }
-            qCDebug(scriptengine) << "reloading script..." << scriptName;
-            reloadScript(scriptName);
-        }
-        if (restart) {
-            qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
-            emit scriptsReloading();
-        }
-        _isReloading = false;
-    });
+
+    if (restart) {
+        qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
+        QTimer::singleShot(RELOAD_ALL_SCRIPTS_TIMEOUT, this, [&] {
+            _isReloading = false;
+        });
+        emit scriptsReloading();
+    }
 }
 
 bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
@@ -443,9 +434,7 @@ bool ScriptEngines::stopScript(const QString& rawScriptURL, bool restart) {
                 }
             }
             scriptEngine->stop();
-            removeScriptEngine(scriptEngine);
             stoppedScript = true;
-            qCDebug(scriptengine) << "stopping script..." << scriptURL;
         }
     }
     return stoppedScript;

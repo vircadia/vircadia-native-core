@@ -24,7 +24,7 @@ struct CameraCorrection {
     mat4 _prevViewInverse;
 };
  
-layout(binding=GPU_BUFFER_CAMERA_CORRECTION) uniform cameraCorrectionBuffer {
+LAYOUT(binding=GPU_BUFFER_CAMERA_CORRECTION) uniform cameraCorrectionBuffer {
     CameraCorrection cameraCorrection;
 };
 
@@ -38,11 +38,11 @@ struct DeferredFrameTransform {
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
-	mat4 _projectionUnJittered[2];
-	mat4 _invProjectionUnJittered[2];
+    mat4 _projectionUnJittered[2];
+    mat4 _invProjectionUnJittered[2];
 };
 
-layout(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_DEFERRED_FRAME_TRANSFORM) uniform deferredFrameTransformBuffer {
     DeferredFrameTransform frameTransform;
 };
 
@@ -68,10 +68,10 @@ mat4 getProjectionMono() {
     return frameTransform._projectionMono;
 }
 mat4 getUnjitteredProjection(int side) {
-	return frameTransform._projectionUnJittered[side];
+    return frameTransform._projectionUnJittered[side];
 }
 mat4 getUnjitteredInvProjection(int side) {
-	return frameTransform._invProjectionUnJittered[side];
+    return frameTransform._invProjectionUnJittered[side];
 }
 
 // positive near distance of the projection
@@ -116,17 +116,27 @@ bool isStereo() {
 float getStereoSideWidth(int resolutionLevel) {
     return float(int(frameTransform._stereoInfo.y) >> resolutionLevel);
 }
+
 float getStereoSideHeight(int resolutionLevel) {
     return float(int(frameTransform._pixelInfo.w) >> resolutionLevel);
 }
 
-vec2 getSideImageSize(int resolutionLevel) {
-    return vec2(float(int(frameTransform._stereoInfo.y) >> resolutionLevel), float(int(frameTransform._pixelInfo.w) >> resolutionLevel));
+vec2 getStereoSideSize(int resolutionLevel) {
+    return vec2(getStereoSideWidth(resolutionLevel), getStereoSideHeight(resolutionLevel));
+}
+
+ivec4 getStereoSideInfoFromWidth(int xPos, int sideWidth) {
+    return ivec4((1 - int(xPos < sideWidth)) * ivec2(1, sideWidth), sideWidth, isStereo());
 }
 
 ivec4 getStereoSideInfo(int xPos, int resolutionLevel) {
     int sideWidth = int(getStereoSideWidth(resolutionLevel));
-    return ivec4(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth, isStereo());
+    return getStereoSideInfoFromWidth(xPos, sideWidth);
+}
+
+
+int getStereoSide(ivec4 sideInfo) {
+    return sideInfo.x;
 }
 
 float evalZeyeFromZdb(float depth) {
@@ -158,7 +168,7 @@ vec3 evalUnjitteredEyePositionFromZdb(int side, float Zdb, vec2 texcoord) {
 }
 
 vec3 evalEyePositionFromZeye(int side, float Zeye, vec2 texcoord) {
-	float Zdb = evalZdbFromZeye(Zeye);
+    float Zdb = evalZdbFromZeye(Zeye);
     return evalEyePositionFromZdb(side, Zdb, texcoord);
 }
 

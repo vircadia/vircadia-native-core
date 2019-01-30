@@ -1,7 +1,7 @@
 "use strict";
 
 /* jslint bitwise: true */
-/* global Script, Entities, MyAvatar, Vec3, Quat, Mat4 */
+/* global Script, Entities, MyAvatar, Vec3, Quat, Mat4, Overlays */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -19,7 +19,7 @@
     var sectionCenterB = 0;
     var sectionCenterSign = 0;
     var yFlip = 0;
-    
+
     var objects = [];
     var overlays = [];
 
@@ -35,41 +35,41 @@
         createPropsCube(index, false, false, true, true);
         createPropsModel(index, false, false, true, true);
         createSign(index, "Clone Dynamic Entity");
-    };
+    }
 
     function createCloneEntity(index) {
         createPropsCube(index, false, false, true, false);
         createPropsModel(index, false, false, true, false);
         createSign(index, "Clone Non-Dynamic Entity");
-    };
+    }
 
     function createNearGrabOverlay(index) {
         createPropsCubeOverlay(index, false, false, true, true);
         createPropsModelOverlay(index, false, false, true, true);
         createSign(index, "Near Grab Overlay");
-    };
+    }
 
     function createNearGrabEntity(index) {
         createPropsCube(index, false, false, false, false);
         createPropsModel(index, false, false, false, false);
         createSign(index, "Near Grab Entity");
-    };
+    }
 
     function createFarGrabEntity(index) {
         createPropsCube(index, true, false, false, false);
         createPropsModel(index, true, false, false, false);
         createSign(index, "Far Grab Entity");
-    };
+    }
 
     function createPropsModel(i, dynamic, collisionless, clone, cloneDynamic) {
         var propsModel = {
             name: "controller-tests model object " + i,
             type: "Model",
             modelURL: "http://headache.hungry.com/~seth/hifi/controller-tests/color-cube.obj",
-            
+
             position: sectionCenterA,
             rotation: sectionRotation,
-            
+
             gravity: (dynamic && !collisionless) ? { x: 0, y: -1, z: 0 } : { x: 0, y: 0, z: 0 },
             dimensions: { x: 0.2, y: 0.2, z: 0.2 },
             userData: JSON.stringify({
@@ -270,8 +270,8 @@
             Entities.deleteEntity(nearbyID);
         }
 
-        for (var i = 0; i < overlays.length; i++) {
-            var overlayID = overlays[i];
+        for (var j = 0; j < overlays.length; j++) {
+            var overlayID = overlays[j];
             Overlays.deleteOverlay(overlayID);
         }
     });

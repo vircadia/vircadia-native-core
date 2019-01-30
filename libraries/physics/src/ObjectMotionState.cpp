@@ -198,7 +198,7 @@ void ObjectMotionState::setShape(const btCollisionShape* shape) {
             getShapeManager()->releaseShape(_shape);
         }
         _shape = shape;
-        if (_body) {
+        if (_body && _type != MOTIONSTATE_TYPE_DETAILED) {
             updateCCDConfiguration();
         }
     }
@@ -305,15 +305,16 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
                 }
                 return true;
             }
-        }
-        if (_shape == newShape) {
-            // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
-            flags &= ~Simulation::DIRTY_SHAPE;
-            // and clear the reference we just created
-            getShapeManager()->releaseShape(_shape);
         } else {
-            _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
-            setShape(newShape);
+            if (_shape == newShape) {
+                // the shape didn't actually change, so we clear the DIRTY_SHAPE flag
+                flags &= ~Simulation::DIRTY_SHAPE;
+                // and clear the reference we just created
+                getShapeManager()->releaseShape(_shape);        
+            } else {
+                _body->setCollisionShape(const_cast<btCollisionShape*>(newShape));
+                setShape(newShape);
+            }
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {

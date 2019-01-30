@@ -112,6 +112,9 @@ public:
     virtual bool suppressKeyboard() { return false;  }
     virtual void unsuppressKeyboard() {};
     virtual bool isKeyboardVisible() { return false; }
+
+    virtual QRectF getPlayAreaRect() { return QRectF(); }
+    virtual QVector<glm::vec3> getSensorPositions() { return QVector<glm::vec3>(); }
 };
 
 class DisplayPlugin : public Plugin, public HmdDisplay {
@@ -139,6 +142,7 @@ public:
     // Rendering support
     virtual void setContext(const gpu::ContextPointer& context) final { _gpuContext = context; }
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
+    virtual void captureFrame(const std::string& outputName) const { }
 
     virtual float getRenderResolutionScale() const {
         return _renderResolutionScale;
@@ -213,6 +217,9 @@ public:
     std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
 
     static const QString& MENU_PATH();
+
+    // for updating plugin-related commands. Mimics the input plugin.
+    virtual void pluginUpdate() = 0;
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);

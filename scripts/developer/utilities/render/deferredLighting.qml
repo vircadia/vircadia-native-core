@@ -11,10 +11,9 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "qrc:///qml/styles-uit"
-import "qrc:///qml/controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import  "configSlider"
-import "../lib/jet/qml" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -47,8 +46,8 @@ Rectangle {
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
-                         "Haze:LightingModel:enableHaze",                
-                         "ssao:AmbientOcclusion:enabled",                      
+                         "Haze:LightingModel:enableHaze",                        
+                         "ssao:LightingModel:enableAmbientOcclusion",
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
                     HifiControls.CheckBox {
@@ -70,7 +69,9 @@ Rectangle {
                          "Diffuse:LightingModel:enableDiffuse",
                          "Specular:LightingModel:enableSpecular",
                          "Albedo:LightingModel:enableAlbedo",
-                         "Wireframe:LightingModel:enableWireframe"
+                         "Wireframe:LightingModel:enableWireframe",
+                         "Skinning:LightingModel:enableSkinning",
+                         "Blendshape:LightingModel:enableBlendshape"
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -91,7 +92,7 @@ Rectangle {
                          "Spot:LightingModel:enableSpotLight",
                          "Light Contour:LightingModel:showLightContour",
                          "Zone Stack:DrawZoneStack:enabled",
-                         "Shadow:RenderShadowTask:enabled"
+                         "Shadow:LightingModel:enableShadow"
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -202,6 +203,7 @@ Rectangle {
                     ListElement { text: "Debug Scattering"; color: "White" }
                     ListElement { text: "Ambient Occlusion"; color: "White" }
                     ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
+                    ListElement { text: "Ambient Occlusion Normal"; color: "White" }
                     ListElement { text: "Velocity"; color: "White" }
                     ListElement { text: "Custom"; color: "White" }
                 }
@@ -246,12 +248,6 @@ Rectangle {
                     checked: render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"] = checked }
                 }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Transparents in HUD"
-                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
-                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
-                }
 
             }
             Column {
@@ -274,14 +270,44 @@ Rectangle {
                     checked: render.mainViewTask.getConfig("DrawZones")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("ZoneRenderer")["enabled"] = checked; render.mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
                 }
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Transparents in HUD"
+                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
+                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
+                }
             }
         }
         Separator {}
-        HifiControls.Button {
-            text: "Engine"
-           // activeFocusOnPress: false
-            onClicked: {
-               sendToScript({method: "openEngineView"}); 
+        Row {
+            HifiControls.Button {
+                text: "Engine"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "LOD"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineLODView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "Cull"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openCullInspectorView"}); 
+                }
+            }
+        }
+        Row {
+            HifiControls.Button {
+                text: "Material"
+                onClicked: {
+                sendToScript({method: "openMaterialInspectorView"}); 
+                }
             }
         }
     }

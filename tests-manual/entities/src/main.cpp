@@ -169,5 +169,3 @@ int main(int argc, char** argv) {
     qDebug() << (duration / 1000.0f);
     return 0;
 }
-
-#include "main.moc"

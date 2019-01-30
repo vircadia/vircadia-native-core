@@ -46,8 +46,11 @@ public:
 
     virtual bool onDisplayTextureReset() override { _clearPreviewFlag = true; return true; };
 
+    void pluginUpdate() override {};
+
 signals:
     void hmdMountedChanged();
+    void hmdVisibleChanged(bool visible);
 
 protected:
     virtual void hmdPresent() = 0;

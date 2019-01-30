@@ -16,15 +16,9 @@
     var ICON_URL = Script.resolvePath("../../../system/assets/images/lod-i.svg");
     var ACTIVE_ICON_URL = Script.resolvePath("../../../system/assets/images/lod-a.svg");
 
-    var onScreen = false;
+    var onTablet = false; // set this to true to use the tablet, false use a floating window
 
-    function onClicked() {
-        if (onScreen) {
-            tablet.gotoHomeScreen();
-        } else {
-            tablet.loadQMLSource(QMLAPP_URL);
-        }
-    }
+    var onAppScreen = false;
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var button = tablet.addButton({
@@ -34,6 +28,50 @@
     });
 
     var hasEventBridge = false;
+
+    var onScreen = false;
+    var window;
+
+    function onClicked() {
+        if (onTablet) {
+            if (onAppScreen) {
+                tablet.gotoHomeScreen();
+            } else {
+                tablet.loadQMLSource(QMLAPP_URL);
+            }
+        } else {
+            if (onScreen) {
+                killWindow()
+            } else {
+                createWindow()    
+            }
+        }
+    }
+
+    function createWindow() {
+        var qml = Script.resolvePath(QMLAPP_URL);
+        window = Desktop.createWindow(Script.resolvePath(QMLAPP_URL), {
+            title: TABLET_BUTTON_NAME,
+            flags: Desktop.ALWAYS_ON_TOP,
+            presentationMode: Desktop.PresentationMode.NATIVE,
+            size: {x: 400, y: 600}
+        });
+        window.closed.connect(killWindow);
+        window.fromQml.connect(fromQml);
+        onScreen = true
+        button.editProperties({isActive: true});
+    }
+
+    function killWindow() {
+        if (window !==  undefined) { 
+            window.closed.disconnect(killWindow);
+            window.fromQml.disconnect(fromQml);
+            window.close()
+            window = undefined
+        }
+        onScreen = false
+        button.editProperties({isActive: false})
+    }
 
     function wireEventBridge(on) {
         if (!tablet) {
@@ -54,23 +92,38 @@
     }
 
     function onScreenChanged(type, url) {
-        onScreen = (url === QMLAPP_URL);
-        button.editProperties({isActive: onScreen});
-        wireEventBridge(onScreen);
-    }
-
-    function fromQml(message) {
+        if (onTablet) {
+            onAppScreen = (url === QMLAPP_URL);
+            
+            button.editProperties({isActive: onAppScreen});
+            wireEventBridge(onAppScreen);
+        }
     }
         
     button.clicked.connect(onClicked);
     tablet.screenChanged.connect(onScreenChanged);
 
     Script.scriptEnding.connect(function () {
-        if (onScreen) {
+        killWindow()
+        if (onAppScreen) {
             tablet.gotoHomeScreen();
         }
         button.clicked.disconnect(onClicked);
         tablet.screenChanged.disconnect(onScreenChanged);
         tablet.removeButton(button);
     });
+
+    function fromQml(message) {
+    }
+
+    function sendToQml(message) {
+        if (onTablet) {
+            tablet.sendToQml(message);
+        } else {
+            if (window) {
+                window.sendToQml(message);
+            }
+        }
+    }
+    
 }()); 

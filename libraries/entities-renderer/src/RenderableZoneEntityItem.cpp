@@ -27,8 +27,6 @@
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
-static const unsigned int SUN_SHADOW_CASCADE_COUNT{ 4 };
-static const float SUN_SHADOW_MAX_DISTANCE{ 40.0f };
 
 using namespace render;
 using namespace render::entities;
@@ -43,7 +41,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
         if (!LightStage::isIndexInvalid(_sunIndex)) {
             _stage->removeLight(_sunIndex);
             _sunIndex = INVALID_INDEX;
-            _shadowIndex = INVALID_INDEX;
         }
         if (!LightStage::isIndexInvalid(_ambientIndex)) {
             _stage->removeLight(_ambientIndex);
@@ -74,36 +71,6 @@ void ZoneEntityRenderer::onRemoveFromSceneTyped(const TypedEntityPointer& entity
 }
 
 void ZoneEntityRenderer::doRender(RenderArgs* args) {
-#if 0
-    if (ZoneEntityItem::getDrawZoneBoundaries()) {
-        switch (_entity->getShapeType()) {
-            case SHAPE_TYPE_BOX:
-            case SHAPE_TYPE_SPHERE:
-                {
-                    PerformanceTimer perfTimer("zone->renderPrimitive");
-                    static const glm::vec4 DEFAULT_COLOR(1.0f, 1.0f, 1.0f, 1.0f);
-                    if (!updateModelTransform()) {
-                        break;
-                    }
-                    auto geometryCache = DependencyManager::get<GeometryCache>();
-                    gpu::Batch& batch = *args->_batch;
-                    batch.setModelTransform(_modelTransform);
-                    if (_entity->getShapeType() == SHAPE_TYPE_SPHERE) {
-                        geometryCache->renderWireSphereInstance(args, batch, DEFAULT_COLOR);
-                    } else {
-                        geometryCache->renderWireCubeInstance(args, batch, DEFAULT_COLOR);
-                    }
-                }
-                break;
-
-            // Compund shapes are handled by the _model member
-            case SHAPE_TYPE_COMPOUND:
-            default:
-                // Not handled
-                break;
-        }
-    }
-#endif
     if (!_stage) {
         _stage = args->_scene->getStage<LightStage>();
         assert(_stage);
@@ -130,7 +97,6 @@ void ZoneEntityRenderer::doRender(RenderArgs* args) {
             // Do we need to allocate the light in the stage ?
             if (LightStage::isIndexInvalid(_sunIndex)) {
                 _sunIndex = _stage->addLight(_sunLight);
-                _shadowIndex = _stage->addShadow(_sunIndex, SUN_SHADOW_MAX_DISTANCE, SUN_SHADOW_CASCADE_COUNT);
             } else {
                 _stage->updateLightArrayBuffer(_sunIndex);
             }
@@ -288,6 +254,17 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
         updateHazeFromEntity(entity);
     }
 
+
+    bool visuallyReady = true;
+    uint32_t skyboxMode = entity->getSkyboxMode();
+    if (skyboxMode == COMPONENT_MODE_ENABLED && !_skyboxTextureURL.isEmpty()) {
+        bool skyboxLoadedOrFailed = (_skyboxTexture && (_skyboxTexture->isLoaded() || _skyboxTexture->isFailed()));
+
+        visuallyReady = skyboxLoadedOrFailed;
+    }
+
+    entity->setVisuallyReady(visuallyReady);
+
     if (bloomChanged) {
         updateBloomFromEntity(entity);
     }
@@ -402,10 +379,10 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setAltitudeBased(_hazeProperties.getHazeAltitudeEffect());
 
     haze->setHazeRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeRange()));
-    xColor hazeColor = _hazeProperties.getHazeColor();
-    haze->setHazeColor(glm::vec3(hazeColor.red / 255.0, hazeColor.green / 255.0, hazeColor.blue / 255.0));
-    xColor hazeGlareColor = _hazeProperties.getHazeGlareColor();
-    haze->setHazeGlareColor(glm::vec3(hazeGlareColor.red / 255.0, hazeGlareColor.green / 255.0, hazeGlareColor.blue / 255.0));
+    glm::u8vec3 hazeColor = _hazeProperties.getHazeColor();
+    haze->setHazeColor(toGlm(hazeColor));
+    glm::u8vec3 hazeGlareColor = _hazeProperties.getHazeGlareColor();
+    haze->setHazeGlareColor(toGlm(hazeGlareColor));
     haze->setHazeEnableGlare(_hazeProperties.getHazeEnableGlare());
     haze->setHazeGlareBlend(graphics::Haze::convertGlareAngleToPower(_hazeProperties.getHazeGlareAngle()));
 
@@ -436,7 +413,7 @@ void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer&
     setSkyboxMode((ComponentMode)entity->getSkyboxMode());
 
     editBackground();
-    setSkyboxColor(_skyboxProperties.getColorVec3());
+    setSkyboxColor(toGlm(_skyboxProperties.getColor()));
     setProceduralUserData(entity->getUserData());
     setSkyboxURL(_skyboxProperties.getURL());
 }
@@ -569,22 +546,3 @@ void ZoneEntityRenderer::setProceduralUserData(const QString& userData) {
     }
 }
 
-#if 0
-bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
-    if (getShapeType() != SHAPE_TYPE_COMPOUND) {
-        return EntityItem::contains(point);
-    }
-    const_cast<RenderableZoneEntityItem*>(this)->updateGeometry();
-
-    if (_model && _model->isActive() && EntityItem::contains(point)) {
-        return _model->convexHullContains(point);
-    }
-
-    return false;
-}
-
-void RenderableZoneEntityItem::notifyBoundChanged() {
-    notifyChangedRenderItem();
-}
-
-#endif

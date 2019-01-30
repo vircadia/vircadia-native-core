@@ -21,7 +21,7 @@ struct LineData {
     float width;
 };
 
-layout(std140, binding=0) uniform LineDataBuffer {
+LAYOUT_STD140(binding=0) uniform LineDataBuffer {
     LineData _lineData;
 };
 
@@ -49,17 +49,12 @@ void main(void) {
     vec3 orthogonal = cross(v1, v2) * _lineData.width;
     
     // Deteremine which end to emit based on the vertex id (even / odd)
-    vec4 eye = (0 == gl_VertexID % 2) ? p1eye : p2eye;
+    vec4 eye = mix(p2eye, p1eye, float(gl_VertexID % 2 == 0));
 
     // Add or subtract the orthogonal vector based on a different vertex ID 
     // calculation
-    if (gl_VertexID < 2) {
-        distanceFromCenter = -1.0;
-        eye.xyz -= orthogonal;
-    } else {
-        distanceFromCenter = 1.0;
-        eye.xyz += orthogonal;
-    }
+    distanceFromCenter = 1.0 - 2.0 * float(gl_VertexID < 2);
+    eye.xyz += distanceFromCenter * orthogonal;
 
     // Finally, put the eyespace vertex into clip space
     <$transformEyeToClipPos(cam, eye, gl_Position)$>

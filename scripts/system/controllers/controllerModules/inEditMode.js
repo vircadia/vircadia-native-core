@@ -8,9 +8,8 @@
 /* jslint bitwise: true */
 
 /* global Script, Controller, RIGHT_HAND, LEFT_HAND, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
-   Messages, makeDispatcherModuleParameters, HMD, getGrabPointSphereOffset, COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
-   COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_ON_VALUE,
-   getEnabledModuleByName, PICK_MAX_DISTANCE, isInEditMode, Picks, makeLaserParams, Entities
+   Messages, makeDispatcherModuleParameters, HMD, getEnabledModuleByName, TRIGGER_ON_VALUE, isInEditMode, Picks,
+   makeLaserParams
 */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
@@ -21,15 +20,16 @@ Script.include("/~/system/libraries/utils.js");
     var MARGIN = 25;
     function InEditMode(hand) {
         this.hand = hand;
+        this.isEditing = false;
         this.triggerClicked = false;
         this.selectedTarget = null;
         this.reticleMinX = MARGIN;
-        this.reticleMaxX;
+        this.reticleMaxX = null;
         this.reticleMinY = MARGIN;
-        this.reticleMaxY;
+        this.reticleMaxY = null;
 
         this.parameters = makeDispatcherModuleParameters(
-            160,
+            165, // Lower priority than webSurfaceLaserInput and hudOverlayPointer.
             this.hand === RIGHT_HAND ? ["rightHand", "rightHandEquip", "rightHandTrigger"] : ["leftHand", "leftHandEquip", "leftHandTrigger"],
             [],
             100,
@@ -49,8 +49,8 @@ Script.include("/~/system/libraries/utils.js");
         };
 
         this.pointingAtTablet = function(objectID) {
-            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID)
-                || (HMD.homeButtonID && objectID === HMD.homeButtonID);
+            return (HMD.tabletScreenID && objectID === HMD.tabletScreenID) ||
+                (HMD.homeButtonID && objectID === HMD.homeButtonID);
         };
 
         this.calculateNewReticlePosition = function(intersection) {
@@ -63,30 +63,33 @@ Script.include("/~/system/libraries/utils.js");
             return point2d;
         };
 
+        this.ENTITY_TOOL_UPDATES_CHANNEL = "entityToolUpdates";
+
         this.sendPickData = function(controllerData) {
             if (controllerData.triggerClicks[this.hand]) {
                 var hand = this.hand === RIGHT_HAND ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
                 if (!this.triggerClicked) {
                     this.selectedTarget = controllerData.rayPicks[this.hand];
                     if (!this.selectedTarget.intersects) {
-                        Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+                        Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                             method: "clearSelection",
                             hand: hand
                         }));
+                    } else {
+                        if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
+                            Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
+                                method: "selectEntity",
+                                entityID: this.selectedTarget.objectID,
+                                hand: hand
+                            }));
+                        } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
+                            Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
+                                method: "selectOverlay",
+                                overlayID: this.selectedTarget.objectID,
+                                hand: hand
+                            }));
+                        }
                     }
-                }
-                if (this.selectedTarget.type === Picks.INTERSECTED_ENTITY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectEntity",
-                        entityID: this.selectedTarget.objectID,
-                        hand: hand
-                    }));
-                } else if (this.selectedTarget.type === Picks.INTERSECTED_OVERLAY) {
-                    Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
-                        method: "selectOverlay",
-                        overlayID: this.selectedTarget.objectID,
-                        hand: hand
-                    }));
                 }
 
                 this.triggerClicked = true;
@@ -102,12 +105,16 @@ Script.include("/~/system/libraries/utils.js");
             var desktopWindow = Window.isPointOnDesktopWindow(point2d);
             var tablet = this.pointingAtTablet(rayPick.objectID);
             var rightHand = this.hand === RIGHT_HAND;
-            Messages.sendLocalMessage("entityToolUpdates", JSON.stringify({
+            Messages.sendLocalMessage(this.ENTITY_TOOL_UPDATES_CHANNEL, JSON.stringify({
                 method: "pointingAt",
                 desktopWindow: desktopWindow,
                 tablet: tablet,
                 rightHand: rightHand
             }));
+        };
+
+        this.runModule = function() {
+            return makeRunningValues(true, [], []);
         };
 
         this.exitModule = function() {
@@ -120,41 +127,59 @@ Script.include("/~/system/libraries/utils.js");
                     this.triggerClicked = false;
                 }
                 Messages.sendLocalMessage('Hifi-unhighlight-all', '');
-                return makeRunningValues(true, [], []);
+                return this.runModule();
             }
             this.triggerClicked = false;
-            return makeRunningValues(false, [], []);
+            return this.exitModule();
         };
 
         this.run = function(controllerData) {
-            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTabletStylusInput" : "LeftTabletStylusInput");
+
+            // Tablet stylus.
+            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightTabletStylusInput" : "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
-
                 if (tabletReady.active) {
                     return this.exitModule();
                 }
             }
 
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
-            if (overlayLaser) {
-                var overlayLaserReady = overlayLaser.isReady(controllerData);
+            // Tablet surface.
+            var webLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
+            if (webLaser) {
+                var webLaserReady = webLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
                 this.sendPointingAtData(controllerData);
-                if (overlayLaserReady.active && this.pointingAtTablet(target)) {
+                if (webLaserReady.active && this.pointingAtTablet(target)) {
                     return this.exitModule();
                 }
             }
 
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
+            // HUD overlay.
+            if (!controllerData.triggerClicks[this.hand]) { // Don't grab if trigger pressed when laser starts intersecting.
+                var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                    ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
+                if (hudLaser) {
+                    var hudLaserReady = hudLaser.isReady(controllerData);
+                    if (hudLaserReady.active) {
+                        return this.exitModule();
+                    }
+                }
+            }
 
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
                     return this.exitModule();
                 }
             }
 
+            // Teleport.
             var teleport = getEnabledModuleByName(this.hand === RIGHT_HAND ? "RightTeleporter" : "LeftTeleporter");
             if (teleport) {
                 var teleportReady = teleport.isReady(controllerData);
@@ -162,6 +187,21 @@ Script.include("/~/system/libraries/utils.js");
                     return this.exitModule();
                 }
             }
+
+            if ((controllerData.triggerClicks[this.hand] === 0 && controllerData.secondaryValues[this.hand] === 0)) {
+                var stopRunning = false;
+                controllerData.nearbyOverlayIDs[this.hand].forEach(function(overlayID) {
+                    var overlayName = Overlays.getProperty(overlayID, "name");
+                    if (overlayName === "KeyboardAnchor") {
+                        stopRunning = true;
+                    }
+                });
+
+                if (stopRunning) {
+                    return this.exitModule();
+                }
+            }
+
             this.sendPickData(controllerData);
             return this.isReady(controllerData);
         };
@@ -172,6 +212,37 @@ Script.include("/~/system/libraries/utils.js");
 
     enableDispatcherModule("LeftHandInEditMode", leftHandInEditMode);
     enableDispatcherModule("RightHandInEditMode", rightHandInEditMode);
+
+    var INEDIT_STATUS_CHANNEL = "Hifi-InEdit-Status";
+    var HAND_RAYPICK_BLACKLIST_CHANNEL = "Hifi-Hand-RayPick-Blacklist";
+    this.handleMessage = function (channel, data, sender) {
+        if (channel === INEDIT_STATUS_CHANNEL && sender === MyAvatar.sessionUUID) {
+            var message;
+
+            try {
+                message = JSON.parse(data);
+            } catch (e) {
+                return;
+            }
+
+            switch (message.method) {
+                case "editing":
+                    if (message.hand === LEFT_HAND) {
+                        leftHandInEditMode.isEditing = message.editing;
+                    } else {
+                        rightHandInEditMode.isEditing = message.editing;
+                    }
+                    Messages.sendLocalMessage(HAND_RAYPICK_BLACKLIST_CHANNEL, JSON.stringify({
+                        action: "tablet",
+                        hand: message.hand,
+                        blacklist: message.editing
+                    }));
+                    break;
+            }
+        }
+    };
+    Messages.subscribe(INEDIT_STATUS_CHANNEL);
+    Messages.messageReceived.connect(this.handleMessage);
 
     function cleanup() {
         disableDispatcherModule("LeftHandInEditMode");

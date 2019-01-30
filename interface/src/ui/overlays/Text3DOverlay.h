@@ -39,7 +39,7 @@ public:
     float getTopMargin() const { return _topMargin; }
     float getRightMargin() const { return _rightMargin; }
     float getBottomMargin() const { return _bottomMargin; }
-    xColor getBackgroundColor();
+    glm::u8vec3 getBackgroundColor();
     float getTextAlpha() { return _textAlpha; }
     float getBackgroundAlpha() { return getAlpha(); }
     bool isTransparent() override { return Overlay::isTransparent() || _textAlpha < 1.0f; }
@@ -65,7 +65,7 @@ private:
 
     QString _text;
     mutable QMutex _mutex; // used to make get/setText threadsafe, mutable so can be used in const functions
-    xColor _backgroundColor = xColor { 0, 0, 0 };
+    glm::u8vec3 _backgroundColor { 0, 0, 0 };
     float _textAlpha { 1.0f };
     float _lineHeight { 1.0f };
     float _leftMargin { 0.1f };

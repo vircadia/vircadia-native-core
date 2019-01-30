@@ -132,8 +132,6 @@ QUrl PathUtils::expandToLocalDataAbsolutePath(const QUrl& fileUrl) {
         return expandedURL;
     }
 
-    QUrl::fromLocalFile(resourcesPath()).toString();
-
     return fileUrl;
 }
 

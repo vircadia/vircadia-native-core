@@ -8,7 +8,7 @@
 struct Parameters
 {
     BT_VEC2 _deltaUV;
-	float _threshold;
+    float _threshold;
     int _sampleCount;
 };
 

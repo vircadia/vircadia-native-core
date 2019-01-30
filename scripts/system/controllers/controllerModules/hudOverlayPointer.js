@@ -10,16 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, Controller, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities,
-   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
-   makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
-   DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC, ensureDynamic,
-   getControllerWorldLocation, projectOntoEntityXYPlane, ContextOverlay, HMD, Reticle, Overlays, isPointingAtUI,
-   makeLaserParams
-
-*/
+/* global Script, Controller, RIGHT_HAND, LEFT_HAND, HMD, makeLaserParams */
 (function() {
     Script.include("/~/system/libraries/controllers.js");
     var ControllerDispatcherUtils = Script.require("/~/system/libraries/controllerDispatcherUtils.js");
@@ -33,7 +24,7 @@
         this.reticleMinY = MARGIN;
         this.reticleMaxY;
         this.parameters = ControllerDispatcherUtils.makeDispatcherModuleParameters(
-            540,
+            160, // Same as webSurfaceLaserInput.
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100,
@@ -72,7 +63,6 @@
 
         this.processLaser = function(controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
-            var otherModuleRunning = this.getOtherModule().running;
             if ((controllerData.triggerValues[this.hand] < ControllerDispatcherUtils.TRIGGER_ON_VALUE || !controllerLocation.valid) ||
                 this.pointingAtTablet(controllerData)) {
                 return false;

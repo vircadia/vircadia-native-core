@@ -4,13 +4,17 @@ if (PRODUCTION_BUILD)
   set(PRODUCTION_OPTION "--production")
 endif()
 
+if (CLIENT_ONLY)
+  set(CLIENT_ONLY_OPTION "--client_only")
+endif()
+
 # add a target that will package the console
 add_custom_target(${TARGET_NAME}-npm-install
   COMMAND npm install
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 add_custom_target(${TARGET_NAME}
-  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR} ${PRODUCTION_OPTION}
+  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR} ${PRODUCTION_OPTION} ${CLIENT_ONLY_OPTION}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   DEPENDS ${TARGET_NAME}-npm-install
 )
@@ -19,11 +23,21 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Server Console")
 set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "hidden/Server Console")
 
 # add a dependency from the package target to the server components
-add_dependencies(${TARGET_NAME} assignment-client domain-server)
+if (BUILD_CLIENT)
+  add_dependencies(${TARGET_NAME} interface)
+endif()
+
+if (BUILD_SERVER)
+  add_dependencies(${TARGET_NAME} assignment-client domain-server)
+endif()
 
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
-  set(PACKAGED_CONSOLE_FOLDER "Sandbox-darwin-x64/${CONSOLE_EXEC_NAME}")
+  if (CLIENT_ONLY)
+    set(PACKAGED_CONSOLE_FOLDER "Console-darwin-x64/${CONSOLE_EXEC_NAME}")
+  else ()
+    set(PACKAGED_CONSOLE_FOLDER "Sandbox-darwin-x64/${CONSOLE_EXEC_NAME}")
+  endif()
 elseif (WIN32)
   set(PACKAGED_CONSOLE_FOLDER "server-console-win32-x64")
 elseif (UNIX)
@@ -33,9 +47,9 @@ endif ()
 # install the packaged Server Console in our install directory
 if (APPLE)
   install(
-    PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
+    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
+    USE_SOURCE_PERMISSIONS
     DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${SERVER_COMPONENT}
   )
 elseif (WIN32)
   set(CONSOLE_DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}")
@@ -43,7 +57,6 @@ elseif (WIN32)
   install(
     DIRECTORY "${CONSOLE_DESTINATION}/"
     DESTINATION ${CONSOLE_INSTALL_DIR}
-    COMPONENT ${SERVER_COMPONENT}
   )
 
   # sign the copied server console executable after install

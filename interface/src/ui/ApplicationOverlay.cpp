@@ -55,8 +55,6 @@ ApplicationOverlay::~ApplicationOverlay() {
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     PROFILE_RANGE(render, __FUNCTION__);
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
-
     buildFramebufferObject();
     
     if (!_overlayFramebuffer) {
@@ -83,7 +81,9 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
         // Now render the overlay components together into a single texture
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+#if !defined(DISABLE_QML)
         renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
+#endif
     });
 
     renderArgs->_batch = nullptr; // so future users of renderArgs don't try to use our batch
@@ -115,6 +115,7 @@ void ApplicationOverlay::renderQmlUi(RenderArgs* renderArgs) {
     batch.resetViewTransform();
     batch.setResourceTexture(0, _uiTexture);
     geometryCache->renderUnitQuad(batch, glm::vec4(1), _qmlGeometryId);
+    batch.setResourceTexture(0, nullptr);
 }
 
 void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {

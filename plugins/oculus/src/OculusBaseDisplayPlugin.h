@@ -13,6 +13,9 @@
 
 #include <OVR_CAPI_GL.h>
 
+#define OVRPL_DISABLED
+#include <OVR_Platform.h>
+
 class OculusBaseDisplayPlugin : public HmdDisplayPlugin {
     using Parent = HmdDisplayPlugin;
 public:
@@ -27,7 +30,10 @@ public:
     void resetSensors() override final;
     bool beginFrameRender(uint32_t frameIndex) override;
     float getTargetFrameRate() const override { return _hmdDesc.DisplayRefreshRate; }
-   
+
+    QRectF getPlayAreaRect() override;
+    QVector<glm::vec3> getSensorPositions() override;
+
 protected:
     void customizeContext() override;
     void uncustomizeContext() override;
@@ -45,4 +51,5 @@ protected:
     ovrViewScaleDesc _viewScaleDesc;
     // ovrLayerEyeFovDepth _depthLayer;
     bool _hmdMounted { false };
+    bool _visible { true };
 };

@@ -71,8 +71,11 @@ bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedE
         return true;
     }
 
-    auto particleProperties = entity->getParticleProperties();
-    if (particleProperties != _particleProperties) {
+    if (_particleProperties != entity->getParticleProperties()) {
+        return true;
+    }
+
+    if (_pulseProperties != entity->getPulseProperties()) {
         return true;
     }
 
@@ -95,6 +98,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             }
         });
     }
+
+    withWriteLock([&] {
+        _pulseProperties = entity->getPulseProperties();
+    });
     _emitting = entity->getIsEmitting();
 
     bool hasTexture = resultWithReadLock<bool>([&]{ return _particleProperties.textures.isEmpty(); });
@@ -104,6 +111,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
                 _networkTexture.reset();
             });
         }
+
+        withWriteLock([&] {
+            entity->setVisuallyReady(true);
+        });
     } else {
         bool textureNeedsUpdate = resultWithReadLock<bool>([&]{
             return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
@@ -111,6 +122,12 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         if (textureNeedsUpdate) {
             withWriteLock([&] { 
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
+            });
+        }
+
+        if (_networkTexture) {
+            withWriteLock([&] {
+                entity->setVisuallyReady(_networkTexture->isFailed() || _networkTexture->isLoaded());
             });
         }
     }
@@ -132,10 +149,6 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
         particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
         particleUniforms.radius.finish = _particleProperties.radius.range.finish;
         particleUniforms.radius.spread = _particleProperties.radius.gradient.spread;
-        particleUniforms.color.start = _particleProperties.getColorStart();
-        particleUniforms.color.middle = _particleProperties.getColorMiddle();
-        particleUniforms.color.finish = _particleProperties.getColorFinish();
-        particleUniforms.color.spread = _particleProperties.getColorSpread();
         particleUniforms.spin.start = _particleProperties.spin.range.start;
         particleUniforms.spin.middle = _particleProperties.spin.gradient.target;
         particleUniforms.spin.finish = _particleProperties.spin.range.finish;
@@ -148,15 +161,20 @@ void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEn
 }
 
 ItemKey ParticleEffectEntityRenderer::getKey() {
+    // FIXME: implement isTransparent() for particles and an opaque pipeline
     if (_visible) {
-        return ItemKey::Builder::transparentShape().withTagBits(getTagMask());
+        return ItemKey::Builder::transparentShape().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     } else {
-        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).build();
+        return ItemKey::Builder().withInvisible().withTagBits(getTagMask()).withLayer(getHifiRenderLayer()).build();
     }
 }
 
 ShapeKey ParticleEffectEntityRenderer::getShapeKey() {
-    return ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
+    auto builder = ShapeKey::Builder().withCustom(CUSTOM_PIPELINE_NUMBER).withTranslucent();
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 Item::Bound ParticleEffectEntityRenderer::getBound() {
@@ -187,12 +205,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
     particle.basePosition = baseTransform.getTranslation();
 
     // Position, velocity, and acceleration
+    glm::vec3 emitDirection;
     if (polarStart == 0.0f && polarFinish == 0.0f && emitDimensions.z == 0.0f) {
         // Emit along z-axis from position
-
-        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * Vectors::UNIT_Z);
-        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
-
+        emitDirection = Vectors::UNIT_Z;
     } else {
         // Emit around point or from ellipsoid
         // - Distribute directions evenly around point
@@ -210,7 +226,6 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
 
-        glm::vec3 emitDirection;
         if (emitDimensions == Vectors::ZERO) {
             // Point
             emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
@@ -235,10 +250,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             ));
             particle.relativePosition += emitOrientation * emitPosition;
         }
-
-        particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
-        particle.acceleration = emitAcceleration + randFloatInRange(-1.0f, 1.0f) * accelerationSpread;
     }
+    particle.velocity = (emitSpeed + randFloatInRange(-1.0f, 1.0f) * speedSpread) * (emitOrientation * emitDirection);
+    particle.acceleration = emitAcceleration +
+        glm::vec3(randFloatInRange(-1.0f, 1.0f), randFloatInRange(-1.0f, 1.0f), randFloatInRange(-1.0f, 1.0f)) * accelerationSpread;
 
     return particle;
 }
@@ -313,7 +328,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 }
 
 void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
-    if (!_visible) {
+    if (!_visible || !(_networkTexture && _networkTexture->isLoaded())) {
         return;
     }
 
@@ -321,18 +336,20 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     stepSimulation();
 
     gpu::Batch& batch = *args->_batch;
-    if (_networkTexture && _networkTexture->isLoaded()) {
-        batch.setResourceTexture(0, _networkTexture->getGPUTexture());
-    } else {
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-    }
+    batch.setResourceTexture(0, _networkTexture->getGPUTexture());
 
-    Transform transform; 
+    Transform transform;
     // The particles are in world space, so the transform is unused, except for the rotation, which we use
     // if the particles are marked rotateWithEntity
     withReadLock([&] {
         transform.setRotation(_renderTransform.getRotation());
+        auto& color = _uniformBuffer.edit<ParticleUniforms>().color;
+        color.start = EntityRenderer::calculatePulseColor(_particleProperties.getColorStart(), _pulseProperties, _created);
+        color.middle = EntityRenderer::calculatePulseColor(_particleProperties.getColorMiddle(), _pulseProperties, _created);
+        color.finish = EntityRenderer::calculatePulseColor(_particleProperties.getColorFinish(), _pulseProperties, _created);
+        color.spread = EntityRenderer::calculatePulseColor(_particleProperties.getColorSpread(), _pulseProperties, _created);
     });
+
     batch.setModelTransform(transform);
     batch.setUniformBuffer(0, _uniformBuffer);
     batch.setInputFormat(_vertexFormat);

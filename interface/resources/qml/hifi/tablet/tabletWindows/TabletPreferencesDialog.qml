@@ -12,8 +12,8 @@ import QtQuick 2.5
 
 import "."
 import "./preferences"
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 
 Item {
     id: dialog
@@ -41,7 +41,15 @@ Item {
             section.saveAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
+        } else {
+            closeDialog();
+        }
     }
 
     function restoreAll() {
@@ -50,7 +58,15 @@ Item {
             section.restoreAll();
         }
 
-        closeDialog();
+        if (HMD.active) {
+            if (gotoPreviousApp) {
+                tablet.returnToPreviousApp();
+            } else {
+                tablet.popFromStack();
+            }
+        } else {
+            closeDialog();
+        }
     }
 
     function closeDialog() {
@@ -104,6 +120,31 @@ Item {
                             var properties = categoryProperties.hasOwnProperty(showCategories[i]) ? categoryProperties[showCategories[i]] : {};
                             sections.push(sectionBuilder.createObject(prefControls, {name: showCategories[i], sectionProperties: properties}));
                         }
+                    }
+
+                    // Runtime customization of preferences.
+                    var locomotionPreference = findPreference("VR Movement", "Walking");
+                    var flyingPreference = findPreference("VR Movement", "Jumping and flying");
+                    if (locomotionPreference && flyingPreference) {
+                        flyingPreference.visible = locomotionPreference.value;
+                        locomotionPreference.valueChanged.connect(function () {
+                            flyingPreference.visible = locomotionPreference.value;
+                        });
+                    }
+                    if (HMD.isHeadControllerAvailable("Oculus")) {
+                        var boundariesPreference = findPreference("VR Movement", "Show room boundaries while teleporting");
+                        if (boundariesPreference) {
+                            boundariesPreference.label = "Show room boundaries and sensors while teleporting";
+                        }
+                    }
+
+                    var useKeyboardPreference = findPreference("User Interface", "Use Virtual Keyboard");
+                    var keyboardInputPreference = findPreference("User Interface", "Keyboard laser / mallets");
+                    if (useKeyboardPreference && keyboardInputPreference) {
+                        keyboardInputPreference.visible = useKeyboardPreference.value;
+                        useKeyboardPreference.valueChanged.connect(function() {
+                            keyboardInputPreference.visible = useKeyboardPreference.value;
+                        });
                     }
 
                     if (sections.length) {
@@ -210,6 +251,10 @@ Item {
         keyboardEnabled = HMD.active;
     }
 
+    Component.onDestruction: {
+        keyboard.raised = false;
+    }
+
     onKeyboardRaisedChanged: {
         if (keyboardEnabled && keyboardRaised) {
             var delta = mouseArea.mouseY - (dialog.height - footer.height - keyboard.raisedHeight -hifi.dimensions.controlLineHeight);
@@ -217,5 +262,33 @@ Item {
                 scrollView.contentY += delta;
             }
         }
+    }
+
+    function findPreference(category, name) {
+        var section = null;
+        var preference = null;
+        var i;
+
+        // Find category section.
+        i = 0;
+        while (!section && i < sections.length) {
+            if (sections[i].name === category) {
+                section = sections[i];
+            }
+            i++;
+        }
+
+        // Find named preference.
+        if (section) {
+            i = 0;
+            while (!preference && i < section.preferences.length) {
+                if (section.preferences[i].preference && section.preferences[i].preference.name === name) {
+                    preference = section.preferences[i];
+                }
+                i++;
+            }
+        }
+
+        return preference;
     }
 }

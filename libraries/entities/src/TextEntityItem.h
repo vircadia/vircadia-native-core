@@ -14,6 +14,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class TextEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -27,13 +29,13 @@ public:
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_BOX; }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -63,32 +65,52 @@ public:
     void setLineHeight(float value);
     float getLineHeight() const;
 
-    static const xColor DEFAULT_TEXT_COLOR;
-    // FIXME should not return a reference because of thread safety, but can't return an array
-    const rgbColor& getTextColor() const;
-    xColor getTextColorX() const;
+    static const glm::u8vec3 DEFAULT_TEXT_COLOR;
+    glm::u8vec3 getTextColor() const;
+    void setTextColor(const glm::u8vec3& value);
 
-    void setTextColor(const rgbColor& value);
-    void setTextColor(const xColor& value);
+    static const float DEFAULT_TEXT_ALPHA;
+    float getTextAlpha() const;
+    void setTextAlpha(float value);
 
-    static const xColor DEFAULT_BACKGROUND_COLOR;
-    // FIXME should not return a reference because of thread safety, but can't return an array
-    const rgbColor& getBackgroundColor() const;
-    xColor getBackgroundColorX() const;
+    static const glm::u8vec3 DEFAULT_BACKGROUND_COLOR;
+    glm::u8vec3 getBackgroundColor() const;
+    void setBackgroundColor(const glm::u8vec3& value);
 
-    void setBackgroundColor(const rgbColor& value);
-    void setBackgroundColor(const xColor& value);
+    float getBackgroundAlpha() const;
+    void setBackgroundAlpha(float value);
 
-    static const bool DEFAULT_FACE_CAMERA;
-    bool getFaceCamera() const;
-    void setFaceCamera(bool value);
+    BillboardMode getBillboardMode() const;
+    void setBillboardMode(BillboardMode value);
+
+    static const float DEFAULT_MARGIN;
+    float getLeftMargin() const;
+    void setLeftMargin(float value);
+
+    float getRightMargin() const;
+    void setRightMargin(float value);
+
+    float getTopMargin() const;
+    void setTopMargin(float value);
+
+    float getBottomMargin() const;
+    void setBottomMargin(float value);
+
+    PulsePropertyGroup getPulseProperties() const;
 
 private:
     QString _text;
     float _lineHeight;
-    rgbColor _textColor;
-    rgbColor _backgroundColor;
-    bool _faceCamera;
+    glm::u8vec3 _textColor;
+    float _textAlpha;
+    glm::u8vec3 _backgroundColor;
+    float _backgroundAlpha;
+    PulsePropertyGroup _pulseProperties;
+    BillboardMode _billboardMode;
+    float _leftMargin;
+    float _rightMargin;
+    float _topMargin;
+    float _bottomMargin;
 };
 
 #endif // hifi_TextEntityItem_h

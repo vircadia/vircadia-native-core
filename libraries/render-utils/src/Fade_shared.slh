@@ -13,12 +13,12 @@
 
 struct FadeParameters
 {
-	VEC4    _noiseInvSizeAndLevel;
-	VEC4    _innerEdgeColor;
-	VEC4    _outerEdgeColor;
-	VEC2    _edgeWidthInvWidth;
-	FLOAT32   _baseLevel;
-	INT32     _isInverted;
+    VEC4    _noiseInvSizeAndLevel;
+    VEC4    _innerEdgeColor;
+    VEC4    _outerEdgeColor;
+    VEC2    _edgeWidthInvWidth;
+    FLOAT32   _baseLevel;
+    INT32     _isInverted;
 };
 
     // <@if 1@>

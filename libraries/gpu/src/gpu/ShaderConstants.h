@@ -21,6 +21,15 @@
 
 #define GPU_TEXTURE_TRANSFORM_OBJECT 31
 
+
+#define GPU_RESOURCE_BUFFER_SLOT0_TEXTURE 35
+#define GPU_RESOURCE_BUFFER_SLOT1_TEXTURE 36
+#define GPU_RESOURCE_BUFFER_SLOT0_STORAGE 0
+#define GPU_RESOURCE_BUFFER_SLOT1_STORAGE 1
+
+// Mip creation
+#define GPU_TEXTURE_MIP_CREATION_INPUT 30
+
 #define GPU_STORAGE_TRANSFORM_OBJECT 7
 
 #define GPU_ATTR_POSITION 0
@@ -40,8 +49,6 @@
 // OSX seems to have an issue using 14 as an attribute location for passing from the vertex to the fragment shader
 #define GPU_ATTR_V2F_STEREO_SIDE 8
 
-#define GPU_UNIFORM_COLOR 101
-#define GPU_UNIFORM_TEXCOORD_RECT 102
 #define GPU_UNIFORM_EXTRA0 110
 #define GPU_UNIFORM_EXTRA1 111
 #define GPU_UNIFORM_EXTRA2 112
@@ -69,7 +76,8 @@ enum Buffer {
 namespace texture {
 enum Texture {
     ObjectTransforms = GPU_TEXTURE_TRANSFORM_OBJECT,
-}; 
+    MipCreationInput = GPU_TEXTURE_MIP_CREATION_INPUT,
+};
 } // namespace texture
 
 namespace storage {
@@ -95,23 +103,6 @@ enum Attribute {
     DrawCallInfo = GPU_ATTR_DRAW_CALL_INFO,
 };
 } // namespace attr
-
-namespace uniform {
-enum Uniform {
-    Color = GPU_UNIFORM_COLOR,
-    TexCoordRect = GPU_UNIFORM_TEXCOORD_RECT,
-    Extra0 = GPU_UNIFORM_EXTRA0,
-    Extra1 = GPU_UNIFORM_EXTRA1,
-    Extra2 = GPU_UNIFORM_EXTRA2,
-    Extra3 = GPU_UNIFORM_EXTRA3,
-    Extra4 = GPU_UNIFORM_EXTRA4,
-    Extra5 = GPU_UNIFORM_EXTRA5,
-    Extra6 = GPU_UNIFORM_EXTRA6,
-    Extra7 = GPU_UNIFORM_EXTRA7,
-    Extra8 = GPU_UNIFORM_EXTRA8,
-    Extra9 = GPU_UNIFORM_EXTRA9,
-};
-} // namespace uniform
 
 } } // namespace gpu::slot
 

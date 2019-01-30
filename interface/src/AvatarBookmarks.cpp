@@ -55,12 +55,11 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
         QVariantMap asMap = variantProperties.toMap();
         QScriptValue scriptProperties = variantMapToScriptValue(asMap, scriptEngine);
         EntityItemProperties entityProperties;
-        EntityItemPropertiesFromScriptValueHonorReadOnly(scriptProperties, entityProperties);
+        EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptProperties, entityProperties);
 
         entityProperties.setParentID(myNodeID);
-        entityProperties.setClientOnly(true);
+        entityProperties.setEntityHostType(entity::HostType::AVATAR);
         entityProperties.setOwningAvatarID(myNodeID);
-        entityProperties.setSimulationOwner(myNodeID, AVATAR_ENTITY_SIMULATION_PRIORITY);
         entityProperties.markAllChanged();
 
         EntityItemID id = EntityItemID(QUuid::createUuid());
@@ -78,8 +77,10 @@ void addAvatarEntities(const QVariantList& avatarEntities) {
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
-                // since we're creating this object we will immediately volunteer to own its simulation
-                entity->setScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                if (entityProperties.getDynamic()) {
+                    // since we're creating a dynamic object we volunteer immediately to own its simulation
+                    entity->upgradeScriptSimulationPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                }
                 entityProperties.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "AvatarEntitiesBookmark failed to add new Entity to local Octree";
@@ -108,6 +109,9 @@ AvatarBookmarks::AvatarBookmarks() {
 
         if (!QFile::copy(defaultBookmarksFilename, _bookmarksFilename)) {
             qDebug() << "failed to copy" << defaultBookmarksFilename << "to" << _bookmarksFilename;
+        } else {
+            QFile bookmarksFile(_bookmarksFilename);
+            bookmarksFile.setPermissions(bookmarksFile.permissions() | QFile::WriteUser);
         }
     }
     readFromFile();
@@ -145,21 +149,31 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
     emit bookmarkDeleted(bookmarkName);
 }
 
-bool isWearableEntity(const EntityItemPointer& entity) {
-    return entity->isVisible() && (entity->getParentJointIndex() != INVALID_JOINT_INDEX || (entity->getType() == EntityTypes::Model && (std::static_pointer_cast<ModelEntityItem>(entity))->getRelayParentJoints()))
-        && (entity->getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || entity->getParentID() == DependencyManager::get<AvatarManager>()->getMyAvatar()->getSelfID());
-}
-
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
-    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
-        auto entity = entityTree->findEntityByID(entityID);
-        return entity && isWearableEntity(entity);
-    });
+    auto currentAvatarEntities = myAvatar->getAvatarEntityData();
+    std::set<QUuid> newAvatarEntities;
 
-    addAvatarEntities(avatarEntities);
+    // Update or add all the new avatar entities
+    for (auto& avatarEntityVariant : avatarEntities) {
+        auto avatarEntityVariantMap = avatarEntityVariant.toMap();
+        auto idItr = avatarEntityVariantMap.find("id");
+        if (idItr != avatarEntityVariantMap.end()) {
+            auto propertiesItr = avatarEntityVariantMap.find("properties");
+            if (propertiesItr != avatarEntityVariantMap.end()) {
+                EntityItemID id = idItr.value().toUuid();
+                newAvatarEntities.insert(id);
+                myAvatar->updateAvatarEntity(id, QJsonDocument::fromVariant(propertiesItr.value()).toBinaryData());
+            }
+        }
+    }
+
+    // Remove any old entities not in the new list
+    for (auto& avatarEntityID : currentAvatarEntities.keys()) {
+        if (newAvatarEntities.find(avatarEntityID) == newAvatarEntities.end()) {
+            myAvatar->removeWornAvatarEntity(avatarEntityID);
+        }
+    }
 }
 
 void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
@@ -183,13 +197,10 @@ void AvatarBookmarks::loadBookmark(const QString& bookmarkName) {
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
             EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-            myAvatar->removeAvatarEntities([&](const QUuid& entityID) {
-                auto entity = entityTree->findEntityByID(entityID);
-                return entity && isWearableEntity(entity);
-            });
+            myAvatar->clearWornAvatarEntities();
             const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
             myAvatar->useFullAvatarURL(avatarUrl);
-            qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
+            qCDebug(interfaceapp) << "Avatar On";
             const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
 
             qCDebug(interfaceapp) << "Attach " << attachments;
@@ -256,25 +267,35 @@ QVariantMap AvatarBookmarks::getAvatarDataToBookmark() {
     bookmark.insert(ENTRY_AVATAR_URL, avatarUrl);
     bookmark.insert(ENTRY_AVATAR_SCALE, avatarScale);
 
-    QScriptEngine scriptEngine;
     QVariantList wearableEntities;
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
-    auto avatarEntities = myAvatar->getAvatarEntityData();
-    for (auto entityID : avatarEntities.keys()) {
-        auto entity = entityTree->findEntityByID(entityID);
-        if (!entity || !isWearableEntity(entity)) {
-            continue;
+
+    if (entityTree) {
+        QScriptEngine scriptEngine;
+        auto avatarEntities = myAvatar->getAvatarEntityData();
+        for (auto entityID : avatarEntities.keys()) {
+            auto entity = entityTree->findEntityByID(entityID);
+            if (!entity || !isWearableEntity(entity)) {
+                continue;
+            }
+
+            QVariantMap avatarEntityData;
+
+            EncodeBitstreamParams params;
+            auto desiredProperties = entity->getEntityProperties(params);
+            desiredProperties += PROP_LOCAL_POSITION;
+            desiredProperties += PROP_LOCAL_ROTATION;
+            desiredProperties -= PROP_JOINT_ROTATIONS_SET;
+            desiredProperties -= PROP_JOINT_ROTATIONS;
+            desiredProperties -= PROP_JOINT_TRANSLATIONS_SET;
+            desiredProperties -= PROP_JOINT_TRANSLATIONS;
+
+            EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
+            QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
+            avatarEntityData["properties"] = scriptProperties.toVariant();
+            wearableEntities.append(QVariant(avatarEntityData));
         }
-        QVariantMap avatarEntityData;
-        EncodeBitstreamParams params;
-        auto desiredProperties = entity->getEntityProperties(params);
-        desiredProperties += PROP_LOCAL_POSITION;
-        desiredProperties += PROP_LOCAL_ROTATION;
-        EntityItemProperties entityProperties = entity->getProperties(desiredProperties);
-        QScriptValue scriptProperties = EntityItemPropertiesToScriptValue(&scriptEngine, entityProperties);
-        avatarEntityData["properties"] = scriptProperties.toVariant();
-        wearableEntities.append(QVariant(avatarEntityData));
     }
     bookmark.insert(ENTRY_AVATAR_ENTITIES, wearableEntities);
     return bookmark;

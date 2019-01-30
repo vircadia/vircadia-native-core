@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_lightmap.frag
-//  fragment shader
 //
 //  Created by Samuel Gateau on 11/19/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -20,7 +18,6 @@
 <$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, METALLIC)$>
 <$declareMaterialLightmap()$>
 
-
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
@@ -30,15 +27,24 @@ layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 void main(void) {
     Material mat = getMaterial();
     BITFIELD matKey = getMaterialKey(mat);
-    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, _SCRIBE_NULL, metallicTex)$>
-    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, metallicTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmap)$>
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color.rgb;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
     packDeferredFragmentLightmap(
         normalize(_normalWS), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
-        getMaterialAlbedo(mat) * albedo.rgb * _color.rgb,
-        getMaterialRoughness(mat) * roughness,
-        getMaterialMetallic(mat) * metallicTex,
-        /*metallicTex, // no use of */getMaterialFresnel(mat),
-        lightmapVal);
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedoTex.a),
+        albedo,
+        roughness,
+        metallic,
+        lightmap);
 }

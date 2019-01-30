@@ -29,7 +29,7 @@ public:
     bool needsToCallUpdate() const override { return true; }
 
     // methods for getting/setting all properties of an entity
-    virtual EntityItemProperties getProperties(EntityPropertyFlags desiredProperties = EntityPropertyFlags()) const override;
+    virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
     virtual bool setProperties(const EntityItemProperties& properties) override;
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
@@ -58,7 +58,10 @@ public:
     void setCurrentMaterialName(const std::string& currentMaterialName);
 
     MaterialMappingMode getMaterialMappingMode() const { return _materialMappingMode; }
-    void setMaterialMappingMode(MaterialMappingMode mode) { _materialMappingMode = mode; }
+    void setMaterialMappingMode(MaterialMappingMode mode);
+
+    bool getMaterialRepeat() const { return _materialRepeat; }
+    void setMaterialRepeat(bool repeat);
 
     quint16 getPriority() const { return _priority; }
     void setPriority(quint16 priority);
@@ -80,10 +83,15 @@ public:
 
     void setParentID(const QUuid& parentID) override;
 
+    void locationChanged(bool tellPhysics) override;
+    void dimensionsChanged() override;
+
     void applyMaterial();
     void removeMaterial();
 
     void postParentFixup() override;
+
+    AACube calculateInitialQueryAACube(bool& success) override;
 
 private:
     // URL for this material.  Currently, only JSON format is supported.  Set to "materialData" to use the material data to live edit a material.
@@ -102,8 +110,10 @@ private:
     //     emissiveMap, albedoMap (set opacityMap = albedoMap for transparency), metallicMap or specularMap, roughnessMap or glossMap,
     //     normalMap or bumpMap, occlusionMap, lightmapMap (broken, FIXME), scatteringMap (only works if normal mapped)
     QString _materialURL;
-    // Type of material.  "uv" or "projected".  NOT YET IMPLEMENTED, only UV is used
+    // Type of material.  "uv" or "projected".
     MaterialMappingMode _materialMappingMode { UV };
+    bool _materialRepeat { true };
+    glm::vec3 _desiredDimensions;
     // Priority for this material when applying it to its parent.  Only the highest priority material will be used.  Materials with the same priority are (essentially) randomly sorted.
     // Base materials that come with models always have priority 0.
     quint16 _priority { 0 };

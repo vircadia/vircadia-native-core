@@ -22,7 +22,9 @@
 #include <ui/TabletScriptingInterface.h>
 #include "scripting/HMDScriptingInterface.h"
 
-QmlCommerce::QmlCommerce() {
+QmlCommerce::QmlCommerce() :
+    _appsPath(PathUtils::getAppDataPath() + "Apps/")
+{
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     connect(ledger.data(), &Ledger::buyResult, this, &QmlCommerce::buyResult);
@@ -38,16 +40,59 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferAssetToNodeResult, this, &QmlCommerce::transferAssetToNodeResult);
     connect(ledger.data(), &Ledger::transferAssetToUsernameResult, this, &QmlCommerce::transferAssetToUsernameResult);
+    connect(ledger.data(), &Ledger::authorizeAssetTransferResult, this, &QmlCommerce::authorizeAssetTransferResult);
     connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
     connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
-    
-    auto accountManager = DependencyManager::get<AccountManager>();
-    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() {
-        setPassphrase("");
-    });
 
-    _appsPath = PathUtils::getAppDataPath() + "Apps/";
+    auto accountManager = DependencyManager::get<AccountManager>();
+    connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() { setPassphrase(""); });
 }
+
+
+void QmlCommerce::openSystemApp(const QString& appName) {
+    static const QMap<QString, QString> systemApps {
+        {"GOTO",        "hifi/tablet/TabletAddressDialog.qml"},
+        {"PEOPLE",      "hifi/Pal.qml"},
+        {"WALLET",      "hifi/commerce/wallet/Wallet.qml"},
+        {"MARKET",      "/marketplace.html"}
+    };
+
+    static const QMap<QString, QString> systemInject{
+        {"MARKET",      "/scripts/system/html/js/marketplacesInject.js"}
+    };
+
+
+    auto tablet = dynamic_cast<TabletProxy*>(
+        DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+
+    QMap<QString, QString>::const_iterator appPathIter = systemApps.find(appName);
+    if (appPathIter != systemApps.end()) {
+        if (appPathIter->contains(".qml", Qt::CaseInsensitive)) {
+            tablet->loadQMLSource(*appPathIter);
+        }
+        else if (appPathIter->contains(".html", Qt::CaseInsensitive)) {
+            QMap<QString, QString>::const_iterator injectIter = systemInject.find(appName);
+            if (appPathIter == systemInject.end()) {
+                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter);
+            }
+            else {
+                QString inject = "file:///" + qApp->applicationDirPath() + *injectIter;
+                tablet->gotoWebScreen(NetworkingConstants::METAVERSE_SERVER_URL().toString() + *appPathIter, inject);
+            }
+        }
+        else {
+            qCDebug(commerce) << "Attempted to open unknown type of URL!";
+            return;
+        }
+    }
+    else {
+        qCDebug(commerce) << "Attempted to open unknown APP!";
+        return;
+    }
+
+    DependencyManager::get<HMDScriptingInterface>()->openTablet();
+}
+
 
 void QmlCommerce::getWalletStatus() {
     auto wallet = DependencyManager::get<Wallet>();
@@ -105,7 +150,11 @@ void QmlCommerce::balance() {
     }
 }
 
-void QmlCommerce::inventory(const QString& editionFilter, const QString& typeFilter, const QString& titleFilter, const int& page, const int& perPage) {
+void QmlCommerce::inventory(const QString& editionFilter,
+                            const QString& typeFilter,
+                            const QString& titleFilter,
+                            const int& page,
+                            const int& perPage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList cachedPublicKeys = wallet->listPublicKeys();
@@ -166,40 +215,64 @@ void QmlCommerce::certificateInfo(const QString& certificateId) {
     ledger->certificateInfo(certificateId);
 }
 
-void QmlCommerce::transferAssetToNode(const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage) {
+void QmlCommerce::transferAssetToNode(const QString& nodeID,
+                                      const QString& certificateID,
+                                      const int& amount,
+                                      const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
-        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
         return emit transferAssetToNodeResult(result);
     }
     QString key = keys[0];
     ledger->transferAssetToNode(key, nodeID, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::transferAssetToUsername(const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage) {
+void QmlCommerce::transferAssetToUsername(const QString& username,
+                                          const QString& certificateID,
+                                          const int& amount,
+                                          const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
-        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
         return emit transferAssetToUsernameResult(result);
     }
     QString key = keys[0];
     ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
 }
 
-void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
+void QmlCommerce::authorizeAssetTransfer(const QString& couponID,
+    const QString& certificateID,
+    const int& amount,
+    const QString& optionalMessage) {
     auto ledger = DependencyManager::get<Ledger>();
-    ledger->updateLocation(certificateID, DependencyManager::get<AddressManager>()->getPlaceName(), true);
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
+        return emit authorizeAssetTransferResult(result);
+    }
+    QString key = keys[0];
+    ledger->authorizeAssetTransfer(key, couponID, certificateID, amount, optionalMessage);
+}
+
+void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
+    if (!certificateID.isEmpty()) {
+        auto ledger = DependencyManager::get<Ledger>();
+        ledger->updateLocation(
+            certificateID,
+            DependencyManager::get<AddressManager>()->getPlaceName(),
+            true);
+    }
     qApp->replaceDomainContent(itemHref);
     QJsonObject messageProperties = {
         { "status", "SuccessfulRequestToReplaceContent" },
-        { "content_set_url", itemHref }
-    };
+        { "content_set_url", itemHref } };
     UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
-
     emit contentSetChanged(itemHref);
 }
 
@@ -214,10 +287,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
 
     QDir directory(_appsPath);
     QStringList apps = directory.entryList(QStringList("*.app.json"));
-    foreach(QString appFileName, apps) {
-        installedAppsFromMarketplace += appFileName;
-        installedAppsFromMarketplace += ",";
-
+    foreach (QString appFileName, apps) {
         // If we were supplied a "justInstalledAppID" argument, that means we're entering this function
         // to get the new list of installed apps immediately after installing an app.
         // In that case, the app we installed may not yet have its associated script running -
@@ -226,6 +296,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
         // Thus, we protect against deleting the .app.json from the user's disk (below)
         // by skipping that check for the app we just installed.
         if ((justInstalledAppID != "") && ((justInstalledAppID + ".app.json") == appFileName)) {
+            installedAppsFromMarketplace += appFileName + ",";
             continue;
         }
 
@@ -243,10 +314,12 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
             // delete the .app.json from the user's local disk.
             if (!runningScripts.contains(scriptURL)) {
                 if (!appFile.remove()) {
-                    qCWarning(commerce)
-                        << "Couldn't delete local .app.json file (app's script isn't running). App filename is:"
-                        << appFileName;
+                    qCWarning(commerce) << "Couldn't delete local .app.json file (app's script isn't running). App filename is:"
+                                        << appFileName;
                 }
+            } else {
+                installedAppsFromMarketplace += appFileName;
+                installedAppsFromMarketplace += ",";
             }
         } else {
             qCDebug(commerce) << "Couldn't open local .app.json file for reading.";
@@ -256,7 +329,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
     return installedAppsFromMarketplace;
 }
 
-bool QmlCommerce::installApp(const QString& itemHref) {
+bool QmlCommerce::installApp(const QString& itemHref, const bool& alsoOpenImmediately) {
     if (!QDir(_appsPath).exists()) {
         if (!QDir().mkdir(_appsPath)) {
             qCDebug(commerce) << "Couldn't make _appsPath directory.";
@@ -266,7 +339,8 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     QUrl appHref(itemHref);
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref);
+    auto request =
+        DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref, true, -1, "QmlCommerce::installApp");
 
     if (!request) {
         qCDebug(commerce) << "Couldn't create resource request for app.";
@@ -298,13 +372,22 @@ bool QmlCommerce::installApp(const QString& itemHref) {
         QJsonObject appFileJsonObject = appFileJsonDocument.object();
         QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
-        if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
-            qCDebug(commerce) << "Couldn't load script.";
-            return false;
+        // Don't try to re-load (install) a script if it's already running
+        QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
+        if (!runningScripts.contains(scriptUrl)) {
+            if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+                qCDebug(commerce) << "Couldn't load script.";
+                return false;
+            }
+
+            QFileInfo appFileInfo(appFile);
+            emit appInstalled(appFileInfo.baseName());
         }
 
-        QFileInfo appFileInfo(appFile);
-        emit appInstalled(appFileInfo.baseName());
+        if (alsoOpenImmediately) {
+            QmlCommerce::openApp(itemHref);
+        }
+
         return true;
     });
     request->send();
@@ -317,7 +400,9 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     // Read from the file to know what .js script to stop
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file for deletion. Cannot continue with app uninstallation. App filename is:" << appHref.fileName();
+        qCDebug(commerce)
+            << "Couldn't open local .app.json file for deletion. Cannot continue with app uninstallation. App filename is:"
+            << appHref.fileName();
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
@@ -325,13 +410,14 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:" << scriptUrl.trimmed();
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway.";
     }
 
     // Delete the .app.json from the filesystem
     // remove() closes the file first.
     if (!appFile.remove()) {
-        qCWarning(commerce) << "Couldn't delete local .app.json file during app uninstall. Continuing anyway. App filename is:" << appHref.fileName();
+        qCWarning(commerce) << "Couldn't delete local .app.json file during app uninstall. Continuing anyway. App filename is:"
+                            << appHref.fileName();
     }
 
     QFileInfo appFileInfo(appFile);
@@ -345,14 +431,15 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     // Read from the file to know what .html or .qml document to open
     QFile appFile(_appsPath + "/" + appHref.fileName());
     if (!appFile.open(QIODevice::ReadOnly)) {
-        qCDebug(commerce) << "Couldn't open local .app.json file.";
+        qCDebug(commerce) << "Couldn't open local .app.json file:" << appFile;
         return false;
     }
     QJsonDocument appFileJsonDocument = QJsonDocument::fromJson(appFile.readAll());
     QJsonObject appFileJsonObject = appFileJsonDocument.object();
     QString homeUrl = appFileJsonObject["homeURL"].toString();
 
-    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(
+        DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
     if (homeUrl.contains(".qml", Qt::CaseInsensitive)) {
         tablet->loadQMLSource(homeUrl);
     } else if (homeUrl.contains(".html", Qt::CaseInsensitive)) {
@@ -367,9 +454,9 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     return true;
 }
 
-void QmlCommerce::getAvailableUpdates(const QString& itemId) {
+void QmlCommerce::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto ledger = DependencyManager::get<Ledger>();
-    ledger->getAvailableUpdates(itemId);
+    ledger->getAvailableUpdates(itemId, pageNumber, itemsPerPage);
 }
 
 void QmlCommerce::updateItem(const QString& certificateId) {
@@ -377,7 +464,7 @@ void QmlCommerce::updateItem(const QString& certificateId) {
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
     if (keys.count() == 0) {
-        QJsonObject result{ { "status", "fail" },{ "message", "Uninitialized Wallet." } };
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
         return emit updateItemResult(result);
     }
     QString key = keys[0];

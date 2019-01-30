@@ -26,6 +26,8 @@ public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
+    virtual void removeFromOwner() override;
+
     virtual bool updateArguments(QVariantMap arguments) override;
     virtual QVariantMap getArguments() override;
 
@@ -59,6 +61,8 @@ private:
     bool _kinematicSetVelocity { false };
     bool _previousSet { false };
     bool _ignoreIK { false };
+    bool _isTransitingWithAvatar { false };
+
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
 

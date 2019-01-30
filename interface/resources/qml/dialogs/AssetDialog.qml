@@ -11,7 +11,7 @@
 import QtQuick 2.5
 import Qt.labs.settings 1.0
 
-import "../styles-uit"
+import stylesUit 1.0
 import "../windows"
 
 import "assetDialog"

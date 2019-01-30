@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+/* global Script, Menu */
+
 var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
@@ -16,11 +18,7 @@ var CONTOLLER_SCRIPTS = [
     "toggleAdvancedMovementForHandControllers.js",
     "handTouch.js",
     "controllerDispatcher.js",
-    "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
-    "controllerModules/nearActionGrabEntity.js",
-    // "controllerModules/farActionGrabEntity.js",
-    // "controllerModules/farParentGrabEntity.js",
     "controllerModules/stylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
@@ -33,30 +31,27 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/hudOverlayPointer.js",
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",
-    "controllerModules/highlightNearbyEntities.js",
     "controllerModules/nearGrabHyperLinkEntity.js",
-    "controllerModules/mouseHighlightEntities.js"
+    "controllerModules/nearTabletHighlight.js",
+    "controllerModules/nearGrabEntity.js",
+    "controllerModules/farGrabEntity.js"
 ];
-
-if (Settings.getValue("useFarGrabJoints", false)) {
-    CONTOLLER_SCRIPTS.push("controllerModules/farActionGrabEntityDynOnly.js");
-    CONTOLLER_SCRIPTS.push("controllerModules/farParentGrabEntity.js");
-} else {
-    CONTOLLER_SCRIPTS.push("controllerModules/farActionGrabEntity.js");
-}
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
 
-
 function runDefaultsTogether() {
     for (var j in CONTOLLER_SCRIPTS) {
-        Script.include(CONTOLLER_SCRIPTS[j]);
+        if (CONTOLLER_SCRIPTS.hasOwnProperty(j)) {
+            Script.include(CONTOLLER_SCRIPTS[j]);
+        }
     }
 }
 
 function runDefaultsSeparately() {
     for (var i in CONTOLLER_SCRIPTS) {
-        Script.load(CONTOLLER_SCRIPTS[i]);
+        if (CONTOLLER_SCRIPTS.hasOwnProperty(i)) {
+            Script.load(CONTOLLER_SCRIPTS[i]);
+        }
     }
 }
 

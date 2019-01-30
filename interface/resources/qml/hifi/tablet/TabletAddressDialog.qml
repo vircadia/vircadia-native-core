@@ -18,8 +18,8 @@ import "../../styles"
 import "../../windows"
 import "../"
 import "../toolbars"
-import "../../styles-uit" as HifiStyles
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0 as HifiStyles
+import controlsUit 1.0 as HifiControls
 import QtQuick.Controls 2.2 as QQC2
 import QtQuick.Templates 2.2 as T
 
@@ -56,10 +56,13 @@ StackView {
         Qt.callLater(function() {
             addressBarDialog.keyboardEnabled = HMD.active;
             addressLine.forceActiveFocus();
+            addressBarDialog.keyboardRaised = true;
         })
     }
+
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
+        keyboard.raised = false;
     }
 
     function center() {
@@ -79,7 +82,7 @@ StackView {
             return;
         }
         location.text = targetString;
-        toggleOrGo(true, targetString);
+        toggleOrGo(targetString, true);
         clearAddressLineTimer.start();
     }
 
@@ -105,7 +108,6 @@ StackView {
             propagateComposedEvents: true
             onPressed: {
                 parent.forceActiveFocus();
-                addressBarDialog.keyboardEnabled = false;
                 mouse.accepted = false;
             }
         }
@@ -219,11 +221,15 @@ StackView {
                     leftMargin: 8;
                     verticalCenter: addressLineContainer.verticalCenter;
                 }
+
+                onFocusChanged: {
+                    addressBarDialog.raised = focus;
+                }
+
                 onTextChanged: {
                     updateLocationText(text.length > 0);
                 }
                 onAccepted: {
-                    addressBarDialog.keyboardEnabled = false;
                     toggleOrGo();
                 }
 
@@ -378,7 +384,7 @@ StackView {
 
         HifiControls.Keyboard {
             id: keyboard
-            raised: parent.keyboardEnabled
+            raised: parent.keyboardEnabled && parent.keyboardRaised
             numeric: parent.punctuationMode
             anchors {
                 bottom: parent.bottom
@@ -401,7 +407,7 @@ StackView {
         }
     }
 
-    function toggleOrGo(fromSuggestions, address) {
+    function toggleOrGo(address, fromSuggestions) {
         if (address !== undefined && address !== "") {
             addressBarDialog.loadAddress(address, fromSuggestions);
             clearAddressLineTimer.start();

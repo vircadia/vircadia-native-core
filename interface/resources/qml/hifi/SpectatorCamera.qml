@@ -13,8 +13,8 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
-import "../styles-uit"
-import "../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../controls" as HifiControls
 
 // references HMD, XXX from root context
@@ -362,7 +362,7 @@ Rectangle {
             spectatorCameraPreview.visible = message.setting;
         break;
         default:
-            console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
+            console.log('Unrecognized message from spectatorCamera.js');
         }
     }
     signal sendToScript(var message);

@@ -27,6 +27,7 @@
 #include <SettingHandle.h>
 #include <OffscreenUi.h>
 #include <GLMHelpers.h>
+#include <AvatarConstants.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <ui-plugins/PluginContainer.h>
@@ -77,12 +78,8 @@ static glm::mat4 computeOffset(glm::mat4 defaultToReferenceMat, glm::mat4 defaul
     return glm::inverse(poseMat) * referenceJointMat;
 }
 
-static bool sortPucksYPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) {
+static bool sortPucksYPosition(const PuckPosePair& firstPuck, const PuckPosePair& secondPuck) {
     return (firstPuck.second.translation.y < secondPuck.second.translation.y);
-}
-
-static bool sortPucksXPosition(PuckPosePair firstPuck, PuckPosePair secondPuck) {
-    return (firstPuck.second.translation.x < secondPuck.second.translation.x);
 }
 
 static bool determineLimbOrdering(const controller::Pose& poseA, const controller::Pose& poseB, glm::vec3 axis, glm::vec3 axisOrigin) {
@@ -133,6 +130,32 @@ static glm::mat4 calculateResetMat() {
     return glm::mat4();
 }
 
+static QString outOfRangeDataStrategyToString(ViveControllerManager::OutOfRangeDataStrategy strategy) {
+    switch (strategy) {
+    default:
+    case ViveControllerManager::OutOfRangeDataStrategy::None:
+        return "None";
+    case ViveControllerManager::OutOfRangeDataStrategy::Freeze:
+        return "Freeze";
+    case ViveControllerManager::OutOfRangeDataStrategy::Drop:
+        return "Drop";
+    case ViveControllerManager::OutOfRangeDataStrategy::DropAfterDelay:
+        return "DropAfterDelay";
+    }
+}
+
+static ViveControllerManager::OutOfRangeDataStrategy stringToOutOfRangeDataStrategy(const QString& string) {
+    if (string == "Drop") {
+        return ViveControllerManager::OutOfRangeDataStrategy::Drop;
+    } else if (string == "Freeze") {
+        return ViveControllerManager::OutOfRangeDataStrategy::Freeze;
+    } else if (string == "DropAfterDelay") {
+        return ViveControllerManager::OutOfRangeDataStrategy::DropAfterDelay;
+    } else {
+        return ViveControllerManager::OutOfRangeDataStrategy::None;
+    }
+}
+
 bool ViveControllerManager::isDesktopMode() {
     if (_container) {
         return !_container->getActiveDisplayPlugin()->isHmd();
@@ -162,9 +185,6 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
     if (isSupported()) {
         if (configurationSettings.contains("desktopMode")) {
             _desktopMode = configurationSettings["desktopMode"].toBool();
-            if (!_desktopMode) {
-                _resetMatCalculated = false;
-            }
         }
 
         if (configurationSettings.contains("hmdDesktopTracking")) {
@@ -249,13 +269,8 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 
     if (isDesktopMode() && _desktopMode) {
-        if (!_resetMatCalculated) {
-            _resetMat = calculateResetMat();
-            _resetMatCalculated = true;
-        }
-
         _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
-        _nextSimPoseData.update(_resetMat);
+        _nextSimPoseData.update(Matrices::IDENTITY);
     } else if (isDesktopMode()) {
         _nextSimPoseData.resetToInvalid();
     }
@@ -292,8 +307,10 @@ void ViveControllerManager::loadSettings() {
         if (_inputDevice) {
             const double DEFAULT_ARM_CIRCUMFERENCE = 0.33;
             const double DEFAULT_SHOULDER_WIDTH = 0.48;
+            const QString DEFAULT_OUT_OF_RANGE_STRATEGY = "DropAfterDelay";
             _inputDevice->_armCircumference = settings.value("armCircumference", QVariant(DEFAULT_ARM_CIRCUMFERENCE)).toDouble();
             _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
+            _inputDevice->_outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(settings.value("outOfRangeDataStrategy", QVariant(DEFAULT_OUT_OF_RANGE_STRATEGY)).toString());
         }
     }
     settings.endGroup();
@@ -307,6 +324,7 @@ void ViveControllerManager::saveSettings() const {
         if (_inputDevice) {
             settings.setValue(QString("armCircumference"), _inputDevice->_armCircumference);
             settings.setValue(QString("shoulderWidth"), _inputDevice->_shoulderWidth);
+            settings.setValue(QString("outOfRangeDataStrategy"), outOfRangeDataStrategyToString(_inputDevice->_outOfRangeDataStrategy));
         }
     }
     settings.endGroup();
@@ -450,6 +468,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 hmdDesktopTracking = iter.value().toBool();
             } else if (iter.key() == "desktopMode") {
                 hmdDesktopMode = iter.value().toBool();
+            } else if (iter.key() == "outOfRangeDataStrategy") {
+                _outOfRangeDataStrategy = stringToOutOfRangeDataStrategy(iter.value().toString());
             }
             iter++;
         }
@@ -472,6 +492,7 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
     configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
     configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
+    configurationSettings["outOfRangeDataStrategy"] = outOfRangeDataStrategyToString(_outOfRangeDataStrategy);
     return configurationSettings;
 }
 
@@ -488,6 +509,10 @@ void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     emit inputConfiguration->calibrationStatus(status);
 }
 
+static controller::Pose buildPose(const glm::mat4& mat, const glm::vec3& linearVelocity, const glm::vec3& angularVelocity) {
+    return controller::Pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
+}
+
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
     uint32_t poseIndex = controller::TRACKED_OBJECT_00 + deviceIndex;
     printDeviceTrackingResultChange(deviceIndex);
@@ -496,35 +521,65 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         _nextSimPoseData.vrPoses[deviceIndex].bPoseIsValid &&
         poseIndex <= controller::TRACKED_OBJECT_15) {
 
-        mat4& mat = mat4();
-        vec3 linearVelocity = vec3();
-        vec3 angularVelocity = vec3();
-        // check if the device is tracking out of range, then process the correct pose depending on the result.
-        if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult != vr::TrackingResult_Running_OutOfRange) {
-            mat = _nextSimPoseData.poses[deviceIndex];
-            linearVelocity = _nextSimPoseData.linearVelocities[deviceIndex];
-            angularVelocity = _nextSimPoseData.angularVelocities[deviceIndex];
-        } else {
-            mat = _lastSimPoseData.poses[deviceIndex];
-            linearVelocity = _lastSimPoseData.linearVelocities[deviceIndex];
-            angularVelocity = _lastSimPoseData.angularVelocities[deviceIndex];
+        uint64_t now = usecTimestampNow();
+        controller::Pose pose;
+        switch (_outOfRangeDataStrategy) {
+        case OutOfRangeDataStrategy::Drop:
+        default:
+            // Drop - Mark all non Running_OK results as invald
+            if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult == vr::TrackingResult_Running_OK) {
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            } else {
+                pose.valid = false;
+            }
+            break;
+        case OutOfRangeDataStrategy::None:
+            // None - Ignore eTrackingResult all together
+            pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            break;
+        case OutOfRangeDataStrategy::Freeze:
+            // Freeze - Dont invalide non Running_OK poses, instead just return the last good pose.
+            if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult == vr::TrackingResult_Running_OK) {
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            } else {
+                pose = buildPose(_lastSimPoseData.poses[deviceIndex], _lastSimPoseData.linearVelocities[deviceIndex], _lastSimPoseData.angularVelocities[deviceIndex]);
 
-            // make sure that we do not overwrite the pose in the _lastSimPose with incorrect data.
-            _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
-            _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
-            _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
+                // make sure that we do not overwrite the pose in the _lastSimPose with incorrect data.
+                _nextSimPoseData.poses[deviceIndex] = _lastSimPoseData.poses[deviceIndex];
+                _nextSimPoseData.linearVelocities[deviceIndex] = _lastSimPoseData.linearVelocities[deviceIndex];
+                _nextSimPoseData.angularVelocities[deviceIndex] = _lastSimPoseData.angularVelocities[deviceIndex];
+            }
+            break;
+        case OutOfRangeDataStrategy::DropAfterDelay:
+            const uint64_t DROP_DELAY_TIME = 500 * USECS_PER_MSEC;
 
+            // All Running_OK results are valid.
+            if (_nextSimPoseData.vrPoses[deviceIndex].eTrackingResult == vr::TrackingResult_Running_OK) {
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+                // update the timer
+                _simDataRunningOkTimestampMap[deviceIndex] = now;
+            } else if (now - _simDataRunningOkTimestampMap[deviceIndex] < DROP_DELAY_TIME) {
+                // report the pose, even though pose is out-of-range
+                pose = buildPose(_nextSimPoseData.poses[deviceIndex], _nextSimPoseData.linearVelocities[deviceIndex], _nextSimPoseData.angularVelocities[deviceIndex]);
+            } else {
+                // this pose has been out-of-range for too long.
+                pose.valid = false;
+            }
+            break;
         }
 
-        controller::Pose pose(extractTranslation(mat), glmExtractRotation(mat), linearVelocity, angularVelocity);
+        if (pose.valid) {
+            // transform into avatar frame
+            glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+            _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
 
-        // transform into avatar frame
-        glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-        _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
-
-        // but _validTrackedObjects remain in sensor frame
-        _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
-        _trackedControllers++;
+            // but _validTrackedObjects remain in sensor frame
+            _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
+            _trackedControllers++;
+        } else {
+            // insert invalid pose into state map
+            _poseStateMap[poseIndex] = pose;
+        }
     } else {
         controller::Pose invalidPose;
         _poseStateMap[poseIndex] = invalidPose;
@@ -568,6 +623,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         return;
     }
 
+    // Compute the defaultToRefrenceMat, this will take inputCalibration default poses into the reference frame. (sensor space)
     glm::mat4 defaultToReferenceMat = glm::mat4();
     if (_headConfig == HeadConfig::HMD) {
         defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
@@ -591,7 +647,17 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 }
 
 bool ViveControllerManager::InputDevice::configureHands(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
-    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksXPosition);
+
+    // Sort valid tracked objects in the default frame by the x dimension (left to right).
+    // Because the sort is in the default frame we guarentee that poses are relative to the head facing.
+    // i.e. -x will always be to the left of the head, and +x will be to the right.
+    // This allows the user to be facing in any direction in sensor space while calibrating.
+    glm::mat4 referenceToDefaultMat = glm::inverse(defaultToReferenceMat);
+    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), [&referenceToDefaultMat](const PuckPosePair& a, const PuckPosePair& b) {
+        glm::vec3 aPos = transformPoint(referenceToDefaultMat, a.second.translation);
+        glm::vec3 bPos = transformPoint(referenceToDefaultMat, b.second.translation);
+        return (aPos.x < bPos.x);
+    });
     int puckCount = (int)_validTrackedObjects.size();
     if (_handConfig == HandConfig::Pucks && puckCount >= MIN_PUCK_COUNT) {
         glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
@@ -848,7 +914,7 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHead
     glm::vec3 x = glm::normalize(glm::cross(Vectors::UNIT_Y, forward));
     glm::vec3 z = glm::normalize(glm::cross(x, Vectors::UNIT_Y));
     glm::mat3 centerEyeRotMat(x, Vectors::UNIT_Y, z);
-    glm::vec3 centerEyeTrans = headPuckPose.translation + centerEyeRotMat * glm::vec3(0.0f, _headPuckYOffset, _headPuckZOffset);
+    glm::vec3 centerEyeTrans = headPuckPose.translation + centerEyeRotMat * -glm::vec3(0.0f, _headPuckYOffset, _headPuckZOffset);
 
     glm::mat4 E_s(glm::vec4(centerEyeRotMat[0], 0.0f),
                   glm::vec4(centerEyeRotMat[1], 0.0f),
@@ -863,8 +929,8 @@ void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxi
     const float CENTER_DEADBAND = 0.6f;
     const float DIAGONAL_DIVIDE_IN_RADIANS = PI / 4.0f;
     if (_buttonPressedMap.find(sButton) != _buttonPressedMap.end()) {
-        float absX = abs(_axisStateMap[xAxis]);
-        float absY = abs(_axisStateMap[yAxis]);
+        float absX = abs(_axisStateMap[xAxis].value);
+        float absY = abs(_axisStateMap[yAxis].value);
         glm::vec2 cartesianQuadrantI(absX, absY);
         float angle = glm::atan(cartesianQuadrantI.y / cartesianQuadrantI.x);
         float radius = glm::length(cartesianQuadrantI);
@@ -891,10 +957,10 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         } else {
             stick = _filteredRightStick.process(deltaTime, stick);
         }
-        _axisStateMap[isLeftHand ? LX : RX] = stick.x;
-        _axisStateMap[isLeftHand ? LY : RY] = stick.y;
+        _axisStateMap[isLeftHand ? LX : RX].value = stick.x;
+        _axisStateMap[isLeftHand ? LY : RY].value = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
-        _axisStateMap[isLeftHand ? LT : RT] = x;
+        _axisStateMap[isLeftHand ? LT : RT].value = x;
         // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0,
         // so we can expose that as an additional button
         if (x >= 1.0f) {
@@ -935,7 +1001,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         if (button == vr::k_EButton_ApplicationMenu) {
             _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
         } else if (button == vr::k_EButton_Grip) {
-            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 1.0f;
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP].value = 1.0f;
         } else if (button == vr::k_EButton_SteamVR_Trigger) {
             _buttonPressedMap.insert(isLeftHand ? LT : RT);
         } else if (button == vr::k_EButton_SteamVR_Touchpad) {
@@ -943,7 +1009,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         }
     } else {
         if (button == vr::k_EButton_Grip) {
-            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP] = 0.0f;
+            _axisStateMap[isLeftHand ? LEFT_GRIP : RIGHT_GRIP].value = 0.0f;
         }
     }
 
@@ -959,7 +1025,16 @@ void ViveControllerManager::InputDevice::handleHeadPoseEvent(const controller::I
     //perform a 180 flip to make the HMD face the +z instead of -z, beacuse the head faces +z
     glm::mat4 matYFlip = mat * Matrices::Y_180;
     controller::Pose pose(extractTranslation(matYFlip), glmExtractRotation(matYFlip), linearVelocity, angularVelocity);
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+
+    glm::mat4 defaultHeadOffset;
+    if (inputCalibrationData.hmdAvatarAlignmentType == controller::HmdAvatarAlignmentType::Eyes) {
+        // align the eyes of the user with the eyes of the avatar
+        defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) * inputCalibrationData.defaultHeadMat;
+    } else {
+        // align the head of the user with the head of the avatar
+        defaultHeadOffset = createMatFromQuatAndPos(Quaternions::IDENTITY, -DEFAULT_AVATAR_HEAD_TO_MIDDLE_EYE_OFFSET);
+    }
+
     glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     _poseStateMap[controller::HEAD] = pose.postTransform(defaultHeadOffset).transform(sensorToAvatar);
 }
@@ -1012,7 +1087,7 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
         float hapticTime = strength * MAX_HAPTIC_TIME;
         if (hapticTime < duration * 1000.0f) {
             _system->TriggerHapticPulse(deviceIndex, 0, hapticTime);
-       }
+        }
 
         float remainingHapticTime = duration - (hapticTime / 1000.0f + deltaTime * 1000.0f); // in milliseconds
         if (leftHand) {
@@ -1025,64 +1100,54 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
 
 void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
-    glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
-    glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 avatarHandYAxis = transformVectorFast(inputCalibration.defaultLeftHand, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 handPoseZAxis = handPose.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 referenceHandYAxis = transformVectorFast(defaultToReferenceMat * inputCalibration.defaultLeftHand, glm::vec3(0.0f, 1.0f, 0.0f));
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
+    if (fabsf(fabsf(glm::dot(glm::normalize(referenceHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
+    // This allows the user to not have to match the t-pose exactly.  We assume that the y facing of the hand lies in the plane of the puck.
+    // Where the plane of the puck is defined by the the local z-axis of the puck, which is pointing out of the camera mount on the bottom of the puck.
     glm::vec3 zPrime = handPoseZAxis;
-    glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
+    glm::vec3 xPrime = glm::normalize(glm::cross(referenceHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
-
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-
-    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
-    glm::quat finalRotation = glmExtractRotation(newHandMat);
-
-    glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
-
-    glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
+    glm::quat initialRot = handPose.getRotation();
+    glm::quat postOffsetRot = glm::inverse(initialRot) * glmExtractRotation(newHandMat);
+    glm::vec3 postOffsetTrans = postOffsetRot * -glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
+    glm::mat4 postOffsetMat = createMatFromQuatAndPos(postOffsetRot, postOffsetTrans);
 
     _jointToPuckMap[controller::LEFT_HAND] = handPair.first;
-    _pucksPostOffset[handPair.first] = offsetMat;
+    _pucksPostOffset[handPair.first] = postOffsetMat;
 }
 
 void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
-    glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
-    glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 avatarHandYAxis = transformVectorFast(inputCalibration.defaultRightHand, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 handPoseZAxis = handPose.getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 referenceHandYAxis = transformVectorFast(defaultToReferenceMat * inputCalibration.defaultRightHand, glm::vec3(0.0f, 1.0f, 0.0f));
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
+    if (fabsf(fabsf(glm::dot(glm::normalize(referenceHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
 
+    // This allows the user to not have to match the t-pose exactly.  We assume that the y facing of the hand lies in the plane of the puck.
+    // Where the plane of the puck is defined by the the local z-axis of the puck, which is facing out of the vive logo/power button.
     glm::vec3 zPrime = handPoseZAxis;
-    glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
+    glm::vec3 xPrime = glm::normalize(glm::cross(referenceHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
 
-
-
-    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
-    glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
-    glm::quat finalRotation = glmExtractRotation(newHandMat);
-
-    glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
-
-    glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
+    glm::quat initialRot = handPose.getRotation();
+    glm::quat postOffsetRot = glm::inverse(initialRot) * glmExtractRotation(newHandMat);
+    glm::vec3 postOffsetTrans = postOffsetRot * -glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
+    glm::mat4 postOffsetMat = createMatFromQuatAndPos(postOffsetRot, postOffsetTrans);
 
     _jointToPuckMap[controller::RIGHT_HAND] = handPair.first;
-    _pucksPostOffset[handPair.first] = offsetMat;
+    _pucksPostOffset[handPair.first] = postOffsetMat;
 }
 
 
@@ -1105,15 +1170,18 @@ void ViveControllerManager::InputDevice::calibrateFeet(const glm::mat4& defaultT
 
 void ViveControllerManager::InputDevice::calibrateFoot(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
     controller::Pose footPose = footPair.second;
-    glm::mat4 puckPoseAvatarMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
+    glm::mat4 puckPoseMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
     glm::mat4 defaultFoot = isLeftFoot ? inputCalibration.defaultLeftFoot : inputCalibration.defaultRightFoot;
     glm::mat4 footOffset = computeOffset(defaultToReferenceMat, defaultFoot, footPose);
-
     glm::quat rotationOffset = glmExtractRotation(footOffset);
     glm::vec3 translationOffset = extractTranslation(footOffset);
-    glm::vec3 avatarXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseAvatarMat), glm::vec3(-1.0f, 0.0f, 0.0f)));
-    float distance = glm::dot(translationOffset, avatarXAxisInPuckFrame);
-    glm::vec3 finalTranslation =  translationOffset - (distance * avatarXAxisInPuckFrame);
+
+    glm::vec3 localXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseMat) * defaultToReferenceMat, glm::vec3(-1.0f, 0.0f, 0.0f)));
+    float distance = glm::dot(translationOffset, localXAxisInPuckFrame);
+
+    // We ensure the offset vector lies in the sagittal plane of the avatar.
+    // This helps prevent wide or narrow stances due to the user not matching the t-pose perfectly.
+    glm::vec3 finalTranslation =  translationOffset - (distance * localXAxisInPuckFrame);
     glm::mat4 finalOffset = createMatFromQuatAndPos(rotationOffset, finalTranslation);
 
     if (isLeftFoot) {

@@ -11,8 +11,8 @@
 import QtQuick 2.5
 
 import "."
-import "../controls-uit"
-import "../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 
 Frame {
     HifiConstants { id: hifi }
@@ -94,5 +94,25 @@ Frame {
                 color: hifi.colors.lightGray
             }
         }
+
+
+        GlyphButton {
+             id: closeButton
+             visible: window.closeButtonVisible
+             width: 30
+             y: -hifi.dimensions.modalDialogTitleHeight
+             anchors {
+                 top: parent.top
+                 right: parent.right
+                 topMargin: 10
+                 rightMargin: 10
+             }
+             glyph: hifi.glyphs.close
+             size: 23
+             onClicked: {
+                 window.clickedCloseButton = true;
+                 window.destroy();
+             }
+         }
     }
 }

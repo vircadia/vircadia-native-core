@@ -15,10 +15,12 @@
 #include <QtQml/QQmlEngine>
 
 #include <QtGui/QOpenGLContext>
+#include <QPointer>
 
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>
 #include <gl/QOpenGLContextWrapper.h>
+#include <gl/GLHelpers.h>
 
 #include "../OffscreenSurface.h"
 #include "../Logging.h"
@@ -67,6 +69,7 @@ SharedObject::SharedObject() {
     //       so we wait until after its ctor to move object/context to this thread.
     QQuickWindow::setDefaultAlphaBuffer(true);
     _quickWindow = new QQuickWindow(_renderControl);
+    _quickWindow->setFormat(getDefaultOpenGLSurfaceFormat());
     _quickWindow->setColor(QColor(255, 255, 255, 0));
     _quickWindow->setClearBeforeRendering(true);
 
@@ -93,6 +96,15 @@ SharedObject::~SharedObject() {
         _renderControl = nullptr;
     }
 #endif
+
+    // already deleted objects will be reset to null by QPointer so it should be safe just iterate here
+    for (auto qmlObject : _deletionList) {
+        if (qmlObject) {
+            // manually delete not-deleted-yet qml items
+            QQmlEngine::setObjectOwnership(qmlObject, QQmlEngine::CppOwnership);
+            delete qmlObject;
+        }
+    }
 
     if (_rootItem) {
         delete _rootItem;
@@ -410,6 +422,11 @@ bool SharedObject::fetchTexture(TextureAndFence& textureAndFence) {
     return true;
 }
 
+void hifi::qml::impl::SharedObject::addToDeletionList(QObject * object)
+{
+    _deletionList.append(QPointer<QObject>(object));
+}
+
 void SharedObject::setProxyWindow(QWindow* window) {
 #ifndef DISABLE_QML
     _proxyWindow = window;
@@ -483,6 +500,9 @@ void SharedObject::onTimer() {
     }
 
     {
+        if (_maxFps == 0) {
+            return;
+        }
         auto minRenderInterval = USECS_PER_SECOND / _maxFps;
         auto lastInterval = usecTimestampNow() - _lastRenderTime;
         // Don't exceed the framerate limit

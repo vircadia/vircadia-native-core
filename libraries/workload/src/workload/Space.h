@@ -70,7 +70,8 @@ private:
 using SpacePointer = std::shared_ptr<Space>;
 using Changes = std::vector<Space::Change>;
 using IndexVectors = std::vector<IndexVector>;
-using Timings = std::vector<std::chrono::nanoseconds>;
+using Timing_ns = std::chrono::nanoseconds;
+using Timings = std::vector<Timing_ns>;
 
 } // namespace workload
 

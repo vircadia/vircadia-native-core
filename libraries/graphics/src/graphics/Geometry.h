@@ -59,6 +59,9 @@ public:
     void removeAttribute(Slot slot);
     const BufferView getAttributeBuffer(int attrib) const;
 
+    // Force vertex stream and Vertex format
+    void setVertexFormatAndStream(const gpu::Stream::FormatPointer& vf, const gpu::BufferStreamPointer& vbs);
+
     // Stream format
     const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
 

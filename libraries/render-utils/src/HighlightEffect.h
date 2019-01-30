@@ -19,9 +19,9 @@
 #include "DeferredFramebuffer.h"
 #include "DeferredFrameTransform.h"
 
-class HighlightRessources {
+class HighlightResources {
 public:
-    HighlightRessources();
+    HighlightResources();
 
     gpu::FramebufferPointer getDepthFramebuffer();
     gpu::TexturePointer getDepthTexture();
@@ -44,7 +44,7 @@ protected:
     void allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer);
 };
 
-using HighlightRessourcesPointer = std::shared_ptr<HighlightRessources>;
+using HighlightResourcesPointer = std::shared_ptr<HighlightResources>;
 
 class HighlightSharedParameters {
 public:
@@ -65,7 +65,7 @@ using HighlightSharedParametersPointer = std::shared_ptr<HighlightSharedParamete
 class PrepareDrawHighlight {
 public:
     using Inputs = gpu::FramebufferPointer;
-    using Outputs = HighlightRessourcesPointer;
+    using Outputs = HighlightResourcesPointer;
     using JobModel = render::Job::ModelIO<PrepareDrawHighlight, Inputs, Outputs>;
 
     PrepareDrawHighlight();
@@ -74,7 +74,7 @@ public:
 
 private:
 
-    HighlightRessourcesPointer _ressources;
+    HighlightResourcesPointer _resources;
 
 };
 
@@ -112,8 +112,7 @@ private:
 
 class DrawHighlightMask {
 public:
-
-    using Inputs = render::VaryingSet3<render::ShapeBounds, HighlightRessourcesPointer, glm::vec2>;
+    using Inputs = render::VaryingSet3<render::ShapeBounds, HighlightResourcesPointer, glm::vec2>;
     using Outputs = glm::ivec4;
     using JobModel = render::Job::ModelIO<DrawHighlightMask, Inputs, Outputs>;
 
@@ -122,7 +121,6 @@ public:
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs);
 
 protected:
-
     unsigned int _highlightPassIndex;
     render::ShapePlumberPointer _shapePlumber;
     HighlightSharedParametersPointer _sharedParameters;
@@ -136,7 +134,7 @@ protected:
 class DrawHighlight {
 public:
 
-    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, HighlightRessourcesPointer, DeferredFramebufferPointer, glm::ivec4, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet5<DeferredFrameTransformPointer, HighlightResourcesPointer, DeferredFramebufferPointer, glm::ivec4, gpu::FramebufferPointer>;
     using Config = render::Job::Config;
     using JobModel = render::Job::ModelI<DrawHighlight, Inputs, Config>;
 
@@ -163,11 +161,10 @@ private:
 
 class DebugHighlightConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(bool viewMask MEMBER viewMask NOTIFY dirty)
+    Q_PROPERTY(bool viewMask MEMBER viewMask NOTIFY dirty)
 
 public:
-
-    bool viewMask{ false };
+    bool viewMask { false };
 
 signals:
     void dirty();
@@ -175,7 +172,7 @@ signals:
 
 class DebugHighlight {
 public:
-    using Inputs = render::VaryingSet4<HighlightRessourcesPointer, glm::ivec4, glm::vec2, gpu::FramebufferPointer>;
+    using Inputs = render::VaryingSet4<HighlightResourcesPointer, glm::ivec4, glm::vec2, gpu::FramebufferPointer>;
     using Config = DebugHighlightConfig;
     using JobModel = render::Job::ModelI<DebugHighlight, Inputs, Config>;
 
@@ -208,8 +205,6 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
 private:
-
-    static void initMaskPipelines(render::ShapePlumber& plumber, gpu::StatePointer state);
     static const render::Varying addSelectItemJobs(JobModel& task, const render::Varying& selectionName, const RenderFetchCullSortTask::BucketList& items);
 
 };

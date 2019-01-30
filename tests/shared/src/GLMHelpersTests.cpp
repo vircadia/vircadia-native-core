@@ -214,3 +214,39 @@ void GLMHelpersTests::testGenerateBasisVectors() {
         QCOMPARE_WITH_ABS_ERROR(w, z, EPSILON);
     }
 }
+
+void GLMHelpersTests::roundPerf() {
+    const int NUM_VECS = 1000000;
+    const float MAX_VEC = 500.0f;
+    std::vector<glm::vec3> vecs;
+    vecs.reserve(NUM_VECS);
+    for (int i = 0; i < NUM_VECS; i++) {
+        vecs.emplace_back(randFloatInRange(-MAX_VEC, MAX_VEC), randFloatInRange(-MAX_VEC, MAX_VEC), randFloatInRange(-MAX_VEC, MAX_VEC));
+    }
+    std::vector<glm::vec3> vecs2 = vecs;
+    std::vector<glm::vec3> originalVecs = vecs;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    for (auto& vec : vecs) {
+        vec = glm::round(vec);
+    }
+
+    auto glmTime = std::chrono::high_resolution_clock::now() - start;
+    start = std::chrono::high_resolution_clock::now();
+    for (auto& vec : vecs2) {
+        vec = glm::vec3(fastLrintf(vec.x), fastLrintf(vec.y), fastLrintf(vec.z));
+    }
+    auto manualTime = std::chrono::high_resolution_clock::now() - start;
+
+    bool identical = true;
+    for (int i = 0; i < vecs.size(); i++) {
+        identical &= vecs[i] == vecs2[i];
+        if (vecs[i] != vecs2[i]) {
+            qDebug() << "glm: " << vecs[i].x << vecs[i].y << vecs[i].z << ", manual: " << vecs2[i].x << vecs2[i].y << vecs2[i].z;
+            qDebug() << "original: " << originalVecs[i].x << originalVecs[i].y << originalVecs[i].z;
+            break;
+        }
+    }
+
+    qDebug() << "ratio: " << (float)glmTime.count() / (float)manualTime.count() << ", identical: " << identical;
+}

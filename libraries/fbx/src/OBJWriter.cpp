@@ -15,7 +15,7 @@
 #include <QFileInfo>
 #include <graphics/BufferViewHelpers.h>
 #include <graphics/Geometry.h>
-#include "ModelFormatLogging.h"
+#include <hfm/ModelFormatLogging.h>
 
 static QString formatFloat(double n) {
     // limit precision to 6, but don't output trailing zeros.

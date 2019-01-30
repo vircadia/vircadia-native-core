@@ -35,7 +35,16 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     const auto frameTransform = inputs.get0();
     const auto inputFrameBuffer = inputs.get1();
-    const auto bloom = inputs.get2();
+    const auto bloomFrame = inputs.get2();
+    const auto& bloomStage = renderContext->_scene->getStage<BloomStage>();
+    graphics::BloomPointer bloom;
+    if (bloomStage && bloomFrame->_blooms.size()) {
+        bloom = bloomStage->getBloom(bloomFrame->_blooms.front());
+    }
+    if (!bloom) {
+        renderContext->taskFlow.abortTask();
+        return;
+    }
 
     assert(inputFrameBuffer->hasColor());
 
@@ -65,11 +74,6 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     glm::ivec4 viewport{ 0, 0, bufferSize.x, bufferSize.y };
 
-    if (!bloom) {
-        renderContext->taskFlow.abortTask();
-        return;
-    }
-
     _parameters.edit()._threshold = bloom->getBloomThreshold();
 
     gpu::doInBatch("BloomThreshold::run", args->_context, [&](gpu::Batch& batch) {
@@ -89,6 +93,7 @@ void BloomThreshold::run(const render::RenderContextPointer& renderContext, cons
 
     outputs.edit0() = _outputBuffer;
     outputs.edit1() = 0.5f + bloom->getBloomSize() * 3.5f;
+    outputs.edit2() = bloom;
 }
 
 BloomApply::BloomApply() {
@@ -184,6 +189,7 @@ void BloomDraw::run(const render::RenderContextPointer& renderContext, const Inp
 }
 
 DebugBloom::DebugBloom() {
+    _params = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), nullptr);
 }
 
 void DebugBloom::configure(const Config& config) {
@@ -227,7 +233,8 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 
         Transform modelTransform;
         if (_mode == DebugBloomConfig::MODE_ALL_LEVELS) {
-            batch._glUniform4f(gpu::slot::uniform::TexCoordRect, 0.0f, 0.0f, 1.f, 1.f);
+            _params->setSubData(0, vec4(0.0f, 0.0f, 1.f, 1.f));
+            batch.setUniformBuffer(0, _params);
 
             modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport / 2);
             modelTransform.postTranslate(glm::vec3(-1.0f, 1.0f, 0.0f));
@@ -255,7 +262,8 @@ void DebugBloom::run(const render::RenderContextPointer& renderContext, const In
 
             viewport.z /= 2;
 
-            batch._glUniform4f(gpu::slot::uniform::TexCoordRect, 0.5f, 0.0f, 0.5f, 1.f);
+            _params->setSubData(0, vec4(0.5f, 0.0f, 0.5f, 1.f));
+            batch.setUniformBuffer(0, _params);
 
             modelTransform = gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, viewport);
             modelTransform.postTranslate(glm::vec3(-1.0f, 0.0f, 0.0f));
@@ -274,7 +282,7 @@ void BloomEffect::configure(const Config& config) {
     for (auto i = 0; i < BLOOM_BLUR_LEVEL_COUNT; i++) {
         blurName.back() = '0' + i;
         auto blurConfig = config.getConfig<render::BlurGaussian>(blurName);
-        blurConfig->setProperty("filterScale", 1.0f);
+        blurConfig->filterScale = 1.0f;
     }
 }
 
@@ -293,9 +301,9 @@ void BloomEffect::build(JobModel& task, const render::Varying& inputs, render::V
     const auto blurFB2 = task.addJob<render::BlurGaussian>("BloomBlur2", blurInput2);
 
     const auto& frameBuffer = inputs.getN<Inputs>(1);
-    const auto& bloom = inputs.getN<Inputs>(2);
 
     // Mix all blur levels at quarter resolution
+    const auto bloom = bloomOutputs.getN<BloomThreshold::Outputs>(2);
     const auto applyInput = BloomApply::Inputs(blurInputBuffer, blurFB0, blurFB1, blurFB2, bloom).asVarying();
     task.addJob<BloomApply>("BloomApply", applyInput);
     // And then blend result in additive manner on top of final color buffer

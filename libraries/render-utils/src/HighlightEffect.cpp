@@ -22,13 +22,14 @@
 #include "GeometryCache.h"
 #include "CubeProjectedPolygon.h"
 
+#include "FadeEffect.h"
+
 #include "render-utils/ShaderConstants.h"
 
 using namespace render;
 namespace ru {
     using render_utils::slot::texture::Texture;
     using render_utils::slot::buffer::Buffer;
-    using render_utils::slot::uniform::Uniform;
 }
 
 namespace gr {
@@ -38,10 +39,12 @@ namespace gr {
 
 #define OUTLINE_STENCIL_MASK    1
 
-HighlightRessources::HighlightRessources() {
+extern void initZPassPipelines(ShapePlumber& plumber, gpu::StatePointer state, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
+
+HighlightResources::HighlightResources() {
 }
 
-void HighlightRessources::update(const gpu::FramebufferPointer& primaryFrameBuffer) {
+void HighlightResources::update(const gpu::FramebufferPointer& primaryFrameBuffer) {
     auto newFrameSize = glm::ivec2(primaryFrameBuffer->getSize());
 
     // If the buffer size changed, we need to delete our FBOs and recreate them at the
@@ -57,32 +60,37 @@ void HighlightRessources::update(const gpu::FramebufferPointer& primaryFrameBuff
         if (!_colorFrameBuffer) {
             allocateColorBuffer(primaryFrameBuffer);
         }
+
+        // The primaryFrameBuffer render buffer can change
+        if (_colorFrameBuffer->getRenderBuffer(0) != primaryFrameBuffer->getRenderBuffer(0)) {
+            _colorFrameBuffer->setRenderBuffer(0, primaryFrameBuffer->getRenderBuffer(0));
+        }
     }
 }
 
-void HighlightRessources::allocateColorBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
+void HighlightResources::allocateColorBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
     _colorFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithStencil"));
     _colorFrameBuffer->setRenderBuffer(0, primaryFrameBuffer->getRenderBuffer(0));
     _colorFrameBuffer->setStencilBuffer(_depthStencilTexture, _depthStencilTexture->getTexelFormat());
 }
 
-void HighlightRessources::allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
+void HighlightResources::allocateDepthBuffer(const gpu::FramebufferPointer& primaryFrameBuffer) {
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);
     _depthStencilTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(depthFormat, _frameSize.x, _frameSize.y));
     _depthFrameBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("highlightDepth"));
     _depthFrameBuffer->setDepthStencilBuffer(_depthStencilTexture, depthFormat);
 }
 
-gpu::FramebufferPointer HighlightRessources::getDepthFramebuffer() {
+gpu::FramebufferPointer HighlightResources::getDepthFramebuffer() {
     assert(_depthFrameBuffer);
     return _depthFrameBuffer;
 }
 
-gpu::TexturePointer HighlightRessources::getDepthTexture() {
+gpu::TexturePointer HighlightResources::getDepthTexture() {
     return _depthStencilTexture;
 }
 
-gpu::FramebufferPointer HighlightRessources::getColorFramebuffer() {
+gpu::FramebufferPointer HighlightResources::getColorFramebuffer() {
     assert(_colorFrameBuffer);
     return _colorFrameBuffer;
 }
@@ -96,25 +104,21 @@ float HighlightSharedParameters::getBlurPixelWidth(const render::HighlightStyle&
 }
 
 PrepareDrawHighlight::PrepareDrawHighlight() {
-    _ressources = std::make_shared<HighlightRessources>();
+    _resources = std::make_shared<HighlightResources>();
 }
 
 void PrepareDrawHighlight::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     auto destinationFrameBuffer = inputs;
 
-    _ressources->update(destinationFrameBuffer);
-    outputs = _ressources;
+    _resources->update(destinationFrameBuffer);
+    outputs = _resources;
 }
 
 gpu::PipelinePointer DrawHighlightMask::_stencilMaskPipeline;
 gpu::PipelinePointer DrawHighlightMask::_stencilMaskFillPipeline;
 
-DrawHighlightMask::DrawHighlightMask(unsigned int highlightIndex, 
-                                 render::ShapePlumberPointer shapePlumber, HighlightSharedParametersPointer parameters) :
-    _highlightPassIndex{ highlightIndex },
-    _shapePlumber { shapePlumber },
-    _sharedParameters{ parameters } {
-}
+DrawHighlightMask::DrawHighlightMask(unsigned int highlightIndex, render::ShapePlumberPointer shapePlumber,
+    HighlightSharedParametersPointer parameters) : _highlightPassIndex(highlightIndex), _shapePlumber(shapePlumber), _sharedParameters(parameters) {}
 
 void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
     assert(renderContext->args);
@@ -125,13 +129,13 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
     const int PARAMETERS_SLOT = 0;
 
     if (!_stencilMaskPipeline || !_stencilMaskFillPipeline) {
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO, gpu::State::STENCIL_OP_REPLACE));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
         state->setColorWriteMask(false, false, false, false);
         state->setCullMode(gpu::State::CULL_FRONT);
 
-        gpu::StatePointer fillState = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer fillState = std::make_shared<gpu::State>();
         fillState->setDepthTest(false, false, gpu::LESS_EQUAL);
         fillState->setStencilTest(true, 0xFF, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
         fillState->setColorWriteMask(false, false, false, false);
@@ -150,11 +154,10 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
     auto highlightId = _sharedParameters->_highlightIds[_highlightPassIndex];
 
     if (!inShapes.empty() && !render::HighlightStage::isIndexInvalid(highlightId)) {
-        auto ressources = inputs.get1();
+        auto resources = inputs.get1();
         auto& highlight = highlightStage->getHighlight(highlightId);
 
         RenderArgs* args = renderContext->args;
-        ShapeKey::Builder defaultKeyBuilder;
 
         // Render full screen
         outputs = args->_viewport;
@@ -164,49 +167,76 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         // while stereo is enabled triggers a warning
         gpu::doInBatch("DrawHighlightMask::run::begin", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
-            batch.setFramebuffer(ressources->getDepthFramebuffer());
+            batch.setFramebuffer(resources->getDepthFramebuffer());
             batch.clearDepthStencilFramebuffer(1.0f, 0);
         });
 
-        glm::mat4 projMat;
-        Transform viewMat;
         const auto jitter = inputs.get2();
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
 
         render::ItemBounds itemBounds;
 
         gpu::doInBatch("DrawHighlightMask::run", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
 
-            auto maskPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
-            auto maskSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-
             // Setup camera, projection and viewport for all items
+            glm::mat4 projMat;
+            Transform viewMat;
+            args->getViewFrustum().evalProjectionMatrix(projMat);
+            args->getViewFrustum().evalViewTransform(viewMat);
             batch.setViewportTransform(args->_viewport);
             batch.setProjectionTransform(projMat);
             batch.setProjectionJitter(jitter.x, jitter.y);
             batch.setViewTransform(viewMat);
 
-            std::vector<ShapeKey> skinnedShapeKeys{};
+            const std::vector<ShapeKey::Builder> keys = {
+                ShapeKey::Builder(), ShapeKey::Builder().withFade(),
+                ShapeKey::Builder().withDeformed(), ShapeKey::Builder().withDeformed().withFade(),
+                ShapeKey::Builder().withDeformed().withDualQuatSkinned(), ShapeKey::Builder().withDeformed().withDualQuatSkinned().withFade(),
+                ShapeKey::Builder().withOwnPipeline(), ShapeKey::Builder().withOwnPipeline().withFade()
+            };
+            std::vector<std::vector<ShapeKey>> sortedShapeKeys(keys.size());
 
-            // Iterate through all inShapes and render the unskinned
-            args->_shapePipeline = maskPipeline;
-            batch.setPipeline(maskPipeline->pipeline);
+            const int OWN_PIPELINE_INDEX = 6;
             for (const auto& items : inShapes) {
                 itemBounds.insert(itemBounds.end(), items.second.begin(), items.second.end());
-                if (items.first.isSkinned()) {
-                    skinnedShapeKeys.push_back(items.first);
-                } else {
-                    renderItems(renderContext, items.second);
+
+                int index = items.first.hasOwnPipeline() ? OWN_PIPELINE_INDEX : 0;
+                if (items.first.isDeformed()) {
+                    index += 2;
+                    if (items.first.isDualQuatSkinned()) {
+                        index += 2;
+                    }
+                }
+
+                if (items.first.isFaded()) {
+                    index += 1;
+                }
+
+                sortedShapeKeys[index].push_back(items.first);
+            }
+
+            // Render non-withOwnPipeline things
+            for (size_t i = 0; i < OWN_PIPELINE_INDEX; i++) {
+                auto& shapeKeys = sortedShapeKeys[i];
+                if (shapeKeys.size() > 0) {
+                    const auto& shapePipeline = _shapePlumber->pickPipeline(args, keys[i]);
+                    args->_shapePipeline = shapePipeline;
+                    for (const auto& key : shapeKeys) {
+                        renderShapes(renderContext, _shapePlumber, inShapes.at(key));
+                    }
                 }
             }
 
-            // Reiterate to render the skinned
-            args->_shapePipeline = maskSkinnedPipeline;
-            batch.setPipeline(maskSkinnedPipeline->pipeline);
-            for (const auto& key : skinnedShapeKeys) {
-                renderItems(renderContext, inShapes.at(key));
+            // Render withOwnPipeline things
+            for (size_t i = OWN_PIPELINE_INDEX; i < keys.size(); i++) {
+                auto& shapeKeys = sortedShapeKeys[i];
+                if (shapeKeys.size() > 0) {
+                    args->_shapePipeline = nullptr;
+                    for (const auto& key : shapeKeys) {
+                        args->_itemShapeKey = key._flags.to_ulong();
+                        renderShapes(renderContext, _shapePlumber, inShapes.at(key));
+                    }
+                }
             }
 
             args->_shapePipeline = nullptr;
@@ -217,7 +247,7 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
 
         const auto securityMargin = 2.0f;
         const float blurPixelWidth = 2.0f * securityMargin * HighlightSharedParameters::getBlurPixelWidth(highlight._style, args->_viewport.w);
-        const auto framebufferSize = ressources->getSourceFrameSize();
+        const auto framebufferSize = resources->getSourceFrameSize();
         const glm::vec2 highlightWidth = { blurPixelWidth / framebufferSize.x, blurPixelWidth / framebufferSize.y };
 
         if (highlightWidth != _outlineWidth.get()) {
@@ -225,11 +255,6 @@ void DrawHighlightMask::run(const render::RenderContextPointer& renderContext, c
         }
 
         gpu::doInBatch("DrawHighlightMask::run::end", args->_context, [&](gpu::Batch& batch) {
-            // Setup camera, projection and viewport for all items
-            batch.setViewportTransform(args->_viewport);
-            batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewMat);
-
             // Draw stencil mask with object bounding boxes
             auto stencilPipeline = highlight._style.isFilled() ? _stencilMaskFillPipeline : _stencilMaskPipeline;
             batch.setPipeline(stencilPipeline);
@@ -248,15 +273,14 @@ gpu::PipelinePointer DrawHighlight::_pipeline;
 gpu::PipelinePointer DrawHighlight::_pipelineFilled;
 
 DrawHighlight::DrawHighlight(unsigned int highlightIndex, HighlightSharedParametersPointer parameters) :
-    _highlightPassIndex{ highlightIndex },
-    _sharedParameters{ parameters } {
+    _highlightPassIndex(highlightIndex), _sharedParameters(parameters) {
 }
 
 void DrawHighlight::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     auto highlightFrameBuffer = inputs.get1();
     auto highlightRect = inputs.get3();
 
-    if (highlightFrameBuffer && highlightRect.z>0 && highlightRect.w>0) {
+    if (highlightFrameBuffer && highlightRect.z > 0 && highlightRect.w > 0) {
         auto sceneDepthBuffer = inputs.get2();
         const auto frameTransform = inputs.get0();
         auto highlightedDepthTexture = highlightFrameBuffer->getDepthTexture();
@@ -318,10 +342,11 @@ void DrawHighlight::run(const render::RenderContextPointer& renderContext, const
 
 const gpu::PipelinePointer& DrawHighlight::getPipeline(const render::HighlightStyle& style) {
     if (!_pipeline) {
-        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        gpu::StatePointer state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(false, false));
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
+        state->setColorWriteMask(true, true, true, true);
 
         auto program = gpu::Shader::createProgram(shader::render_utils::program::highlight);
         _pipeline = gpu::Pipeline::create(program, state);
@@ -348,10 +373,10 @@ void DebugHighlight::configure(const Config& config) {
 }
 
 void DebugHighlight::run(const render::RenderContextPointer& renderContext, const Inputs& input) {
-    const auto highlightRessources = input.get0();
+    const auto highlightResources = input.get0();
     const auto highlightRect = input.get1();
 
-    if (_isDisplayEnabled && highlightRessources && highlightRect.z>0 && highlightRect.w>0) {
+    if (_isDisplayEnabled && highlightResources && highlightRect.z > 0 && highlightRect.w > 0) {
         assert(renderContext->args);
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
@@ -360,7 +385,7 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
         auto primaryFramebuffer = input.get3();
         gpu::doInBatch("DebugHighlight::run", args->_context, [&](gpu::Batch& batch) {
             batch.setViewportTransform(args->_viewport);
-            batch.setFramebuffer(highlightRessources->getColorFramebuffer());
+            batch.setFramebuffer(highlightResources->getColorFramebuffer());
 
             const auto geometryBuffer = DependencyManager::get<GeometryCache>();
 
@@ -370,13 +395,13 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
             args->getViewFrustum().evalViewTransform(viewMat);
             batch.setProjectionTransform(projMat);
             batch.setProjectionJitter(jitter.x, jitter.y);
-            batch.setViewTransform(viewMat, true);
+            batch.setViewTransform(viewMat);
             batch.setModelTransform(Transform());
 
             const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
 
             batch.setPipeline(getDepthPipeline());
-            batch.setResourceTexture(0, highlightRessources->getDepthTexture());
+            batch.setResourceTexture(0, highlightResources->getDepthTexture());
             const glm::vec2 bottomLeft(-1.0f, -1.0f);
             const glm::vec2 topRight(1.0f, 1.0f);
             geometryBuffer->renderQuad(batch, bottomLeft, topRight, color, _geometryDepthId);
@@ -390,35 +415,31 @@ void DebugHighlight::run(const render::RenderContextPointer& renderContext, cons
 }
 
 void DebugHighlight::initializePipelines() {
-    static const auto FRAGMENT_SHADER_SOURCE = gpu::Shader::createPixel(shader::render_utils::fragment::debug_deferred_buffer)->getSource();
-    static const std::string SOURCE_PLACEHOLDER{ "//SOURCE_PLACEHOLDER" };
-    static const auto SOURCE_PLACEHOLDER_INDEX = FRAGMENT_SHADER_SOURCE.getCode().find(SOURCE_PLACEHOLDER);
-    Q_ASSERT_X(SOURCE_PLACEHOLDER_INDEX != std::string::npos, Q_FUNC_INFO,
-               "Could not find source placeholder");
-
-    auto state = std::make_shared<gpu::State>();
-    state->setDepthTest(gpu::State::DepthTest(false, false));
-    state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
-
-    const auto vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
-
+    static const std::string REPLACEMENT_MARKER{ "//SOURCE_PLACEHOLDER" };
     // Depth shader
-    {
-        static const std::string DEPTH_SHADER{ R"SHADER(
+    static const std::string DEPTH_SHADER{ R"SHADER(
             vec4 getFragmentColor() {
                float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
                Zdb = 1.0-(1.0-Zdb)*100;
                return vec4(Zdb, Zdb, Zdb, 1.0); 
             }
         )SHADER" };
+    static const auto& vs = gpu::Shader::createVertex(shader::render_utils::vertex::debug_deferred_buffer);
 
-        auto fragmentShader = FRAGMENT_SHADER_SOURCE.getCode();
-        fragmentShader.replace(SOURCE_PLACEHOLDER_INDEX, SOURCE_PLACEHOLDER.size(), DEPTH_SHADER);
 
-        const auto ps = gpu::Shader::createPixel({ fragmentShader, FRAGMENT_SHADER_SOURCE.getReflection() });
-        const auto program = gpu::Shader::createProgram(vs, ps);
-        _depthPipeline = gpu::Pipeline::create(program, state);
-    }
+    gpu::Shader::Source fragmentSource;
+    fragmentSource = gpu::Shader::Source::get(shader::render_utils::fragment::debug_deferred_buffer);
+    fragmentSource.replacements[REPLACEMENT_MARKER] = DEPTH_SHADER;
+
+    const auto ps = gpu::Shader::createPixel(fragmentSource);
+    const auto program = gpu::Shader::createProgram(vs, ps);
+
+    auto state = std::make_shared<gpu::State>();
+    state->setDepthTest(gpu::State::DepthTest(false, false));
+    state->setStencilTest(true, 0, gpu::State::StencilTest(OUTLINE_STENCIL_MASK, 0xFF, gpu::EQUAL));
+    state->setColorWriteMask(true, true, true, true);
+
+    _depthPipeline = gpu::Pipeline::create(program, state);
 }
 
 const gpu::PipelinePointer& DebugHighlight::getDepthPipeline() {
@@ -489,14 +510,16 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         state->setColorWriteMask(false, false, false, false);
 
-        initMaskPipelines(*shapePlumber, state);
+
+        auto fadeEffect = DependencyManager::get<FadeEffect>();
+        initZPassPipelines(*shapePlumber, state, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     }
     auto sharedParameters = std::make_shared<HighlightSharedParameters>();
 
     const auto highlightSelectionNames = task.addJob<SelectionToHighlight>("SelectionToHighlight", sharedParameters);
 
     // Prepare for highlight group rendering.
-    const auto highlightRessources = task.addJob<PrepareDrawHighlight>("PrepareHighlight", primaryFramebuffer);
+    const auto highlightResources = task.addJob<PrepareDrawHighlight>("PrepareHighlight", primaryFramebuffer);
     render::Varying highlight0Rect;
 
     for (auto i = 0; i < HighlightSharedParameters::MAX_PASS_COUNT; i++) {
@@ -516,7 +539,7 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
             stream << "HighlightMask" << i;
             name = stream.str();
         }
-        const auto drawMaskInputs = DrawHighlightMask::Inputs(sortedBounds, highlightRessources, jitter).asVarying();
+        const auto drawMaskInputs = DrawHighlightMask::Inputs(sortedBounds, highlightResources, jitter).asVarying();
         const auto highlightedRect = task.addJob<DrawHighlightMask>(name, drawMaskInputs, i, shapePlumber, sharedParameters);
         if (i == 0) {
             highlight0Rect = highlightedRect;
@@ -528,12 +551,12 @@ void DrawHighlightTask::build(JobModel& task, const render::Varying& inputs, ren
             stream << "HighlightEffect" << i;
             name = stream.str();
         }
-        const auto drawHighlightInputs = DrawHighlight::Inputs(deferredFrameTransform, highlightRessources, sceneFrameBuffer, highlightedRect, primaryFramebuffer).asVarying();
+        const auto drawHighlightInputs = DrawHighlight::Inputs(deferredFrameTransform, highlightResources, sceneFrameBuffer, highlightedRect, primaryFramebuffer).asVarying();
         task.addJob<DrawHighlight>(name, drawHighlightInputs, i, sharedParameters);
     }
 
     // Debug highlight
-    const auto debugInputs = DebugHighlight::Inputs(highlightRessources, const_cast<const render::Varying&>(highlight0Rect), jitter, primaryFramebuffer).asVarying();
+    const auto debugInputs = DebugHighlight::Inputs(highlightResources, const_cast<const render::Varying&>(highlight0Rect), jitter, primaryFramebuffer).asVarying();
     task.addJob<DebugHighlight>("HighlightDebug", debugInputs);
 }
 
@@ -551,14 +574,3 @@ const render::Varying DrawHighlightTask::addSelectItemJobs(JobModel& task, const
     return task.addJob<SelectItems>("TransparentSelection", selectItemInput);
 }
 
-void DrawHighlightTask::initMaskPipelines(render::ShapePlumber& shapePlumber, gpu::StatePointer state) {
-    gpu::ShaderPointer modelProgram = gpu::Shader::createProgram(shader::render_utils::program::model_shadow);
-    shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withoutSkinned(),
-        modelProgram, state);
-
-    gpu::ShaderPointer skinProgram = gpu::Shader::createProgram(shader::render_utils::program::skin_model_shadow);
-    shapePlumber.addPipeline(
-        ShapeKey::Filter::Builder().withSkinned(),
-        skinProgram, state);
-}

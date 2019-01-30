@@ -25,12 +25,13 @@ public:
     Base3DOverlay(const Base3DOverlay* base3DOverlay);
 
     void setVisible(bool visible) override;
+    bool queryAACubeNeedsUpdate() const override { return false; } // HACK: queryAACube not relevant for Overlays
 
     virtual OverlayID getOverlayID() const override { return OverlayID(getID().toString()); }
     void setOverlayID(OverlayID overlayID) override { setID(overlayID); }
 
-    virtual QString getName() const override { return QString("Overlay:") + _name; }
-    void setName(QString name) { _name = name; }
+    virtual QString getName() const override;
+    void setName(QString name);
 
     // getters
     virtual bool is3D() const override { return true; }
@@ -58,8 +59,6 @@ public:
     virtual void setDrawHUDLayer(bool value) { _drawHUDLayer = value; }
     void setIsGrabbable(bool value) { _isGrabbable = value; }
     virtual void setIsVisibleInSecondaryCamera(bool value) { _isVisibleInSecondaryCamera = value; }
-
-    virtual AABox getBounds() const override = 0;
 
     void update(float deltatime) override;
 
@@ -107,6 +106,7 @@ protected:
     mutable bool _renderVariableDirty { true };
 
     QString _name;
+    mutable ReadWriteLockable _nameLock;
 };
 
 #endif // hifi_Base3DOverlay_h

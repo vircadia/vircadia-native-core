@@ -179,6 +179,7 @@ private:
 
     gpu::PipelinePointer _showLUTPipeline;
     gpu::PipelinePointer getShowLUTPipeline();
+    gpu::BufferPointer _debugParams;
     bool _showProfile{ false };
     bool _showLUT{ false };
     bool _showSpecularTable{ false };

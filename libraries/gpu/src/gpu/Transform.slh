@@ -16,7 +16,7 @@
 
 #define TransformCamera _TransformCamera
 
-layout(std140, binding=GPU_BUFFER_TRANSFORM_CAMERA) uniform transformCameraBuffer {
+LAYOUT_STD140(binding=GPU_BUFFER_TRANSFORM_CAMERA) uniform transformCameraBuffer {
 #ifdef GPU_TRANSFORM_IS_STEREO
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
     TransformCamera _camera[2];
@@ -26,7 +26,7 @@ layout(std140, binding=GPU_BUFFER_TRANSFORM_CAMERA) uniform transformCameraBuffe
 #else
     TransformCamera _camera;
 #endif
-};
+} _cameraBlock;
 
 #ifdef GPU_VERTEX_SHADER
 #ifdef GPU_TRANSFORM_IS_STEREO
@@ -76,12 +76,12 @@ TransformCamera getTransformCamera() {
                 _stereoSide = gl_InstanceID % 2;
             #endif
         #endif
-        return _camera[_stereoSide];
+        return _cameraBlock._camera[_stereoSide];
     #else
-        return _camera;
+        return _cameraBlock._camera;
     #endif
 #else
-    return _camera;
+    return _cameraBlock._camera;
 #endif
 }
 
@@ -93,7 +93,7 @@ bool cam_isStereo() {
 #ifdef GPU_TRANSFORM_IS_STEREO
     return getTransformCamera()._stereoInfo.x > 0.0;
 #else
-    return _camera._stereoInfo.x > 0.0;
+    return _cameraBlock._camera._stereoInfo.x > 0.0;
 #endif
 }
 
@@ -102,10 +102,10 @@ float cam_getStereoSide() {
 #ifdef GPU_TRANSFORM_STEREO_CAMERA
     return getTransformCamera()._stereoInfo.y;
 #else
-    return _camera._stereoInfo.y;
+    return _cameraBlock._camera._stereoInfo.y;
 #endif
 #else
-    return _camera._stereoInfo.y;
+    return _cameraBlock._camera._stereoInfo.y;
 #endif
 }
 
@@ -120,7 +120,7 @@ struct TransformObject {
 layout(location=GPU_ATTR_DRAW_CALL_INFO) in ivec2 _drawCallInfo;
 
 #if defined(GPU_SSBO_TRANSFORM_OBJECT)
-layout(std140, binding=GPU_STORAGE_TRANSFORM_OBJECT) buffer transformObjectBuffer {
+LAYOUT_STD140(binding=GPU_STORAGE_TRANSFORM_OBJECT) buffer transformObjectBuffer {
     TransformObject _object[];
 };
 TransformObject getTransformObject() {
@@ -128,7 +128,7 @@ TransformObject getTransformObject() {
     return transformObject;
 }
 #else
-layout(binding=GPU_TEXTURE_TRANSFORM_OBJECT) uniform samplerBuffer transformObjectBuffer;
+LAYOUT(binding=GPU_TEXTURE_TRANSFORM_OBJECT) uniform samplerBuffer transformObjectBuffer;
 
 TransformObject getTransformObject() {
     int offset = 8 * _drawCallInfo.x;
@@ -167,7 +167,9 @@ TransformObject getTransformObject() {
         vec4 eyeClipEdge[2]= vec4[2](vec4(-1,0,0,1), vec4(1,0,0,1));
         vec2 eyeOffsetScale = vec2(-0.5, +0.5);
         uint eyeIndex = uint(_stereoSide);
+#ifndef GPU_GLES
         gl_ClipDistance[0] = dot(<$clipPos$>, eyeClipEdge[eyeIndex]);
+#endif
         float newClipPosX = <$clipPos$>.x * 0.5 + eyeOffsetScale[eyeIndex] * <$clipPos$>.w;
         <$clipPos$>.x = newClipPosX;
 #endif
@@ -207,6 +209,18 @@ TransformObject getTransformObject() {
     { // transformModelToEyeAndClipPos
         vec4 eyeWAPos;
         <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
+        <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
+        
+        <$transformStereoClipsSpace($cameraTransform$, $clipPos$)$>
+    }
+<@endfunc@>
+
+<@func transformModelToWorldAndEyeAndClipPos(cameraTransform, objectTransform, modelPos, worldPos, eyePos, clipPos)@>
+    { // transformModelToEyeAndClipPos
+        vec4 eyeWAPos;
+        <$transformModelToEyeWorldAlignedPos($cameraTransform$, $objectTransform$, $modelPos$, eyeWAPos)$>
+        <$worldPos$> = vec4(eyeWAPos.xyz + <$cameraTransform$>._viewInverse[3].xyz, 1.0);
         <$clipPos$> = <$cameraTransform$>._projectionViewUntranslated * eyeWAPos;
         <$eyePos$> = vec4((<$cameraTransform$>._view * vec4(eyeWAPos.xyz, 0.0)).xyz, 1.0);
         

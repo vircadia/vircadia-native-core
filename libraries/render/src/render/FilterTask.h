@@ -114,7 +114,8 @@ namespace render {
     class SelectItems {
     public:
         using Inputs = VaryingSet3<ItemBounds, ItemBounds, std::string>;
-        using JobModel = Job::ModelIO<SelectItems, Inputs, ItemBounds>;
+        using Outputs = ItemBounds;
+        using JobModel = Job::ModelIO<SelectItems, Inputs, Outputs>;
         
         std::string _name;
         SelectItems() {}

@@ -11,14 +11,8 @@ setup_memory_debugger()
 # link in the shared libraries
 link_hifi_libraries(shared gl script-engine plugins render-utils ui-plugins input-plugins display-plugins controllers)
 
-
 if (WIN32)
-    add_dependency_external_projects(OpenVR)
-    find_package(OpenVR REQUIRED)
-    target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})
-    target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
-endif()
-if (WIN32)
+    target_openvr()
     target_link_libraries(${TARGET_NAME} Winmm.lib)
     add_dependency_external_projects(wasapi)
 endif()

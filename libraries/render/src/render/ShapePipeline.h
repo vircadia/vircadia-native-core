@@ -30,9 +30,8 @@ public:
         LIGHTMAP,
         TANGENTS,
         UNLIT,
-        SKINNED,
+        DEFORMED,
         DUAL_QUAT_SKINNED,
-        DEPTH_ONLY,
         DEPTH_BIAS,
         WIREFRAME,
         NO_CULL_FACE,
@@ -78,9 +77,8 @@ public:
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
         Builder& withTangents() { _flags.set(TANGENTS); return (*this); }
         Builder& withUnlit() { _flags.set(UNLIT); return (*this); }
-        Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
+        Builder& withDeformed() { _flags.set(DEFORMED); return (*this); }
         Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); return (*this); }
-        Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
         Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); return (*this); }
@@ -127,14 +125,11 @@ public:
             Builder& withUnlit() { _flags.set(UNLIT); _mask.set(UNLIT); return (*this); }
             Builder& withoutUnlit() { _flags.reset(UNLIT); _mask.set(UNLIT); return (*this); }
 
-            Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
-            Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
+            Builder& withDeformed() { _flags.set(DEFORMED); _mask.set(DEFORMED); return (*this); }
+            Builder& withoutDeformed() { _flags.reset(DEFORMED); _mask.set(DEFORMED); return (*this); }
 
             Builder& withDualQuatSkinned() { _flags.set(DUAL_QUAT_SKINNED); _mask.set(DUAL_QUAT_SKINNED); return (*this); }
             Builder& withoutDualQuatSkinned() { _flags.reset(DUAL_QUAT_SKINNED); _mask.set(DUAL_QUAT_SKINNED); return (*this); }
-
-            Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
-            Builder& withoutDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
 
             Builder& withDepthBias() { _flags.set(DEPTH_BIAS); _mask.set(DEPTH_BIAS); return (*this); }
             Builder& withoutDepthBias() { _flags.reset(DEPTH_BIAS); _mask.set(DEPTH_BIAS); return (*this); }
@@ -169,9 +164,8 @@ public:
     bool hasTangents() const { return _flags[TANGENTS]; }
     bool isUnlit() const { return _flags[UNLIT]; }
     bool isTranslucent() const { return _flags[TRANSLUCENT]; }
-    bool isSkinned() const { return _flags[SKINNED]; }
+    bool isDeformed() const { return _flags[DEFORMED]; }
     bool isDualQuatSkinned() const { return _flags[DUAL_QUAT_SKINNED]; }
-    bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireframe() const { return _flags[WIREFRAME]; }
     bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
@@ -209,9 +203,8 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "hasTangents:" << key.hasTangents()
                 << "isUnlit:" << key.isUnlit()
                 << "isTranslucent:" << key.isTranslucent()
-                << "isSkinned:" << key.isSkinned()
+                << "isDeformed:" << key.isDeformed()
                 << "isDualQuatSkinned:" << key.isDualQuatSkinned()
-                << "isDepthOnly:" << key.isDepthOnly()
                 << "isDepthBiased:" << key.isDepthBiased()
                 << "isWireframe:" << key.isWireframe()
                 << "isCullFace:" << key.isCullFace()
@@ -239,7 +232,6 @@ public:
         bool lightingModelBufferUnit{ false };
         bool skinClusterBufferUnit{ false };
         bool materialBufferUnit{ false };
-        bool texMapArrayBufferUnit{ false };
         bool keyLightBufferUnit{ false };
         bool lightBufferUnit{ false };
         bool lightAmbientBufferUnit{ false };
@@ -258,7 +250,7 @@ public:
 
     using ItemSetter = std::function<void(const ShapePipeline&, render::Args*, const render::Item&)>;
 
-    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr) :
+    ShapePipeline(const gpu::PipelinePointer& pipeline, const LocationsPointer& locations, const BatchSetter& batchSetter = nullptr, const ItemSetter& itemSetter = nullptr) :
         pipeline(pipeline),
         locations(locations),
         _batchSetter(batchSetter),

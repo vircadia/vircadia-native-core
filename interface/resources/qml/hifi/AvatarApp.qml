@@ -3,14 +3,14 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQml.Models 2.1
 import QtGraphicalEffects 1.0
-import "../controls-uit" as HifiControls
-import "../styles-uit"
+import controlsUit 1.0 as HifiControls
+import stylesUit 1.0
 import "avatarapp"
 
 Rectangle {
     id: root
     width: 480
-	height: 706
+    height: 706
 
     property bool keyboardEnabled: true
     property bool keyboardRaised: false
@@ -19,7 +19,7 @@ Rectangle {
     HifiControls.Keyboard {
         id: keyboard
         z: 1000
-        raised: parent.keyboardEnabled && parent.keyboardRaised
+        raised: parent.keyboardEnabled && parent.keyboardRaised && HMD.active
         numeric: parent.punctuationMode
         anchors {
             left: parent.left
@@ -46,7 +46,7 @@ Rectangle {
         }
     }
 
-    property var jointNames;
+    property var jointNames: []
     property var currentAvatarSettings;
 
     function fetchAvatarModelName(marketId, avatar) {
@@ -62,7 +62,7 @@ Rectangle {
                     }
                 }
                 catch(err) {
-                    console.error(err);
+                    //console.error(err);
                 }
             }
         }
@@ -175,7 +175,14 @@ Rectangle {
             displayNameInput.text = getAvatarsData.displayName;
             currentAvatarSettings = getAvatarsData.currentAvatarSettings;
 
-            updateCurrentAvatarInBookmarks(currentAvatar);
+            var bookmarkAvatarIndex = allAvatars.findAvatarIndexByValue(currentAvatar);
+            if (bookmarkAvatarIndex === -1) {
+                currentAvatar.name = '';
+            } else {
+                currentAvatar.name = allAvatars.get(bookmarkAvatarIndex).name;
+                allAvatars.move(bookmarkAvatarIndex, 0, 1);
+            }
+            view.setPage(0);
         } else if (message.method === 'updateAvatarInBookmarks') {
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if (message.method === 'selectAvatarEntity') {
@@ -197,7 +204,8 @@ Rectangle {
 
     property bool isInManageState: false
 
-    Component.onCompleted: {
+    Component.onDestruction: {
+        keyboard.raised = false;
     }
 
     AvatarAppStyle {
@@ -228,6 +236,8 @@ Rectangle {
         avatarIconVisible: mainPageVisible
         settingsButtonVisible: mainPageVisible
         onSettingsClicked: {
+            displayNameInput.focus = false;
+            root.keyboardRaised = false;
             settings.open(currentAvatarSettings, currentAvatar.avatarScale);
         }
     }
@@ -244,7 +254,9 @@ Rectangle {
         onSaveClicked: function() {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
-                collisionsEnabled : settings.avatarCollisionsOn,
+                hmdAvatarAlignmentType : settings.hmdAvatarAlignmentTypeIsEyes ? 'eyes' : 'head',
+                collisionsEnabled : settings.environmentCollisionsOn,
+                otherAvatarsCollisionsEnabled : settings.otherAvatarsCollisionsOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };
@@ -337,6 +349,10 @@ Rectangle {
                 emitSendToScript({'method' : 'changeDisplayName', 'displayName' : text})
                 focus = false;
             }
+
+            onFocusChanged: {
+                root.keyboardRaised = focus;
+            }
         }
 
         ShadowImage {
@@ -401,7 +417,7 @@ Rectangle {
                 width: 21.2
                 height: 19.3
                 source: isAvatarInFavorites ? '../../images/FavoriteIconActive.svg' : '../../images/FavoriteIconInActive.svg'
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             // TextStyle5
@@ -410,7 +426,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: isAvatarInFavorites ? avatarName : "Add to Favorites"
                 elide: Qt.ElideRight
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
         }
 

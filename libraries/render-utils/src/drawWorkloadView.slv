@@ -18,9 +18,9 @@
 <@include WorkloadResource.slh@>
 <$declareWorkloadViews()$>
 
-out vec4 varColor;
-out vec3 varTexcoord;
-out vec3 varEyePos;
+layout(location=0) out vec4 varColor;
+layout(location=1) out vec3 varTexcoord;
+layout(location=2) out vec3 varEyePos;
 
 const int NUM_VERTICES_PER_SEGMENT = 2;
 const int NUM_SEGMENT_PER_VIEW_REGION = 65;
@@ -32,7 +32,7 @@ struct DrawMesh {
     vec4 verts[NUM_SEGMENT_PER_VIEW_REGION];
 };
 
-layout(std140, binding=0) uniform DrawMeshBuffer {
+LAYOUT_STD140(binding=0) uniform DrawMeshBuffer {
     DrawMesh _drawMeshBuffer;
 };
 
@@ -79,7 +79,7 @@ void main(void) {
     <$transformModelToEyeDir(cam, obj, originSpaceTan, tanEye)$>
 
     lateralDir = normalize(cross(vec3(0.0, 0.0, 1.0), normalize(tanEye)));
-    posEye.xyz += (0.005 * abs(posEye.z) * (regionID + 1)) * (-1.0 + 2.0 * float(segmentVertexID)) * lateralDir;
+    posEye.xyz += (0.005 * abs(posEye.z) * float(regionID + 1)) * (-1.0 + 2.0 * float(segmentVertexID)) * lateralDir;
     varEyePos = posEye.xyz;
 
     <$transformEyeToClipPos(cam, posEye, gl_Position)$>

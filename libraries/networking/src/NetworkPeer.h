@@ -18,8 +18,8 @@
 #include <QtCore/QTimer>
 #include <QtCore/QUuid>
 
-#include "UUID.h"
 #include "HifiSockAddr.h"
+#include "UUID.h"
 
 const QString ICE_SERVER_HOSTNAME = "localhost";
 const quint16 ICE_SERVER_DEFAULT_PORT = 7337;
@@ -76,12 +76,6 @@ public:
     int getConnectionAttempts() const  { return _connectionAttempts; }
     void incrementConnectionAttempts() { ++_connectionAttempts; }
     void resetConnectionAttempts() { _connectionAttempts = 0; }
-
-    void recordBytesSent(int count) const;
-    void recordBytesReceived(int count) const;
-
-    float getOutboundBandwidth() const; // in kbps
-    float getInboundBandwidth() const; // in kbps
 
     // Typically the LimitedNodeList removes nodes after they are "silent"
     // meaning that we have not received any packets (including simple keepalive pings) from them for a set interval.

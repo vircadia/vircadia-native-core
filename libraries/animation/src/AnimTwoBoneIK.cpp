@@ -201,14 +201,17 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     if (_interpType != InterpType::None) {
         _interpAlpha += _interpAlphaVel * dt;
 
+        // ease in expo
+        float easeInAlpha = 1.0f - powf(2.0f, -10.0f * _interpAlpha);
+
         if (_interpAlpha < 1.0f) {
             AnimChain interpChain;
             if (_interpType == InterpType::SnapshotToUnderPoses) {
                 interpChain = underChain;
-                interpChain.blend(_snapshotChain, _interpAlpha);
+                interpChain.blend(_snapshotChain, easeInAlpha);
             } else if (_interpType == InterpType::SnapshotToSolve) {
                 interpChain = ikChain;
-                interpChain.blend(_snapshotChain, _interpAlpha);
+                interpChain.blend(_snapshotChain, easeInAlpha);
             }
             // copy interpChain into _poses
             interpChain.outputRelativePoses(_poses);

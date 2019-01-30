@@ -20,10 +20,10 @@
 layout(location=0) out vec4 varColor;
 layout(location=1) out vec3 varTexcoord;
 
-layout(location=GPU_UNIFORM_EXTRA0) uniform vec3 inBoundPos;
-layout(location=GPU_UNIFORM_EXTRA1) uniform vec3 inBoundDim;
-layout(location=GPU_UNIFORM_EXTRA2) uniform ivec4 inStatus0;
-layout(location=GPU_UNIFORM_EXTRA3) uniform ivec4 inStatus1;
+layout(location=0) in vec3 inBoundPos;
+layout(location=1) in vec3 inBoundDim;
+layout(location=2) in ivec4 inStatus0;
+layout(location=3) in ivec4 inStatus1;
 
 vec3 paintRainbow(float normalizedHue) {
     float v = normalizedHue * 6.f;

@@ -14,8 +14,8 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.7
 import QtGraphicalEffects 1.0
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 
 // references XXX from root context
@@ -27,7 +27,6 @@ Item {
     property string referrerURL: (Account.metaverseServerURL + "/marketplace?");
     readonly property int additionalDropdownHeight: usernameDropdown.height - myUsernameButton.anchors.bottomMargin;
     property alias usernameDropdownVisible: usernameDropdown.visible;
-    property bool messagesWaiting: false;
 
     height: mainContainer.height + additionalDropdownHeight;
 
@@ -38,7 +37,6 @@ Item {
             if (walletStatus === 0) {
                 sendToParent({method: "needsLogIn"});
             } else if (walletStatus === 5) {
-                Commerce.getAvailableUpdates();
                 Commerce.getSecurityImage();
             } else if (walletStatus > 5) {
                 console.log("ERROR in EmulatedMarketplaceHeader.qml: Unknown wallet status: " + walletStatus);
@@ -57,14 +55,6 @@ Item {
             if (exists) {
                 securityImage.source = "";
                 securityImage.source = "image://security/securityImage";
-            }
-        }
-
-        onAvailableUpdatesResult: {
-            if (result.status !== 'success') {
-                console.log("Failed to get Available Updates", result.data.message);
-            } else {
-                root.messagesWaiting = result.data.updates.length > 0;
             }
         }
     }
@@ -117,50 +107,6 @@ Item {
             anchors.bottomMargin: 10;
             anchors.right: securityImage.left;
             anchors.rightMargin: 6;
-
-            Rectangle {
-                id: myPurchasesLink;
-                anchors.right: myUsernameButton.left;
-                anchors.rightMargin: 8;
-                anchors.verticalCenter: parent.verticalCenter;
-                height: 40;
-                width: myPurchasesText.paintedWidth + 10;
-
-                RalewaySemiBold {
-                    id: myPurchasesText;
-                    text: "My Purchases";
-                    // Text size
-                    size: 18;
-                    // Style
-                    color: hifi.colors.blueAccent;
-                    horizontalAlignment: Text.AlignHCenter;
-                    verticalAlignment: Text.AlignVCenter;
-                    // Anchors
-                    anchors.centerIn: parent;
-                }
-
-                MouseArea {
-                    anchors.fill: parent;
-                    hoverEnabled: enabled;
-                    onClicked: {
-                        sendToParent({ method: 'header_goToPurchases', hasUpdates: root.messagesWaiting });
-                    }
-                    onEntered: myPurchasesText.color = hifi.colors.blueHighlight;
-                    onExited: myPurchasesText.color = hifi.colors.blueAccent;
-                }
-            }
-
-            Rectangle {
-                id: messagesWaitingLight;
-                visible: root.messagesWaiting;
-                anchors.right: myPurchasesLink.left;
-                anchors.rightMargin: -2;
-                anchors.verticalCenter: parent.verticalCenter;
-                height: 10;
-                width: height;
-                radius: height/2;
-                color: "red";
-            }
 
             TextMetrics {
                 id: textMetrics;
@@ -267,7 +213,7 @@ Item {
             anchors.topMargin: -buttonAndUsernameContainer.anchors.bottomMargin;
             anchors.right: buttonAndUsernameContainer.right;
             height: childrenRect.height;
-            width: 100;
+            width: 150;
 
             Rectangle {
                 id: myItemsButton;
@@ -279,7 +225,7 @@ Item {
 
                 RalewaySemiBold {
                     anchors.fill: parent;
-                    text: "My Items"
+                    text: "My Submissions"
                     color: hifi.colors.baseGray;
                     horizontalAlignment: Text.AlignHCenter;
                     verticalAlignment: Text.AlignVCenter;

@@ -12,6 +12,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <gpu/Frame.h>
 #include <gl/Config.h>
+#include <shared/GlobalAppProperties.h>
 
 #include "OculusHelpers.h"
 
@@ -23,13 +24,14 @@ void OculusBaseDisplayPlugin::resetSensors() {
 }
 
 bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
-    ovrSessionStatus status{};
-    if (!OVR_SUCCESS(ovr_GetSessionStatus(_session, &status))) {
+    ovrResult getStatusResult;
+    ovrSessionStatus status = ovr::getStatus(getStatusResult);
+    if (!OVR_SUCCESS(getStatusResult)) {
         qCWarning(oculusLog) << "Unable to fetch Oculus session status" << ovr::getError();
         return false;
     }
 
-    if (ovr::quitRequested(status)) {
+    if (ovr::quitRequested(status) || ovr::displayLost(status)) {
         QMetaObject::invokeMethod(qApp, "quit");
         return false;
     }
@@ -40,11 +42,15 @@ bool OculusBaseDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
         _hmdMounted = !_hmdMounted;
         emit hmdMountedChanged();
     }
+    if (ovr::isVisible(status) != _visible) {
+        _visible = !_visible;
+        emit hmdVisibleChanged(_visible);
+    }
 
     _currentRenderFrameInfo = FrameInfo();
     _currentRenderFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentRenderFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, frameIndex);
-    auto trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
+    auto trackingState = ovr::getTrackingState(_currentRenderFrameInfo.predictedDisplayTime, ovrTrue);
     _currentRenderFrameInfo.renderPose = ovr::toGlm(trackingState.HeadPose.ThePose);
     _currentRenderFrameInfo.presentPose = _currentRenderFrameInfo.renderPose;
 
@@ -167,7 +173,57 @@ void OculusBaseDisplayPlugin::updatePresentPose() {
     ovrTrackingState trackingState;
     _currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();
     _currentPresentFrameInfo.predictedDisplayTime = ovr_GetPredictedDisplayTime(_session, 0);
-    trackingState = ovr_GetTrackingState(_session, _currentRenderFrameInfo.predictedDisplayTime, ovrFalse);
+    trackingState = ovr::getTrackingState(_currentRenderFrameInfo.predictedDisplayTime);
     _currentPresentFrameInfo.presentPose = ovr::toGlm(trackingState.HeadPose.ThePose);
     _currentPresentFrameInfo.renderPose = _currentPresentFrameInfo.presentPose;
+}
+
+QRectF OculusBaseDisplayPlugin::getPlayAreaRect() {
+    if (!_session) {
+        return QRectF();
+    }
+
+    int floorPointsCount = 0;
+    auto result = ovr_GetBoundaryGeometry(_session, ovrBoundary_PlayArea, nullptr, &floorPointsCount);
+    if (!OVR_SUCCESS(result) || floorPointsCount != 4) {
+        return QRectF();
+    }
+
+    auto floorPoints = new ovrVector3f[floorPointsCount];
+    result = ovr_GetBoundaryGeometry(_session, ovrBoundary_PlayArea, floorPoints, nullptr);
+    if (!OVR_SUCCESS(result)) {
+        return QRectF();
+    }
+
+    auto minXZ = ovr::toGlm(floorPoints[0]);
+    auto maxXZ = minXZ;
+    for (int i = 1; i < floorPointsCount; i++) {
+        auto point = ovr::toGlm(floorPoints[i]);
+        minXZ.x = std::min(minXZ.x, point.x);
+        minXZ.z = std::min(minXZ.z, point.z);
+        maxXZ.x = std::max(maxXZ.x, point.x);
+        maxXZ.z = std::max(maxXZ.z, point.z);
+    }
+
+    glm::vec2 center = glm::vec2((minXZ.x + maxXZ.x) / 2, (minXZ.z + maxXZ.z) / 2);
+    glm::vec2 dimensions = glm::vec2(maxXZ.x - minXZ.x, maxXZ.z - minXZ.z);
+
+    return QRectF(center.x, center.y, dimensions.x, dimensions.y);
+}
+
+QVector<glm::vec3> OculusBaseDisplayPlugin::getSensorPositions() {
+    if (!_session) {
+        return QVector<glm::vec3>();
+    }
+
+    QVector<glm::vec3> result;
+    auto numTrackers = ovr_GetTrackerCount(_session);
+    for (uint i = 0; i < numTrackers; i++) {
+        auto trackerPose = ovr_GetTrackerPose(_session, i);
+        if (trackerPose.TrackerFlags & ovrTracker_PoseTracked) {
+            result.append(ovr::toGlm(trackerPose.Pose.Position));
+        }
+    }
+
+    return result;
 }

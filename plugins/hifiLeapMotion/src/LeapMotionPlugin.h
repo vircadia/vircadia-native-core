@@ -30,7 +30,7 @@ public:
     // Plugin methods
     virtual const QString getName() const override { return NAME; }
     const QString getID() const override { return LEAPMOTION_ID_STRING; }
-
+    bool isRunning() const override { return _active && _enabled; }
     virtual void init() override;
 
     virtual bool activate() override;
@@ -43,8 +43,6 @@ protected:
     static const char* NAME;
     static const char* LEAPMOTION_ID_STRING;
     const float DEFAULT_DESKTOP_HEIGHT_OFFSET = 0.2f;
-
-    bool _enabled { false };
     QString _sensorLocation;
     float _desktopHeightOffset { DEFAULT_DESKTOP_HEIGHT_OFFSET };
 

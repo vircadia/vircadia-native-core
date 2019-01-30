@@ -15,8 +15,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import QtQuick.Controls 2.2
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
@@ -29,7 +29,6 @@ Item {
         if (visible) {
             Commerce.balance();
             transactionHistoryModel.getFirstPage();
-            Commerce.getAvailableUpdates();
         } else {
             refreshTimer.stop();
         }
@@ -44,14 +43,6 @@ Item {
 
         onHistoryResult : {
             transactionHistoryModel.handlePage(null, result);
-        }
-
-        onAvailableUpdatesResult: {
-            if (result.status !== 'success') {
-                console.log("Failed to get Available Updates", result.data.message);
-            } else {
-                sendToScript({method: 'wallet_availableUpdatesReceived', numUpdates: result.data.updates.length });
-            }
         }
     }
 
@@ -187,28 +178,6 @@ Item {
             color: hifi.colors.baseGrayHighlight;
         }
 
-        RalewaySemiBold {
-            id: myPurchasesLink;
-            text: '<font color="#0093C5"><a href="#myPurchases">My Purchases</a></font>';
-            // Anchors
-            anchors.top: parent.top;
-            anchors.topMargin: 26;
-            anchors.right: parent.right;
-            anchors.rightMargin: 20;
-            width: paintedWidth;
-            height: 30;
-            y: 4;
-            // Text size
-            size: 18;
-            // Style
-            color: hifi.colors.baseGrayHighlight;
-            horizontalAlignment: Text.AlignRight;
-
-            onLinkActivated: {
-                sendSignalToWallet({method: 'goToPurchases_fromWalletHome'});
-            }
-        }
-
         HifiModels.PSFListModel {
             id: transactionHistoryModel;
             property int lastPendingCount: 0;
@@ -301,9 +270,11 @@ Item {
                 model: transactionHistoryModel;
                 delegate: Item {
                     width: parent.width;
-                    height: (model.transaction_type === "pendingCount" && model.count !== 0) ? 40 : ((model.status === "confirmed" || model.status === "invalidated") ? transactionText.height + 30 : 0);
+                    height: (model.transaction_type === "pendingCount" && model.count !== 0) ? 40 :
+                        (transactionContainer.visible ? transactionText.height + 30 : 0);
 
                     Item {
+                        id: pendingCountContainer;
                         visible: model.transaction_type === "pendingCount" && model.count !== 0;
                         anchors.top: parent.top;
                         anchors.left: parent.left;
@@ -322,7 +293,9 @@ Item {
                     }
 
                     Item {
-                        visible: model.transaction_type !== "pendingCount" && (model.status === "confirmed" || model.status === "invalidated");
+                        id: transactionContainer;
+                        visible: model.transaction_type !== "pendingCount" &&
+                            (model.status === "confirmed" || model.status === "invalidated");
                         anchors.top: parent.top;
                         anchors.left: parent.left;
                         width: parent.width;

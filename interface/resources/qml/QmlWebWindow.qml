@@ -13,8 +13,8 @@ import QtWebEngine 1.1
 import QtWebChannel 1.0
 
 import "windows" as Windows
-import "controls-uit" as Controls
-import "styles-uit"
+import controlsUit 1.0 as Controls
+import stylesUit 1.0
 
 Windows.ScrollingWindow {
     id: root
