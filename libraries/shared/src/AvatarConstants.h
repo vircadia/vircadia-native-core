@@ -68,7 +68,18 @@ const glm::quat DEFAULT_AVATAR_RIGHTFOOT_ROT { -0.4016716778278351f, 0.915461599
 const float DEFAULT_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
 const float DEFAULT_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
 const float DEFAULT_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
-const float DEFAULT_AVATAR_WALK_SPEED_THRESHOLD = 0.15f;
+const float DEFAULT_AVATAR_MAX_SPRINT_SPEED = 3.0f; // meters / second
+const float DEFAULT_AVATAR_WALK_SPEED_THRESHOLD = 0.15f; // meters / second
+
+const float ANALOG_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
+const float ANALOG_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
+const float ANALOG_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
+const float ANALOG_AVATAR_MAX_SPRINT_SPEED = 3.0f; // meters / second
+
+const float ANALOG_PLUS_AVATAR_MAX_WALKING_SPEED = 3.3f; // meters / second
+const float ANALOG_PLUS_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.42f; // meters / second
+const float ANALOG_PLUS_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
+const float ANALOG_PLUS_AVATAR_MAX_SPRINT_SPEED = 4.0f; // meters / second
 
 const float DEFAULT_AVATAR_GRAVITY = -5.0f; // meters / second^2 (world)
 const float DEFAULT_AVATAR_JUMP_SPEED = 3.5f; // meters / second (sensor)
