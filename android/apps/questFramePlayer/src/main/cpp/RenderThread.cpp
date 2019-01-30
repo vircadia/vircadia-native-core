@@ -22,6 +22,7 @@
 #include <gpu/Texture.h>
 
 #include <VrApi_Types.h>
+#include <VrApi_Helpers.h>
 #include <ovr/VrHandler.h>
 #include <ovr/Helpers.h>
 
@@ -62,7 +63,7 @@ JNIEXPORT void JNICALL Java_io_highfidelity_frameplayer_QuestQtActivity_nativeOn
 }
 }
 
-static const char* FRAME_FILE = "assets:/frames/20190115_0948.json";
+static const char* FRAME_FILE = "assets:/frames/20190121_1220.json";
 
 static void textureLoader(const std::string& filename, const gpu::TexturePointer& texture, uint16_t layer) {
     QImage image;
@@ -193,9 +194,12 @@ void RenderThread::renderFrame() {
         // Quest
         auto frameCorrection = _correction * ovr::toGlm(tracking.HeadPose.Pose);
         _backend->setCameraCorrection(glm::inverse(frameCorrection), frame->view);
+        vec4 fovs[2];
         ovr::for_each_eye([&](ovrEye eye){
             const auto& eyeInfo = tracking.Eye[eye];
             eyeProjections[eye] = ovr::toGlm(eyeInfo.ProjectionMatrix);
+            auto& fov = fovs[eye];
+            ovrMatrix4f_ExtractFov(&eyeInfo.ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
             eyeOffsets[eye] = ovr::toGlm(eyeInfo.ViewMatrix);
         });
         _backend->recycle();

@@ -380,6 +380,7 @@ ShaderPointer Deserializer::readShader(const json& node) {
 
     // FIXME support procedural shaders
     Shader::Type type = node[keys::type];
+    std::string name = node[keys::name];
     uint32_t id = node[keys::id];
     ShaderPointer result;
     switch (type) {
@@ -394,6 +395,9 @@ ShaderPointer Deserializer::readShader(const json& node) {
             break;
         default:
             throw std::runtime_error("not implemented");
+    }
+    if (result->getSource().name != name) {
+        throw std::runtime_error("Bad name match");
     }
     return result;
 }

@@ -418,6 +418,10 @@ public:
 #endif
 };
 
+#ifndef GL_CLIP_DISTANCE0
+#define GL_CLIP_DISTANCE0 GL_CLIP_DISTANCE0_EXT
+#endif
+
 #define GL_PROFILE_RANGE(category, name) \
     PROFILE_RANGE(category, name); \
     GlDuration glProfileRangeThis(name);

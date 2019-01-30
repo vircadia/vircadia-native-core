@@ -30,7 +30,7 @@
             android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode"
             >
             <!-- JNI nonsense -->
-            <meta-data android:name="android.app.lib_name" android:value="framePlayer"/>
+            <meta-data android:name="android.app.lib_name" android:value="questFramePlayer"/>
             <!-- Qt nonsense -->
             <meta-data android:name="android.app.qt_libs_resource_id" android:resource="@array/qt_libs"/>
             <meta-data android:name="android.app.bundled_in_lib_resource_id" android:resource="@array/bundled_in_lib"/>
