@@ -12,6 +12,7 @@
 #include <avatars-renderer/SkeletonModel.h>
 #include <AnimUtil.h>
 #include "MyAvatar.h"
+#include <CubicHermiteSpline.h>
 
 /// A skeleton loaded from a model.
 class MySkeletonModel : public SkeletonModel {

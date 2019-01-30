@@ -33,6 +33,39 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
     };
 }
 
+static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
+    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
+    glm::vec3 p0 = basePose.trans();
+    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
+    glm::vec3 p1 = tipPose.trans();
+    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
+
+    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
+}
+
+static glm::vec3 computeSpine2WithHeadHipsSpline(MyAvatar* myAvatar, AnimPose hipsIKTargetPose, AnimPose headIKTargetPose) {
+    glm::vec3 basePosition = myAvatar->getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar->getJointIndex("Hips"));
+    glm::vec3 tipPosition = myAvatar->getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar->getJointIndex("Head"));
+    glm::vec3 spine2Position = myAvatar->getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar->getJointIndex("Spine2"));
+    glm::vec3 baseToTip = tipPosition - basePosition;
+    float baseToTipLength = glm::length(baseToTip);
+    glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
+    glm::vec3 baseToSpine2 = spine2Position - basePosition;
+    float ratio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
+
+    // the the ik targets to compute the spline with
+    CubicHermiteSplineFunctorWithArcLength spline = computeSplineFromTipAndBase(headIKTargetPose, hipsIKTargetPose);
+
+    // measure the total arc length along the spline
+    float totalArcLength = spline.arcLength(1.0f);
+    float t = spline.arcLengthInverse(ratio * totalArcLength);
+
+    glm::vec3 spine2Translation = spline(t);
+
+    return spine2Translation;
+
+}
+
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
 
@@ -233,6 +266,12 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
             !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
 
+            controller::Pose headSplineControllerPose = myAvatar->getControllerPoseInSensorFrame(controller::Action::HEAD);
+            AnimPose headSplinePose(headSplineControllerPose.getRotation(), headSplineControllerPose.getTranslation());
+            glm::vec3 spine2TargetTranslation = computeSpine2WithHeadHipsSpline(myAvatar, sensorHips, headSplinePose);
+            AnimPose sensorSpine2(Quaternions::IDENTITY, spine2TargetTranslation);
+            AnimPose rigSpine2 = sensorToRigPose * sensorSpine2;
+
             const float SPINE2_ROTATION_FILTER = 0.5f;
             AnimPose currentSpine2Pose;
             AnimPose currentHeadPose;
@@ -253,6 +292,11 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
                 }
                 generateBasisVectors(up, fwd, u, v, w);
                 AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
+                currentSpine2Pose.trans() = rigSpine2.trans();
+                qCDebug(animation) << "my skeleton model spline spine2 " << rigSpine2.trans();
+                qCDebug(animation) << "my skeleton model current spine2 " << currentSpine2Pose.trans();
+                // qCDebug(animation) << "my skeleton model spline hips " << sensorToRigPose * sensorHips;
+                // qCDebug(animation) << "my skeleton model current hips " << currentHipsPose.trans();
                 currentSpine2Pose.rot() = safeLerp(currentSpine2Pose.rot(), newSpinePose.rot(), SPINE2_ROTATION_FILTER);
                 params.primaryControllerPoses[Rig::PrimaryControllerType_Spine2] = currentSpine2Pose;
                 params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] = (uint8_t)Rig::ControllerFlags::Enabled | (uint8_t)Rig::ControllerFlags::Estimated;

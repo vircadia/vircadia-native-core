@@ -95,8 +95,8 @@ protected:
 
     bool _lastEnableDebugDrawIKTargets { false };
     void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const;
-    void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const;
-    const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const;
+    void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, int base, const IKTarget& target) const;
+    const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, int base, const IKTarget& target) const;
     mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 
     // no copies

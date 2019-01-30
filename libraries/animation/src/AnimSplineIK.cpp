@@ -147,7 +147,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     tipTarget.setWeight(1.0f);
     tipTarget.setFlexCoefficients(_numTipTargetFlexCoefficients, _tipTargetFlexCoefficients);
     
-
+    /*
     AnimChain jointChain;
     AnimPoseVec absolutePoses;
     absolutePoses.resize(_poses.size());
@@ -156,6 +156,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     solveTargetWithSpline(context, _baseJointIndex, tipTarget, absolutePoses, context.getEnableDebugDrawIKChains(), jointChain);
     jointChain.buildDirtyAbsolutePoses();
     jointChain.outputRelativePoses(_poses);
+    */
 
     IKTarget midTarget;
     if (_midJointIndex != -1) {
@@ -167,7 +168,9 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         AnimPose afterSolveMidTarget = _skeleton->getAbsolutePose(_midJointIndex, _poses);
         // use the rotation from the ik target value, if there is one.
         glm::quat midTargetRotation = animVars.lookupRigToGeometry(_midRotationVar, afterSolveMidTarget.rot());
-        AnimPose updatedMidTarget = AnimPose(midTargetRotation, afterSolveMidTarget.trans());
+        glm::vec3 midTargetPosition = animVars.lookupRigToGeometry(_midPositionVar, afterSolveMidTarget.trans());
+        AnimPose updatedMidTarget = AnimPose(midTargetRotation, midTargetPosition);
+        //qCDebug(animation) << "spine2 in AnimSpline " << updatedMidTarget.trans();
         midTarget.setPose(updatedMidTarget.rot(), updatedMidTarget.trans());
         midTarget.setWeight(1.0f);
         midTarget.setFlexCoefficients(_numMidTargetFlexCoefficients, _midTargetFlexCoefficients);
@@ -194,9 +197,10 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
 
             // set the mid to tip segment to match the absolute rotation of the tip target.
             AnimPose midTargetPose(midTarget.getRotation(), midTarget.getTranslation());
-            _poses[childOfMiddleJointIndex] = midTargetPose.inverse() * childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
+            //_poses[childOfMiddleJointIndex] = midTargetPose.inverse() * childOfMiddleJointAbsolutePoseAfterBaseTipSpline;
         }
 
+        _splineJointInfoMap.clear();
         
         AnimChain upperJointChain;
         AnimPoseVec finalAbsolutePoses;
@@ -206,7 +210,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         solveTargetWithSpline(context, _midJointIndex, tipTarget, finalAbsolutePoses, context.getEnableDebugDrawIKChains(), upperJointChain);
         upperJointChain.buildDirtyAbsolutePoses();
         upperJointChain.outputRelativePoses(_poses);
-
+        
     }
 
    
@@ -370,8 +374,10 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
         tipPose.rot() = -tipPose.rot();
     }
     // find or create splineJointInfo for this target
-    const std::vector<SplineJointInfo>* splineJointInfoVec = findOrCreateSplineJointInfo(context, target);
+    const std::vector<SplineJointInfo>* splineJointInfoVec = findOrCreateSplineJointInfo(context, base, target);
 
+    //qCDebug(animation) << "the size of the splineJointInfo is " << splineJointInfoVec->size() << " and the base index is "<<baseIndex;
+    
     if (splineJointInfoVec && splineJointInfoVec->size() > 0) {
         const int baseParentIndex = _skeleton->getParentIndex(baseIndex);
         AnimPose parentAbsPose = (baseParentIndex >= 0) ? absolutePoses[baseParentIndex] : AnimPose();
@@ -403,9 +409,9 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
             ::blend(1, &absolutePoses[splineJointInfo.jointIndex], &desiredAbsPose, target.getFlexCoefficient(i), &flexedAbsPose);
 
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
-
+            /*
             bool constrained = false;
-            if (splineJointInfo.jointIndex != _baseJointIndex) {
+            if (splineJointInfo.jointIndex != base) {
                 // constrain the amount the spine can stretch or compress
                 float length = glm::length(relPose.trans());
                 const float EPSILON = 0.0001f;
@@ -425,6 +431,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
                     relPose.trans() = glm::vec3(0.0f);
                 }
             }
+            */
             if (!chainInfoOut.setRelativePoseAtJointIndex(splineJointInfo.jointIndex, relPose)) {
                 qCDebug(animation) << "we didn't find the joint index for the spline!!!!";
             }
@@ -439,13 +446,13 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
     }
 }
 
-const std::vector<AnimSplineIK::SplineJointInfo>* AnimSplineIK::findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const {
+const std::vector<AnimSplineIK::SplineJointInfo>* AnimSplineIK::findOrCreateSplineJointInfo(const AnimContext& context, int base, const IKTarget& target) const {
     // find or create splineJointInfo for this target
     auto iter = _splineJointInfoMap.find(target.getIndex());
     if (iter != _splineJointInfoMap.end()) {
         return &(iter->second);
     } else {
-        computeAndCacheSplineJointInfosForIKTarget(context, target);
+        computeAndCacheSplineJointInfosForIKTarget(context, base, target);
         auto iter = _splineJointInfoMap.find(target.getIndex());
         if (iter != _splineJointInfoMap.end()) {
             return &(iter->second);
@@ -455,12 +462,14 @@ const std::vector<AnimSplineIK::SplineJointInfo>* AnimSplineIK::findOrCreateSpli
 }
 
 // pre-compute information about each joint influenced by this spline IK target.
-void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const {
+void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, int base, const IKTarget& target) const {
     std::vector<SplineJointInfo> splineJointInfoVec;
+
+    //qCDebug(animation) << "the base in compute cache is " << base;
 
     // build spline between the default poses.
     AnimPose tipPose = _skeleton->getAbsoluteDefaultPose(target.getIndex());
-    AnimPose basePose = _skeleton->getAbsoluteDefaultPose(_baseJointIndex);
+    AnimPose basePose = _skeleton->getAbsoluteDefaultPose(base);
 
     CubicHermiteSplineFunctorWithArcLength spline;
     if (target.getIndex() == _tipJointIndex) {
@@ -481,10 +490,11 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
 
     int index = target.getIndex();
     int endIndex;
+    // fix this statement. AA
     if (target.getIndex() == _tipJointIndex) {
-        endIndex = _skeleton->getParentIndex(_baseJointIndex);
+        endIndex = _skeleton->getParentIndex(base);
     } else {
-        endIndex = _skeleton->getParentIndex(_baseJointIndex);
+        endIndex = _skeleton->getParentIndex(base);
     }
     while (index != endIndex) {
         AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
