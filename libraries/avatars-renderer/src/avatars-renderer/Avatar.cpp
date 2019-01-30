@@ -1420,11 +1420,13 @@ void Avatar::setModelURLFinished(bool success) {
 // rig is ready
 void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
+    buildSpine2SplineRatioCache();
 }
 
 // rig has been reset.
 void Avatar::rigReset() {
     clearUnscaledEyeHeightCache();
+    clearSpine2SplineRatioCache();
 }
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
@@ -1821,8 +1823,52 @@ void Avatar::buildUnscaledEyeHeightCache() {
     }
 }
 
+static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
+    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
+    glm::vec3 p0 = basePose.trans();
+    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
+    glm::vec3 p1 = tipPose.trans();
+    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
+
+    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
+}
+
+void Avatar::buildSpine2SplineRatioCache() {
+    if (_skeletonModel) {
+        auto& rig = _skeletonModel->getRig();
+        AnimPose hipsRigDefaultPose = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Hips"));
+        AnimPose headRigDefaultPose(rig.getAbsoluteDefaultPose(rig.indexOfJoint("Head")));
+        glm::vec3 basePosition = hipsRigDefaultPose.trans();
+        glm::vec3 tipPosition = headRigDefaultPose.trans();
+        glm::vec3 spine2Position = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Spine2")).trans();
+
+        glm::vec3 baseToTip = tipPosition - basePosition;
+        float baseToTipLength = glm::length(baseToTip);
+        glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
+        glm::vec3 baseToSpine2 = spine2Position - basePosition;
+
+        _spine2SplineRatio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
+
+        CubicHermiteSplineFunctorWithArcLength defaultSpline = computeSplineFromTipAndBase(headRigDefaultPose, hipsRigDefaultPose);
+        // measure the total arc length along the spline
+        float totalDefaultArcLength = defaultSpline.arcLength(1.0f);
+        float t = defaultSpline.arcLengthInverse(_spine2SplineRatio * totalDefaultArcLength);
+        glm::vec3 defaultSplineSpine2Translation = defaultSpline(t);
+
+        _spine2SplineOffset = spine2Position - defaultSplineSpine2Translation;
+
+        qCDebug(avatars_renderer) << "the avatar spline numbers are " << _spine2SplineRatio << " and " << _spine2SplineOffset;
+    }
+
+}
+
 void Avatar::clearUnscaledEyeHeightCache() {
     _unscaledEyeHeightCache.set(DEFAULT_AVATAR_EYE_HEIGHT);
+}
+
+void Avatar::clearSpine2SplineRatioCache() {
+    _spine2SplineRatio = DEFAULT_AVATAR_EYE_HEIGHT;
+    _spine2SplineOffset = glm::vec3();
 }
 
 float Avatar::getUnscaledEyeHeightFromSkeleton() const {
