@@ -131,7 +131,6 @@ Rectangle {
 
         onLoginStatusResult: {
             root.isLoggedIn = isLoggedIn;
-            itemsLoginStatus.visible = !isLoggedIn;
         }
     }
 
@@ -179,38 +178,27 @@ Rectangle {
             anchors.left: parent.left
             anchors.top: parent.top
             width: parent.width
-            height: 50
+            height: 60
             visible: true
 
             Image {
-                id: marketplaceIcon
+                id: marketplaceHeaderImage;
+                source: "../common/images/marketplaceHeaderImage.png";
+                anchors.top: parent.top;
+                anchors.topMargin: 2;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 0;
+                anchors.left: parent.left;
+                anchors.leftMargin: 8;
+                width: 140;
+                fillMode: Image.PreserveAspectFit;
 
-                anchors {
-                    left: parent.left
-                    leftMargin: 8
-                    verticalCenter: parent.verticalCenter
+                MouseArea {
+                    anchors.fill: parent;
+                    onClicked: {
+                        sendToParent({method: "header_marketplaceImageClicked"});
+                    }
                 }
-                height: 20
-                width: marketplaceIcon.height
-                source: "../../../../images/hifi-logo-blackish.svg"
-                visible: true
-            }
-
-            RalewaySemiBold {
-                id: titleBarText
-
-                anchors {
-                    top: parent.top
-                    left: marketplaceIcon.right
-                    bottom: parent.bottom
-                    leftMargin: 6
-                }
-                width: paintedWidth
-
-                text: "Marketplace"
-                size: hifi.fontSizes.overlayTitle
-                color: hifi.colors.black
-                verticalAlignment: Text.AlignVCenter
             }
         }
 
@@ -403,7 +391,7 @@ Rectangle {
                 anchors.fill: parent
                 anchors.rightMargin: 10
                 width: parent.width
-
+                currentIndex: -1;
                 clip: true
                 
                 model: categoriesModel
@@ -587,7 +575,7 @@ Rectangle {
                         left: parent.left
                         right: parent.right
                         leftMargin: 15
-                        rightMargin: 15
+                        top: parent.top+15
                     }
                     height: root.isLoggedIn ? 0 : 80
 
@@ -944,7 +932,7 @@ Rectangle {
                     isLoggedIn: root.isLoggedIn;
 
                     onBuy: {
-                        sendToScript({method: 'marketplace_checkout', itemId: item_id});
+                        sendToScript({method: 'marketplace_checkout', itemId: item_id, itemEdition: edition});
                     }
                     
                     onShowLicense: {
@@ -1142,7 +1130,7 @@ Rectangle {
                     console.log("A message with method 'updateMarketplaceQMLItem' was sent without an itemId!");
                     return;
                 }
-
+                marketplaceItem.edition = message.params.edition ? message.params.edition : -1;
                 MarketplaceScriptingInterface.getMarketplaceItem(message.params.itemId);
                 break;
         }

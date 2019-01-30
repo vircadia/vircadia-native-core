@@ -420,10 +420,10 @@ function fromQml(message) {
         case 'purchases':
         case 'marketplace cta':
         case 'mainPage':
-            ui.open(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+            openMarketplace();
             break;
-        default: // User needs to return to an individual marketplace item URL
-            ui.open(MARKETPLACE_URL + '/items/' + message.referrer, MARKETPLACES_INJECT_SCRIPT_URL);
+        default:
+            openMarketplace();
             break;
         }
         break;
@@ -435,13 +435,13 @@ function fromQml(message) {
     case 'maybeEnableHmdPreview':
         break; // do nothing here, handled in marketplaces.js
     case 'transactionHistory_linkClicked':
-        ui.open(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.itemId);
         break;
     case 'goToMarketplaceMainPage':
-        ui.open(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
         break;
     case 'goToMarketplaceItemPage':
-        ui.open(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.itemId);
         break;
     case 'refreshConnections':
         print('Refreshing Connections...');

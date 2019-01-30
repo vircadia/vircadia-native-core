@@ -41,6 +41,7 @@ Rectangle {
     property bool available: false
     property string created_at: ""
     property bool isLoggedIn: false;
+    property int edition: -1;
     
     onCategoriesChanged: {
         categoriesListModel.clear();
@@ -228,8 +229,8 @@ Rectangle {
             }
             height: 50 
 
-            text: root.available ? (root.price ? root.price : "FREE") : "UNAVAILABLE (not for sale)"
-            enabled: root.available
+            text: root.edition >= 0 ? "UPGRADE FOR FREE" : (root.available ?  (root.price ? root.price : "FREE") : "UNAVAILABLE (not for sale)")
+            enabled: root.edition >= 0 || root.available
             buttonGlyph: root.available ? (root.price ? hifi.glyphs.hfc : "") : ""
             color: hifi.buttons.blue
             

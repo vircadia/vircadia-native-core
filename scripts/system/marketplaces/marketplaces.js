@@ -19,6 +19,7 @@ var selectionDisplay = null; // for gridTool.js to ignore
 var AppUi = Script.require('appUi');
 Script.include("/~/system/libraries/gridTool.js");
 Script.include("/~/system/libraries/connectionUtils.js");
+Script.include("/~/system/libraries/accountUtils.js");
 
 var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
 var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
@@ -156,13 +157,12 @@ function onMarketplaceOpen(referrer) {
     }
 }
 
-function openMarketplace(optionalItem) {
+function openMarketplace(optionalItem, edition) {
     ui.open(MARKETPLACE_QML_PATH);
-    
     if (optionalItem) {
         ui.tablet.sendToQml({
             method: 'updateMarketplaceQMLItem',
-            params: { itemId: optionalItem }
+            params: { itemId: optionalItem, edition: edition }
         });
     }
 }
@@ -486,7 +486,6 @@ function onWebEventReceived(message) {
     } else if (message.type === "WALLET_SETUP") {
         setupWallet('marketplace cta');
     } else if (message.type === "MY_ITEMS") {
-        referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = "";
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         wireQmlEventBridge(true);
@@ -519,7 +518,6 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     if (message.messageSrc === "HTML") {
         return;
     }
-    console.log(JSON.stringify(message));
     switch (message.method) {
     case 'gotoBank':
         ui.close();
@@ -548,11 +546,10 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         openWallet();
         break;
     case 'checkout_cancelClicked':
-        openMarketplace(message.params);
+        openMarketplace(message.itemId);
         break;
     case 'header_goToPurchases':
     case 'checkout_goToPurchases':
-        referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = message.filterText;
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         break;
@@ -602,13 +599,13 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         }
         break;
     case 'header_marketplaceImageClicked':
-        openMarketplace(message.referrerURL);
+        openMarketplace();
         break;
     case 'purchases_goToMarketplaceClicked':
         openMarketplace();
         break;
     case 'updateItemClicked':
-        openMarketplace(message.upgradeUrl + "?edition=" + message.itemEdition);
+        openMarketplace(message.itemId, message.itemEdition);
         break;
     case 'passphrasePopup_cancelClicked':
     case 'needsLogIn_cancelClicked':
@@ -638,10 +635,10 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         ContextOverlay.requestOwnershipVerification(message.entity);
         break;
     case 'inspectionCertificate_showInMarketplaceClicked':
-        openMarketplace(message.marketplaceUrl);
+        console.log("INSPECTION CERTIFICATE SHOW IN MARKETPLACE CLICKED: " + message.itemId);
+        openMarketplace(message.itemId);
         break;
     case 'header_myItemsClicked':
-        referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = "";
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         wireQmlEventBridge(true);
@@ -750,11 +747,8 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         Keyboard.raised = false;
     }
 
-    if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
-        ContextOverlay.isInMarketplaceInspectionMode = true;
-    } else {
-        ContextOverlay.isInMarketplaceInspectionMode = false;
-    }
+    ContextOverlay.isInMarketplaceInspectionMode = false;
+
 
     if (onInspectionCertificateScreen) {
         setCertificateInfo(contextOverlayEntity);
