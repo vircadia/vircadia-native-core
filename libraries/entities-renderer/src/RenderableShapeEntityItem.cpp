@@ -53,7 +53,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
         }
 
         auto mat = _materials.find("0");
-        if (mat != _materials.end() && mat->second.needsUpdate()) {
+        if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
             return true;
         }
 
@@ -188,7 +188,7 @@ bool ShapeEntityRenderer::useMaterialPipeline(const graphics::MultiMaterial& mat
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
     auto mat = _materials.find("0");
-    if (mat != _materials.end() && mat->second.needsUpdate()) {
+    if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
         RenderPipelines::updateMultiMaterial(mat->second);
     }
 

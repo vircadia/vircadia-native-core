@@ -409,11 +409,11 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 
                 material->setTextures(textureMap);
                 _areTexturesLoaded = false;
-
-                // If we only use cached textures, they should all be loaded
-                areTexturesLoaded();
             }
         }
+
+        // If we only use cached textures, they should all be loaded
+        areTexturesLoaded();
     } else {
         qCWarning(modelnetworking) << "Ignoring setTextures(); geometry not ready";
     }
@@ -422,10 +422,7 @@ void Geometry::setTextures(const QVariantMap& textureMap) {
 bool Geometry::areTexturesLoaded() const {
     if (!_areTexturesLoaded) {
         for (auto& material : _materials) {
-            // Check if material textures are loaded
-            bool materialMissingTexture = material->isMissingTexture();
-
-            if (materialMissingTexture) {
+            if (material->isMissingTexture()) {
                 return false;
             }
 
