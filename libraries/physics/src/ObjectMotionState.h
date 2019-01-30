@@ -58,7 +58,8 @@ inline QString motionTypeToString(PhysicsMotionType motionType) {
 enum MotionStateType {
     MOTIONSTATE_TYPE_INVALID,
     MOTIONSTATE_TYPE_ENTITY,
-    MOTIONSTATE_TYPE_AVATAR
+    MOTIONSTATE_TYPE_AVATAR,
+    MOTIONSTATE_TYPE_DETAILED
 };
 
 // The update flags trigger two varieties of updates: "hard" which require the body to be pulled

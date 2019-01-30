@@ -20,6 +20,9 @@ public:
     virtual QString getName() const = 0;
     virtual QString getOculusUserID() const = 0;
 
+    virtual bool init() = 0;
+    virtual void shutdown() = 0;
+
     virtual bool isRunning() const = 0;
 
     virtual void requestNonceAndUserID(NonceUserIDCallback callback) = 0;
