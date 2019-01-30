@@ -3308,8 +3308,7 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
             direction = (zSpeed * forward) + (xSpeed * right);
             // Normalize direction.
             direction /= glm::length(direction);
-            float scale = scaleSpeedByDirection(direction, _walkSpeed.get(), _walkBackwardSpeed.get());
-            return getSensorToWorldScale() * scale * direction;
+            return getSensorToWorldScale() * direction * _sprintSpeed.get();
         } else {
             return Vectors::ZERO;
         }
