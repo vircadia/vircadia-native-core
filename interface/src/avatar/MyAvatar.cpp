@@ -5300,6 +5300,16 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     bool tellHandler { false };
 
     _avatarGrabsLock.withWriteLock([&] {
+
+        std::map<QUuid, GrabPointer>::iterator itr;
+        itr = _avatarGrabs.find(grabID);
+        if (itr != _avatarGrabs.end()) {
+            GrabPointer grab = itr->second;
+            if (grab) {
+                grab->setDeleted(true);
+            }
+        }
+
         if (_avatarGrabData.remove(grabID)) {
             _grabsToDelete.push_back(grabID);
             tellHandler = true;

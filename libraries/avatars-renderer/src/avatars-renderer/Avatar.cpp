@@ -412,6 +412,9 @@ void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& g
             if (!grab || !grab->getActionID().isNull()) {
                 continue; // the accumulated value isn't used, in this case.
             }
+            if (grab->getDeleted()) {
+                continue;
+            }
 
             glm::vec3 jointTranslation = getAbsoluteJointTranslationInObjectFrame(grab->getParentJointIndex());
             glm::quat jointRotation = getAbsoluteJointRotationInObjectFrame(grab->getParentJointIndex());

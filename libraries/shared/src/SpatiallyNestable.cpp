@@ -1390,7 +1390,12 @@ void SpatiallyNestable::removeGrab(GrabPointer grab) {
 bool SpatiallyNestable::hasGrabs() {
     bool result { false };
     _grabsLock.withReadLock([&] {
-        result = !_grabs.isEmpty();
+        foreach (const GrabPointer &grab, _grabs) {
+            if (grab && !grab->getDeleted()) {
+                result = true;
+                break;
+            }
+        }
     });
     return result;
 }
