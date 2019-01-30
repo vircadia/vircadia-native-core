@@ -128,7 +128,8 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
     }
 
     // Data
-    if (faceCamera != _faceCamera || glow != _glow) {
+    bool faceCameraChanged = faceCamera != _faceCamera;
+    if (faceCameraChanged || glow != _glow) {
         _faceCamera = faceCamera;
         _glow = glow;
         updateData();
@@ -148,7 +149,7 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         _colors = entity->getStrokeColors();
         _color = toGlm(entity->getColor());
     }
-    if (_isUVModeStretch != isUVModeStretch || pointsChanged || widthsChanged || normalsChanged || colorsChanged || textureChanged) {
+    if (_isUVModeStretch != isUVModeStretch || pointsChanged || widthsChanged || normalsChanged || colorsChanged || textureChanged || faceCameraChanged) {
         _isUVModeStretch = isUVModeStretch;
         updateGeometry();
     }
@@ -220,11 +221,17 @@ void PolyLineEntityRenderer::updateGeometry() {
         // For last point we can assume binormals are the same since it represents the last two vertices of quad
         if (i < maxNumVertices - 1) {
             glm::vec3 tangent = _points[i + 1] - point;
-            binormal = glm::normalize(glm::cross(tangent, normal));
 
-            // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
-            if (binormal.x != binormal.x) {
-                continue;
+            if (_faceCamera) {
+                // In faceCamera mode, we actually pass the tangent, and recompute the binormal in the shader
+                binormal = tangent;
+            } else {
+                binormal = glm::normalize(glm::cross(tangent, normal));
+
+                // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
+                if (binormal.x != binormal.x) {
+                    continue;
+                }
             }
         }
 

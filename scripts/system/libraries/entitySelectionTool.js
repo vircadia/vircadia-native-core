@@ -1013,6 +1013,8 @@ SelectionDisplay = (function() {
             return null;
         }
 
+        // We want to first check the drawInFront overlays (i.e. the handles, but really everything except the selectionBoxes)
+        // so that you can click on them even when they're behind things
         var overlayIncludesLayered = overlayIncludes.filter(function (value, index, arr) {
             return value != selectionBox && value != iconSelectionBox;
         });
@@ -1023,7 +1025,7 @@ SelectionDisplay = (function() {
                 return value == selectionBox || value == iconSelectionBox;
             });
             if (overlayIncludesNonLayered.length > 0) {
-                intersectObj = Overlays.findRayIntersection(queryRay, true, [], overlayExcludes);
+                intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludesNonLayered, overlayExcludes);
             }
         }
 
