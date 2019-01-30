@@ -1391,7 +1391,7 @@ bool SpatiallyNestable::hasGrabs() {
     bool result { false };
     _grabsLock.withReadLock([&] {
         foreach (const GrabPointer &grab, _grabs) {
-            if (grab && !grab->getDeleted()) {
+            if (grab && !grab->getReleased()) {
                 result = true;
                 break;
             }

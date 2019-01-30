@@ -412,7 +412,7 @@ void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& g
             if (!grab || !grab->getActionID().isNull()) {
                 continue; // the accumulated value isn't used, in this case.
             }
-            if (grab->getDeleted()) {
+            if (grab->getReleased()) {
                 continue;
             }
 

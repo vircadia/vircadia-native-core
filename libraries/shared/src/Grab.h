@@ -49,7 +49,7 @@ public:
         _hand(newHand),
         _positionalOffset(newPositionalOffset),
         _rotationalOffset(newRotationalOffset),
-        _deleted(false) {}
+        _released(false) {}
 
     QByteArray toByteArray();
     bool fromByteArray(const QByteArray& grabData);
@@ -62,7 +62,7 @@ public:
         _positionalOffset = other->_positionalOffset;
         _rotationalOffset = other->_rotationalOffset;
         _actionID = other->_actionID;
-        _deleted = other->_deleted;
+        _released = other->_released;
         return *this;
     }
 
@@ -87,8 +87,8 @@ public:
     glm::quat getRotationalOffset() const { return _rotationalOffset; }
     void setRotationalOffset(glm::quat rotationalOffset) { _rotationalOffset = rotationalOffset; }
 
-    bool getDeleted() const { return _deleted; }
-    void setDeleted(bool value) { _deleted = value; }
+    bool getReleased() const { return _released; }
+    void setReleased(bool value) { _released = value; }
 
 protected:
     QUuid _actionID; // if an action is created in bullet for this grab, this is the ID
@@ -98,7 +98,7 @@ protected:
     QString _hand; // "left" or "right"
     glm::vec3 _positionalOffset; // relative to joint
     glm::quat _rotationalOffset; // relative to joint
-    bool _deleted { false }; // scheduled for deletion
+    bool _released { false }; // released and scheduled for deletion
 };
 
 

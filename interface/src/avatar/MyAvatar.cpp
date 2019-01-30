@@ -5306,7 +5306,10 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
         if (itr != _avatarGrabs.end()) {
             GrabPointer grab = itr->second;
             if (grab) {
-                grab->setDeleted(true);
+                grab->setReleased(true);
+                bool success;
+                SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
+                target->disableGrab(grab);
             }
         }
 
