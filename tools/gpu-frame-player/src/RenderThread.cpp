@@ -32,9 +32,12 @@ void RenderThread::initialize(QWindow* window) {
 
     _window = window;
 #ifdef USE_GL
+    _window->setFormat(getDefaultOpenGLSurfaceFormat());
     _context.setWindow(window);
     _context.create();
-    _context.makeCurrent();
+    if (!_context.makeCurrent()) {
+        qFatal("Unable to make context current");
+    }
     QOpenGLContextWrapper(_context.qglContext()).makeCurrent(_window);
     glGenTextures(1, &_externalTexture);
     glBindTexture(GL_TEXTURE_2D, _externalTexture);
