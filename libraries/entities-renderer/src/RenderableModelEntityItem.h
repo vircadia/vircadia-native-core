@@ -181,7 +181,7 @@ private:
 
     bool _hasModel { false };
     ModelPointer _model;
-    QString _lastTextures;
+    QString _textures;
     bool _texturesLoaded { false };
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
