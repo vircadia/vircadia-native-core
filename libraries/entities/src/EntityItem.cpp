@@ -88,13 +88,13 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_CREATED;
     requestedProperties += PROP_LAST_EDITED_BY;
-    //requestedProperties += PROP_ENTITY_HOST_TYPE;             // not sent over the wire
-    //requestedProperties += PROP_OWNING_AVATAR_ID;             // not sent over the wire
+    requestedProperties += PROP_ENTITY_HOST_TYPE;
+    requestedProperties += PROP_OWNING_AVATAR_ID;
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
     requestedProperties += PROP_CAN_CAST_SHADOW;
-    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
+    requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA;
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
@@ -179,6 +179,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
+
+    // these properties are not sent over the wire
+    requestedProperties -= PROP_ENTITY_HOST_TYPE;
+    requestedProperties -= PROP_OWNING_AVATAR_ID;
+    requestedProperties -= PROP_VISIBLE_IN_SECONDARY_CAMERA;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
