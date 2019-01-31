@@ -51,15 +51,14 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     QStringList tipTargetFlexCoefficientsValues = tipTargetFlexCoefficients.split(',', QString::SkipEmptyParts);
     for (int i = 0; i < tipTargetFlexCoefficientsValues.size(); i++) {
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
-            qCDebug(animation) << "tip target flex value " << tipTargetFlexCoefficientsValues[i].toDouble();
             _tipTargetFlexCoefficients[i] = (float)tipTargetFlexCoefficientsValues[i].toDouble();
         }
     }
     _numTipTargetFlexCoefficients = std::min(tipTargetFlexCoefficientsValues.size(), MAX_NUMBER_FLEX_VARIABLES);
+
     QStringList midTargetFlexCoefficientsValues = midTargetFlexCoefficients.split(',', QString::SkipEmptyParts);
     for (int i = 0; i < midTargetFlexCoefficientsValues.size(); i++) {
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
-            qCDebug(animation) << "mid target flex value " << midTargetFlexCoefficientsValues[i].toDouble();
             _midTargetFlexCoefficients[i] = (float)midTargetFlexCoefficientsValues[i].toDouble();
         }
     }
@@ -163,10 +162,10 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     IKTarget tipTarget;
     tipTarget.setType((int)IKTarget::Type::Spline);
     tipTarget.setIndex(_tipJointIndex);
-    AnimPose absPose = _skeleton->getAbsolutePose(_tipJointIndex, _poses);
-    glm::quat rotation = animVars.lookupRigToGeometry(_tipRotationVar, absPose.rot());
-    glm::vec3 translation = animVars.lookupRigToGeometry(_tipPositionVar, absPose.trans());
-    tipTarget.setPose(rotation, translation);
+    AnimPose absPoseTip = _skeleton->getAbsolutePose(_tipJointIndex, _poses);
+    glm::quat tipRotation = animVars.lookupRigToGeometry(_tipRotationVar, absPoseTip.rot());
+    glm::vec3 tipTranslation = animVars.lookupRigToGeometry(_tipPositionVar, absPoseTip.trans());
+    tipTarget.setPose(tipRotation, tipTranslation);
     tipTarget.setWeight(1.0f);
     tipTarget.setFlexCoefficients(_numTipTargetFlexCoefficients, _tipTargetFlexCoefficients);
     
@@ -231,12 +230,10 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         QString name = QString("ikTargetSplineTip");
         DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
 
-        if (_midJointIndex != -1) {
-            glm::mat4 geomTargetMat2 = createMatFromQuatAndPos(midTarget.getRotation(), midTarget.getTranslation());
-            glm::mat4 avatarTargetMat2 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat2;
-            QString name2 = QString("ikTargetSplineMid");
-            DebugDraw::getInstance().addMyAvatarMarker(name2, glmExtractRotation(avatarTargetMat2), extractTranslation(avatarTargetMat2), WHITE);
-        }
+        glm::mat4 geomTargetMat2 = createMatFromQuatAndPos(midTarget.getRotation(), midTarget.getTranslation());
+        glm::mat4 avatarTargetMat2 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat2;
+        QString name2 = QString("ikTargetSplineMid");
+        DebugDraw::getInstance().addMyAvatarMarker(name2, glmExtractRotation(avatarTargetMat2), extractTranslation(avatarTargetMat2), WHITE);
 
         glm::mat4 geomTargetMat3 = createMatFromQuatAndPos(baseTargetAbsolutePose.rot(), baseTargetAbsolutePose.trans());
         glm::mat4 avatarTargetMat3 = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat3;
@@ -370,9 +367,9 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
                 // interp based on ratio of the joint.
                 if (splineJointInfo.ratio < 1.0f) {
                     float flexInterp = splineJointInfo.ratio * (float)(numFlexCoeff - 1);
-                    int startCoeff = floor(flexInterp);
+                    int startCoeff = (int)glm::floor(flexInterp);
                     float partial = flexInterp - startCoeff;
-                    interpedCoefficient = target.getFlexCoefficient(startCoeff) * (1 - partial) + target.getFlexCoefficient(startCoeff + 1) * partial;
+                    interpedCoefficient = target.getFlexCoefficient(startCoeff) * (1.0f - partial) + target.getFlexCoefficient(startCoeff + 1) * partial;
                 } else {
                     interpedCoefficient = target.getFlexCoefficient(numFlexCoeff - 1);
                 }
@@ -404,7 +401,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
             }
            
             if (!chainInfoOut.setRelativePoseAtJointIndex(splineJointInfo.jointIndex, relPose)) {
-                qCDebug(animation) << "we didn't find the joint index for the spline!!!!";
+                qCDebug(animation) << "error: joint not found in spline chain";
             }
 
             parentAbsPose = flexedAbsPose;

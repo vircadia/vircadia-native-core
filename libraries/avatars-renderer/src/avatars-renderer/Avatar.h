@@ -558,7 +558,6 @@ protected:
     float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
     glm::vec3 getDisplayNamePosition() const;
-    
 
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
