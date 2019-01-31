@@ -843,14 +843,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                             qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
                             continue;
                         }
-                        if (accessor.type == 3) {
-                            for (int n = 0; n < colors.size(); n = n + 4) {
-                                mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
-                            }
-                        } else {
-                            for (int n = 0; n < colors.size(); n = n + 3) {
-                                mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
-                            }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < colors.size() - 3; n += stride) {
+                            mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
                         }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
