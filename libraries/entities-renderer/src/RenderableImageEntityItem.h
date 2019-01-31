@@ -44,6 +44,7 @@ private:
 
     glm::u8vec3 _color;
     float _alpha;
+    PulsePropertyGroup _pulseProperties;
 
     glm::vec3 _dimensions;
 

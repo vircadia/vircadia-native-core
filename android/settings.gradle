@@ -3,3 +3,6 @@ project(':qt').projectDir = new File(settingsDir, 'libraries/qt')
 
 include ':interface'
 project(':interface').projectDir = new File(settingsDir, 'apps/interface')
+
+//include ':framePlayer'
+//project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')

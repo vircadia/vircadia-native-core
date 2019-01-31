@@ -149,7 +149,8 @@ protected:
     Size _end{ 0 };
     Sysmem _sysmem;
 
-
+    friend class Serializer;
+    friend class Deserializer;
     friend class BufferView;
     friend class Frame;
     friend class Batch;

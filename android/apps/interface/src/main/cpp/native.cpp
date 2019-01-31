@@ -493,6 +493,34 @@ Java_io_highfidelity_hifiinterface_SplashActivity_registerLoadCompleteListener(J
 
 }
 
+JNIEXPORT jstring JNICALL
+Java_io_highfidelity_hifiinterface_fragment_ProfileFragment_getDisplayName(JNIEnv *env,
+                                                                           jobject instance) {
+
+    QString displayName = AndroidHelper::instance().getDisplayName();
+    return env->NewStringUTF(displayName.toLatin1().data());
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_ProfileFragment_setDisplayName(JNIEnv *env,
+                                                                           jobject instance,
+                                                                           jstring name_) {
+    const char *c_name = env->GetStringUTFChars(name_, 0);
+    const QString name = QString::fromUtf8(c_name);
+    env->ReleaseStringUTFChars(name_, c_name);
+    AndroidHelper::instance().setDisplayName(name);
+}
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_hifiinterface_fragment_ProfileFragment_setAvatarUrl(JNIEnv *env,
+                                                                         jobject instance,
+                                                                         jstring url_) {
+    const char *url = env->GetStringUTFChars(url_, 0);
+    QString avatarUrl = QString::fromUtf8(url);
+    AndroidHelper::instance().setMyAvatarUrl(avatarUrl);
+    env->ReleaseStringUTFChars(url_, url);
+}
+
 JNIEXPORT void JNICALL
 Java_io_highfidelity_hifiinterface_MainActivity_logout(JNIEnv *env, jobject instance) {
     DependencyManager::get<AccountManager>()->logout();

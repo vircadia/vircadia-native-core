@@ -11,6 +11,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 namespace entity {
     enum Shape {
         Triangle,
@@ -58,7 +60,7 @@ public:
     EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -99,9 +101,12 @@ public:
     virtual void computeShapeInfo(ShapeInfo& info) override;
     virtual ShapeType getShapeType() const override;
 
+    PulsePropertyGroup getPulseProperties() const;
+
 protected:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
+    PulsePropertyGroup _pulseProperties;
     entity::Shape _shape { entity::Shape::Sphere };
 
     //! This is SHAPE_TYPE_ELLIPSOID rather than SHAPE_TYPE_NONE to maintain

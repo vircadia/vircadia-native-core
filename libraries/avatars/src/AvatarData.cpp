@@ -632,9 +632,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     // include jointData if there is room for the most minimal section. i.e. no translations or rotations.
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, AvatarDataPacket::minJointDataSize(numJoints)) {
-        // Allow for faux joints + translation bit-vector:
-        const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat)
-            + jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE;
+        // Minimum space required for another rotation joint -
+        // size of joint + following translation bit-vector + translation scale + faux joints:
+        const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat) + jointBitVectorSize +
+            sizeof(float) + AvatarDataPacket::FAUX_JOINTS_SIZE;
+
         auto startSection = destinationBuffer;
 
         // compute maxTranslationDimension before we send any joint data.
@@ -724,6 +726,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             const JointData& data = joints[i];
             const JointData& last = lastSentJointData[i];
 
+            // Note minSizeForJoint is conservative since there isn't a following bit-vector + scale.
             if (packetEnd - destinationBuffer >= minSizeForJoint) {
                 if (!data.translationIsDefaultPose) {
                     if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
@@ -2900,6 +2903,7 @@ QScriptValue RayToAvatarIntersectionResultToScriptValue(QScriptEngine* engine, c
     obj.setProperty("intersection", intersection);
     QScriptValue surfaceNormal = vec3ToScriptValue(engine, value.surfaceNormal);
     obj.setProperty("surfaceNormal", surfaceNormal);
+    obj.setProperty("jointIndex", value.jointIndex);
     obj.setProperty("extraInfo", engine->toScriptValue(value.extraInfo));
     return obj;
 }
@@ -2919,6 +2923,7 @@ void RayToAvatarIntersectionResultFromScriptValue(const QScriptValue& object, Ra
     if (surfaceNormal.isValid()) {
         vec3FromScriptValue(surfaceNormal, value.surfaceNormal);
     }
+    value.jointIndex = object.property("jointIndex").toInt32();
     value.extraInfo = object.property("extraInfo").toVariant().toMap();
 }
 
@@ -3010,7 +3015,6 @@ void AvatarData::clearAvatarGrabData(const QUuid& grabID) {
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabData.remove(grabID)) {
             _avatarGrabDataChanged = true;
-            _deletedAvatarGrabs.insert(grabID);
         }
     });
 }

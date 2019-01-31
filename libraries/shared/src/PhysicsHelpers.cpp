@@ -78,6 +78,10 @@ int32_t Physics::getDefaultCollisionMask(int32_t group) {
             return BULLET_COLLISION_MASK_MY_AVATAR;
         case  BULLET_COLLISION_GROUP_OTHER_AVATAR:
             return BULLET_COLLISION_MASK_OTHER_AVATAR;
+        case BULLET_COLLISION_GROUP_DETAILED_AVATAR:
+            return BULLET_COLLISION_MASK_DETAILED_AVATAR;
+        case BULLET_COLLISION_GROUP_DETAILED_RAY:
+            return BULLET_COLLISION_MASK_DETAILED_RAY;
         default:
             break;
     };
