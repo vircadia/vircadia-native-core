@@ -39,6 +39,7 @@ public class QuestQtActivity extends QtActivity {
             keepInterfaceRunning = true;
             launchedQuestMode = true;
             moveTaskToBack(true);
+            startActivity(new Intent(this, QuestRenderActivity.class));
         });
     }
 

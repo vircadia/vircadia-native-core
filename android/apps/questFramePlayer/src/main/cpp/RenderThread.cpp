@@ -194,12 +194,9 @@ void RenderThread::renderFrame() {
         // Quest
         auto frameCorrection = _correction * ovr::toGlm(tracking.HeadPose.Pose);
         _backend->setCameraCorrection(glm::inverse(frameCorrection), frame->view);
-        vec4 fovs[2];
         ovr::for_each_eye([&](ovrEye eye){
             const auto& eyeInfo = tracking.Eye[eye];
             eyeProjections[eye] = ovr::toGlm(eyeInfo.ProjectionMatrix);
-            auto& fov = fovs[eye];
-            ovrMatrix4f_ExtractFov(&eyeInfo.ProjectionMatrix, &fov.x, &fov.y, &fov.z, &fov.w);
             eyeOffsets[eye] = ovr::toGlm(eyeInfo.ViewMatrix);
         });
         _backend->recycle();

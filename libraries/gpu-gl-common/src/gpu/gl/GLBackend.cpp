@@ -434,6 +434,9 @@ void GLBackend::render(const Batch& batch) {
     GL_PROFILE_RANGE(render_gpu_gl, batch.getName().c_str());
 
     _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
+    // FIXME move this to between the transfer and draw passes, so that
+    // framebuffer setup can see the proper stereo state and enable things 
+    // like foveation
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
     bool savedStereo = _stereo._enable;

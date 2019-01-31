@@ -118,7 +118,6 @@ public:
     static ContextMetricSize textureResourcePopulatedGPUMemSize;
     static ContextMetricSize textureResourceIdealGPUMemSize;
 
-protected:
     virtual bool isStereo() const {
         return _stereo.isStereo();
     }
@@ -128,6 +127,7 @@ protected:
             eyeProjections[i] = _stereo._eyeProjections[i];
         }
     }
+protected:
 
     void getStereoViews(mat4* eyeViews) const {
         for (int i = 0; i < 2; ++i) {
