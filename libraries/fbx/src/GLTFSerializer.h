@@ -772,6 +772,7 @@ private:
                        QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
     std::tuple<bool, QByteArray> requestData(QUrl& url);
+    std::tuple<bool, QByteArray> requestEmbeddedData(QString binaryUrl);
     QNetworkReply* request(QUrl& url, bool isTest);
     bool doesResourceExist(const QString& url);
 

@@ -939,10 +939,15 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
 }
 
 bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
-    QUrl binaryUrl = _url.resolved(url);
-
     bool success;
-    std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+
+    if (url.contains("data:application/octet-stream;base64,") || url.contains("data:image/png;base64,") || url.contains("data:image/jpeg;base64,")) {
+        QString binaryUrl = url.split(",")[1];
+        std::tie<bool, QByteArray>(success, outdata) = requestEmbeddedData(binaryUrl); 
+    } else {
+        QUrl binaryUrl = _url.resolved(url);
+        std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+    }
     
     return success;
 }
@@ -973,6 +978,13 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     } else {
         return std::make_tuple(false, QByteArray());
     }
+}
+
+std::tuple<bool, QByteArray> GLTFSerializer::requestEmbeddedData(QString binaryUrl) {
+    QByteArray urlBin = binaryUrl.toUtf8();
+    QByteArray result = QByteArray::fromBase64(urlBin);
+
+    return std::make_tuple(true, result); 
 }
 
 
