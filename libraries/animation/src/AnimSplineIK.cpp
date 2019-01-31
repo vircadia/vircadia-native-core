@@ -52,7 +52,6 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
             _tipTargetFlexCoefficients[i] = tipTargetFlexCoefficients[i];
         }
-        
      }
     _numTipTargetFlexCoefficients = std::min((int)tipTargetFlexCoefficients.size(), MAX_NUMBER_FLEX_VARIABLES);
 
@@ -70,7 +69,6 @@ AnimSplineIK::~AnimSplineIK() {
 }
 
 const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
-    
     assert(_children.size() == 1);
     if (_children.size() != 1) {
         return _poses;
@@ -135,8 +133,6 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     _poses[_baseJointIndex] = baseParentAbsPose.inverse() * baseTargetAbsolutePose;
     _poses[_baseJointIndex].scale() = glm::vec3(1.0f);
 
-    
-
     // initialize the middle joint target
     IKTarget midTarget;
     midTarget.setType((int)IKTarget::Type::Spline);
@@ -167,7 +163,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     tipTarget.setPose(tipRotation, tipTranslation);
     tipTarget.setWeight(1.0f);
     tipTarget.setFlexCoefficients(_numTipTargetFlexCoefficients, _tipTargetFlexCoefficients);
-    
+
     // solve the upper spine spline
     AnimChain upperJointChain;
     AnimPoseVec finalAbsolutePoses;
@@ -241,7 +237,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
 
 
     } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
-        
+
         // remove markers if they were added last frame.
         QString name = QString("ikTargetSplineTip");
         DebugDraw::getInstance().removeMyAvatarMarker(name);
@@ -374,9 +370,9 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
                 }
             }
             ::blend(1, &absolutePoses[splineJointInfo.jointIndex], &desiredAbsPose, interpedCoefficient, &flexedAbsPose);
-            
+
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
-            
+
             bool constrained = false;
             if (splineJointInfo.jointIndex != base) {
                 // constrain the amount the spine can stretch or compress
@@ -398,7 +394,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
                     relPose.trans() = glm::vec3(0.0f);
                 }
             }
-           
+
             if (!chainInfoOut.setRelativePoseAtJointIndex(splineJointInfo.jointIndex, relPose)) {
                 qCDebug(animation) << "error: joint not found in spline chain";
             }

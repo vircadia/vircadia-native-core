@@ -44,7 +44,7 @@ static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const 
 }
 
 static glm::vec3 computeSpine2WithHeadHipsSpline(MyAvatar* myAvatar, AnimPose hipsIKTargetPose, AnimPose headIKTargetPose) {
-  
+
     // the the ik targets to compute the spline with
     CubicHermiteSplineFunctorWithArcLength splineFinal = computeSplineFromTipAndBase(headIKTargetPose, hipsIKTargetPose);
 
