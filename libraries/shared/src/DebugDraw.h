@@ -47,6 +47,16 @@ public:
      * @param {Vec4} color - color of line, each component should be in the zero to one range.  x = red, y = blue, z = green, w = alpha.
      */
     Q_INVOKABLE void drawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec4& color);
+    
+    /**jsdoc
+    * Draws a line in world space, but it will only be visible for a single frame.
+    * @function DebugDraw.drawRay
+    * @param {Vec3} start - start position of line in world space.
+    * @param {Vec3} end - end position of line in world space.
+    * @param {Vec4} color - color of line, each component should be in the zero to one range.  x = red, y = blue, z = green, w = alpha.
+    */
+    Q_INVOKABLE void drawRays(const std::vector<std::pair<glm::vec3, glm::vec3>>& lines, const glm::vec4& color,
+                              const glm::vec3& translation = glm::vec3(0.0f, 0.0f, 0.0f), const glm::quat& rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f));
 
     /**jsdoc
      * Adds a debug marker to the world. This marker will be drawn every frame until it is removed with DebugDraw.removeMarker.

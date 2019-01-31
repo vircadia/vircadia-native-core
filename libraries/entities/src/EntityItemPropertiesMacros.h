@@ -383,13 +383,29 @@ inline QRect QRect_convertFromScriptValue(const QScriptValue& v, bool& isValid) 
         }                                                                \
     }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S)               \
-    QScriptValue P = object.property(#P);                         \
-    if (P.isValid()) {                                            \
-        QString newValue = P.toVariant().toString();              \
-        if (_defaultSettings || newValue != get##S##AsString()) { \
-            set##S##FromString(newValue);                         \
-        }                                                         \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(P, S)                    \
+    {                                                                 \
+        QScriptValue P = object.property(#P);                         \
+        if (P.isValid()) {                                            \
+            QString newValue = P.toVariant().toString();              \
+            if (_defaultSettings || newValue != get##S##AsString()) { \
+                set##S##FromString(newValue);                         \
+            }                                                         \
+        }                                                             \
+    }
+
+#define COPY_GROUP_PROPERTY_FROM_QSCRIPTVALUE_ENUM(G, P, S)               \
+    {                                                                     \
+        QScriptValue G = object.property(#G);                             \
+        if (G.isValid()) {                                                \
+            QScriptValue P = G.property(#P);                              \
+            if (P.isValid()) {                                            \
+                QString newValue = P.toVariant().toString();              \
+                if (_defaultSettings || newValue != get##S##AsString()) { \
+                    set##S##FromString(newValue);                         \
+                }                                                         \
+            }                                                             \
+        }                                                                 \
     }
 
 #define DEFINE_PROPERTY_GROUP(N, n, T)           \

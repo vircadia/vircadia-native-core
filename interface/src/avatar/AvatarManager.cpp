@@ -43,6 +43,7 @@
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
+#include "DebugDraw.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
@@ -396,21 +397,45 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             if (isInPhysics) {
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
+                auto& detailedMotionStates = avatar->getDetailedMotionStates();
+                for (auto& mState : detailedMotionStates) {
+                    transaction.objectsToRemove.push_back(mState);
+                }
+                avatar->resetDetailedMotionStates();
+                
             } else {
-                ShapeInfo shapeInfo;
-                avatar->computeShapeInfo(shapeInfo);
-                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-                if (shape) {
-                    AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-                    motionState->setMass(avatar->computeMass());
-                    avatar->_motionState = motionState;
-                    transaction.objectsToAdd.push_back(motionState);
+                if (avatar->getDetailedMotionStates().size() == 0) {
+                    avatar->createDetailedMotionStates(avatar);
+                    for (auto dMotionState : avatar->getDetailedMotionStates()) {
+                        transaction.objectsToAdd.push_back(dMotionState);
+                    }
+                }
+                if (avatar->getDetailedMotionStates().size() > 0) {
+                    ShapeInfo shapeInfo;
+                    avatar->computeShapeInfo(shapeInfo);
+                    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                    if (shape) {
+                        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                        motionState->setMass(avatar->computeMass());
+                        avatar->_motionState = motionState;
+                        transaction.objectsToAdd.push_back(motionState);
+                    } else {
+                        failedShapeBuilds.insert(avatar);
+                    }
                 } else {
                     failedShapeBuilds.insert(avatar);
                 }
             }
         } else if (isInPhysics) {
             transaction.objectsToChange.push_back(avatar->_motionState);
+            
+            auto& detailedMotionStates = avatar->getDetailedMotionStates();
+            for (auto& mState : detailedMotionStates) {
+                if (mState) {
+                    transaction.objectsToChange.push_back(mState);
+                }
+            }
+            
         }
     }
     _avatarsToChangeInPhysics.swap(failedShapeBuilds);
@@ -450,6 +475,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
     }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
+    avatar->tearDownGrabs();
 
     avatar->die();
     queuePhysicsChange(avatar);
@@ -509,6 +535,7 @@ void AvatarManager::deleteAllAvatars() {
         if (avatar != _myAvatar) {
             auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
             assert(!otherAvatar->_motionState);
+            assert(otherAvatar->getDetailedMotionStates().size() == 0);            
         }
     }
 }
@@ -601,103 +628,135 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
-                                                                 const QScriptValue& avatarIdsToDiscard) {
+                                                                 const QScriptValue& avatarIdsToDiscard,
+                                                                 bool pickAgainstMesh) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
-
-    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, pickAgainstMesh);
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
                                                                        const QVector<EntityItemID>& avatarsToInclude,
-                                                                       const QVector<EntityItemID>& avatarsToDiscard) {
+                                                                       const QVector<EntityItemID>& avatarsToDiscard,
+                                                                       bool pickAgainstMesh) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
-                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard),
+                                  Q_ARG(bool, pickAgainstMesh));
         return result;
     }
 
-    // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
-    // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
-    // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
-    // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
 
-    // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+    float distance = (float)INT_MAX;  // with FLT_MAX bullet rayTest does not return results 
+    glm::vec3 rayDirection = glm::normalize(ray.direction);
+    std::vector<MyCharacterController::RayAvatarResult> physicsResults = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(rayDirection), distance, QVector<uint>());
+    if (physicsResults.size() > 0) {
+        glm::vec3 rayDirectionInv = { rayDirection.x != 0.0f ? 1.0f / rayDirection.x : INFINITY,
+                                      rayDirection.y != 0.0f ? 1.0f / rayDirection.y : INFINITY,
+                                      rayDirection.z != 0.0f ? 1.0f / rayDirection.z : INFINITY };
 
-    std::vector<SortedAvatar> sortedAvatars;
-    auto avatarHashCopy = getHashCopy();
-    for (auto avatarData : avatarHashCopy) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
-        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
-            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
-            continue;
-        }
-
-        float distance = FLT_MAX;
-#if 0
-        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
-        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
-        AABox avatarBounds = avatarModel->getRenderableMeshBound();
-        if (avatarBounds.contains(ray.origin)) {
-            distance = 0.0f;
-        } else {
-            float boundDistance = FLT_MAX;
-            BoxFace face;
-            glm::vec3 surfaceNormal;
-            if (avatarBounds.findRayIntersection(ray.origin, ray.direction, boundDistance, face, surfaceNormal)) {
-                distance = boundDistance;
-            }
-        }
-#else
-        glm::vec3 start;
-        glm::vec3 end;
-        float radius;
-        avatar->getCapsule(start, end, radius);
-        findRayCapsuleIntersection(ray.origin, ray.direction, start, end, radius, distance);
-#endif
-
-        if (distance < FLT_MAX) {
-            sortedAvatars.emplace_back(distance, avatar);
-        }
-    }
-
-    if (sortedAvatars.size() > 1) {
-        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
-        std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
-    }
-
-    for (auto it = sortedAvatars.begin(); it != sortedAvatars.end(); ++it) {
-        const SortedAvatar& sortedAvatar = *it;
-        // We can exit once avatarCapsuleDistance > bestDistance
-        if (sortedAvatar.first > result.distance) {
-            break;
-        }
-
-        float distance = FLT_MAX;
-        BoxFace face;
+        MyCharacterController::RayAvatarResult rayAvatarResult;
+        AvatarPointer avatar = nullptr;
+        
+        BoxFace face = BoxFace::UNKNOWN_FACE;
         glm::vec3 surfaceNormal;
         QVariantMap extraInfo;
-        SkeletonModelPointer avatarModel = sortedAvatar.second->getSkeletonModel();
-        if (avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, ray.direction, distance, face, surfaceNormal, extraInfo, true)) {
-            if (distance < result.distance) {
-                result.intersects = true;
-                result.avatarID = sortedAvatar.second->getID();
-                result.distance = distance;
-                result.face = face;
-                result.surfaceNormal = surfaceNormal;
-                result.extraInfo = extraInfo;
+
+        for (auto &hit : physicsResults) {
+            auto avatarID = hit._intersectWithAvatar;
+            if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
+                (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID))) {
+                continue;
+            }
+            
+            if (_myAvatar->getSessionUUID() != avatarID) {
+                auto avatarMap = getHashCopy();
+                AvatarHash::iterator itr = avatarMap.find(avatarID);
+                if (itr != avatarMap.end()) {
+                    avatar = std::static_pointer_cast<Avatar>(*itr);
+                }
+            } else {
+                avatar = _myAvatar;
+            }
+            if (!hit._isBound) {
+                rayAvatarResult = hit;
+            } else if (avatar) {
+                auto &multiSpheres = avatar->getMultiSphereShapes();
+                if (multiSpheres.size() > 0) {
+                    std::vector<MyCharacterController::RayAvatarResult> boxHits;
+                    for (size_t i = 0; i < hit._boundJoints.size(); i++) {
+                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        auto &mSphere = multiSpheres[hit._boundJoints[i]];
+                        if (mSphere.isValid()) {
+                            float boundDistance = FLT_MAX;
+                            BoxFace face;
+                            glm::vec3 surfaceNormal;
+                            auto &bbox = mSphere.getBoundingBox();
+                            if (bbox.findRayIntersection(ray.origin, rayDirection, rayDirectionInv, boundDistance, face, surfaceNormal)) {
+                                MyCharacterController::RayAvatarResult boxHit;
+                                boxHit._distance = boundDistance;
+                                boxHit._intersect = true;
+                                boxHit._intersectionNormal = surfaceNormal;
+                                boxHit._intersectionPoint = ray.origin + boundDistance * rayDirection;
+                                boxHit._intersectWithAvatar = avatarID;
+                                boxHit._intersectWithJoint = mSphere.getJointIndex();
+                                boxHits.push_back(boxHit);
+                            }
+                        }
+                    }
+                    if (boxHits.size() > 0) {
+                        if (boxHits.size() > 1) {
+                            std::sort(boxHits.begin(), boxHits.end(), [](const MyCharacterController::RayAvatarResult& hitA,
+                                                                            const MyCharacterController::RayAvatarResult& hitB) {
+                                return hitA._distance < hitB._distance;
+                            });
+                        } 
+                        rayAvatarResult = boxHits[0];
+                    }
+                }
+            }
+            if (pickAgainstMesh) {
+                glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
+                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayDirection, rayAvatarResult._intersectWithJoint);
+
+                auto avatarOrientation = avatar->getWorldOrientation();
+                auto avatarPosition = avatar->getWorldPosition();
+
+                auto jointOrientation = avatarOrientation * avatar->getAbsoluteDefaultJointRotationInObjectFrame(rayAvatarResult._intersectWithJoint);
+                auto jointPosition = avatarPosition + (avatarOrientation * avatar->getAbsoluteDefaultJointTranslationInObjectFrame(rayAvatarResult._intersectWithJoint));
+
+                auto defaultFrameRayOrigin = jointPosition + jointOrientation * localRayOrigin;
+                auto defaultFrameRayPoint = jointPosition + jointOrientation * localRayPoint;
+                auto defaultFrameRayDirection = defaultFrameRayPoint - defaultFrameRayOrigin;
+
+                if (avatar->getSkeletonModel()->findRayIntersectionAgainstSubMeshes(defaultFrameRayOrigin, defaultFrameRayDirection, distance, face, surfaceNormal, extraInfo, true, false)) {
+                    auto newDistance = glm::length(vec3FromVariant(extraInfo["worldIntersectionPoint"]) - defaultFrameRayOrigin);
+                    rayAvatarResult._distance = newDistance;
+                    rayAvatarResult._intersectionPoint = ray.origin + newDistance * rayDirection;
+                    rayAvatarResult._intersectionNormal = surfaceNormal;
+                    extraInfo["worldIntersectionPoint"] = vec3toVariant(rayAvatarResult._intersectionPoint);
+                    break;
+                }
+            } else if (rayAvatarResult._intersect){
+                break;
             }
         }
+        if (rayAvatarResult._intersect) {
+            result.intersects = true;
+            result.avatarID = rayAvatarResult._intersectWithAvatar;
+            result.distance = rayAvatarResult._distance;
+            result.surfaceNormal = rayAvatarResult._intersectionNormal;
+            result.jointIndex = rayAvatarResult._intersectWithJoint;
+            result.intersection = ray.origin + rayAvatarResult._distance * rayDirection;
+            result.extraInfo = extraInfo;
+            result.face = face;
+        }
     }
-
-    if (result.intersects) {
-        result.intersection = ray.origin + ray.direction * result.distance;
-    }
-
     return result;
 }
 

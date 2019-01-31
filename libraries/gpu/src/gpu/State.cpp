@@ -33,19 +33,19 @@ State::Signature State::evalSignature(const Data& state) {
     if (state.cullMode != State::DEFAULT.cullMode) {
         signature.set(State::CULL_MODE);
     }
-    if (state.frontFaceClockwise != State::DEFAULT.frontFaceClockwise) {
+    if (state.flags.frontFaceClockwise != State::DEFAULT.flags.frontFaceClockwise) {
         signature.set(State::FRONT_FACE_CLOCKWISE);
     }
-    if (state.depthClampEnable != State::DEFAULT.depthClampEnable) {
+    if (state.flags.depthClampEnable != State::DEFAULT.flags.depthClampEnable) {
         signature.set(State::DEPTH_CLAMP_ENABLE);
     }
-    if (state.scissorEnable != State::DEFAULT.scissorEnable) {
+    if (state.flags.scissorEnable != State::DEFAULT.flags.scissorEnable) {
         signature.set(State::SCISSOR_ENABLE);
     }
-    if (state.multisampleEnable != State::DEFAULT.multisampleEnable) {
+    if (state.flags.multisampleEnable != State::DEFAULT.flags.multisampleEnable) {
         signature.set(State::MULTISAMPLE_ENABLE);
     }
-    if (state.antialisedLineEnable != State::DEFAULT.antialisedLineEnable) {
+    if (state.flags.antialisedLineEnable != State::DEFAULT.flags.antialisedLineEnable) {
         signature.set(State::ANTIALISED_LINE_ENABLE);
     }
     if (state.depthBias != State::DEFAULT.depthBias) {
@@ -69,7 +69,7 @@ State::Signature State::evalSignature(const Data& state) {
     if (state.sampleMask != State::DEFAULT.sampleMask) {
         signature.set(State::SAMPLE_MASK);
     }
-    if (state.alphaToCoverageEnable != State::DEFAULT.alphaToCoverageEnable) {
+    if (state.flags.alphaToCoverageEnable != State::DEFAULT.flags.alphaToCoverageEnable) {
         signature.set(State::ALPHA_TO_COVERAGE_ENABLE); 
     }
     if (state.blendFunction != State::DEFAULT.blendFunction) {
@@ -86,3 +86,28 @@ State::State(const Data& values) :
     _values(values) {
     _signature = evalSignature(_values);
 }
+
+
+template <typename T>
+static std::string hex(T t) {
+    std::stringstream stream;
+    stream << std::hex << t;
+    return stream.str();
+}
+
+std::string State::getKey() const {
+    std::string key;
+    key = hex(*(int*)&_values.depthBias);
+    key += ":" + hex(*(int*)&_values.depthBiasSlopeScale);
+    key += ":" + hex(_values.depthTest.getRaw());
+    key += ":" + hex(_values.stencilActivation.getRaw());
+    key += ":" + hex(_values.stencilTestFront.getRaw());
+    key += ":" + hex(_values.stencilTestBack.getRaw());
+    key += ":" + hex(_values.blendFunction.getRaw());
+    key += ":" + hex(_values.sampleMask);
+    // fillMode, cullMode, colorMaskWrite and the flags consume 32 bits alltogether
+    static_assert(0 == offsetof(State::Data, fillMode) % 4, "Validate fillMode offset");
+    key += ":" + hex(*(int*)&_values.fillMode);
+    return key;
+}
+

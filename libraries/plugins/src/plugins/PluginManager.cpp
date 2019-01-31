@@ -188,6 +188,22 @@ const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
     return steamClientPlugin;
 }
 
+const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
+    static OculusPlatformPluginPointer oculusPlatformPlugin;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // Now grab the dynamic plugins
+        for (auto loader : getLoadedPlugins()) {
+            OculusPlatformProvider* oculusPlatformProvider = qobject_cast<OculusPlatformProvider*>(loader->instance());
+            if (oculusPlatformProvider) {
+                oculusPlatformPlugin = oculusPlatformProvider->getOculusPlatformPlugin();
+                break;
+            }
+        }
+    });
+    return oculusPlatformPlugin;
+}
+
 const DisplayPluginList& PluginManager::getDisplayPlugins() {
     static std::once_flag once;
     static auto deviceAddedCallback = [](QString deviceName) {

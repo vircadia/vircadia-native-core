@@ -36,6 +36,7 @@ private:
 
     glm::u8vec3 _color;
     float _alpha;
+    PulsePropertyGroup _pulseProperties;
 
     bool _followCamera;
     uint32_t _majorGridEvery;

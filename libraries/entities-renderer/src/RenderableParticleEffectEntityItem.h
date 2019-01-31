@@ -94,6 +94,8 @@ private:
     BufferView _uniformBuffer;
     quint64 _lastSimulated { 0 };
 
+    PulsePropertyGroup _pulseProperties;
+
     NetworkTexturePointer _networkTexture;
     ScenePointer _scene;
 };

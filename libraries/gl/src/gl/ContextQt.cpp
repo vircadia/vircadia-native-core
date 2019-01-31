@@ -52,6 +52,11 @@ void Context::moveToThread(QThread* thread) {
 }
 
 void Context::debugMessageHandler(const QOpenGLDebugMessage& debugMessage) {
+    auto type = debugMessage.type();
+    if (type == QOpenGLDebugMessage::PerformanceType) {
+        return;
+    }
+
     auto severity = debugMessage.severity();
     switch (severity) {
         case QOpenGLDebugMessage::NotificationSeverity:
@@ -60,13 +65,13 @@ void Context::debugMessageHandler(const QOpenGLDebugMessage& debugMessage) {
         default:
             break;
     }
-    qDebug(glLogging) << debugMessage;
+    qWarning(glLogging) << debugMessage;
     return;
 }
 
 void Context::setupDebugLogging(QOpenGLContext *context) {
     QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(context);
-    QObject::connect(logger, &QOpenGLDebugLogger::messageLogged, nullptr, [](const QOpenGLDebugMessage& message){
+    QObject::connect(logger, &QOpenGLDebugLogger::messageLogged, context, [](const QOpenGLDebugMessage& message){
         Context::debugMessageHandler(message);
     });
     if (logger->initialize()) {
