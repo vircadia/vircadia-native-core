@@ -1850,6 +1850,7 @@ void Avatar::buildSpine2SplineRatioCache() {
         _spine2SplineRatio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
 
         CubicHermiteSplineFunctorWithArcLength defaultSpline = computeSplineFromTipAndBase(headRigDefaultPose, hipsRigDefaultPose);
+        //CubicHermiteSplineFunctorWithArcLength defaultSpline(headRigDefaultPose, hipsRigDefaultPose);
         // measure the total arc length along the spline
         float totalDefaultArcLength = defaultSpline.arcLength(1.0f);
         float t = defaultSpline.arcLengthInverse(_spine2SplineRatio * totalDefaultArcLength);

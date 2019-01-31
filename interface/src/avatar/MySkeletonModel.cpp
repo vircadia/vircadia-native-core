@@ -44,43 +44,13 @@ static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const 
 }
 
 static glm::vec3 computeSpine2WithHeadHipsSpline(MyAvatar* myAvatar, AnimPose hipsIKTargetPose, AnimPose headIKTargetPose) {
-    /*
-    AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
-
-    AnimPose hipsDefaultPoseAvatarSpace(myAvatar->getAbsoluteDefaultJointRotationInObjectFrame(myAvatar->getJointIndex("Hips")), myAvatar->getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar->getJointIndex("Hips")));
-    AnimPose headDefaultPoseAvatarSpace(myAvatar->getAbsoluteDefaultJointRotationInObjectFrame(myAvatar->getJointIndex("Head")), myAvatar->getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar->getJointIndex("Head")));
-    AnimPose spine2DefaultPoseAvatarSpace(myAvatar->getAbsoluteDefaultJointRotationInObjectFrame(myAvatar->getJointIndex("Spine2")), myAvatar->getAbsoluteDefaultJointTranslationInObjectFrame(myAvatar->getJointIndex("Spine2")));
-    AnimPose hipsDefaultPoseRigSpace = avatarToRigPose * hipsDefaultPoseAvatarSpace;
-    AnimPose headDefaultPoseRigSpace = avatarToRigPose * headDefaultPoseAvatarSpace;
-    AnimPose spine2DefaultPoseRigSpace = avatarToRigPose * spine2DefaultPoseAvatarSpace;
-        
-
-    glm::vec3 basePosition = hipsDefaultPoseRigSpace.trans();
-    glm::vec3 tipPosition = headDefaultPoseRigSpace.trans();
-    glm::vec3 spine2Position = spine2DefaultPoseRigSpace.trans();
-    glm::vec3 baseToTip = tipPosition - basePosition;
-    float baseToTipLength = glm::length(baseToTip);
-    glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
-    glm::vec3 baseToSpine2 = spine2Position - basePosition;
-    float ratio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
-
-    CubicHermiteSplineFunctorWithArcLength defaultSpline = computeSplineFromTipAndBase(headDefaultPoseRigSpace, hipsDefaultPoseRigSpace);
-    // measure the total arc length along the spline
-    float totalDefaultArcLength = defaultSpline.arcLength(1.0f);
-    float t = defaultSpline.arcLengthInverse(ratio * totalDefaultArcLength);
-    glm::vec3 defaultSplineSpine2Translation = defaultSpline(t);
-
-    glm::vec3 offset = spine2Position - defaultSplineSpine2Translation;
-
-    qCDebug(animation) << "the my skeleton model numbers are " << ratio << " and " << offset;
-    */
+  
     // the the ik targets to compute the spline with
     CubicHermiteSplineFunctorWithArcLength splineFinal = computeSplineFromTipAndBase(headIKTargetPose, hipsIKTargetPose);
 
     // measure the total arc length along the spline
     float totalArcLength = splineFinal.arcLength(1.0f);
     float tFinal = splineFinal.arcLengthInverse(myAvatar->getSpine2SplineRatio() * totalArcLength);
-
     glm::vec3 spine2Translation = splineFinal(tFinal);
 
     return spine2Translation + myAvatar->getSpine2SplineOffset();
@@ -287,14 +257,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
             !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
 
-            // if (avatarHeadPose.isValid()) {
-
             AnimPose headAvatarSpace(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
             AnimPose headRigSpace = avatarToRigPose * headAvatarSpace;
             AnimPose hipsRigSpace = sensorToRigPose * sensorHips;
             glm::vec3 spine2TargetTranslation = computeSpine2WithHeadHipsSpline(myAvatar, hipsRigSpace, headRigSpace);
-            //AnimPose rigSpine2(Quaternions::IDENTITY, spine2TargetTranslation);
-            //AnimPose rigSpine2 = sensorToRigPose * sensorSpine2;
 
             const float SPINE2_ROTATION_FILTER = 0.5f;
             AnimPose currentSpine2Pose;
