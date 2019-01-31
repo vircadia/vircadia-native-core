@@ -594,8 +594,28 @@ static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QStr
     READ_STRING(tipRotationVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(alphaVar, jsonObj, id, jsonUrl, nullptr);
     READ_STRING(enabledVar, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(tipTargetFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
-    READ_STRING(midTargetFlexCoefficients, jsonObj, id, jsonUrl, nullptr);
+
+    auto tipFlexCoefficientsValue = jsonObj.value("tipTargetFlexCoefficients");
+    if (!tipFlexCoefficientsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad or missing tip flex array";
+        return nullptr;
+    }
+    auto tipFlexCoefficientsArray = tipFlexCoefficientsValue.toArray();
+    std::vector<float> tipTargetFlexCoefficients;
+    for (const auto& value : tipFlexCoefficientsArray) {
+        tipTargetFlexCoefficients.push_back((float)value.toDouble());
+    }
+
+    auto midFlexCoefficientsValue = jsonObj.value("midTargetFlexCoefficients");
+    if (!midFlexCoefficientsValue.isArray()) {
+        qCCritical(animation) << "AnimNodeLoader, bad or missing mid flex array";
+        return nullptr;
+    }
+    auto midFlexCoefficientsArray = midFlexCoefficientsValue.toArray();
+    std::vector<float> midTargetFlexCoefficients;
+    for (const auto& midValue : midFlexCoefficientsArray) {
+        midTargetFlexCoefficients.push_back((float)midValue.toDouble());
+    }
 
     auto node = std::make_shared<AnimSplineIK>(id, alpha, enabled, interpDuration,
         baseJointName, midJointName, tipJointName,

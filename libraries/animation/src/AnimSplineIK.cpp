@@ -29,8 +29,8 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     const QString& tipRotationVar,
     const QString& alphaVar,
     const QString& enabledVar,
-    const QString& tipTargetFlexCoefficients,
-    const QString& midTargetFlexCoefficients) :
+    const std::vector<float> tipTargetFlexCoefficients,
+    const std::vector<float> midTargetFlexCoefficients) :
     AnimNode(AnimNode::Type::SplineIK, id),
     _alpha(alpha),
     _enabled(enabled),
@@ -48,21 +48,20 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     _enabledVar(enabledVar)
 {
 
-    QStringList tipTargetFlexCoefficientsValues = tipTargetFlexCoefficients.split(',', QString::SkipEmptyParts);
-    for (int i = 0; i < tipTargetFlexCoefficientsValues.size(); i++) {
+    for (int i = 0; i < tipTargetFlexCoefficients.size(); i++) {
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
-            _tipTargetFlexCoefficients[i] = (float)tipTargetFlexCoefficientsValues[i].toDouble();
+            _tipTargetFlexCoefficients[i] = tipTargetFlexCoefficients[i];
         }
-    }
-    _numTipTargetFlexCoefficients = std::min(tipTargetFlexCoefficientsValues.size(), MAX_NUMBER_FLEX_VARIABLES);
+        
+     }
+    _numTipTargetFlexCoefficients = std::min((int)tipTargetFlexCoefficients.size(), MAX_NUMBER_FLEX_VARIABLES);
 
-    QStringList midTargetFlexCoefficientsValues = midTargetFlexCoefficients.split(',', QString::SkipEmptyParts);
-    for (int i = 0; i < midTargetFlexCoefficientsValues.size(); i++) {
+    for (int i = 0; i < midTargetFlexCoefficients.size(); i++) {
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
-            _midTargetFlexCoefficients[i] = (float)midTargetFlexCoefficientsValues[i].toDouble();
+            _midTargetFlexCoefficients[i] = midTargetFlexCoefficients[i];
         }
     }
-    _numMidTargetFlexCoefficients = std::min(midTargetFlexCoefficientsValues.size(), MAX_NUMBER_FLEX_VARIABLES);
+    _numMidTargetFlexCoefficients = std::min((int)midTargetFlexCoefficients.size(), MAX_NUMBER_FLEX_VARIABLES);
 
 }
 

@@ -24,8 +24,8 @@ public:
         const QString& midPositionVar, const QString& midRotationVar,
         const QString& tipPositionVar, const QString& tipRotationVar,
         const QString& alphaVar, const QString& enabledVar,
-        const QString& tipTargetFlexCoefficients,
-        const QString& midTargetFlexCoefficients);
+        const std::vector<float> tipTargetFlexCoefficients,
+        const std::vector<float> midTargetFlexCoefficients);
 
 	virtual ~AnimSplineIK() override;
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;

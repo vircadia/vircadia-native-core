@@ -192,8 +192,8 @@
                                                                                     "tipRotationVar": "headRotation",
                                                                                     "alphaVar": "splineIKAlpha",
                                                                                     "enabledVar": "splineIKEnabled",
-                                                                                    "tipTargetFlexCoefficients": "1.0, 1.0, 1.0, 1.0, 1.0",
-                                                                                    "midTargetFlexCoefficients": "1.0, 1.0, 1.0"
+                                                                                    "tipTargetFlexCoefficients": [ 1.0, 1.0, 1.0, 1.0, 1.0 ],
+                                                                                    "midTargetFlexCoefficients": [ 1.0, 1.0, 1.0 ]
                                                                                 },
                                                                                 "children": [
                                                                                     {
