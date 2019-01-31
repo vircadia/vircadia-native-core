@@ -392,6 +392,9 @@ void OpenGLDisplayPlugin::customizeContext() {
 
         _drawTexturePipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTexture), scissorState);
 
+        _drawTextureSqueezePipeline =
+            gpu::Pipeline::create(gpu::Shader::createProgram(shader::display_plugins::program::DrawTextureWithVisionSqueeze), scissorState);
+
         _linearToSRGBPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureLinearToSRGB), scissorState);
 
         _SRGBToLinearPipeline = gpu::Pipeline::create(gpu::Shader::createProgram(DrawTextureSRGBToLinear), scissorState);
@@ -407,6 +410,7 @@ void OpenGLDisplayPlugin::customizeContext() {
 void OpenGLDisplayPlugin::uncustomizeContext() {
 
     _drawTexturePipeline.reset();
+    _drawTextureSqueezePipeline.reset();
     _linearToSRGBPipeline.reset();
     _SRGBToLinearPipeline.reset();
     _cursorPipeline.reset();
@@ -629,6 +633,10 @@ void OpenGLDisplayPlugin::compositePointer() {
     });
 }
 
+void OpenGLDisplayPlugin::setupCompositeScenePipeline(gpu::Batch& batch) {
+    batch.setPipeline(_drawTexturePipeline);
+}
+
 void OpenGLDisplayPlugin::compositeScene() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -637,8 +645,8 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
-        batch.setPipeline(_drawTexturePipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+        setupCompositeScenePipeline(batch);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
@@ -958,4 +966,3 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
 gpu::PipelinePointer OpenGLDisplayPlugin::getRenderTexturePipeline() {
     return _drawTexturePipeline;
 }
-

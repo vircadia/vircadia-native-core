@@ -100,6 +100,7 @@ protected:
 
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
     virtual void compositeLayers();
+    virtual void setupCompositeScenePipeline(gpu::Batch& batch);
     virtual void compositeScene();
     virtual void compositePointer();
     virtual void compositeExtra(){};
@@ -155,6 +156,7 @@ protected:
     gpu::PipelinePointer _mirrorHUDPipeline;
     gpu::ShaderPointer _mirrorHUDPS;
     gpu::PipelinePointer _drawTexturePipeline;
+    gpu::PipelinePointer _drawTextureSqueezePipeline;
     gpu::PipelinePointer _linearToSRGBPipeline;
     gpu::PipelinePointer _SRGBToLinearPipeline;
     gpu::PipelinePointer _cursorPipeline;

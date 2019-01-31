@@ -72,6 +72,10 @@ public:
     virtual StencilMaskMode getStencilMaskMode() const override { return StencilMaskMode::MESH; }
     virtual StencilMaskMeshOperator getStencilMaskMeshOperator() override;
 
+    virtual void updateParameters(float visionSqueezeX, float visionSqueezeY, float visionSqueezeTransition,
+                                  int visionSqueezePerEye, float visionSqueezeGroundPlaneY,
+                                  float visionSqueezeSpotlightSize) override;
+
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
@@ -102,4 +106,11 @@ private:
 
     std::array<graphics::MeshPointer, 2> _stencilMeshes;
     bool _stencilMeshesInitialized { false };
+
+    float _visionSqueezeX;
+    float _visionSqueezeY;
+    float _visionSqueezeTransition;
+    int _visionSqueezePerEye;
+    float _visionSqueezeGroundPlaneY;
+    float _visionSqueezeSpotlightSize;
 };
