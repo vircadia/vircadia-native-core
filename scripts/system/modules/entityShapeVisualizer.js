@@ -135,6 +135,7 @@ EntityShape.prototype = {
         overlayProperties.canCastShadows = false;
         overlayProperties.parentID = this.entityID;
         overlayProperties.collisionless = true;
+        overlayProperties.ignorePickIntersection = true;
         this.entity = Entities.addEntity(overlayProperties, "local");
         var PROJECTED_MATERIALS = false;
         this.materialEntity = Entities.addEntity({
