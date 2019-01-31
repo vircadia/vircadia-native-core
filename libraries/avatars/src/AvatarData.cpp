@@ -632,11 +632,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     // include jointData if there is room for the most minimal section. i.e. no translations or rotations.
     IF_AVATAR_SPACE(PACKET_HAS_JOINT_DATA, AvatarDataPacket::minJointDataSize(numJoints)) {
-        // Minimum space required for another rotation joint -
-        // size of joint + following translation bit-vector + translation scale + faux joints:
-        const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat) + jointBitVectorSize +
-            sizeof(float) + AvatarDataPacket::FAUX_JOINTS_SIZE;
-
+        // Allow for faux joints + translation bit-vector:
+        const ptrdiff_t minSizeForJoint = sizeof(AvatarDataPacket::SixByteQuat)
+            + jointBitVectorSize + AvatarDataPacket::FAUX_JOINTS_SIZE;
         auto startSection = destinationBuffer;
 
         // compute maxTranslationDimension before we send any joint data.
@@ -726,7 +724,6 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             const JointData& data = joints[i];
             const JointData& last = lastSentJointData[i];
 
-            // Note minSizeForJoint is conservative since there isn't a following bit-vector + scale.
             if (packetEnd - destinationBuffer >= minSizeForJoint) {
                 if (!data.translationIsDefaultPose) {
                     if (sendAll || last.translationIsDefaultPose || (!cullSmallChanges && last.translation != data.translation)
