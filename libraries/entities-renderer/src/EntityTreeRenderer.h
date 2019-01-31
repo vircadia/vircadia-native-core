@@ -118,9 +118,6 @@ public:
     // Access the workload Space
     workload::SpacePointer getWorkloadSpace() const { return _space; }
 
-    static void setGetAvatarUpOperator(std::function<glm::vec3()> getAvatarUpOperator) { _getAvatarUpOperator = getAvatarUpOperator; }
-    static glm::vec3 getAvatarUp() { return _getAvatarUpOperator(); }
-
     EntityEditPacketSender* getPacketSender();
 
 signals:
@@ -258,7 +255,6 @@ private:
     workload::SpacePointer _space{ new workload::Space() };
     workload::Transaction::Updates _spaceUpdates;
 
-    static std::function<glm::vec3()> _getAvatarUpOperator;
 };
 
 
