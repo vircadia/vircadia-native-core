@@ -38,6 +38,19 @@ const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 // FIXME - what we'd actually like to do is send to users at ~50% of their present rate down to 30hz. Assume 90 for now.
 const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
 
+const QRegularExpression AvatarMixer::suffixedNamePattern { R"(^\s*(.+)\s*_(\d)+\s*$)" };
+
+// Lexicographic comparison:
+bool AvatarMixer::SessionDisplayName::operator<(const SessionDisplayName& rhs) const {
+    if (_baseName < rhs._baseName) {
+        return true;
+    } else if (rhs._baseName < _baseName) {
+        return false;
+    } else {
+        return _suffix < rhs._suffix;
+    }
+}
+
 AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _slavePool(&_slaveSharedData)
@@ -313,27 +326,40 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
     bool sendIdentity = false;
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
         AvatarData& avatar = nodeData->getAvatar();
-        const QString& existingBaseDisplayName = nodeData->getBaseDisplayName();
-        if (--_sessionDisplayNames[existingBaseDisplayName].second <= 0) {
-            _sessionDisplayNames.remove(existingBaseDisplayName);
+        const QString& existingBaseDisplayName = nodeData->getAvatar().getSessionDisplayName();
+        if (!existingBaseDisplayName.isEmpty()) {
+            SessionDisplayName existingDisplayName { existingBaseDisplayName };
+
+            auto suffixMatch = suffixedNamePattern.match(existingBaseDisplayName);
+            if (suffixMatch.hasMatch()) {
+                existingDisplayName._baseName = suffixMatch.captured(1);
+                existingDisplayName._suffix = suffixMatch.captured(2).toInt();
+            }
+            _sessionDisplayNames.erase(existingDisplayName);
         }
 
         QString baseName = avatar.getDisplayName().trimmed();
         const QRegularExpression curses { "fuck|shit|damn|cock|cunt" }; // POC. We may eventually want something much more elaborate (subscription?).
         baseName = baseName.replace(curses, "*"); // Replace rather than remove, so that people have a clue that the person's a jerk.
-        const QRegularExpression trailingDigits { "\\s*(_\\d+\\s*)?(\\s*\\n[^$]*)?$" }; // trailing whitespace "_123" and any subsequent lines
+        static const QRegularExpression trailingDigits { R"(\s*(_\d+\s*)?(\s*\n[^$]*)?$)" }; // trailing whitespace "_123" and any subsequent lines
         baseName = baseName.remove(trailingDigits);
         if (baseName.isEmpty()) {
             baseName = "anonymous";
         }
 
-        QPair<int, int>& soFar = _sessionDisplayNames[baseName]; // Inserts and answers 0, 0 if not already present, which is what we want.
-        int& highWater = soFar.first;
-        nodeData->setBaseDisplayName(baseName);
-        QString sessionDisplayName = (highWater > 0) ? baseName + "_" + QString::number(highWater) : baseName;
+        SessionDisplayName newDisplayName { baseName };
+        auto nameIter = _sessionDisplayNames.lower_bound(newDisplayName);
+        if (nameIter != _sessionDisplayNames.end() && nameIter->_baseName == baseName) {
+            // Existing instance(s) of name; find first free suffix
+            while (*nameIter == newDisplayName && ++newDisplayName._suffix && ++nameIter != _sessionDisplayNames.end())
+                ;
+        }
+
+        _sessionDisplayNames.insert(newDisplayName);
+        QString sessionDisplayName = (newDisplayName._suffix > 0) ? baseName + "_" + QString::number(newDisplayName._suffix) : baseName;
         avatar.setSessionDisplayName(sessionDisplayName);
-        highWater++;
-        soFar.second++; // refcount
+        nodeData->setBaseDisplayName(baseName);
+
         nodeData->flagIdentityChange();
         nodeData->setAvatarSessionDisplayNameMustChange(false);
         sendIdentity = true;
@@ -410,9 +436,19 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
            QMutexLocker nodeDataLocker(&avatarNode->getLinkedData()->getMutex());
            AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
            const QString& baseDisplayName = nodeData->getBaseDisplayName();
-           // No sense guarding against very rare case of a node with no entry, as this will work without the guard and do one less lookup in the common case.
-           if (--_sessionDisplayNames[baseDisplayName].second <= 0) {
-               _sessionDisplayNames.remove(baseDisplayName);
+           const QString& displayName = nodeData->getAvatar().getSessionDisplayName();
+           SessionDisplayName exitingDisplayName { displayName };
+
+           auto suffixMatch = suffixedNamePattern.match(displayName);
+           if (suffixMatch.hasMatch()) {
+               exitingDisplayName._baseName = suffixMatch.captured(1);
+               exitingDisplayName._suffix = suffixMatch.captured(2).toInt();
+           }
+           auto displayNameIter = _sessionDisplayNames.find(exitingDisplayName);
+           if (displayNameIter == _sessionDisplayNames.end()) {
+               qCDebug(avatars, "Exiting avatar displayname", displayName, "not found");
+           } else {
+               _sessionDisplayNames.erase(displayNameIter);
            }
         }
 
