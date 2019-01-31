@@ -35,7 +35,7 @@ public:
     bool getPoleVectorEnabled() const { return _poleVectorEnabled; }
     int getIndex() const { return _index; }
     Type getType() const { return _type; }
-    int getNumFlexCoefficients() const { return _numFlexCoefficients; }
+    int getNumFlexCoefficients() const { return (int)_numFlexCoefficients; }
     float getFlexCoefficient(size_t chainDepth) const;
 
     void setPose(const glm::quat& rotation, const glm::vec3& translation);

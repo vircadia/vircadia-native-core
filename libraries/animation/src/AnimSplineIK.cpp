@@ -287,16 +287,6 @@ void AnimSplineIK::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
     lookUpIndices();
 }
 
-static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
-    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
-    glm::vec3 p0 = basePose.trans();
-    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
-    glm::vec3 p1 = tipPose.trans();
-    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
-
-    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
-}
-
 void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const {
 
     // build spline from tip to base
@@ -308,9 +298,9 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
         // set gain factors so that more curvature occurs near the tip of the spline.
         const float HIPS_GAIN = 0.5f;
         const float HEAD_GAIN = 1.0f;
-        spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+        spline = CubicHermiteSplineFunctorWithArcLength(tipPose.rot(), tipPose.trans(), basePose.rot(), basePose.trans(), HIPS_GAIN, HEAD_GAIN);
     } else {
-        spline = computeSplineFromTipAndBase(tipPose, basePose);
+        spline = CubicHermiteSplineFunctorWithArcLength(tipPose.rot(),tipPose.trans(), basePose.rot(), basePose.trans());
     }
     float totalArcLength = spline.arcLength(1.0f);
 
@@ -437,9 +427,9 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
         // set gain factors so that more curvature occurs near the tip of the spline.
         const float HIPS_GAIN = 0.5f;
         const float HEAD_GAIN = 1.0f;
-        spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+        spline = CubicHermiteSplineFunctorWithArcLength(tipPose.rot(), tipPose.trans(), basePose.rot(), basePose.trans(), HIPS_GAIN, HEAD_GAIN);
     } else {
-        spline = computeSplineFromTipAndBase(tipPose, basePose);
+        spline = CubicHermiteSplineFunctorWithArcLength(tipPose.rot(), tipPose.trans(), basePose.rot(), basePose.trans());
     }
     // measure the total arc length along the spline
     float totalArcLength = spline.arcLength(1.0f);

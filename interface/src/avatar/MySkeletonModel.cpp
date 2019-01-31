@@ -33,20 +33,10 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
     };
 }
 
-static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
-    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
-    glm::vec3 p0 = basePose.trans();
-    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
-    glm::vec3 p1 = tipPose.trans();
-    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
-
-    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
-}
-
 static glm::vec3 computeSpine2WithHeadHipsSpline(MyAvatar* myAvatar, AnimPose hipsIKTargetPose, AnimPose headIKTargetPose) {
 
     // the the ik targets to compute the spline with
-    CubicHermiteSplineFunctorWithArcLength splineFinal = computeSplineFromTipAndBase(headIKTargetPose, hipsIKTargetPose);
+    CubicHermiteSplineFunctorWithArcLength splineFinal(headIKTargetPose.rot(), headIKTargetPose.trans(), hipsIKTargetPose.rot(), hipsIKTargetPose.trans());
 
     // measure the total arc length along the spline
     float totalArcLength = splineFinal.arcLength(1.0f);

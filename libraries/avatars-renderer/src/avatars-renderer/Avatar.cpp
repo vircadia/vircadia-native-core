@@ -1962,16 +1962,6 @@ void Avatar::buildUnscaledEyeHeightCache() {
     }
 }
 
-static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
-    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
-    glm::vec3 p0 = basePose.trans();
-    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
-    glm::vec3 p1 = tipPose.trans();
-    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
-
-    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
-}
-
 void Avatar::buildSpine2SplineRatioCache() {
     if (_skeletonModel) {
         auto& rig = _skeletonModel->getRig();
@@ -1988,7 +1978,7 @@ void Avatar::buildSpine2SplineRatioCache() {
 
         _spine2SplineRatio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
 
-        CubicHermiteSplineFunctorWithArcLength defaultSpline = computeSplineFromTipAndBase(headRigDefaultPose, hipsRigDefaultPose);
+        CubicHermiteSplineFunctorWithArcLength defaultSpline(headRigDefaultPose.rot(), headRigDefaultPose.trans(), hipsRigDefaultPose.rot(), hipsRigDefaultPose.trans());
 
         // measure the total arc length along the spline
         float totalDefaultArcLength = defaultSpline.arcLength(1.0f);

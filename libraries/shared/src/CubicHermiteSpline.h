@@ -79,6 +79,27 @@ public:
         }
     }
 
+    CubicHermiteSplineFunctorWithArcLength(const glm::quat& tipRot, const glm::vec3& tipTrans, const glm::quat& baseRot, const glm::vec3& baseTrans, float baseGain = 1.0f, float tipGain = 1.0f) : CubicHermiteSplineFunctor() {
+
+        float linearDistance = glm::length(baseTrans - tipTrans);
+        _p0 = baseTrans;
+        _m0 = baseGain * linearDistance * (baseRot * Vectors::UNIT_Y);
+        _p1 = tipTrans;
+        _m1 = tipGain * linearDistance * (tipRot * Vectors::UNIT_Y);
+
+        // initialize _values with the accumulated arcLength along the spline.
+        const float DELTA = 1.0f / NUM_SUBDIVISIONS;
+        float alpha = 0.0f;
+        float accum = 0.0f;
+        _values[0] = 0.0f;
+        for (int i = 1; i < NUM_SUBDIVISIONS + 1; i++) {
+            accum += glm::distance(this->operator()(alpha),
+                this->operator()(alpha + DELTA));
+            alpha += DELTA;
+            _values[i] = accum;
+        }
+    }
+
     CubicHermiteSplineFunctorWithArcLength(const CubicHermiteSplineFunctorWithArcLength& orig) : CubicHermiteSplineFunctor(orig) {
         memcpy(_values, orig._values, sizeof(float) * (NUM_SUBDIVISIONS + 1));
     }
