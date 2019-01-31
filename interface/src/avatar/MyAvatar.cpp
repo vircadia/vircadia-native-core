@@ -915,14 +915,9 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
-        bool zoneAllowsFlying = true;
-        bool collisionlessAllowed = true;
+        std::pair<bool, bool> zoneInteractionProperties;
         entityTree->withWriteLock([&] {
-            std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
-            if (zone) {
-                zoneAllowsFlying = zone->getFlyingAllowed();
-                collisionlessAllowed = zone->getGhostingAllowed();
-            }
+            zoneInteractionProperties = entityTreeRenderer->getZoneInteractionProperties();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             forEachDescendant([&](SpatiallyNestablePointer object) {
                 // we need to update attached queryAACubes in our own local tree so point-select always works
@@ -935,6 +930,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
             });
         });
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
+        bool zoneAllowsFlying = zoneInteractionProperties.first;
+        bool collisionlessAllowed = zoneInteractionProperties.second;
         _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
