@@ -62,10 +62,11 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     // Apply joint metadata from FST file mappings
     for (const auto& jointIn : jointsIn) {
         jointsOut.push_back(jointIn);
-        auto& jointOut = jointsOut[jointsOut.size()-1];
+        auto& jointOut = jointsOut.back();
 
-        if (jointNameMapping.contains(jointNameMapping.key(jointIn.name))) {
-            jointOut.name = jointNameMapping.key(jointIn.name);
+        auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+        if (jointNameMapping.contains(jointNameMapKey)) {
+            jointOut.name = jointNameMapKey;
         }
 
         jointIndices.insert(jointOut.name, (int)jointsOut.size());
@@ -75,11 +76,11 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     auto offsets = getJointRotationOffsets(mapping);
     for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
         QString jointName = itr.key();
-        glm::quat rotationOffset = itr.value();
         int jointIndex = jointIndices.value(jointName) - 1;
         if (jointIndex != -1) {
+            glm::quat rotationOffset = itr.value();
             jointRotationOffsets.insert(jointIndex, rotationOffset);
+            qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
         }
-        qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
     }
 }
