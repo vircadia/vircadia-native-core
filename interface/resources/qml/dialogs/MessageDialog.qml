@@ -95,6 +95,7 @@ ModalWindow {
             id: mainTextContainer
             onTextChanged: d.resize();
             wrapMode: Text.WordWrap
+            width: messageBox.width
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
             anchors {
