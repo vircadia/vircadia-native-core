@@ -66,7 +66,7 @@ void GraphicsEngine::initializeGPU(GLWidget* glwidget) {
 }
 
 void GraphicsEngine::initializeRender(bool disableDeferred) {
-    disableDeferred = false;
+    disableDeferred = true;
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;

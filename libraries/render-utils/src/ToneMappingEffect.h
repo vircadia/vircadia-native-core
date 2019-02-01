@@ -51,7 +51,7 @@ private:
         float _exposure = 0.0f;
         float _twoPowExposure = 1.0f;
         glm::vec2 spareA;
-        int _toneCurve = Gamma22;
+        int _toneCurve = None;
         glm::vec3 spareB;
 
         Parameters() {}
@@ -74,7 +74,7 @@ public:
 
 
     float exposure{ 0.0f };
-    int curve{ ToneMappingEffect::Gamma22 };
+    int curve{ ToneMappingEffect::None };
 signals:
     void dirty();
 };
