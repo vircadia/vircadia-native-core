@@ -926,7 +926,7 @@ SelectionDisplay = (function() {
         zRailOverlay
     ];
 
-    var nonLayeredOverlays = [selectionBox, iconSelectionBox];
+    const nonLayeredOverlays = [selectionBox, iconSelectionBox];
 
     var maximumHandleInAllOverlays = handleDuplicator;
 
@@ -1048,7 +1048,14 @@ SelectionDisplay = (function() {
         var overlayIncludesNonLayered = [];
         for (var i = 0; i < overlayIncludes.length; i++) {
             var value = overlayIncludes[i];
-            if (nonLayeredOverlays.includes(value)) {
+            var contains = false;
+            for (var j = 0; j < nonLayeredOverlays.length; j++) {
+                if (nonLayeredOverlays[j] === value) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (contains) {
                 overlayIncludesNonLayered.push(value);
             } else {
                 overlayIncludesLayered.push(value);
