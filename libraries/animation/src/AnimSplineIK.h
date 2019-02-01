@@ -15,6 +15,8 @@
 #include "IKTarget.h"
 #include "AnimChain.h"
 
+static const int MAX_NUMBER_FLEX_VARIABLES = 10;
+
 // Spline IK for the spine
 class AnimSplineIK : public AnimNode {
 public:
@@ -66,7 +68,6 @@ protected:
     QString _alphaVar;  // float - (0, 1) 0 means underPoses only, 1 means IK only.
     QString _enabledVar;
 
-    static const int MAX_NUMBER_FLEX_VARIABLES = 10;
     float _tipTargetFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
     float _midTargetFlexCoefficients[MAX_NUMBER_FLEX_VARIABLES];
     int _numTipTargetFlexCoefficients { 0 };
