@@ -325,6 +325,7 @@ void Keyboard::updateTextDisplay() {
     scaledDimensions *= sensorToWorldScale;
     float leftMargin = (scaledDimensions.x / 2);
     scaledDimensions.x += textWidth;
+    scaledDimensions.y *= 1.25f;
 
     EntityItemProperties properties;
     properties.setDimensions(scaledDimensions);
@@ -817,7 +818,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                 properties.setEmissive(true);
                 properties.setParentID(_anchor.entityID);
                 properties.setModelURL(url);
-                properties.setTextures(QVariant(textureMap).toString());
+                properties.setTextures(QString(QJsonDocument::fromVariant(textureMap).toJson()));
                 properties.getGrab().setGrabbable(false);
                 properties.setLocalRotation(quatFromVariant(keyboardKeyValue["localOrientation"].toVariant()));
                 QUuid id = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
@@ -868,6 +869,8 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             properties.setEmissive(true);
             properties.getGrab().setGrabbable(false);
             properties.setText("");
+            properties.setTextAlpha(1.0f);
+            properties.setBackgroundAlpha(0.7f);
             properties.setParentID(_anchor.entityID);
 
             TextDisplay textDisplay;

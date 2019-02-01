@@ -214,6 +214,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
 
 QSizeF TextEntityRenderer::textSize(const QString& text) const {
     auto extents = _textRenderer->computeExtent(text);
+    extents.y *= 2.0f;
 
     float maxHeight = (float)_textRenderer->computeExtent("Xy").y * LINE_SCALE_RATIO;
     float pointToWorldScale = (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight;
