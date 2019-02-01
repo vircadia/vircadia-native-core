@@ -83,7 +83,7 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
 
-    if (_drawMaterials.needsUpdate()) {
+    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 
@@ -329,7 +329,7 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withDeformed();
     }
 
-    if (_drawMaterials.needsUpdate()) {
+    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 
@@ -347,7 +347,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode pr
         return;
     }
 
-    if (_drawMaterials.needsUpdate()) {
+    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
         RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
 

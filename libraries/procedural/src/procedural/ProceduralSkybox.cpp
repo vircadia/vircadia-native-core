@@ -26,6 +26,7 @@ ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
     const int8_t STENCIL_BACKGROUND = 0;
     _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL,
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    _procedural._opaqueState->setDepthTest(gpu::State::DepthTest(false));
 }
 
 bool ProceduralSkybox::empty() {

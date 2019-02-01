@@ -193,14 +193,25 @@ SelectionManager = (function() {
         that._update(true, caller);
     };
     
-    that.addChildrenEntities = function(parentEntityID, entityList) {
+    that.addChildrenEntities = function(parentEntityID, entityList, entityHostType) {
+        var wantDebug = false;
         var children = Entities.getChildrenIDs(parentEntityID);
+        var entityHostTypes = Entities.getMultipleEntityProperties(children, 'entityHostType');
         for (var i = 0; i < children.length; i++) {
             var childID = children[i];
+
+            if (entityHostTypes[i].entityHostType !== entityHostType) {
+                if (wantDebug) {
+                    console.log("Skipping addition of entity " + childID + " with conflicting entityHostType: " +
+                        entityHostTypes[i].entityHostType);
+                }
+                continue;
+            }
+
             if (entityList.indexOf(childID) < 0) {
                 entityList.push(childID);
             }
-            that.addChildrenEntities(childID, entityList);
+            that.addChildrenEntities(childID, entityList, entityHostType);
         }
     };
 
@@ -250,12 +261,15 @@ SelectionManager = (function() {
         SelectionManager.saveProperties();
         
         // build list of entities to duplicate by including any unselected children of selected parent entities
-        Object.keys(that.savedProperties).forEach(function(originalEntityID) {
-            if (entitiesToDuplicate.indexOf(originalEntityID) < 0) {
+        var originalEntityIDs = Object.keys(that.savedProperties);
+        var entityHostTypes = Entities.getMultipleEntityProperties(originalEntityIDs, 'entityHostType');
+        for (var i = 0; i < originalEntityIDs.length; i++) {
+            var originalEntityID = originalEntityIDs[i];
+            if (entitiesToDuplicate.indexOf(originalEntityID) === -1) {
                 entitiesToDuplicate.push(originalEntityID);
             }
-            that.addChildrenEntities(originalEntityID, entitiesToDuplicate);
-        });
+            that.addChildrenEntities(originalEntityID, entitiesToDuplicate, entityHostTypes[i].entityHostType);
+        }
         
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
@@ -319,7 +333,7 @@ SelectionManager = (function() {
     };
 
     // Create the entities in entityProperties, maintaining parent-child relationships.
-    // @param entityPropertites {array} - Array of entity property objects
+    // @param entityProperties {array} - Array of entity property objects
     that.createEntities = function(entityProperties) {
         var entitiesToCreate = [];
         var createdEntityIDs = [];
@@ -362,15 +376,27 @@ SelectionManager = (function() {
 
     that.copySelectedEntities = function() {
         var entityProperties = Entities.getMultipleEntityProperties(that.selections);
+        var entityHostTypes = Entities.getMultipleEntityProperties(that.selections, 'entityHostType');
         var entities = {};
         entityProperties.forEach(function(props) {
             entities[props.id] = props;
         });
 
-        function appendChildren(entityID, entities) {
+        function appendChildren(entityID, entities, entityHostType) {
+            var wantDebug = false;
             var childrenIDs = Entities.getChildrenIDs(entityID);
+            var entityHostTypes = Entities.getMultipleEntityProperties(childrenIDs, 'entityHostType');
             for (var i = 0; i < childrenIDs.length; ++i) {
                 var id = childrenIDs[i];
+
+                if (entityHostTypes[i].entityHostType !== entityHostType) {
+                    if (wantDebug) {
+                        console.warn("Skipping deletion of entity " + id + " with conflicting entityHostType: " +
+                            entityHostTypes[i].entityHostType);
+                    }
+                    continue;
+                }
+
                 if (!(id in entities)) {
                     entities[id] = Entities.getEntityProperties(id); 
                     appendChildren(id, entities);
@@ -380,7 +406,7 @@ SelectionManager = (function() {
 
         var len = entityProperties.length;
         for (var i = 0; i < len; ++i) {
-            appendChildren(entityProperties[i].id, entities);
+            appendChildren(entityProperties[i].id, entities, entityHostTypes[i].entityHostType);
         }
 
         for (var id in entities) {

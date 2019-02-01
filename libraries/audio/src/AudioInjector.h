@@ -67,6 +67,7 @@ public:
 
     bool isLocalOnly() const { return _options.localOnly; }
     float getVolume() const { return _options.volume; }
+    bool isPositionSet() const { return _options.positionSet; }
     glm::vec3 getPosition() const { return _options.position; }
     glm::quat getOrientation() const { return _options.orientation; }
     bool isStereo() const { return _options.stereo; }

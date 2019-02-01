@@ -162,6 +162,7 @@
 #include "avatar/AvatarManager.h"
 #include "avatar/MyHead.h"
 #include "avatar/AvatarPackager.h"
+#include "avatar/MyCharacterController.h"
 #include "CrashRecoveryHandler.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
@@ -783,6 +784,10 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
+    if (auto oculusPlatform = pluginManager->getOculusPlatformPlugin()) {
+        oculusPlatform->init();
+    }
+
     PROFILE_SET_THREAD_NAME("Main Thread");
 
 #if defined(Q_OS_WIN)
@@ -2684,7 +2689,14 @@ Application::~Application() {
     avatarManager->handleProcessedPhysicsTransaction(transaction);
 
     avatarManager->deleteAllAvatars();
-
+    
+    auto myCharacterController = getMyAvatar()->getCharacterController();
+    myCharacterController->clearDetailedMotionStates();
+    
+    myCharacterController->buildPhysicsTransaction(transaction);
+    _physicsEngine->processTransaction(transaction);
+    myCharacterController->handleProcessedPhysicsTransaction(transaction);
+    
     _physicsEngine->setCharacterController(nullptr);
 
     // the _shapeManager should have zero references
@@ -2706,6 +2718,10 @@ Application::~Application() {
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
+    }
+
+    if (auto oculusPlatform = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatform->shutdown();
     }
 
     DependencyManager::destroy<PluginManager>();
@@ -4127,7 +4143,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
                     AudioInjectorOptions options;
                     options.localOnly = true;
+                    options.positionSet = false;    // system sound
                     options.stereo = true;
+
                     Setting::Handle<bool> notificationSounds{ MenuOption::NotificationSounds, true };
                     Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
                     if (notificationSounds.get() && notificationSoundSnapshot.get()) {
@@ -6193,7 +6211,9 @@ void Application::update(float deltaTime) {
                 avatarManager->buildPhysicsTransaction(transaction);
                 _physicsEngine->processTransaction(transaction);
                 avatarManager->handleProcessedPhysicsTransaction(transaction);
-
+                myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
+                _physicsEngine->processTransaction(transaction);
+                myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
                 myAvatar->prepareForPhysicsSimulation();
                 _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
                     dynamic->prepareForPhysicsSimulation();
