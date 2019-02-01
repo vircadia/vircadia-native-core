@@ -156,6 +156,19 @@ void Overlays::enable() {
     _enabled = true;
 }
 
+Overlay::Pointer Overlays::take2DOverlay(const QUuid& id) {
+    if (_shuttingDown) {
+        return nullptr;
+    }
+
+    QMutexLocker locker(&_mutex);
+    auto overlayIter = _overlays.find(id);
+    if (overlayIter != _overlays.end()) {
+        return _overlays.take(id);
+    }
+    return nullptr;
+}
+
 Overlay::Pointer Overlays::get2DOverlay(const QUuid& id) const {
     if (_shuttingDown) {
         return nullptr;
@@ -808,7 +821,7 @@ void Overlays::deleteOverlay(const QUuid& id) {
         return;
     }
 
-    Overlay::Pointer overlay = get2DOverlay(id);
+    Overlay::Pointer overlay = take2DOverlay(id);
     if (overlay) {
         _overlaysToDelete.push_back(overlay);
         emit overlayDeleted(id);

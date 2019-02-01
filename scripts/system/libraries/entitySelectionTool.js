@@ -926,7 +926,7 @@ SelectionDisplay = (function() {
         zRailOverlay
     ];
 
-    const nonLayeredOverlays = [selectionBox, iconSelectionBox];
+    var nonLayeredOverlays = [selectionBox, iconSelectionBox];
 
     var maximumHandleInAllOverlays = handleDuplicator;
 

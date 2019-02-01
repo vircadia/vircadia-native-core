@@ -94,6 +94,7 @@ public:
     void disable();
     void enable();
 
+    Overlay::Pointer take2DOverlay(const QUuid& id);
     Overlay::Pointer get2DOverlay(const QUuid& id) const;
 
     /// adds an overlay that's already been created
