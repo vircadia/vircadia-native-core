@@ -352,9 +352,15 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     
     QString mime;
     getStringVal(object, "uri", image.uri, image.defined);
+    if (image.uri.contains("data:image/png;base64,")) {
+        image.mimeType = getImageMimeType("image/png");
+    } 
+    if (image.uri.contains("data:image/jpeg;base64,")) {
+        image.mimeType = getImageMimeType("image/jpeg");
+    }
     if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    }
+    } 
     getIntVal(object, "bufferView", image.bufferView, image.defined);
     
     _file.images.push_back(image);
@@ -941,9 +947,8 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
 bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
     bool success;
 
-    if (url.contains("data:application/octet-stream;base64,") || url.contains("data:image/png;base64,") || url.contains("data:image/jpeg;base64,")) {
-        QString binaryUrl = url.split(",")[1];
-        std::tie<bool, QByteArray>(success, outdata) = requestEmbeddedData(binaryUrl); 
+    if (url.contains("data:application/octet-stream;base64,")) {
+        std::tie<bool, QByteArray>(success, outdata) = std::make_tuple(true, requestEmbeddedData(url)); 
     } else {
         QUrl binaryUrl = _url.resolved(url);
         std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
@@ -980,11 +985,13 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     }
 }
 
-std::tuple<bool, QByteArray> GLTFSerializer::requestEmbeddedData(QString binaryUrl) {
-    QByteArray urlBin = binaryUrl.toUtf8();
-    QByteArray result = QByteArray::fromBase64(urlBin);
+QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
+    QString binaryUrl = url.split(",")[1];
 
-    return std::make_tuple(true, result); 
+    QByteArray urlBin = binaryUrl.toUtf8();
+    QByteArray data = QByteArray::fromBase64(urlBin);
+
+    return data;
 }
 
 
@@ -1018,11 +1025,17 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
+
         QString fname = QUrl(url).fileName();
         QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
+
+        if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
+            QByteArray result = requestEmbeddedData(url);
+            fbxtex.content = result; 
+        }
     }
     return fbxtex;
 }
