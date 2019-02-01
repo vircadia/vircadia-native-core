@@ -435,7 +435,6 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
         {  // decrement sessionDisplayNames table and possibly remove
            QMutexLocker nodeDataLocker(&avatarNode->getLinkedData()->getMutex());
            AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(avatarNode->getLinkedData());
-           const QString& baseDisplayName = nodeData->getBaseDisplayName();
            const QString& displayName = nodeData->getAvatar().getSessionDisplayName();
            SessionDisplayName exitingDisplayName { displayName };
 
@@ -446,7 +445,7 @@ void AvatarMixer::handleAvatarKilled(SharedNodePointer avatarNode) {
            }
            auto displayNameIter = _sessionDisplayNames.find(exitingDisplayName);
            if (displayNameIter == _sessionDisplayNames.end()) {
-               qCDebug(avatars, "Exiting avatar displayname", displayName, "not found");
+               qCDebug(avatars) << "Exiting avatar displayname" << displayName << "not found";
            } else {
                _sessionDisplayNames.erase(displayNameIter);
            }
