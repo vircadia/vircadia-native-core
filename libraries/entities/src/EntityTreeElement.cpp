@@ -139,7 +139,7 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
+bool EntityTreeElement::checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
     bool visible = entity->isVisible();
     entity::HostType hostType = entity->getEntityHostType();
     if ((!searchFilter.doesPickVisible() && visible) || (!searchFilter.doesPickInvisible() && !visible) ||

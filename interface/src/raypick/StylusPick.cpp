@@ -18,6 +18,8 @@
 #include <controllers/StandardControls.h>
 #include <controllers/UserInputMapper.h>
 
+#include <EntityTreeElement.h>
+
 using namespace bilateral;
 float StylusPick::WEB_STYLUS_LENGTH = 0.2f;
 
@@ -146,13 +148,7 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
             continue;
         }
 
-        bool visible = entity->getVisible();
-        bool collisionless = entity->getCollisionless();
-        if ((!visible && !getFilter().doesPickInvisible()) || (visible && !getFilter().doesPickVisible()) ||
-            (!collisionless && !getFilter().doesPickCollidable()) || (collisionless && !getFilter().doesPickNonCollidable()) ||
-            (entity->isLocalEntity() && !getFilter().doesPickLocalEntities()) ||
-            (entity->isAvatarEntity() && !getFilter().doesPickAvatarEntities()) || 
-            (entity->isDomainEntity() && !getFilter().doesPickDomainEntities())) {
+        if (!EntityTreeElement::checkFilterSettings(entity, getFilter())) {
             continue;
         }
 

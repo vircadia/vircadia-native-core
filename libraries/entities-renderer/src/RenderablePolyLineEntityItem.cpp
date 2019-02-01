@@ -25,6 +25,7 @@ using namespace render;
 using namespace render::entities;
 
 gpu::PipelinePointer PolyLineEntityRenderer::_pipeline = nullptr;
+gpu::PipelinePointer PolyLineEntityRenderer::_glowPipeline = nullptr;
 
 static const QUrl DEFAULT_POLYLINE_TEXTURE = PathUtils::resourcesUrl("images/paintStroke.png");
 
@@ -44,14 +45,26 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
 void PolyLineEntityRenderer::buildPipeline() {
     // FIXME: opaque pipeline
     gpu::ShaderPointer program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-    state->setCullMode(gpu::State::CullMode::CULL_NONE);
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    PrepareStencil::testMask(*state);
-    state->setBlendFunction(true,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    _pipeline = gpu::Pipeline::create(program, state);
+    {
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setCullMode(gpu::State::CullMode::CULL_NONE);
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMask(*state);
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        _pipeline = gpu::Pipeline::create(program, state);
+    }
+    {
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setCullMode(gpu::State::CullMode::CULL_NONE);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        PrepareStencil::testMask(*state);
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        _glowPipeline = gpu::Pipeline::create(program, state);
+    }
 }
 
 ItemKey PolyLineEntityRenderer::getKey() {
@@ -257,11 +270,11 @@ void PolyLineEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
 
-    if (!_pipeline) {
+    if (!_pipeline || !_glowPipeline) {
         buildPipeline();
     }
 
-    batch.setPipeline(_pipeline);
+    batch.setPipeline(_glow ? _glowPipeline : _pipeline);
     batch.setModelTransform(_renderTransform);
     batch.setResourceTexture(0, _textureLoaded ? _texture->getGPUTexture() : DependencyManager::get<TextureCache>()->getWhiteTexture());
     batch.setResourceBuffer(0, _polylineGeometryBuffer);

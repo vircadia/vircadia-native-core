@@ -514,7 +514,9 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             auto iter = overlayProps.find("lineWidth");
             if (iter != overlayProps.end()) {
                 QVariantList widths;
-                widths.append(iter.value());
+                QVariant width = iter.value();
+                widths.append(width);
+                widths.append(width);
                 overlayProps["strokeWidths"] = widths;
             }
         }

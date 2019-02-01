@@ -628,8 +628,8 @@ void Keyboard::handleTriggerContinue(const QUuid& id, const PointerEvent& event)
         auto stylusPickResult = std::dynamic_pointer_cast<StylusPickResult>(pickResult);
         float distance = stylusPickResult->distance;
 
-        static const float PENATRATION_THRESHOLD = 0.025f;
-        if (distance < PENATRATION_THRESHOLD) {
+        static const float PENETRATION_THRESHOLD = 0.025f;
+        if (distance < PENETRATION_THRESHOLD) {
             static const float Z_OFFSET = 0.002f;
 
             auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
