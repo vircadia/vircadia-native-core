@@ -15,6 +15,7 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
+import QtWebEngine 1.5
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -49,6 +50,11 @@ Rectangle {
             categoriesListModel.append({"category":category});
         });
     }
+    
+    onDescriptionChanged: {
+        descriptionTextModel.clear();
+        descriptionTextModel.append({text: description})
+    }
 
     signal buy()
     signal categoryClicked(string category)
@@ -63,7 +69,7 @@ Rectangle {
 
         onMarketplaceItemLikeResult: {
             if (result.status !== 'success') {
-                console.log("Failed to get Marketplace Categories", result.data.message);
+                console.log("Like/Unlike item", result.data.message);
             } else {
                 root.liked = !root.liked;
                 root.likes = root.liked ? root.likes + 1 : root.likes - 1;
@@ -98,24 +104,33 @@ Rectangle {
         var sec = addLeadingZero(a.getSeconds());
         return a.toDateString() + " " + drawnHour + ':' + min + amOrPm;
     }
+    function evalHeight() {
+        height = footer.y - header.y + footer.height;
+    }
+    
+    signal resized()
+    
+    onHeightChanged: {
+        resized();
+    }
     
     anchors {
-        left: parent.left;
-        right: parent.right;
-        leftMargin: 15;
-        rightMargin: 15;
+        left: parent.left
+        right: parent.right
+        leftMargin: 15
+        rightMargin: 15
     }
-    height: childrenRect.height;
+    height: footer.y - header.y + footer.height
 
     Rectangle {
         id: header
         
         anchors {
-            left: parent.left;
-            right: parent.right;
-            top: parent.top;
+            left: parent.left
+            right: parent.right
+            top: parent.top
         }
-        height: 50;
+        height: 50
         
         RalewaySemiBold {
             id: nameText
@@ -137,10 +152,10 @@ Rectangle {
             id: likes
 
             anchors {
-                top: parent.top;
-                right: parent.right;
-                bottom: parent.bottom;
-                rightMargin: 5;
+                top: parent.top
+                right: parent.right
+                bottom: parent.bottom
+                rightMargin: 5
             }
 
             RalewaySemiBold {
@@ -216,7 +231,11 @@ Rectangle {
             right: parent.right;
             top: itemImage.bottom;
         }
-        height: childrenRect.height
+        height: categoriesList.y - buyButton.y + categoriesList.height
+        
+        function evalHeight() {
+            height = categoriesList.y - buyButton.y + categoriesList.height;
+        }
         
         HifiControlsUit.Button {
             id: buyButton
@@ -309,7 +328,7 @@ Rectangle {
                     top: postedLabel.bottom
                     left: parent.left
                     right: parent.right
-                    topMargin: 10
+                    topMargin: 5
                 }
 
                 text: { getFormattedDate(root.created_at); }
@@ -360,6 +379,7 @@ Rectangle {
                 
                 anchors.top: licenseLabel.bottom
                 anchors.left: parent.left
+                anchors.topMargin: 5
                 width: paintedWidth
 
                 text: root.license
@@ -371,9 +391,10 @@ Rectangle {
             RalewaySemiBold {
                 id: licenseHelp
 
-                anchors.top: licenseText.bottom;
-                anchors.left: parent.left;
-                width: paintedWidth;
+                anchors.top: licenseText.bottom
+                anchors.left: parent.left
+                anchors.topMargin: 5
+                width: paintedWidth
 
                 text: "More about this license"
                 size: 14
@@ -413,6 +434,7 @@ Rectangle {
 
         Item {
             id: descriptionItem
+            property string text: ""
 
             anchors {
                 top: licenseItem.bottom
@@ -421,13 +443,16 @@ Rectangle {
                 right: parent.right
             }
             height: childrenRect.height
-
+            onHeightChanged: {
+                footer.evalHeight();
+            }
             RalewaySemiBold {
                 id: descriptionLabel
                 
                 anchors.top: parent.top
                 anchors.left: parent.left
                 width: paintedWidth
+                height: 20
 
                 text: "DESCRIPTION:"
                 size: 14
@@ -435,18 +460,60 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            RalewaySemiBold {
-                id: descriptionText
+            //RalewaySemiBold {
+            //    id: descriptionText
+            //    
+            //    anchors.top: descriptionLabel.bottom
+            //    anchors.left: parent.left
+            //    anchors.topMargin: 5
+            //    width: parent.width
+            //
+            //    text: root.description
+            //    size: 14
+            //   color: hifi.colors.lightGray
+            //    verticalAlignment: Text.AlignVCenter
+            //    wrapMode: Text.Wrap
+            //}
+            
+            
+            ListModel {
+                id: descriptionTextModel
+            }
+            
+            ListView {
+                id: descriptionTextView;
                 
                 anchors.top: descriptionLabel.bottom
                 anchors.left: parent.left
-                width: parent.width
+                anchors.right: parent.right                
 
-                text: root.description
-                size: 14
-                color: hifi.colors.lightGray
-                verticalAlignment: Text.AlignVCenter
-                wrapMode: Text.Wrap
+                model: descriptionTextModel
+                interactive: false
+            
+                delegate: Component {
+                    Rectangle {
+                        id: descriptionWebRect
+                        width: parent.width
+                        height: 5
+                        WebEngineView {
+                            id: descriptionWebView
+                            anchors.fill: parent
+
+                            Component.onCompleted: {
+                                loadHtml("<html><head><style>body { color: #393939; font-family: Arial !important;}</style></head><body>"+model.text+"</body></html>");
+                            }
+
+                            onContentsSizeChanged: {
+                                descriptionWebRect.height = contentsSize.height;
+                                descriptionTextView.height = contentsSize.height;
+                            }
+
+                            onNewViewRequested: function(request) {
+                                sendToScript({method: 'marketplace_open_link', link: request.requestedUrl});
+                            }
+                        }
+                    }
+                }
             }
         }
         
@@ -460,7 +527,7 @@ Rectangle {
                 right: parent.right
             }
             width: parent.width
-            height: childrenRect.height
+            height: childrenRect.height + 50
 
             RalewaySemiBold {
                 id: categoryLabel
@@ -480,12 +547,13 @@ Rectangle {
             
             ListView {
                 anchors {
-                    left: parent.left;
-                    right: parent.right;
-                    top: categoryLabel.bottom;
+                    left: parent.left
+                    right: parent.right
+                    top: categoryLabel.bottom
+                    bottomMargin: 15
                 }
 
-                height: 20*model.count
+                height: 24*model.count+10
 
                 model: categoriesListModel
                 delegate: RalewaySemiBold {
@@ -496,7 +564,7 @@ Rectangle {
 
                     text: model.category
                     size: 14
-                    height: 20
+                    height: 24
                     color: hifi.colors.blueHighlight
                     verticalAlignment: Text.AlignVCenter
                     

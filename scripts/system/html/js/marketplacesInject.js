@@ -76,9 +76,12 @@
             if (document.referrer !== "") {
                 window.history.back();
             } else {
-                EventBridge.emitWebEvent(JSON.stringify({
-                    type: GOTO_MARKETPLACE
-                }));
+                var params = { type: GOTO_MARKETPLACE };
+                var itemIdMatch = location.search.match(/itemId=([^&]*)/);
+                if (itemIdMatch && itemIdMatch.length === 2) {
+                    params.itemId = itemIdMatch[1];
+                }
+                EventBridge.emitWebEvent(JSON.stringify(params));
             }
         });
         $("#all-markets").on("click", function () {

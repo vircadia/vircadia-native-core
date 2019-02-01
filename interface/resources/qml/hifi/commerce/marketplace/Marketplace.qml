@@ -32,7 +32,7 @@ Rectangle {
 
     property string activeView: "initialize"
     property int currentSortIndex: 0
-    property string sortString: ""
+    property string sortString: "recent"
     property string categoryString: ""
     property string searchString: ""
     property bool keyboardEnabled: HMD.active
@@ -45,6 +45,7 @@ Rectangle {
     function getMarketplaceItems() {
         marketplaceItemView.visible = false;
         itemsList.visible = true;
+        licenseInfo.visible = false;
         marketBrowseModel.getFirstPage();
         {
         if(root.searchString !== undefined && root.searchString !== "") {
@@ -69,7 +70,6 @@ Rectangle {
         target: GlobalServices
 
         onMyUsernameChanged: {
-            console.log("LOGIN STATUS CHANGING");
             Commerce.getLoginStatus();
         }
     }
@@ -333,7 +333,7 @@ Rectangle {
                         break;
                     }
                 }
-                onTextChanged: root.searchString = text
+
                 onAccepted: {
                     root.searchString = searchField.text;
                     getMarketplaceItems();
@@ -474,11 +474,11 @@ Rectangle {
 
         anchors {
             fill: parent
-            topMargin: 120
+            topMargin: 115
             bottomMargin: 50
         }
  
-        visible: true;
+        visible: true
 
         HifiModels.PSFListModel {
             id: marketBrowseModel
@@ -565,17 +565,22 @@ Rectangle {
 
             header: Item {
                 id: itemsHeading
-                
+
                 height: childrenRect.height
                 width: parent.width
-                
+
+                Rectangle {
+                    id: itemsSpacer;
+                    height: 20
+                }
+
                 Rectangle {
                     id: itemsLoginStatus;
                     anchors {
+                        top: itemsSpacer.bottom
                         left: parent.left
                         right: parent.right
                         leftMargin: 15
-                        top: parent.top+15
                     }
                     height: root.isLoggedIn ? 0 : 80
 
@@ -598,7 +603,7 @@ Rectangle {
                         }
                         width: 80;
 
-                        text: root.price ? root.price : "LOG IN"
+                        text: "LOG IN"
 
                         onClicked: {
                             sendToScript({method: 'needsLogIn_loginClicked'});
@@ -687,6 +692,7 @@ Rectangle {
                 }
                 Item {
                     id: sort
+                    visible: searchString === undefined || searchString === ""
 
                     anchors {
                         top: searchScope.bottom;
@@ -695,7 +701,7 @@ Rectangle {
                         topMargin: 10;
                         leftMargin: 15;
                     }
-                    height: childrenRect.height
+                    height: visible ? childrenRect.height : 0
 
                     RalewayRegular {
                         id: sortText
@@ -771,6 +777,7 @@ Rectangle {
                             focus: true
                             clip: true
                             highlightFollowsCurrentItem: false
+                            currentIndex: 1;
                             
                             delegate: SortButton {
                                 width: 80
@@ -818,25 +825,39 @@ Rectangle {
         id: marketplaceItemView
 
         anchors.fill: parent
-        anchors.topMargin: 120
+        anchors.topMargin: 115
+        anchors.bottomMargin: 50
         width: parent.width
 
         visible: false
-        
+
         ScrollView {
             id: marketplaceItemScrollView
 
-            anchors.fill: parent;
+            anchors.fill: parent
 
             clip: true
             ScrollBar.vertical.policy: ScrollBar.AlwaysOn
             contentWidth: parent.width
+            contentHeight: childrenRect.height
+
+            function resize() {
+                contentHeight = (marketplaceItemContent.y - itemSpacer.y + marketplaceItemContent.height);
+            }
+
+            Item {
+                id: itemSpacer
+                anchors.top: parent.top
+                height: 15
+            }
 
             Rectangle {
                 id: itemLoginStatus;
                 anchors {
                     left: parent.left
                     right: parent.right
+                    top: itemSpacer.bottom
+                    topMargin: 10
                     leftMargin: 15
                     rightMargin: 15
                 }
@@ -861,7 +882,7 @@ Rectangle {
                     }
                     width: 80;
 
-                    text: root.price ? root.price : "LOG IN"
+                    text: "LOG IN"
 
                     onClicked: {
                         sendToScript({method: 'needsLogIn_loginClicked'});
@@ -890,9 +911,9 @@ Rectangle {
 
             Rectangle {
                 id: marketplaceItemContent
-                anchors.top: itemLoginStatus.bottom;
+                anchors.top: itemLoginStatus.bottom
                 width: parent.width
-                height: childrenRect.height + 100
+                height: childrenRect.height;
                 
                 RalewaySemiBold {
                     id: backText
@@ -900,6 +921,7 @@ Rectangle {
                     anchors {
                         top: parent.top
                         left: parent.left
+                        topMargin: 10
                         leftMargin: 15
                         bottomMargin: 10
                     }
@@ -944,6 +966,10 @@ Rectangle {
                         categoriesText.text = category;                      
                         getMarketplaceItems();
                     }
+
+                    onResized: {
+                        marketplaceItemScrollView.resize();
+                    }
                 }
             }
         }
@@ -975,37 +1001,64 @@ Rectangle {
                 leftMargin: 15
             }
 
-            HiFiGlyphs {
-                id: footerGlyph
+            Item {
+                id: footerText
 
+                anchors.fill: parent
+                visible: itemsList.visible
+
+                HiFiGlyphs {
+                    id: footerGlyph
+
+                    anchors {
+                        left: parent.left
+                        top: parent.top
+                        bottom: parent.bottom
+                        rightMargin: 10
+                    }
+
+                    text: hifi.glyphs.info
+                    size: 34
+                    color: hifi.colors.white
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                RalewaySemiBold {
+                    id: footerInfo
+
+                    anchors {
+                        left: footerGlyph.right
+                        top: parent.top
+                        bottom: parent.bottom
+                    }
+
+                    text: "Get items from Clara.io!"
+                    color: hifi.colors.white
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                    size: 18
+                }
+            }
+
+            HifiControlsUit.Button {
                 anchors {
                     left: parent.left
                     top: parent.top
                     bottom: parent.bottom
+                    topMargin: 10
+                    bottomMargin: 10
+                    leftMargin: 10
                     rightMargin: 10
                 }
 
-                text: hifi.glyphs.info
-                size: 34
-                color: hifi.colors.white
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
+                visible: marketplaceItemView.visible
+                text: "< BACK"
+                width: 100
 
-            RalewaySemiBold {
-                id: footerInfo
-
-                anchors {
-                    left: footerGlyph.right
-                    top: parent.top
-                    bottom: parent.bottom
+                onClicked: {
+                    getMarketplaceItems();
                 }
-
-                text: "Get items from Clara.io!"
-                color: hifi.colors.white
-                horizontalAlignment: Text.AlignLeft
-                verticalAlignment: Text.AlignVCenter
-                size: 18
             }
             
             HifiControlsUit.Button {
@@ -1023,7 +1076,7 @@ Rectangle {
                 width: 180
 
                 onClicked: {
-                    sendToScript({method: 'marketplace_marketplaces'});
+                    sendToScript({method: 'marketplace_marketplaces', itemId: marketplaceItemView.visible ? marketplaceItem.item_id : undefined});
                 }
             }
         }  
@@ -1041,7 +1094,7 @@ Rectangle {
 
         anchors {
             fill: root
-            topMargin: 100
+            topMargin: 120
             bottomMargin: 0
         }
 
@@ -1052,7 +1105,7 @@ Rectangle {
             
             anchors {
                 bottomMargin: 1
-                topMargin: 50
+                topMargin: 60
                 leftMargin: 1
                 rightMargin: 1
                 fill: parent

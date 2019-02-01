@@ -41,7 +41,6 @@ var GOTO_DIRECTORY = "GOTO_DIRECTORY";
 var GOTO_MARKETPLACE = "GOTO_MARKETPLACE";
 var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
 var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
-var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
 
 var CLARA_DOWNLOAD_TITLE = "Preparing Download";
 var messageBox = null;
@@ -437,9 +436,8 @@ function rezEntity(itemHref, itemType, marketplaceItemTesterId) {
 var referrerURL; // Used for updating Purchases QML
 var filterText; // Used for updating Purchases QML
 function onWebEventReceived(message) {
-    message = JSON.parse(message);
     if (message.type === GOTO_MARKETPLACE) {
-        openMarketplace();
+        openMarketplace(message.itemId);
     } else if (message.type === GOTO_DIRECTORY) {
         // This is the chooser between marketplaces. Only OUR markteplace
         // requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
@@ -569,7 +567,14 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
     case 'marketplace_marketplaces':
         // This is the chooser between marketplaces. Only OUR markteplace
         // requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
-        ui.open(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+        var url = MARKETPLACES_URL;
+        if(message.itemId) {
+            url = url + "?itemId=" + message.itemId
+        }
+        ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
+        break;
+    case 'marketplace_open_link':
+        ui.open(message.link);
         break;
     case 'checkout_rezClicked':
     case 'purchases_rezClicked':
