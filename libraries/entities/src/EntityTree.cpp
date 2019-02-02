@@ -2957,6 +2957,7 @@ std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> E
 std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromEntityOperator = nullptr;
 std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
 std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
+std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
 
 bool EntityTree::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
@@ -2985,6 +2986,13 @@ bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::Mater
         return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialName);
     }
     return false;
+}
+
+QObject* EntityTree::getEntityObject(const QUuid& id) {
+    if (_getEntityObjectOperator) {
+        return _getEntityObjectOperator(id);
+    }
+    return nullptr;
 }
 
 QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {

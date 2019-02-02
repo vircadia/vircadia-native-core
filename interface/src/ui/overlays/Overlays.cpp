@@ -1326,6 +1326,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     auto entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
     if (entityTree) {
         unsigned int searchFilter = PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES);
+        // For legacy reasons, this only finds visible objects
+        searchFilter = searchFilter | PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE);
         entityTree->withReadLock([&] {
             entityTree->evalEntitiesInSphere(center, radius, PickFilter(searchFilter), result);
         });

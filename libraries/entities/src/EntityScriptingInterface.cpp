@@ -1017,14 +1017,7 @@ QString EntityScriptingInterface::getEntityType(const QUuid& entityID) {
 }
 
 QObject* EntityScriptingInterface::getEntityObject(const QUuid& id) {
-    QObject* toReturn { nullptr };
-    _entityTree->withReadLock([&] {
-        EntityItemPointer entity = _entityTree->findEntityByEntityItemID(id);
-        if (entity) {
-            toReturn = qobject_cast<QObject*>(&(*entity));
-        }
-    });
-    return toReturn;
+    return EntityTree::getEntityObject(id);
 }
 
 bool EntityScriptingInterface::isLoaded(const QUuid& id) {

@@ -1955,6 +1955,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return false;
     });
 
+    EntityTree::setGetEntityObjectOperator([this](const QUuid& id) -> QObject* {
+        auto entities = getEntities();
+        if (auto entity = entities->renderableForEntityId(id)) {
+            return qobject_cast<QObject*>(entity.get());
+        }
+        return nullptr;
+    });
+
     EntityTree::setTextSizeOperator([this](const QUuid& id, const QString& text) {
         auto entities = getEntities();
         if (auto entity = entities->renderableForEntityId(id)) {
