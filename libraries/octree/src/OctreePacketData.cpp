@@ -729,12 +729,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-
-    // FIXME - this size check is wrong if we allow larger packets
-    if (length * sizeof(glm::vec3) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
-        result.resize(0);
-        return sizeof(uint16_t);
-    }
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(glm::vec3));
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
@@ -744,14 +738,7 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-
-    // FIXME - this size check is wrong if we allow larger packets
-    if (length * sizeof(glm::quat) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
-        result.resize(0);
-        return sizeof(uint16_t);
-    }
     result.resize(length);
-
     const unsigned char *start = dataBytes;
     for (int i = 0; i < length; i++) {
         dataBytes += unpackOrientationQuatFromBytes(dataBytes, result[i]);
@@ -764,12 +751,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-
-    // FIXME - this size check is wrong if we allow larger packets
-    if (length * sizeof(float) > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
-        result.resize(0);
-        return sizeof(uint16_t);
-    }
     result.resize(length);
     memcpy(result.data(), dataBytes, length * sizeof(float));
     return sizeof(uint16_t) + length * sizeof(float);
@@ -779,14 +760,7 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
-
-    // FIXME - this size check is wrong if we allow larger packets
-    if (length / 8 > MAX_OCTREE_UNCOMRESSED_PACKET_SIZE) {
-        result.resize(0);
-        return sizeof(uint16_t);
-    }
     result.resize(length);
-
     int bit = 0;
     unsigned char current = 0;
     const unsigned char *start = dataBytes;
@@ -797,7 +771,6 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
         result[i] = (bool)(current & (1 << bit));
         bit = (bit + 1) % BITS_IN_BYTE;
     }
-
     return (dataBytes - start) + (int)sizeof(uint16_t);
 }
 
