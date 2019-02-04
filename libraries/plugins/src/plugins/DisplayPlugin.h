@@ -142,6 +142,7 @@ public:
     // Rendering support
     virtual void setContext(const gpu::ContextPointer& context) final { _gpuContext = context; }
     virtual void submitFrame(const gpu::FramePointer& newFrame) = 0;
+    virtual void captureFrame(const std::string& outputName) const { }
 
     virtual float getRenderResolutionScale() const {
         return _renderResolutionScale;

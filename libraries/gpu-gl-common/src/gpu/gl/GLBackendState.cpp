@@ -100,17 +100,17 @@ void GLBackend::do_setStateCullMode(int32 mode) {
 }
 
 void GLBackend::do_setStateFrontFaceClockwise(bool isClockwise) {
-    if (_pipeline._stateCache.frontFaceClockwise != isClockwise) {
+    if (_pipeline._stateCache.flags.frontFaceClockwise != isClockwise) {
         static GLenum  GL_FRONT_FACES[] = { GL_CCW, GL_CW };
         glFrontFace(GL_FRONT_FACES[isClockwise]);
         (void)CHECK_GL_ERROR();
 
-        _pipeline._stateCache.frontFaceClockwise = isClockwise;
+        _pipeline._stateCache.flags.frontFaceClockwise = isClockwise;
     }
 }
 
 void GLBackend::do_setStateDepthClampEnable(bool enable) {
-    if (_pipeline._stateCache.depthClampEnable != enable) {
+    if (_pipeline._stateCache.flags.depthClampEnable != enable) {
 #if !defined(USE_GLES)
         if (enable) {
             glEnable(GL_DEPTH_CLAMP);
@@ -118,13 +118,13 @@ void GLBackend::do_setStateDepthClampEnable(bool enable) {
             glDisable(GL_DEPTH_CLAMP);
         }
         (void)CHECK_GL_ERROR();
-        _pipeline._stateCache.depthClampEnable = enable;
+        _pipeline._stateCache.flags.depthClampEnable = enable;
 #endif
     }
 }
 
 void GLBackend::do_setStateScissorEnable(bool enable) {
-    if (_pipeline._stateCache.scissorEnable != enable) {
+    if (_pipeline._stateCache.flags.scissorEnable != enable) {
         if (enable) {
             glEnable(GL_SCISSOR_TEST);
         } else {
@@ -132,12 +132,12 @@ void GLBackend::do_setStateScissorEnable(bool enable) {
         }
         (void)CHECK_GL_ERROR();
 
-        _pipeline._stateCache.scissorEnable = enable;
+        _pipeline._stateCache.flags.scissorEnable = enable;
     }
 }
 
 void GLBackend::do_setStateMultisampleEnable(bool enable) {
-    if (_pipeline._stateCache.multisampleEnable != enable) {
+    if (_pipeline._stateCache.flags.multisampleEnable != enable) {
 #if !defined(USE_GLES)
         if (enable) {
             glEnable(GL_MULTISAMPLE);
@@ -146,13 +146,13 @@ void GLBackend::do_setStateMultisampleEnable(bool enable) {
         }
         (void)CHECK_GL_ERROR();
 
-        _pipeline._stateCache.multisampleEnable = enable;
+        _pipeline._stateCache.flags.multisampleEnable = enable;
 #endif
     }
 }
 
 void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
-    if (_pipeline._stateCache.antialisedLineEnable != enable) {
+    if (_pipeline._stateCache.flags.antialisedLineEnable != enable) {
 #if !defined(USE_GLES)
         if (enable) {
             glEnable(GL_LINE_SMOOTH);
@@ -161,7 +161,7 @@ void GLBackend::do_setStateAntialiasedLineEnable(bool enable) {
         }
         (void)CHECK_GL_ERROR();
 
-        _pipeline._stateCache.antialisedLineEnable = enable;
+        _pipeline._stateCache.flags.antialisedLineEnable = enable;
 #endif
     }
 }
@@ -206,7 +206,7 @@ void GLBackend::do_setStateDepthTest(State::DepthTest test) {
         if (CHECK_GL_ERROR()) {
             qCDebug(gpulogging) << "DepthTest" << (test.isEnabled() ? "Enabled" : "Disabled")
                 << "Mask=" << (test.getWriteMask() ? "Write" : "no Write")
-                << "Func=" << test.getFunction()
+                << "Func=" << (uint16_t)test.getFunction()
                 << "Raw=" << test.getRaw();
         }
         _pipeline._stateCache.depthTest = test;
@@ -264,7 +264,7 @@ void GLBackend::do_setStateStencil(State::StencilActivation activation, State::S
 }
 
 void GLBackend::do_setStateAlphaToCoverageEnable(bool enable) {
-    if (_pipeline._stateCache.alphaToCoverageEnable != enable) {
+    if (_pipeline._stateCache.flags.alphaToCoverageEnable != enable) {
         if (enable) {
             glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
         } else {
@@ -272,7 +272,7 @@ void GLBackend::do_setStateAlphaToCoverageEnable(bool enable) {
         }
         (void)CHECK_GL_ERROR();
 
-        _pipeline._stateCache.alphaToCoverageEnable = enable;
+        _pipeline._stateCache.flags.alphaToCoverageEnable = enable;
     }
 }
 
@@ -317,7 +317,7 @@ void GLBackend::do_setStateColorWriteMask(uint32 mask) {
             mask & State::ColorMask::WRITE_ALPHA);
         (void)CHECK_GL_ERROR();
 
-        _pipeline._stateCache.colorWriteMask = mask;
+        _pipeline._stateCache.colorWriteMask = (State::ColorMask)mask;
     }
 }
 

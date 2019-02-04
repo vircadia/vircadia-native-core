@@ -1207,9 +1207,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
             _networkPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
         }
         _lastAnimVars = _animVars;
-        _animVars.clearTriggers();
         _animVars = triggersOut;
-        _networkVars.clearTriggers();
         _networkVars = networkTriggersOut;
         _lastContext = context;
     }

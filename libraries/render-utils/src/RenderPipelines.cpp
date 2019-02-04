@@ -319,7 +319,7 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* a
             graphics::MultiMaterial::Schema schema;
             graphics::MaterialKey schemaKey;
 
-            schema._albedo = vec3(1.0f);
+            schema._albedo = ColorUtils::sRGBToLinearVec3(vec3(1.0f));
             schema._opacity = 1.0f;
             schema._metallic = 0.1f;
             schema._roughness = 0.9f;
@@ -482,6 +482,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         auto itr = textureMaps.find(graphics::MaterialKey::ALBEDO_MAP);
                         if (itr != textureMaps.end()) {
                             if (itr->second->isDefined()) {
+                                material->resetOpacityMap();
                                 drawMaterialTextures->setTexture(gr::Texture::MaterialAlbedo, itr->second->getTextureView());
                                 wasSet = true;
                             } else {
@@ -492,8 +493,8 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                             forceDefault = true;
                         }
                         schemaKey.setAlbedoMap(true);
-                        schemaKey.setOpacityMaskMap(materialKey.isOpacityMaskMap());
-                        schemaKey.setTranslucentMap(materialKey.isTranslucentMap());
+                        schemaKey.setOpacityMaskMap(material->getKey().isOpacityMaskMap());
+                        schemaKey.setTranslucentMap(material->getKey().isTranslucentMap());
                     }
                     break;
                 case graphics::MaterialKey::METALLIC_MAP_BIT:

@@ -15,8 +15,8 @@ print = functools.partial(print, flush=True)
 # Encapsulates the vcpkg system 
 class VcpkgRepo:
     CMAKE_TEMPLATE = """
-set(CMAKE_TOOLCHAIN_FILE "{}" CACHE FILEPATH "Toolchain file")
-set(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}")
+get_filename_component(CMAKE_TOOLCHAIN_FILE "{}" ABSOLUTE CACHE)
+get_filename_component(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}" ABSOLUTE)
 set(VCPKG_INSTALL_ROOT "{}")
 set(VCPKG_TOOLS_DIR "{}")
 """
