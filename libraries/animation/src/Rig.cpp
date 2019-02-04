@@ -1069,23 +1069,16 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         t += deltaTime;
 
         if (_enableInverseKinematics) {
-            
-            // animIK node json
             _animVars.set("ikOverlayAlpha", 1.0f);
-            // animSpline json
             _animVars.set("splineIKEnabled", true);
             _animVars.set("leftHandIKEnabled", true);
             _animVars.set("rightHandIKEnabled", true);
             _animVars.set("leftFootIKEnabled", true);
             _animVars.set("rightFootIKEnabled", true);
-            _animVars.set("leftHandPoleVectorEnabled", true);
-            _animVars.set("rightHandPoleVectorEnabled", true);
             _animVars.set("leftFootPoleVectorEnabled", true);
             _animVars.set("rightFootPoleVectorEnabled", true);
         } else {
-            // animIK node json
             _animVars.set("ikOverlayAlpha", 0.0f);
-            // animSpline json
             _animVars.set("splineIKEnabled", false);
             _animVars.set("leftHandIKEnabled", false);
             _animVars.set("rightHandIKEnabled", false);
@@ -1097,7 +1090,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("rightFootPoleVectorEnabled", false);
         }
         _lastEnableInverseKinematics = _enableInverseKinematics;
-
     }
     _lastForward = forward;
     _lastPosition = worldPosition;
