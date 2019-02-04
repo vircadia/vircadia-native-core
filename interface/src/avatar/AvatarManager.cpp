@@ -760,6 +760,109 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
     return result;
 }
 
+RayToAvatarIntersectionResult AvatarManager::findRayIntersectionOld(const PickRay& ray,
+    const QScriptValue& avatarIdsToInclude,
+    const QScriptValue& avatarIdsToDiscard) {
+    QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
+    QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
+
+    return findRayIntersectionVectorOld(ray, avatarsToInclude, avatarsToDiscard);
+}
+
+RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVectorOld(const PickRay& ray,
+    const QVector<EntityItemID>& avatarsToInclude,
+    const QVector<EntityItemID>& avatarsToDiscard) {
+    RayToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
+            Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
+            Q_ARG(const PickRay&, ray),
+            Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
+            Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+        return result;
+    }
+
+    // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
+    // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
+    // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
+    // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+
+    // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+
+    std::vector<SortedAvatar> sortedAvatars;
+    auto avatarHashCopy = getHashCopy();
+    for (auto avatarData : avatarHashCopy) {
+        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
+        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
+            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
+            continue;
+        }
+
+        float distance = FLT_MAX;
+#if 0
+        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
+        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
+        AABox avatarBounds = avatarModel->getRenderableMeshBound();
+        if (avatarBounds.contains(ray.origin)) {
+            distance = 0.0f;
+        }
+        else {
+            float boundDistance = FLT_MAX;
+            BoxFace face;
+            glm::vec3 surfaceNormal;
+            if (avatarBounds.findRayIntersection(ray.origin, ray.direction, boundDistance, face, surfaceNormal)) {
+                distance = boundDistance;
+            }
+        }
+#else
+        glm::vec3 start;
+        glm::vec3 end;
+        float radius;
+        avatar->getCapsule(start, end, radius);
+        findRayCapsuleIntersection(ray.origin, ray.direction, start, end, radius, distance);
+#endif
+
+        if (distance < FLT_MAX) {
+            sortedAvatars.emplace_back(distance, avatar);
+        }
+    }
+
+    if (sortedAvatars.size() > 1) {
+        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
+        std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
+    }
+
+    for (auto it = sortedAvatars.begin(); it != sortedAvatars.end(); ++it) {
+        const SortedAvatar& sortedAvatar = *it;
+        // We can exit once avatarCapsuleDistance > bestDistance
+        if (sortedAvatar.first > result.distance) {
+            break;
+        }
+
+        float distance = FLT_MAX;
+        BoxFace face;
+        glm::vec3 surfaceNormal;
+        QVariantMap extraInfo;
+        SkeletonModelPointer avatarModel = sortedAvatar.second->getSkeletonModel();
+        if (avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, ray.direction, distance, face, surfaceNormal, extraInfo, true)) {
+            if (distance < result.distance) {
+                result.intersects = true;
+                result.avatarID = sortedAvatar.second->getID();
+                result.distance = distance;
+                result.face = face;
+                result.surfaceNormal = surfaceNormal;
+                result.extraInfo = extraInfo;
+            }
+        }
+    }
+
+    if (result.intersects) {
+        result.intersection = ray.origin + ray.direction * result.distance;
+    }
+
+    return result;
+}
+
 ParabolaToAvatarIntersectionResult AvatarManager::findParabolaIntersectionVector(const PickParabola& pick,
                                                                                  const QVector<EntityItemID>& avatarsToInclude,
                                                                                  const QVector<EntityItemID>& avatarsToDiscard) {

@@ -34,7 +34,6 @@
 #include "IKTarget.h"
 #include "PathUtils.h"
 
-
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -1871,7 +1870,7 @@ void Rig::initAnimGraph(const QUrl& url) {
                 auto roleState = roleAnimState.second;
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
-
+            _flow.setRig(this);
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
@@ -1902,6 +1901,9 @@ void Rig::initAnimGraph(const QUrl& url) {
         });
         connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;
+        });
+        connect(this, &Rig::onLoadComplete, [&]() {
+            _flow.calculateConstraints();
         });
     }
 }

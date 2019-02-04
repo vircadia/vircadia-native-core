@@ -2943,6 +2943,12 @@ int EntityTree::getJointIndex(const QUuid& entityID, const QString& name) const 
     }
     return entity->getJointIndex(name);
 }
+void EntityTree::callFlowSkeleton(const QUuid& entityID) {
+    /*
+    EntityTree* nonConstThis = const_cast<EntityTree*>(this);
+    EntityItemPointer entity = nonConstThis->findEntityByEntityItemID(entityID);
+    */
+}
 
 QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     EntityTree* nonConstThis = const_cast<EntityTree*>(this);

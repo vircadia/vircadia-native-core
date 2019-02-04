@@ -35,6 +35,7 @@
 
 #include "MetaModelPayload.h"
 #include "MultiSphereShape.h"
+#include "Flow.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -284,6 +285,8 @@ public:
     * @returns {Quat}
     */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+
+    Q_INVOKABLE void callFlow() { _skeletonModel->getRig().computeFlowSkeleton(); };
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;

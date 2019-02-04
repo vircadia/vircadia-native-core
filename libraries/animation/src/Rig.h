@@ -25,6 +25,7 @@
 #include "AnimNodeLoader.h"
 #include "SimpleMovingAverage.h"
 #include "AnimUtil.h"
+#include "Flow.h"
 
 class Rig;
 class AnimInverseKinematics;
@@ -233,6 +234,7 @@ public:
     const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
+    void computeFlowSkeleton() { _flow.calculateConstraints(); }
 
 signals:
     void onLoadComplete();
@@ -424,6 +426,7 @@ protected:
 
     SnapshotBlendPoseHelper _hipsBlendHelper;
     ControllerParameters _previousControllerParameters;
+    Flow _flow;
 };
 
 #endif /* defined(__hifi__Rig__) */

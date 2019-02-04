@@ -157,6 +157,15 @@ public:
                                                                         const QVector<EntityItemID>& avatarsToDiscard,
                                                                         bool pickAgainstMesh);
 
+    Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionOld(const PickRay& ray,
+        const QScriptValue& avatarIdsToInclude = QScriptValue(),
+        const QScriptValue& avatarIdsToDiscard = QScriptValue());
+
+    Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVectorOld(const PickRay& ray,
+        const QVector<EntityItemID>& avatarsToInclude,
+        const QVector<EntityItemID>& avatarsToDiscard);
+
+
     /**jsdoc
      * @function AvatarManager.findParabolaIntersectionVector
      * @param {PickParabola} pick
