@@ -556,61 +556,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            //RalewaySemiBold {
-            //    id: descriptionText
-            //    
-            //    anchors.top: descriptionLabel.bottom
-            //    anchors.left: parent.left
-            //    anchors.topMargin: 5
-            //    width: parent.width
-            //
-            //    text: root.description
-            //    size: 14
-            //   color: hifi.colors.lightGray
-            //    verticalAlignment: Text.AlignVCenter
-            //    wrapMode: Text.Wrap
-            //}
-            
-            
-            ListModel {
-                id: descriptionTextModel
-            }
-            
-            ListView {
-                id: descriptionTextView;
+            RalewaySemiBold {
+                id: descriptionText
                 
                 anchors.top: descriptionLabel.bottom
                 anchors.left: parent.left
-                anchors.right: parent.right                
-
-                model: descriptionTextModel
-                interactive: false
+                anchors.topMargin: 5
+                width: parent.width
             
-                delegate: Component {
-                    Rectangle {
-                        id: descriptionWebRect
-                        width: parent.width
-                        height: 5
-                        WebEngineView {
-                            id: descriptionWebView
-                            anchors.fill: parent
-
-                            Component.onCompleted: {
-                                descriptionWebView.enabled = false;
-                                loadHtml("<html><head><style>body { overflow: hidden; color: #393939; font-family: Arial !important;}</style></head><body>"+model.text+"</body></html>");
-                                descriptionWebView.enabled = true;
-                            }
-
-                            onContentsSizeChanged: {
-                                descriptionWebRect.height = contentsSize.height;
-                                descriptionTextView.height = contentsSize.height;
-                            }
-
-                            onNewViewRequested: function(request) {
-                                sendToScript({method: 'marketplace_open_link', link: request.requestedUrl});
-                            }
-                        }
-                    }
+                text: root.description
+                size: 14
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.Wrap
+                onLinkActivated: {
+                    sendToScript({method: 'marketplace_open_link', link: link});
                 }
             }
         }
