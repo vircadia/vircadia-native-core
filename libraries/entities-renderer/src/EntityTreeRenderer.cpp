@@ -798,11 +798,11 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
+std::pair<float, QUuid> EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
-        return;
+        return { FLT_MAX, UNKNOWN_ENTITY_ID };
     }
 
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
@@ -833,9 +833,10 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         _lastPointerEvent = pointerEvent;
         _lastPointerEventValid = true;
 
-    } else {
-        emit entityScriptingInterface->mousePressOffEntity();
+        return { rayPickResult.distance, rayPickResult.entityID };
     }
+    emit entityScriptingInterface->mousePressOffEntity();
+    return { FLT_MAX, UNKNOWN_ENTITY_ID };
 }
 
 void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {

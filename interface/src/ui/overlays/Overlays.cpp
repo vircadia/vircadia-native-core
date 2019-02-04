@@ -1209,7 +1209,7 @@ void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event
     }
 }
 
-bool Overlays::mousePressEvent(QMouseEvent* event) {
+std::pair<float, QUuid> Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
@@ -1219,12 +1219,10 @@ bool Overlays::mousePressEvent(QMouseEvent* event) {
 
         PointerEvent pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
         mousePressPointerEvent(_currentClickingOnOverlayID, pointerEvent);
-        return true;
+        return { rayPickResult.distance, rayPickResult.overlayID };
     }
-    // if we didn't press on an overlay, disable overlay keyboard focus
-    setKeyboardFocusOverlay(UNKNOWN_ENTITY_ID);
     emit mousePressOffOverlay();
-    return false;
+    return { FLT_MAX, UNKNOWN_ENTITY_ID };
 }
 
 void Overlays::mousePressPointerEvent(const QUuid& id, const PointerEvent& event) {

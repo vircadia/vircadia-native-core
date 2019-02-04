@@ -348,6 +348,8 @@ static const QString ACTIVE_DISPLAY_PLUGIN_SETTING_NAME = "activeDisplayPlugin";
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 static const QString KEEP_ME_LOGGED_IN_SETTING_NAME = "keepMeLoggedIn";
 
+static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
+
 #if defined(Q_OS_ANDROID)
 static const QString TESTER_FILE = "/sdcard/_hifi_test_device.txt";
 #endif
@@ -1878,10 +1880,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     SpacemouseManager::getInstance().init();
 #endif
 
-    // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity,
-            [this](const QUuid& id, const PointerEvent& event) {
+    // If the user clicks on an object, we will check that it's a web surface, and if so, set the focus to it
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    auto keyboardFocusOperator = [this](const QUuid& id, const PointerEvent& event) {
         if (event.shouldFocus()) {
             if (getEntities()->wantsKeyboardFocus(id)) {
                 setKeyboardFocusEntity(id);
@@ -1889,8 +1890,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
             }
         }
-    });
+    };
+    connect(pointerManager.data(), &PointerManager::triggerBeginEntity, keyboardFocusOperator);
+    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, keyboardFocusOperator);
 
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [this](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
@@ -1971,13 +1975,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             }
         }
         return QSizeF(0.0f, 0.0f);
-    });
-
-    // Keyboard focus handling for local Web entities.
-    connect(&qApp->getOverlays(), &Overlays::overlayDeleted, [this](const QUuid& id) {
-        if (id == _keyboardFocusedEntity.get()) {
-            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        }
     });
 
     connect(this, &Application::aboutToQuit, [this]() {
@@ -4376,15 +4373,16 @@ void Application::mousePressEvent(QMouseEvent* event) {
 #else
     QPointF transformedPos;
 #endif
-    QMouseEvent mappedEvent(event->type(),
-        transformedPos,
-        event->screenPos(), event->button(),
-        event->buttons(), event->modifiers());
 
+    QMouseEvent mappedEvent(event->type(), transformedPos, event->screenPos(), event->button(), event->buttons(), event->modifiers());
+    std::pair<float, QUuid> entityResult;
     if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-        getEntities()->mousePressEvent(&mappedEvent);
+        entityResult = getEntities()->mousePressEvent(&mappedEvent);
     }
-    getOverlays().mousePressEvent(&mappedEvent);
+    std::pair<float, QUuid> overlayResult = getOverlays().mousePressEvent(&mappedEvent);
+
+    QUuid focusedEntity = entityResult.first < overlayResult.first ? entityResult.second : overlayResult.second;
+    setKeyboardFocusEntity(getEntities()->wantsKeyboardFocus(focusedEntity) ? focusedEntity : UNKNOWN_ENTITY_ID);
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
@@ -4914,24 +4912,19 @@ void Application::idle() {
         update(glm::clamp(secondsSinceLastUpdate, 0.0f, BIGGEST_DELTA_TIME_SECS));
     }
 
-
-    // Update focus highlight for entities
-    {
+    { // Update keyboard focus highlight
         if (!_keyboardFocusedEntity.get().isInvalidID()) {
             const quint64 LOSE_FOCUS_AFTER_ELAPSED_TIME = 30 * USECS_PER_SECOND; // if idle for 30 seconds, drop focus
             quint64 elapsedSinceAcceptedKeyPress = usecTimestampNow() - _lastAcceptedKeyPress;
             if (elapsedSinceAcceptedKeyPress > LOSE_FOCUS_AFTER_ELAPSED_TIME) {
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
             } else {
-                // update position of highlight object
-                if (!_keyboardFocusedEntity.get().isInvalidID()) {
-                    auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
-                    if (entity && !_keyboardFocusHighlightID.isNull()) {
-                        EntityItemProperties properties;
-                        properties.setPosition(entity->getWorldPosition());
-                        properties.setRotation(entity->getWorldOrientation());
-                        DependencyManager::get<EntityScriptingInterface>()->editEntity(_keyboardFocusHighlightID, properties);
-                    }
+                if (auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get())) {
+                    EntityItemProperties properties;
+                    properties.setPosition(entity->getWorldPosition());
+                    properties.setRotation(entity->getWorldOrientation());
+                    properties.setDimensions(entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                    DependencyManager::get<EntityScriptingInterface>()->editEntity(_keyboardFocusHighlightID, properties);
                 }
             }
         }
@@ -5729,11 +5722,10 @@ void Application::rotationModeChanged() const {
 }
 
 void Application::setKeyboardFocusHighlight(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions) {
-    // Create focus
     if (qApp->getLoginDialogPoppedUp()) {
         return;
     }
-    
+
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (_keyboardFocusHighlightID == UNKNOWN_ENTITY_ID || !entityScriptingInterface->isAddedEntity(_keyboardFocusHighlightID)) {
         EntityItemProperties properties;
@@ -5761,8 +5753,6 @@ QUuid Application::getKeyboardFocusEntity() const {
     return _keyboardFocusedEntity.get();
 }
 
-static const float FOCUS_HIGHLIGHT_EXPANSION_FACTOR = 1.05f;
-
 void Application::setKeyboardFocusEntity(const QUuid& id) {
     if (_keyboardFocusedEntity.get() != id) {
         if (qApp->getLoginDialogPoppedUp() && !_loginDialogID.isNull()) {
@@ -5777,34 +5767,35 @@ void Application::setKeyboardFocusEntity(const QUuid& id) {
         _keyboardFocusedEntity.set(id);
 
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-        if (id == UNKNOWN_ENTITY_ID) {
-            EntityItemProperties properties;
-            properties.setVisible(false);
-            entityScriptingInterface->editEntity(_keyboardFocusHighlightID, properties);
-            return;
-        }
+        if (id != UNKNOWN_ENTITY_ID) {
+            EntityPropertyFlags desiredProperties;
+            desiredProperties += PROP_VISIBLE;
+            desiredProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
+            auto properties = entityScriptingInterface->getEntityProperties(id);
+            if (properties.getVisible()) {
+                auto entities = getEntities();
+                auto entityId = _keyboardFocusedEntity.get();
+                if (entities->wantsKeyboardFocus(entityId)) {
+                    entities->setProxyWindow(entityId, _window->windowHandle());
+                    if (_keyboardMouseDevice->isActive()) {
+                        _keyboardMouseDevice->pluginFocusOutEvent();
+                    }
+                    _lastAcceptedKeyPress = usecTimestampNow();
 
-        EntityPropertyFlags desiredProperties;
-        desiredProperties += PROP_VISIBLE;
-        desiredProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
-        auto properties = entityScriptingInterface->getEntityProperties(id);
-        if (properties.getVisible() && properties.getShowKeyboardFocusHighlight()) {
-            auto entities = getEntities();
-            auto entityId = _keyboardFocusedEntity.get();
-            if (entities->wantsKeyboardFocus(entityId)) {
-                entities->setProxyWindow(entityId, _window->windowHandle());
-                if (_keyboardMouseDevice->isActive()) {
-                    _keyboardMouseDevice->pluginFocusOutEvent();
-                }
-                _lastAcceptedKeyPress = usecTimestampNow();
-
-                auto entity = getEntities()->getEntity(entityId);
-                if (entity) {
-                    setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
-                        entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                    if (properties.getShowKeyboardFocusHighlight()) {
+                        if (auto entity = entities->getEntity(entityId)) {
+                            setKeyboardFocusHighlight(entity->getWorldPosition(), entity->getWorldOrientation(),
+                                entity->getScaledDimensions() * FOCUS_HIGHLIGHT_EXPANSION_FACTOR);
+                            return;
+                        }
+                    }
                 }
             }
         }
+
+        EntityItemProperties properties;
+        properties.setVisible(false);
+        entityScriptingInterface->editEntity(_keyboardFocusHighlightID, properties);
     }
 }
 

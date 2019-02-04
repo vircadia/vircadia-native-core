@@ -111,7 +111,7 @@ public:
         const QVector<EntityItemID>& discard,
         bool visibleOnly = false, bool collidableOnly = false);
 
-    bool mousePressEvent(QMouseEvent* event);
+    std::pair<float, QUuid> mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);
     bool mouseMoveEvent(QMouseEvent* event);
