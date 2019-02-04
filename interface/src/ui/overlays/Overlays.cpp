@@ -316,17 +316,6 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
     RENAME_PROP(localOrientation, localRotation);
     RENAME_PROP(ignoreRayIntersection, ignorePickIntersection);
 
-    // Model overlays didn't support wireframe drawing
-    if (type != "Model") {
-        RENAME_PROP(solid, isSolid);
-        RENAME_PROP(isFilled, isSolid);
-        RENAME_PROP(filled, isSolid);
-        OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(isSolid, primitiveMode, false, [](const QVariant& v) { return v.toBool() ? "solid" : "lines"; });
-
-        RENAME_PROP(wire, isWire);
-        RENAME_PROP_CONVERT(isWire, primitiveMode, [](const QVariant& v) { return v.toBool() ? "lines" : "solid"; });
-    }
-
     RENAME_PROP_CONVERT(drawInFront, renderLayer, [](const QVariant& v) { return v.toBool() ? "front" : "world"; });
     RENAME_PROP_CONVERT(drawHUDLayer, renderLayer, [=](const QVariant& v) {
         bool f = v.toBool();
@@ -361,6 +350,16 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         }
         return "none";
     });
+
+    if (type == "Shape" || type == "Gizmo") {
+        RENAME_PROP(solid, isSolid);
+        RENAME_PROP(isFilled, isSolid);
+        RENAME_PROP(filled, isSolid);
+        OVERLAY_TO_ENTITY_PROP_CONVERT_DEFAULT(isSolid, primitiveMode, false, [](const QVariant& v) { return v.toBool() ? "solid" : "lines"; });
+
+        RENAME_PROP(wire, isWire);
+        RENAME_PROP_CONVERT(isWire, primitiveMode, [](const QVariant& v) { return v.toBool() ? "lines" : "solid"; });
+    }
 
     if (type == "Shape") {
         SET_OVERLAY_PROP_DEFAULT(shape, "Hexagon");
@@ -1185,8 +1184,7 @@ PointerEvent Overlays::calculateOverlayPointerEvent(const QUuid& id, const PickR
 void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
+    if (!keyboard->getKeyIDs().contains(id)) {
         emit hoverEnterOverlay(id, event);
     }
 }
@@ -1194,8 +1192,7 @@ void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event
 void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
+    if (!keyboard->getKeyIDs().contains(id)) {
         emit hoverOverOverlay(id, event);
     }
 }
@@ -1203,8 +1200,7 @@ void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event)
 void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
+    if (!keyboard->getKeyIDs().contains(id)) {
         emit hoverLeaveOverlay(id, event);
     }
 }
@@ -1228,8 +1224,7 @@ std::pair<float, QUuid> Overlays::mousePressEvent(QMouseEvent* event) {
 void Overlays::mousePressPointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
+    if (!keyboard->getKeyIDs().contains(id)) {
         emit mousePressOnOverlay(id, event);
     }
 }
@@ -1267,7 +1262,7 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
 void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
+    if (!keyboard->getKeyIDs().contains(id)) {
         emit mouseReleaseOnOverlay(id, event);
     }
 }
@@ -1311,8 +1306,7 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
 void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeysID().contains(id)) {
-        // emit to scripts
+    if (!keyboard->getKeyIDs().contains(id)) {
         emit mouseMoveOnOverlay(id, event);
     }
 }
@@ -1649,8 +1643,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
- *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1708,8 +1700,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
- *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1758,8 +1748,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
- *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1804,8 +1792,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
- *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1838,8 +1824,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
- *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1890,8 +1874,6 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
- * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
- *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.

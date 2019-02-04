@@ -1884,9 +1884,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto pointerManager = DependencyManager::get<PointerManager>();
     auto keyboardFocusOperator = [this](const QUuid& id, const PointerEvent& event) {
         if (event.shouldFocus()) {
+            auto keyboard = DependencyManager::get<Keyboard>();
             if (getEntities()->wantsKeyboardFocus(id)) {
                 setKeyboardFocusEntity(id);
-            } else {
+            } else if (!keyboard->getKeyIDs().contains(id)) { // FIXME: this is a hack to make the keyboard work for now, since the keys would otherwise steal focus
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
             }
         }
@@ -3794,7 +3795,7 @@ static inline bool isKeyEvent(QEvent::Type type) {
 }
 
 bool Application::handleKeyEventForFocusedEntity(QEvent* event) {
-    if (!_keyboardFocusedEntity.get().isInvalidID()) {
+    if (_keyboardFocusedEntity.get() != UNKNOWN_ENTITY_ID) {
         switch (event->type()) {
             case QEvent::KeyPress:
             case QEvent::KeyRelease:

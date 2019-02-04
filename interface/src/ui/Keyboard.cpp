@@ -841,7 +841,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                 key.saveDimensionsAndLocalPosition();
 
                 includeItems.append(key.getID());
-                _itemsToIgnore.append(key.getID());
+                _itemsToIgnore.insert(key.getID());
                 keyboardLayerKeys.insert(id, key);
             }
 
@@ -882,8 +882,8 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         }
 
         _ignoreItemsLock.withWriteLock([&] {
-            _itemsToIgnore.append(_textDisplay.entityID);
-            _itemsToIgnore.append(_anchor.entityID);
+            _itemsToIgnore.insert(_textDisplay.entityID);
+            _itemsToIgnore.insert(_anchor.entityID);
         });
         _layerIndex = 0;
         auto pointerManager = DependencyManager::get<PointerManager>();
@@ -905,8 +905,8 @@ bool Keyboard::shouldProcessEntity() const {
     return (!_keyboardLayers.empty() && isLayerSwitchTimerFinished());
 }
 
-QVector<QUuid> Keyboard::getKeysID() {
-    return _ignoreItemsLock.resultWithReadLock<QVector<QUuid>>([&] {
+QSet<QUuid> Keyboard::getKeyIDs() {
+    return _ignoreItemsLock.resultWithReadLock<QSet<QUuid>>([&] {
         return _itemsToIgnore;
     });
 }

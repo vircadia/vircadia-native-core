@@ -113,7 +113,7 @@ public:
     bool containsID(const QUuid& id) const;
 
     void loadKeyboardFile(const QString& keyboardFile);
-    QVector<QUuid> getKeysID();
+    QSet<QUuid> getKeyIDs();
     QUuid getAnchorID();
 
 public slots:
@@ -185,7 +185,7 @@ private:
     Anchor _anchor;
     BackPlate _backPlate;
 
-    QVector<QUuid> _itemsToIgnore;
+    QSet<QUuid> _itemsToIgnore;
     std::vector<QHash<QUuid, Key>> _keyboardLayers;
 };
 
