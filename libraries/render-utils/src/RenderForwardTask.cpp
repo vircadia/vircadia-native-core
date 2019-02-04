@@ -144,18 +144,22 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
      task.addJob<Blit>("Blit", framebuffer);
 }
 
+void PrepareFramebuffer::configure(const PrepareFramebuffer::Config& config) {
+    _numSamples = config.getNumSamples();
+}
+
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
     glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
-    if (_framebuffer && _framebuffer->getSize() != frameSize) {
+    if (_framebuffer && (_framebuffer->getSize() != frameSize || _framebuffer->getNumSamples() != _numSamples)) {
         _framebuffer.reset();
     }
 
     if (!_framebuffer) {
         _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("forward"));
         
-        int numSamples = 8;
+        int numSamples = _numSamples;
 
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);

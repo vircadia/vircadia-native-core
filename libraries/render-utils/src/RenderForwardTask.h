@@ -27,16 +27,33 @@ public:
     void build(JobModel& task, const render::Varying& input, render::Varying& output);
 };
 
+class PrepareFramebufferConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples NOTIFY dirty)
+public:
+    int getNumSamples() const { return numSamples; }
+    void setNumSamples(int num) { numSamples = num; emit dirty(); }
+
+signals:
+    void dirty();
+
+protected:
+    int numSamples{ 8 };
+};
+
 class PrepareFramebuffer {
 public:
     using Inputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs>;
+    using Config = PrepareFramebufferConfig;
+    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs, Config>;
 
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext,
             gpu::FramebufferPointer& framebuffer);
 
 private:
     gpu::FramebufferPointer _framebuffer;
+    int _numSamples { 8 };
 };
 
 class PrepareForward {
