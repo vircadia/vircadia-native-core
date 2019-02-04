@@ -369,7 +369,7 @@ Rectangle {
                 categoriesButton.color = hifi.colors.white;
             }            
         }
-        
+
         Rectangle {
             anchors {
                 left: parent.left;
@@ -1057,7 +1057,9 @@ Rectangle {
                 width: 100
 
                 onClicked: {
-                    getMarketplaceItems();
+                    marketplaceItemView.visible = false;
+                    itemsList.visible = true;
+                    licenseInfo.visible = false;
                 }
             }
             

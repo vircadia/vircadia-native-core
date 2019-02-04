@@ -50,7 +50,15 @@ Rectangle {
             categoriesListModel.append({"category":category});
         });
     }
-    
+
+    onAttributionsChanged: {
+        attributionsModel.clear();
+        root.attributions.forEach(function(attribution) {
+            console.log("ATTRIBUITION:" + JSON.stringify(attribution));
+            attributionsModel.append(attribution);
+        });
+    }
+
     onDescriptionChanged: {
         descriptionTextModel.clear();
         descriptionTextModel.append({text: description})
@@ -339,24 +347,112 @@ Rectangle {
         }
         
         Rectangle {
-            anchors {
-                top: posted.bottom;
-                leftMargin: 15;
-                topMargin: 15;
-            }
-            width: parent.width;
-            height: 1;
 
-            color: hifi.colors.lightGray;
+            anchors {
+                top: posted.bottom
+                leftMargin: 15
+                topMargin: 15
+            }
+            width: parent.width
+            height: 1
+
+            color: hifi.colors.lightGrayText
         }
 
+        Item {
+            id: attributions
+
+            anchors {
+                top: posted.bottom
+                topMargin: 30
+                left: parent.left
+                right: parent.right
+            }
+            width: parent.width
+            height: attributionsModel.count > 0 ? childrenRect.height : 0
+            visible: attributionsModel.count > 0
+
+            RalewaySemiBold {
+                id: attributionsLabel
+
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+
+                text: "ATTRIBUTIONS:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
+            }
+            ListModel {
+                id: attributionsModel
+            }
+
+            ListView {
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: attributionsLabel.bottom
+                    bottomMargin: 15
+                }
+
+                height: 24*model.count+10
+
+                model: attributionsModel
+                delegate: Item {
+				    RalewaySemiBold {
+						id: attributionName
+
+						anchors.leftMargin: 15
+						width: paintedWidth
+
+						text: model.name
+						size: 14
+						height: 24
+						color: hifi.colors.baseGray
+						verticalAlignment: Text.AlignVCenter
+					}
+
+					RalewaySemiBold {
+						id: attributionLink
+
+						anchors.leftMargin: 15
+                        anchors.left: attributionName.right
+						width: paintedWidth
+
+						text: "Link"
+						size: 14
+						height: 24
+						color: hifi.colors.blueHighlight
+						verticalAlignment: Text.AlignVCenter
+
+						MouseArea {
+							anchors.fill: attributionLink
+
+							onClicked: sendToScript({method: 'marketplace_open_link', link: model.link});
+						}
+					}
+                }
+            }
+            Rectangle {
+
+                anchors {
+                    bottom: attributions.bottom
+                    leftMargin: 15
+                }
+                width: parent.width
+                height: 1
+
+                color: hifi.colors.lightGrayText
+            }
+        }
         Item {
             id: licenseItem;
             
             anchors {
-                top: posted.bottom
+                top: attributions.bottom
                 left: parent.left
-                topMargin: 30
+                topMargin: 15
             }
             width: parent.width
             height: childrenRect.height
