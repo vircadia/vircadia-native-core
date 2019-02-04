@@ -262,7 +262,7 @@ Rectangle {
             color: hifi.buttons.blue
             
             onClicked: root.buy();
-        }        
+        }
         
         Item {
             id: creatorItem
@@ -596,7 +596,9 @@ Rectangle {
                             anchors.fill: parent
 
                             Component.onCompleted: {
-                                loadHtml("<html><head><style>body { color: #393939; font-family: Arial !important;}</style></head><body>"+model.text+"</body></html>");
+                                descriptionWebView.enabled = false;
+                                loadHtml("<html><head><style>body { overflow: hidden; color: #393939; font-family: Arial !important;}</style></head><body>"+model.text+"</body></html>");
+                                descriptionWebView.enabled = true;
                             }
 
                             onContentsSizeChanged: {
