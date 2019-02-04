@@ -82,7 +82,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
     AnimPoseVec underPoses = _children[0]->evaluate(animVars, context, dt, triggersOut);
 
     // if we don't have a skeleton, or jointName lookup failed or the spline alpha is 0 or there are no underposes.
-    if (!_skeleton || _baseJointIndex == -1 || _midJointIndex == -1 || _tipJointIndex == -1 || alpha == 0.0f || underPoses.size() == 0) {
+    if (!_skeleton || _baseJointIndex == -1 || _midJointIndex == -1 || _tipJointIndex == -1 || alpha < EPSILON || underPoses.size() == 0) {
         // pass underPoses through unmodified.
         _poses = underPoses;
         return _poses;
