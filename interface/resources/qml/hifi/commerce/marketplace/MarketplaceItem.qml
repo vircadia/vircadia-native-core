@@ -63,6 +63,16 @@ Rectangle {
         }
     }
 
+    onAttributionsChanged: {
+        attributionsModel.clear();
+        if(root.attributions) {
+            root.attributions.forEach(function(attribution) {
+                attributionsModel.append(attribution);
+            });
+        }
+        footer.evalHeight();
+    }
+
     signal buy()
     signal categoryClicked(string category)
     signal showLicense(string url)
@@ -242,6 +252,7 @@ Rectangle {
         
         function evalHeight() {
             height = categoriesList.y - buyButton.y + categoriesList.height;
+            console.log("HEIGHT: " + height);
         }
         
         HifiControlsUit.Button {
@@ -261,7 +272,7 @@ Rectangle {
             color: hifi.buttons.blue
             
             onClicked: root.buy();
-        }        
+        }
         
         Item {
             id: creatorItem
@@ -346,24 +357,106 @@ Rectangle {
         }
         
         Rectangle {
-            anchors {
-                top: posted.bottom;
-                leftMargin: 15;
-                topMargin: 15;
-            }
-            width: parent.width;
-            height: 1;
 
-            color: hifi.colors.lightGray;
+            anchors {
+                top: posted.bottom
+                leftMargin: 15
+                topMargin: 15
+            }
+            width: parent.width
+            height: 1
+
+            color: hifi.colors.lightGrayText
         }
 
+        Item {
+            id: attributions
+
+            anchors {
+                top: posted.bottom
+                topMargin: 30
+                left: parent.left
+                right: parent.right
+            }
+            width: parent.width
+            height: attributionsModel.count > 0 ? childrenRect.height : 0
+            visible: attributionsModel.count > 0
+
+            RalewaySemiBold {
+                id: attributionsLabel
+
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+                height: paintedHeight
+
+                text: "ATTRIBUTIONS:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
+            }
+            ListModel {
+                id: attributionsModel
+            }
+
+            ListView {
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: attributionsLabel.bottom
+                    bottomMargin: 15
+                }
+
+                height: 24*model.count+10
+
+                model: attributionsModel
+                delegate: Item {
+                    height: 24
+                    width: parent.width
+				    RalewaySemiBold {
+						id: attributionName
+
+						anchors.leftMargin: 15
+						height: 24
+                        width: parent.width
+
+						text: model.name
+                        elide: Text.ElideRight
+						size: 14
+
+						color: model.link ? hifi.colors.blueHighlight : hifi.colors.baseGray
+						verticalAlignment: Text.AlignVCenter
+						MouseArea {
+							anchors.fill: parent
+
+							onClicked: {
+                                if (model.link) {
+                                    sendToScript({method: 'marketplace_open_link', link: model.link});
+                                }
+                            }
+						}
+                    }
+                }
+            }
+            Rectangle {
+
+                anchors {
+                    bottom: attributions.bottom
+                    leftMargin: 15
+                }
+                width: parent.width
+                height: 1
+
+                color: hifi.colors.lightGrayText
+            }
+        }
         Item {
             id: licenseItem;
             
             anchors {
-                top: posted.bottom
+                top: attributions.bottom
                 left: parent.left
-                topMargin: 30
+                topMargin: 15
             }
             width: parent.width
             height: childrenRect.height
@@ -469,59 +562,24 @@ Rectangle {
 
             RalewaySemiBold {
                 id: descriptionText
-
+                
                 anchors.top: descriptionLabel.bottom
                 anchors.left: parent.left
                 anchors.topMargin: 5
                 width: parent.width
-
-                visible: !root.supports3DHTML
-
+            
                 text: root.description
                 size: 14
                 color: hifi.colors.lightGray
+                linkColor: hifi.colors.blueHighlight
+                verticalAlignment: Text.AlignVCenter
+                textFormat: Text.RichText
                 wrapMode: Text.Wrap
-            }
-            
-            
-            ListModel {
-                id: descriptionTextModel
-            }
-            
-            ListView {
-                id: descriptionTextView;
-                
-                anchors.top: descriptionLabel.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right                
-
-                model: descriptionTextModel
-                interactive: false
-            
-                delegate: Component {
-                    Rectangle {
-                        id: descriptionWebRect
-                        width: parent.width
-                        height: 5
-                        WebEngineView {
-                            id: descriptionWebView
-                            anchors.fill: parent
-
-                            Component.onCompleted: {
-                                loadHtml("<html><head><style>body { color: #393939; font-family: Arial !important;}</style></head><body>"+model.text+"</body></html>");
-                            }
-
-                            onContentsSizeChanged: {
-                                descriptionWebRect.height = contentsSize.height;
-                                descriptionTextView.height = contentsSize.height;
-                            }
-
-                            onNewViewRequested: function(request) {
-                                sendToScript({method: 'marketplace_open_link', link: request.requestedUrl});
-                            }
-                        }
-                    }
+                onLinkActivated: {
+                    sendToScript({method: 'marketplace_open_link', link: link});
                 }
+                
+                onHeightChanged: { footer.evalHeight(); }
             }
         }
         
@@ -535,7 +593,9 @@ Rectangle {
                 right: parent.right
             }
             width: parent.width
-            height: childrenRect.height + 50
+            height: categoriesListModel.count*24 + categoryLabel.height + (isLoggedIn ? 50 : 150)
+            
+            onHeightChanged: { footer.evalHeight(); }
 
             RalewaySemiBold {
                 id: categoryLabel

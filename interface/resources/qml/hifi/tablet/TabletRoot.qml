@@ -3,10 +3,13 @@ import Hifi 1.0
 
 import "../../dialogs"
 import "../../controls"
+import stylesUit 1.0
 
-Item {
+Rectangle {
+    HifiConstants { id: hifi; }
     id: tabletRoot
     objectName: "tabletRoot"
+    color: hifi.colors.baseGray
     property string username: "Unknown user"
     property string usernameShort: "Unknown user"
     property var rootMenu;

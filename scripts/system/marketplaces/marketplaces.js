@@ -41,6 +41,7 @@ var GOTO_DIRECTORY = "GOTO_DIRECTORY";
 var GOTO_MARKETPLACE = "GOTO_MARKETPLACE";
 var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
 var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
+var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
 
 var CLARA_DOWNLOAD_TITLE = "Preparing Download";
 var messageBox = null;
@@ -436,6 +437,7 @@ function rezEntity(itemHref, itemType, marketplaceItemTesterId) {
 var referrerURL; // Used for updating Purchases QML
 var filterText; // Used for updating Purchases QML
 function onWebEventReceived(message) {
+    message = JSON.parse(message);
     if (message.type === GOTO_MARKETPLACE) {
         openMarketplace(message.itemId);
     } else if (message.type === GOTO_DIRECTORY) {

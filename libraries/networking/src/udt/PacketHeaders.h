@@ -259,6 +259,7 @@ enum class EntityVersion : PacketVersion {
     MigrateOverlayRenderProperties,
     MissingWebEntityProperties,
     PulseProperties,
+    RingGizmoEntities,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
