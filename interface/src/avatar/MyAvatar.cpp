@@ -75,7 +75,6 @@ const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
 const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
-const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
 
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
