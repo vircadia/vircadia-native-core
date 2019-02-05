@@ -17,6 +17,7 @@
 
 struct ToneMappingParams {
     vec4 _exp_2powExp_s0_s1;
+    vec4 _colorFilter_s0;
     ivec4 _toneCurve_s0_s1_s2;
 };
 
@@ -32,6 +33,9 @@ LAYOUT(binding=RENDER_UTILS_BUFFER_TM_PARAMS) uniform toneMappingParamsBuffer {
 float getTwoPowExposure() {
     return params._exp_2powExp_s0_s1.y;
 }
+vec3 getColorFilter() {
+    return params._colorFilter_s0.xyz;
+}
 int getToneCurve() {
     return params._toneCurve_s0_s1_s2.x;
 }
@@ -45,7 +49,7 @@ void main(void) {
     vec4 fragColorRaw = texture(colorMap, varTexCoord0);
     vec3 fragColor = fragColorRaw.xyz;
 
-    vec3 srcColor = fragColor * getTwoPowExposure();
+    vec3 srcColor = fragColor * getColorFilter() * getTwoPowExposure();
 
     int toneCurve = getToneCurve();
     vec3 tonedColor = srcColor;

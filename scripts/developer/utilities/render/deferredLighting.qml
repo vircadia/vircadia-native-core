@@ -14,6 +14,7 @@ import QtQuick.Layouts 1.3
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControls
 import  "configSlider"
+import  "../lib/plotperf"
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -123,7 +124,22 @@ Rectangle {
                         anchors.right: parent.right 
                 }
             }
+            Item {
+                HifiControls.Label {
+                    text: "Color filter"
+                    anchors.left: parent.left           
+                }
 
+                Color {
+                    height: 20
+                    anchors.right: parent.right       
+                    width: parent.width / 2
+                    _color: render.mainViewTask.getConfig("ToneMapping")["colorFilter"]
+                    onNewColor: {
+                        render.mainViewTask.getConfig("ToneMapping")["colorFilter"] = getXColor()
+                    }
+                }
+            }
             Item {
                 height: childrenRect.height
                 anchors.left: parent.left

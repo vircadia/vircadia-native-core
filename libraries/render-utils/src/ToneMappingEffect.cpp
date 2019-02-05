@@ -40,6 +40,13 @@ void ToneMappingEffect::setExposure(float exposure) {
     }
 }
 
+void ToneMappingEffect::setColorFilter(const glm::vec3& colorFilter) {
+    auto& params = _parametersBuffer.get<Parameters>();
+    if (params._colorFilter != colorFilter) {
+        _parametersBuffer.edit<Parameters>()._colorFilter = colorFilter;
+    }
+}
+
 void ToneMappingEffect::setToneCurve(ToneCurve curve) {
     auto& params = _parametersBuffer.get<Parameters>();
     if (params._toneCurve != curve) {
@@ -62,9 +69,6 @@ void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& ligh
         batch.enableStereo(false);
         batch.setFramebuffer(destinationFramebuffer);
 
-        // FIXME: Generate the Luminosity map
-        //batch.generateTextureMips(lightingBuffer);
-
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
         batch.resetViewTransform();
@@ -79,8 +83,9 @@ void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& ligh
 
 
 void ToneMappingDeferred::configure(const Config& config) {
-     _toneMappingEffect.setExposure(config.exposure);
-     _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
+    _toneMappingEffect.setExposure(config.exposure);
+    _toneMappingEffect.setColorFilter(config.colorFilter);
+    _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
 }
 
 void ToneMappingDeferred::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
