@@ -29,6 +29,7 @@ TextEdit 1.0 TextEdit.qml
 TextField 1.0 TextField.qml
 ToolTip 1.0 ToolTip.qml
 Tree 1.0 Tree.qml
+ProxyWebView 1.0 ProxyWebView.qml
 VerticalSpacer 1.0 VerticalSpacer.qml
 WebGlyphButton 1.0 WebGlyphButton.qml
 WebSpinner 1.0 WebSpinner.qml
