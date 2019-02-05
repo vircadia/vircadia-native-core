@@ -48,14 +48,14 @@ AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float i
     _enabledVar(enabledVar)
 {
 
-    for (int i = 0; i < tipTargetFlexCoefficients.size(); i++) {
+    for (int i = 0; i < (int)tipTargetFlexCoefficients.size(); i++) {
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
             _tipTargetFlexCoefficients[i] = tipTargetFlexCoefficients[i];
         }
      }
     _numTipTargetFlexCoefficients = std::min((int)tipTargetFlexCoefficients.size(), MAX_NUMBER_FLEX_VARIABLES);
 
-    for (int i = 0; i < midTargetFlexCoefficients.size(); i++) {
+    for (int i = 0; i < (int)midTargetFlexCoefficients.size(); i++) {
         if (i < MAX_NUMBER_FLEX_VARIABLES) {
             _midTargetFlexCoefficients[i] = midTargetFlexCoefficients[i];
         }
@@ -345,7 +345,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
             // get the number of flex coeff for this spline
             float interpedCoefficient = 1.0f;
             int numFlexCoeff = target.getNumFlexCoefficients();
-            if (numFlexCoeff == splineJointInfoVec->size()) {
+            if (numFlexCoeff == (int)splineJointInfoVec->size()) {
                 // then do nothing special
                 interpedCoefficient = target.getFlexCoefficient(i);
             } else {
