@@ -24,6 +24,17 @@ const uint32_t MAX_RANGE_QUERY_DEPTH = 10000;
 static bool timeElapsed = false;
 #endif
 
+#if defined(USE_GLES)
+static bool hasTimerExtension() {
+    static std::once_flag once;
+    static bool result = false;
+    std::call_once(once, [&] {
+        result = glGetQueryObjectui64vEXT != nullptr;
+    });
+    return result;
+}
+#endif
+
 void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
@@ -33,7 +44,11 @@ void GLBackend::do_beginQuery(const Batch& batch, size_t paramOffset) {
         ++_queryStage._rangeQueryDepth;
         glquery->_batchElapsedTimeBegin = std::chrono::high_resolution_clock::now();
 
-#if !defined(USE_GLES)
+#if defined(USE_GLES)
+        if (hasTimerExtension()) {
+            glQueryCounterEXT(glquery->_beginqo, GL_TIMESTAMP_EXT);
+        }
+#else 
         if (timeElapsed) {
             if (_queryStage._rangeQueryDepth <= MAX_RANGE_QUERY_DEPTH) {
                 glBeginQuery(GL_TIME_ELAPSED, glquery->_endqo);
@@ -52,7 +67,11 @@ void GLBackend::do_endQuery(const Batch& batch, size_t paramOffset) {
     auto query = batch._queries.get(batch._params[paramOffset]._uint);
     GLQuery* glquery = syncGPUObject(*query);
     if (glquery) {
-#if !defined(USE_GLES)
+#if defined(USE_GLES)
+        if (hasTimerExtension()) {
+            glQueryCounterEXT(glquery->_endqo, GL_TIMESTAMP_EXT);
+        }
+#else 
         if (timeElapsed) {
             if (_queryStage._rangeQueryDepth <= MAX_RANGE_QUERY_DEPTH) {
                 glEndQuery(GL_TIME_ELAPSED);
@@ -79,7 +98,21 @@ void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
         if (glquery->_rangeQueryDepth > MAX_RANGE_QUERY_DEPTH) {
             query->triggerReturnHandler(glquery->_result, glquery->_batchElapsedTime);
         } else {
-#if !defined(USE_GLES)
+#if defined(USE_GLES)
+            glquery->_result = 0;
+            if (hasTimerExtension()) {
+                glGetQueryObjectui64vEXT(glquery->_endqo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
+                if (glquery->_result == GL_TRUE) {
+                    GLuint64 start, end;
+                    glGetQueryObjectui64vEXT(glquery->_beginqo, GL_QUERY_RESULT, &start);
+                    glGetQueryObjectui64vEXT(glquery->_endqo, GL_QUERY_RESULT, &end);
+                    glquery->_result = end - start;
+                    query->triggerReturnHandler(glquery->_result, glquery->_batchElapsedTime);
+                }
+            } else {
+                query->triggerReturnHandler(0, glquery->_batchElapsedTime);
+            }
+#else 
             glGetQueryObjectui64v(glquery->_endqo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
             if (glquery->_result == GL_TRUE) {
                 if (timeElapsed) {
@@ -92,9 +125,6 @@ void GLBackend::do_getQuery(const Batch& batch, size_t paramOffset) {
                 }
                 query->triggerReturnHandler(glquery->_result, glquery->_batchElapsedTime);
             }
-#else 
-            // gles3 is not supporting true time query returns just the batch elapsed time
-            query->triggerReturnHandler(0, glquery->_batchElapsedTime);
 #endif
             (void)CHECK_GL_ERROR();
         }
