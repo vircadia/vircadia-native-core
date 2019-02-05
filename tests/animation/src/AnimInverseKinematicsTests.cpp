@@ -143,7 +143,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         ikDoll.setTargetVars(QString("D"), QString("positionD"), QString("rotationD"), QString("targetTypeD"),
                              QString("weightD"), 1.0f, flexCoefficients, QString("poleVectorEnabledD"),
                              QString("poleReferenceVectorD"), QString("poleVectorD"));
-        AnimNode::Triggers triggers;
+        AnimVariantMap triggers;
 
         // the IK solution should be:
         //
@@ -236,7 +236,7 @@ void AnimInverseKinematicsTests::testSingleChain() {
         ikDoll.setTargetVars(QString("D"), QString("positionD"), QString("rotationD"), QString("targetTypeD"),
                              QString("weightD"), 1.0f, flexCoefficients, QString("poleVectorEnabledD"),
                              QString("poleReferenceVectorD"), QString("poleVectorD"));
-        AnimNode::Triggers triggers;
+        AnimVariantMap triggers;
 
         // the IK solution should be:
         //

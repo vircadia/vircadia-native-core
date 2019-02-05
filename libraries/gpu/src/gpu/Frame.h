@@ -42,6 +42,8 @@ namespace gpu {
         FramebufferRecycler framebufferRecycler;
 
     protected:
+        friend class Deserializer;
+
         // Should be called once per frame, on the recording thred
         void finish();
         void preRender();

@@ -1215,7 +1215,7 @@ Rectangle {
                 if (userIndex !== -1) {
                     ['userName', 'admin', 'connection', 'profileUrl', 'placeName'].forEach(function (name) {
                         var value = message.params[name];
-                        if (value === undefined) {
+                        if (value === undefined || value == "") {
                             return;
                         }
                         nearbyUserModel.setProperty(userIndex, name, value);

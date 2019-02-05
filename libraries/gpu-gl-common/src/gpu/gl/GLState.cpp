@@ -56,11 +56,11 @@ const GLState::Commands makeResetStateCommands() {
     return {
         std::make_shared<Command1I>(&GLBackend::do_setStateFillMode, DEFAULT.fillMode),
         std::make_shared<Command1I>(&GLBackend::do_setStateCullMode, DEFAULT.cullMode),
-        std::make_shared<Command1B>(&GLBackend::do_setStateFrontFaceClockwise, DEFAULT.frontFaceClockwise),
-        std::make_shared<Command1B>(&GLBackend::do_setStateDepthClampEnable, DEFAULT.depthClampEnable),
-        std::make_shared<Command1B>(&GLBackend::do_setStateScissorEnable, DEFAULT.scissorEnable),
-        std::make_shared<Command1B>(&GLBackend::do_setStateMultisampleEnable, DEFAULT.multisampleEnable),
-        std::make_shared<Command1B>(&GLBackend::do_setStateAntialiasedLineEnable, DEFAULT.antialisedLineEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateFrontFaceClockwise, DEFAULT.flags.frontFaceClockwise),
+        std::make_shared<Command1B>(&GLBackend::do_setStateDepthClampEnable, DEFAULT.flags.depthClampEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateScissorEnable, DEFAULT.flags.scissorEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateMultisampleEnable, DEFAULT.flags.multisampleEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateAntialiasedLineEnable, DEFAULT.flags.antialisedLineEnable),
 
         // Depth bias has 2 fields in State but really one call in GLBackend
         CommandPointer(depthBiasCommand),
@@ -75,7 +75,7 @@ const GLState::Commands makeResetStateCommands() {
 
         std::make_shared<Command1U>(&GLBackend::do_setStateSampleMask, DEFAULT.sampleMask),
 
-        std::make_shared<Command1B>(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.alphaToCoverageEnable),
+        std::make_shared<Command1B>(&GLBackend::do_setStateAlphaToCoverageEnable, DEFAULT.flags.alphaToCoverageEnable),
 
         std::make_shared<CommandBlend>(&GLBackend::do_setStateBlend, DEFAULT.blendFunction),
 

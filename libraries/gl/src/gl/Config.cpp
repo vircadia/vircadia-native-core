@@ -118,6 +118,8 @@ void gl::setSwapInterval(int interval) {
     wglSwapIntervalEXT(interval);
 #elif defined(Q_OS_MAC)
     CGLSetParameter(CGLGetCurrentContext(), kCGLCPSwapInterval, &interval);
+#elif defined(Q_OS_ANDROID)
+    eglSwapInterval(eglGetCurrentDisplay(), interval);
 #else
     Q_UNUSED(interval);
 #endif

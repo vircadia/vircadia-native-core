@@ -11,6 +11,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class GridEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<GridEntityItem>;
 public:
@@ -29,7 +31,7 @@ public:
     EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                            EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                            EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                             EntityPropertyFlags& requestedProperties,
                             EntityPropertyFlags& propertyFlags,
                             EntityPropertyFlags& propertiesDidntFit,
@@ -59,9 +61,13 @@ public:
     void setMinorGridEvery(float minorGridEvery);
     float getMinorGridEvery() const;
 
+    PulsePropertyGroup getPulseProperties() const;
+
 protected:
     glm::u8vec3 _color;
     float _alpha;
+    PulsePropertyGroup _pulseProperties;
+
     bool _followCamera { true };
     uint32_t _majorGridEvery { DEFAULT_MAJOR_GRID_EVERY };
     float _minorGridEvery { DEFAULT_MINOR_GRID_EVERY };

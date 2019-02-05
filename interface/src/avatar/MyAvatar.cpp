@@ -134,7 +134,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _scriptedMotorMode(SCRIPTED_MOTOR_SIMPLE_MODE),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _characterController(this),
+    _characterController(std::shared_ptr<MyAvatar>(this)),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -866,7 +866,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
     // and all of its joints, now update our attachements.
     Avatar::simulateAttachments(deltaTime);
     relayJointDataToChildren();
-    if (updateGrabs()) {
+    if (applyGrabChanges()) {
         _cauterizationNeedsUpdate = true;
     }
 
@@ -1169,77 +1169,6 @@ controller::Pose MyAvatar::getRightHandTipPose() const {
     pose.velocity += glm::cross(pose.getAngularVelocity(), pose.getTranslation() - tipTrans);
     pose.translation = tipTrans;
     return pose;
-}
-
-glm::vec3 MyAvatar::worldToJointPoint(const glm::vec3& position, const int jointIndex) const {
-    glm::vec3 jointPos = getWorldPosition();//default value if no or invalid joint specified
-    glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
-    if (jointIndex != -1) {
-        if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
-            _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
-        } else {
-            qWarning() << "Invalid joint index specified: " << jointIndex;
-        }
-    }
-    glm::vec3 modelOffset = position - jointPos;
-    glm::vec3 jointSpacePosition = glm::inverse(jointRot) * modelOffset;
-
-    return jointSpacePosition;
-}
-
-glm::vec3 MyAvatar::worldToJointDirection(const glm::vec3& worldDir, const int jointIndex) const {
-    glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
-    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        qWarning() << "Invalid joint index specified: " << jointIndex;
-    }
-
-    glm::vec3 jointSpaceDir = glm::inverse(jointRot) * worldDir;
-    return jointSpaceDir;
-}
-
-glm::quat MyAvatar::worldToJointRotation(const glm::quat& worldRot, const int jointIndex) const {
-    glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
-    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        qWarning() << "Invalid joint index specified: " << jointIndex;
-    }
-    glm::quat jointSpaceRot = glm::inverse(jointRot) * worldRot;
-    return jointSpaceRot;
-}
-
-glm::vec3 MyAvatar::jointToWorldPoint(const glm::vec3& jointSpacePos, const int jointIndex) const {
-    glm::vec3 jointPos = getWorldPosition();//default value if no or invalid joint specified
-    glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
-
-    if (jointIndex != -1) {
-        if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
-            _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
-        } else {
-            qWarning() << "Invalid joint index specified: " << jointIndex;
-        }
-    }
-
-    glm::vec3 worldOffset = jointRot * jointSpacePos;
-    glm::vec3 worldPos = jointPos + worldOffset;
-
-    return worldPos;
-}
-
-glm::vec3 MyAvatar::jointToWorldDirection(const glm::vec3& jointSpaceDir, const int jointIndex) const {
-    glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
-    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        qWarning() << "Invalid joint index specified: " << jointIndex;
-    }
-    glm::vec3 worldDir = jointRot * jointSpaceDir;
-    return worldDir;
-}
-
-glm::quat MyAvatar::jointToWorldRotation(const glm::quat& jointSpaceRot, const int jointIndex) const {
-    glm::quat jointRot = getWorldOrientation();//default value if no or invalid joint specified
-    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
-        qWarning() << "Invalid joint index specified: " << jointIndex;
-    }
-    glm::quat worldRot = jointRot * jointSpaceRot;
-    return worldRot;
 }
 
 // virtual
@@ -3114,16 +3043,15 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
 
         if (_skeletonModel && _skeletonModel->isLoaded()) {
             const Rig& rig = _skeletonModel->getRig();
-            const HFMModel& hfmModel = _skeletonModel->getHFMModel();
-            for (int i = 0; i < rig.getJointStateCount(); i++) {
-                AnimPose jointPose;
-                rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
-                const HFMJointShapeInfo& shapeInfo = hfmModel.joints[i].shapeInfo;
-                const AnimPose pose = rigToWorldPose * jointPose;
-                for (size_t j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
-                    glm::vec3 pointA = pose.xformPoint(shapeInfo.debugLines[2 * j]);
-                    glm::vec3 pointB = pose.xformPoint(shapeInfo.debugLines[2 * j + 1]);
-                    DebugDraw::getInstance().drawRay(pointA, pointB, DEBUG_COLORS[i % NUM_DEBUG_COLORS]);
+            int jointCount = rig.getJointStateCount();
+            if (jointCount == (int)_multiSphereShapes.size()) {
+                for (int i = 0; i < jointCount; i++) {
+                    AnimPose jointPose;
+                    rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
+                    const AnimPose pose = rigToWorldPose * jointPose;
+                    auto &multiSphere = _multiSphereShapes[i];
+                    auto debugLines = multiSphere.getDebugLines();
+                    DebugDraw::getInstance().drawRays(debugLines, DEBUG_COLORS[i % NUM_DEBUG_COLORS], pose.trans(), pose.rot());
                 }
             }
         }
@@ -4815,7 +4743,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontalCG(MyAvatar& myAvatar) cons
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-    const float CYLINDER_TOP = 0.1f;
+    const float CYLINDER_TOP = 2.0f;
     const float CYLINDER_BOTTOM = -1.5f;
     const float SITTING_BOTTOM = -0.02f;
 
@@ -5373,7 +5301,7 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
 
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabData.remove(grabID)) {
-            _deletedAvatarGrabs.insert(grabID);
+            _grabsToDelete.push_back(grabID);
             tellHandler = true;
         }
     });
@@ -5383,3 +5311,4 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
     }
 }
+

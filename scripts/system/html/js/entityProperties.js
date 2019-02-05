@@ -3798,6 +3798,11 @@ function loaded() {
             if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
+
+            if (elUserDataEditor.contains(keyUpEvent.target) || elMaterialDataEditor.contains(keyUpEvent.target)) {
+                return;
+            }
+
             let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
 
             let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;

@@ -96,6 +96,7 @@ namespace gpu {
     using TextureTablePointer = std::shared_ptr<TextureTable>;
 
     struct StereoState {
+        StereoState() {}
         bool isStereo() const {
             return _enable && !_contextDisable;
         }
@@ -107,6 +108,9 @@ namespace gpu {
         Mat4 _eyeViews[2];
         Mat4 _eyeProjections[2];
     };
+
+    class Serializer;
+    class Deserializer;
 
     class GPUObject {
     public:
