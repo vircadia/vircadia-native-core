@@ -54,6 +54,11 @@ static bool isEqual(const glm::quat& p, const glm::quat& q) {
     return 1.0f - fabsf(glm::dot(p, q)) <= EPSILON;
 }
 
+static bool isEqual(const float p, float q) {
+    const float EPSILON = 0.00001f;
+    return fabsf(p - q) <= EPSILON;
+}
+
 #define ASSERT(cond) assert(cond)
 
 // 2 meter tall dude
@@ -1329,7 +1334,7 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
         }
         if (slabCount == (DOP14_COUNT / 2) && minDisplacementLen != FLT_MAX) {
             // we are within the k-dop so push the point along the minimum displacement found
-            displacementOut = shapePose.xformVectorFast(minDisplacement);
+            displacementOut = shapePose.xformVector(minDisplacement);
             return true;
         } else {
             // point is outside of kdop
@@ -1338,7 +1343,7 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     } else {
         // point is directly on top of shapeInfo.avgPoint.
         // push the point out along the x axis.
-        displacementOut = shapePose.xformVectorFast(shapeInfo.points[0]);
+        displacementOut = shapePose.xformVector(shapeInfo.points[0]);
         return true;
     }
 }
