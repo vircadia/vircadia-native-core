@@ -39,24 +39,18 @@ static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
 
+static bool isEqual(const float p, float q) {
+    const float EPSILON = 0.00001f;
+    return fabsf(p - q) <= EPSILON;
+}
+
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
-    const float EPSILON = 0.0001f;
-    float uLen = glm::length(u);
-    if (uLen == 0.0f) {
-        return glm::length(v) <= EPSILON;
-    } else {
-        return (glm::length(u - v) / uLen) <= EPSILON;
-    }
+    return isEqual(u.x, v.x) && isEqual(u.y, v.y) && isEqual(u.z, v.z);
 }
 
 static bool isEqual(const glm::quat& p, const glm::quat& q) {
     const float EPSILON = 0.00001f;
     return 1.0f - fabsf(glm::dot(p, q)) <= EPSILON;
-}
-
-static bool isEqual(const float p, float q) {
-    const float EPSILON = 0.00001f;
-    return fabsf(p - q) <= EPSILON;
 }
 
 #define ASSERT(cond) assert(cond)
