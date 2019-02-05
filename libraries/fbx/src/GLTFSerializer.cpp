@@ -358,7 +358,7 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
         image.mimeType = getImageMimeType("image/jpeg");
     } else if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    }
+    } 
     getIntVal(object, "bufferView", image.bufferView, image.defined);
     
     _file.images.push_back(image);
@@ -984,7 +984,7 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     }
 }
 
-QByteArray  GLTFSerializer::requestEmbeddedData(const QString& url) {
+QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
     QString binaryUrl = url.split(",")[1]; 
     return binaryUrl.isEmpty() ? QByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
