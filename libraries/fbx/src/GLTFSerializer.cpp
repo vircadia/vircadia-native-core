@@ -354,13 +354,11 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     getStringVal(object, "uri", image.uri, image.defined);
     if (image.uri.contains("data:image/png;base64,")) {
         image.mimeType = getImageMimeType("image/png");
-    } 
-    if (image.uri.contains("data:image/jpeg;base64,")) {
+    } else if (image.uri.contains("data:image/jpeg;base64,")) {
         image.mimeType = getImageMimeType("image/jpeg");
-    }
-    if (getStringVal(object, "mimeType", mime, image.defined)) {
+    } else if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    } 
+    }
     getIntVal(object, "bufferView", image.bufferView, image.defined);
     
     _file.images.push_back(image);
@@ -948,7 +946,8 @@ bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
     bool success;
 
     if (url.contains("data:application/octet-stream;base64,")) {
-        std::tie<bool, QByteArray>(success, outdata) = std::make_tuple(true, requestEmbeddedData(url)); 
+        outdata = requestEmbeddedData(url);
+        success = outdata.isEmpty() ? false : true;
     } else {
         QUrl binaryUrl = _url.resolved(url);
         std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
@@ -985,13 +984,9 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     }
 }
 
-QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
-    QString binaryUrl = url.split(",")[1];
-
-    QByteArray urlBin = binaryUrl.toUtf8();
-    QByteArray data = QByteArray::fromBase64(urlBin);
-
-    return data;
+QByteArray  GLTFSerializer::requestEmbeddedData(const QString& url) {
+    QString binaryUrl = url.split(",")[1]; 
+    return binaryUrl.isEmpty() ? QByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
 
 
@@ -1033,8 +1028,7 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
         fbxtex.filename = textureUrl.toEncoded();
 
         if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
-            QByteArray result = requestEmbeddedData(url);
-            fbxtex.content = result; 
+            fbxtex.content = requestEmbeddedData(url); 
         }
     }
     return fbxtex;
