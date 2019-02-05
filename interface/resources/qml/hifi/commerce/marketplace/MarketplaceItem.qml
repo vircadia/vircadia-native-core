@@ -53,15 +53,13 @@ Rectangle {
 
     onAttributionsChanged: {
         attributionsModel.clear();
-        root.attributions.forEach(function(attribution) {
-            console.log("ATTRIBUITION:" + JSON.stringify(attribution));
-            attributionsModel.append(attribution);
-        });
-    }
-
-    onDescriptionChanged: {
-        descriptionTextModel.clear();
-        descriptionTextModel.append({text: description})
+        if(root.attributions) {
+            root.attributions.forEach(function(attribution) {
+                console.log("ATTRIBUITION:" + JSON.stringify(attribution));
+                attributionsModel.append(attribution);
+            });
+        }
+        footer.evalHeight();
     }
 
     signal buy()
@@ -243,6 +241,7 @@ Rectangle {
         
         function evalHeight() {
             height = categoriesList.y - buyButton.y + categoriesList.height;
+            console.log("HEIGHT: " + height);
         }
         
         HifiControlsUit.Button {
@@ -378,6 +377,7 @@ Rectangle {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 width: paintedWidth
+                height: paintedHeight
 
                 text: "ATTRIBUTIONS:"
                 size: 14
@@ -572,6 +572,8 @@ Rectangle {
                 onLinkActivated: {
                     sendToScript({method: 'marketplace_open_link', link: link});
                 }
+                
+                onHeightChanged: { footer.evalHeight(); }
             }
         }
         
@@ -585,7 +587,9 @@ Rectangle {
                 right: parent.right
             }
             width: parent.width
-            height: childrenRect.height + 50
+            height: categoriesListModel.count*24 + categoryLabel.height + (isLoggedIn ? 50 : 150)
+            
+            onHeightChanged: { footer.evalHeight(); }
 
             RalewaySemiBold {
                 id: categoryLabel
