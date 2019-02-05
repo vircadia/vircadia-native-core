@@ -39,7 +39,8 @@ Rectangle {
     property bool keyboardRaised: false
     property string searchScopeString: "Featured"
     property bool isLoggedIn: false;
-    
+    property bool supports3DHTML: true;
+
     anchors.fill: (typeof parent === undefined) ? undefined : parent
 
     function getMarketplaceItems() {
@@ -60,6 +61,8 @@ Rectangle {
 
     Component.onCompleted: {
         Commerce.getLoginStatus();
+        
+        supports3DHTML = PlatformInfo.has3DHTML();
     }
 
     Component.onDestruction: {
@@ -103,7 +106,7 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get Marketplace Item", result.data.message);
             } else {
-            
+                marketplaceItem.supports3DHTML = root.supports3DHTML;
                 marketplaceItem.item_id = result.data.id;
                 marketplaceItem.image_url = result.data.thumbnail_url;
                 marketplaceItem.name = result.data.title;
@@ -958,8 +961,16 @@ Rectangle {
                     }
                     
                     onShowLicense: {
-                        licenseInfoWebView.url = url;
-                        licenseInfo.visible = true;
+                        var xhr = new XMLHttpRequest;
+                        xhr.open("GET", url);
+                        xhr.onreadystatechange = function() {
+                            if (xhr.readyState == XMLHttpRequest.DONE) {
+                                console.log(xhr.responseText);
+                                licenseText.text = xhr.responseText;
+                                licenseInfo.visible = true;
+                            }
+                        };
+                        xhr.send();
                     }
                     onCategoryClicked: {
                         root.categoryString = category;
@@ -1001,11 +1012,13 @@ Rectangle {
                 leftMargin: 15
             }
 
+
+
             Item {
                 id: footerText
 
                 anchors.fill: parent
-                visible: itemsList.visible
+                visible: root.supports3DHTML && itemsList.visible
 
                 HiFiGlyphs {
                     id: footerGlyph
@@ -1072,6 +1085,8 @@ Rectangle {
                     rightMargin: 10
                 }
 
+                visible: root.supports3DHTML
+
                 text: "SEE ALL MARKETS"
                 width: 180
 
@@ -1100,15 +1115,23 @@ Rectangle {
 
         visible: false;
 
-        HifiControlsUit.WebView {
-            id: licenseInfoWebView
-            
+        ScrollView {
             anchors {
                 bottomMargin: 1
                 topMargin: 60
-                leftMargin: 1
-                rightMargin: 1
+                leftMargin: 15
                 fill: parent
+            }
+
+            RalewayRegular {
+                id: licenseText
+
+                width:440
+                wrapMode: Text.Wrap
+
+                text: ""
+                size: 18;
+                color: hifi.colors.baseGray
             }
         }
 

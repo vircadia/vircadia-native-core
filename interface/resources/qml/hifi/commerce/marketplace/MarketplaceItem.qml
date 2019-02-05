@@ -43,6 +43,8 @@ Rectangle {
     property string created_at: ""
     property bool isLoggedIn: false;
     property int edition: -1;
+    property bool supports3DHTML: false;
+
     
     onCategoriesChanged: {
         categoriesListModel.clear();
@@ -52,8 +54,13 @@ Rectangle {
     }
     
     onDescriptionChanged: {
-        descriptionTextModel.clear();
-        descriptionTextModel.append({text: description})
+    
+        if(root.supports3DHTML) {
+            descriptionTextModel.clear();
+            descriptionTextModel.append({text: description});
+        } else {
+            descriptionText.text = description;
+        }
     }
 
     signal buy()
@@ -410,22 +417,22 @@ Rectangle {
                         if (root.license === "No Rights Reserved (CC0)") {
                           url = "https://creativecommons.org/publicdomain/zero/1.0/"
                         } else if (root.license === "Attribution (CC BY)") {
-                          url = "https://creativecommons.org/licenses/by/4.0/"
+                          url = "https://creativecommons.org/licenses/by/4.0/legalcode.txt"
                         } else if (root.license === "Attribution-ShareAlike (CC BY-SA)") {
-                          url = "https://creativecommons.org/licenses/by-sa/4.0/"
+                          url = "https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt"
                         } else if (root.license === "Attribution-NoDerivs (CC BY-ND)") {
-                          url = "https://creativecommons.org/licenses/by-nd/4.0/"
+                          url = "https://creativecommons.org/licenses/by-nd/4.0/legalcode.txt"
                         } else if (root.license === "Attribution-NonCommercial (CC BY-NC)") {
-                          url = "https://creativecommons.org/licenses/by-nc/4.0/"
+                          url = "https://creativecommons.org/licenses/by-nc/4.0/legalcode.txt"
                         } else if (root.license === "Attribution-NonCommercial-ShareAlike (CC BY-NC-SA)") {
-                          url = "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                          url = "https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode.txt"
                         } else if (root.license === "Attribution-NonCommercial-NoDerivs (CC BY-NC-ND)") {
-                          url = "https://creativecommons.org/licenses/by-nc-nd/4.0/"
+                          url = "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.txt"
                         } else if (root.license === "Proof of Provenance License (PoP License)") {
                           url = "https://digitalassetregistry.com/PoP-License/v1/"
                         }
                         if(url) {
-                            licenseInfoWebView.url = url;
+                            showLicense(url)
                         }
                     }
                 }
@@ -460,20 +467,21 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter
             }
 
-            //RalewaySemiBold {
-            //    id: descriptionText
-            //    
-            //    anchors.top: descriptionLabel.bottom
-            //    anchors.left: parent.left
-            //    anchors.topMargin: 5
-            //    width: parent.width
-            //
-            //    text: root.description
-            //    size: 14
-            //   color: hifi.colors.lightGray
-            //    verticalAlignment: Text.AlignVCenter
-            //    wrapMode: Text.Wrap
-            //}
+            RalewaySemiBold {
+                id: descriptionText
+
+                anchors.top: descriptionLabel.bottom
+                anchors.left: parent.left
+                anchors.topMargin: 5
+                width: parent.width
+
+                visible: !root.supports3DHTML
+
+                text: root.description
+                size: 14
+                color: hifi.colors.lightGray
+                wrapMode: Text.Wrap
+            }
             
             
             ListModel {
