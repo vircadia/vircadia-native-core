@@ -231,15 +231,16 @@ protected slots:
     // Prefetches a resource to be held by the QScriptEngine.
     // Left as a protected member so subclasses can overload prefetch
     // and delegate to it (see TextureCache::prefetch(const QUrl&, int).
-    ScriptableResource* prefetch(const QUrl& url, void* extra);
+    ScriptableResource* prefetch(const QUrl& url, void* extra, size_t extraHash);
 
     // FIXME: The return type is not recognized by JavaScript.
     /// Loads a resource from the specified URL and returns it.
     /// If the caller is on a different thread than the ResourceCache,
     /// returns an empty smart pointer and loads its asynchronously.
     /// \param fallback a fallback URL to load if the desired one is unavailable
-    /// \param extra extra data to pass to the creator, if appropriate
-    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(), void* extra = NULL, int extraHash = -1);
+    // FIXME: std::numeric_limits<size_t>::max() could be a valid extraHash
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl()) { return getResource(url, fallback, nullptr, std::numeric_limits<size_t>::max()); }
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback, void* extra, size_t extraHash);
 
 private slots:
     void clearATPAssets();
@@ -250,7 +251,7 @@ protected:
     // which should be a QScriptEngine with ScriptableResource registered, so that
     // the QScriptEngine will delete the pointer when it is garbage collected.
     // JSDoc is provided on more general function signature.
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr, std::numeric_limits<size_t>::max()); }
 
     /// Creates a new resource.
     virtual QSharedPointer<Resource> createResource(const QUrl& url) = 0;
@@ -277,7 +278,7 @@ private:
     void resetResourceCounters();
 
     // Resources
-    QHash<QUrl, QHash<int, QWeakPointer<Resource>>> _resources;
+    QHash<QUrl, QHash<size_t, QWeakPointer<Resource>>> _resources;
     QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
     int _lastLRUKey = 0;
 
@@ -331,10 +332,10 @@ public:
      * Prefetches a resource.
      * @function ResourceCache.prefetch
      * @param {string} url - URL of the resource to prefetch.
-     * @param {object} [extra=null]
      * @returns {ResourceObject}
      */
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra = nullptr);
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr, std::numeric_limits<size_t>::max()); }
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, void* extra, size_t extraHash);
 
 signals:
 
@@ -416,7 +417,7 @@ public:
     unsigned int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
 
     virtual void setExtra(void* extra) {};
-    void setExtraHash(int extraHash) { _extraHash = extraHash; }
+    void setExtraHash(size_t extraHash) { _extraHash = extraHash; }
 
 signals:
     /// Fired when the resource begins downloading.
@@ -495,7 +496,7 @@ protected:
     int _requestID;
     ResourceRequest* _request{ nullptr };
 
-    int _extraHash { -1 };
+    size_t _extraHash;
 
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);

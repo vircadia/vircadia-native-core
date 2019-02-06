@@ -158,8 +158,8 @@ void ScriptableResourceCache::updateTotalSize(const qint64& deltaSize) {
     _resourceCache->updateTotalSize(deltaSize);
 }
 
-ScriptableResource* ScriptableResourceCache::prefetch(const QUrl& url, void* extra) {
-    return _resourceCache->prefetch(url, extra);
+ScriptableResource* ScriptableResourceCache::prefetch(const QUrl& url, void* extra, size_t extraHash) {
+    return _resourceCache->prefetch(url, extra, extraHash);
 }
 
 
@@ -211,20 +211,20 @@ void ScriptableResource::disconnectHelper() {
     }
 }
 
-ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
+ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra, size_t extraHash) {
     ScriptableResource* result = nullptr;
 
     if (QThread::currentThread() != thread()) {
         // Must be called in thread to ensure getResource returns a valid pointer
         BLOCKING_INVOKE_METHOD(this, "prefetch",
             Q_RETURN_ARG(ScriptableResource*, result),
-            Q_ARG(QUrl, url), Q_ARG(void*, extra));
+            Q_ARG(QUrl, url), Q_ARG(void*, extra), Q_ARG(size_t, extraHash));
         return result;
     }
 
     result = new ScriptableResource(url);
 
-    auto resource = getResource(url, QUrl(), extra);
+    auto resource = getResource(url, QUrl(), extra, extraHash);
     result->_resource = resource;
     result->setObjectName(url.toString());
 
@@ -298,7 +298,7 @@ void ResourceCache::refreshAll() {
     clearUnusedResources();
     resetUnusedResourceCounter();
 
-    QHash<QUrl, QHash<int, QWeakPointer<Resource>>> allResources;
+    QHash<QUrl, QHash<size_t, QWeakPointer<Resource>>> allResources;
     {
         QReadLocker locker(&_resourcesLock);
         allResources = _resources;
@@ -343,13 +343,8 @@ void ResourceCache::setRequestLimit(uint32_t limit) {
     }
 }
 
-QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra, int extraHash) {
+QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra, size_t extraHash) {
     QSharedPointer<Resource> resource;
-    if (extra && extraHash < 0) {
-        qDebug() << "ResourceCache::getResource: ERROR!  Non-null extra, but invalid extraHash";
-        return resource;
-    }
-
     {
         QReadLocker locker(&_resourcesLock);
         auto& resourcesWithExtraHash = _resources[url];
@@ -553,8 +548,8 @@ bool ResourceCache::attemptHighestPriorityRequest() {
 static int requestID = 0;
 
 Resource::Resource(const Resource& other) :
+    QObject(),
     _url(other._url),
-    _extraHash(other._extraHash),
     _effectiveBaseURL(other._effectiveBaseURL),
     _activeUrl(other._activeUrl),
     _requestByteRange(other._requestByteRange),
@@ -566,7 +561,8 @@ Resource::Resource(const Resource& other) :
     _bytesReceived(other._bytesReceived),
     _bytesTotal(other._bytesTotal),
     _bytes(other._bytes),
-    _requestID(++requestID) {
+    _requestID(++requestID),
+    _extraHash(other._extraHash) {
     if (!other._loaded) {
         _startedLoading = false;
     }

@@ -40,6 +40,50 @@ public:
     bool combineParts;
 };
 
+// From: https://stackoverflow.com/questions/41145012/how-to-hash-qvariant
+class QVariantHasher {
+public:
+    QVariantHasher() : buff(&bb), ds(&buff) {
+        bb.reserve(1000);
+        buff.open(QIODevice::WriteOnly);
+    }
+    uint hash(const QVariant& v) {
+        buff.seek(0);
+        ds << v;
+        return qHashBits(bb.constData(), buff.pos());
+    }
+private:
+    QByteArray bb;
+    QBuffer buff;
+    QDataStream ds;
+};
+
+namespace std {
+    template <>
+    struct hash<QVariantHash> {
+        size_t operator()(const QVariantHash& a) const {
+            QVariantHasher hasher;
+            return hasher.hash(a);
+        }
+    };
+
+    template <>
+    struct hash<QUrl> {
+        size_t operator()(const QUrl& a) const {
+            return qHash(a);
+        }
+    };
+
+    template <>
+    struct hash<GeometryExtra> {
+        size_t operator()(const GeometryExtra& a) const {
+            size_t result = 0;
+            hash_combine(result, a.mapping, a.textureBaseUrl, a.combineParts);
+            return result;
+        }
+    };
+}
+
 QUrl resolveTextureBaseUrl(const QUrl& url, const QUrl& textureBaseUrl) {
     return textureBaseUrl.isValid() ? textureBaseUrl : url;
 }
@@ -110,7 +154,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         GeometryExtra extra { _mapping, _textureBaseUrl, false };
 
         // Get the raw GeometryResource
-        _geometryResource = modelCache->getResource(url, QUrl(), &extra).staticCast<GeometryResource>();
+        _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
         // Avoid caching nested resources - their references will be held by the parent
         _geometryResource->_isCacheable = false;
 
@@ -355,7 +399,7 @@ GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
                                                           const QVariantHash& mapping, const QUrl& textureBaseUrl) {
     bool combineParts = true;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
-    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
+    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();
@@ -368,7 +412,7 @@ GeometryResource::Pointer ModelCache::getCollisionGeometryResource(const QUrl& u
                                                                    const QVariantHash& mapping, const QUrl& textureBaseUrl) {
     bool combineParts = false;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
-    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra).staticCast<GeometryResource>();
+    GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
     if (resource) {
         if (resource->isLoaded() && resource->shouldSetTextures()) {
             resource->setTextures();

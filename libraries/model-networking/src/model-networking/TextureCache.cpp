@@ -194,10 +194,28 @@ public:
     int maxNumPixels;
 };
 
+namespace std {
+    template <>
+    struct hash<QByteArray> {
+        size_t operator()(const QByteArray& a) const {
+            return qHash(a);
+        }
+    };
+
+    template <>
+    struct hash<TextureExtra> {
+        size_t operator()(const TextureExtra& a) const {
+            size_t result = 0;
+            hash_combine(result, (int)a.type, a.content, a.maxNumPixels);
+            return result;
+        }
+    };
+}
+
 ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels) {
     auto byteArray = QByteArray();
     TextureExtra extra = { (image::TextureUsage::Type)type, byteArray, maxNumPixels };
-    return ResourceCache::prefetch(url, &extra);
+    return ResourceCache::prefetch(url, &extra, std::hash<TextureExtra>()(extra));
 }
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) {
@@ -211,7 +229,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
         modifiedUrl.setQuery(query.toString());
     }
     TextureExtra extra = { type, content, maxNumPixels };
-    return ResourceCache::getResource(modifiedUrl, QUrl(), &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(modifiedUrl, QUrl(), &extra, std::hash<TextureExtra>()(extra)).staticCast<NetworkTexture>();
 }
 
 gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {

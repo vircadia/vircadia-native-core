@@ -21,7 +21,7 @@ ShaderCache& ShaderCache::instance() {
 }
 
 NetworkShaderPointer ShaderCache::getShader(const QUrl& url) {
-    return ResourceCache::getResource(url, QUrl()).staticCast<NetworkShader>();
+    return ResourceCache::getResource(url).staticCast<NetworkShader>();
 }
 
 QSharedPointer<Resource> ShaderCache::createResource(const QUrl& url) {
