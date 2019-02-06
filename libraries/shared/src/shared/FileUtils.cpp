@@ -30,6 +30,11 @@ const QStringList& FileUtils::getFileSelectors() {
     static std::once_flag once;
     static QStringList extraSelectors;
     std::call_once(once, [] {
+
+#if defined(Q_OS_ANDROID)
+        //extraSelectors << "android_" HIFI_ANDROID_APP;
+#endif
+
 #if defined(USE_GLES)
         extraSelectors << "gles";
 #endif
