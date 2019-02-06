@@ -66,6 +66,7 @@ public:
     virtual void syncProgram(const gpu::ShaderPointer& program) = 0;
     virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
+    virtual void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false) {}
 
     virtual bool supportedTextureFormat(const gpu::Element& format) = 0;
 
@@ -117,7 +118,6 @@ public:
     static ContextMetricSize textureResourcePopulatedGPUMemSize;
     static ContextMetricSize textureResourceIdealGPUMemSize;
 
-protected:
     virtual bool isStereo() const {
         return _stereo.isStereo();
     }
@@ -127,6 +127,7 @@ protected:
             eyeProjections[i] = _stereo._eyeProjections[i];
         }
     }
+protected:
 
     void getStereoViews(mat4* eyeViews) const {
         for (int i = 0; i < 2; ++i) {
