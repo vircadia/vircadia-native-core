@@ -493,7 +493,6 @@ void NetworkTexture::makeRequest() {
     } else {
         qWarning(networking) << "NetworkTexture::makeRequest() called while not in a valid state: " << _ktxResourceState;
     }
-
 }
 
 void NetworkTexture::handleLocalRequestCompleted() {
