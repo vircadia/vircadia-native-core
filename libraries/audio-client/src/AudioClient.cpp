@@ -1075,45 +1075,25 @@ void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
 
 void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
     if (!_audioPaused) {
-        if (_muted) {
-            _lastInputLoudness = 0.0f;
-            _timeSinceLastClip = 0.0f;
-        } else {
+
+        bool audioGateOpen = false;
+
+        if (!_muted) {
             int16_t* samples = reinterpret_cast<int16_t*>(audioBuffer.data());
             int numSamples = audioBuffer.size() / AudioConstants::SAMPLE_SIZE;
             int numFrames = numSamples / (_isStereoInput ? AudioConstants::STEREO : AudioConstants::MONO);
 
             if (_isNoiseGateEnabled) {
                 // The audio gate includes DC removal
-                _audioGate->render(samples, samples, numFrames);
+                audioGateOpen = _audioGate->render(samples, samples, numFrames);
             } else {
-                _audioGate->removeDC(samples, samples, numFrames);
-            }
-
-            int32_t loudness = 0;
-            assert(numSamples < 65536); // int32_t loudness cannot overflow
-            bool didClip = false;
-            for (int i = 0; i < numSamples; ++i) {
-                const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
-                int32_t sample = std::abs((int32_t)samples[i]);
-                loudness += sample;
-                didClip |= (sample > CLIPPING_THRESHOLD);
-            }
-            _lastInputLoudness = (float)loudness / numSamples;
-
-            if (didClip) {
-                _timeSinceLastClip = 0.0f;
-            } else if (_timeSinceLastClip >= 0.0f) {
-                _timeSinceLastClip += (float)numSamples / (float)AudioConstants::SAMPLE_RATE;
+                audioGateOpen = _audioGate->removeDC(samples, samples, numFrames);
             }
 
             emit inputReceived(audioBuffer);
         }
 
-        emit inputLoudnessChanged(_lastInputLoudness);
-
-        // state machine to detect gate opening and closing
-        bool audioGateOpen = (_lastInputLoudness != 0.0f);
+        // detect gate opening and closing
         bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
         bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
         _audioGateOpen = audioGateOpen;
@@ -1186,10 +1166,29 @@ void AudioClient::handleMicAudioInput() {
     static int16_t networkAudioSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
 
     while (_inputRingBuffer.samplesAvailable() >= inputSamplesRequired) {
-        if (_muted) {
-            _inputRingBuffer.shiftReadPosition(inputSamplesRequired);
-        } else {
-            _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+
+        _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
+
+        // detect loudness and clipping on the raw input
+        int32_t loudness = 0;
+        bool didClip = false;
+        for (int i = 0; i < inputSamplesRequired; ++i) {
+            const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
+            int32_t sample = std::abs((int32_t)inputAudioSamples.get()[i]);
+            loudness += sample;
+            didClip |= (sample > CLIPPING_THRESHOLD);
+        }
+        _lastInputLoudness = (float)loudness / inputSamplesRequired;
+
+        if (didClip) {
+            _timeSinceLastClip = 0.0f;
+        } else if (_timeSinceLastClip >= 0.0f) {
+            _timeSinceLastClip += AudioConstants::NETWORK_FRAME_SECS;
+        }
+
+        emit inputLoudnessChanged(_lastInputLoudness);
+
+        if (!_muted) {
             possibleResampling(_inputToNetworkResampler,
                 inputAudioSamples.get(), networkAudioSamples,
                 inputSamplesRequired, numNetworkSamples,
