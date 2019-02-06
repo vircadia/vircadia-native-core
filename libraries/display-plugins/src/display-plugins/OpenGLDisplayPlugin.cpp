@@ -510,7 +510,7 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.enableStereo(false);
     batch.resetViewTransform();
     batch.setFramebuffer(fbo);
-//    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     batch.setStateScissorRect(scissor);
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
