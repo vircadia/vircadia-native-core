@@ -18,6 +18,7 @@
 
 namespace crash {
 
+void doAssert(bool value); // works for Release
 void pureVirtualCall();
 void doubleFree();
 void nullDeref();
