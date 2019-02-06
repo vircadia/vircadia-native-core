@@ -101,6 +101,7 @@ private slots:
 
     void on_downloadAPKPushbutton_clicked();
     void on_installAPKPushbutton_clicked();
+    void on_runInterfacePushbutton_clicked();
 
     void on_pullFolderPushbutton_clicked();
 
