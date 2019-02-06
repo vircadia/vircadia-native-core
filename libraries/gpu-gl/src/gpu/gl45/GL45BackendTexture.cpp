@@ -24,6 +24,10 @@
 #include <gpu/TextureTable.h>
 #include <gpu/gl/GLTexelFormat.h>
 
+static const QString FORCE_MOBILE_TEXTURES_STRING{ "HIFI_FORCE_MOBILE_TEXTURES" };
+static bool FORCE_MOBILE_TEXTURES = QProcessEnvironment::systemEnvironment().contains(FORCE_MOBILE_TEXTURES_STRING);
+
+
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
@@ -45,9 +49,10 @@ bool GL45Backend::supportedTextureFormat(const gpu::Element& format) {
         case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
         case gpu::Semantic::COMPRESSED_EAC_XY:
         case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
-            return false;
+            return FORCE_MOBILE_TEXTURES;
+
         default:
-            return true;
+            return FORCE_MOBILE_TEXTURES ? !format.isCompressed() : true;
     }
 }
 

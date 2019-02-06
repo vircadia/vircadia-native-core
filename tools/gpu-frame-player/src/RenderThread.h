@@ -55,6 +55,8 @@ public:
     std::queue<QSize> _pendingSize;
     gpu::FramePointer _activeFrame;
     uint32_t _externalTexture{ 0 };
+    void move(const glm::vec3& v);
+    glm::mat4 _correction;
 
 
     void resize(const QSize& newSize);

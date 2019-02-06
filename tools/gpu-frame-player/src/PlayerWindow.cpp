@@ -64,9 +64,35 @@ void PlayerWindow::loadFrame() {
 }
 
 void PlayerWindow::keyPressEvent(QKeyEvent* event) {
+    bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
+    float moveScale = isShifted ? 10.0f : 1.0f;
     switch (event->key()) {
         case Qt::Key_F1:
             loadFrame();
+            return;
+
+        case Qt::Key_W:
+            _renderThread.move(vec3{ 0, 0, -0.1f } * moveScale);
+            return;
+
+        case Qt::Key_S:
+            _renderThread.move(vec3{ 0, 0, 0.1f } * moveScale);
+            return;
+
+        case Qt::Key_A:
+            _renderThread.move(vec3{ -0.1f, 0, 0 } * moveScale);
+            return;
+
+        case Qt::Key_D:
+            _renderThread.move(vec3{ 0.1f, 0, 0 } * moveScale);
+            return;
+
+        case Qt::Key_E:
+            _renderThread.move(vec3{ 0, 0.1f, 0 } * moveScale);
+            return;
+
+        case Qt::Key_F:
+            _renderThread.move(vec3{ 0, -0.1f, 0 } * moveScale);
             return;
 
         default:
@@ -106,5 +132,4 @@ void PlayerWindow::loadFrame(const QString& path) {
         }
         resize(size.x, size.y);
     }
-    _renderThread.submitFrame(frame);
 }
