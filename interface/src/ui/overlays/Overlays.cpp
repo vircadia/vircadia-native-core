@@ -351,7 +351,7 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         return "none";
     });
 
-    if (type == "Shape" || type == "Gizmo") {
+    if (type == "Shape" || type == "Box" || type == "Sphere" || type == "Gizmo") {
         RENAME_PROP(solid, isSolid);
         RENAME_PROP(isFilled, isSolid);
         RENAME_PROP(filled, isSolid);
