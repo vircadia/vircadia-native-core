@@ -493,10 +493,8 @@ std::shared_ptr<AnimInverseKinematics> Rig::getAnimInverseKinematicsNode() const
     std::shared_ptr<AnimInverseKinematics> result;
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
-            // only report clip nodes as valid roles.
-            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
-            if (ikNode) {
-                result = ikNode;
+            if (node->getType() == AnimNodeType::InverseKinematics) {
+                result = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
                 return false;
             } else {
                 return true;
