@@ -696,7 +696,6 @@ void OculusMobileInputDevice::reconnectTouchControllers(ovrMobile* session) {
                 handData.state.Header.ControllerType = ovrControllerType_TrackedRemote;
                 handData.valid = true;
                 handData.caps = caps;
-                handData.initialized = true;
                 handData.update(session);
             }
         }
