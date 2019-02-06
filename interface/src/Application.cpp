@@ -603,8 +603,9 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
                 __android_log_write(ANDROID_LOG_FATAL,"Interface",local);
                 abort();
         }
-#endif
+#else
         qApp->getLogger()->addMessage(qPrintable(logMessage));
+#endif
     }
 }
 
@@ -989,7 +990,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
+#ifndef Q_OS_ANDROID
     _logger(new FileLogger(this)),
+#endif
     _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
@@ -1123,7 +1126,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     auto accountManager = DependencyManager::get<AccountManager>();
 
+#ifndef Q_OS_ANDROID
     _logger->setSessionID(accountManager->getSessionID());
+#endif
 
     setCrashAnnotation("metaverse_session_id", accountManager->getSessionID().toString().toStdString());
     setCrashAnnotation("main_thread_id", std::to_string((size_t)QThread::currentThreadId()));
@@ -4963,7 +4968,11 @@ void Application::idle() {
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
+#ifdef Q_OS_ANDROID
+    bool showWarnings = false;
+#else
     bool showWarnings = getLogger()->extraDebugging();
+#endif
     PerformanceWarning warn(showWarnings, "idle()");
 
     {
@@ -8306,7 +8315,7 @@ void Application::toggleLogDialog() {
         bool keepOnTop =_keepLogWindowOnTop.get();
 #ifdef Q_OS_WIN
         _logDialog = new LogDialog(keepOnTop ? qApp->getWindow() : nullptr, getLogger());
-#else
+#elif !defined(Q_OS_ANDROID)
         _logDialog = new LogDialog(nullptr, getLogger());
 
         if (keepOnTop) {

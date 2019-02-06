@@ -650,6 +650,8 @@ public class QtActivity extends Activity {
         if (!keepInterfaceRunning) {
             QtApplication.invokeDelegate();
         }
+        QtNative.terminateQt();
+        QtNative.setActivity(null,null);
     }
 
     //---------------------------------------------------------------------------
