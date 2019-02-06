@@ -20,34 +20,46 @@ Nitpick has 5 functions, separated into separate tabs:
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
-    1.  Open a new command prompt and run `aws configure`
+    1.  Open a new command prompt and run  
+        `aws configure`
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
-    1.  Install the latest release of Boto3 via pip:  `pip install boto3`
+    1.  Install the latest release of Boto3 via pip:  
+        `pip install boto3`
 
-1.  (First time) Install adb (Android Debug Bridge) from `https://dl.google.com/android/repository/platform-tools-latest-windows.zip`
-    1.  Create and environment variable named ADB_PATH and set its value to the installation location (e.g. **C:\adb**)
+1.  (First time) Download adb (Android Debug Bridge) from *https://dl.google.com/android/repository/platform-tools-latest-windows.zip*
+    1.  Copy the downloaded file to (for example) **C:\adb** and extract in place.  
+        Verify you see *adb.exe* in **C:\adb\platform-tools\\**.
+    1.  Create an environment variable named ADB_PATH and set its value to the installation location (e.g. **C:\adb**)
 ### Mac
 1.  (first time) Install brew
-    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+    In a terminal:  
+  `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
 1.  (First time) install Qt:
-    In a terminal: `brew install qt`
-1.  (First time) install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
-    1. After installation - In a terminal: run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
+    In a terminal:  
+`brew install qt`
+1.  (First time) install Python from https://www.python.org/downloads/release/python-370/ (*macOS 64-bit installer* or *macOS 64-bit/32-bit installer*)
+    1. After installation - In a terminal: run  
+      `open "/Applications/Python 3.7/Install Certificates.command"`.  
+This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
 1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
-In a terminal: `curl -O https://bootstrap.pypa.io/get-pip.py`
-In a terminal: `python3 get-pip.py --user`  
+    In a terminal:  
+    `curl -O https://bootstrap.pypa.io/get-pip.py`  
+    In a terminal:  
+    `python3 get-pip.py --user`  
     1.  Use pip to install the AWS CLI.  
-        `pip3 install awscli --upgrade --user` 
+        `pip3 install awscli --upgrade --user`  
         This will install aws in your user.  For user XXX, aws will be located in ~/Library/Python/3.7/bin  
-    1.  Open a new command prompt and run `~/Library/Python/3.7/bin/aws configure`  
+    1.  Open a new command prompt and run  
+        `~/Library/Python/3.7/bin/aws configure`  
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3  
-1.  (First time)Install adb (Android Debug Bridge) from `https://dl.google.com/android/repository/platform-tools-latest-darwin.zip`
+1.  (First time)Install adb (the Android Debug Bridge) - in a terminal:  
+    `brew cask install android-platform-tools`
 # Usage
 ## Create
 ![](./Create.PNG)
