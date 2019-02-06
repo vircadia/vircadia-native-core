@@ -3506,3 +3506,13 @@ void EntityItem::removeGrab(GrabPointer grab) {
     }
     disableNoBootstrap();
 }
+
+void EntityItem::disableGrab(GrabPointer grab) {
+    QUuid actionID = grab->getActionID();
+    if (!actionID.isNull()) {
+        EntityDynamicPointer action = _grabActions.value(actionID);
+        if (action) {
+            action->deactivate();
+        }
+    }
+}

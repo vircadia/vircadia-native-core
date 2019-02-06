@@ -8,37 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.7
-import QtWebView 1.1
+import "."
 
-WebView {
+ProxyWebView {
     id: root
-
-    Component.onCompleted: {
-        console.log("Connecting JS messaging to Hifi Logging")
-        // Ensure the JS from the web-engine makes it to our logging
-        root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-            console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
-        });
-    }
-
-    onLoadingChanged: {
-        // Required to support clicking on "hifi://" links
-        if (WebView.LoadStartedStatus == loadRequest.status) {
-            var url = loadRequest.url.toString();
-            if (urlHandler.canHandleUrl(url)) {
-                if (urlHandler.handleUrl(url)) {
-                    root.stop();
-                }
-            }
-        }
-    }
-
-    signal newViewRequested();
-    signal windowCloseRequested();
-    signal featurePermissionRequested();
-
-    property var profile: null;
-
-    WebSpinner { }
 }
