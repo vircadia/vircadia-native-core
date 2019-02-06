@@ -84,7 +84,7 @@ void ToneMappingEffect::render(RenderArgs* args, const gpu::TexturePointer& ligh
 
 void ToneMappingDeferred::configure(const Config& config) {
     _toneMappingEffect.setExposure(config.exposure);
-    _toneMappingEffect.setColorFilter(config.colorFilter);
+    _toneMappingEffect.setColorFilter(toGlm(config.colorFilter));
     _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
 }
 

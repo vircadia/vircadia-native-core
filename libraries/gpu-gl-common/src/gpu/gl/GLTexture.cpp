@@ -106,15 +106,20 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
         GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
         GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
     };
-    static const std::vector<GLenum> faceTargets {
+    static const std::vector<GLenum> face2DTargets {
         GL_TEXTURE_2D
     };
-    static const std::vector<GLenum> arrayFaceTargets{ 
+    static const std::vector<GLenum> face2DMSTargets{
+        GL_TEXTURE_2D_MULTISAMPLE
+    }; 
+    static const std::vector<GLenum> arrayFaceTargets{
         GL_TEXTURE_2D_ARRAY 
     };
     switch (target) {
     case GL_TEXTURE_2D:
-        return faceTargets;
+        return face2DTargets;
+    case GL_TEXTURE_2D_MULTISAMPLE:
+        return face2DMSTargets;
     case GL_TEXTURE_2D_ARRAY:
         return arrayFaceTargets;
     case GL_TEXTURE_CUBE_MAP:
@@ -124,7 +129,7 @@ const std::vector<GLenum>& GLTexture::getFaceTargets(GLenum target) {
         break;
     }
     Q_UNREACHABLE();
-    return faceTargets;
+    return face2DTargets;
 }
 
 GLTexture::GLTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) :

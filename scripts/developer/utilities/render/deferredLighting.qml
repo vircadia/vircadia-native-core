@@ -125,22 +125,6 @@ Rectangle {
                 }
             }
             Item {
-                HifiControls.Label {
-                    text: "Color filter"
-                    anchors.left: parent.left           
-                }
-
-                Color {
-                    height: 20
-                    anchors.right: parent.right       
-                    width: parent.width / 2
-                    _color: render.mainViewTask.getConfig("ToneMapping")["colorFilter"]
-                    onNewColor: {
-                        render.mainViewTask.getConfig("ToneMapping")["colorFilter"] = getXColor()
-                    }
-                }
-            }
-            Item {
                 height: childrenRect.height
                 anchors.left: parent.left
                 anchors.right: parent.right 
@@ -150,18 +134,17 @@ Rectangle {
                     anchors.left: parent.left           
                 }
 
-                HifiControls.ComboBox {
+                ComboBox {
                     anchors.right: parent.right           
                     currentIndex: 1
-                    model: ListModel {
-                        id: cbItems
-                        ListElement { text: "RGB"; color: "Yellow" }
-                        ListElement { text: "SRGB"; color: "Green" }
-                        ListElement { text: "Reinhard"; color: "Yellow" }
-                        ListElement { text: "Filmic"; color: "White" }
-                    }
+                    model: [
+                        "RGB",
+                        "SRGB",
+                        "Reinhard",
+                        "Filmic",
+                    ]
                     width: 200
-                    onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex }
+                    onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex; }
                 }
             }
         }
@@ -186,7 +169,7 @@ Rectangle {
                 framebuffer.config.mode = mode;
             }
 
-            HifiControls.ComboBox {
+            ComboBox {
                 anchors.right: parent.right           
                 currentIndex: 0
                 model: ListModel {

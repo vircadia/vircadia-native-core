@@ -70,18 +70,18 @@ private:
 class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
-    Q_PROPERTY(glm::vec3 colorFilter MEMBER colorFilter WRITE setColorFilter);
+    Q_PROPERTY(QColor colorFilter MEMBER colorFilter WRITE setColorFilter);
     Q_PROPERTY(int curve MEMBER curve WRITE setCurve);
 public:
     ToneMappingConfig() : render::Job::Config(true) {}
 
     void setExposure(float newExposure) { exposure = newExposure; emit dirty(); }
-    void setColorFilter(const glm::vec3& newColorFilter) { colorFilter = newColorFilter; emit dirty(); }
+    void setColorFilter(const QColor& newColorFilter) { colorFilter = newColorFilter; emit dirty(); }
     void setCurve(int newCurve) { curve = std::max((int)ToneMappingEffect::None, std::min((int)ToneMappingEffect::Filmic, newCurve)); emit dirty(); }
 
 
     float exposure{ 0.0f };
-    glm::vec3 colorFilter { 1.0f };
+    QColor colorFilter { 255, 255, 255 };
     int curve{ ToneMappingEffect::None };
 signals:
     void dirty();
