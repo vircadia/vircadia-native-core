@@ -31,6 +31,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.SlidingDrawer;
 
+import org.qtproject.qt5.android.QtNative;
 import org.qtproject.qt5.android.QtLayout;
 import org.qtproject.qt5.android.QtSurface;
 import org.qtproject.qt5.android.bindings.QtActivity;
