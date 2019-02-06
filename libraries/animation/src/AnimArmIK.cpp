@@ -20,7 +20,8 @@ AnimArmIK::AnimArmIK(const QString& id, float alpha, bool enabled, float interpD
     const QString& tipJointName, const glm::vec3& midHingeAxis,
     const QString& alphaVar, const QString& enabledVar,
     const QString& endEffectorRotationVarVar, const QString& endEffectorPositionVarVar) :
-    AnimTwoBoneIK(id, alpha, enabled, interpDuration, baseJointName, midJointName, tipJointName, midHingeAxis, alphaVar, enabledVar, endEffectorRotationVarVar, endEffectorPositionVarVar) {
+    AnimTwoBoneIK(id, alpha, enabled, interpDuration, baseJointName, midJointName, tipJointName, midHingeAxis, alphaVar, enabledVar, endEffectorRotationVarVar, endEffectorPositionVarVar) 
+{
 
 }
 
@@ -29,12 +30,13 @@ AnimArmIK::~AnimArmIK() {
 }
 
 const AnimPoseVec& AnimArmIK::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
+    
     qCDebug(animation) << "evaluating the arm IK";
+    _poses = AnimTwoBoneIK::evaluate(animVars, context, dt, triggersOut);
 
-    assert(_children.size() == 1);
-    if (_children.size() != 1) {
-        return _poses;
-    } else {
-        return _poses;
-    }
+    //assert(_children.size() == 1);
+    //if (_children.size() != 1) {
+    //    return _poses;
+    //}
+
 }

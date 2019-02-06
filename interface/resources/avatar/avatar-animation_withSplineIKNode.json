@@ -129,7 +129,7 @@
                                                 "children": [
                                                     {
                                                         "id": "rightHandIK",
-                                                        "type": "twoBoneIK",
+                                                        "type": "armIK",
                                                         "data": {
                                                             "alpha": 1.0,
                                                             "enabled": false,
@@ -159,7 +159,7 @@
                                                                 "children": [
                                                                     {
                                                                         "id": "leftHandIK",
-                                                                        "type": "twoBoneIK",
+                                                                        "type": "armIK",
                                                                         "data": {
                                                                             "alpha": 1.0,
                                                                             "enabled": false,

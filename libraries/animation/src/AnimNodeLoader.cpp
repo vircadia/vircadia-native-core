@@ -26,6 +26,7 @@
 #include "AnimInverseKinematics.h"
 #include "AnimDefaultPose.h"
 #include "AnimTwoBoneIK.h"
+#include "AnimArmIK.h"
 #include "AnimSplineIK.h"
 #include "AnimPoleVectorConstraint.h"
 
@@ -42,6 +43,7 @@ static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const Q
 static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadTwoBoneIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadArmIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadPoleVectorConstraintNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
@@ -63,6 +65,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::InverseKinematics: return "inverseKinematics";
     case AnimNode::Type::DefaultPose: return "defaultPose";
     case AnimNode::Type::TwoBoneIK: return "twoBoneIK";
+    case AnimNode::Type::ArmIK: return "armIK";
     case AnimNode::Type::SplineIK: return "splineIK";
     case AnimNode::Type::PoleVectorConstraint: return "poleVectorConstraint";
     case AnimNode::Type::NumTypes: return nullptr;
@@ -126,6 +129,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
     case AnimNode::Type::DefaultPose: return loadDefaultPoseNode;
     case AnimNode::Type::TwoBoneIK: return loadTwoBoneIKNode;
+    case AnimNode::Type::ArmIK: return loadArmIKNode;
     case AnimNode::Type::SplineIK: return loadSplineIKNode;
     case AnimNode::Type::PoleVectorConstraint: return loadPoleVectorConstraintNode;
     case AnimNode::Type::NumTypes: return nullptr;
@@ -144,6 +148,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::InverseKinematics: return processDoNothing;
     case AnimNode::Type::DefaultPose: return processDoNothing;
     case AnimNode::Type::TwoBoneIK: return processDoNothing;
+    case AnimNode::Type::ArmIK: return processDoNothing;
     case AnimNode::Type::SplineIK: return processDoNothing;
     case AnimNode::Type::PoleVectorConstraint: return processDoNothing;
     case AnimNode::Type::NumTypes: return nullptr;
@@ -622,6 +627,26 @@ static AnimNode::Pointer loadSplineIKNode(const QJsonObject& jsonObj, const QStr
         basePositionVar, baseRotationVar, midPositionVar, midRotationVar,
         tipPositionVar, tipRotationVar, alphaVar, enabledVar,
         tipTargetFlexCoefficients, midTargetFlexCoefficients);
+    return node;
+}
+
+static AnimNode::Pointer loadArmIKNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    READ_FLOAT(alpha, jsonObj, id, jsonUrl, nullptr);
+    READ_BOOL(enabled, jsonObj, id, jsonUrl, nullptr);
+    READ_FLOAT(interpDuration, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(baseJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(midJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(tipJointName, jsonObj, id, jsonUrl, nullptr);
+    READ_VEC3(midHingeAxis, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(alphaVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(enabledVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(endEffectorRotationVarVar, jsonObj, id, jsonUrl, nullptr);
+    READ_STRING(endEffectorPositionVarVar, jsonObj, id, jsonUrl, nullptr);
+
+    auto node = std::make_shared<AnimArmIK>(id, alpha, enabled, interpDuration,
+        baseJointName, midJointName, tipJointName, midHingeAxis,
+        alphaVar, enabledVar,
+        endEffectorRotationVarVar, endEffectorPositionVarVar);
     return node;
 }
 
