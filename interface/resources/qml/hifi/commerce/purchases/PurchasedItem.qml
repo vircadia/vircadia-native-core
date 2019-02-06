@@ -28,6 +28,7 @@ Item {
     property string purchaseStatus;
     property string itemName;
     property string itemId;
+    property string updateItemId;
     property string itemPreviewImageUrl;
     property string itemHref;
     property string certificateId;
@@ -45,9 +46,9 @@ Item {
     property bool cardBackVisible;
     property bool isInstalled;
     property string wornEntityID;
-    property string upgradeUrl;
+    property string updatedItemId;
     property string upgradeTitle;
-    property bool updateAvailable: root.upgradeUrl !== "";
+    property bool updateAvailable: root.updateItemId && root.updateItemId !== "";
     property bool valid;
 
     property string originalStatusText;
@@ -175,7 +176,7 @@ Item {
 
                     Item {
                         property alias buttonGlyphText: buttonGlyph.text;
-                        property alias buttonText: buttonText.text;
+                        property alias itemButtonText: buttonText.text;
                         property alias glyphSize: buttonGlyph.size;
                         property string buttonColor: hifi.colors.black;
                         property string buttonColor_hover: hifi.colors.blueHighlight;
@@ -243,7 +244,7 @@ Item {
                     onLoaded: {
                         item.enabled = root.valid;
                         item.buttonGlyphText = hifi.glyphs.gift;
-                        item.buttonText = "Gift";
+                        item.itemButtonText = "Gift";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({
@@ -270,7 +271,7 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.market;
-                        item.buttonText = "View in Marketplace";
+                        item.itemButtonText = "View in Marketplace";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
@@ -288,7 +289,7 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.certificate;
-                        item.buttonText = "View Certificate";
+                        item.itemButtonText = "View Certificate";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
@@ -307,7 +308,7 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.uninstall;
-                        item.buttonText = "Uninstall";
+                        item.itemButtonText = "Uninstall";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             Commerce.uninstallApp(root.itemHref);
@@ -330,15 +331,14 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.update;
-                        item.buttonText = "Update";
+                        item.itemButtonText = "Update";
                         item.buttonColor = "#E2334D";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({
                                 method: 'updateItemClicked',
-                                itemId: root.itemId,
+                                itemId: root.updateAvailable ? root.updateItemId : root.itemId,
                                 itemEdition: root.itemEdition,
-                                upgradeUrl: root.upgradeUrl,
                                 itemHref: root.itemHref,
                                 itemType: root.itemType,
                                 isInstalled: root.isInstalled,
@@ -378,10 +378,10 @@ Item {
 
                     function updateProperties() {
                         if (updateButton.visible && uninstallButton.visible) {
-                            item.buttonText = "";
+                            item.itemButtonText = "";
                             item.glyphSize = 20;
                         } else {
-                            item.buttonText = "Send to Trash";
+                            item.itemButtonText = "Send to Trash";
                             item.glyphSize = 30;
                         }
                     }
