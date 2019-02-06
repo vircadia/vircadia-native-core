@@ -1247,6 +1247,9 @@ Rectangle {
                     }
                 }
             }
+            if (nearbyTable.sortIndicatorColumn == 0) {  // Current sort by loudness so re-sort.
+                sortModel();
+            }
             break;
         case 'clearLocalQMLData':
             ignored = {};
