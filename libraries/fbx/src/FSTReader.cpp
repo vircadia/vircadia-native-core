@@ -88,7 +88,7 @@ QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
     << BLENDSHAPE_FIELD << JOINT_INDEX_FIELD;
     QBuffer buffer;
     buffer.open(QIODevice::WriteOnly);
-    
+
     for (auto key : PREFERED_ORDER) {
         auto it = mapping.find(key);
         if (it != mapping.constEnd()) {
@@ -104,7 +104,7 @@ QByteArray FSTReader::writeMapping(const QVariantHash& mapping) {
             }
         }
     }
-    
+
     for (auto it = mapping.constBegin(); it != mapping.constEnd(); it++) {
         if (!PREFERED_ORDER.contains(it.key())) {
             writeVariant(buffer, it);

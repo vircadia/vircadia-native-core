@@ -46,7 +46,7 @@ class NetworkTexture : public Resource, public Texture {
 
 public:
     NetworkTexture(const QUrl& url);
-    NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
+    NetworkTexture(const NetworkTexture& other);
     ~NetworkTexture() override;
 
     QString getType() const override { return "NetworkTexture"; }
@@ -62,6 +62,8 @@ public:
     void refresh() override;
 
     Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
+
+    void setExtra(void* extra) override;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
@@ -201,8 +203,8 @@ protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) override;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
+    QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
 
 private:
     friend class ImageReader;

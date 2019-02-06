@@ -239,8 +239,7 @@ protected slots:
     /// returns an empty smart pointer and loads its asynchronously.
     /// \param fallback a fallback URL to load if the desired one is unavailable
     /// \param extra extra data to pass to the creator, if appropriate
-    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(),
-        void* extra = NULL);
+    QSharedPointer<Resource> getResource(const QUrl& url, const QUrl& fallback = QUrl(), void* extra = NULL, int extraHash = -1);
 
 private slots:
     void clearATPAssets();
@@ -254,8 +253,8 @@ protected:
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url) { return prefetch(url, nullptr); }
 
     /// Creates a new resource.
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    const void* extra) = 0;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) = 0;
+    virtual QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) = 0;
 
     void addUnusedResource(const QSharedPointer<Resource>& resource);
     void removeUnusedResource(const QSharedPointer<Resource>& resource);
@@ -278,7 +277,7 @@ private:
     void resetResourceCounters();
 
     // Resources
-    QHash<QUrl, QWeakPointer<Resource>> _resources;
+    QHash<QUrl, QHash<int, QWeakPointer<Resource>>> _resources;
     QReadWriteLock _resourcesLock { QReadWriteLock::Recursive };
     int _lastLRUKey = 0;
 
@@ -359,7 +358,8 @@ class Resource : public QObject {
     Q_OBJECT
 
 public:
-    
+
+    Resource(const Resource& other);
     Resource(const QUrl& url);
     virtual ~Resource();
 
@@ -415,6 +415,9 @@ public:
     unsigned int getDownloadAttempts() { return _attempts; }
     unsigned int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
 
+    virtual void setExtra(void* extra) {};
+    void setExtraHash(int extraHash) { _extraHash = extraHash; }
+
 signals:
     /// Fired when the resource begins downloading.
     void loading();
@@ -469,7 +472,7 @@ protected:
     virtual bool handleFailedRequest(ResourceRequest::Result result);
 
     QUrl _url;
-    QUrl _effectiveBaseURL{ _url };
+    QUrl _effectiveBaseURL { _url };
     QUrl _activeUrl;
     ByteRange _requestByteRange;
     bool _shouldFailOnRedirect { false };
@@ -491,6 +494,8 @@ protected:
 
     int _requestID;
     ResourceRequest* _request{ nullptr };
+
+    int _extraHash { -1 };
 
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);

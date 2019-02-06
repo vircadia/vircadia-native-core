@@ -105,7 +105,7 @@ void Material::setMetallic(float metallic) {
 
 void Material::setScattering(float scattering) {
     scattering = glm::clamp(scattering, 0.0f, 1.0f);
-    _key.setMetallic(scattering > 0.0f);
+    _key.setScattering(scattering > 0.0f);
     _scattering = scattering;
 }
 

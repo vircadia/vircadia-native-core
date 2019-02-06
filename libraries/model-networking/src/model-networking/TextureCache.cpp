@@ -305,26 +305,36 @@ gpu::TexturePointer TextureCache::getImageTexture(const QString& path, image::Te
     return gpu::TexturePointer(loader(std::move(image), path.toStdString(), shouldCompress, target, false));
 }
 
-QSharedPointer<Resource> TextureCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-    const void* extra) {
-    const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    auto type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
-    auto content = textureExtra ? textureExtra->content : QByteArray();
-    auto maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
-    NetworkTexture* texture = new NetworkTexture(url, type, content, maxNumPixels);
-    return QSharedPointer<Resource>(texture, &Resource::deleter);
+QSharedPointer<Resource> TextureCache::createResource(const QUrl& url) {
+    return QSharedPointer<Resource>(new NetworkTexture(url), &Resource::deleter);
+}
+
+QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
+    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>().data()), &Resource::deleter);
 }
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
 
 NetworkTexture::NetworkTexture(const QUrl& url) :
-Resource(url),
-_type(),
-_maxNumPixels(100)
+    Resource(url),
+    _type(),
+    _maxNumPixels(100)
 {
     _textureSource = std::make_shared<gpu::TextureSource>(url);
     _lowestRequestedMipLevel = 0;
     _loaded = true;
+}
+
+NetworkTexture::NetworkTexture(const NetworkTexture& other) :
+    Resource(other),
+    _type(other._type),
+    _currentlyLoadingResourceType(other._currentlyLoadingResourceType),
+    _originalWidth(other._originalWidth),
+    _originalHeight(other._originalHeight),
+    _width(other._width),
+    _height(other._height),
+    _maxNumPixels(other._maxNumPixels)
+{
 }
 
 static bool isLocalUrl(const QUrl& url) {
@@ -332,15 +342,15 @@ static bool isLocalUrl(const QUrl& url) {
     return (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) :
-    Resource(url),
-    _type(type),
-    _maxNumPixels(maxNumPixels)
-{
-    _textureSource = std::make_shared<gpu::TextureSource>(url, (int)type);
+void NetworkTexture::setExtra(void* extra) {
+    const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
+    _type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
+    _maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
+
+    _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
     _lowestRequestedMipLevel = 0;
 
-    auto fileNameLowercase = url.fileName().toLower();
+    auto fileNameLowercase = _url.fileName().toLower();
     if (fileNameLowercase.endsWith(TEXTURE_META_EXTENSION)) {
         _currentlyLoadingResourceType = ResourceType::META;
     } else if (fileNameLowercase.endsWith(".ktx")) {
@@ -351,17 +361,18 @@ NetworkTexture::NetworkTexture(const QUrl& url, image::TextureUsage::Type type, 
 
     _shouldFailOnRedirect = _currentlyLoadingResourceType != ResourceType::KTX;
 
-    if (type == image::TextureUsage::CUBE_TEXTURE) {
+    if (_type == image::TextureUsage::CUBE_TEXTURE) {
         setLoadPriority(this, SKYBOX_LOAD_PRIORITY);
     } else if (_currentlyLoadingResourceType == ResourceType::KTX) {
         setLoadPriority(this, HIGH_MIPS_LOAD_PRIORITY);
     }
 
-    if (!url.isValid()) {
+    if (!_url.isValid()) {
         _loaded = true;
     }
 
     // if we have content, load it after we have our self pointer
+    auto content = textureExtra ? textureExtra->content : QByteArray();
     if (!content.isEmpty()) {
         _startedLoading = true;
         QMetaObject::invokeMethod(this, "downloadFinished", Qt::QueuedConnection, Q_ARG(const QByteArray&, content));

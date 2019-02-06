@@ -280,11 +280,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    QUrl hullURL(getCollisionShapeURL());
-    QUrlQuery queryArgs(hullURL);
-    queryArgs.addQueryItem("collision-hull", "");
-    hullURL.setQuery(queryArgs);
-    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
 }
 
 bool RenderableModelEntityItem::computeShapeFailedToLoad() {
