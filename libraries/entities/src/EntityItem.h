@@ -561,6 +561,7 @@ public:
 
     virtual void addGrab(GrabPointer grab) override;
     virtual void removeGrab(GrabPointer grab) override;
+    virtual void disableGrab(GrabPointer grab) override;
 
 signals:
     void requestRenderUpdate();
