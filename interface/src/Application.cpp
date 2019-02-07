@@ -6173,6 +6173,19 @@ void Application::update(float deltaTime) {
     auto grabManager = DependencyManager::get<GrabManager>();
     grabManager->simulateGrabs();
 
+    // TODO: break these out into distinct perfTimers when they prove interesting
+    {
+        PROFILE_RANGE(app, "PickManager");
+        PerformanceTimer perfTimer("pickManager");
+        DependencyManager::get<PickManager>()->update();
+    }
+
+    {
+        PROFILE_RANGE(app, "PointerManager");
+        PerformanceTimer perfTimer("pointerManager");
+        DependencyManager::get<PointerManager>()->update();
+    }
+
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
 
     {
@@ -6323,19 +6336,6 @@ void Application::update(float deltaTime) {
     if (!_loginDialogID.isNull()) {
         _loginStateManager.update(getMyAvatar()->getDominantHand(), _loginDialogID);
         updateLoginDialogPosition();
-    }
-
-    // TODO: break these out into distinct perfTimers when they prove interesting
-    {
-        PROFILE_RANGE(app, "PickManager");
-        PerformanceTimer perfTimer("pickManager");
-        DependencyManager::get<PickManager>()->update();
-    }
-
-    {
-        PROFILE_RANGE(app, "PointerManager");
-        PerformanceTimer perfTimer("pointerManager");
-        DependencyManager::get<PointerManager>()->update();
     }
 
     {
