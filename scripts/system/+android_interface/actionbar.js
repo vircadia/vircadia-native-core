@@ -26,8 +26,8 @@ function init() {
         qml: "hifi/ActionBar.qml"
     });
     backButton = actionbar.addButton({
-        icon: "icons/+android/backward.svg",
-        activeIcon: "icons/+android/backward.svg",
+        icon: "icons/+android_interface/backward.svg",
+        activeIcon: "icons/+android_interface/backward.svg",
         text: "",
         bgOpacity: 0.0,
         hoverBgOpacity: 0.0,
