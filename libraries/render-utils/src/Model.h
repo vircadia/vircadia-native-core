@@ -379,9 +379,6 @@ protected:
     /// Clear the joint states
     void clearJointState(int index);
 
-    /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
-    int getLastFreeJointIndex(int jointIndex) const;
-
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame
     /// \return true if joint exists

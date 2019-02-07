@@ -75,8 +75,6 @@ struct JointShapeInfo {
 class Joint {
 public:
     JointShapeInfo shapeInfo;
-    QVector<int> freeLineage;
-    bool isFree;
     int parentIndex;
     float distanceToParent;
 
@@ -291,8 +289,6 @@ public:
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 
-    glm::vec3 palmDirection;
-
     glm::vec3 neckPivot;
 
     Extents bindExtents;
@@ -319,7 +315,6 @@ public:
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
-    QMap<QString, QString> hfmToHifiJointNameMapping;
 };
 
 };
