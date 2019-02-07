@@ -1229,8 +1229,9 @@ void AudioClient::handleMicAudioInput() {
         } else if (_timeSinceLastClip >= 0.0f) {
             _timeSinceLastClip += AudioConstants::NETWORK_FRAME_SECS;
         }
+        isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);   // 2 second hold time
 
-        emit inputLoudnessChanged(_lastInputLoudness);
+        emit inputLoudnessChanged(_lastInputLoudness, isClipping);
 
         if (!_muted) {
             possibleResampling(_inputToNetworkResampler,

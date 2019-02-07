@@ -150,17 +150,32 @@ float Audio::getInputLevel() const {
     });
 }
 
-void Audio::onInputLoudnessChanged(float loudness) {
+bool Audio::isClipping() const {
+    return resultWithReadLock<bool>([&] {
+        return _isClipping;
+    });
+}
+
+void Audio::onInputLoudnessChanged(float loudness, bool isClipping) {
     float level = loudnessToLevel(loudness);
-    bool changed = false;
+    bool levelChanged = false;
+    bool isClippingChanged = false;
+
     withWriteLock([&] {
         if (_inputLevel != level) {
             _inputLevel = level;
-            changed = true;
+            levelChanged = true;
+        }
+        if (_isClipping != isClipping) {
+            _isClipping = isClipping;
+            isClippingChanged = true;
         }
     });
-    if (changed) {
+    if (levelChanged) {
         emit inputLevelChanged(level);
+    }
+    if (isClippingChanged) {
+        emit clippingChanged(isClipping);
     }
 }
 
