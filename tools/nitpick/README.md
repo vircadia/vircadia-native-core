@@ -35,7 +35,8 @@ Nitpick has 5 functions, separated into separate tabs:
 ### Mac
 1.  (first time) Install brew
     In a terminal:  
-  `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
+  `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`  
+    Note that you will need to press RETURN again, and will then be asked for your password.
 1.  (First time) install Qt:
     In a terminal:  
 `brew install qt`
