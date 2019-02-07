@@ -12,36 +12,34 @@
 //
 
 var DEFAULT_SCRIPTS_COMBINED = [
-    "system/request-service.js",
     "system/progress.js",
-    //"system/away.js",
-    "system/hmd.js",
-    "system/menu.js",
-    "system/bubble.js",
-    "system/pal.js", // "system/mod.js", // older UX, if you prefer
-    "system/avatarapp.js",
-    "system/makeUserConnection.js",
-    "system/tablet-goto.js",
-    "system/notifications.js",
-    "system/commerce/wallet.js",
+    "system/+android_interface/touchscreenvirtualpad.js",
+    "system/+android_interface/actionbar.js",
+    "system/+android_interface/audio.js" ,
+    "system/+android_interface/modes.js"/*,
+    "system/away.js",
+    "system/controllers/controllerDisplayManager.js",
+    "system/controllers/handControllerGrabAndroid.js",
+    "system/controllers/handControllerPointerAndroid.js",
+    "system/controllers/squeezeHands.js",
+    "system/controllers/grab.js",
+    "system/controllers/teleport.js",
+    "system/controllers/toggleAdvancedMovementForHandControllers.js",
     "system/dialTone.js",
-    "system/quickGoto.js",
     "system/firstPersonHMD.js",
-    "system/tablet-ui/tabletUI.js",
-    "system/miniTablet.js"
-];
-var DEFAULT_SCRIPTS_SEPARATE = [
-    "system/controllers/controllerScripts.js",
-    //"system/chat.js"
+    "system/bubble.js",
+    "system/android.js",
+    "developer/debugging/debugAndroidMouse.js"*/
 ];
 
-if (Window.interstitialModeEnabled) {
-    // Insert interstitial scripts at front so that they're started first.
-    DEFAULT_SCRIPTS_COMBINED.splice(0, 0, "system/interstitialPage.js", "system/redirectOverlays.js");
-}
+var DEBUG_SCRIPTS = [
+    "system/+android_interface/stats.js"
+];
+
+var DEFAULT_SCRIPTS_SEPARATE = [ ];
 
 // add a menu item for debugging
-var MENU_CATEGORY = "Developer > Scripting";
+var MENU_CATEGORY = "Developer";
 var MENU_ITEM = "Debug defaultScripts.js";
 
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
@@ -61,6 +59,7 @@ if (Menu.menuExists(MENU_CATEGORY) && !Menu.menuItemExists(MENU_CATEGORY, MENU_I
         menuItemName: MENU_ITEM,
         isCheckable: true,
         isChecked: previousSetting,
+        grouping: "Advanced"
     });
 }
 
@@ -74,12 +73,22 @@ function runDefaultsTogether() {
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
         Script.include(DEFAULT_SCRIPTS_COMBINED[i]);
     }
+    if (Script.isDebugMode()) {
+        for (var i in DEBUG_SCRIPTS) {
+            Script.include(DEBUG_SCRIPTS[i]);
+        }
+    }
     loadSeparateDefaults();
 }
 
 function runDefaultsSeparately() {
     for (var i in DEFAULT_SCRIPTS_COMBINED) {
         Script.load(DEFAULT_SCRIPTS_COMBINED[i]);
+    }
+    if (Script.isDebugMode()) {
+        for (var i in DEBUG_SCRIPTS) {
+            Script.load(DEBUG_SCRIPTS[i]);
+        }
     }
     loadSeparateDefaults();
 }
