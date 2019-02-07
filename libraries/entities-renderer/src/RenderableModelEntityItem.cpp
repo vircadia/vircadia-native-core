@@ -1264,7 +1264,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             return false;
         }
 
-        if (_lastTextures != entity->getTextures()) {
+        if (_textures != entity->getTextures()) {
             return true;
         }
 
@@ -1418,15 +1418,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         entity->_originalTexturesRead = true;
     }
 
-    if (_lastTextures != entity->getTextures()) {
+    if (_textures != entity->getTextures()) {
+        QVariantMap newTextures;
         withWriteLock([&] {
             _texturesLoaded = false;
-            _lastTextures = entity->getTextures();
+            _textures = entity->getTextures();
+            newTextures = parseTexturesToMap(_textures, entity->_originalTextures);
         });
-        auto newTextures = parseTexturesToMap(_lastTextures, entity->_originalTextures);
-        if (newTextures != model->getTextures()) {
-            model->setTextures(newTextures);
-        }
+        model->setTextures(newTextures);
     }
     if (entity->_needsJointSimulation) {
         entity->copyAnimationJointDataToModel();
