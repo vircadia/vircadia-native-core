@@ -47,7 +47,7 @@ void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, co
                 break;
             }
         }
-        if (needTangents) {
+        if (!needTangents) {
             continue;
         }
 
