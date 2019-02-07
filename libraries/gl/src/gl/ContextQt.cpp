@@ -63,7 +63,6 @@ void Context::debugMessageHandler(const QOpenGLDebugMessage& debugMessage) {
         case QOpenGLDebugMessage::LowSeverity:
             qCDebug(glLogging) << debugMessage;
             return;
-
         default:
             qCWarning(glLogging) << debugMessage;
             break;

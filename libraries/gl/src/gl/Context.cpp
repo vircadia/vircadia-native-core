@@ -26,9 +26,6 @@
 #include "Config.h"
 #include "GLHelpers.h"
 #include "QOpenGLContextWrapper.h"
-#if defined(GL_CUSTOM_CONTEXT)
-#include <QtPlatformHeaders/QWGLNativeContext>
-#endif
 
 using namespace gl;
 

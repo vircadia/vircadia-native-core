@@ -269,7 +269,6 @@ bool OpenGLDisplayPlugin::activate() {
         if (!widget->context()->makeCurrent()) {
             throw std::runtime_error("Failed to make context current");
         }
-        //_nativeContext = QOpenGLContextWrapper::currentContextWrapper()->getNativeContext();
         CHECK_GL_ERROR();
         widget->context()->doneCurrent();
 

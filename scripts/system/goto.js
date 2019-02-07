@@ -14,23 +14,52 @@
 
 (function() { // BEGIN LOCAL_SCOPE
 
-function addGotoButton(destination) {
+var button;
+var buttonName = "GOTO";
+var toolBar = null;
+var tablet = null;
+var onGotoScreen = false;
+function onAddressBarShown(visible) {
+    button.editProperties({isActive: visible});
+}
+
+function onClicked(){
+    DialogsManager.toggleAddressBar();
+    onGotoScreen = !onGotoScreen;
+}
+
+if (Settings.getValue("HUDUIEnabled")) {
+    toolBar = Toolbars.getToolbar("com.highfidelity.interface.toolbar.system");
+    button = toolBar.addButton({
+        objectName: buttonName,
+        imageURL: Script.resolvePath("assets/images/tools/directory.svg"),
+        visible: true,
+        alpha: 0.9
+    });
+} else {
     tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         icon: "icons/tablet-icons/goto-i.svg",
         activeIcon: "icons/tablet-icons/goto-a.svg",
-        text: destination
-    });
-    var buttonDestination = destination;
-    button.clicked.connect(function() {
-        Window.location = "hifi://" + buttonDestination;
-    });
-    Script.scriptEnding.connect(function () {
-        tablet.removeButton(button);
+        text: buttonName
     });
 }
 
-addGotoButton("hell")
-addGotoButton("dev-mobile")
+button.clicked.connect(onClicked);
+DialogsManager.addressBarShown.connect(onAddressBarShown);
+
+Script.scriptEnding.connect(function () {
+    if (onGotoScreen) {
+        DialogsManager.toggleAddressBar();
+    }
+    button.clicked.disconnect(onClicked);
+    if (tablet) {
+        tablet.removeButton(button);
+    }
+    if (toolBar) {
+        toolBar.removeButton(buttonName);
+    }
+    DialogsManager.addressBarShown.disconnect(onAddressBarShown);
+});
 
 }()); // END LOCAL_SCOPE

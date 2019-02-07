@@ -81,6 +81,15 @@ if (ANDROID)
   set(GLES_OPTION ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
   add_definitions(-DHIFI_ANDROID_APP=\"${HIFI_ANDROID_APP}\")
+  if (${HIFI_ANDROID_APP} STREQUAL "questInterface")
+    # We know the quest hardware has this extension, so we can force the use of instanced stereo
+    add_definitions(-DHAVE_EXT_clip_cull_distance)
+    # We can also use multiview stereo techniques
+    add_definitions(-DHAVE_OVR_multiview2)
+    add_definitions(-DHAVE_OVR_multiview)
+    # We can also use our own foveated textures
+    add_definitions(-DHAVE_QCOM_texture_foveated)
+  endif()
 else ()
   set(PLATFORM_QT_COMPONENTS WebEngine)
 endif ()

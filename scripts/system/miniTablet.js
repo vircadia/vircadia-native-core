@@ -44,12 +44,11 @@
             return;
         }
         print("DEBUG: " + message);
-
     }
 
     function error(message) {
         print("ERROR: " + message);
-	}
+    }
 
     function handJointName(hand) {
         var jointName;
@@ -127,7 +126,7 @@
             miniOverlayObject = null,
 
             // Button icons.
-            MUTE_ON_ICON =Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
+            MUTE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
             MUTE_OFF_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-unmute-i.svg",
             GOTO_ICON = Script.resourcesPath() + "icons/tablet-icons/goto-i.svg",
 

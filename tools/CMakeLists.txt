@@ -31,7 +31,6 @@ if (BUILD_TOOLS)
         atp-client
         oven
         nitpick
-        webview
     )
 
     foreach(TOOL ${ALL_TOOLS})

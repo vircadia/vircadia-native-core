@@ -77,7 +77,6 @@ protected:
     float _ipd { 0.064f };
 
     struct FrameInfo {
-        uint32_t frameId{ 0 };
         mat4 renderPose;
         mat4 presentPose;
         double sensorSampleTime { 0 };

@@ -867,7 +867,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
 #ifdef Q_OS_ANDROID
     // disable IK on android
-   // return underPoses;
+    return underPoses;
 #endif
 
     // allows solutionSource to be overridden by an animVar

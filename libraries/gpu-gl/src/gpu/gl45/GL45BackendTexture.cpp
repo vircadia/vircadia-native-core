@@ -36,9 +36,6 @@ using namespace gpu::gl45;
 #define ENABLE_SPARSE_TEXTURE 0
 
 bool GL45Backend::supportedTextureFormat(const gpu::Element& format) {
-    if (FORCE_MOBILE_TEXTURES) {
-    } else {
-    }
     switch (format.getSemantic()) {
         // ETC textures are actually required by the OpenGL spec as of 4.3, but aren't always supported by hardware
         // They'll be recompressed by OpenGL, which will be slow or have poor quality, so disable them for now

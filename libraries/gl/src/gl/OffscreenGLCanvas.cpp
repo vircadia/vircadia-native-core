@@ -19,7 +19,6 @@
 #include <QtCore/QThread>
 #include <QtCore/QThreadStorage>
 #include <QtCore/QPointer>
-#include <QtCore/QCoreApplication>
 #include <QtGui/QOffscreenSurface>
 #include <QtGui/QOpenGLContext>
 #include <QtGui/QOpenGLDebugLogger>
@@ -60,7 +59,6 @@ bool OffscreenGLCanvas::create(QOpenGLContext* sharedContext) {
         sharedContext->doneCurrent();
         _context->setShareContext(sharedContext);
     }
-
     if (!_context->create()) {
         qFatal("Failed to create OffscreenGLCanvas context");
     }

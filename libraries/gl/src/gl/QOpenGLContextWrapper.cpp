@@ -12,6 +12,7 @@
 #include "QOpenGLContextWrapper.h"
 
 #include <QOpenGLContext>
+
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders/QWGLNativeContext>
 #endif
