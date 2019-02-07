@@ -16,7 +16,6 @@ Nitpick has 5 functions, separated into separate tabs:
 ## Installation
 `nitpick` is packaged with High Fidelity PR and Development builds.
 ### Windows
-1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe)
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
