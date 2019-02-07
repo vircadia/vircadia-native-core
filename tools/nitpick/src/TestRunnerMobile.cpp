@@ -53,7 +53,7 @@ TestRunnerMobile::TestRunnerMobile(
     if (QProcessEnvironment::systemEnvironment().contains("ADB_PATH")) {
         QString adbExePath = QProcessEnvironment::systemEnvironment().value("ADB_PATH") + "/platform-tools";
         if (!QFile::exists(adbExePath + "/" + _adbExe)) {
-            QMessageBox::critical(0, _adbExe, QString("Python executable not found in ") + adbExePath);
+            QMessageBox::critical(0, _adbExe, QString("ADB executable not found in ") + adbExePath);
             exit(-1);
         }
 
