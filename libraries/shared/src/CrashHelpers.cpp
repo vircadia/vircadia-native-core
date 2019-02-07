@@ -11,6 +11,16 @@
 
 #include "CrashHelpers.h"
 
+#ifdef NDEBUG
+// undefine NDEBUG so doAssert() works for all builds
+#undef NDEBUG
+#include <assert.h>
+#define NDEBUG
+#else
+#include <assert.h>
+#endif
+
+
 namespace crash {
 
 class B;
@@ -32,6 +42,11 @@ public:
 
 A::~A() {
     _b->virtualFunction();
+}
+
+// only use doAssert() for debug purposes
+void doAssert(bool value) {
+    assert(value);
 }
 
 void pureVirtualCall() {

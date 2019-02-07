@@ -148,6 +148,8 @@ public:
     // See PhysicsCollisionGroups.h for mask flags.
     std::vector<ContactTestResult> contactTest(uint16_t mask, const ShapeInfo& regionShapeInfo, const Transform& regionTransform, uint16_t group = USER_COLLISION_GROUP_DYNAMIC, float threshold = 0.0f) const;
 
+    void enableGlobalContactAddedCallback(bool enabled);
+
 private:
     QList<EntityDynamicPointer> removeDynamicsForBody(btRigidBody* body);
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);

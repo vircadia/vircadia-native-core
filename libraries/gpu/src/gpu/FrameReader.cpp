@@ -34,11 +34,26 @@ public:
         return filename;
     }
 
+    static std::string getBaseDir(const std::string& filename) {
+        std::string result;
+        if (0 == filename.find("assets:")) {
+            auto lastSlash = filename.rfind('/');
+            result = filename.substr(0, lastSlash + 1);
+        } else {
+            std::string result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
+            if (*result.rbegin() != '/') {
+                result += '/';
+            }
+        }
+        return result;
+    }
+
     Deserializer(const std::string& filename, uint32_t externalTexture, const TextureLoader& loader) :
-        basename(getBaseName(filename)), externalTexture(externalTexture), textureLoader(loader) {}
+        basename(getBaseName(filename)), basedir(getBaseDir(filename)), externalTexture(externalTexture), textureLoader(loader) {
+    }
 
     const std::string basename;
-    std::string basedir;
+    const std::string basedir;
     std::string binaryFile;
     const uint32_t externalTexture;
     TextureLoader textureLoader;
@@ -302,6 +317,21 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
         return nullptr;
     }
 
+    std::string source;
+    readOptional(source, node, keys::source);
+
+    std::string ktxFile;
+    readOptional(ktxFile, node, keys::ktxFile);
+    Element ktxTexelFormat, ktxMipFormat;
+    if (!ktxFile.empty()) {
+        if (QFileInfo(ktxFile.c_str()).isRelative()) {
+            ktxFile = basedir + ktxFile;
+        }
+        ktx::StoragePointer ktxStorage{ new storage::FileStorage(ktxFile.c_str()) };
+        auto ktxObject = ktx::KTX::create(ktxStorage);
+        Texture::evalTextureFormat(ktxObject->getHeader(), ktxTexelFormat, ktxMipFormat);
+    }
+
     TextureUsageType usageType = node[keys::usageType];
     Texture::Type type = node[keys::type];
     glm::u16vec4 dims;
@@ -312,6 +342,9 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     uint16 mips = node[keys::mips];
     uint16 samples = node[keys::samples];
     Element texelFormat = readElement(node[keys::texelFormat]);
+    if (!ktxFile.empty() && (ktxMipFormat.isCompressed() != texelFormat.isCompressed())) {
+        texelFormat = ktxMipFormat;
+    }
     Sampler sampler;
     readOptionalTransformed<Sampler>(sampler, node, keys::sampler, [](const json& node) { return readSampler(node); });
     TexturePointer result;
@@ -325,8 +358,6 @@ TexturePointer Deserializer::readTexture(const json& node, uint32_t external) {
     auto& texture = *result;
     readOptional(texture._source, node, keys::source);
 
-    std::string ktxFile;
-    readOptional(ktxFile, node, keys::ktxFile);
     if (!ktxFile.empty()) {
         if (QFileInfo(ktxFile.c_str()).isRelative()) {
             ktxFile = basedir + "/" + ktxFile;
@@ -359,6 +390,7 @@ ShaderPointer Deserializer::readShader(const json& node) {
 
     // FIXME support procedural shaders
     Shader::Type type = node[keys::type];
+    std::string name = node[keys::name];
     uint32_t id = node[keys::id];
     ShaderPointer result;
     switch (type) {
@@ -373,6 +405,9 @@ ShaderPointer Deserializer::readShader(const json& node) {
             break;
         default:
             throw std::runtime_error("not implemented");
+    }
+    if (result->getSource().name != name) {
+        throw std::runtime_error("Bad name match");
     }
     return result;
 }
@@ -747,12 +782,6 @@ StereoState readStereoState(const json& node) {
 FramePointer Deserializer::deserializeFrame() {
     {
         std::string filename{ basename + ".json" };
-        if (0 == basename.find("assets:")) {
-            auto lastSlash = basename.rfind('/');
-            basedir = basename.substr(0, lastSlash);
-        } else {
-            basedir = QFileInfo(basename.c_str()).absolutePath().toStdString();
-        }
         storage::FileStorage mappedFile(filename.c_str());
         frameNode = json::parse(std::string((const char*)mappedFile.data(), mappedFile.size()));
     }
@@ -808,7 +837,7 @@ FramePointer Deserializer::deserializeFrame() {
     swapchains =
         readArray<SwapChainPointer>(frameNode, keys::swapchains, [this](const json& node) { return readSwapchain(node); });
 
-    queries = readArray<QueryPointer>(frameNode, keys::queries, [this](const json& node) { return readQuery(node); });
+    queries = readArray<QueryPointer>(frameNode, keys::queries, [](const json& node) { return readQuery(node); });
     frame.framebuffer = framebuffers[frameNode[keys::framebuffer].get<uint32_t>()];
     frame.view = readMat4(frameNode[keys::view]);
     frame.pose = readMat4(frameNode[keys::pose]);
