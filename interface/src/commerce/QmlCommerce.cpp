@@ -54,11 +54,10 @@ void QmlCommerce::openSystemApp(const QString& appName) {
         {"GOTO",        "hifi/tablet/TabletAddressDialog.qml"},
         {"PEOPLE",      "hifi/Pal.qml"},
         {"WALLET",      "hifi/commerce/wallet/Wallet.qml"},
-        {"MARKET",      "/marketplace.html"}
+        {"MARKET",      "hifi/commerce/marketplace/Marketplace.qml"}
     };
 
     static const QMap<QString, QString> systemInject{
-        {"MARKET",      "/scripts/system/html/js/marketplacesInject.js"}
     };
 
 

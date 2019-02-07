@@ -75,7 +75,6 @@ const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
 const float MAX_BOOST_SPEED = 0.5f * DEFAULT_AVATAR_MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
-const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
 
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
@@ -847,6 +846,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
 
         updateOrientation(deltaTime);
         updatePosition(deltaTime);
+        updateViewBoom();
     }
 
     // update sensorToWorldMatrix for camera and hand controllers
@@ -3323,21 +3323,22 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         direction = Vectors::ZERO;
     }
 
+    float sensorToWorldScale = getSensorToWorldScale();
     if (state == CharacterController::State::Hover) {
         // we're flying --> complex acceleration curve that builds on top of current motor speed and caps at some max speed
 
         float motorSpeed = glm::length(_actionMotorVelocity);
-        float finalMaxMotorSpeed = getSensorToWorldScale() * DEFAULT_AVATAR_MAX_FLYING_SPEED * _walkSpeedScalar;
+        float finalMaxMotorSpeed = sensorToWorldScale * DEFAULT_AVATAR_MAX_FLYING_SPEED * _walkSpeedScalar;
         float speedGrowthTimescale  = 2.0f;
         float speedIncreaseFactor = 1.8f * _walkSpeedScalar;
         motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale, 0.0f, 1.0f) * speedIncreaseFactor;
-        const float maxBoostSpeed = getSensorToWorldScale() * MAX_BOOST_SPEED;
+        const float maxBoostSpeed = sensorToWorldScale * MAX_BOOST_SPEED;
 
         if (_isPushing) {
             if (motorSpeed < maxBoostSpeed) {
                 // an active action motor should never be slower than this
                 float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
-                motorSpeed += getSensorToWorldScale() * MIN_AVATAR_SPEED * boostCoefficient;
+                motorSpeed += sensorToWorldScale * MIN_AVATAR_SPEED * boostCoefficient;
             } else if (motorSpeed > finalMaxMotorSpeed) {
                 motorSpeed = finalMaxMotorSpeed;
             }
@@ -3348,45 +3349,21 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         const glm::vec2 currentVel = { direction.x, direction.z };
         float scaledSpeed = scaleSpeedByDirection(currentVel, _walkSpeed.get(), _walkBackwardSpeed.get());
         // _walkSpeedScalar is a multiplier if we are in sprint mode, otherwise 1.0
-        _actionMotorVelocity = getSensorToWorldScale() * (scaledSpeed * _walkSpeedScalar)  * direction;
-    }
-
-    float previousBoomLength = _boomLength;
-    float boomChange = getDriveKey(ZOOM);
-    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
-    _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
-
-    // May need to change view if boom length has changed
-    if (previousBoomLength != _boomLength) {
-        qApp->changeViewAsNeeded(_boomLength);
+        _actionMotorVelocity = sensorToWorldScale * (scaledSpeed * _walkSpeedScalar)  * direction;
     }
 }
 
 void MyAvatar::updatePosition(float deltaTime) {
-    if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
-        updateActionMotor(deltaTime);
-    }
-
-    vec3 velocity = getWorldVelocity();
-    float sensorToWorldScale = getSensorToWorldScale();
-    float sensorToWorldScale2 = sensorToWorldScale * sensorToWorldScale;
-    const float MOVING_SPEED_THRESHOLD_SQUARED = 0.0001f; // 0.01 m/s
-    if (!_characterController.isEnabledAndReady()) {
-        // _characterController is not in physics simulation but it can still compute its target velocity
-        updateMotors();
-        _characterController.computeNewVelocity(deltaTime, velocity);
-
-        float speed2 = glm::length(velocity);
-        if (speed2 > sensorToWorldScale2 * MIN_AVATAR_SPEED_SQUARED) {
-            // update position ourselves
-            applyPositionDelta(deltaTime * velocity);
+    if (_characterController.isEnabledAndReady()) {
+        if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
+            updateActionMotor(deltaTime);
         }
-        measureMotionDerivatives(deltaTime);
-        _moving = speed2 > sensorToWorldScale2 * MOVING_SPEED_THRESHOLD_SQUARED;
-    } else {
+        float sensorToWorldScale = getSensorToWorldScale();
+        float sensorToWorldScale2 = sensorToWorldScale * sensorToWorldScale;
+        vec3 velocity = getWorldVelocity();
         float speed2 = glm::length2(velocity);
+        const float MOVING_SPEED_THRESHOLD_SQUARED = 0.0001f; // 0.01 m/s
         _moving = speed2 > sensorToWorldScale2 * MOVING_SPEED_THRESHOLD_SQUARED;
-
         if (_moving) {
             // scan for walkability
             glm::vec3 position = getWorldPosition();
@@ -3395,6 +3372,18 @@ void MyAvatar::updatePosition(float deltaTime) {
             _characterController.testRayShotgun(position, step, result);
             _characterController.setStepUpEnabled(result.walkable);
         }
+    }
+}
+
+void MyAvatar::updateViewBoom() {
+    float previousBoomLength = _boomLength;
+    float boomChange = getDriveKey(ZOOM);
+    _boomLength += 2.0f * _boomLength * boomChange + boomChange * boomChange;
+    _boomLength = glm::clamp<float>(_boomLength, ZOOM_MIN, ZOOM_MAX);
+
+    // May need to change view if boom length has changed
+    if (previousBoomLength != _boomLength) {
+        qApp->changeViewAsNeeded(_boomLength);
     }
 }
 
@@ -5300,6 +5289,21 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     bool tellHandler { false };
 
     _avatarGrabsLock.withWriteLock([&] {
+
+        std::map<QUuid, GrabPointer>::iterator itr;
+        itr = _avatarGrabs.find(grabID);
+        if (itr != _avatarGrabs.end()) {
+            GrabPointer grab = itr->second;
+            if (grab) {
+                grab->setReleased(true);
+                bool success;
+                SpatiallyNestablePointer target = SpatiallyNestable::findByID(grab->getTargetID(), success);
+                if (target && success) {
+                    target->disableGrab(grab);
+                }
+            }
+        }
+
         if (_avatarGrabData.remove(grabID)) {
             _grabsToDelete.push_back(grabID);
             tellHandler = true;

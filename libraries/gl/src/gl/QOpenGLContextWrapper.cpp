@@ -17,6 +17,22 @@
 #include <QtPlatformHeaders/QWGLNativeContext>
 #endif
 
+QOpenGLContextWrapper::Pointer QOpenGLContextWrapper::currentContextWrapper() {
+    return std::make_shared<QOpenGLContextWrapper>(QOpenGLContext::currentContext());
+}
+
+
+QOpenGLContextWrapper::NativeContextPointer QOpenGLContextWrapper::getNativeContext() const {
+    QOpenGLContextWrapper::NativeContextPointer result;
+    auto nativeHandle = _context->nativeHandle();
+    if (nativeHandle.canConvert<QGLNativeContext>()) {
+        result = std::make_shared<QGLNativeContext>();
+        *result = nativeHandle.value<QGLNativeContext>();
+    }
+    return result;
+}
+
+
 uint32_t QOpenGLContextWrapper::currentContextVersion() {
     QOpenGLContext* context = QOpenGLContext::currentContext();
     if (!context) {
@@ -48,19 +64,6 @@ QOpenGLContextWrapper::~QOpenGLContextWrapper() {
 void QOpenGLContextWrapper::setFormat(const QSurfaceFormat& format) {
     _context->setFormat(format);
 }
-
-#ifdef Q_OS_WIN
-void* QOpenGLContextWrapper::nativeContext(QOpenGLContext* context) {
-    HGLRC result = 0;
-    if (context != nullptr) {
-        auto nativeHandle = context->nativeHandle();
-        if (nativeHandle.canConvert<QWGLNativeContext>()) {
-            result = nativeHandle.value<QWGLNativeContext>().context();
-        }
-    }
-    return result;
-}
-#endif
 
 bool QOpenGLContextWrapper::create() {
     return _context->create();
