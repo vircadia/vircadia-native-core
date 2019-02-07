@@ -25,6 +25,8 @@ public:
                              const QString& enabledVar, const QString& poleVectorVar);
     virtual ~AnimPoleVectorConstraint() override;
 
+    float findThetaNewWay(const glm::vec3& hand, const glm::vec3& shoulder) const;
+
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) override;
 
 protected:

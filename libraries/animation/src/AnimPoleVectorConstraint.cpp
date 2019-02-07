@@ -34,6 +34,53 @@ AnimPoleVectorConstraint::~AnimPoleVectorConstraint() {
 
 }
 
+float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm::vec3& shoulder) const {
+    // get the default poses for the upper and lower arm
+    // then use this length to judge how far the arm is away from the shoulder.
+    // then create weights that make the elbow angle less when the x value is large in either direction.
+    // make the angle less when z is small.  
+    // lower y with x center lower angle
+    // lower y with x out higher angle
+    AnimPose shoulderPose = _skeleton->getAbsoluteDefaultPose(_skeleton->nameToJointIndex("RightShoulder"));
+    AnimPose handPose = _skeleton->getAbsoluteDefaultPose(_skeleton->nameToJointIndex("RightHand"));
+    // subtract 10 centimeters from the arm length for some reason actual arm position is clamped to length - 10cm.
+    float defaultArmLength = glm::length( handPose.trans() - shoulderPose.trans() ) - 10.0f;
+    qCDebug(animation) << "default arm length " << defaultArmLength;
+
+    // phi_0 is the lowest angle we can have
+    const float phi_0 = 15.0f;
+    // biases
+    const glm::vec3 biases(60.0f, 120.0f, -30.0f);
+    // weights
+    const glm::vec3 weights(-70.0f, 60.0f, 210.0f);
+    glm::vec3 armToHand = hand - shoulder;
+    qCDebug(animation) << "current arm length " << glm::length(armToHand);
+    float initial_valuesX = ((fabsf(armToHand[0]) / defaultArmLength) * weights[0]) + biases[0];
+    float initial_valuesY = ((armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
+    float initial_valuesZ = ((armToHand[2] / defaultArmLength) * weights[2]) + biases[2];
+    if (initial_valuesX < 0.0f) {
+        initial_valuesX = 0.0f;
+    }
+    if (initial_valuesY < 0.0f) {
+        initial_valuesY = 0.0f;
+    }
+    if (initial_valuesZ < 0.0f) {
+        initial_valuesZ = 0.0f;
+    }
+
+    float theta = initial_valuesX + initial_valuesY + initial_valuesZ;
+
+    if (theta < 13.0f) {
+        theta = 13.0f;
+    }
+    if (theta > 175.0f) {
+        theta = 175.0f;
+    }
+
+    qCDebug(animation) << "relative hand" << initial_valuesX << " " << initial_valuesY << " " << initial_valuesZ << "theta value for pole vector is " << theta;
+    return theta;
+}
+
 const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
     assert(_children.size() == 1);
@@ -121,7 +168,14 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         float sideDot = glm::dot(poleVector, sideVector);
         float theta = copysignf(1.0f, sideDot) * acosf(dot);
 
-        glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
+        float fred;
+        if (_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) {
+            qCDebug(animation) << "theta from the old code " << theta;
+            fred = findThetaNewWay(tipPose.trans(), basePose.trans());
+        }
+
+        //glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
+        glm::quat deltaRot = glm::angleAxis(((180.0f - fred)/180.0f)*PI, unitAxis);
 
         // transform result back into parent relative frame.
         glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * deltaRot * basePose.rot();
@@ -207,6 +261,8 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
     return _poses;
 }
+
+
 
 // for AnimDebugDraw rendering
 const AnimPoseVec& AnimPoleVectorConstraint::getPosesInternal() const {
