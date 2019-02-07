@@ -13,6 +13,17 @@
 
 #include "ModelMath.h"
 
+bool needTangents(const hfm::Mesh& mesh, const QHash<QString, hfm::Material>& materials) {
+    // Check if we actually need to calculate the tangents
+    for (const auto& meshPart : mesh.parts) {
+        auto materialIt = materials.find(meshPart.materialID);
+        if (materialIt != materials.end() && (*materialIt).needTangentSpace()) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& normalsPerMesh = input.get0();
     const std::vector<hfm::Mesh>& meshes = input.get1();
@@ -28,38 +39,20 @@ void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, co
         auto& tangentsOut = tangentsPerMeshOut[tangentsPerMeshOut.size()-1];
 
         // Check if we already have tangents and therefore do not need to do any calculation
+        // Otherwise confirm if we have the normals needed, and need to calculate the tangents
         if (!tangentsIn.empty()) {
             tangentsOut = tangentsIn.toStdVector();
-            continue;
+        } else if (!normals.empty() && needTangents(mesh, materials)) {
+            tangentsOut.resize(normals.size());
+            baker::calculateTangents(mesh,
+            [&mesh, &normals, &tangentsOut](int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec2* outTexCoords, glm::vec3& outNormal) {
+                outVertices[0] = mesh.vertices[firstIndex];
+                outVertices[1] = mesh.vertices[secondIndex];
+                outNormal = normals[firstIndex];
+                outTexCoords[0] = mesh.texCoords[firstIndex];
+                outTexCoords[1] = mesh.texCoords[secondIndex];
+                return &(tangentsOut[firstIndex]);
+            });
         }
-
-        // Check if we have normals, and if not then tangents can't be calculated
-        if (normals.empty()) {
-            continue;
-        }
-
-        // Check if we actually need to calculate the tangents
-        bool needTangents = false;
-        for (const auto& meshPart : mesh.parts) {
-            auto materialIt = materials.find(meshPart.materialID);
-            if (materialIt != materials.end() && (*materialIt).needTangentSpace()) {
-                needTangents = true;
-                break;
-            }
-        }
-        if (!needTangents) {
-            continue;
-        }
-
-        tangentsOut.resize(normals.size());
-        baker::calculateTangents(mesh,
-        [&mesh, &normals, &tangentsOut](int firstIndex, int secondIndex, glm::vec3* outVertices, glm::vec2* outTexCoords, glm::vec3& outNormal) {
-            outVertices[0] = mesh.vertices[firstIndex];
-            outVertices[1] = mesh.vertices[secondIndex];
-            outNormal = normals[firstIndex];
-            outTexCoords[0] = mesh.texCoords[firstIndex];
-            outTexCoords[1] = mesh.texCoords[secondIndex];
-            return &(tangentsOut[firstIndex]);
-        });
     }
 }
