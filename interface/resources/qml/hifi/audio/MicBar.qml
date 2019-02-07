@@ -16,7 +16,13 @@ import TabletScriptingInterface 1.0
 
 Rectangle {
     readonly property var level: AudioScriptingInterface.inputLevel;
-
+    
+    property bool gated: false;
+    Component.onCompleted: {
+        AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
+        AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+    }
+        
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -189,7 +195,7 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
-            width: parent.width * level;
+            width: gated ? 0 : parent.width * level;
             radius: 5;
             anchors {
                 bottom: parent.bottom;
@@ -223,6 +229,20 @@ Rectangle {
                     position: 1;
                     color: colors.red;
                 }
+            }
+        }
+        
+        Rectangle {
+            id: gatedIndicator;
+            visible: gated
+            
+            radius: 4;     
+            width: 2 * radius;
+            height: 2 * radius;
+            color: "#0080FF";
+            anchors {
+                right: parent.left;
+                verticalCenter: parent.verticalCenter;
             }
         }
     }
