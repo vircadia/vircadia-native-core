@@ -1222,7 +1222,11 @@ void AudioClient::handleMicAudioInput() {
 
         // detect loudness and clipping on the raw input
         bool isClipping = false;
-        _lastInputLoudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
+        float inputLoudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
+
+        float tc = (inputLoudness > _lastInputLoudness) ? 0.378f : 0.967f;  // 10ms attack, 300ms release @ 100Hz
+        inputLoudness += tc * (_lastInputLoudness - inputLoudness);
+        _lastInputLoudness = inputLoudness;
 
         if (isClipping) {
             _timeSinceLastClip = 0.0f;
