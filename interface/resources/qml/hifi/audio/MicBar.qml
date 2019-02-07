@@ -234,7 +234,7 @@ Rectangle {
         
         Rectangle {
             id: gatedIndicator;
-            visible: gated
+            visible: gated && !AudioScriptingInterface.clipping
             
             radius: 4;     
             width: 2 * radius;
@@ -242,6 +242,20 @@ Rectangle {
             color: "#0080FF";
             anchors {
                 right: parent.left;
+                verticalCenter: parent.verticalCenter;
+            }
+        }
+        
+        Rectangle {
+            id: clippingIndicator;
+            visible: AudioScriptingInterface.clipping
+            
+            radius: 4;     
+            width: 2 * radius;
+            height: 2 * radius;
+            color: colors.red;
+            anchors {
+                left: parent.right;
                 verticalCenter: parent.verticalCenter;
             }
         }
