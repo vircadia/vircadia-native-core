@@ -301,7 +301,14 @@ QString Overlays::overlayToEntityType(const QString& type) {
         }                                                   \
     }
 
+static QHash<QUuid, glm::quat> savedRotations = QHash<QUuid, glm::quat>();
+
 EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
+    glm::quat rotation;
+    return convertOverlayToEntityProperties(overlayProps, rotation, type, add, id);
+}
+
+EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, glm::quat& rotationToSave, const QString& type, bool add, const QUuid& id) {
     overlayProps["type"] = type;
 
     SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
@@ -541,6 +548,58 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             normals.append(vec3toVariant(Vectors::UP));
             SET_OVERLAY_PROP_DEFAULT(normals, normals);
         }
+
+        SET_OVERLAY_PROP_DEFAULT(textures, PathUtils::resourcesUrl() + "images/whitePixel.png");
+    }
+
+    if (type == "Text" || type == "Image" || type == "Grid" || type == "Web") {
+        glm::quat originalRotation = ENTITY_ITEM_DEFAULT_ROTATION;
+        {
+            auto iter = overlayProps.find("rotation");
+            if (iter != overlayProps.end()) {
+                originalRotation = quatFromVariant(iter.value());
+            } else {
+                iter = overlayProps.find("localRotation");
+                if (iter != overlayProps.end()) {
+                    originalRotation = quatFromVariant(iter.value());
+                } else if (!add) {
+                    auto iter2 = savedRotations.find(id);
+                    if (iter2 != savedRotations.end()) {
+                        originalRotation = iter2.value();
+                    }
+                }
+            }
+        }
+
+        if (!add) {
+            savedRotations[id] = originalRotation;
+        } else {
+            rotationToSave = originalRotation;
+        }
+
+        glm::vec3 dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
+        {
+            auto iter = overlayProps.find("dimensions");
+            if (iter != overlayProps.end()) {
+                dimensions = vec3FromVariant(iter.value());
+            }
+        }
+
+        bool rotateX = dimensions.y < 0.0f;
+        bool rotateY = dimensions.x < 0.0f;
+
+        {
+            glm::quat rotation = originalRotation;
+            if (rotateX) {
+                rotation = glm::angleAxis((float)M_PI, rotation * Vectors::RIGHT) * rotation;
+            }
+            if (rotateY) {
+                rotation = glm::angleAxis((float)M_PI, rotation * Vectors::UP) * rotation;
+            }
+
+            overlayProps["localRotation"] = quatToVariant(rotation);
+            overlayProps["dimensions"] = vec3toVariant(glm::abs(dimensions));
+        }
     }
 
     QScriptEngine scriptEngine;
@@ -714,7 +773,12 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (type == "rectangle3d") {
         propertyMap["shape"] = "Quad";
     }
-    return DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(convertOverlayToEntityProperties(propertyMap, entityType, true), entity::HostType::LOCAL);
+    glm::quat rotationToSave;
+    QUuid id = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(convertOverlayToEntityProperties(propertyMap, rotationToSave, entityType, true), entity::HostType::LOCAL);
+    if (entityType == "Text" || entityType == "Image" || entityType == "Grid" || entityType == "Web") {
+        savedRotations[id] = rotationToSave;
+    }
+    return id;
 }
 
 QUuid Overlays::add2DOverlay(const Overlay::Pointer& overlay) {
