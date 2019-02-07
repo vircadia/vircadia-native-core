@@ -12,19 +12,20 @@ import QtQuick 2.5
 import Hifi 1.0 as Hifi
 
 import controlsUit 1.0
-import "windows" as Windows
+import "qrc:////qml//windows" as Windows
 
 Windows.ScrollingWindow {
     id: root
     width: 800
     height: 800
     resizable: true
+    
     Hifi.InfoView {
         id: infoView
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
 
-        ProxyWebView {
+        WebView {
             id: webview
             objectName: "WebView"
             anchors.fill: parent
