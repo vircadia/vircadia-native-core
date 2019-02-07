@@ -1732,6 +1732,7 @@ private:
     void updateOrientation(float deltaTime);
     void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
+    void updateViewBoom();
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
     void initAnimGraph();

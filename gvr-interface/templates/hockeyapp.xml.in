@@ -1,5 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-  <string name="HockeyAppID">${HOCKEY_APP_ID}</string>
-  <bool name="HockeyAppEnabled">${HOCKEY_APP_ENABLED}</bool>
-</resources>

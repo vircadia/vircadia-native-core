@@ -32,7 +32,7 @@ const QStringList& FileUtils::getFileSelectors() {
     std::call_once(once, [] {
 
 #if defined(Q_OS_ANDROID)
-        //extraSelectors << "android_" HIFI_ANDROID_APP;
+        extraSelectors << "android_" HIFI_ANDROID_APP;
 #endif
 
 #if defined(USE_GLES)
