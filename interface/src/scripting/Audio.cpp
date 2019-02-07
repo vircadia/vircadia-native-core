@@ -15,6 +15,7 @@
 
 #include "Application.h"
 #include "AudioClient.h"
+#include "AudioHelpers.h"
 #include "ui/AvatarInputs.h"
 
 using namespace scripting;
@@ -26,26 +27,9 @@ QString Audio::HMD { "VR" };
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
 
 float Audio::loudnessToLevel(float loudness) {
-    const float LOG2 = log(2.0f);
-    const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
-    const float LOG2_LOUDNESS_FLOOR = 11.0f;
-
-    float level = 0.0f;
-
-    loudness += 1.0f;
-    float log2loudness = logf(loudness) / LOG2;
-
-    if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
-        level = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE;
-    } else {
-        level = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE;
-    }
-
-    if (level > 1.0f) {
-        level = 1.0;
-    }
-
-    return level;
+    float level = 6.02059991f * fastLog2f(loudness);    // level in dBFS
+    level = (level + 60.0f) * (1/48.0f);                // map [-60, -12] dBFS to [0, 1]
+    return glm::clamp(level, 0.0f, 1.0f);
 }
 
 Audio::Audio() : _devices(_contextIsHMD) {

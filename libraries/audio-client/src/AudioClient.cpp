@@ -175,7 +175,7 @@ static float computeLoudness(int16_t* samples, int numSamples, int numChannels, 
     const int32_t CLIPPING_THRESHOLD = 32392;   // -0.1 dBFS
     const int32_t CLIPPING_DETECTION = 3;       // consecutive samples over threshold
 
-    float scale = numSamples ? 1.0f / numSamples : 0.0f;
+    float scale = numSamples ? 1.0f / (numSamples * 32768.0f) : 0.0f;
 
     int32_t loudness = 0;
     isClipping = false;
