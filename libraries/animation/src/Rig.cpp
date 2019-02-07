@@ -748,7 +748,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
     glm::vec3 workingVelocity = worldVelocity;
-
+    _flow.setTransform(sensorToWorldScale, worldPosition, worldRotation * Quaternions::Y_180);
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
 
@@ -1212,12 +1212,15 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _networkVars = networkTriggersOut;
         _lastContext = context;
     }
+    
     applyOverridePoses();
     buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
     buildAbsoluteRigPoses(_networkPoseSet._relativePoses, _networkPoseSet._absolutePoses);
     // copy internal poses to external poses
+    _flow.update();
     {
         QWriteLocker writeLock(&_externalPoseSetLock);
+        
         _externalPoseSet = _internalPoseSet;
     }
 }
