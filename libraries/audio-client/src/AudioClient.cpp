@@ -170,6 +170,57 @@ static void channelDownmix(int16_t* source, int16_t* dest, int numSamples) {
     }
 }
 
+static float computeLoudness(int16_t* samples, int numSamples, int numChannels, bool& isClipping) {
+
+    const int32_t CLIPPING_THRESHOLD = 32392;   // -0.1 dBFS
+    const int32_t CLIPPING_DETECTION = 3;       // consecutive samples over threshold
+
+    float scale = numSamples ? 1.0f / numSamples : 0.0f;
+
+    int32_t loudness = 0;
+    isClipping = false;
+
+    if (numChannels == 2) {
+        int32_t oversLeft = 0;
+        int32_t oversRight = 0;
+
+        for (int i = 0; i < numSamples/2; i++) {
+            int32_t left = std::abs((int32_t)samples[2*i+0]);
+            int32_t right = std::abs((int32_t)samples[2*i+1]);
+
+            loudness += left;
+            loudness += right;
+
+            if (left > CLIPPING_THRESHOLD) {
+                isClipping |= (++oversLeft >= CLIPPING_DETECTION);
+            } else {
+                oversLeft = 0;
+            }
+            if (right > CLIPPING_THRESHOLD) {
+                isClipping |= (++oversRight >= CLIPPING_DETECTION);
+            } else {
+                oversRight = 0;
+            }
+        }
+    } else {
+        int32_t overs = 0;
+
+        for (int i = 0; i < numSamples; i++) {
+            int32_t sample = std::abs((int32_t)samples[i]);
+
+            loudness += sample;
+
+            if (sample > CLIPPING_THRESHOLD) {
+                isClipping |= (++overs >= CLIPPING_DETECTION);
+            } else {
+                overs = 0;
+            }
+        }
+    }
+
+    return (float)loudness * scale;
+}
+
 static inline float convertToFloat(int16_t sample) {
     return (float)sample * (1 / 32768.0f);
 }
@@ -1170,17 +1221,10 @@ void AudioClient::handleMicAudioInput() {
         _inputRingBuffer.readSamples(inputAudioSamples.get(), inputSamplesRequired);
 
         // detect loudness and clipping on the raw input
-        int32_t loudness = 0;
-        bool didClip = false;
-        for (int i = 0; i < inputSamplesRequired; ++i) {
-            const int32_t CLIPPING_THRESHOLD = (int32_t)(AudioConstants::MAX_SAMPLE_VALUE * 0.9f);
-            int32_t sample = std::abs((int32_t)inputAudioSamples.get()[i]);
-            loudness += sample;
-            didClip |= (sample > CLIPPING_THRESHOLD);
-        }
-        _lastInputLoudness = (float)loudness / inputSamplesRequired;
+        bool isClipping = false;
+        _lastInputLoudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
 
-        if (didClip) {
+        if (isClipping) {
             _timeSinceLastClip = 0.0f;
         } else if (_timeSinceLastClip >= 0.0f) {
             _timeSinceLastClip += AudioConstants::NETWORK_FRAME_SECS;
