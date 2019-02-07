@@ -50,13 +50,13 @@ float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm
     // phi_0 is the lowest angle we can have
     const float phi_0 = 15.0f;
     // biases
-    const glm::vec3 biases(60.0f, 120.0f, -30.0f);
+    const glm::vec3 biases(30.0f, 120.0f, -30.0f);
     // weights
-    const glm::vec3 weights(-70.0f, 60.0f, 210.0f);
+    const glm::vec3 weights(-30.0f, 30.0f, 210.0f);
     glm::vec3 armToHand = hand - shoulder;
     qCDebug(animation) << "current arm length " << glm::length(armToHand);
     float initial_valuesX = ((fabsf(armToHand[0]) / defaultArmLength) * weights[0]) + biases[0];
-    float initial_valuesY = ((armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
+    float initial_valuesY = ((fabs(armToHand[1]) / defaultArmLength) * weights[1]) + biases[1];
     float initial_valuesZ = ((armToHand[2] / defaultArmLength) * weights[2]) + biases[2];
     if (initial_valuesX < 0.0f) {
         initial_valuesX = 0.0f;
@@ -169,13 +169,17 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         float theta = copysignf(1.0f, sideDot) * acosf(dot);
 
         float fred;
-        if (_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) {
+        if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
             qCDebug(animation) << "theta from the old code " << theta;
             fred = findThetaNewWay(tipPose.trans(), basePose.trans());
+            if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
+                fred = -1.0f * fred;
+            }
+            theta = ((180.0f - fred) / 180.0f)*PI;
         }
 
         //glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
-        glm::quat deltaRot = glm::angleAxis(((180.0f - fred)/180.0f)*PI, unitAxis);
+        glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
         // transform result back into parent relative frame.
         glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * deltaRot * basePose.rot();
