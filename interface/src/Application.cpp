@@ -6350,6 +6350,8 @@ void Application::update(float deltaTime) {
                 _physicsEngine->processTransaction(transaction);
                 myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
                 myAvatar->prepareForPhysicsSimulation();
+                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+
                 _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
                     dynamic->prepareForPhysicsSimulation();
                 });
