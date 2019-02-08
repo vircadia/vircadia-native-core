@@ -63,13 +63,13 @@ public:
     bool hasShape(const btCollisionShape* shape) const;
 
 private:
-    bool releaseShapeByKey(const HashKey& key);
+    bool releaseShapeByKey(uint64_t key);
 
     class ShapeReference {
     public:
         int refCount;
         const btCollisionShape* shape;
-        HashKey key;
+        uint64_t key { 0 };
         ShapeReference() : refCount(0), shape(nullptr) {}
     };
 

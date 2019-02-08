@@ -33,8 +33,8 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
     if (info.getType() == SHAPE_TYPE_NONE) {
         return nullptr;
     }
-    HashKey key = info.getHash();
-    ShapeReference* shapeRef = _shapeMap.find(key);
+    HashKey hashKey(info.getHash());
+    ShapeReference* shapeRef = _shapeMap.find(hashKey);
     if (shapeRef) {
         shapeRef->refCount++;
         return shapeRef->shape;
@@ -44,27 +44,28 @@ const btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         ShapeReference newRef;
         newRef.refCount = 1;
         newRef.shape = shape;
-        newRef.key = key;
-        _shapeMap.insert(key, newRef);
+        newRef.key = info.getHash();
+        _shapeMap.insert(hashKey, newRef);
     }
     return shape;
 }
 
 // private helper method
-bool ShapeManager::releaseShapeByKey(const HashKey& key) {
-    ShapeReference* shapeRef = _shapeMap.find(key);
+bool ShapeManager::releaseShapeByKey(uint64_t key) {
+    HashKey hashKey(key);
+    ShapeReference* shapeRef = _shapeMap.find(hashKey);
     if (shapeRef) {
         if (shapeRef->refCount > 0) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
                 // look for existing entry in _pendingGarbage, starting from the back
                 for (int32_t i = _pendingGarbage.size() - 1; i > -1; --i) {
-                    if (_pendingGarbage[i] == key.getHash64()) {
+                    if (_pendingGarbage[i] == key) {
                         // already on the list, don't add it again
                         return true;
                     }
                 }
-                _pendingGarbage.push_back(key.getHash64());
+                _pendingGarbage.push_back(key);
                 const int MAX_SHAPE_GARBAGE_CAPACITY = 255;
                 if (_pendingGarbage.size() > MAX_SHAPE_GARBAGE_CAPACITY) {
                     collectGarbage();
@@ -107,8 +108,8 @@ void ShapeManager::collectGarbage() {
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
-    HashKey key = info.getHash();
-    const ShapeReference* shapeRef = _shapeMap.find(key);
+    HashKey hashKey(info.getHash());
+    const ShapeReference* shapeRef = _shapeMap.find(hashKey);
     if (shapeRef) {
         return shapeRef->refCount;
     }
