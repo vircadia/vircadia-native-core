@@ -14,13 +14,14 @@ using System.Collections.Generic;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.1";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.2";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
     static readonly int MAXIMUM_USER_BONE_COUNT = 256;
     static readonly string EMPTY_WARNING_TEXT = "None";
     
+    // TODO: use regex
     static readonly string[] RECOMMENDED_UNITY_VERSIONS = new string[] {
         "2018.2.12f1",
         "2018.2.11f1",
@@ -262,8 +263,7 @@ class AvatarExporter : MonoBehaviour {
     static string assetPath = "";
     static string assetName = "";
     static HumanDescription humanDescription;
-    
- 
+
     [MenuItem("High Fidelity/Export New Avatar")]
     static void ExportNewAvatar() {
         ExportSelectedAvatar(false);
@@ -301,7 +301,7 @@ class AvatarExporter : MonoBehaviour {
                                                  " the Rig section of it's Inspector window.", "Ok");
             return;
         }
-        
+
         humanDescription = modelImporter.humanDescription;
         SetUserBoneInformation();
 
@@ -479,6 +479,26 @@ class AvatarExporter : MonoBehaviour {
         }
     }
     
+    static void CopyExternalTextures(string texturesDirectory) {
+        List<string> texturePaths = new List<string>();
+        
+        // build the list of all local asset paths for textures that Unity considers dependencies of the model
+        string[] dependencies = AssetDatabase.GetDependencies(assetPath);
+        foreach (string dependencyPath in dependencies) {
+            UnityEngine.Object textureObject = AssetDatabase.LoadAssetAtPath(dependencyPath, typeof(Texture2D));
+            if (textureObject != null) {
+                texturePaths.Add(dependencyPath);
+            }
+        }
+
+        // copy the found dependency textures from the local asset folder to the textures folder in the target export project
+        foreach (string texturePath in texturePaths) {
+            string textureName = Path.GetFileName(texturePath);
+            string targetPath = texturesDirectory + "\\" + textureName;
+            File.Copy(texturePath, targetPath);
+        }
+    }
+    
     static void OnExportProjectWindowClose(string projectDirectory, string projectName, string warnings) {
         // copy the fbx from the Unity Assets folder to the project directory
         string exportModelPath = projectDirectory + assetName + ".fbx";
@@ -494,15 +514,18 @@ class AvatarExporter : MonoBehaviour {
         string exportFstPath = projectDirectory + "avatar.fst";
         WriteFST(exportFstPath, projectName);
         
+        // copy any external texture files to the project's texture directory that are considered dependencies of the model
+        texturesDirectory = texturesDirectory.Replace("\\\\", "\\");
+        CopyExternalTextures(texturesDirectory);
+        
         // remove any double slashes in texture directory path, display success dialog with any
         // bone warnings previously mentioned, and suggest user to copy external textures over
-        texturesDirectory = texturesDirectory.Replace("\\\\", "\\");
         string successDialog = "Avatar successfully exported!\n\n";
         if (warnings != EMPTY_WARNING_TEXT) {
             successDialog += "Warnings:\n" + warnings;
         }
         successDialog += "Note: If you are using any external textures with your model, " +
-                         "please copy those textures to " + texturesDirectory;
+                         "please ensure those textures are copied to " + texturesDirectory;
         EditorUtility.DisplayDialog("Success!", successDialog, "Ok");
     }
     
