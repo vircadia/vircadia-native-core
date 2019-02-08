@@ -1,6 +1,5 @@
 set(TARGET_NAME model-networking)
 setup_hifi_library()
-link_hifi_libraries(shared shaders networking graphics fbx ktx image gl model-baker)
-include_hifi_library_headers(gpu)
+link_hifi_libraries(shared shaders networking graphics fbx material-networking model-baker)
 include_hifi_library_headers(hfm)
 include_hifi_library_headers(task)

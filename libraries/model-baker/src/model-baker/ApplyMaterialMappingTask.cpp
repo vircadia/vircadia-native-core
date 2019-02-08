@@ -10,6 +10,8 @@
 
 #include "ModelBakerLogging.h"
 
+#include <material-networking/MaterialCache.h>
+
 void ApplyMaterialMappingTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& materialsIn = input.get0();
     const auto& mapping = input.get1();

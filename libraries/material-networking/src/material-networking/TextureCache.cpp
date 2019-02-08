@@ -44,7 +44,7 @@
 #include <Profile.h>
 
 #include "NetworkLogging.h"
-#include "ModelNetworkingLogging.h"
+#include "MaterialNetworkingLogging.h"
 #include "NetworkingConstants.h"
 #include <Trace.h>
 #include <StatTracker.h>
@@ -938,7 +938,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
             cache::FilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
             if (!memKtx || !(file = ktxCache->writeFile(data, KTXCache::Metadata(filename, length)))) {
-                qCWarning(modelnetworking) << url << " failed to write cache file";
+                qCWarning(materialnetworking) << url << " failed to write cache file";
                 QMetaObject::invokeMethod(resource.data(), "setImage",
                     Q_ARG(gpu::TexturePointer, nullptr),
                     Q_ARG(int, 0),
@@ -1126,7 +1126,7 @@ void ImageReader::listSupportedImageFormats() {
     static std::once_flag once;
     std::call_once(once, []{
         auto supportedFormats = QImageReader::supportedImageFormats();
-        qCDebug(modelnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
+        qCDebug(materialnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
     });
 }
 
@@ -1174,7 +1174,7 @@ void ImageReader::read() {
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 } else {
-                    qCWarning(modelnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
+                    qCWarning(materialnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
             }
         }

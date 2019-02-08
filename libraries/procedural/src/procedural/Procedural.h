@@ -19,8 +19,8 @@
 #include <gpu/Shader.h>
 #include <gpu/Pipeline.h>
 #include <gpu/Batch.h>
-#include <model-networking/ShaderCache.h>
-#include <model-networking/TextureCache.h>
+#include <material-networking/ShaderCache.h>
+#include <material-networking/TextureCache.h>
 
 using UniformLambdas = std::list<std::function<void(gpu::Batch& batch)>>;
 const size_t MAX_PROCEDURAL_TEXTURE_CHANNELS{ 4 };

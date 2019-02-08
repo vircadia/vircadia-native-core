@@ -102,7 +102,7 @@
 #include <MessagesClient.h>
 #include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
-#include <model-networking/TextureCacheScriptingInterface.h>
+#include <material-networking/TextureCacheScriptingInterface.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -153,7 +153,7 @@
 #include <avatars-renderer/ScriptAvatar.h>
 #include <RenderableEntityItem.h>
 #include <RenderableWebEntityItem.h>
-#include <model-networking/MaterialCache.h>
+#include <material-networking/MaterialCache.h>
 #include "recording/ClipCache.h"
 
 #include "AudioClient.h"
