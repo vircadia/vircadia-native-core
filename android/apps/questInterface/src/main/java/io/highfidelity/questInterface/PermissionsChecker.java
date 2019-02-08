@@ -45,7 +45,7 @@ public class PermissionsChecker extends Activity {
 
     private void launchActivityWithPermissions() {
         startActivity(new Intent(this, QuestActivity.class));
-        finish();
+
     }
 
     @Override

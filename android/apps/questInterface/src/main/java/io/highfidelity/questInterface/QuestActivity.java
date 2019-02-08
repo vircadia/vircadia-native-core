@@ -13,13 +13,44 @@ package io.highfidelity.questInterface;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import io.highfidelity.oculus.OculusMobileActivity;
+import io.highfidelity.utils.HifiUtils;
 
 public class QuestActivity extends OculusMobileActivity {
+    private native void nativeOnCreate();
+    private native void nativeOnDestroy();
+    private native void nativeOnPause();
+    private native void nativeOnResume();
+
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        startActivity(new Intent(this, MainActivity.class));
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
+        nativeOnCreate();
     }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        nativeOnPause();
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        nativeOnResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        nativeOnDestroy();
+    }
+
 }

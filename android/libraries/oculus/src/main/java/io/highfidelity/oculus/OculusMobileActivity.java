@@ -16,11 +16,15 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 
+
+
+import org.qtproject.qt5.android.bindings.QtActivity;
+
 /**
  * Contains a native surface and forwards the activity lifecycle and surface lifecycle
  * events to the OculusMobileDisplayPlugin
  */
-public class OculusMobileActivity extends Activity implements SurfaceHolder.Callback {
+public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Callback {
     private static final String TAG = OculusMobileActivity.class.getSimpleName();
     static { System.loadLibrary("oculusMobile"); }
     private native void nativeOnCreate();
@@ -31,7 +35,6 @@ public class OculusMobileActivity extends Activity implements SurfaceHolder.Call
 
     private SurfaceView mView;
     private SurfaceHolder mSurfaceHolder;
-
 
     public static void launch(Activity activity) {
         if (activity != null) {
@@ -45,7 +48,9 @@ public class OculusMobileActivity extends Activity implements SurfaceHolder.Call
     public void onCreate(Bundle savedInstanceState) {
         Log.w(TAG, "QQQ onCreate");
         super.onCreate(savedInstanceState);
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         // Create a native surface for VR rendering (Qt GL surfaces are not suitable
         // because of the lack of fine control over the surface callbacks)
         mView = new SurfaceView(this);

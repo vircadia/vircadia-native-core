@@ -11,6 +11,8 @@
 
 package io.highfidelity.questInterface;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.Intent;
 import  android.os.Bundle;
 import android.util.Log;
@@ -29,10 +31,9 @@ public class MainActivity extends QtActivity {
     private native void nativeOnPause();
     private native void nativeOnResume();
 
+    private boolean isLoading;
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.isLoading = true;
-        super.keepInterfaceRunning = true;
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
@@ -41,6 +42,7 @@ public class MainActivity extends QtActivity {
 
 
     public void onAppLoadedComplete() {
+
         Log.w("QQQ", "Returning to quest activity");
         runOnUiThread(()->{
             startActivity(new Intent(MainActivity.this, QuestActivity.class));
@@ -51,9 +53,9 @@ public class MainActivity extends QtActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (!super.isLoading) {
+
             nativeOnPause();
-        }
+
     }
 
     @Override

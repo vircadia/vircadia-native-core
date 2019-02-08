@@ -79,6 +79,7 @@ public class QtActivityLoader {
     private static final String EXTRACT_STYLE_MINIMAL_KEY = "extract.android.style.option";
     private static final int BUFFER_SIZE = 1024;
 
+    public boolean Created=false;
     String APPLICATION_PARAMETERS = null; // use this variable to pass any parameters to your application,
     String ENVIRONMENT_VARIABLES = "QT_USE_ANDROID_NATIVE_DIALOGS=1";
     String[] QT_ANDROID_THEMES = null;
@@ -497,6 +498,8 @@ public class QtActivityLoader {
             }
 
             startApp();
+
+            Created=true;
         }
     }
 }
