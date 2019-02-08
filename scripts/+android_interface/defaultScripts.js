@@ -13,10 +13,10 @@
 
 var DEFAULT_SCRIPTS_COMBINED = [
     "system/progress.js",
-    "system/+android/touchscreenvirtualpad.js",
-    "system/+android/actionbar.js",
-    "system/+android/audio.js" ,
-    "system/+android/modes.js"/*,
+    "system/+android_interface/touchscreenvirtualpad.js",
+    "system/+android_interface/actionbar.js",
+    "system/+android_interface/audio.js" ,
+    "system/+android_interface/modes.js"/*,
     "system/away.js",
     "system/controllers/controllerDisplayManager.js",
     "system/controllers/handControllerGrabAndroid.js",
@@ -33,7 +33,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
 ];
 
 var DEBUG_SCRIPTS = [
-    "system/+android/stats.js"
+    "system/+android_interface/stats.js"
 ];
 
 var DEFAULT_SCRIPTS_SEPARATE = [ ];

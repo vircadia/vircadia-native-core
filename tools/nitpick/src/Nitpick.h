@@ -15,11 +15,13 @@
 #include <QTextEdit>
 #include "ui_Nitpick.h"
 
-#include "../Downloader.h"
-#include "../Test.h"
+#include "Downloader.h"
+#include "Test.h"
 
-#include "../TestRunner.h"
-#include "../AWSInterface.h"
+#include "TestRunnerDesktop.h"
+#include "TestRunnerMobile.h"
+
+#include "AWSInterface.h"
 
 class Nitpick : public QMainWindow {
     Q_OBJECT
@@ -49,54 +51,66 @@ public:
 
     void enableRunTabControls();
 
-    void updateStatusLabel(const QString& status);
     void appendLogWindow(const QString& message);
 
 private slots:
+    void on_closePushbutton_clicked();
+
     void on_tabWidget_currentChanged(int index);
 
-    void on_evaluateTestsButton_clicked();
-    void on_createRecursiveScriptButton_clicked();
-    void on_createAllRecursiveScriptsButton_clicked();
-    void on_createTestsButton_clicked();
+    void on_evaluateTestsPushbutton_clicked();
+    void on_createRecursiveScriptPushbutton_clicked();
+    void on_createAllRecursiveScriptsPushbutton_clicked();
+    void on_createTestsPushbutton_clicked();
 
-    void on_createMDFileButton_clicked();
-    void on_createAllMDFilesButton_clicked();
+    void on_createMDFilePushbutton_clicked();
+    void on_createAllMDFilesPushbutton_clicked();
 
-    void on_createTestAutoScriptButton_clicked();
-    void on_createAllTestAutoScriptsButton_clicked();
+    void on_createTestAutoScriptPushbutton_clicked();
+    void on_createAllTestAutoScriptsPushbutton_clicked();
 
-    void on_createTestsOutlineButton_clicked();
+    void on_createTestsOutlinePushbutton_clicked();
 
-    void on_createTestRailTestCasesButton_clicked();
+    void on_createTestRailTestCasesPushbutton_clicked();
     void on_createTestRailRunButton_clicked();
 
-    void on_setWorkingFolderButton_clicked();
-    void on_runNowButton_clicked();
+    void on_setWorkingFolderRunOnDesktopPushbutton_clicked();
+    void on_runNowPushbutton_clicked();
 
-    void on_checkBoxRunLatest_clicked();
+    void on_runLatestOnDesktopCheckBox_clicked();
 
-    void on_updateTestRailRunResultsButton_clicked();
+    void on_updateTestRailRunResultsPushbutton_clicked();
 
-    void on_hideTaskbarButton_clicked();
-    void on_showTaskbarButton_clicked();
+    void on_hideTaskbarPushbutton_clicked();
+    void on_showTaskbarPushbutton_clicked();
 
     void on_createPythonScriptRadioButton_clicked();
     void on_createXMLScriptRadioButton_clicked();
 
-    void on_createWebPagePushButton_clicked();
-
-    void on_closeButton_clicked();
+    void on_createWebPagePushbutton_clicked();
 
     void saveFile(int index);
 
     void about();
     void content();
 
+    // Run on Mobile controls
+    void on_setWorkingFolderRunOnMobilePushbutton_clicked();
+    void on_connectDevicePushbutton_clicked();
+    void on_runLatestOnMobileCheckBox_clicked();
+
+    void on_downloadAPKPushbutton_clicked();
+    void on_installAPKPushbutton_clicked();
+    void on_runInterfacePushbutton_clicked();
+
+    void on_pullFolderPushbutton_clicked();
+
 private:
     Ui::NitpickClass _ui;
     Test* _test{ nullptr };
-    TestRunner* _testRunner{ nullptr };
+
+    TestRunnerDesktop* _testRunnerDesktop{ nullptr };
+    TestRunnerMobile* _testRunnerMobile{ nullptr };
 
     AWSInterface _awsInterface;
 
