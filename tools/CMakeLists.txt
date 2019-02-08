@@ -45,7 +45,7 @@ if (BUILD_TOOLS)
             skeleton-dump
             atp-client
             oven
-            ####nitpick
+            nitpick
         )
     endif()
     
