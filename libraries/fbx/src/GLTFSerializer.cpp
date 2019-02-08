@@ -835,6 +835,22 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                         }
+                    } else if (key == "COLOR_0") {
+                        QVector<float> colors;
+                        success = addArrayOfType(buffer.blob, 
+                            bufferview.byteOffset + accBoffset, 
+                            accessor.count, 
+                            colors,
+                            accessor.type, 
+                            accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < colors.size() - 3; n += stride) {
+                            mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                        }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
                         success = addArrayOfType(buffer.blob, 
@@ -930,7 +946,6 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
         //_file.dump();
         auto hfmModelPtr = std::make_shared<HFMModel>();
         HFMModel& hfmModel = *hfmModelPtr;
-
         buildGeometry(hfmModel, _url);
 
         //hfmDebugDump(data);
