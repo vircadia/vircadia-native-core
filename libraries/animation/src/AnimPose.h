@@ -21,14 +21,13 @@ class AnimPose {
 public:
     AnimPose() {}
     explicit AnimPose(const glm::mat4& mat);
-    explicit AnimPose(const glm::quat& rotIn) : _scale(1.0f), _rot(rotIn), _trans(0.0f) {}
-    AnimPose(const glm::quat& rotIn, const glm::vec3& transIn) : _scale(1.0f), _rot(rotIn), _trans(transIn) {}
-    AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : _scale(scaleIn), _rot(rotIn), _trans(transIn) {}
+    explicit AnimPose(const glm::quat& rotIn) : _rot(rotIn), _trans(0.0f), _scale(1.0f) {}
+    AnimPose(const glm::quat& rotIn, const glm::vec3& transIn) : _rot(rotIn), _trans(transIn), _scale(1.0f) {}
+    AnimPose(float scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : _rot(rotIn), _trans(transIn), _scale(scaleIn) {}
     static const AnimPose identity;
 
     glm::vec3 xformPoint(const glm::vec3& rhs) const;
     glm::vec3 xformVector(const glm::vec3& rhs) const;  // really slow, but accurate for transforms with non-uniform scale
-    glm::vec3 xformVectorFast(const glm::vec3& rhs) const;  // faster, but does not handle non-uniform scale correctly.
 
     glm::vec3 operator*(const glm::vec3& rhs) const; // same as xformPoint
     AnimPose operator*(const AnimPose& rhs) const;
@@ -37,8 +36,8 @@ public:
     AnimPose mirror() const;
     operator glm::mat4() const;
 
-    const glm::vec3& scale() const { return _scale; }
-    glm::vec3& scale() { return _scale; }
+    float scale() const { return _scale; }
+    float& scale() { return _scale; }
 
     const glm::quat& rot() const { return _rot; }
     glm::quat& rot() { return _rot; }
@@ -50,13 +49,13 @@ public:
 
 private:
     friend QDebug operator<<(QDebug debug, const AnimPose& pose);
-    glm::vec3 _scale { 1.0f };
     glm::quat _rot;
     glm::vec3 _trans;
+    float _scale { 1.0f };  // uniform scale only.
 };
 
 inline QDebug operator<<(QDebug debug, const AnimPose& pose) {
-    debug << "AnimPose, trans = (" << pose.trans().x << pose.trans().y << pose.trans().z << "), rot = (" << pose.rot().x << pose.rot().y << pose.rot().z << pose.rot().w << "), scale = (" << pose.scale().x << pose.scale().y << pose.scale().z << ")";
+    debug << "AnimPose, trans = (" << pose.trans().x << pose.trans().y << pose.trans().z << "), rot = (" << pose.rot().x << pose.rot().y << pose.rot().z << pose.rot().w << "), scale =" << pose.scale();
     return debug;
 }
 

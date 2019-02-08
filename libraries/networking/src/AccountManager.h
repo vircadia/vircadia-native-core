@@ -61,15 +61,14 @@ class AccountManager : public QObject, public Dependency {
 public:
     AccountManager(UserAgentGetter userAgentGetter = DEFAULT_USER_AGENT_GETTER);
 
-    QNetworkRequest createRequest(QString path, AccountManagerAuth::Type authType, const QUrlQuery & query = QUrlQuery());
+    QNetworkRequest createRequest(QString path, AccountManagerAuth::Type authType);
     Q_INVOKABLE void sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
                                  QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,
                                  const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                                  const QByteArray& dataByteArray = QByteArray(),
                                  QHttpMultiPart* dataMultiPart = NULL,
-                                 const QVariantMap& propertyMap = QVariantMap(),
-                                 QUrlQuery query = QUrlQuery());
+                                 const QVariantMap& propertyMap = QVariantMap());
 
     void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 

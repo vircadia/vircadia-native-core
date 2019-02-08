@@ -60,7 +60,12 @@ signals:
     void marketplaceItemLikeResult(QJsonObject result);
 
 private:
-    void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, AccountManagerAuth::Type authType, const QUrlQuery & request);
+    void send(const QString& endpoint,
+              const QString& success,
+              const QString& fail,
+              QNetworkAccessManager::Operation method,
+              AccountManagerAuth::Type authType,
+              const QUrlQuery& request = QUrlQuery());
     QJsonObject apiResponse(const QString& label, QNetworkReply* reply);
     QJsonObject failResponse(const QString& label, QNetworkReply* reply);
 };

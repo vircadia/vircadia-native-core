@@ -16,7 +16,7 @@
 #include <QObject>
 #include <QTextStream>
 
-#include "ui/BusyWindow.h"
+#include "BusyWindow.h"
 
 #include "PythonInterface.h"
 
