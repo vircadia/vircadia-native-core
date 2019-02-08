@@ -1057,8 +1057,10 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& mat
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
             fbxmat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.roughnessTexture.channelMapping = ColorChannelMapping::GREEN;
             fbxmat.useRoughnessMap = true;
             fbxmat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.metallicTexture.channelMapping = ColorChannelMapping::BLUE;
             fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {

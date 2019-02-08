@@ -16,6 +16,7 @@
 #include <QtCore/QtGlobal>
 #include <QUrl>
 #include <QImage>
+#include <QRgb>
 #include <QBuffer>
 #include <QImageReader>
 
@@ -221,7 +222,45 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
     return QImage();
 }
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename,
+void mapToRedChannel(QImage& image, ColorChannelMapping sourceChannel) {
+    // Change format of image so we know exactly how to process it
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+
+    for (int i = 0; i < image.height(); i++) {
+        QRgb* pixel = reinterpret_cast<QRgb*>(image.scanLine(i));
+        // Past end pointer
+        QRgb* lineEnd = pixel + image.width();
+
+        // Transfer channel data from source to target
+        for (; pixel < lineEnd; pixel++) {
+            int colorValue;
+            switch (sourceChannel) {
+            case ColorChannelMapping::RED:
+                colorValue = qRed(*pixel);
+                break;
+            case ColorChannelMapping::GREEN:
+                colorValue = qGreen(*pixel);
+                break;
+            case ColorChannelMapping::BLUE:
+                colorValue = qBlue(*pixel);
+                break;
+            case ColorChannelMapping::ALPHA:
+                colorValue = qAlpha(*pixel);
+                break;
+            default:
+                colorValue = qRed(*pixel);
+                break;
+            }
+
+            // Dump the color in the red channel, ignore the rest
+            *pixel = qRgba(colorValue, 0, 0, 0);
+        }
+    }
+}
+
+gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename, ColorChannelMapping channelMapping,
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
 
@@ -251,6 +290,11 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
         qCDebug(imagelogging).nospace() << "Downscaled " << " (" <<
             QSize(originalWidth, originalHeight) << " to " <<
             QSize(imageWidth, imageHeight) << ")";
+    }
+
+    // Re-map to image with single red channel texture if requested
+    if (channelMapping != ColorChannelMapping::NONE) {
+        mapToRedChannel(image, channelMapping);
     }
     
     auto loader = TextureUsage::getTextureLoaderForType(textureType);
