@@ -352,9 +352,14 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     
     QString mime;
     getStringVal(object, "uri", image.uri, image.defined);
+    if (image.uri.contains("data:image/png;base64,")) {
+        image.mimeType = getImageMimeType("image/png");
+    } else if (image.uri.contains("data:image/jpeg;base64,")) {
+        image.mimeType = getImageMimeType("image/jpeg");
+    }
     if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    }
+    } 
     getIntVal(object, "bufferView", image.bufferView, image.defined);
     
     _file.images.push_back(image);
@@ -938,10 +943,15 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
 }
 
 bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
-    QUrl binaryUrl = _url.resolved(url);
-
     bool success;
-    std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+
+    if (url.contains("data:application/octet-stream;base64,")) {
+        outdata = requestEmbeddedData(url);
+        success = !outdata.isEmpty();
+    } else {
+        QUrl binaryUrl = _url.resolved(url);
+        std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+    }
     
     return success;
 }
@@ -972,6 +982,11 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     } else {
         return std::make_tuple(false, QByteArray());
     }
+}
+
+QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
+    QString binaryUrl = url.split(",")[1]; 
+    return binaryUrl.isEmpty() ? QByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
 
 
@@ -1005,11 +1020,16 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
+
         QString fname = QUrl(url).fileName();
         QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
+
+        if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
+            fbxtex.content = requestEmbeddedData(url); 
+        }
     }
     return fbxtex;
 }
