@@ -19,38 +19,37 @@ import io.highfidelity.oculus.OculusMobileActivity;
 import io.highfidelity.utils.HifiUtils;
 
 public class QuestActivity extends OculusMobileActivity {
-    private native void nativeOnCreate();
-    private native void nativeOnDestroy();
-    private native void nativeOnPause();
-    private native void nativeOnResume();
-
+    private native void questNativeOnCreate();
+    private native void questNativeOnDestroy();
+    private native void questNativeOnPause();
+    private native void questNativeOnResume();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
-        nativeOnCreate();
+        questNativeOnCreate();
     }
 
 
     @Override
     protected void onPause() {
         super.onPause();
-        nativeOnPause();
+        questNativeOnPause();
 
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        nativeOnResume();
+        questNativeOnResume();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        nativeOnDestroy();
+        questNativeOnDestroy();
     }
 
 }
