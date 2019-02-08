@@ -83,6 +83,7 @@ Rectangle {
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
+        readonly property string yellow: "#C0C000";
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
@@ -218,16 +219,12 @@ Rectangle {
                     color: colors.greenStart;
                 }
                 GradientStop {
-                    position: 0.8;
+                    position: 0.5;
                     color: colors.greenEnd;
                 }
                 GradientStop {
-                    position: 0.81;
-                    color: colors.red;
-                }
-                GradientStop {
                     position: 1;
-                    color: colors.red;
+                    color: colors.yellow;
                 }
             }
         }
