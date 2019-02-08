@@ -58,6 +58,7 @@ Windows.ScrollingWindow {
         Controls.WebView {
             id: webview
             url: "about:blank"
+            property string userScriptUrl: ""
             anchors.fill: parent
             focus: true
         }
