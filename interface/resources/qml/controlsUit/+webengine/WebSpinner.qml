@@ -9,15 +9,11 @@
 //
 
 import QtQuick 2.5
+import QtWebEngine 1.5
 
-Image {
-    Item {
-        id: webView
-        property bool loading: false
-        property string url: ""
-    }
-
-    source: "qrc:////images//unsupportedImage.png"
+AnimatedImage {
+    property WebEngineView webview: parent
+    source: "qrc:////icons//loader-snake-64-w.gif"
     visible: webview.loading && /^(http.*|)$/i.test(webview.url.toString())
     playing: visible
     z: 10000

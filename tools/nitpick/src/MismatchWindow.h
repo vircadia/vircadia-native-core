@@ -12,7 +12,7 @@
 
 #include "ui_MismatchWindow.h"
 
-#include "../common.h"
+#include "common.h"
 
 class MismatchWindow : public QDialog, public Ui::MismatchWindow {
     Q_OBJECT
