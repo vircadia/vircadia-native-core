@@ -57,7 +57,14 @@ bool ShapeManager::releaseShapeByKey(const HashKey& key) {
         if (shapeRef->refCount > 0) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
-                _pendingGarbage.push_back(key);
+                // look for existing entry in _pendingGarbage, starting from the back
+                for (int32_t i = _pendingGarbage.size() - 1; i > -1; --i) {
+                    if (_pendingGarbage[i] == key.getHash64()) {
+                        // already on the list, don't add it again
+                        return true;
+                    }
+                }
+                _pendingGarbage.push_back(key.getHash64());
                 const int MAX_SHAPE_GARBAGE_CAPACITY = 255;
                 if (_pendingGarbage.size() > MAX_SHAPE_GARBAGE_CAPACITY) {
                     collectGarbage();
@@ -89,7 +96,7 @@ bool ShapeManager::releaseShape(const btCollisionShape* shape) {
 void ShapeManager::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
-        HashKey& key = _pendingGarbage[i];
+        HashKey key(_pendingGarbage[i]);
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->refCount == 0) {
             ShapeFactory::deleteShape(shapeRef->shape);

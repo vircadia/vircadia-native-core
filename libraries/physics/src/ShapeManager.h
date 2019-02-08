@@ -75,7 +75,7 @@ private:
 
     // btHashMap is required because it supports memory alignment of the btCollisionShapes
     btHashMap<HashKey, ShapeReference> _shapeMap;
-    btAlignedObjectArray<HashKey> _pendingGarbage;
+    btAlignedObjectArray<uint64_t> _pendingGarbage;
 };
 
 #endif // hifi_ShapeManager_h

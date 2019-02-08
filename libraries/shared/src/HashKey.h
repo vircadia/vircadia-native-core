@@ -32,6 +32,9 @@ class HashKey {
 public:
     static float getNumQuantizedValuesPerMeter();
 
+    HashKey() {}
+    HashKey(uint64_t hash) : _hash(hash) {}
+
     // These two methods are required by btHashMap.
     bool equals(const HashKey& other) const { return _hash == other._hash; }
     int32_t getHash() const { return (int32_t)((uint32_t)_hash); }
