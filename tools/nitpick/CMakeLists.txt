@@ -112,8 +112,8 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
         # perform the system include hack for OS X to ignore warnings
         if (APPLE)
             foreach(EXTERNAL_INCLUDE_DIR  ${${${EXTERNAL}_UPPERCASE}_INCLUDE_DIRS})
-            SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${EXTERNAL_INCLUDE_DIR}")
-        endforeach()
+                SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${EXTERNAL_INCLUDE_DIR}")
+            endforeach()
         endif ()
 
         if (NOT ${${EXTERNAL}_UPPERCASE}_LIBRARIES)
@@ -148,7 +148,7 @@ if (WIN32)
         POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "$<TARGET_FILE_DIR:${TARGET_NAME}>/AppDataHighFidelity"
     )
-    
+
     if (RELEASE_TYPE STREQUAL "DEV")
         # This to enable running from the IDE
         add_custom_command(
@@ -157,13 +157,6 @@ if (WIN32)
           COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/AppDataHighFidelity" "AppDataHighFidelity"
         )
     endif ()
-      
-    # add a custom command to copy the SSL DLLs
-    add_custom_command(
-        TARGET ${TARGET_NAME}
-        POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory "$ENV{VCPKG_ROOT}/installed/x64-windows/bin" "$<TARGET_FILE_DIR:${TARGET_NAME}>"
-    )
 elseif (APPLE)
     add_custom_command(
         TARGET ${TARGET_NAME}
