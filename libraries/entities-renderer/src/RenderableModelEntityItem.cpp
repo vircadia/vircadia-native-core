@@ -959,23 +959,6 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
-void RenderableModelEntityItem::setAnimationURL(const QString& url) {
-    QString oldURL = getAnimationURL();
-    ModelEntityItem::setAnimationURL(url);
-    if (oldURL != getAnimationURL()) {
-        _needsAnimationReset = true;
-    }
-}
-
-bool RenderableModelEntityItem::needsAnimationReset() const {
-    return _needsAnimationReset;
-}
-
-QString RenderableModelEntityItem::getAnimationURLAndReset() {
-    _needsAnimationReset = false;
-    return getAnimationURL();
-}
-
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
     auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
 
@@ -1493,11 +1476,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
 
-        if (_animation && entity->needsAnimationReset()) {
-            //(_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
-            // the joints have been mapped before but we have a new animation to load
-            _animation.reset();
-            _jointMappingCompleted = false;
+        auto animationURL = entity->getAnimationURL();
+        bool animationChanged = _animationURL != animationURL;
+        if (animationChanged) {
+            _animationURL = animationURL;
+
+            if (_animation) {
+                //(_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
+                // the joints have been mapped before but we have a new animation to load
+                _animation.reset();
+                _jointMappingCompleted = false;
+            }
         }
 
         if (!_jointMappingCompleted) {
@@ -1562,7 +1551,7 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const Mode
     }
 
     if (!_animation) {
-        _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURLAndReset());
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(_animationURL);
     }
 
     if (_animation && _animation->isLoaded()) {
