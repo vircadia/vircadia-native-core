@@ -292,8 +292,6 @@ void AnimSkeleton::dump(bool verbose) const {
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
         if (verbose) {
             qCDebug(animation) << "        hfmJoint =";
-            qCDebug(animation) << "            isFree =" << _joints[i].isFree;
-            qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
             qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;
             qCDebug(animation) << "            translation =" << _joints[i].translation;
             qCDebug(animation) << "            preTransform =" << _joints[i].preTransform;

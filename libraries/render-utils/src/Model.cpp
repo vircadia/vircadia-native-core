@@ -1116,10 +1116,6 @@ int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
 }
 
-int Model::getLastFreeJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).freeLineage.last() : -1;
-}
-
 void Model::setTextures(const QVariantMap& textures) {
     if (isLoaded()) {
         _needsFixupInScene = true;

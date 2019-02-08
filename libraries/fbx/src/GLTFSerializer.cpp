@@ -719,7 +719,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     
     //Build default joints
     hfmModel.joints.resize(1);
-    hfmModel.joints[0].isFree = false;
     hfmModel.joints[0].parentIndex = -1;
     hfmModel.joints[0].distanceToParent = 0;
     hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
@@ -1187,8 +1186,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
 
-    qCDebug(modelformat) << "  palmDirection = " << hfmModel.palmDirection;
-
     qCDebug(modelformat) << "  neckPivot = " << hfmModel.neckPivot;
 
     qCDebug(modelformat) << "  bindExtents.size() = " << hfmModel.bindExtents.size();
@@ -1301,8 +1298,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    shapeInfo.dots =" << joint.shapeInfo.dots;
         qCDebug(modelformat) << "    shapeInfo.points =" << joint.shapeInfo.points;
 
-        qCDebug(modelformat) << "    isFree =" << joint.isFree;
-        qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
         qCDebug(modelformat) << "    translation" << joint.translation;
