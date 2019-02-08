@@ -72,20 +72,17 @@ void QmlMarketplace::getMarketplaceItems(
 
 void QmlMarketplace::getMarketplaceItem(const QString& marketplaceItemId) {
     QString endpoint = QString("items/") + marketplaceItemId;
-    QUrlQuery request;
-    send(endpoint, "getMarketplaceItemSuccess", "getMarketplaceItemFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::Optional, request);
+    send(endpoint, "getMarketplaceItemSuccess", "getMarketplaceItemFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::Optional);
 }
 
 void QmlMarketplace::marketplaceItemLike(const QString& marketplaceItemId, const bool like) {
     QString endpoint = QString("items/") + marketplaceItemId + "/like";
-    QUrlQuery request;
-    send(endpoint, "marketplaceItemLikeSuccess", "marketplaceItemLikeFailure", like ? QNetworkAccessManager::PostOperation : QNetworkAccessManager::DeleteOperation, AccountManagerAuth::Required, request);
+    send(endpoint, "marketplaceItemLikeSuccess", "marketplaceItemLikeFailure", like ? QNetworkAccessManager::PostOperation : QNetworkAccessManager::DeleteOperation, AccountManagerAuth::Required);
 }
 
 void QmlMarketplace::getMarketplaceCategories() {
     QString endpoint = "categories";
-    QUrlQuery request;
-    send(endpoint, "getMarketplaceCategoriesSuccess", "getMarketplaceCategoriesFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::None, request);
+    send(endpoint, "getMarketplaceCategoriesSuccess", "getMarketplaceCategoriesFailure", QNetworkAccessManager::GetOperation, AccountManagerAuth::None);
 }
 
 
@@ -94,14 +91,13 @@ void QmlMarketplace::send(const QString& endpoint, const QString& success, const
     const QString URL = "/api/v1/marketplace/";
     JSONCallbackParameters callbackParams(this, success, fail);
 
-    accountManager->sendRequest(URL + endpoint,
+    accountManager->sendRequest(URL + endpoint + "?" + request.toString(),
         authType,
         method,
         callbackParams,
         QByteArray(),
         NULL,
-        QVariantMap(),
-        request);
+        QVariantMap());
 
 }
 

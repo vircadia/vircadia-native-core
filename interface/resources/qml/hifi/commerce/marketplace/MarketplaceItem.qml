@@ -14,7 +14,6 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.9
 import QtQuick.Controls 2.2
-import QtGraphicalEffects 1.0
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -423,13 +422,13 @@ Rectangle {
                         elide: Text.ElideRight
 						size: 14
 
-						color: model.link ? hifi.colors.blueHighlight : hifi.colors.baseGray
+						color: (model.link && root.supports3DHTML)? hifi.colors.blueHighlight : hifi.colors.baseGray
 						verticalAlignment: Text.AlignVCenter
 						MouseArea {
 							anchors.fill: parent
 
 							onClicked: {
-                                if (model.link) {
+                                if (model.link && root.supports3DHTML) {
                                     sendToScript({method: 'marketplace_open_link', link: model.link});
                                 }
                             }
@@ -570,12 +569,14 @@ Rectangle {
                 text: root.description
                 size: 14
                 color: hifi.colors.lightGray
-                linkColor: hifi.colors.blueHighlight
+                linkColor: root.supports3DHTML ? hifi.colors.blueHighlight : hifi.colors.lightGray 
                 verticalAlignment: Text.AlignVCenter
                 textFormat: Text.RichText
                 wrapMode: Text.Wrap
                 onLinkActivated: {
-                    sendToScript({method: 'marketplace_open_link', link: link});
+                    if (root.supports3DHTML) {
+                        sendToScript({method: 'marketplace_open_link', link: link});
+                    }
                 }
                 
                 onHeightChanged: { footer.evalHeight(); }
