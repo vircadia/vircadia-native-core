@@ -28,7 +28,7 @@ Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, 
 
 float Audio::loudnessToLevel(float loudness) {
     float level = 6.02059991f * fastLog2f(loudness);    // level in dBFS
-    level = (level + 60.0f) * (1/48.0f);                // map [-60, -12] dBFS to [0, 1]
+    level = (level + 48.0f) * (1/39.0f);                // map [-48, -9] dBFS to [0, 1]
     return glm::clamp(level, 0.0f, 1.0f);
 }
 
