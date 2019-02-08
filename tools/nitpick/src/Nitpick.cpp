@@ -26,7 +26,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
 
     _signalMapper = new QSignalMapper();
 
-    connect(_ui.actionClose, &QAction::triggered, this, &Nitpick::on_closeButton_clicked);
+    connect(_ui.actionClose, &QAction::triggered, this, &Nitpick::on_closePushbutton_clicked);
     connect(_ui.actionAbout, &QAction::triggered, this, &Nitpick::about);
     connect(_ui.actionContent, &QAction::triggered, this, &Nitpick::content);
 
@@ -35,10 +35,12 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
     _ui.tabWidget->removeTab(1);
 #endif
 
-   _ui.statusLabel->setText("");
-   _ui.plainTextEdit->setReadOnly(true);
+    _ui.statusLabelOnDesktop->setText("");
+    _ui.statusLabelOnMobile->setText("");
+ 
+    _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v1.3.2");
+   setWindowTitle("Nitpick - v2.0.1");
 }
 
 Nitpick::~Nitpick() {
@@ -48,8 +50,12 @@ Nitpick::~Nitpick() {
         delete _test;
     }
 
-    if (_testRunner) {
-        delete _testRunner;
+    if (_testRunnerDesktop) {
+        delete _testRunnerDesktop;
+    }
+
+    if (_testRunnerMobile) {
+        delete _testRunnerMobile;
     }
 }
 
@@ -80,10 +86,38 @@ void Nitpick::setup() {
     timeEdits.emplace_back(_ui.timeEdit3);
     timeEdits.emplace_back(_ui.timeEdit4);
 
-    if (_testRunner) {
-        delete _testRunner;
+    // Create the two test runners
+    if (_testRunnerDesktop) {
+        delete _testRunnerDesktop;
     }
-    _testRunner = new TestRunner(dayCheckboxes, timeEditCheckboxes, timeEdits, _ui.workingFolderLabel, _ui.checkBoxServerless, _ui.checkBoxRunLatest, _ui.urlLineEdit, _ui.runNowButton);
+    _testRunnerDesktop = new TestRunnerDesktop(
+        dayCheckboxes, 
+        timeEditCheckboxes, 
+        timeEdits, 
+        _ui.workingFolderRunOnDesktopLabel, 
+        _ui.checkBoxServerless, 
+        _ui.runLatestOnDesktopCheckBox, 
+        _ui.urlOnDesktopLineEdit, 
+        _ui.runNowPushbutton,
+        _ui.statusLabelOnDesktop
+    );
+
+    if (_testRunnerMobile) {
+        delete _testRunnerMobile;
+    }
+    _testRunnerMobile = new TestRunnerMobile(
+        _ui.workingFolderRunOnMobileLabel, 
+        _ui.connectDevicePushbutton, 
+        _ui.pullFolderPushbutton, 
+        _ui.detectedDeviceLabel, 
+        _ui.folderLineEdit,
+        _ui.downloadAPKPushbutton,
+        _ui.installAPKPushbutton,
+        _ui.runInterfacePushbutton,
+        _ui.runLatestOnMobileCheckBox,
+        _ui.urlOnMobileLineEdit,
+        _ui.statusLabelOnMobile
+    );
 }
 
 void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
@@ -98,9 +132,9 @@ void Nitpick::startTestsEvaluation(const bool isRunningFromCommandLine,
 void Nitpick::on_tabWidget_currentChanged(int index) {
 // Enable the GitHub edit boxes as required
 #ifdef Q_OS_WIN
-    if (index == 0 || index == 2 || index == 3) {
+    if (index == 0 || index == 2 || index == 3 || index == 4) {
 #else
-    if (index == 0 || index == 1 || index == 2) {
+    if (index == 0 || index == 1 || index == 2 || index == 3) {
 #endif
         _ui.userLineEdit->setDisabled(false);
         _ui.branchLineEdit->setDisabled(false);
@@ -110,43 +144,43 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
     }
 }
 
-void Nitpick::on_evaluateTestsButton_clicked() {
+void Nitpick::on_evaluateTestsPushbutton_clicked() {
     _test->startTestsEvaluation(false, false);
 }
 
-void Nitpick::on_createRecursiveScriptButton_clicked() {
+void Nitpick::on_createRecursiveScriptPushbutton_clicked() {
     _test->createRecursiveScript();
 }
 
-void Nitpick::on_createAllRecursiveScriptsButton_clicked() {
+void Nitpick::on_createAllRecursiveScriptsPushbutton_clicked() {
     _test->createAllRecursiveScripts();
 }
 
-void Nitpick::on_createTestsButton_clicked() {
+void Nitpick::on_createTestsPushbutton_clicked() {
     _test->createTests();
 }
 
-void Nitpick::on_createMDFileButton_clicked() {
+void Nitpick::on_createMDFilePushbutton_clicked() {
     _test->createMDFile();
 }
 
-void Nitpick::on_createAllMDFilesButton_clicked() {
+void Nitpick::on_createAllMDFilesPushbutton_clicked() {
     _test->createAllMDFiles();
 }
 
-void Nitpick::on_createTestAutoScriptButton_clicked() {
+void Nitpick::on_createTestAutoScriptPushbutton_clicked() {
     _test->createTestAutoScript();
 }
 
-void Nitpick::on_createAllTestAutoScriptsButton_clicked() {
+void Nitpick::on_createAllTestAutoScriptsPushbutton_clicked() {
     _test->createAllTestAutoScripts();
 }
 
-void Nitpick::on_createTestsOutlineButton_clicked() {
+void Nitpick::on_createTestsOutlinePushbutton_clicked() {
     _test->createTestsOutline();
 }
 
-void Nitpick::on_createTestRailTestCasesButton_clicked() {
+void Nitpick::on_createTestRailTestCasesPushbutton_clicked() {
     _test->createTestRailTestCases();
 }
 
@@ -154,29 +188,29 @@ void Nitpick::on_createTestRailRunButton_clicked() {
     _test->createTestRailRun();
 }
 
-void Nitpick::on_setWorkingFolderButton_clicked() {
-    _testRunner->setWorkingFolder();
+void Nitpick::on_setWorkingFolderRunOnDesktopPushbutton_clicked() {
+    _testRunnerDesktop->setWorkingFolderAndEnableControls();
 }
 
 void Nitpick::enableRunTabControls() {
-    _ui.runNowButton->setEnabled(true);
+    _ui.runNowPushbutton->setEnabled(true);
     _ui.daysGroupBox->setEnabled(true);
     _ui.timesGroupBox->setEnabled(true);
 }
 
-void Nitpick::on_runNowButton_clicked() {
-    _testRunner->run();
+void Nitpick::on_runNowPushbutton_clicked() {
+    _testRunnerDesktop->run();
 }
 
-void Nitpick::on_checkBoxRunLatest_clicked() {
-    _ui.urlLineEdit->setEnabled(!_ui.checkBoxRunLatest->isChecked());
+void Nitpick::on_runLatestOnDesktopCheckBox_clicked() {
+    _ui.urlOnDesktopLineEdit->setEnabled(!_ui.runLatestOnDesktopCheckBox->isChecked());
 }
 
 void Nitpick::automaticTestRunEvaluationComplete(QString zippedFolderName, int numberOfFailures) {
-    _testRunner->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
+    _testRunnerDesktop->automaticTestRunEvaluationComplete(zippedFolderName, numberOfFailures);
 }
 
-void Nitpick::on_updateTestRailRunResultsButton_clicked() {
+void Nitpick::on_updateTestRailRunResultsPushbutton_clicked() {
     _test->updateTestRailRunResult();
 }
 
@@ -184,7 +218,7 @@ void Nitpick::on_updateTestRailRunResultsButton_clicked() {
 //   if (uState & ABS_AUTOHIDE) on_showTaskbarButton_clicked();
 //   else on_hideTaskbarButton_clicked();
 //
-void Nitpick::on_hideTaskbarButton_clicked() {
+void Nitpick::on_hideTaskbarPushbutton_clicked() {
 #ifdef Q_OS_WIN
     APPBARDATA abd = { sizeof abd };
     UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
@@ -194,7 +228,7 @@ void Nitpick::on_hideTaskbarButton_clicked() {
 #endif
 }
 
-void Nitpick::on_showTaskbarButton_clicked() {
+void Nitpick::on_showTaskbarPushbutton_clicked() {
 #ifdef Q_OS_WIN
     APPBARDATA abd = { sizeof abd };
     UINT uState = (UINT)SHAppBarMessage(ABM_GETSTATE, &abd);
@@ -204,7 +238,7 @@ void Nitpick::on_showTaskbarButton_clicked() {
 #endif
 }
 
-void Nitpick::on_closeButton_clicked() {
+void Nitpick::on_closePushbutton_clicked() {
     exit(0);
 }
 
@@ -216,7 +250,7 @@ void Nitpick::on_createXMLScriptRadioButton_clicked() {
     _test->setTestRailCreateMode(XML);
 }
 
-void Nitpick::on_createWebPagePushButton_clicked() {
+void Nitpick::on_createWebPagePushbutton_clicked() {
     _test->createWebPage(_ui.updateAWSCheckBox, _ui.awsURLLineEdit);
 }
 
@@ -273,9 +307,13 @@ void Nitpick::saveFile(int index) {
         disconnect(_signalMapper, SIGNAL(mapped(int)), this, SLOT(saveFile(int)));
         if (_caller == _test) {
             _test->finishTestsEvaluation();
-        } else if (_caller == _testRunner) {
-            _testRunner->downloadComplete();
+        } else if (_caller == _testRunnerDesktop) {
+            _testRunnerDesktop->downloadComplete();
+        } else if (_caller == _testRunnerMobile) {
+            _testRunnerMobile->downloadComplete();
         }
+
+        _ui.progressBar->setVisible(false);
     } else {
         _ui.progressBar->setValue(_numberOfFilesDownloaded);
     }
@@ -305,10 +343,35 @@ QString Nitpick::getSelectedBranch() {
     return _ui.branchLineEdit->text();
 }
 
-void Nitpick::updateStatusLabel(const QString& status) {
-    _ui.statusLabel->setText(status);
-}
-
 void Nitpick::appendLogWindow(const QString& message) {
     _ui.plainTextEdit->appendPlainText(message);
+}
+
+// Test on Mobile
+void Nitpick::on_setWorkingFolderRunOnMobilePushbutton_clicked() {
+    _testRunnerMobile->setWorkingFolderAndEnableControls();
+}
+
+void Nitpick::on_connectDevicePushbutton_clicked() {
+    _testRunnerMobile->connectDevice();
+}
+
+void Nitpick::on_runLatestOnMobileCheckBox_clicked() {
+    _ui.urlOnMobileLineEdit->setEnabled(!_ui.runLatestOnMobileCheckBox->isChecked());
+}
+
+void Nitpick::on_downloadAPKPushbutton_clicked() {
+    _testRunnerMobile->downloadAPK();
+}
+
+void Nitpick::on_installAPKPushbutton_clicked() {
+    _testRunnerMobile->installAPK();
+}
+
+void Nitpick::on_runInterfacePushbutton_clicked() {
+    _testRunnerMobile->runInterface();
+}
+
+void Nitpick::on_pullFolderPushbutton_clicked() {
+    _testRunnerMobile->pullFolder();
 }
