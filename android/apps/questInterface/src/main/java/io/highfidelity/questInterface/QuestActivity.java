@@ -13,6 +13,7 @@ package io.highfidelity.questInterface;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.WindowManager;
 
 import io.highfidelity.oculus.OculusMobileActivity;
@@ -23,15 +24,20 @@ public class QuestActivity extends OculusMobileActivity {
     private native void questNativeOnDestroy();
     private native void questNativeOnPause();
     private native void questNativeOnResume();
-
+    private native void questOnAppAfterLoad();
+    String TAG = OculusMobileActivity.class.getSimpleName();
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
         questNativeOnCreate();
     }
 
+    public void onAppLoadedComplete() {
+        Log.w(TAG, "QQQ Load Completed");
+        runOnUiThread(() -> {
+            questOnAppAfterLoad();
+        });
+    }
 
     @Override
     protected void onPause() {

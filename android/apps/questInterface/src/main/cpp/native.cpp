@@ -42,20 +42,30 @@ extern "C" {
     Java_io_highfidelity_questInterface_QuestActivity_nativeInitOculusPlatform(JNIEnv *env, jobject obj){
         initOculusPlatform(env, obj);
     }
-
+QAndroidJniObject __interfaceActivity;
     JNIEXPORT void JNICALL
     Java_io_highfidelity_questInterface_QuestActivity_questNativeOnCreate(JNIEnv *env, jobject obj) {
+        __android_log_print(ANDROID_LOG_WARN, "QQQ","questNativeOnCreate called");
         initOculusPlatform(env, obj);
+        __interfaceActivity = QAndroidJniObject (obj);
+        QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
 
 
-        if(qApp) {
-            QThread *thr = qApp->thread();
-            AndroidHelper::instance().moveToThread(thr);
-        }
-        else{
-            __android_log_print(ANDROID_LOG_ERROR,"QQQ_", "APP is not valid");
-        }
+            QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
+                __interfaceActivity.callMethod<void>("onAppLoadedComplete", "()V");
+
+            QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, nullptr,
+                                    nullptr);
+            });
+
+            QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete,
+                                nullptr, nullptr);
+        });
     }
+
+JNIEXPORT void Java_io_highfidelity_questInterface_QuestActivity_questOnAppAfterLoad(JNIEnv* env, jobject obj) {
+    AndroidHelper::instance().moveToThread(qApp->thread());
+}
 
     JNIEXPORT void JNICALL
     Java_io_highfidelity_questInterface_QuestActivity_questNativeOnDestroy(JNIEnv *env, jobject obj) {

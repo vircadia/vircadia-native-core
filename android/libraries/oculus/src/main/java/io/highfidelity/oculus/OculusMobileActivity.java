@@ -44,11 +44,11 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         // Create a native surface for VR rendering (Qt GL surfaces are not suitable
         // because of the lack of fine control over the surface callbacks)
         mView = new SurfaceView(this);
+
         mView.getHolder().addCallback(this);
         setContentView(mView);
-        // Forward the create message to the JNI code
         nativeOnCreate();
-
+        // Forward the create message to the JNI code
     }
 
     @Override

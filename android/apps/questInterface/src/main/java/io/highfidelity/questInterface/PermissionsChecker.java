@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 
+import io.highfidelity.utils.HifiUtils;
+
 public class PermissionsChecker extends Activity {
     private static final int REQUEST_PERMISSIONS = 20;
     private static final String TAG = PermissionsChecker.class.getName();
@@ -44,6 +46,7 @@ public class PermissionsChecker extends Activity {
     }
 
     private void launchActivityWithPermissions() {
+        HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
         startActivity(new Intent(this, QuestActivity.class));
 
     }
