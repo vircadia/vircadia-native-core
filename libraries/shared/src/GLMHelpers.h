@@ -322,7 +322,7 @@ inline void glm_mat4u_mul(const glm::mat4& m1, const glm::mat4& m2, glm::mat4& r
 //
 inline uint32_t glm_packSnorm3x10_1x2(vec4 const& v) {
 
-	union i10i10i10i2 {
+    union i10i10i10i2 {
         struct {
             int x : 10;
             int y : 10;
