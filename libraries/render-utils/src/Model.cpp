@@ -1594,9 +1594,9 @@ void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& pac
 
     packed = glm::uvec4(
         glm::floatBitsToUint(len),
-        glm::packSnorm3x10_1x2(glm::vec4(normalizedPos, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffset, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffset, 0.0f))
+        glm_packSnorm3x10_1x2(glm::vec4(normalizedPos, 0.0f)),
+        glm_packSnorm3x10_1x2(glm::vec4(unpacked.normalOffset, 0.0f)),
+        glm_packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffset, 0.0f))
     );
 }
 

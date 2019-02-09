@@ -257,7 +257,7 @@ template <typename T> struct GpuVec3ToGlm  : GpuToGlmAdapter  { static T get(con
     case gpu::FLOAT: view.edit<glm::fvec3>(index) = value; return true;
     case gpu::NUINT8: CHECK_SIZE(glm::uint32); view.edit<glm::uint32>(index) = glm::packUnorm4x8(glm::fvec4(value,0.0f)); return true;
     case gpu::UINT8: view.edit<glm::u8vec3>(index) = value; return true;
-    case gpu::NINT2_10_10_10: view.edit<glm::uint32>(index) = glm::packSnorm3x10_1x2(glm::fvec4(value,0.0f)); return true;
+    case gpu::NINT2_10_10_10: view.edit<glm::uint32>(index) = glm_packSnorm3x10_1x2(glm::fvec4(value,0.0f)); return true;
     default: break;
     } error("GpuVec3ToGlm::set", view, index, hint); return false;
     }
@@ -295,7 +295,7 @@ template <typename T> struct GpuVec4ToGlm : GpuToGlmAdapter { static T get(const
     case gpu::FLOAT: view.edit<glm::fvec4>(index) = value; return true;
     case gpu::HALF: CHECK_SIZE(glm::uint64); view.edit<glm::uint64_t>(index) = glm::packHalf4x16(value); return true;
     case gpu::UINT8: view.edit<glm::u8vec4>(index) = value; return true;
-    case gpu::NINT2_10_10_10: view.edit<glm::uint32>(index) = glm::packSnorm3x10_1x2(value); return true;
+    case gpu::NINT2_10_10_10: view.edit<glm::uint32>(index) = glm_packSnorm3x10_1x2(value); return true;
     case gpu::NUINT16: CHECK_SIZE(glm::uint64); view.edit<glm::uint64>(index) = glm::packUnorm4x16(value); return true;
     case gpu::NUINT8: CHECK_SIZE(glm::uint32);  view.edit<glm::uint32>(index) = glm::packUnorm4x8(value); return true;
     default: break;
