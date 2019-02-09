@@ -34,7 +34,7 @@ AnimPoleVectorConstraint::~AnimPoleVectorConstraint() {
 
 }
 
-static float correctElbowForHandRotation(const AnimPose& hand, const AnimPose& lowerArm) {
+static float correctElbowForHandFlexionExtension(const AnimPose& hand, const AnimPose& lowerArm) {
 
     // first calculate the ulnar/radial deviation
     // use the lower arm x-axis and the hand x-axis
@@ -44,18 +44,57 @@ static float correctElbowForHandRotation(const AnimPose& hand, const AnimPose& l
     glm::vec3 xAxisHand = hand.rot() * glm::vec3(1.0f, 0.0f, 0.0f);
     glm::vec3 yAxisHand = hand.rot() * glm::vec3(0.0f, 1.0f, 0.0f);
 
-    float ulnarRadialDeviation = atan2(glm::dot(xAxisHand, xAxisLowerArm), glm::dot(xAxisHand, yAxisLowerArm));
+    //float ulnarRadialDeviation = atan2(glm::dot(xAxisHand, xAxisLowerArm), glm::dot(xAxisHand, yAxisLowerArm));
     float flexionExtension = atan2(glm::dot(yAxisHand, zAxisLowerArm), glm::dot(yAxisHand, yAxisLowerArm));
 
-    qCDebug(animation) << "flexion angle " << flexionExtension;
+    //qCDebug(animation) << "flexion angle " << flexionExtension;
 
 
     float deltaInDegrees = (flexionExtension / PI) * 180.0f;
 
-    qCDebug(animation) << "delta in degrees " << deltaInDegrees;
+    //qCDebug(animation) << "delta in degrees " << deltaInDegrees;
 
     float deltaFinal = glm::sign(deltaInDegrees) * powf(fabsf(deltaInDegrees/180.0f), 1.5f) * 180.0f * -0.3f;
-    return deltaFinal;
+    return deltaInDegrees;// deltaFinal;
+}
+
+static float correctElbowForHandUlnarRadialDeviation(const AnimPose& hand, const AnimPose& lowerArm) {
+
+    const float DEAD_ZONE = 0.3f;
+    const float FILTER_EXPONENT = 2.0f;
+    // first calculate the ulnar/radial deviation
+    // use the lower arm x-axis and the hand x-axis
+    glm::vec3 xAxisLowerArm = lowerArm.rot() * glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 yAxisLowerArm = lowerArm.rot() * glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 zAxisLowerArm = lowerArm.rot() * glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 xAxisHand = hand.rot() * glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 yAxisHand = hand.rot() * glm::vec3(0.0f, 1.0f, 0.0f);
+
+    float ulnarRadialDeviation = atan2(glm::dot(xAxisHand, xAxisLowerArm), glm::dot(xAxisHand, yAxisLowerArm));
+    //float flexionExtension = atan2(glm::dot(yAxisHand, zAxisLowerArm), glm::dot(yAxisHand, yAxisLowerArm));
+
+    
+
+    float makeForwardZeroRadians = ulnarRadialDeviation - (PI / 2.0f);
+
+    qCDebug(animation) << "calibrated ulnar " << makeForwardZeroRadians;
+
+    float deltaFractionOfPi = (makeForwardZeroRadians / PI);
+    float deltaUlnarRadial;
+    if (fabsf(deltaFractionOfPi) < DEAD_ZONE) {
+        deltaUlnarRadial = 0.0f;
+    } else {
+        deltaUlnarRadial = (deltaFractionOfPi - glm::sign(deltaFractionOfPi) * DEAD_ZONE) / (1.0f - DEAD_ZONE);
+    }
+
+    float deltaUlnarRadialDegrees = glm::sign(deltaUlnarRadial) * powf(fabsf(deltaUlnarRadial), FILTER_EXPONENT) * 180.0f;
+
+
+
+    qCDebug(animation) << "ulnar delta in degrees " << deltaUlnarRadialDegrees;
+
+    float deltaFinal = deltaUlnarRadialDegrees;
+    return deltaFractionOfPi * 180.0f; // deltaFinal;
 }
 
 float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm::vec3& shoulder, bool left) const {
@@ -81,10 +120,10 @@ float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm
     // weights
     const float zWeightBottom = -100.0f;
     //const glm::vec3 weights(-30.0f, 30.0f, 210.0f);
-    const glm::vec3 weights(-50.0f, -60.0f, 260.0f);
+    const glm::vec3 weights(-50.0f, 60.0f, 260.0f);
     glm::vec3 armToHand = hand - shoulder;
     // qCDebug(animation) << "current arm length " << glm::length(armToHand);
-    float initial_valuesY = ((armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
+    float initial_valuesY = (fabsf(armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
     float initial_valuesZ;
     if (armToHand[1] > 0.0f) {
         initial_valuesZ = weights[2] * glm::max(zStart - (armToHand[2] / defaultArmLength), 0.0f) * fabs(armToHand[1] / defaultArmLength);
@@ -96,7 +135,7 @@ float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm
     if (left) {
         initial_valuesX = weights[0] * glm::max(-1.0f * (armToHand[0] / defaultArmLength) + xStart, 0.0f);
     } else {
-        initial_valuesX = weights[0] * glm::max((armToHand[0] / defaultArmLength) + xStart, 0.0f);
+        initial_valuesX = weights[0] * ((armToHand[0] / defaultArmLength) + xStart);
     }
 
     float theta = initial_valuesX + initial_valuesY + initial_valuesZ;
@@ -108,7 +147,9 @@ float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm
         theta = 175.0f;
     }
 
-    // qCDebug(animation) << "relative hand" << initial_valuesX << " " << initial_valuesY << " " << initial_valuesZ << "theta value for pole vector is " << theta;
+    if (!left) {
+        //qCDebug(animation) << "relative hand x " << initial_valuesX << " y " << initial_valuesY << " z " << initial_valuesZ << "theta value for pole vector is " << theta;
+    }
     return theta;
 }
 
@@ -207,14 +248,22 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 isLeft = true;
             }
             fred = findThetaNewWay(tipPose.trans(), basePose.trans(), isLeft);
-            if (isLeft){
+            
+
+            // here is where we would do the wrist correction.
+            float deltaTheta = correctElbowForHandFlexionExtension(tipPose, midPose);
+            float deltaThetaUlnar;
+            if (!isLeft) {
+                deltaThetaUlnar = correctElbowForHandUlnarRadialDeviation(tipPose, midPose);
+            }
+            //fred -= deltaThetaUlnar;
+            fred -= deltaTheta;
+
+            if (isLeft) {
                 fred *= -1.0f;
             }
             theta = ((180.0f - fred) / 180.0f)*PI;
-
-            // here is where we would do the wrist correction.
-            float deltaTheta = correctElbowForHandRotation(tipPose, midPose);
-            qCDebug(animation) << "the wrist correction theta is -----> " << deltaTheta;
+            //qCDebug(animation) << "the wrist correction theta is -----> " << isLeft << " theta: " << deltaTheta;
 
         }
 
