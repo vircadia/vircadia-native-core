@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -85,7 +85,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create all  MD files</string>
+       <string>Create all MD files</string>
       </property>
      </widget>
      <widget class="QPushButton" name="createTestsOutlinePushbutton">
@@ -124,7 +124,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create all  Recursive Scripts</string>
+       <string>Create all Recursive Scripts</string>
       </property>
      </widget>
      <widget class="QPushButton" name="createTestAutoScriptPushbutton">
