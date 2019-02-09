@@ -17,7 +17,10 @@
 
 #include "ShapeFactory.h"
 
+const int MAX_RING_SIZE = 256;
+
 ShapeManager::ShapeManager() {
+    _garbageRing.reserve(MAX_RING_SIZE);
 }
 
 ShapeManager::~ShapeManager() {
@@ -58,17 +61,29 @@ bool ShapeManager::releaseShapeByKey(uint64_t key) {
         if (shapeRef->refCount > 0) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
-                // look for existing entry in _pendingGarbage, starting from the back
-                for (int32_t i = _pendingGarbage.size() - 1; i > -1; --i) {
-                    if (_pendingGarbage[i] == key) {
+                // look for existing entry in _garbageRing
+                int32_t ringSize = _garbageRing.size();
+                for (int32_t i = 0; i < ringSize; ++i) {
+                    int32_t j = (_ringIndex + ringSize) % ringSize;
+                    if (_garbageRing[j] == key) {
                         // already on the list, don't add it again
                         return true;
                     }
                 }
-                _pendingGarbage.push_back(key);
-                const int MAX_SHAPE_GARBAGE_CAPACITY = 255;
-                if (_pendingGarbage.size() > MAX_SHAPE_GARBAGE_CAPACITY) {
-                    collectGarbage();
+                if (ringSize == MAX_RING_SIZE) {
+                    // remove one
+                    HashKey hashKeyToRemove(_garbageRing[_ringIndex]);
+                    ShapeReference* shapeRef = _shapeMap.find(hashKeyToRemove);
+                    if (shapeRef && shapeRef->refCount == 0) {
+                        ShapeFactory::deleteShape(shapeRef->shape);
+                        _shapeMap.remove(hashKeyToRemove);
+                    }
+                    // replace at _ringIndex and advance
+                    _garbageRing[_ringIndex] = key;
+                    _ringIndex = (_ringIndex + 1) % ringSize;
+                } else {
+                    // add one
+                    _garbageRing.push_back(key);
                 }
             }
             return true;
@@ -95,16 +110,17 @@ bool ShapeManager::releaseShape(const btCollisionShape* shape) {
 }
 
 void ShapeManager::collectGarbage() {
-    int numShapes = _pendingGarbage.size();
+    int numShapes = _garbageRing.size();
     for (int i = 0; i < numShapes; ++i) {
-        HashKey key(_pendingGarbage[i]);
+        HashKey key(_garbageRing[i]);
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->refCount == 0) {
             ShapeFactory::deleteShape(shapeRef->shape);
             _shapeMap.remove(key);
         }
     }
-    _pendingGarbage.clear();
+    _ringIndex = 0;
+    _garbageRing.clear();
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
