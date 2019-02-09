@@ -1095,6 +1095,7 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
 
             fbxtex.content = _glbBinary.mid(offset, length);
             fbxtex.filename = textureUrl.toEncoded().append(texture.source);
+        }
 
         if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
             fbxtex.content = requestEmbeddedData(url); 
