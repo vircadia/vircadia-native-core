@@ -12,6 +12,8 @@
 #ifndef hifi_ShapeManager_h
 #define hifi_ShapeManager_h
 
+#include <vector>
+
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
@@ -40,6 +42,7 @@
 // doesn't delete it right away.  Instead it puts the shape's key on a list delete
 // later.  When that list grows big enough the ShapeManager will remove any matching
 // entries that still have zero ref-count.
+
 
 class ShapeManager {
 public:
@@ -75,7 +78,10 @@ private:
 
     // btHashMap is required because it supports memory alignment of the btCollisionShapes
     btHashMap<HashKey, ShapeReference> _shapeMap;
-    btAlignedObjectArray<uint64_t> _pendingGarbage;
+    //btAlignedObjectArray<uint64_t> _pendingGarbage;
+
+    std::vector<uint64_t> _garbageRing;
+    uint32_t _ringIndex { 0 };
 };
 
 #endif // hifi_ShapeManager_h
