@@ -1247,30 +1247,30 @@ void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>
     }
 }
 
-QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures) {
+QVariantMap parseTexturesToMap(QString newTextures, const QVariantMap& defaultTextures) {
     // If textures are unset, revert to original textures
-    if (textures.isEmpty()) {
+    if (newTextures.isEmpty()) {
         return defaultTextures;
     }
 
     // Legacy: a ,\n-delimited list of filename:"texturepath"
-    if (*textures.cbegin() != '{') {
-        textures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    if (*newTextures.cbegin() != '{') {
+        newTextures = "{\"" + newTextures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
     }
 
     QJsonParseError error;
-    QJsonDocument texturesJson = QJsonDocument::fromJson(textures.toUtf8(), &error);
+    QJsonDocument newTexturesJson = QJsonDocument::fromJson(newTextures.toUtf8(), &error);
     // If textures are invalid, revert to original textures
     if (error.error != QJsonParseError::NoError) {
-        qWarning() << "Could not evaluate textures property value:" << textures;
+        qWarning() << "Could not evaluate textures property value:" << newTextures;
         return defaultTextures;
     }
 
-    QVariantMap texturesMap = texturesJson.toVariant().toMap();
-    // If textures are unset, revert to original textures
-    if (texturesMap.isEmpty()) {
-        return defaultTextures;
+    QVariantMap newTexturesMap = newTexturesJson.toVariant().toMap();
+    QVariantMap toReturn = defaultTextures;
+    for (auto& texture : newTexturesMap.keys()) {
+        toReturn[texture] = newTexturesMap[texture];
     }
 
-    return texturesJson.toVariant().toMap();
+    return toReturn;
 }

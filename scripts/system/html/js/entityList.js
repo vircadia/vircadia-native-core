@@ -681,6 +681,9 @@ function loaded() {
                         if (isNullOrEmpty(valueB)) {
                             return (isDefaultSort ? -1 : 1) * (isAscendingSort ? 1 : -1);
                         }
+                        if (typeof(valueA) === "string") {
+                            return valueA.localeCompare(valueB);
+                        }
                         return valueA < valueB ? -1 : 1;
                     });
                 });

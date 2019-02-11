@@ -101,7 +101,7 @@ if (ANDROID)
     set(PLATFORM_PLUGIN_LIBRARIES oculusMobile oculusMobilePlugin)
   endif()
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine)
+  set(PLATFORM_QT_COMPONENTS WebEngine Xml)
 endif ()
 
 if (USE_GLES AND (NOT ANDROID))

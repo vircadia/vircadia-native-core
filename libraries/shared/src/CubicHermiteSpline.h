@@ -60,7 +60,7 @@ protected:
 
 class CubicHermiteSplineFunctorWithArcLength : public CubicHermiteSplineFunctor {
 public:
-    enum Constants { NUM_SUBDIVISIONS = 30 };
+    enum Constants { NUM_SUBDIVISIONS = 15 };
 
     CubicHermiteSplineFunctorWithArcLength() : CubicHermiteSplineFunctor() {
         memset(_values, 0, sizeof(float) * (NUM_SUBDIVISIONS + 1));
@@ -71,11 +71,13 @@ public:
         float alpha = 0.0f;
         float accum = 0.0f;
         _values[0] = 0.0f;
+        glm::vec3 prevValue = this->operator()(alpha);
         for (int i = 1; i < NUM_SUBDIVISIONS + 1; i++) {
-            accum += glm::distance(this->operator()(alpha),
-                                   this->operator()(alpha + DELTA));
+            glm::vec3 nextValue = this->operator()(alpha + DELTA);
+            accum += glm::distance(prevValue, nextValue);
             alpha += DELTA;
             _values[i] = accum;
+            prevValue = nextValue;
         }
     }
 

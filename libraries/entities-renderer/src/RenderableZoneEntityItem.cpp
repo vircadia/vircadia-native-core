@@ -198,24 +198,33 @@ void ZoneEntityRenderer::removeFromScene(const ScenePointer& scene, Transaction&
 void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) {
     DependencyManager::get<EntityTreeRenderer>()->updateZone(entity->getID());
 
+    auto position = entity->getWorldPosition();
+    auto rotation = entity->getWorldOrientation();
+    auto dimensions = entity->getScaledDimensions();
+    bool rotationChanged = rotation != _lastRotation;
+    bool transformChanged = rotationChanged || position != _lastPosition || dimensions != _lastDimensions;
+
+    auto proceduralUserData = entity->getUserData();
+    bool proceduralUserDataChanged = _proceduralUserData != proceduralUserData;
+
     // FIXME one of the bools here could become true between being fetched and being reset, 
     // resulting in a lost update
-    bool keyLightChanged = entity->keyLightPropertiesChanged();
-    bool ambientLightChanged = entity->ambientLightPropertiesChanged();
-    bool skyboxChanged = entity->skyboxPropertiesChanged();
+    bool keyLightChanged = entity->keyLightPropertiesChanged() || rotationChanged;
+    bool ambientLightChanged = entity->ambientLightPropertiesChanged() || transformChanged;
+    bool skyboxChanged = entity->skyboxPropertiesChanged() || proceduralUserDataChanged;
     bool hazeChanged = entity->hazePropertiesChanged();
     bool bloomChanged = entity->bloomPropertiesChanged();
-
     entity->resetRenderingPropertiesChanged();
-    _lastPosition = entity->getWorldPosition();
-    _lastRotation = entity->getWorldOrientation();
-    _lastDimensions = entity->getScaledDimensions();
 
-    _keyLightProperties = entity->getKeyLightProperties();
-    _ambientLightProperties = entity->getAmbientLightProperties();
-    _skyboxProperties = entity->getSkyboxProperties();
-    _hazeProperties = entity->getHazeProperties();
-    _bloomProperties = entity->getBloomProperties();
+    if (transformChanged) {
+        _lastPosition = entity->getWorldPosition();
+        _lastRotation = entity->getWorldOrientation();
+        _lastDimensions = entity->getScaledDimensions();
+    }
+
+    if (proceduralUserDataChanged) {
+        _proceduralUserData = entity->getUserData();
+    }
 
 #if 0
     if (_lastShapeURL != _typedEntity->getCompoundShapeURL()) {
@@ -239,21 +248,29 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     updateKeyZoneItemFromEntity(entity);
 
     if (keyLightChanged) {
+        _keyLightProperties = entity->getKeyLightProperties();
         updateKeySunFromEntity(entity);
     }
 
     if (ambientLightChanged) {
+        _ambientLightProperties = entity->getAmbientLightProperties();
         updateAmbientLightFromEntity(entity);
     }
 
-    if (skyboxChanged || _proceduralUserData != entity->getUserData()) {
+    if (skyboxChanged) {
+        _skyboxProperties = entity->getSkyboxProperties();
         updateKeyBackgroundFromEntity(entity);
     }
 
     if (hazeChanged) {
+        _hazeProperties = entity->getHazeProperties();
         updateHazeFromEntity(entity);
     }
 
+    if (bloomChanged) {
+        _bloomProperties = entity->getBloomProperties();
+        updateBloomFromEntity(entity);
+    }
 
     bool visuallyReady = true;
     uint32_t skyboxMode = entity->getSkyboxMode();
@@ -264,10 +281,6 @@ void ZoneEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     }
 
     entity->setVisuallyReady(visuallyReady);
-
-    if (bloomChanged) {
-        updateBloomFromEntity(entity);
-    }
 }
 
 void ZoneEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
@@ -344,7 +357,7 @@ void ZoneEntityRenderer::updateKeySunFromEntity(const TypedEntityPointer& entity
     // Set the keylight
     sunLight->setColor(ColorUtils::toVec3(_keyLightProperties.getColor()));
     sunLight->setIntensity(_keyLightProperties.getIntensity());
-    sunLight->setDirection(entity->getTransform().getRotation() * _keyLightProperties.getDirection());
+    sunLight->setDirection(_lastRotation * _keyLightProperties.getDirection());
     sunLight->setCastShadows(_keyLightProperties.getCastShadows());
 }
 
@@ -355,7 +368,6 @@ void ZoneEntityRenderer::updateAmbientLightFromEntity(const TypedEntityPointer& 
     ambientLight->setType(graphics::Light::AMBIENT);
     ambientLight->setPosition(_lastPosition);
     ambientLight->setOrientation(_lastRotation);
-
 
     // Set the ambient light
     ambientLight->setAmbientIntensity(_ambientLightProperties.getAmbientIntensity());
@@ -395,8 +407,6 @@ void ZoneEntityRenderer::updateHazeFromEntity(const TypedEntityPointer& entity) 
     haze->setHazeAttenuateKeyLight(_hazeProperties.getHazeAttenuateKeyLight());
     haze->setHazeKeyLightRangeFactor(graphics::Haze::convertHazeRangeToHazeRangeFactor(_hazeProperties.getHazeKeyLightRange()));
     haze->setHazeKeyLightAltitudeFactor(graphics::Haze::convertHazeAltitudeToHazeAltitudeFactor(_hazeProperties.getHazeKeyLightAltitude()));
-
-    haze->setTransform(entity->getTransform().getMatrix());
 }
 
 void ZoneEntityRenderer::updateBloomFromEntity(const TypedEntityPointer& entity) {
@@ -414,13 +424,13 @@ void ZoneEntityRenderer::updateKeyBackgroundFromEntity(const TypedEntityPointer&
 
     editBackground();
     setSkyboxColor(toGlm(_skyboxProperties.getColor()));
-    setProceduralUserData(entity->getUserData());
+    setProceduralUserData(_proceduralUserData);
     setSkyboxURL(_skyboxProperties.getURL());
 }
 
 void ZoneEntityRenderer::updateKeyZoneItemFromEntity(const TypedEntityPointer& entity) {
     // Update rotation values
-    editSkybox()->setOrientation(entity->getTransform().getRotation());
+    editSkybox()->setOrientation(_lastRotation);
 
     /* TODO: Implement the sun model behavior / Keep this code here for reference, this is how we
     {
@@ -540,9 +550,6 @@ void ZoneEntityRenderer::setSkyboxColor(const glm::vec3& color) {
 }
 
 void ZoneEntityRenderer::setProceduralUserData(const QString& userData) {
-    if (_proceduralUserData != userData) {
-        _proceduralUserData = userData;
-        std::dynamic_pointer_cast<ProceduralSkybox>(editSkybox())->parse(_proceduralUserData);
-    }
+    std::dynamic_pointer_cast<ProceduralSkybox>(editSkybox())->parse(userData);
 }
 
