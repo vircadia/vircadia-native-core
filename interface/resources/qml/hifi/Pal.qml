@@ -43,7 +43,7 @@ Rectangle {
     property bool currentlyEditingDisplayName: false
     property bool punctuationMode: false;
     property double loudSortTime: 0.0;
-    readonly property double kLOUD_SORT_PERIOD_MS: 500.0;
+    readonly property double kLOUD_SORT_PERIOD_MS: 100.0;
 
     HifiConstants { id: hifi; }
     RootHttpRequest { id: http; }
