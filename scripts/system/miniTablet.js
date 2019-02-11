@@ -124,6 +124,7 @@
             miniUIOverlayEnabled = false,
             MINI_UI_OVERLAY_ENABLED_DELAY = 500,
             miniOverlayObject = null,
+            isReady = false,
 
             // Button icons.
             MUTE_ON_ICON = Script.resourcesPath() + "icons/tablet-icons/mic-mute-a.svg",
@@ -203,6 +204,7 @@
             switch (message.type) {
                 case READY_MESSAGE:
                     // Send initial button statuses.
+                    isReady = true;
                     updateMutedStatus();
                     setGotoIcon();
                     break;
@@ -979,13 +981,17 @@
         }
 
         function updateState() {
-            if (!ui.miniOverlayObject) {
-                // Keep trying to connect the event bridge until we succeed
-                ui.miniOverlayObject = Overlays.getOverlayObject(ui.miniUIOverlay);
-                if (ui.miniOverlayObject) {
-                    ui.miniOverlayObject.webEventReceived.connect(ui.onWebEventReceived);
-                    ui.updateMutedStatus();
-                    ui.setGotoIcon();
+            if (!ui.isReady) {
+                if (!ui.miniOverlayObject) {
+                    // Keep trying to connect the event bridge until we succeed
+                    ui.miniOverlayObject = Overlays.getOverlayObject(ui.miniUIOverlay);
+                    if (ui.miniOverlayObject) {
+                        ui.miniOverlayObject.webEventReceived.connect(ui.onWebEventReceived);
+                    }
+                } else {
+                    ui.miniOverlayObject.emitScriptEvent(JSON.stringify({
+                        type: READY_MESSAGE
+                    }));
                 }
             }
 

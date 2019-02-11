@@ -61,6 +61,11 @@
         }
 
         switch (message.type) {
+            case READY_MESSAGE:
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: READY_MESSAGE
+                }));
+                break;
             case MUTE_MESSAGE:
                 muteImage.src = message.icon;
                 break;
@@ -114,9 +119,6 @@
 
     function connectEventBridge() {
         EventBridge.scriptEventReceived.connect(onScriptEventReceived);
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: READY_MESSAGE
-        }));
     }
 
     function disconnectEventBridge() {
