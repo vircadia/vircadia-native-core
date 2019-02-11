@@ -207,7 +207,7 @@ namespace std {
     struct hash<TextureExtra> {
         size_t operator()(const TextureExtra& a) const {
             size_t result = 0;
-            hash_combine(result, (int)a.type, a.content, a.maxNumPixels, a.channelMapping);
+            hash_combine(result, (int)a.type, a.content, a.maxNumPixels, (int)a.channelMapping);
             return result;
         }
     };

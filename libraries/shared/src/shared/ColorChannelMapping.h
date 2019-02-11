@@ -23,15 +23,4 @@ enum class ColorChannelMapping {
     COUNT
 };
 
-namespace std {
-    template <>
-    struct hash<ColorChannelMapping> {
-        size_t operator()(const ColorChannelMapping& a) const {
-            size_t result = 0;
-            hash_combine(result, (int)a);
-            return result;
-        }
-    };
-};
-
 #endif // hifi_ColorChannelMapping_h
