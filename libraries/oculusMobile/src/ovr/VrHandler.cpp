@@ -27,6 +27,25 @@ using namespace ovr;
 
 static thread_local bool isRenderThread { false };
 
+static void getClassName(JNIEnv *env, jobject obj){
+    jclass cls = env->GetObjectClass(obj);
+    jmethodID mid = env->GetMethodID(cls,"getClass", "()Ljava/lang/Class;");
+    jobject clsObj = env->CallObjectMethod(obj, mid);
+
+    cls= env->GetObjectClass(clsObj);
+
+    mid= env->GetMethodID(cls, "getName", "()Ljava/lang/String;");
+
+    jstring strObj = (jstring) env->CallObjectMethod(clsObj, mid);
+
+    const char* str = env->GetStringUTFChars(strObj, NULL);
+
+    __android_log_print(ANDROID_LOG_ERROR,__FUNCTION__, "VRHandler class: %s",str);
+
+    env->ReleaseStringUTFChars(strObj, str);
+
+}
+
 struct VrSurface : public TaskQueue {
     using HandlerTask = VrHandler::HandlerTask;
 

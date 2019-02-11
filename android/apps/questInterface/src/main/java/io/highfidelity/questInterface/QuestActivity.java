@@ -14,6 +14,7 @@ package io.highfidelity.questInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.SurfaceView;
 import android.view.WindowManager;
 
 import io.highfidelity.oculus.OculusMobileActivity;
@@ -25,15 +26,22 @@ public class QuestActivity extends OculusMobileActivity {
     private native void questNativeOnPause();
     private native void questNativeOnResume();
     private native void questOnAppAfterLoad();
+
+    private boolean isLoading=false;
     String TAG = OculusMobileActivity.class.getSimpleName();
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
+        isLoading=true;
         questNativeOnCreate();
+
     }
 
     public void onAppLoadedComplete() {
         Log.w(TAG, "QQQ Load Completed");
+        isLoading=false;
         runOnUiThread(() -> {
             questOnAppAfterLoad();
         });
@@ -42,20 +50,25 @@ public class QuestActivity extends OculusMobileActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        questNativeOnPause();
+
+        Log.w(TAG, "OnPause");
+        if(!isLoading){
+            questNativeOnPause();
+        }
 
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.w(TAG, "OnResume");
         questNativeOnResume();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.w(TAG, "OnDestroy");
         questNativeOnDestroy();
     }
-
 }

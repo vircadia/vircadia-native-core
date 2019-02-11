@@ -33,7 +33,7 @@
         </activity>
         <activity
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
-            android:name=".QuestActivity"
+            android:name="io.highfidelity.oculus.OculusMobileActivity"
             android:label="@string/app_name"
             android:launchMode="singleTask">
             <meta-data android:name="android.app.lib_name" android:value="questInterface"/>

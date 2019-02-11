@@ -37,47 +37,66 @@ void initOculusPlatform(JNIEnv* env, jobject obj) {
     });
 }
 
+void getClassName(JNIEnv *env, jobject obj){
+    jclass cls = env->GetObjectClass(obj);
+    jmethodID mid = env->GetMethodID(cls,"getClass", "()Ljava/lang/Class;");
+    jobject clsObj = env->CallObjectMethod(obj, mid);
+
+    cls= env->GetObjectClass(clsObj);
+
+    mid= env->GetMethodID(cls, "getName", "()Ljava/lang/String;");
+
+    jstring strObj = (jstring) env->CallObjectMethod(clsObj, mid);
+
+    const char* str = env->GetStringUTFChars(strObj, NULL);
+
+    __android_log_print(ANDROID_LOG_ERROR,__FUNCTION__, "Native Class call: %s",str);
+
+    env->ReleaseStringUTFChars(strObj, str);
+}
+
+
 extern "C" {
     JNIEXPORT void JNICALL
-    Java_io_highfidelity_questInterface_QuestActivity_nativeInitOculusPlatform(JNIEnv *env, jobject obj){
+    Java_io_highfidelity_oculus_OculusMobileActivity_nativeInitOculusPlatform(JNIEnv *env, jobject obj){
         initOculusPlatform(env, obj);
     }
 QAndroidJniObject __interfaceActivity;
     JNIEXPORT void JNICALL
-    Java_io_highfidelity_questInterface_QuestActivity_questNativeOnCreate(JNIEnv *env, jobject obj) {
-        __android_log_print(ANDROID_LOG_WARN, "QQQ","questNativeOnCreate called");
+    Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnCreate(JNIEnv *env, jobject obj) {
+        __android_log_print(ANDROID_LOG_INFO, "QQQ", __FUNCTION__);
         initOculusPlatform(env, obj);
-        __interfaceActivity = QAndroidJniObject (obj);
+        getClassName(env, obj);
+
+         qRegisterMetaType<QAndroidJniObject>("QAndroidJniObject");
+        __interfaceActivity = QAndroidJniObject(obj);
+
         QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
-
-
-            QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
-                __interfaceActivity.callMethod<void>("onAppLoadedComplete", "()V");
-
-            QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, nullptr,
-                                    nullptr);
-            });
+            __interfaceActivity.callMethod<void>("onAppLoadedComplete", "()V");
 
             QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete,
-                                nullptr, nullptr);
+                                nullptr,
+                                nullptr);
         });
     }
 
-JNIEXPORT void Java_io_highfidelity_questInterface_QuestActivity_questOnAppAfterLoad(JNIEnv* env, jobject obj) {
+
+
+JNIEXPORT void Java_io_highfidelity_oculus_OculusMobileActivity_questOnAppAfterLoad(JNIEnv* env, jobject obj) {
     AndroidHelper::instance().moveToThread(qApp->thread());
 }
 
     JNIEXPORT void JNICALL
-    Java_io_highfidelity_questInterface_QuestActivity_questNativeOnDestroy(JNIEnv *env, jobject obj) {
+    Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnDestroy(JNIEnv *env, jobject obj) {
     }
 
     JNIEXPORT void JNICALL
-    Java_io_highfidelity_questInterface_QuestActivity_questNativeOnPause(JNIEnv *env, jobject obj) {
+    Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnPause(JNIEnv *env, jobject obj) {
         AndroidHelper::instance().notifyEnterBackground();
     }
 
     JNIEXPORT void JNICALL
-    Java_io_highfidelity_questInterface_QuestActivity_questNativeOnResume(JNIEnv *env, jobject obj) {
+    Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnResume(JNIEnv *env, jobject obj) {
         AndroidHelper::instance().notifyEnterForeground();
     }
 

@@ -10,15 +10,19 @@ package io.highfidelity.oculus;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
-
+import android.widget.LinearLayout;
 
 
 import org.qtproject.qt5.android.bindings.QtActivity;
+
+import io.highfidelity.utils.HifiUtils;
 
 /**
  * Contains a native surface and forwards the activity lifecycle and surface lifecycle
@@ -27,52 +31,86 @@ import org.qtproject.qt5.android.bindings.QtActivity;
 public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Callback {
     private static final String TAG = OculusMobileActivity.class.getSimpleName();
     static { System.loadLibrary("oculusMobile"); }
+
     private native void nativeOnCreate();
     private native static void nativeOnResume();
     private native static void nativeOnPause();
     private native static void nativeOnDestroy();
     private native static void nativeOnSurfaceChanged(Surface s);
 
+    private native void questNativeOnCreate();
+    private native void questNativeOnDestroy();
+    private native void questNativeOnPause();
+    private native void questNativeOnResume();
+    private native void questOnAppAfterLoad();
+
+
     private SurfaceView mView;
     private SurfaceHolder mSurfaceHolder;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        Log.w(TAG, "QQQ onCreate");
-        super.onCreate(savedInstanceState);
+    boolean isLoading =false;
 
+    public void onCreate(Bundle savedInstanceState) {
+        isLoading=true;
+        super.onCreate(savedInstanceState);
+        HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
+
+        Log.w(TAG, "QQQ onCreate");
         // Create a native surface for VR rendering (Qt GL surfaces are not suitable
         // because of the lack of fine control over the surface callbacks)
-        mView = new SurfaceView(this);
-
-        mView.getHolder().addCallback(this);
-        setContentView(mView);
-        nativeOnCreate();
         // Forward the create message to the JNI code
+        mView = new SurfaceView(this);
+        mView.getHolder().addCallback(this);
+
+       // mainHandler=new Handler(Looper.getMainLooper());
+
+        nativeOnCreate();
+        questNativeOnCreate();
+    }
+
+
+ //   public static void runOnMainThread(Runnable run){
+ //       mainHandler.post(run);
+  //  }
+
+    public void onAppLoadedComplete() {
+        Log.w(TAG, "QQQ Load Completed");
+        isLoading=false;
+
+        //isLoading=false;
+        runOnUiThread(() -> {
+            setContentView(mView);
+            questOnAppAfterLoad();
+        });
     }
 
     @Override
     protected void onDestroy() {
         Log.w(TAG, "QQQ onDestroy");
+        super.onDestroy();
+
         if (mSurfaceHolder != null) {
             nativeOnSurfaceChanged(null);
         }
         nativeOnDestroy();
-        super.onDestroy();
+        questNativeOnDestroy();
     }
 
     @Override
     protected void onResume() {
         Log.w(TAG, "QQQ onResume");
         super.onResume();
+
         nativeOnResume();
+        questNativeOnResume();
     }
 
     @Override
     protected void onPause() {
         Log.w(TAG, "QQQ onPause");
-        nativeOnPause();
         super.onPause();
+        nativeOnPause();
+        questNativeOnPause();
     }
 
     @Override
