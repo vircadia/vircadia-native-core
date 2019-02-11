@@ -316,23 +316,28 @@ Rectangle {
                 font.pixelSize: hifi.fontSizes.textFieldInput
                 placeholderText: "Search Marketplace"
 
+                Timer {
+                    id: keypressTimer
+                    running: false
+                    repeat: false
+                    interval: 300
+                    onTriggered: searchField.accepted()
+
+                }
+
                 // workaround for https://bugreports.qt.io/browse/QTBUG-49297
                 Keys.onPressed: {
                     switch (event.key) {
                         case Qt.Key_Return: 
                         case Qt.Key_Enter: 
                             event.accepted = true;
+                            searchField.text = "";
 
-                            // emit accepted signal manually
-                            if (acceptableInput) {
-                                searchField.accepted();
-                                searchField.forceActiveFocus();
-                            }
+                            getMarketplaceItems();
+                            searchField.forceActiveFocus();
                         break;
-                        case Qt.Key_Backspace:
-                            if (searchField.text === "") {
-                                primaryFilter_index = -1;
-                            }
+                        default:
+                            keypressTimer.restart();
                         break;
                     }
                 }
