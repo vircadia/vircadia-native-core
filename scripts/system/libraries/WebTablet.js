@@ -23,7 +23,6 @@ var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0.0, y: 1.0, z: 0, w: 0};
 var ROT_LANDSCAPE = {x: 1.0, y: 1.0, z: 0, w: 0};
-var ROT_LANDSCAPE_WINDOW = {x: 0.0, y: 0.0, z: 0.0, w: 0};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
 
@@ -286,16 +285,19 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
 
     this.landscape = newLandscapeValue;
     var cameraOrientation = Quat.cancelOutRollAndPitch(Camera.orientation);
-    Overlays.editOverlay(this.tabletEntityID,
-                         { rotation: Quat.multiply(cameraOrientation, this.landscape ? ROT_LANDSCAPE : ROT_Y_180) });
+    var tabletRotation = Quat.multiply(cameraOrientation, this.landscape ? ROT_LANDSCAPE : ROT_Y_180);
+    Overlays.editOverlay(this.tabletEntityID, {
+        rotation: tabletRotation
+    });
 
     var tabletWidth = getTabletWidthFromSettings() * MyAvatar.sensorToWorldScale;
     var tabletScaleFactor = tabletWidth / TABLET_NATURAL_DIMENSIONS.x;
     var tabletHeight = TABLET_NATURAL_DIMENSIONS.y * tabletScaleFactor;
     var screenWidth = 0.9275 * tabletWidth;
     var screenHeight = 0.8983 * tabletHeight;
+    var screenRotation = Quat.angleAxis(180, Vec3.UP);
     Overlays.editOverlay(this.webOverlayID, {
-        rotation: Quat.multiply(cameraOrientation, ROT_LANDSCAPE_WINDOW),
+        localRotation: this.landscape ? Quat.multiply(screenRotation, Quat.angleAxis(-90, Vec3.FRONT)) : screenRotation,
         dimensions: {x: this.landscape ? screenHeight : screenWidth, y: this.landscape ? screenWidth : screenHeight, z: 0.1}
     });
 };

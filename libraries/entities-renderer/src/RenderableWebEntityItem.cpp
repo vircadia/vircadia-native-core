@@ -452,5 +452,5 @@ QObject* WebEntityRenderer::getEventHandler() {
 }
 
 void WebEntityRenderer::emitScriptEvent(const QVariant& message) {
-    QMetaObject::invokeMethod(this, "scriptEventReceived", Q_ARG(QVariant, message));
+    emit scriptEventReceived(message);
 }

@@ -581,7 +581,15 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         {
             auto iter = overlayProps.find("dimensions");
             if (iter != overlayProps.end()) {
-                dimensions = vec3FromVariant(iter.value());
+                bool valid = false;
+                dimensions = vec3FromVariant(iter.value(), valid);
+                if (!valid) {
+                    dimensions = glm::vec3(vec2FromVariant(iter.value()), 0.0f);
+                }
+            } else if (!add) {
+                EntityPropertyFlags desiredProperties;
+                desiredProperties += PROP_DIMENSIONS;
+                dimensions = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getDimensions();
             }
         }
 
