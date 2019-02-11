@@ -1891,7 +1891,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             auto keyboard = DependencyManager::get<Keyboard>();
             if (getEntities()->wantsKeyboardFocus(id)) {
                 setKeyboardFocusEntity(id);
-            } else if (!keyboard->getKeyIDs().contains(id)) { // FIXME: this is a hack to make the keyboard work for now, since the keys would otherwise steal focus
+            } else if (!keyboard->containsID(id)) { // FIXME: this is a hack to make the keyboard work for now, since the keys would otherwise steal focus
                 setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
             }
         }
