@@ -105,7 +105,7 @@ public:
     // For Scene.shouldRenderEntities
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
-    std::shared_ptr<ZoneEntityItem> myAvatarZone() { return _layeredZones.getZone(); }
+    std::pair<bool, bool> getZoneInteractionProperties();
 
     bool wantsKeyboardFocus(const EntityItemID& id) const;
     QObject* getEventHandler(const EntityItemID& id);

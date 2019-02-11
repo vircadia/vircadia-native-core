@@ -43,14 +43,15 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
 }
 
 const QString ModelEntityItem::getTextures() const {
-    QReadLocker locker(&_texturesLock);
-    auto textures = _textures;
-    return textures;
+    return resultWithReadLock<QString>([&] {
+        return _textures;
+    });
 }
 
 void ModelEntityItem::setTextures(const QString& textures) {
-    QWriteLocker locker(&_texturesLock);
-    _textures = textures;
+    withWriteLock([&] {
+        _textures = textures;
+    });
 }
 
 EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {

@@ -1290,6 +1290,17 @@ CalculateEntityLoadingPriority EntityTreeRenderer::_calculateEntityLoadingPriori
     return 0.0f;
 };
 
+std::pair<bool, bool> EntityTreeRenderer::getZoneInteractionProperties() {
+    for (auto& zone : _layeredZones) {
+        // Only domain entities control flying allowed and ghosting allowed
+        if (zone.zone && zone.zone->isDomainEntity()) {
+            return { zone.zone->getFlyingAllowed(), zone.zone->getGhostingAllowed() };
+        }
+    }
+
+    return { true, true };
+}
+
 bool EntityTreeRenderer::wantsKeyboardFocus(const EntityItemID& id) const {
     auto renderable = renderableForEntityId(id);
     if (!renderable) {

@@ -1,5 +1,4 @@
 import QtQuick 2.7
-import QtWebEngine 1.5;
 import Qt.labs.settings 1.0 as QtSettings
 
 import QtQuick.Controls 2.3
@@ -88,43 +87,20 @@ OriginalDesktop.Desktop {
     })({});
 
     Component.onCompleted: {
-        WebEngine.settings.javascriptCanOpenWindows = true;
-        WebEngine.settings.javascriptCanAccessClipboard = false;
-        WebEngine.settings.spatialNavigationEnabled = false;
-        WebEngine.settings.localContentCanAccessRemoteUrls = true;
+        webEngineConfig.setupWebEngineSettings();
     }
 
     // Accept a download through the webview
-    property bool webViewProfileSetup: false
-    property string currentUrl: ""
-    property string downloadUrl: ""
-    property string adaptedPath: ""
-    property string tempDir: ""
+    property alias webViewProfileSetup: webEngineConfig.webViewProfileSetup
+    property alias currentUrl: webEngineConfig.currentUrl
+    property alias downloadUrl: webEngineConfig.downloadUrl
+    property alias adaptedPath: webEngineConfig.adaptedPath
+    property alias tempDir: webEngineConfig.tempDir
+    property var initWebviewProfileHandlers: webEngineConfig.initWebviewProfileHandlers
     property bool autoAdd: false
 
-    function initWebviewProfileHandlers(profile) {
-        downloadUrl = currentUrl;
-        if (webViewProfileSetup) return;
-        webViewProfileSetup = true;
-
-        profile.downloadRequested.connect(function(download){
-            adaptedPath = File.convertUrlToPath(downloadUrl);
-            tempDir = File.getTempDir();
-            download.path = tempDir + "/" + adaptedPath;
-            download.accept();
-            if (download.state === WebEngineDownloadItem.DownloadInterrupted) {
-                console.log("download failed to complete");
-            }
-        })
-
-        profile.downloadFinished.connect(function(download){
-            if (download.state === WebEngineDownloadItem.DownloadCompleted) {
-                File.runUnzip(download.path, downloadUrl, autoAdd);
-            } else {
-                console.log("The download was corrupted, state: " + download.state);
-            }
-            autoAdd = false;
-        })
+    DesktopWebEngine {
+        id: webEngineConfig
     }
 
     function setAutoAdd(auto) {

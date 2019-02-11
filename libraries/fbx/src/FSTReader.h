@@ -27,7 +27,6 @@ static const QString TRANSLATION_X_FIELD = "tx";
 static const QString TRANSLATION_Y_FIELD = "ty";
 static const QString TRANSLATION_Z_FIELD = "tz";
 static const QString JOINT_FIELD = "joint";
-static const QString FREE_JOINT_FIELD = "freeJoint";
 static const QString BLENDSHAPE_FIELD = "bs";
 static const QString SCRIPT_FIELD = "script";
 static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";

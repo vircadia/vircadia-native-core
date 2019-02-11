@@ -16,13 +16,13 @@
 PythonInterface::PythonInterface() {
 #ifdef Q_OS_WIN
     if (QProcessEnvironment::systemEnvironment().contains("PYTHON_PATH")) {
-        QString _pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
-        if (!QFile::exists(_pythonPath + "/" + _pythonExe)) {
-            QMessageBox::critical(0, _pythonExe, QString("Python executable not found in ") + _pythonPath);
+        QString pythonPath = QProcessEnvironment::systemEnvironment().value("PYTHON_PATH");
+        if (!QFile::exists(pythonPath + "/" + _pythonExe)) {
+            QMessageBox::critical(0, _pythonExe, QString("Python executable not found in ") + pythonPath);
             exit(-1);
         }
         
-        _pythonCommand = _pythonPath + "/" + _pythonExe;
+        _pythonCommand = pythonPath + "/" + _pythonExe;
     } else {
         QMessageBox::critical(0, "PYTHON_PATH not defined",
                               "Please set PYTHON_PATH to directory containing the Python executable");
@@ -31,7 +31,7 @@ PythonInterface::PythonInterface() {
 #elif defined Q_OS_MAC
     _pythonCommand = "/usr/local/bin/python3";
     if (!QFile::exists(_pythonCommand)) {
-        QMessageBox::critical(0, "PYTHON_PATH not defined",
+        QMessageBox::critical(0, "python not found",
                               "python3 not found at " + _pythonCommand);
         exit(-1);
     }

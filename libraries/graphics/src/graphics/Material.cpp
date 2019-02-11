@@ -87,7 +87,7 @@ void Material::setUnlit(bool value) {
 }
 
 void Material::setAlbedo(const glm::vec3& albedo, bool isSRGB) {
-    _key.setAlbedo(glm::any(glm::greaterThan(albedo, glm::vec3(0.0f))));
+    _key.setAlbedo(true);
     _albedo = (isSRGB ? ColorUtils::sRGBToLinearVec3(albedo) : albedo);
 }
 
