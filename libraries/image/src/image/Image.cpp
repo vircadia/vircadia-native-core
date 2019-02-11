@@ -255,7 +255,7 @@ void mapToRedChannel(QImage& image, ColorChannelMapping sourceChannel) {
             }
 
             // Dump the color in the red channel, ignore the rest
-            *pixel = qRgba(colorValue, 0, 0, 0);
+            *pixel = qRgba(colorValue, 0, 0, 255);
         }
     }
 }
