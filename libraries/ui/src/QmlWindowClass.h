@@ -25,6 +25,7 @@ class QScriptContext;
  *
  * @hifi-interface
  * @hifi-client-en
+ * @hifi-avatar
  *
  * @property {Vec2} position
  * @property {Vec2} size

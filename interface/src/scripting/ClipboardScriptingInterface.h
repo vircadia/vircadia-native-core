@@ -24,6 +24,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ClipboardScriptingInterface : public QObject {
     Q_OBJECT

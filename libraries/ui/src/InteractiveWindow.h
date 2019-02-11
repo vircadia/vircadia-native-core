@@ -45,6 +45,7 @@ using namespace InteractiveWindowEnums;
  *
  * @hifi-interface
  * @hifi-client-en
+ * @hifi-avatar
  *
  * @property {string} title
  * @property {Vec2} position

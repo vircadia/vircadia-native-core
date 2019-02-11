@@ -17,6 +17,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {string} url - <em>Read-only.</em>
  * @property {Vec2} position
