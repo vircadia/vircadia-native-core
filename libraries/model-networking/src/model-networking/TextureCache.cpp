@@ -336,12 +336,8 @@ int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkText
 
 NetworkTexture::NetworkTexture(const QUrl& url) :
     Resource(url),
-    _type(),
     _maxNumPixels(100)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>(url);
-    _lowestRequestedMipLevel = 0;
-    _loaded = true;
 }
 
 NetworkTexture::NetworkTexture(const NetworkTexture& other) :
@@ -1165,7 +1161,7 @@ void ImageReader::read() {
     }
     auto networkTexture = resource.staticCast<NetworkTexture>();
 
-    // Hash the source image and extra to for KTX caching
+    // Hash the source image and extraHash for KTX caching
     std::string hash;
     {
         QCryptographicHash hasher(QCryptographicHash::Md5);
