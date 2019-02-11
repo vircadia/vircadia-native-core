@@ -163,7 +163,6 @@ protected:
 
     AnimationPropertyGroup _animationProperties;
 
-    mutable QReadWriteLock _texturesLock;
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;

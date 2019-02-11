@@ -298,9 +298,9 @@ public:
         TransformDualQuaternion() {}
         TransformDualQuaternion(const glm::mat4& m) {
             AnimPose p(m);
-            _scale.x = p.scale().x;
-            _scale.y = p.scale().y;
-            _scale.z = p.scale().z;
+            _scale.x = p.scale();
+            _scale.y = p.scale();
+            _scale.z = p.scale();
             _scale.w = 0.0f;
             _dq = DualQuaternion(p.rot(), p.trans());
         }
@@ -378,9 +378,6 @@ protected:
 
     /// Clear the joint states
     void clearJointState(int index);
-
-    /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
-    int getLastFreeJointIndex(int jointIndex) const;
 
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame

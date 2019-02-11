@@ -218,6 +218,7 @@ public:
 
     virtual void addGrab(GrabPointer grab);
     virtual void removeGrab(GrabPointer grab);
+    virtual void disableGrab(GrabPointer grab) {};
     bool hasGrabs();
     virtual QUuid getEditSenderID();
 
@@ -241,7 +242,7 @@ protected:
     quint64 _rotationChanged { 0 };
 
     mutable ReadWriteLockable _grabsLock;
-    QSet<GrabPointer> _grabs;
+    QSet<GrabPointer> _grabs; // upon this thing
 
 private:
     SpatiallyNestable() = delete;
