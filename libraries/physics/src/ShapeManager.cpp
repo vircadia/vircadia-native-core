@@ -62,7 +62,7 @@ bool ShapeManager::releaseShapeByKey(uint64_t key) {
             shapeRef->refCount--;
             if (shapeRef->refCount == 0) {
                 // look for existing entry in _garbageRing
-                int32_t ringSize = _garbageRing.size();
+                int32_t ringSize = (int32_t)(_garbageRing.size());
                 for (int32_t i = 0; i < ringSize; ++i) {
                     int32_t j = (_ringIndex + ringSize) % ringSize;
                     if (_garbageRing[j] == key) {
@@ -110,7 +110,7 @@ bool ShapeManager::releaseShape(const btCollisionShape* shape) {
 }
 
 void ShapeManager::collectGarbage() {
-    int numShapes = _garbageRing.size();
+    int numShapes = (int32_t)(_garbageRing.size());
     for (int i = 0; i < numShapes; ++i) {
         HashKey key(_garbageRing[i]);
         ShapeReference* shapeRef = _shapeMap.find(key);
