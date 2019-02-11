@@ -1897,7 +1897,7 @@ glm::vec3 EntityItem::getUnscaledDimensions() const {
 void EntityItem::setRotation(glm::quat rotation) {
     if (getLocalOrientation() != rotation) {
         setLocalOrientation(rotation);
-        _flags |= Simulation::DIRTY_ROTATION;
+        markDirtyFlags(Simulation::DIRTY_ROTATION);
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
@@ -1927,7 +1927,7 @@ void EntityItem::setVelocity(const glm::vec3& value) {
                     velocity = value;
                 }
                 setLocalVelocity(velocity);
-                _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
+                markDirtyFlags(Simulation::DIRTY_LINEAR_VELOCITY);
             }
         }
     }
@@ -1982,7 +1982,7 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
                     angularVelocity = value;
                 }
                 setLocalAngularVelocity(angularVelocity);
-                _flags |= Simulation::DIRTY_ANGULAR_VELOCITY;
+                markDirtyFlags(Simulation::DIRTY_ANGULAR_VELOCITY);
             }
         }
     }
@@ -2168,8 +2168,14 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
 
 void EntityItem::enableNoBootstrap() {
     if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+        markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+
+        // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
+        // because most enableNoBootstrap() cases are already correctly handled outside this scope
+        // and I didn't want to add redundant work.
+        // TODO: cleanup Grabs & dirtySimulationFlags to be more efficient and make more sense.
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
@@ -2182,13 +2188,21 @@ void EntityItem::enableNoBootstrap() {
 
 void EntityItem::disableNoBootstrap() {
     if (!stillHasGrabActions()) {
-        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
-        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+        markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
+        clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+
+        EntityTreePointer entityTree = getTree();
+        assert(entityTree);
+        EntitySimulationPointer simulation = entityTree->getSimulation();
+        assert(simulation);
+        simulation->changeEntity(getThisPointer());
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
                 entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                simulation->changeEntity(entity);
             }
         });
     }
@@ -2574,7 +2588,7 @@ QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeT
 void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
     if (tellPhysics) {
-        _flags |= Simulation::DIRTY_TRANSFORM;
+        markDirtyFlags(Simulation::DIRTY_TRANSFORM);
         EntityTreePointer tree = getTree();
         if (tree) {
             tree->entityChanged(getThisPointer());
@@ -3445,7 +3459,7 @@ void EntityItem::addGrab(GrabPointer grab) {
     if (useAction) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
-        EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        EntitySimulationPointer simulation = entityTree->getSimulation();
         assert(simulation);
 
         auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
@@ -3494,7 +3508,6 @@ void EntityItem::removeGrab(GrabPointer grab) {
         setLocalVelocity(glm::vec3(0.0f));
         setAngularVelocity(glm::vec3(0.0f));
     }
-    markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
 
     QUuid actionID = grab->getActionID();
     if (!actionID.isNull()) {
