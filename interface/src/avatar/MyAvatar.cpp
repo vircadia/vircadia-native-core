@@ -3279,22 +3279,22 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
 }
 
-static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const float forwardSpeed, const float backwardSpeed) {
-    // for the elipse function -->  (x^2)/(backwardSpeed*backwardSpeed) + y^2/(forwardSpeed*forwardSpeed) = 1,  scale == y^2 when x is 0
-    float fwdScale = forwardSpeed * forwardSpeed;
-    float backScale = backwardSpeed * backwardSpeed;
-    float scaledX = velocityDirection.x * backwardSpeed;
-    float scaledSpeed = forwardSpeed;
-    if (velocityDirection.y < 0.0f) {
-        if (backScale > 0.0f) {
-            float yValue = sqrtf(fwdScale * (1.0f - ((scaledX * scaledX) / backScale)));
-            scaledSpeed = sqrtf((scaledX * scaledX) + (yValue * yValue));
-        }
-    } else {
-        scaledSpeed = backwardSpeed;
-    }
-    return scaledSpeed;
-}
+//static float scaleSpeedByDirection(const glm::vec2 velocityDirection, const float forwardSpeed, const float backwardSpeed) {
+//    // for the elipse function -->  (x^2)/(backwardSpeed*backwardSpeed) + y^2/(forwardSpeed*forwardSpeed) = 1,  scale == y^2 when x is 0
+//    float fwdScale = forwardSpeed * forwardSpeed;
+//    float backScale = backwardSpeed * backwardSpeed;
+//    float scaledX = velocityDirection.x * backwardSpeed;
+//    float scaledSpeed = forwardSpeed;
+//    if (velocityDirection.y < 0.0f) {
+//        if (backScale > 0.0f) {
+//            float yValue = sqrtf(fwdScale * (1.0f - ((scaledX * scaledX) / backScale)));
+//            scaledSpeed = sqrtf((scaledX * scaledX) + (yValue * yValue));
+//        }
+//    } else {
+//        scaledSpeed = backwardSpeed;
+//    }
+//    return scaledSpeed;
+//}
 
 glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right) {
     float stickFullOn = 0.95f;
@@ -3392,9 +3392,13 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     float directionLength = glm::length(direction);
     _isPushing = directionLength > EPSILON;
 
-    if (_isPushing) {
-        direction;
-    } else {
+    //if (_isPushing) {
+    //    direction;
+    //} else {
+    //    direction = Vectors::ZERO;
+    //}
+
+    if (!_isPushing) {
         direction = Vectors::ZERO;
     }
 
