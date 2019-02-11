@@ -1130,6 +1130,8 @@ Rectangle {
                 fill: parent
             }
 
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
             RalewayRegular {
                 id: licenseText
 
