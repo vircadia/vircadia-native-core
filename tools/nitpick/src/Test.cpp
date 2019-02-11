@@ -835,8 +835,8 @@ void Test::createRecursiveScript(const QString& directory, bool interactiveMode)
         << endl;
     textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl << endl;
 
-    textStream << "if (typeof nitpick === 'undefined') var nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
-    textStream << "if (typeof testsRootPath === 'undefined') var testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
+    textStream << "if (typeof nitpick === 'undefined') nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
+    textStream << "if (typeof testsRootPath === 'undefined') testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
 
     textStream << "nitpick.enableRecursive();" << endl;
     textStream << "nitpick.enableAuto();" << endl << endl;
@@ -847,7 +847,10 @@ void Test::createRecursiveScript(const QString& directory, bool interactiveMode)
     }
 
     textStream << endl;
-    textStream << "nitpick.runRecursive();" << endl;
+    textStream << "if (typeof runningRecursive === 'undefined') {" << endl; 
+    textStream << "   runningRecursive = true;" << endl;
+    textStream << "   nitpick.runRecursive();" << endl;
+    textStream << "}" << endl << endl;
 
     recursiveTestsFile.close();
 }
