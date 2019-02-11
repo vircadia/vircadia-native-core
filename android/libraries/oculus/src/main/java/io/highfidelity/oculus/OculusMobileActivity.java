@@ -62,16 +62,9 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         mView = new SurfaceView(this);
         mView.getHolder().addCallback(this);
 
-       // mainHandler=new Handler(Looper.getMainLooper());
-
         nativeOnCreate();
         questNativeOnCreate();
     }
-
-
- //   public static void runOnMainThread(Runnable run){
- //       mainHandler.post(run);
-  //  }
 
     public void onAppLoadedComplete() {
         Log.w(TAG, "QQQ Load Completed");
@@ -101,16 +94,20 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         Log.w(TAG, "QQQ onResume");
         super.onResume();
 
-        nativeOnResume();
         questNativeOnResume();
+        nativeOnResume();
+
     }
 
     @Override
     protected void onPause() {
         Log.w(TAG, "QQQ onPause");
         super.onPause();
-        nativeOnPause();
-        questNativeOnPause();
+
+        if (!isLoading) {
+            questNativeOnPause();
+            nativeOnPause();
+        }
     }
 
     @Override
