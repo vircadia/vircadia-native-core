@@ -44,7 +44,7 @@ using namespace InteractiveWindowEnums;
  * @class InteractiveWindow
  *
  * @hifi-interface
- * @hifi-client-en
+ * @hifi-client-entity
  * @hifi-avatar
  *
  * @property {string} title
