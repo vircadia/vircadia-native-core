@@ -22,8 +22,8 @@
 #include <AndroidHelper.h>
 #include <udt/PacketHeaders.h>
 
-//#include <OVR_Platform.h>
-//#include <OVR_Functions_Voip.h>
+#include <OVR_Platform.h>
+#include <OVR_Functions_Voip.h>
 
 void initOculusPlatform(JNIEnv* env, jobject obj) {
     static std::once_flag once;
