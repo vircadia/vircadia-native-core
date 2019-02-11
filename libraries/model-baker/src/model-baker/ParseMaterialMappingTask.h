@@ -6,8 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ApplyMaterialMappingTask_h
-#define hifi_ApplyMaterialMappingTask_h
+#ifndef hifi_ParseMaterialMappingTask_h
+#define hifi_ParseMaterialMappingTask_h
 
 #include <QHash>
 
@@ -15,13 +15,15 @@
 
 #include "Engine.h"
 
-class ApplyMaterialMappingTask {
+#include <material-networking/MaterialCache.h>
+
+class ParseMaterialMappingTask {
 public:
     using Input = baker::VaryingSet2<QHash<QString, hfm::Material>, QVariantHash>;
-    using Output = QHash<QString, hfm::Material>;
-    using JobModel = baker::Job::ModelIO<ApplyMaterialMappingTask, Input, Output>;
+    using Output = MaterialMapping;
+    using JobModel = baker::Job::ModelIO<ParseMaterialMappingTask, Input, Output>;
 
     void run(const baker::BakeContextPointer& context, const Input& input, Output& output);
 };
 
-#endif // hifi_ApplyMaterialMappingTask_h
+#endif // hifi_ParseMaterialMappingTask_h

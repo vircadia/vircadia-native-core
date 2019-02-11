@@ -183,6 +183,7 @@ public:
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getHFMModel() isn't chained everywhere
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
+    const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
     bool isActive() const { return isLoaded(); }
 
@@ -372,6 +373,8 @@ signals:
     void rigReset();
 
 protected:
+
+    void applyMaterialMapping();
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }

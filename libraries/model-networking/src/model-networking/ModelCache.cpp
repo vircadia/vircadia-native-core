@@ -174,6 +174,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
 void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
     if (success && _geometryResource) {
         _hfmModel = _geometryResource->_hfmModel;
+        _materialMapping = _geometryResource->_materialMapping;
         _meshParts = _geometryResource->_meshParts;
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
@@ -341,6 +342,7 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmMode
 
     // Assume ownership of the processed HFMModel
     _hfmModel = modelBaker.hfmModel;
+    _materialMapping = modelBaker.materialMapping;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
@@ -437,6 +439,7 @@ const QVariantMap Geometry::getTextures() const {
 // FIXME: The materials should only be copied when modified, but the Model currently caches the original
 Geometry::Geometry(const Geometry& geometry) {
     _hfmModel = geometry._hfmModel;
+    _materialMapping = geometry._materialMapping;
     _meshes = geometry._meshes;
     _meshParts = geometry._meshParts;
 

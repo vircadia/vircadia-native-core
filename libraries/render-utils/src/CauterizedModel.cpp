@@ -97,6 +97,7 @@ void CauterizedModel::createRenderItemSet() {
             }
         }
         _blendshapeOffsetsInitialized = true;
+        applyMaterialMapping();
     } else {
         Model::createRenderItemSet();
     }

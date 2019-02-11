@@ -1465,6 +1465,7 @@ void Model::createRenderItemSet() {
         }
     }
     _blendshapeOffsetsInitialized = true;
+    applyMaterialMapping();
 }
 
 bool Model::isRenderable() const {
@@ -1519,17 +1520,60 @@ std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialNam
     return toReturn;
 }
 
+void Model::applyMaterialMapping() {
+    auto renderItemsKey = _renderItemKeyGlobalFlags;
+    PrimitiveMode primitiveMode = getPrimitiveMode();
+    bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+
+    render::Transaction transaction;
+    std::unordered_map<unsigned int, quint16> priorityMap;
+    auto& materialMapping = getMaterialMapping();
+    qDebug() << "boop" << materialMapping.size();
+    for (auto& mapping : materialMapping) {
+        std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(mapping.first.c_str()));
+
+        qDebug() << "boop2" << mapping.first.c_str() << shapeIDs.size();
+        if (shapeIDs.size() == 0) {
+            continue;
+        }
+
+        auto networkMaterialResource = mapping.second;
+        qDebug() << (bool)networkMaterialResource;
+        if (networkMaterialResource && networkMaterialResource->isLoaded() && networkMaterialResource->parsedMaterials.names.size() > 0) {
+            auto networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+            for (auto shapeID : shapeIDs) {
+                if (shapeID < _modelMeshRenderItemIDs.size()) {
+                    auto itemID = _modelMeshRenderItemIDs[shapeID];
+                    auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, ++priorityMap[shapeID]);
+                    transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
+                        invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
+                        data.addMaterial(material);
+                        // if the material changed, we might need to update our item key or shape key
+                        data.updateKey(renderItemsKey);
+                        data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
+                    });
+                }
+            }
+        }
+    }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+}
+
 void Model::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
     std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+
+    auto renderItemsKey = _renderItemKeyGlobalFlags;
+    PrimitiveMode primitiveMode = getPrimitiveMode();
+    bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
             auto itemID = _modelMeshRenderItemIDs[shapeID];
-            auto renderItemsKey = _renderItemKeyGlobalFlags;
-            PrimitiveMode primitiveMode = getPrimitiveMode();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                 invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.addMaterial(material);

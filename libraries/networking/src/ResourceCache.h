@@ -359,7 +359,7 @@ class Resource : public QObject {
     Q_OBJECT
 
 public:
-
+    Resource() : QObject(), _loaded(true) {}
     Resource(const Resource& other);
     Resource(const QUrl& url);
     virtual ~Resource();

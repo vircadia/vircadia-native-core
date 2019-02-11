@@ -71,6 +71,7 @@ private:
 
 class NetworkMaterialResource : public Resource {
 public:
+    NetworkMaterialResource() : Resource() {}
     NetworkMaterialResource(const QUrl& url);
 
     QString getType() const override { return "NetworkMaterial"; }
@@ -100,6 +101,7 @@ private:
 };
 
 using NetworkMaterialResourcePointer = QSharedPointer<NetworkMaterialResource>;
+using MaterialMapping = std::vector<std::pair<std::string, NetworkMaterialResourcePointer>>;
 
 class MaterialCache : public ResourceCache {
 public:
