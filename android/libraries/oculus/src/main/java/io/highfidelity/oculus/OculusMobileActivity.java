@@ -72,7 +72,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
         //isLoading=false;
         runOnUiThread(() -> {
-            setContentView(mView);
+            setContentView(mView);  setContentView(mView);
             questOnAppAfterLoad();
         });
     }
@@ -111,8 +111,14 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     }
 
     @Override
+    protected void onRestart(){
+        super.onRestart();
+        nativeOnCreate();
+    }
+
+    @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ surfaceCreated");
+        Log.w(TAG, "QQQ surfaceCreated ************************************");
         nativeOnSurfaceChanged(holder.getSurface());
         mSurfaceHolder = holder;
     }
@@ -126,7 +132,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ surfaceDestroyed");
+        Log.w(TAG, "QQQ surfaceDestroyed ***************************************************");
         nativeOnSurfaceChanged(null);
         mSurfaceHolder = null;
     }

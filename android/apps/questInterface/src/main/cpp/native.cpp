@@ -68,7 +68,6 @@ QAndroidJniObject __interfaceActivity;
         initOculusPlatform(env, obj);
         getClassName(env, obj);
 
-         qRegisterMetaType<QAndroidJniObject>("QAndroidJniObject");
         __interfaceActivity = QAndroidJniObject(obj);
 
         QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
