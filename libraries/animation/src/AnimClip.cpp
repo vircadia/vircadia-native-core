@@ -99,65 +99,64 @@ void AnimClip::copyFromNetworkAnim() {
     assert(_networkAnim && _networkAnim->isLoaded() && _skeleton);
     _anim.clear();
 
-    // build a mapping from animation joint indices to skeleton joint indices.
+    auto avatarSkeleton = getSkeleton();
+
+    // build a mapping from animation joint indices to avatar joint indices.
     // by matching joints with the same name.
-    const HFMModel& hfmModel = _networkAnim->getHFMModel();
-    AnimSkeleton animSkeleton(hfmModel);
-    const auto animJointCount = animSkeleton.getNumJoints();
-    const auto skeletonJointCount = _skeleton->getNumJoints();
-    std::vector<int> jointMap;
-    jointMap.reserve(animJointCount);
-    for (int i = 0; i < animJointCount; i++) {
-        int skeletonJoint = _skeleton->nameToJointIndex(animSkeleton.getJointName(i));
-        jointMap.push_back(skeletonJoint);
+    const HFMModel& animModel = _networkAnim->getHFMModel();
+    AnimSkeleton animSkeleton(animModel);
+    const int animJointCount = animSkeleton.getNumJoints();
+    const int avatarJointCount = avatarSkeleton->getNumJoints();
+    std::vector<int> animToAvatarJointIndexMap;
+    animToAvatarJointIndexMap.reserve(animJointCount);
+    for (int animJointIndex = 0; animJointIndex < animJointCount; animJointIndex++) {
+        QString animJointName = animSkeleton.getJointName(animJointIndex);
+        int avatarJointIndex = avatarSkeleton->nameToJointIndex(animJointName);
+        animToAvatarJointIndexMap.push_back(avatarJointIndex);
     }
 
-    const int frameCount = hfmModel.animationFrames.size();
-    _anim.resize(frameCount);
+    const int animFrameCount = animModel.animationFrames.size();
+    _anim.resize(animFrameCount);
 
-    for (int frame = 0; frame < frameCount; frame++) {
+    for (int frame = 0; frame < animFrameCount; frame++) {
 
-        const HFMAnimationFrame& hfmAnimFrame = hfmModel.animationFrames[frame];
+        const HFMAnimationFrame& animFrame = animModel.animationFrames[frame];
 
         // init all joints in animation to default pose
-        // this will give us a resonable result for bones in the model skeleton but not in the animation.
-        _anim[frame].reserve(skeletonJointCount);
-        for (int skeletonJoint = 0; skeletonJoint < skeletonJointCount; skeletonJoint++) {
-            _anim[frame].push_back(_skeleton->getRelativeDefaultPose(skeletonJoint));
+        // this will give us a resonable result for bones in the avatar skeleton but not in the animation.
+        _anim[frame].reserve(avatarJointCount);
+        for (int avatarJointIndex = 0; avatarJointIndex < avatarJointCount; avatarJointIndex++) {
+            _anim[frame].push_back(avatarSkeleton->getRelativeDefaultPose(avatarJointIndex));
         }
 
-        for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
-            int skeletonJoint = jointMap[animJoint];
+        for (int animJointIndex = 0; animJointIndex < animJointCount; animJointIndex++) {
+            int avatarJointIndex = animToAvatarJointIndexMap[animJointIndex];
 
-            const glm::vec3& hfmAnimTrans = hfmAnimFrame.translations[animJoint];
-            const glm::quat& hfmAnimRot = hfmAnimFrame.rotations[animJoint];
+            // skip joints that are in the animation but not in the avatar.
+            if (avatarJointIndex >= 0 && avatarJointIndex < avatarJointCount) {
 
-            // skip joints that are in the animation but not in the skeleton.
-            if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
+                const glm::vec3& animTrans = animFrame.translations[animJointIndex];
+                const glm::quat& animRot = animFrame.rotations[animJointIndex];
 
-                AnimPose preRot, postRot;
-                preRot = animSkeleton.getPreRotationPose(animJoint);
-                postRot = animSkeleton.getPostRotationPose(animJoint);
+                const AnimPose& animPreRotPose = animSkeleton.getPreRotationPose(animJointIndex);
+                AnimPose animPostRotPose = animSkeleton.getPostRotationPose(animJointIndex);
+                AnimPose animRotPose(glm::vec3(1.0f), animRot, glm::vec3());
 
-                // cancel out scale
-                preRot.scale() = glm::vec3(1.0f);
-                postRot.scale() = glm::vec3(1.0f);
+                // adjust anim scale to equal the scale from the avatar joint.
+                // we do not support animated scale.
+                const AnimPose& avatarDefaultPose = avatarSkeleton->getRelativeDefaultPose(avatarJointIndex);
+                animPostRotPose.scale() = avatarDefaultPose.scale();
 
-                AnimPose rot(glm::vec3(1.0f), hfmAnimRot, glm::vec3());
-
-                // adjust translation offsets, so large translation animatons on the reference skeleton
-                // will be adjusted when played on a skeleton with short limbs.
-                const glm::vec3& hfmZeroTrans = hfmModel.animationFrames[0].translations[animJoint];
-                const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
+                // retarget translation from animation to avatar
+                const glm::vec3& animZeroTrans = animModel.animationFrames[0].translations[animJointIndex];
                 float boneLengthScale = 1.0f;
                 const float EPSILON = 0.0001f;
-                if (fabsf(glm::length(hfmZeroTrans)) > EPSILON) {
-                    boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(hfmZeroTrans);
+                if (fabsf(glm::length(animZeroTrans)) > EPSILON) {
+                    boneLengthScale = glm::length(avatarDefaultPose.trans()) / glm::length(animZeroTrans);
                 }
+                AnimPose animTransPose = AnimPose(glm::vec3(1.0f), glm::quat(), avatarDefaultPose.trans() + boneLengthScale * (animTrans - animZeroTrans));
 
-                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (hfmAnimTrans - hfmZeroTrans));
-
-                _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
+                _anim[frame][avatarJointIndex] = animTransPose * animPreRotPose * animRotPose * animPostRotPose;
             }
         }
     }
@@ -165,7 +164,7 @@ void AnimClip::copyFromNetworkAnim() {
     // mirrorAnim will be re-built on demand, if needed.
     _mirrorAnim.clear();
 
-    _poses.resize(skeletonJointCount);
+    _poses.resize(avatarJointCount);
 }
 
 void AnimClip::buildMirrorAnim() {
