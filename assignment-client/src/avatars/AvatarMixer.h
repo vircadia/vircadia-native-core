@@ -15,6 +15,7 @@
 #ifndef hifi_AvatarMixer_h
 #define hifi_AvatarMixer_h
 
+#include <set>
 #include <shared/RateCounter.h>
 #include <PortableHighResolutionClock.h>
 
@@ -88,7 +89,24 @@ private:
 
     RateCounter<> _broadcastRate;
     p_high_resolution_clock::time_point _lastDebugMessage;
-    QHash<QString, QPair<int, int>> _sessionDisplayNames;
+
+    // Pair of basename + uniquifying integer suffix.
+    struct SessionDisplayName {
+        explicit SessionDisplayName(QString baseName = QString(), int suffix = 0) :
+            _baseName(baseName),
+            _suffix(suffix) { }
+        // Does lexicographic ordering:
+        bool operator<(const SessionDisplayName& rhs) const;
+        bool operator==(const SessionDisplayName& rhs) const {
+            return _baseName == rhs._baseName && _suffix == rhs._suffix;
+        }
+
+        QString _baseName;
+        int _suffix;
+    };
+    static const QRegularExpression suffixedNamePattern;
+
+    std::set<SessionDisplayName> _sessionDisplayNames;
 
     quint64 _displayNameManagementElapsedTime { 0 }; // total time spent in broadcastAvatarData/display name management... since last stats window
     quint64 _ignoreCalculationElapsedTime { 0 };

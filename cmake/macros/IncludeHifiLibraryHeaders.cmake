@@ -10,5 +10,5 @@
 # 
 
 macro(include_hifi_library_headers LIBRARY)
-  include_directories("${HIFI_LIBRARY_DIR}/${LIBRARY}/src")
+  target_include_directories(${TARGET_NAME} PRIVATE "${HIFI_LIBRARY_DIR}/${LIBRARY}/src")
 endmacro(include_hifi_library_headers _library _root_dir)

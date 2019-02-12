@@ -374,7 +374,7 @@ void AnimDebugDraw::update() {
             glm::vec4 color = std::get<3>(iter.second);
 
             for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                const float radius = BONE_RADIUS / (absPoses[i].scale().x * rootPose.scale().x);
+                const float radius = BONE_RADIUS / (absPoses[i].scale() * rootPose.scale());
 
                 // draw bone
                 addBone(rootPose, absPoses[i], radius, color, v);
@@ -394,16 +394,16 @@ void AnimDebugDraw::update() {
             glm::vec3 pos = std::get<1>(iter.second);
             glm::vec4 color = std::get<2>(iter.second);
             const float radius = POSE_RADIUS;
-            addBone(AnimPose::identity, AnimPose(glm::vec3(1), rot, pos), radius, color, v);
+            addBone(AnimPose::identity, AnimPose(1.0f, rot, pos), radius, color, v);
         }
 
-        AnimPose myAvatarPose(glm::vec3(1), DebugDraw::getInstance().getMyAvatarRot(), DebugDraw::getInstance().getMyAvatarPos());
+        AnimPose myAvatarPose(1.0f, DebugDraw::getInstance().getMyAvatarRot(), DebugDraw::getInstance().getMyAvatarPos());
         for (auto& iter : myAvatarMarkerMap) {
             glm::quat rot = std::get<0>(iter.second);
             glm::vec3 pos = std::get<1>(iter.second);
             glm::vec4 color = std::get<2>(iter.second);
             const float radius = POSE_RADIUS;
-            addBone(myAvatarPose, AnimPose(glm::vec3(1), rot, pos), radius, color, v);
+            addBone(myAvatarPose, AnimPose(1.0f, rot, pos), radius, color, v);
         }
 
         // draw rays from shared DebugDraw singleton

@@ -352,9 +352,14 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     
     QString mime;
     getStringVal(object, "uri", image.uri, image.defined);
+    if (image.uri.contains("data:image/png;base64,")) {
+        image.mimeType = getImageMimeType("image/png");
+    } else if (image.uri.contains("data:image/jpeg;base64,")) {
+        image.mimeType = getImageMimeType("image/jpeg");
+    }
     if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    }
+    } 
     getIntVal(object, "bufferView", image.bufferView, image.defined);
     
     _file.images.push_back(image);
@@ -719,7 +724,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     
     //Build default joints
     hfmModel.joints.resize(1);
-    hfmModel.joints[0].isFree = false;
     hfmModel.joints[0].parentIndex = -1;
     hfmModel.joints[0].distanceToParent = 0;
     hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
@@ -831,6 +835,22 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                         }
+                    } else if (key == "COLOR_0") {
+                        QVector<float> colors;
+                        success = addArrayOfType(buffer.blob, 
+                            bufferview.byteOffset + accBoffset, 
+                            accessor.count, 
+                            colors,
+                            accessor.type, 
+                            accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < colors.size() - 3; n += stride) {
+                            mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                        }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
                         success = addArrayOfType(buffer.blob, 
@@ -926,7 +946,6 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
         //_file.dump();
         auto hfmModelPtr = std::make_shared<HFMModel>();
         HFMModel& hfmModel = *hfmModelPtr;
-
         buildGeometry(hfmModel, _url);
 
         //hfmDebugDump(data);
@@ -939,10 +958,15 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
 }
 
 bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
-    QUrl binaryUrl = _url.resolved(url);
-
     bool success;
-    std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+
+    if (url.contains("data:application/octet-stream;base64,")) {
+        outdata = requestEmbeddedData(url);
+        success = !outdata.isEmpty();
+    } else {
+        QUrl binaryUrl = _url.resolved(url);
+        std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+    }
     
     return success;
 }
@@ -973,6 +997,11 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     } else {
         return std::make_tuple(false, QByteArray());
     }
+}
+
+QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
+    QString binaryUrl = url.split(",")[1]; 
+    return binaryUrl.isEmpty() ? QByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
 
 
@@ -1006,11 +1035,16 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
+
         QString fname = QUrl(url).fileName();
         QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
+
+        if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
+            fbxtex.content = requestEmbeddedData(url); 
+        }
     }
     return fbxtex;
 }
@@ -1189,8 +1223,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
 
-    qCDebug(modelformat) << "  palmDirection = " << hfmModel.palmDirection;
-
     qCDebug(modelformat) << "  neckPivot = " << hfmModel.neckPivot;
 
     qCDebug(modelformat) << "  bindExtents.size() = " << hfmModel.bindExtents.size();
@@ -1303,8 +1335,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    shapeInfo.dots =" << joint.shapeInfo.dots;
         qCDebug(modelformat) << "    shapeInfo.points =" << joint.shapeInfo.points;
 
-        qCDebug(modelformat) << "    isFree =" << joint.isFree;
-        qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
         qCDebug(modelformat) << "    translation" << joint.translation;

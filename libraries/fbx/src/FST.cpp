@@ -82,11 +82,6 @@ FST* FST::createFSTFromModel(const QString& fstPath, const QString& modelFilePat
     }
     mapping.insert(JOINT_INDEX_FIELD, jointIndices);
 
-    mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
-    mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
-    mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
-    mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
-
 
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
     // then we can add the default mixamo to "faceshift" mappings

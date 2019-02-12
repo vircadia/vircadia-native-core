@@ -334,10 +334,14 @@ QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<R
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
 
-NetworkTexture::NetworkTexture(const QUrl& url) :
+NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
     Resource(url),
     _maxNumPixels(100)
 {
+    if (resourceTexture) {
+        _textureSource = std::make_shared<gpu::TextureSource>(url);
+        _loaded = true;
+    }
 }
 
 NetworkTexture::NetworkTexture(const NetworkTexture& other) :
@@ -1255,11 +1259,11 @@ void ImageReader::read() {
                                 Q_ARG(int, texture->getHeight()));
 }
 
-NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) {
+NetworkTexturePointer TextureCache::getResourceTexture(const QUrl& resourceTextureUrl) {
     gpu::TexturePointer texture;
     if (resourceTextureUrl == SPECTATOR_CAMERA_FRAME_URL) {
         if (!_spectatorCameraNetworkTexture) {
-            _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+            _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl, true));
         }
         if (!_spectatorCameraFramebuffer) {
             getSpectatorCameraFramebuffer(); // initialize frame buffer
@@ -1270,7 +1274,7 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
     // FIXME: Generalize this, DRY up this code
     if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
         if (!_hmdPreviewNetworkTexture) {
-            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl, true));
         }
         if (_hmdPreviewFramebuffer) {
             texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
