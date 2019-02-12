@@ -152,7 +152,6 @@ void OculusDisplayPlugin::hmdPresent() {
         // taking ownership of the object
         auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
         glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
-        auto viewport = ivec4(uvec2(), _outputFramebuffer->getSize());
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setFramebuffer(_outputFramebuffer);

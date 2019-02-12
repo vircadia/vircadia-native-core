@@ -14,7 +14,6 @@ import QtQuick.Layouts 1.3
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControls
 import  "configSlider"
-import  "../lib/plotperf"
 
 Rectangle {
     HifiConstants { id: hifi;}

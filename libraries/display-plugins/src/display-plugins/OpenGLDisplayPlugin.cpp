@@ -542,7 +542,7 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
         batch.resetViewTransform();
         batch.setViewportTransform(copyFboRect);
         batch.setStateScissorRect(copyFboRect);
-     //   batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, {0.0f, 0.0f, 0.0f, 1.0f});
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, {0.0f, 0.0f, 0.0f, 1.0f});
         batch.blit(fbo, sourceRect, copyFbo, copyRect);
     }
 }

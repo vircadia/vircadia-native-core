@@ -23,7 +23,6 @@ Item {
     height: 24
 
     property var _color: Qt.rgba(1.0, 1.0, 1.0, 1.0 );
-    property var _lcolor: Qt.vec4(1.0, 1.0, 1.0, 1.0 );
     property var zoneWidth: width / 3;
     property var hoveredOn: 0.0;
     property var sliderHeight: height / 2;
