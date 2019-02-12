@@ -113,10 +113,6 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    void setAnimationURL(const QString& url) override;
-    bool needsAnimationReset() const;
-    QString getAnimationURLAndReset();
-
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
@@ -131,7 +127,6 @@ private:
     bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
-    bool _needsAnimationReset { false };
 };
 
 namespace render { namespace entities { 
@@ -190,12 +185,12 @@ private:
 
     const void* _collisionMeshKey { nullptr };
 
-    // used on client side
+    QUrl _parsedModelURL;
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
-    QUrl _parsedModelURL;
     bool _animating { false };
+    QString _animationURL;
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };

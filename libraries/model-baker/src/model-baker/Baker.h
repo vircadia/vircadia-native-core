@@ -12,6 +12,8 @@
 #ifndef hifi_baker_Baker_h
 #define hifi_baker_Baker_h
 
+#include <QMap>
+
 #include <hfm/HFM.h>
 
 #include "Engine.h"
@@ -19,7 +21,7 @@
 namespace baker {
     class Baker {
     public:
-        Baker(const hfm::Model::Pointer& hfmModel);
+        Baker(const hfm::Model::Pointer& hfmModel, const QVariantHash& mapping);
 
         void run();
 
