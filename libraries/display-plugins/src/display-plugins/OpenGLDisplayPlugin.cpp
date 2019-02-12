@@ -354,14 +354,14 @@ void OpenGLDisplayPlugin::customizeContext() {
             if ((image.width() > 0) && (image.height() > 0)) {
 
                 cursorData.texture = gpu::Texture::createStrict(
-                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA),
+                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
                     image.width(), image.height(),
                     gpu::Texture::MAX_NUM_MIPS,
                     gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
                 cursorData.texture->setSource("cursor texture");
                 auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
                 cursorData.texture->setUsage(usage.build());
-                cursorData.texture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::SRGBA));
+                cursorData.texture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
                 cursorData.texture->assignStoredMip(0, image.byteCount(), image.constBits());
                 cursorData.texture->setAutoGenerateMips(true);
             }
@@ -382,13 +382,12 @@ void OpenGLDisplayPlugin::customizeContext() {
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
             _simplePipeline = gpu::Pipeline::create(program, scissorState);
-         //   _hudPipeline = gpu::Pipeline::create(program, blendState);
+            _hudPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
             _presentPipeline = gpu::Pipeline::create(program, scissorState);
-            _hudPipeline = gpu::Pipeline::create(program, blendState);
         }
 
         {
@@ -515,8 +514,7 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
 #ifndef USE_GLES
-    batch.setPipeline(_simplePipeline);
- //   batch.setPipeline(_presentPipeline);
+    batch.setPipeline(_presentPipeline);
 #else
     batch.setPipeline(_simplePipeline);
 #endif
@@ -607,7 +605,7 @@ void OpenGLDisplayPlugin::compositePointer() {
     render([&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setProjectionTransform(mat4());
-   //     batch.setFramebuffer(_compositeFramebuffer);
+        batch.setFramebuffer(_compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
@@ -643,7 +641,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
 
     {
         PROFILE_RANGE_EX(render_detail, "compositeScene", 0xff0077ff, (uint64_t)presentCount())
-  //      compositeScene();
+        compositeScene();
     }
 
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
@@ -657,10 +655,10 @@ void OpenGLDisplayPlugin::compositeLayers() {
         });
     }
 
-  /*  {
+    {
         PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
-    }*/
+    }
 
     // Draw the pointer last so it's on top of everything
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
@@ -675,8 +673,7 @@ void OpenGLDisplayPlugin::internalPresent() {
         // Note: _displayTexture must currently be the same size as the display.
         uvec2 dims = _displayTexture ? uvec2(_displayTexture->getDimensions()) : getSurfacePixels();
         auto viewport = ivec4(uvec2(0),  dims);
-     //  renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
-        renderFromTexture(batch, _displayTexture ? _displayTexture : _currentFrame->framebuffer->getRenderBuffer(0), viewport, viewport);
+        renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
      });
     swapBuffers();
     _presentRate.increment();
@@ -885,7 +882,7 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
 }
 

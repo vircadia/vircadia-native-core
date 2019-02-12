@@ -278,6 +278,7 @@ public:
         FillMode fillMode{ FILL_FACE };
         CullMode cullMode{ CULL_NONE };
         ColorMask colorWriteMask{ WRITE_ALL };
+
         Flags flags;
     };
 

@@ -31,9 +31,6 @@ public:
     void setExposure(float exposure);
     float getExposure() const { return _parametersBuffer.get<Parameters>()._exposure; }
 
-    void setColorFilter(const glm::vec3& colorFilter);
-    glm::vec3 getColorFIlter() const { return _parametersBuffer.get<Parameters>()._colorFilter; }
-
     // Different tone curve available
     enum ToneCurve {
         None = 0,
@@ -54,10 +51,8 @@ private:
         float _exposure = 0.0f;
         float _twoPowExposure = 1.0f;
         glm::vec2 spareA;
-        glm::vec3 _colorFilter{ 1.0f };
-        float spareB;
-        int _toneCurve = None;
-        glm::vec3 spareC;
+        int _toneCurve = Gamma22;
+        glm::vec3 spareB;
 
         Parameters() {}
     };
@@ -70,19 +65,16 @@ private:
 class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
-    Q_PROPERTY(QColor colorFilter MEMBER colorFilter WRITE setColorFilter);
     Q_PROPERTY(int curve MEMBER curve WRITE setCurve);
 public:
     ToneMappingConfig() : render::Job::Config(true) {}
 
     void setExposure(float newExposure) { exposure = newExposure; emit dirty(); }
-    void setColorFilter(const QColor& newColorFilter) { colorFilter = newColorFilter; emit dirty(); }
     void setCurve(int newCurve) { curve = std::max((int)ToneMappingEffect::None, std::min((int)ToneMappingEffect::Filmic, newCurve)); emit dirty(); }
 
 
     float exposure{ 0.0f };
-    QColor colorFilter { 255, 255, 255 };
-    int curve{ ToneMappingEffect::None };
+    int curve{ ToneMappingEffect::Gamma22 };
 signals:
     void dirty();
 };

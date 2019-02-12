@@ -17,7 +17,6 @@
 
 struct ToneMappingParams {
     vec4 _exp_2powExp_s0_s1;
-    vec4 _colorFilter_s0;
     ivec4 _toneCurve_s0_s1_s2;
 };
 
@@ -33,14 +32,11 @@ LAYOUT(binding=RENDER_UTILS_BUFFER_TM_PARAMS) uniform toneMappingParamsBuffer {
 float getTwoPowExposure() {
     return params._exp_2powExp_s0_s1.y;
 }
-vec3 getColorFilter() {
-    return params._colorFilter_s0.xyz;
-}
 int getToneCurve() {
     return params._toneCurve_s0_s1_s2.x;
 }
 
-LAYOUT(binding = RENDER_UTILS_TEXTURE_TM_COLOR) uniform sampler2D colorMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_TM_COLOR) uniform sampler2D colorMap;
 
 layout(location=0) in vec2 varTexCoord0;
 layout(location=0) out vec4 outFragColor;
@@ -49,7 +45,7 @@ void main(void) {
     vec4 fragColorRaw = texture(colorMap, varTexCoord0);
     vec3 fragColor = fragColorRaw.xyz;
 
-    vec3 srcColor = fragColor * getColorFilter() * getTwoPowExposure();
+    vec3 srcColor = fragColor * getTwoPowExposure();
 
     int toneCurve = getToneCurve();
     vec3 tonedColor = srcColor;
@@ -58,7 +54,7 @@ void main(void) {
         tonedColor = (x * (6.2 * x + 0.5)) / (x * (6.2 * x + 1.7) + 0.06);
     } else if (toneCurve == ToneCurveReinhard) {
         tonedColor = srcColor/(1.0 + srcColor);
-    //    tonedColor = pow(tonedColor, vec3(INV_GAMMA_22));
+        tonedColor = pow(tonedColor, vec3(INV_GAMMA_22));
     } else if (toneCurve == ToneCurveGamma22) {
         tonedColor = pow(srcColor, vec3(INV_GAMMA_22));
     } // else None toned = src

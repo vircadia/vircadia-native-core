@@ -150,26 +150,21 @@ void OculusDisplayPlugin::hmdPresent() {
         // Manually bind the texture to the FBO
         // FIXME we should have a way of wrapping raw GL ids in GPU objects without 
         // taking ownership of the object
-        auto srcfbo = getGLBackend()->getFramebufferID(_currentFrame->framebuffer);
-        auto dstfbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
-        glNamedFramebufferTexture(dstfbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
+        auto fbo = getGLBackend()->getFramebufferID(_outputFramebuffer);
+        glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, curTexId, 0);
         auto viewport = ivec4(uvec2(), _outputFramebuffer->getSize());
-      /*  render([&](gpu::Batch& batch) {
+        render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.setFramebuffer(_outputFramebuffer);
             batch.setViewportTransform(ivec4(uvec2(), _outputFramebuffer->getSize()));
             batch.setStateScissorRect(ivec4(uvec2(), _outputFramebuffer->getSize()));
             batch.resetViewTransform();
             batch.setProjectionTransform(mat4());
-           // batch.setPipeline(_presentPipeline);
-            batch.setPipeline(_simplePipeline);
-         //   batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-            batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
+            batch.setPipeline(_presentPipeline);
+            batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
             batch.draw(gpu::TRIANGLE_STRIP, 4);
-        });*/
-        glBlitNamedFramebuffer(srcfbo, dstfbo, viewport.x, viewport.y, viewport.z, viewport.w, viewport.x, viewport.y,
-                               viewport.z, viewport.w, GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        glNamedFramebufferTexture(dstfbo, GL_COLOR_ATTACHMENT0, 0, 0);
+        });
+        glNamedFramebufferTexture(fbo, GL_COLOR_ATTACHMENT0, 0, 0);
     }
 
     {

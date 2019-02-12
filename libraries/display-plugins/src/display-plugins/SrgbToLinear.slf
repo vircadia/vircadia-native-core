@@ -17,31 +17,6 @@ vec3 colorToLinearRGB(vec3 srgb) {
 }
 
 void main(void) {
-    vec4 fetched = texture(colorMap, varTexCoord0);
-    //outFragColor = fetched;
-    outFragColor.a = fetched.a;
-    outFragColor.rgb = pow(fetched.rgb, vec3(2.2));
-
-  /*  int vSize = 300;
-    int hSize = 400;
-
-    if (gl_FragCoord.y < vSize) {
-        finalColor *= pow(2.0, 0.1);
-    }
-    else if (gl_FragCoord.y > 2 * vSize) {
-        finalColor *= pow(2.0, -0.1);
-    }
-    else {
-        finalColor;
-    }
-
-    if (gl_FragCoord.x <hSize) {
-        outFragColor.rgb = colorToLinearRGB(finalColor);
-    } else if (gl_FragCoord.x > 2 * hSize) {
-        outFragColor.rgb = pow(finalColor, vec3(1.0 / 2.2));
-    }
-    else {
-        outFragColor.rgb = finalColor;
-    }*/
-  //  outFragColor.rgb = sqrt(finalColor);
+    outFragColor.a = 1.0;
+    outFragColor.rgb = colorToLinearRGB(texture(colorMap, varTexCoord0).rgb);
 }
