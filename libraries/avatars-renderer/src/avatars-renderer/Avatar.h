@@ -25,6 +25,7 @@
 #include <render/Scene.h>
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
+#include <EntityItem.h>
 
 #include <Grab.h>
 #include <ThreadSafeValueCache.h>
@@ -601,6 +602,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    virtual void sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const { }
     bool applyGrabChanges();
     void relayJointDataToChildren();
 
@@ -644,9 +646,6 @@ protected:
         uint32_t hash { 0 };
         bool success { false };
     };
-
-    //using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
-    //MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
 
     uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };
