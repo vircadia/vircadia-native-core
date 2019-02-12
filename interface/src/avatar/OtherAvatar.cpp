@@ -489,6 +489,9 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             bool success = true;
             if (entity) {
                 QUuid oldParentID = entity->getParentID();
+                const QUuid NULL_ID = QUuid("{00000000-0000-0000-0000-000000000005}");
+                entity->setParentID(NULL_ID);
+                entity->setParentID(oldParentID);
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
                 } else {
