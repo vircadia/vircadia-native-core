@@ -250,27 +250,51 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             fred = findThetaNewWay(tipPose.trans(), basePose.trans(), isLeft);
 
             //get the swingTwist of the hand to lower arm
-            glm::quat yTwist;
-            glm::quat flexUlnarSwing;
-            glm::quat relativeHandRotation = (midPose.inverse() * tipPose).rot();
-            swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_X, flexUlnarSwing, yTwist);
-            glm::vec3 twistAxis = glm::axis(yTwist);
-            glm::vec3 flexUlnarAxis = glm::axis(flexUlnarSwing);
-            float swingTheta = glm::angle(flexUlnarSwing);
-            float twistTheta = glm::angle(yTwist);
             glm::quat flex;
+            glm::quat twistUlnarSwing;
+            glm::quat relativeHandRotation = (midPose.inverse() * tipPose).rot();
+            swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_X, twistUlnarSwing, flex);
+            glm::vec3 flexAxis = glm::axis(flex);
+            
+            //float swingTheta = glm::angle(twistUlnarSwing);
+            float flexTheta = glm::sign(flexAxis[0]) * glm::angle(flex);
+            glm::quat twist;
             glm::quat ulnarDeviation;
-            swingTwistDecomposition(flexUlnarSwing, Vectors::UNIT_Z, flex, ulnarDeviation);
-            float flexTheta = glm::angle(flex);
+            swingTwistDecomposition(twistUlnarSwing, Vectors::UNIT_Z, twist, ulnarDeviation);
+            
+            glm::vec3 twistAxis = glm::axis(twist);
             glm::vec3 ulnarAxis = glm::axis(ulnarDeviation);
-            float ulnarDeviationTheta = glm::angle(ulnarDeviation);
+            float twistTheta = glm::sign(twistAxis[1]) * glm::angle(twist);
+            float ulnarDeviationTheta = glm::sign(ulnarAxis[2]) * glm::angle(ulnarDeviation);
 
-            glm::vec3 eulerVersion = glm::eulerAngles(relativeHandRotation);
+            glm::quat trueTwist;
+            glm::quat nonTwist;
+            swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_Y, nonTwist, trueTwist);
+            if (trueTwist.w < 0.0f) {
+                trueTwist.x *= -1.0f;
+                trueTwist.y *= -1.0f;
+                trueTwist.z *= -1.0f;
+                trueTwist.w *= -1.0f;
+            }
+            glm::vec3 trueTwistAxis = glm::axis(trueTwist);
+            float trueTwistTheta = glm::angle(trueTwist);
+            trueTwistTheta *= glm::sign(trueTwistAxis[1]) * glm::angle(trueTwist);
+            //while (trueTwistTheta > PI) {
+            //    trueTwistTheta -= 2.0f * PI;
+            //}
+            
+
+           // glm::vec3 eulerVersion = glm::eulerAngles(relativeHandRotation);
             if (!isLeft) {
-                //qCDebug(animation) << "wrist thetas -----> X " << twistTheta << " twist: " << flexTheta << "ulnar deviation: " << ulnarDeviationTheta;
-                qCDebug(animation) << "0: " << eulerVersion[0] << " 1: " << eulerVersion[1] << " 2: " << eulerVersion[2];
+                //qCDebug(animation) << "flex: " << (flexTheta / PI) * 180.0f << "    twist: " << (twistTheta / PI) * 180.0f << "   ulnar deviation: " << (ulnarDeviationTheta / PI) * 180.0f;
+                qCDebug(animation) << "trueTwist: " << (trueTwistTheta / PI) * 180.0f;// << "   old twist: " << (twistTheta / PI) * 180.0f;
                 //qCDebug(animation) << "ulnarAxis " << flexUlnarAxis;
-                //qCDebug(animation) << "twistAxis " << twistAxis;
+                qCDebug(animation) << "relative hand rotation " << relativeHandRotation;
+                qCDebug(animation) << "twist rotation " << trueTwist;
+
+                //QString name = QString("handMarker3");
+                //const vec4 WHITE(1.0f);
+                //DebugDraw::getInstance().addMyAvatarMarker(name, relativeHandRotation, midPose.trans(), WHITE);
             }
 
             //QString name = QString("wrist_target").arg(_id);
@@ -283,13 +307,37 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             if (!isLeft) {
                 deltaThetaUlnar = correctElbowForHandUlnarRadialDeviation(tipPose, midPose);
             }
-            //fred -= deltaThetaUlnar;
-            fred -= deltaTheta;
 
+            // make the dead zone PI/6.0
+            
+            const float POWER = 4.0f;
+            /*
+            if (fabsf(flexTheta) > (PI / 6.0f)) {
+                fred -= glm::sign(flexTheta) * pow(flexTheta / PI, POWER) * 180.0f;
+            }
+            if (fabsf(ulnarDeviationTheta) > (PI / 6.0f)) {
+                if (trueTwistTheta > 0.0f) {
+                    fred -= glm::sign(ulnarDeviationTheta) * pow(ulnarDeviationTheta / PI, POWER) * 180.0f;
+                } else {
+                    fred += glm::sign(ulnarDeviationTheta) * pow(ulnarDeviationTheta / PI, POWER) * 180.0f;
+                }
+            }
+            */
+            // remember direction of travel.
+            const float TWIST_DEADZONE = PI / 2.0f;
+            if (trueTwistTheta < -TWIST_DEADZONE) {
+                fred += glm::sign(trueTwistTheta) * pow((trueTwistTheta / PI), POWER) * 180.0f + pow(TWIST_DEADZONE / PI, POWER) * 180.0f;
+            } else {
+                if (trueTwistTheta > (PI / 2.0f)) {
+                    fred += glm::sign(trueTwistTheta) * pow((trueTwistTheta / PI), POWER) * 180.0f - pow(TWIST_DEADZONE / PI, POWER) * 180.0f;
+                }
+            }
+            
             if (isLeft) {
                 fred *= -1.0f;
             }
-            // theta = ((180.0f - fred) / 180.0f)*PI;
+            theta = ((180.0f - fred) / 180.0f)*PI;
+            
             //qCDebug(animation) << "the wrist correction theta is -----> " << isLeft << " theta: " << deltaTheta;
 
         }
