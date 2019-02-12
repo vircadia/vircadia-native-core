@@ -158,8 +158,8 @@ void ScriptableResourceCache::updateTotalSize(const qint64& deltaSize) {
     _resourceCache->updateTotalSize(deltaSize);
 }
 
-ScriptableResource* ScriptableResourceCache::prefetch(const QUrl& url, void* extra) {
-    return _resourceCache->prefetch(url, extra);
+ScriptableResource* ScriptableResourceCache::prefetch(const QUrl& url, void* extra, size_t extraHash) {
+    return _resourceCache->prefetch(url, extra, extraHash);
 }
 
 
@@ -211,20 +211,20 @@ void ScriptableResource::disconnectHelper() {
     }
 }
 
-ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
+ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra, size_t extraHash) {
     ScriptableResource* result = nullptr;
 
     if (QThread::currentThread() != thread()) {
         // Must be called in thread to ensure getResource returns a valid pointer
         BLOCKING_INVOKE_METHOD(this, "prefetch",
             Q_RETURN_ARG(ScriptableResource*, result),
-            Q_ARG(QUrl, url), Q_ARG(void*, extra));
+            Q_ARG(QUrl, url), Q_ARG(void*, extra), Q_ARG(size_t, extraHash));
         return result;
     }
 
     result = new ScriptableResource(url);
 
-    auto resource = getResource(url, QUrl(), extra);
+    auto resource = getResource(url, QUrl(), extra, extraHash);
     result->_resource = resource;
     result->setObjectName(url.toString());
 
@@ -265,16 +265,17 @@ ResourceCache::~ResourceCache() {
 void ResourceCache::clearATPAssets() {
     {
         QWriteLocker locker(&_resourcesLock);
-        for (auto& url : _resources.keys()) {
+        QList<QUrl> urls = _resources.keys();
+        for (auto& url : urls) {
             // If this is an ATP resource
             if (url.scheme() == URL_SCHEME_ATP) {
-
-                // Remove it from the resource hash
-                auto resource = _resources.take(url);
-                if (auto strongRef = resource.lock()) {
-                    // Make sure the resource won't reinsert itself
-                    strongRef->setCache(nullptr);
-                    _totalResourcesSize -= strongRef->getBytes();
+                auto resourcesWithExtraHash = _resources.take(url);
+                for (auto& resource : resourcesWithExtraHash) {
+                    if (auto strongRef = resource.lock()) {
+                        // Make sure the resource won't reinsert itself
+                        strongRef->setCache(nullptr);
+                        _totalResourcesSize -= strongRef->getBytes();
+                    }
                 }
             }
         }
@@ -297,16 +298,20 @@ void ResourceCache::refreshAll() {
     clearUnusedResources();
     resetUnusedResourceCounter();
 
-    QHash<QUrl, QWeakPointer<Resource>> resources;
+    QHash<QUrl, QHash<size_t, QWeakPointer<Resource>>> allResources;
     {
         QReadLocker locker(&_resourcesLock);
-        resources = _resources;
+        allResources = _resources;
     }
 
     // Refresh all remaining resources in use
-    foreach (QSharedPointer<Resource> resource, resources) {
-        if (resource) {
-            resource->refresh();
+    // FIXME: this will trigger multiple refreshes for the same resource if they have different hashes
+    for (auto& resourcesWithExtraHash : allResources) {
+        for (auto& resourceWeak : resourcesWithExtraHash) {
+            auto resource = resourceWeak.lock();
+            if (resource) {
+                resource->refresh();
+            }
         }
     }
 }
@@ -338,39 +343,54 @@ void ResourceCache::setRequestLimit(uint32_t limit) {
     }
 }
 
-QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra) {
+QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl& fallback, void* extra, size_t extraHash) {
     QSharedPointer<Resource> resource;
     {
         QReadLocker locker(&_resourcesLock);
-        resource = _resources.value(url).lock();
+        auto& resourcesWithExtraHash = _resources[url];
+        auto resourcesWithExtraHashIter = resourcesWithExtraHash.find(extraHash);
+        if (resourcesWithExtraHashIter != resourcesWithExtraHash.end()) {
+            // We've seen this extra info before
+            resource = resourcesWithExtraHashIter.value().lock();
+        } else if (resourcesWithExtraHash.size() > 0.0f) {
+            // We haven't seen this extra info before, but we've already downloaded the resource.  We need a new copy of this object (with any old hash).
+            resource = createResourceCopy(resourcesWithExtraHash.begin().value().lock());
+            resource->setExtra(extra);
+            resource->setExtraHash(extraHash);
+            resource->setSelf(resource);
+            resource->setCache(this);
+            resource->moveToThread(qApp->thread());
+            connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
+            resourcesWithExtraHash.insert(extraHash, resource);
+            removeUnusedResource(resource);
+            resource->ensureLoading();
+        }
     }
     if (resource) {
         removeUnusedResource(resource);
     }
 
-    if (!resource && !url.isValid() && !url.isEmpty() && fallback.isValid()) {
-        resource = getResource(fallback, QUrl());
+    if (!resource && (!url.isValid() || url.isEmpty()) && fallback.isValid()) {
+        resource = getResource(fallback, QUrl(), extra, extraHash);
     }
 
     if (!resource) {
-        resource = createResource(
-            url,
-            fallback.isValid() ?  getResource(fallback, QUrl()) : QSharedPointer<Resource>(),
-            extra);
+        resource = createResource(url);
+        resource->setExtra(extra);
+        resource->setExtraHash(extraHash);
         resource->setSelf(resource);
         resource->setCache(this);
         resource->moveToThread(qApp->thread());
         connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
         {
             QWriteLocker locker(&_resourcesLock);
-            _resources.insert(url, resource);
+            _resources[url].insert(extraHash, resource);
         }
         removeUnusedResource(resource);
         resource->ensureLoading();
     }
 
-    DependencyManager::get<ResourceRequestObserver>()->update(
-        resource->getURL(), -1, "ResourceCache::getResource");
+    DependencyManager::get<ResourceRequestObserver>()->update(resource->getURL(), -1, "ResourceCache::getResource");
     return resource;
 }
 
@@ -527,6 +547,27 @@ bool ResourceCache::attemptHighestPriorityRequest() {
 
 static int requestID = 0;
 
+Resource::Resource(const Resource& other) :
+    QObject(),
+    _url(other._url),
+    _effectiveBaseURL(other._effectiveBaseURL),
+    _activeUrl(other._activeUrl),
+    _requestByteRange(other._requestByteRange),
+    _shouldFailOnRedirect(other._shouldFailOnRedirect),
+    _startedLoading(other._startedLoading),
+    _failedToLoad(other._failedToLoad),
+    _loaded(other._loaded),
+    _loadPriorities(other._loadPriorities),
+    _bytesReceived(other._bytesReceived),
+    _bytesTotal(other._bytesTotal),
+    _bytes(other._bytes),
+    _requestID(++requestID),
+    _extraHash(other._extraHash) {
+    if (!other._loaded) {
+        _startedLoading = false;
+    }
+}
+
 Resource::Resource(const QUrl& url) :
     _url(url),
     _activeUrl(url),
@@ -678,7 +719,7 @@ void Resource::setSize(const qint64& bytes) {
 
 void Resource::reinsert() {
     QWriteLocker locker(&_cache->_resourcesLock);
-    _cache->_resources.insert(_url, _self);
+    _cache->_resources[_url].insert(_extraHash, _self);
 }
 
 

@@ -607,7 +607,7 @@ Rectangle {
                         } else if (msg.method === "showTrashLightbox") {
                             lightboxPopup.titleText = "Send \"" + msg.itemName + "\" to Trash";
                             lightboxPopup.bodyText = "Sending this item to the Trash means you will no longer own this item " +
-                                "and it will be inaccessible to you from Purchases.\n\nThis action cannot be undone.";
+                                "and it will be inaccessible to you from Inventory.\n\nThis action cannot be undone.";
                             lightboxPopup.button1text = "CANCEL";
                             lightboxPopup.button1method = function() {
                                 lightboxPopup.visible = false;

@@ -579,7 +579,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         } else {
                             forceDefault = true;
                         }
-                        schemaKey.setScattering(true);
+                        schemaKey.setScatteringMap(true);
                     }
                     break;
                 case graphics::MaterialKey::EMISSIVE_MAP_BIT:
