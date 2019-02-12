@@ -44,7 +44,7 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
 #endif
-
+    
     bool wasStatsPacket = false;
 
     PacketType octreePacketType = message->getType();

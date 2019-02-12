@@ -217,8 +217,8 @@ link_hifi_libraries(
   ui-plugins display-plugins input-plugins
   # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
-  # Plaform specific display plugins libraries 
-  ${PLATFORM_DISPLAY_PLUGINS}
+  # Plaform specific input & display plugin libraries
+  ${PLATFORM_PLUGIN_LIBRARIES}
   shaders
 )
 

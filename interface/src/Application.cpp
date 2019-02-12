@@ -4980,10 +4980,10 @@ void Application::idle() {
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
-#ifndef Q_OS_ANDROID
-    bool showWarnings = getLogger()->extraDebugging();
-#else
+#ifdef Q_OS_ANDROID
     bool showWarnings = false;
+#else
+    bool showWarnings = getLogger()->extraDebugging();
 #endif
     PerformanceWarning warn(showWarnings, "idle()");
 
@@ -8328,7 +8328,7 @@ void Application::toggleLogDialog() {
         bool keepOnTop =_keepLogWindowOnTop.get();
 #ifdef Q_OS_WIN
         _logDialog = new LogDialog(keepOnTop ? qApp->getWindow() : nullptr, getLogger());
-#else
+#elif !defined(Q_OS_ANDROID)
         _logDialog = new LogDialog(nullptr, getLogger());
 
         if (keepOnTop) {

@@ -182,12 +182,3 @@ void Haze::setHazeBackgroundBlend(const float hazeBackgroundBlend) {
         _hazeParametersBuffer.edit<Parameters>().hazeBackgroundBlend = newBlend;
     }
 }
-
-void Haze::setTransform(const glm::mat4& transform) {
-    auto& params = _hazeParametersBuffer.get<Parameters>();
-
-    if (params.transform != transform) {
-        _hazeParametersBuffer.edit<Parameters>().transform = transform;
-    }
-}
-

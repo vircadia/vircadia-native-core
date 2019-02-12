@@ -9,8 +9,6 @@
 //
 
 import QtQuick 2.5
-import QtWebView 1.1
-import QtWebChannel 1.0
 
 import "windows" as Windows
 import controlsUit 1.0 as Controls
@@ -60,22 +58,9 @@ Windows.ScrollingWindow {
         Controls.WebView {
             id: webview
             url: "about:blank"
+            property string userScriptUrl: ""
             anchors.fill: parent
             focus: true
-
-            property string userScriptUrl: ""
-
-            function onWebEventReceived(event) {
-                if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-                    ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
-                }
-            }
-
-            Component.onCompleted: {
-                webChannel.registerObject("eventBridge", eventBridge);
-                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                eventBridge.webEventReceived.connect(onWebEventReceived);
-            }
         }
     }
 }

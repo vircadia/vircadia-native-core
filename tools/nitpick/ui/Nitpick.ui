@@ -20,7 +20,7 @@
    <string>Nitpick</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <widget class="QPushButton" name="closeButton">
+   <widget class="QPushButton" name="closePushbutton">
     <property name="geometry">
      <rect>
       <x>470</x>
@@ -49,10 +49,10 @@
      <attribute name="title">
       <string>Create</string>
      </attribute>
-     <widget class="QPushButton" name="createTestsButton">
+     <widget class="QPushButton" name="createTestsPushbutton">
       <property name="geometry">
        <rect>
-        <x>195</x>
+        <x>210</x>
         <y>60</y>
         <width>220</width>
         <height>40</height>
@@ -62,7 +62,7 @@
        <string>Create Tests</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createMDFileButton">
+     <widget class="QPushButton" name="createMDFilePushbutton">
       <property name="geometry">
        <rect>
         <x>70</x>
@@ -75,7 +75,7 @@
        <string>Create MD file</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createAllMDFilesButton">
+     <widget class="QPushButton" name="createAllMDFilesPushbutton">
       <property name="geometry">
        <rect>
         <x>320</x>
@@ -85,13 +85,13 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create all  MD files</string>
+       <string>Create all MD files</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createTestsOutlineButton">
+     <widget class="QPushButton" name="createTestsOutlinePushbutton">
       <property name="geometry">
        <rect>
-        <x>195</x>
+        <x>210</x>
         <y>120</y>
         <width>220</width>
         <height>40</height>
@@ -101,7 +101,7 @@
        <string>Create Tests Outline</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createRecursiveScriptButton">
+     <widget class="QPushButton" name="createRecursiveScriptPushbutton">
       <property name="geometry">
        <rect>
         <x>70</x>
@@ -114,7 +114,7 @@
        <string>Create Recursive Script</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createAllRecursiveScriptsButton">
+     <widget class="QPushButton" name="createAllRecursiveScriptsPushbutton">
       <property name="geometry">
        <rect>
         <x>320</x>
@@ -124,10 +124,10 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create all  Recursive Scripts</string>
+       <string>Create all Recursive Scripts</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createTestAutoScriptButton">
+     <widget class="QPushButton" name="createTestAutoScriptPushbutton">
       <property name="geometry">
        <rect>
         <x>70</x>
@@ -140,7 +140,7 @@
        <string>Create testAuto script</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createAllTestAutoScriptsButton">
+     <widget class="QPushButton" name="createAllTestAutoScriptsPushbutton">
       <property name="geometry">
        <rect>
         <x>320</x>
@@ -158,7 +158,7 @@
      <attribute name="title">
       <string>Windows</string>
      </attribute>
-     <widget class="QPushButton" name="hideTaskbarButton">
+     <widget class="QPushButton" name="hideTaskbarPushbutton">
       <property name="geometry">
        <rect>
         <x>200</x>
@@ -171,7 +171,7 @@
        <string>Hide Windows Taskbar</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="showTaskbarButton">
+     <widget class="QPushButton" name="showTaskbarPushbutton">
       <property name="geometry">
        <rect>
         <x>200</x>
@@ -187,9 +187,9 @@
     </widget>
     <widget class="QWidget" name="tab">
      <attribute name="title">
-      <string>Run</string>
+      <string>Test on Desktop</string>
      </attribute>
-     <widget class="QPushButton" name="runNowButton">
+     <widget class="QPushButton" name="runNowPushbutton">
       <property name="enabled">
        <bool>false</bool>
       </property>
@@ -420,26 +420,26 @@
        </property>
       </widget>
      </widget>
-     <widget class="QPushButton" name="setWorkingFolderButton">
+     <widget class="QPushButton" name="setWorkingFolderRunOnDesktopPushbutton">
       <property name="geometry">
        <rect>
         <x>10</x>
         <y>20</y>
-        <width>161</width>
-        <height>28</height>
+        <width>160</width>
+        <height>30</height>
        </rect>
       </property>
       <property name="text">
        <string>Set Working Folder</string>
       </property>
      </widget>
-     <widget class="QLabel" name="workingFolderLabel">
+     <widget class="QLabel" name="workingFolderRunOnDesktopLabel">
       <property name="geometry">
        <rect>
         <x>190</x>
         <y>20</y>
-        <width>321</width>
-        <height>31</height>
+        <width>320</width>
+        <height>30</height>
        </rect>
       </property>
       <property name="text">
@@ -469,7 +469,7 @@
        <string>Status:</string>
       </property>
      </widget>
-     <widget class="QLabel" name="statusLabel">
+     <widget class="QLabel" name="statusLabelOnDesktop">
       <property name="geometry">
        <rect>
         <x>350</x>
@@ -501,7 +501,7 @@
        <bool>false</bool>
       </property>
      </widget>
-     <widget class="QCheckBox" name="checkBoxRunLatest">
+     <widget class="QCheckBox" name="runLatestOnDesktopCheckBox">
       <property name="geometry">
        <rect>
         <x>20</x>
@@ -533,7 +533,7 @@
        <string>URL</string>
       </property>
      </widget>
-     <widget class="QLineEdit" name="urlLineEdit">
+     <widget class="QLineEdit" name="urlOnDesktopLineEdit">
       <property name="enabled">
        <bool>false</bool>
       </property>
@@ -544,6 +544,201 @@
         <width>451</width>
         <height>21</height>
        </rect>
+      </property>
+     </widget>
+    </widget>
+    <widget class="QWidget" name="tab_5">
+     <attribute name="title">
+      <string>Test on Mobile</string>
+     </attribute>
+     <widget class="QPushButton" name="connectDevicePushbutton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>90</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Connect Device</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="detectedDeviceLabel">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>96</y>
+        <width>320</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>(not detected)</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="setWorkingFolderRunOnMobilePushbutton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Set Working Folder</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderRunOnMobileLabel">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>20</y>
+        <width>320</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>(not set...)</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pullFolderPushbutton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>460</x>
+        <y>410</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Pull folder</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="folderLineEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>410</y>
+        <width>440</width>
+        <height>30</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="urlOnMobileLineEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>170</y>
+        <width>451</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="runLatestOnMobileCheckBox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>170</y>
+        <width>120</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Run Latest</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="downloadAPKPushbutton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>210</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Download APK</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderLabel_4">
+      <property name="geometry">
+       <rect>
+        <x>290</x>
+        <y>20</y>
+        <width>41</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Status:</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="statusLabelOnMobile">
+      <property name="geometry">
+       <rect>
+        <x>340</x>
+        <y>20</y>
+        <width>271</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>#######</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="installAPKPushbutton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>250</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Install APK</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="runInterfacePushbutton">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>300</y>
+        <width>160</width>
+        <height>30</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Run Interface</string>
       </property>
      </widget>
     </widget>
@@ -567,7 +762,7 @@
        <string>Interactive Mode</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="evaluateTestsButton">
+     <widget class="QPushButton" name="evaluateTestsPushbutton">
       <property name="geometry">
        <rect>
         <x>330</x>
@@ -585,7 +780,7 @@
      <attribute name="title">
       <string>Web Interface</string>
      </attribute>
-     <widget class="QPushButton" name="updateTestRailRunResultsButton">
+     <widget class="QPushButton" name="updateTestRailRunResultsPushbutton">
       <property name="geometry">
        <rect>
         <x>240</x>
@@ -614,7 +809,7 @@
        <bool>true</bool>
       </property>
      </widget>
-     <widget class="QPushButton" name="createTestRailRunButton">
+     <widget class="QPushButton" name="createTestRailRunPushbutton">
       <property name="geometry">
        <rect>
         <x>240</x>
@@ -627,7 +822,7 @@
        <string>Create Run</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="createTestRailTestCasesButton">
+     <widget class="QPushButton" name="createTestRailTestCasesPushbutton">
       <property name="geometry">
        <rect>
         <x>240</x>
@@ -678,7 +873,7 @@
       <property name="title">
        <string>Amazon Web Services</string>
       </property>
-      <widget class="QPushButton" name="createWebPagePushButton">
+      <widget class="QPushButton" name="createWebPagePushbutton">
        <property name="enabled">
         <bool>true</bool>
        </property>
@@ -719,10 +914,10 @@
       </widget>
      </widget>
      <zorder>groupBox</zorder>
-     <zorder>updateTestRailRunResultsButton</zorder>
+     <zorder>updateTestRailRunResultsPushbutton</zorder>
      <zorder>createPythonScriptRadioButton</zorder>
-     <zorder>createTestRailRunButton</zorder>
-     <zorder>createTestRailTestCasesButton</zorder>
+     <zorder>createTestRailRunPushbutton</zorder>
+     <zorder>createTestRailTestCasesPushbutton</zorder>
      <zorder>createXMLScriptRadioButton</zorder>
      <zorder>groupBox_2</zorder>
     </widget>
@@ -851,17 +1046,17 @@
  <tabstops>
   <tabstop>userLineEdit</tabstop>
   <tabstop>branchLineEdit</tabstop>
-  <tabstop>createTestsButton</tabstop>
-  <tabstop>createMDFileButton</tabstop>
-  <tabstop>createAllMDFilesButton</tabstop>
-  <tabstop>createTestsOutlineButton</tabstop>
-  <tabstop>createRecursiveScriptButton</tabstop>
-  <tabstop>createAllRecursiveScriptsButton</tabstop>
-  <tabstop>createTestAutoScriptButton</tabstop>
-  <tabstop>createAllTestAutoScriptsButton</tabstop>
-  <tabstop>hideTaskbarButton</tabstop>
-  <tabstop>showTaskbarButton</tabstop>
-  <tabstop>runNowButton</tabstop>
+  <tabstop>createTestsPushbutton</tabstop>
+  <tabstop>createMDFilePushbutton</tabstop>
+  <tabstop>createAllMDFilesPushbutton</tabstop>
+  <tabstop>createTestsOutlinePushbutton</tabstop>
+  <tabstop>createRecursiveScriptPushbutton</tabstop>
+  <tabstop>createAllRecursiveScriptsPushbutton</tabstop>
+  <tabstop>createTestAutoScriptPushbutton</tabstop>
+  <tabstop>createAllTestAutoScriptsPushbutton</tabstop>
+  <tabstop>hideTaskbarPushbutton</tabstop>
+  <tabstop>showTaskbarPushbutton</tabstop>
+  <tabstop>runNowPushbutton</tabstop>
   <tabstop>sundayCheckBox</tabstop>
   <tabstop>wednesdayCheckBox</tabstop>
   <tabstop>tuesdayCheckBox</tabstop>
@@ -877,22 +1072,22 @@
   <tabstop>timeEdit2checkBox</tabstop>
   <tabstop>timeEdit3checkBox</tabstop>
   <tabstop>timeEdit4checkBox</tabstop>
-  <tabstop>setWorkingFolderButton</tabstop>
+  <tabstop>setWorkingFolderRunOnDesktopPushbutton</tabstop>
   <tabstop>plainTextEdit</tabstop>
   <tabstop>checkBoxServerless</tabstop>
-  <tabstop>checkBoxRunLatest</tabstop>
-  <tabstop>urlLineEdit</tabstop>
+  <tabstop>runLatestOnDesktopCheckBox</tabstop>
+  <tabstop>urlOnDesktopLineEdit</tabstop>
   <tabstop>checkBoxInteractiveMode</tabstop>
-  <tabstop>evaluateTestsButton</tabstop>
-  <tabstop>updateTestRailRunResultsButton</tabstop>
+  <tabstop>evaluateTestsPushbutton</tabstop>
+  <tabstop>updateTestRailRunResultsPushbutton</tabstop>
   <tabstop>createPythonScriptRadioButton</tabstop>
-  <tabstop>createTestRailRunButton</tabstop>
-  <tabstop>createTestRailTestCasesButton</tabstop>
+  <tabstop>createTestRailRunPushbutton</tabstop>
+  <tabstop>createTestRailTestCasesPushbutton</tabstop>
   <tabstop>createXMLScriptRadioButton</tabstop>
-  <tabstop>createWebPagePushButton</tabstop>
+  <tabstop>createWebPagePushbutton</tabstop>
   <tabstop>updateAWSCheckBox</tabstop>
   <tabstop>awsURLLineEdit</tabstop>
-  <tabstop>closeButton</tabstop>
+  <tabstop>closePushbutton</tabstop>
   <tabstop>tabWidget</tabstop>
  </tabstops>
  <resources/>
