@@ -19,12 +19,14 @@ var selectionDisplay = null; // for gridTool.js to ignore
 var AppUi = Script.require('appUi');
 Script.include("/~/system/libraries/gridTool.js");
 Script.include("/~/system/libraries/connectionUtils.js");
+Script.include("/~/system/libraries/accountUtils.js");
 
 var MARKETPLACE_CHECKOUT_QML_PATH = "hifi/commerce/checkout/Checkout.qml";
 var MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH = "hifi/commerce/inspectionCertificate/InspectionCertificate.qml";
 var MARKETPLACE_ITEM_TESTER_QML_PATH = "hifi/commerce/marketplaceItemTester/MarketplaceItemTester.qml";
 var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/wallet/Wallet.qml"; // HRS FIXME "hifi/commerce/purchases/Purchases.qml";
 var MARKETPLACE_WALLET_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
+var MARKETPLACE_QML_PATH = "hifi/commerce/marketplace/Marketplace.qml";
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
 var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
 var METAVERSE_SERVER_URL = Account.metaverseServerURL;
@@ -36,6 +38,7 @@ var CLARA_IO_STATUS = "CLARA.IO STATUS";
 var CLARA_IO_CANCEL_DOWNLOAD = "CLARA.IO CANCEL DOWNLOAD";
 var CLARA_IO_CANCELLED_DOWNLOAD = "CLARA.IO CANCELLED DOWNLOAD";
 var GOTO_DIRECTORY = "GOTO_DIRECTORY";
+var GOTO_MARKETPLACE = "GOTO_MARKETPLACE";
 var QUERY_CAN_WRITE_ASSETS = "QUERY_CAN_WRITE_ASSETS";
 var CAN_WRITE_ASSETS = "CAN_WRITE_ASSETS";
 var WARN_USER_NO_PERMISSIONS = "WARN_USER_NO_PERMISSIONS";
@@ -154,18 +157,14 @@ function onMarketplaceOpen(referrer) {
     }
 }
 
-function openMarketplace(optionalItemOrUrl) {
-    // This is a bit of a kluge, but so is the whole file.
-    // If given a whole path, use it with no cta.
-    // If given an id, build the appropriate url and use the id as the cta.
-    // Otherwise, use home and 'marketplace cta'.
-    // AND... if call onMarketplaceOpen to setupWallet if we need to.
-    var url = optionalItemOrUrl || MARKETPLACE_URL_INITIAL;
-    // If optionalItemOrUrl contains the metaverse base, then it's a url, not an item id.
-    if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
-        url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
+function openMarketplace(optionalItem, edition) {
+    ui.open(MARKETPLACE_QML_PATH);
+    if (optionalItem) {
+        ui.tablet.sendToQml({
+            method: 'updateMarketplaceQMLItem',
+            params: { itemId: optionalItem, edition: edition }
+        });
     }
-    ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
 // Function Name: wireQmlEventBridge()
@@ -439,7 +438,9 @@ var referrerURL; // Used for updating Purchases QML
 var filterText; // Used for updating Purchases QML
 function onWebEventReceived(message) {
     message = JSON.parse(message);
-    if (message.type === GOTO_DIRECTORY) {
+    if (message.type === GOTO_MARKETPLACE) {
+        openMarketplace(message.itemId);
+    } else if (message.type === GOTO_DIRECTORY) {
         // This is the chooser between marketplaces. Only OUR markteplace
         // requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
         ui.open(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
@@ -485,7 +486,6 @@ function onWebEventReceived(message) {
     } else if (message.type === "WALLET_SETUP") {
         setupWallet('marketplace cta');
     } else if (message.type === "MY_ITEMS") {
-        referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = "";
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         wireQmlEventBridge(true);
@@ -546,11 +546,10 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         openWallet();
         break;
     case 'checkout_cancelClicked':
-        openMarketplace(message.params);
+        openMarketplace(message.itemId);
         break;
     case 'header_goToPurchases':
     case 'checkout_goToPurchases':
-        referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = message.filterText;
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         break;
@@ -559,6 +558,25 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         break;
     case 'checkout_continue':
         openMarketplace();
+        break;
+    case 'marketplace_checkout':
+        ui.open(MARKETPLACE_CHECKOUT_QML_PATH);
+        ui.tablet.sendToQml({
+            method: 'updateCheckoutQMLItemID',
+            params: message
+        });
+        break;
+    case 'marketplace_marketplaces':
+        // This is the chooser between marketplaces. Only OUR markteplace
+        // requires/makes-use-of wallet, so doesn't go through openMarketplace bottleneck.
+        var url = MARKETPLACES_URL;
+        if(message.itemId) {
+            url = url + "?itemId=" + message.itemId
+        }
+        ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
+        break;
+    case 'marketplace_open_link':
+        ui.open(message.link);
         break;
     case 'checkout_rezClicked':
     case 'purchases_rezClicked':
@@ -588,18 +606,18 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         }
         break;
     case 'header_marketplaceImageClicked':
-        openMarketplace(message.referrerURL);
+        openMarketplace();
         break;
     case 'purchases_goToMarketplaceClicked':
         openMarketplace();
         break;
     case 'updateItemClicked':
-        openMarketplace(message.upgradeUrl + "?edition=" + message.itemEdition);
+        openMarketplace(message.itemId, message.itemEdition);
         break;
     case 'passphrasePopup_cancelClicked':
     case 'needsLogIn_cancelClicked':
         // Should/must NOT check for wallet setup.
-        ui.open(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
         break;
     case 'needsLogIn_loginClicked':
         openLoginWindow();
@@ -624,10 +642,10 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         ContextOverlay.requestOwnershipVerification(message.entity);
         break;
     case 'inspectionCertificate_showInMarketplaceClicked':
-        openMarketplace(message.marketplaceUrl);
+        console.log("INSPECTION CERTIFICATE SHOW IN MARKETPLACE CLICKED: " + message.itemId);
+        openMarketplace(message.itemId);
         break;
     case 'header_myItemsClicked':
-        referrerURL = MARKETPLACE_URL_INITIAL;
         filterText = "";
         ui.open(MARKETPLACE_PURCHASES_QML_PATH);
         wireQmlEventBridge(true);
@@ -689,7 +707,7 @@ var onMarketplaceScreen = false;
 var onWalletScreen = false;
 var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
     ui.setCurrentVisibleScreenMetadata(type, url);
-    onMarketplaceScreen = type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1;
+    onMarketplaceScreen = type === "QML" && url.indexOf(MARKETPLACE_QML_PATH) !== -1;
     onInspectionCertificateScreen = type === "QML" && url.indexOf(MARKETPLACE_INSPECTIONCERTIFICATE_QML_PATH) !== -1;
     var onWalletScreenNow = url.indexOf(MARKETPLACE_WALLET_QML_PATH) !== -1;
     var onCommerceScreenNow = type === "QML" && (
@@ -699,7 +717,9 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
     var onMarketplaceItemTesterScreenNow = (
         url.indexOf(MARKETPLACE_ITEM_TESTER_QML_PATH) !== -1 ||
         url === MARKETPLACE_ITEM_TESTER_QML_PATH);
-
+    var onMarketplaceScreenNow = (
+        url.indexOf(MARKETPLACE_QML_PATH) !== -1 ||
+        url === MARKETPLACE_QML_PATH);
     if ((!onWalletScreenNow && onWalletScreen) ||
         (!onCommerceScreenNow && onCommerceScreen) ||
         (!onMarketplaceItemTesterScreenNow && onMarketplaceScreen)
@@ -711,7 +731,7 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
     onCommerceScreen = onCommerceScreenNow;
     onWalletScreen = onWalletScreenNow;
     onMarketplaceItemTesterScreen = onMarketplaceItemTesterScreenNow;
-    wireQmlEventBridge(onCommerceScreen || onWalletScreen || onMarketplaceItemTesterScreen);
+    wireQmlEventBridge(onCommerceScreen || onWalletScreen || onMarketplaceItemTesterScreen || onMarketplaceScreenNow);
 
     if (url === MARKETPLACE_PURCHASES_QML_PATH) {
         // FIXME? Is there a race condition here in which the event
@@ -734,11 +754,8 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
         Keyboard.raised = false;
     }
 
-    if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
-        ContextOverlay.isInMarketplaceInspectionMode = true;
-    } else {
-        ContextOverlay.isInMarketplaceInspectionMode = false;
-    }
+    ContextOverlay.isInMarketplaceInspectionMode = false;
+
 
     if (onInspectionCertificateScreen) {
         setCertificateInfo(contextOverlayEntity);
@@ -769,16 +786,13 @@ var onTabletScreenChanged = function onTabletScreenChanged(type, url) {
 
 
 var BUTTON_NAME = "MARKET";
-var MARKETPLACE_URL = METAVERSE_SERVER_URL + "/marketplace";
-// Append "?" if necessary to signal injected script that it's the initial page.
-var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + (MARKETPLACE_URL.indexOf("?") > -1 ? "" : "?");
+
 var ui;
 function startup() {
     ui = new AppUi({
         buttonName: BUTTON_NAME,
         sortOrder: 9,
-        inject: MARKETPLACES_INJECT_SCRIPT_URL,
-        home: MARKETPLACE_URL_INITIAL,
+        home: MARKETPLACE_QML_PATH,
         onScreenChanged: onTabletScreenChanged,
         onMessage: onQmlMessageReceived
     });

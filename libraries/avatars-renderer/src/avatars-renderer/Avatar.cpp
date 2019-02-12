@@ -412,6 +412,9 @@ void Avatar::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& g
             if (!grab || !grab->getActionID().isNull()) {
                 continue; // the accumulated value isn't used, in this case.
             }
+            if (grab->getReleased()) {
+                continue;
+            }
 
             glm::vec3 jointTranslation = getAbsoluteJointTranslationInObjectFrame(grab->getParentJointIndex());
             glm::quat jointRotation = getAbsoluteJointRotationInObjectFrame(grab->getParentJointIndex());
@@ -1733,15 +1736,17 @@ void Avatar::computeShapeInfo(ShapeInfo& shapeInfo) {
 void Avatar::computeDetailedShapeInfo(ShapeInfo& shapeInfo, int jointIndex) {
     if (jointIndex > -1 && jointIndex < (int)_multiSphereShapes.size()) {
         auto& data = _multiSphereShapes[jointIndex].getSpheresData();
-        std::vector<glm::vec3> positions;
-        std::vector<btScalar> radiuses;
-        positions.reserve(data.size());
-        radiuses.reserve(data.size());
-        for (auto& sphere : data) {
-            positions.push_back(sphere._position);
-            radiuses.push_back(sphere._radius);
+        if (data.size() > 0) {
+            std::vector<glm::vec3> positions;
+            std::vector<btScalar> radiuses;
+            positions.reserve(data.size());
+            radiuses.reserve(data.size());
+            for (auto& sphere : data) {
+                positions.push_back(sphere._position);
+                radiuses.push_back(sphere._radius);
+            }
+            shapeInfo.setMultiSphere(positions, radiuses);
         }
-        shapeInfo.setMultiSphere(positions, radiuses);
     }
 }
 
@@ -1972,12 +1977,12 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
         auto& rig = _skeletonModel->getRig();
 
         // Normally the model offset transform will contain the avatar scale factor, we explicitly remove it here.
-        AnimPose modelOffsetWithoutAvatarScale(glm::vec3(1.0f), rig.getModelOffsetPose().rot(), rig.getModelOffsetPose().trans());
+        AnimPose modelOffsetWithoutAvatarScale(1.0f, rig.getModelOffsetPose().rot(), rig.getModelOffsetPose().trans());
         AnimPose geomToRigWithoutAvatarScale = modelOffsetWithoutAvatarScale * rig.getGeometryOffsetPose();
 
         // This factor can be used to scale distances in the geometry frame into the unscaled rig frame.
         // Typically it will be the unit conversion from cm to m.
-        float scaleFactor = geomToRigWithoutAvatarScale.scale().x;  // in practice this always a uniform scale factor.
+        float scaleFactor = geomToRigWithoutAvatarScale.scale();
 
         int headTopJoint = rig.indexOfJoint("HeadTop_End");
         int headJoint = rig.indexOfJoint("Head");

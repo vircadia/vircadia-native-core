@@ -299,9 +299,9 @@ public:
         TransformDualQuaternion() {}
         TransformDualQuaternion(const glm::mat4& m) {
             AnimPose p(m);
-            _scale.x = p.scale().x;
-            _scale.y = p.scale().y;
-            _scale.z = p.scale().z;
+            _scale.x = p.scale();
+            _scale.y = p.scale();
+            _scale.z = p.scale();
             _scale.w = 0.0f;
             _dq = DualQuaternion(p.rot(), p.trans());
         }
