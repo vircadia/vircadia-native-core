@@ -235,7 +235,7 @@ public:
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
     void computeFlowSkeleton() { _flow.calculateConstraints(); }
-    const Flow& getFlow() const { return _flow; }
+    Flow& getFlow() { return _flow; }
 
 signals:
     void onLoadComplete();

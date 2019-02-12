@@ -39,6 +39,8 @@ const float HAPTIC_THRESHOLD = 40.0f;
 const QString FLOW_JOINT_PREFIX = "flow";
 const QString SIM_JOINT_PREFIX = "sim";
 
+const std::vector<QString> HAND_COLLISION_JOINTS = { "RightHandMiddle1", "RightHandThumb3", "LeftHandMiddle1", "LeftHandThumb3", "RightHandMiddle3", "LeftHandMiddle3" };
+
 const QString JOINT_COLLISION_PREFIX = "joint_";
 const QString HAND_COLLISION_PREFIX = "hand_";
 const float HAND_COLLISION_RADIUS = 0.03f;
@@ -100,18 +102,6 @@ struct FlowCollisionSettings {
 
 const FlowPhysicsSettings DEFAULT_JOINT_SETTINGS;
 
-const std::map<QString, FlowPhysicsSettings> PRESET_FLOW_DATA = { {"hair", FlowPhysicsSettings()},
-                                                              {"skirt", FlowPhysicsSettings(true, 1.0f, DEFAULT_GRAVITY, 0.65f, 0.8f, 0.45f, 0.01f)},
-                                                              {"breast", FlowPhysicsSettings(true, 1.0f, DEFAULT_GRAVITY, 0.65f, 0.8f, 0.45f, 0.01f)} };
-
-const std::map<QString, FlowCollisionSettings> PRESET_COLLISION_DATA = {
-    { "Head", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, 0.06f, 0.0f), 0.08f)},
-    { "LeftArm", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, 0.02f, 0.0f), 0.05f) },
-    { "Head", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, 0.04f, 0.0f), 0.0f) } 
-};
-
-const std::vector<QString> HAND_COLLISION_JOINTS = { "RightHandMiddle1", "RightHandThumb3", "LeftHandMiddle1", "LeftHandThumb3", "RightHandMiddle3", "LeftHandMiddle3" };
-
 struct FlowJointInfo {
     FlowJointInfo() {};
     FlowJointInfo(int index, int parentIndex, int childIndex, const QString& name) {
@@ -138,19 +128,22 @@ struct FlowCollisionResult {
 class FlowCollisionSphere {
 public:
     FlowCollisionSphere() {};
-    FlowCollisionSphere(const int& jointIndex, const FlowCollisionSettings& settings);
+    FlowCollisionSphere(const int& jointIndex, const FlowCollisionSettings& settings, bool isTouch = false);
     void setPosition(const glm::vec3& position) { _position = position; }
     FlowCollisionResult computeSphereCollision(const glm::vec3& point, float radius) const;
     FlowCollisionResult checkSegmentCollision(const glm::vec3& point1, const glm::vec3& point2, const FlowCollisionResult& collisionResult1, const FlowCollisionResult& collisionResult2);
-    void update();
 
     QUuid _entityID;
-    int _jointIndex { -1 };
-    float _radius { 0.0f };
-    float _initialRadius{ 0.0f };
+
     glm::vec3 _offset;
     glm::vec3 _initialOffset;
     glm::vec3 _position;
+
+    bool _isTouch { false };
+    int _jointIndex { -1 };
+    int collisionIndex { -1 };
+    float _radius { 0.0f };
+    float _initialRadius{ 0.0f };
 };
 
 class FlowThread;
@@ -158,24 +151,26 @@ class FlowThread;
 class FlowCollisionSystem {
 public:
     FlowCollisionSystem() {};
-    void addCollisionSphere(int jointIndex, const FlowCollisionSettings& settings);
-    void addCollisionShape(int jointIndex, const FlowCollisionSettings& settings);
-    bool addCollisionToJoint(int jointIndex);
-    void removeCollisionFromJoint(int jointIndex);
-    void update();
+    void addCollisionSphere(int jointIndex, const FlowCollisionSettings& settings, const glm::vec3& position = { 0.0f, 0.0f, 0.0f }, bool isSelfCollision = true, bool isTouch = false);
     FlowCollisionResult computeCollision(const std::vector<FlowCollisionResult> collisions);
     void setScale(float scale);
 
-    std::vector<FlowCollisionResult> checkFlowThreadCollisions(FlowThread* flowThread, bool checkSegments);
+    std::vector<FlowCollisionResult> checkFlowThreadCollisions(FlowThread* flowThread);
 
-    int findCollisionWithJoint(int jointIndex);
-    void modifyCollisionRadius(int jointIndex, float radius);
-    void modifyCollisionYOffset(int jointIndex, float offset);
-    void modifyCollisionOffset(int jointIndex, const glm::vec3& offset);
+    int findSelfCollisionWithJoint(int jointIndex);
+    void modifySelfCollisionRadius(int jointIndex, float radius);
+    void modifySelfCollisionYOffset(int jointIndex, float offset);
+    void modifySelfCollisionOffset(int jointIndex, const glm::vec3& offset);
 
-    std::vector<FlowCollisionSphere>& getCollisions() { return _collisionSpheres; };
-private:
-    std::vector<FlowCollisionSphere> _collisionSpheres;
+    std::vector<FlowCollisionSphere>& getSelfCollisions() { return _selfCollisions; };
+    void setOthersCollisions(const std::vector<FlowCollisionSphere>& othersCollisions) { _othersCollisions = othersCollisions; }
+    void prepareCollisions();
+    void resetCollisions();
+    void resetOthersCollisions() { _othersCollisions.clear(); }
+protected:
+    std::vector<FlowCollisionSphere> _selfCollisions;
+    std::vector<FlowCollisionSphere> _othersCollisions;
+    std::vector<FlowCollisionSphere> _allCollisions;
     float _scale{ 1.0f };
 };
 
@@ -208,7 +203,6 @@ public:
     void solve(const glm::vec3& constrainPoint, float maxDistance, const FlowCollisionResult& collision);
     void solveConstraints(const glm::vec3& constrainPoint, float maxDistance);
     void solveCollisions(const FlowCollisionResult& collision);
-    void apply(const QString& name, bool forceRendering);
 };
 
 class FlowJoint {
@@ -268,7 +262,7 @@ public:
     void computeJointRotations();
     void apply();
     bool getActive();
-    void setRootFramePositions(const std::vector<glm::vec3>& rootFramePositions) { _rootFramePositions = rootFramePositions; };
+    void setRootFramePositions(const std::vector<glm::vec3>& rootFramePositions) { _rootFramePositions = rootFramePositions; }
 
     std::vector<int> _joints;
     std::vector<glm::vec3> _positions;
@@ -276,7 +270,6 @@ public:
     float _length{ 0.0f };
     std::map<int, FlowJoint>* _jointsPointer;
     std::vector<glm::vec3> _rootFramePositions;
-
 };
 
 class Flow {
@@ -288,6 +281,8 @@ public:
     void setTransform(float scale, const glm::vec3& position, const glm::quat& rotation);
     const std::map<int, FlowJoint>& getJoints() const { return _flowJointData; }
     const std::vector<FlowThread>& getThreads() const { return _jointThreads; }
+    void setOthersCollision(const QUuid& otherId, int jointIndex, const glm::vec3& position);
+    FlowCollisionSystem& getCollisionSystem() { return _collisionSystem; }
 private:
     void setJoints();
     void cleanUp();
@@ -305,11 +300,9 @@ private:
     FlowCollisionSystem _collisionSystem;
     bool _initialized { false };
     bool _active { false };
-    int _deltaTime{ 0 };
-    int _deltaTimeLimit{ 4000 };
-    int _elapsedTime{ 0 };
-    float _tau = 0.1f;
-    QElapsedTimer _timer;
+    int _deltaTime { 0 };
+    int _deltaTimeLimit { 4000000 };
+    int _updates { 0 };
 };
 
 #endif // hifi_Flow_h

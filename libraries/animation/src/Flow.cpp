@@ -12,11 +12,23 @@
 #include "Rig.h"
 #include "AnimSkeleton.h"
 
-FlowCollisionSphere::FlowCollisionSphere(const int& jointIndex, const FlowCollisionSettings& settings) {
+const std::map<QString, FlowPhysicsSettings> PRESET_FLOW_DATA = { { "hair", FlowPhysicsSettings() },
+{ "skirt", FlowPhysicsSettings(true, 1.0f, DEFAULT_GRAVITY, 0.65f, 0.8f, 0.45f, 0.01f) },
+{ "breast", FlowPhysicsSettings(true, 1.0f, DEFAULT_GRAVITY, 0.65f, 0.8f, 0.45f, 0.01f) } };
+
+const std::map<QString, FlowCollisionSettings> PRESET_COLLISION_DATA = {
+    { "Spine2", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, 0.2f, 0.0f), 0.14f) },
+    { "LeftArm", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, 0.02f, 0.0f), 0.05f) },
+    { "RightArm", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, 0.02f, 0.0f), 0.05f) },
+    { "HeadTop_End", FlowCollisionSettings(QUuid(), FlowCollisionType::CollisionSphere, glm::vec3(0.0f, -0.15f, 0.0f), 0.09f) }
+};
+
+FlowCollisionSphere::FlowCollisionSphere(const int& jointIndex, const FlowCollisionSettings& settings, bool isTouch) {
     _jointIndex = jointIndex;
     _radius = _initialRadius = settings._radius;
     _offset = _initialOffset = settings._offset;
     _entityID = settings._entityID;
+    _isTouch = isTouch;
 }
 
 FlowCollisionResult FlowCollisionSphere::computeSphereCollision(const glm::vec3& point, float radius) const {
@@ -51,53 +63,21 @@ FlowCollisionResult FlowCollisionSphere::checkSegmentCollision(const glm::vec3& 
     return result;
 }
 
-void FlowCollisionSphere::update() {
-    // TODO
-    // Fill this
+void FlowCollisionSystem::addCollisionSphere(int jointIndex, const FlowCollisionSettings& settings, const glm::vec3& position, bool isSelfCollision, bool isTouch) {
+    auto collision = FlowCollisionSphere(jointIndex, settings, isTouch);
+    collision.setPosition(position);
+    if (isSelfCollision) {
+        _selfCollisions.push_back(collision);
+    } else {
+        _othersCollisions.push_back(collision);
+    }
+
+};
+void FlowCollisionSystem::resetCollisions() {
+    _allCollisions.clear();
+    _othersCollisions.clear();
+    _selfCollisions.clear();
 }
-
-void FlowCollisionSystem::addCollisionSphere(int jointIndex, const FlowCollisionSettings& settings) {
-    _collisionSpheres.push_back(FlowCollisionSphere(jointIndex, settings));
-};
-
-void FlowCollisionSystem::addCollisionShape(int jointIndex, const FlowCollisionSettings& settings) {
-    auto name = JOINT_COLLISION_PREFIX + jointIndex;
-    switch (settings._type) {
-    case FlowCollisionType::CollisionSphere:
-        addCollisionSphere(jointIndex, settings);
-        break;
-    default:
-        break;
-    }
-};
-
-bool FlowCollisionSystem::addCollisionToJoint(int jointIndex) {
-    if (_collisionSpheres.size() >= COLLISION_SHAPES_LIMIT) {
-        return false;
-    }
-    int collisionIndex = findCollisionWithJoint(jointIndex);
-    if (collisionIndex == -1) {
-        addCollisionShape(jointIndex, FlowCollisionSettings());
-        return true;
-    }
-    else {
-        return false;
-    }
-};
-
-void FlowCollisionSystem::removeCollisionFromJoint(int jointIndex) {
-    int collisionIndex = findCollisionWithJoint(jointIndex);
-    if (collisionIndex > -1) {
-        _collisionSpheres.erase(_collisionSpheres.begin() + collisionIndex);
-    }
-};
-
-void FlowCollisionSystem::update() {
-    for (size_t i = 0; i < _collisionSpheres.size(); i++) {
-        _collisionSpheres[i].update();
-    }
-};
-
 FlowCollisionResult FlowCollisionSystem::computeCollision(const std::vector<FlowCollisionResult> collisions) {
     FlowCollisionResult result;
     if (collisions.size() > 1) {
@@ -123,50 +103,51 @@ FlowCollisionResult FlowCollisionSystem::computeCollision(const std::vector<Flow
 
 void FlowCollisionSystem::setScale(float scale) {
     _scale = scale;
-    for (size_t j = 0; j < _collisionSpheres.size(); j++) {
-        _collisionSpheres[j]._radius = _collisionSpheres[j]._initialRadius * scale;
-        _collisionSpheres[j]._offset = _collisionSpheres[j]._initialOffset * scale;
+    for (size_t j = 0; j < _selfCollisions.size(); j++) {
+        _selfCollisions[j]._radius = _selfCollisions[j]._initialRadius * scale;
+        _selfCollisions[j]._offset = _selfCollisions[j]._initialOffset * scale;
     }
 };
 
-std::vector<FlowCollisionResult> FlowCollisionSystem::checkFlowThreadCollisions(FlowThread* flowThread, bool checkSegments) {
+std::vector<FlowCollisionResult> FlowCollisionSystem::checkFlowThreadCollisions(FlowThread* flowThread) {
     std::vector<std::vector<FlowCollisionResult>> FlowThreadResults;
     FlowThreadResults.resize(flowThread->_joints.size());
-    for (size_t j = 0; j < _collisionSpheres.size(); j++) {
-        FlowCollisionSphere &sphere = _collisionSpheres[j];
+    for (size_t j = 0; j < _allCollisions.size(); j++) {
+        FlowCollisionSphere &sphere = _allCollisions[j];
         FlowCollisionResult rootCollision = sphere.computeSphereCollision(flowThread->_positions[0], flowThread->_radius);
         std::vector<FlowCollisionResult> collisionData = { rootCollision };
         bool tooFar = rootCollision._distance >(flowThread->_length + rootCollision._radius);
         FlowCollisionResult nextCollision;
         if (!tooFar) {
-            if (checkSegments) {
+            if (sphere._isTouch) {
                 for (size_t i = 1; i < flowThread->_joints.size(); i++) {
                     auto prevCollision = collisionData[i - 1];
-                    nextCollision = _collisionSpheres[j].computeSphereCollision(flowThread->_positions[i], flowThread->_radius);
+                    nextCollision = _allCollisions[j].computeSphereCollision(flowThread->_positions[i], flowThread->_radius);
                     collisionData.push_back(nextCollision);
+                    bool isTouching = false;
                     if (prevCollision._offset > 0.0f) {
                         if (i == 1) {
                             FlowThreadResults[i - 1].push_back(prevCollision);
+                            isTouching = true;
                         }
-                    }
-                    else if (nextCollision._offset > 0.0f) {
+                    } else if (nextCollision._offset > 0.0f) {
                         FlowThreadResults[i].push_back(nextCollision);
-                    }
-                    else {
-                        FlowCollisionResult segmentCollision = _collisionSpheres[j].checkSegmentCollision(flowThread->_positions[i - 1], flowThread->_positions[i], prevCollision, nextCollision);
+                        isTouching = true;
+                    } else {
+                        FlowCollisionResult segmentCollision = _allCollisions[j].checkSegmentCollision(flowThread->_positions[i - 1], flowThread->_positions[i], prevCollision, nextCollision);
                         if (segmentCollision._offset > 0) {
                             FlowThreadResults[i - 1].push_back(segmentCollision);
                             FlowThreadResults[i].push_back(segmentCollision);
+                            isTouching = true;
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 if (rootCollision._offset > 0.0f) {
                     FlowThreadResults[0].push_back(rootCollision);
                 }
                 for (size_t i = 1; i < flowThread->_joints.size(); i++) {
-                    nextCollision = _collisionSpheres[j].computeSphereCollision(flowThread->_positions[i], flowThread->_radius);
+                    nextCollision = _allCollisions[j].computeSphereCollision(flowThread->_positions[i], flowThread->_radius);
                     if (nextCollision._offset > 0.0f) {
                         FlowThreadResults[i].push_back(nextCollision);
                     }
@@ -182,39 +163,48 @@ std::vector<FlowCollisionResult> FlowCollisionSystem::checkFlowThreadCollisions(
     return results;
 };
 
-int FlowCollisionSystem::findCollisionWithJoint(int jointIndex) {
-    for (size_t i = 0; i < _collisionSpheres.size(); i++) {
-        if (_collisionSpheres[i]._jointIndex == jointIndex) {
+int FlowCollisionSystem::findSelfCollisionWithJoint(int jointIndex) {
+    for (size_t i = 0; i < _selfCollisions.size(); i++) {
+        if (_selfCollisions[i]._jointIndex == jointIndex) {
             return (int)i;
         }
     }
     return -1;
 };
 
-void FlowCollisionSystem::modifyCollisionRadius(int jointIndex, float radius) {
-    int collisionIndex = findCollisionWithJoint(jointIndex);
+void FlowCollisionSystem::modifySelfCollisionRadius(int jointIndex, float radius) {
+    int collisionIndex = findSelfCollisionWithJoint(jointIndex);
     if (collisionIndex > -1) {
-        _collisionSpheres[collisionIndex]._initialRadius = radius;
-        _collisionSpheres[collisionIndex]._radius = _scale * radius;
+        _selfCollisions[collisionIndex]._initialRadius = radius;
+        _selfCollisions[collisionIndex]._radius = _scale * radius;
     }
 };
 
-void FlowCollisionSystem::modifyCollisionYOffset(int jointIndex, float offset) {
-    int collisionIndex = findCollisionWithJoint(jointIndex);
+void FlowCollisionSystem::modifySelfCollisionYOffset(int jointIndex, float offset) {
+    int collisionIndex = findSelfCollisionWithJoint(jointIndex);
     if (collisionIndex > -1) {
-        auto currentOffset = _collisionSpheres[collisionIndex]._offset;
-        _collisionSpheres[collisionIndex]._initialOffset = glm::vec3(currentOffset.x, offset, currentOffset.z);
-        _collisionSpheres[collisionIndex]._offset = _collisionSpheres[collisionIndex]._initialOffset * _scale;
+        auto currentOffset = _selfCollisions[collisionIndex]._offset;
+        _selfCollisions[collisionIndex]._initialOffset = glm::vec3(currentOffset.x, offset, currentOffset.z);
+        _selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
     }
 };
 
-void FlowCollisionSystem::modifyCollisionOffset(int jointIndex, const glm::vec3& offset) {
-    int collisionIndex = findCollisionWithJoint(jointIndex);
+void FlowCollisionSystem::modifySelfCollisionOffset(int jointIndex, const glm::vec3& offset) {
+    int collisionIndex = findSelfCollisionWithJoint(jointIndex);
     if (collisionIndex > -1) {
-        _collisionSpheres[collisionIndex]._initialOffset = offset;
-        _collisionSpheres[collisionIndex]._offset = _collisionSpheres[collisionIndex]._initialOffset * _scale;
+        _selfCollisions[collisionIndex]._initialOffset = offset;
+        _selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
     }
 };
+
+
+void FlowCollisionSystem::prepareCollisions() {
+    _allCollisions.clear();
+    _allCollisions.resize(_selfCollisions.size() + _othersCollisions.size());
+    std::copy(_selfCollisions.begin(), _selfCollisions.begin() + _selfCollisions.size(), _allCollisions.begin());
+    std::copy(_othersCollisions.begin(), _othersCollisions.begin() + _othersCollisions.size(), _allCollisions.begin() + _selfCollisions.size());
+    _othersCollisions.clear();
+}
 
 void FlowNode::update(const glm::vec3& accelerationOffset) {
     _acceleration = glm::vec3(0.0f, _settings._gravity, 0.0f);
@@ -261,16 +251,6 @@ void FlowNode::solveCollisions(const FlowCollisionResult& collision) {
     else {
         _previousCollision = FlowCollisionResult();
     }
-};
-
-void FlowNode::apply(const QString& name, bool forceRendering) {
-    // TODO 
-    // Render here ??
-    /*
-    jointDebug.setDebugSphere(name, self.currentPosition, 2 * self.radius, { red: self.collision && self.collision.collisionCount > 1 ? 0 : 255,
-    green : self.colliding ? 0 : 255,
-    blue : 0 }, forceRendering);
-    */
 };
 
 FlowJoint::FlowJoint(int jointIndex, int parentIndex, int childIndex, const QString& name, const QString& group, float scale, const FlowPhysicsSettings& settings) {
@@ -347,7 +327,7 @@ void FlowThread::resetLength() {
     _length = 0.0f;
     for (size_t i = 1; i < _joints.size(); i++) {
         int index = _joints[i];
-        _length += (*_jointsPointer)[index]._length;
+        _length += _jointsPointer->at(index)._length;
     }
 }
 
@@ -356,12 +336,12 @@ void FlowThread::computeFlowThread(int rootIndex) {
     if (_jointsPointer->size() == 0) {
         return;
     }
-    int childIndex = (*_jointsPointer)[parentIndex]._childIndex;
+    int childIndex = _jointsPointer->at(parentIndex)._childIndex;
     std::vector<int> indexes = { parentIndex };
     for (size_t i = 0; i < _jointsPointer->size(); i++) {
         if (childIndex > -1) {
             indexes.push_back(childIndex);
-            childIndex = (*_jointsPointer)[childIndex]._childIndex;
+            childIndex = _jointsPointer->at(childIndex)._childIndex;
         } else {
             break;
         }
@@ -370,20 +350,20 @@ void FlowThread::computeFlowThread(int rootIndex) {
         int index = indexes[i];
         _joints.push_back(index);
         if (i > 0) {
-            _length += (*_jointsPointer)[index]._length;
+            _length += _jointsPointer->at(index)._length;
         }
     }
 };
 
 void FlowThread::computeRecovery() {
     int parentIndex = _joints[0];
-    auto parentJoint = (*_jointsPointer)[parentIndex];
-    (*_jointsPointer)[parentIndex]._recoveryPosition = parentJoint._recoveryPosition = parentJoint._node._currentPosition;
+    auto parentJoint = _jointsPointer->at(parentIndex);
+    _jointsPointer->at(parentIndex)._recoveryPosition = parentJoint._recoveryPosition = parentJoint._node._currentPosition;
     glm::quat parentRotation = parentJoint._parentWorldRotation * parentJoint._initialRotation;
     for (size_t i = 1; i < _joints.size(); i++) {
-        auto joint = (*_jointsPointer)[_joints[i]];
+        auto joint = _jointsPointer->at(_joints[i]);
         glm::quat rotation = i == 1 ? parentRotation : rotation * parentJoint._initialRotation;
-        (*_jointsPointer)[_joints[i]]._recoveryPosition = joint._recoveryPosition = parentJoint._recoveryPosition + (rotation * (joint._initialTranslation * 0.01f));
+        _jointsPointer->at(_joints[i])._recoveryPosition = joint._recoveryPosition = parentJoint._recoveryPosition + (rotation * (joint._initialTranslation * 0.01f));
         parentJoint = joint;
     }
 };
@@ -391,10 +371,10 @@ void FlowThread::computeRecovery() {
 void FlowThread::update() {
     if (getActive()) {
         _positions.clear();
-        _radius = (*_jointsPointer)[_joints[0]]._node._settings._radius;
+        _radius = _jointsPointer->at(_joints[0])._node._settings._radius;
         computeRecovery();
         for (size_t i = 0; i < _joints.size(); i++) {
-            auto &joint = (*_jointsPointer)[_joints[i]];
+            auto &joint = _jointsPointer->at(_joints[i]);
             joint.update();
             _positions.push_back(joint._node._currentPosition);
         }
@@ -404,20 +384,16 @@ void FlowThread::update() {
 void FlowThread::solve(bool useCollisions, FlowCollisionSystem& collisionSystem) {
     if (getActive()) {
         if (useCollisions) {
-            auto bodyCollisions = collisionSystem.checkFlowThreadCollisions(this, false);
+            auto bodyCollisions = collisionSystem.checkFlowThreadCollisions(this);
             int handTouchedJoint = -1;
             for (size_t i = 0; i < _joints.size(); i++) {
                 int index = _joints[i];
-                if (bodyCollisions[i]._offset > 0.0f) {
-                    (*_jointsPointer)[index].solve(bodyCollisions[i]);
-                } else {
-                    (*_jointsPointer)[index].solve(FlowCollisionResult());
-                }
+                _jointsPointer->at(index).solve(bodyCollisions[i]);
             }
         } else {
             for (size_t i = 0; i < _joints.size(); i++) {
                 int index = _joints[i];
-                (*_jointsPointer)[index].solve(FlowCollisionResult());
+                _jointsPointer->at(index).solve(FlowCollisionResult());
             }
         }
     }
@@ -428,8 +404,8 @@ void FlowThread::computeJointRotations() {
     auto pos0 = _rootFramePositions[0];
     auto pos1 = _rootFramePositions[1];
 
-    auto joint0 = (*_jointsPointer)[_joints[0]];
-    auto joint1 = (*_jointsPointer)[_joints[1]];
+    auto joint0 = _jointsPointer->at(_joints[0]);
+    auto joint1 = _jointsPointer->at(_joints[1]);
 
     auto initial_pos1 = pos0 + (joint0._initialRotation * (joint1._initialTranslation * 0.01f));
 
@@ -438,10 +414,10 @@ void FlowThread::computeJointRotations() {
 
     auto delta = rotationBetween(vec0, vec1);
 
-    joint0._currentRotation = (*_jointsPointer)[_joints[0]]._currentRotation = delta * joint0._initialRotation;
+    joint0._currentRotation = _jointsPointer->at(_joints[0])._currentRotation = delta * joint0._initialRotation;
     
     for (size_t i = 1; i < _joints.size() - 1; i++) {
-        auto nextJoint = (*_jointsPointer)[_joints[i + 1]];
+        auto nextJoint = _jointsPointer->at(_joints[i + 1]);
         for (size_t j = i; j < _joints.size(); j++) {
             _rootFramePositions[j] = glm::inverse(joint0._currentRotation) * _rootFramePositions[j] - (joint0._initialTranslation * 0.01f);
         }
@@ -454,7 +430,7 @@ void FlowThread::computeJointRotations() {
 
         delta = rotationBetween(vec0, vec1);
 
-        joint1._currentRotation = (*_jointsPointer)[joint1._index]._currentRotation = delta * joint1._initialRotation;
+        joint1._currentRotation = _jointsPointer->at(joint1._index)._currentRotation = delta * joint1._initialRotation;
         joint0 = joint1;
         joint1 = nextJoint;
     }
@@ -468,7 +444,7 @@ void FlowThread::apply() {
 };
 
 bool FlowThread::getActive() {
-    return (*_jointsPointer)[_joints[0]]._node._active;
+    return _jointsPointer->at(_joints[0])._node._active;
 };
 
 void Flow::setRig(Rig* rig) {
@@ -484,11 +460,16 @@ void Flow::calculateConstraints() {
     auto flowPrefix = FLOW_JOINT_PREFIX.toUpper();
     auto simPrefix = SIM_JOINT_PREFIX.toUpper();
     auto skeleton = _rig->getAnimSkeleton();
+    std::vector<int> handsIndices;
+    _collisionSystem.resetCollisions();
     if (skeleton) {
         for (int i = 0; i < skeleton->getNumJoints(); i++) {
             auto name = skeleton->getJointName(i);
             if (name == "RightHand") {
                 rightHandIndex = i;
+            }
+            if (std::find(HAND_COLLISION_JOINTS.begin(), HAND_COLLISION_JOINTS.end(), name) != HAND_COLLISION_JOINTS.end()) {
+                handsIndices.push_back(i);
             }
             auto parentIndex = skeleton->getParentIndex(i);
             if (parentIndex == -1) {
@@ -533,7 +514,7 @@ void Flow::calculateConstraints() {
                 }
             } else {
                 if (PRESET_COLLISION_DATA.find(name) != PRESET_COLLISION_DATA.end()) {
-                    _collisionSystem.addCollisionShape(i, PRESET_COLLISION_DATA.at(name));
+                    _collisionSystem.addCollisionSphere(i, PRESET_COLLISION_DATA.at(name));
                 }
             }
             if (isFlowJoint || isSimJoint) {
@@ -591,8 +572,6 @@ void Flow::calculateConstraints() {
     if (_jointThreads.size() == 0) {
         _rig->clearJointStates();
     }
-    
-
     if (SHOW_DUMMY_JOINTS && rightHandIndex > -1) {
         int jointCount = (int)_flowJointData.size();
         int extraIndex = (int)_flowJointData.size();
@@ -610,6 +589,13 @@ void Flow::calculateConstraints() {
 
         auto extraThread = FlowThread(jointCount, &_flowJointData);
         _jointThreads.push_back(extraThread);
+    }
+    if (handsIndices.size() > 0) {
+        FlowCollisionSettings handSettings;
+        handSettings._radius = HAND_COLLISION_RADIUS;
+        for (size_t i = 0; i < handsIndices.size(); i++) {
+            _collisionSystem.addCollisionSphere(handsIndices[i], handSettings, glm::vec3(), true, true);
+        }
     }
     _initialized = _jointThreads.size() > 0;
 }
@@ -633,12 +619,10 @@ void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat&
 }
 
 void Flow::update() {
+    QElapsedTimer _timer;
     _timer.start();
     if (_initialized && _active) {
         updateJoints();
-        if (USE_COLLISIONS) {
-            _collisionSystem.update();
-        }
         int count = 0;
         for (auto &thread : _jointThreads) {
             thread.update();
@@ -650,11 +634,12 @@ void Flow::update() {
         }
         setJoints();
     }
-    _elapsedTime = ((1.0 - _tau) * _elapsedTime + _tau * _timer.nsecsElapsed());
-    _deltaTime += _elapsedTime;
+    _deltaTime += _timer.nsecsElapsed();
+    _updates++;
     if (_deltaTime > _deltaTimeLimit) {
-        qDebug() << "Flow C++ update" << _elapsedTime;
-        _deltaTime = 0.0;
+        qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds";
+        _deltaTime = 0;
+        _updates = 0;
     }
     
 }
@@ -697,10 +682,15 @@ void Flow::updateJoints() {
         _rig->getJointRotationInWorldFrame(jointData.second._parentIndex, parentWorldRotation, _entityRotation);
         jointData.second.setUpdatedData(jointPosition, jointTranslation, jointRotation, parentPosition, parentWorldRotation);
     }
-    auto &collisions = _collisionSystem.getCollisions();
-    for (auto &collision : collisions) {
+    auto &selfCollisions = _collisionSystem.getSelfCollisions();
+    for (auto &collision : selfCollisions) {
+        glm::quat jointRotation;
         _rig->getJointPositionInWorldFrame(collision._jointIndex, collision._position, _entityPosition, _entityRotation);
+        _rig->getJointRotationInWorldFrame(collision._jointIndex, jointRotation, _entityRotation);
+        glm::vec3 worldOffset = jointRotation * collision._offset;
+        collision._position = collision._position + worldOffset;
     }
+    _collisionSystem.prepareCollisions();
 }
 
 void Flow::setJoints() {
@@ -711,4 +701,11 @@ void Flow::setJoints() {
             _rig->setJointRotation(jointIndex, true, joint._currentRotation, 2.0f);
         }
     }
+}
+
+void Flow::setOthersCollision(const QUuid& otherId, int jointIndex, const glm::vec3& position) {
+    FlowCollisionSettings settings;
+    settings._entityID = otherId;
+    settings._radius = HAND_COLLISION_RADIUS;
+    _collisionSystem.addCollisionSphere(jointIndex, settings, position, false, true);
 }
