@@ -374,6 +374,7 @@ signals:
 
 protected:
 
+    std::unordered_map<unsigned int, quint16> _priorityMap; // only used for materialMapping
     void applyMaterialMapping();
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
