@@ -1,4 +1,3 @@
-
 package io.highfidelity.hifiinterface;
 
 import android.app.Activity;

@@ -202,10 +202,6 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-if (ANDROID)
-    set(PLATFORM_DISPLAY_PLUGINS oculusMobile oculusMobilePlugin)
-endif()
-
 # link required hifi libraries
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
@@ -283,7 +279,7 @@ target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::Widgets
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel 
+  Qt5::WebChannel
   ${PLATFORM_QT_LIBRARIES}
 )
 

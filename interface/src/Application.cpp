@@ -2428,7 +2428,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
-    AndroidHelper::instance().notifyLoadComplete();
     pauseUntilLoginDetermined();
 }
 
@@ -3641,14 +3640,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     }
 
     // Get controller availability
-    #ifdef Q_OS_ANDROID
+#ifdef Q_OS_ANDROID
     bool hasHandControllers = true;
-    #else
+#else
     bool hasHandControllers = false;
     if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
     }
-    #endif
+#endif
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
