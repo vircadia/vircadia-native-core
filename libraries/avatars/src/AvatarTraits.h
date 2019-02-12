@@ -14,19 +14,31 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <array>
 #include <vector>
 
 #include <QtCore/QUuid>
 
 namespace AvatarTraits {
     enum TraitType : int8_t {
+        // Null trait
         NullTrait = -1,
-        SkeletonModelURL,
+
+        // Simple traits
+        SkeletonModelURL = 0,
+
+
+        // Instanced traits
         FirstInstancedTrait,
         AvatarEntity = FirstInstancedTrait,
         Grab,
+
+        // Traits count
         TotalTraitTypes
     };
+    const int NUM_SIMPLE_TRAITS = (int)FirstInstancedTrait;
+    const int NUM_INSTANCED_TRAITS = (int)TotalTraitTypes - (int)FirstInstancedTrait;
+    const int NUM_TRAITS = (int)TotalTraitTypes;
 
     using TraitInstanceID = QUuid;
 
