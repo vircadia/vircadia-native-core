@@ -76,7 +76,7 @@ int AnimSkeleton::getChainDepth(int jointIndex) const {
         int index = jointIndex;
         do {
             chainDepth++;
-            index = _joints[index].parentIndex;
+            index = _parentIndices[index];
         } while (index != -1);
         return chainDepth;
     } else {
@@ -102,17 +102,12 @@ const AnimPose& AnimSkeleton::getPostRotationPose(int jointIndex) const {
     return _relativePostRotationPoses[jointIndex];
 }
 
-int AnimSkeleton::getParentIndex(int jointIndex) const {
-    return _joints[jointIndex].parentIndex;
-}
-
 std::vector<int> AnimSkeleton::getChildrenOfJoint(int jointIndex) const {
     // Children and grandchildren, etc.
     std::vector<int> result;
     if (jointIndex != -1) {
-        for (int i = jointIndex + 1; i < (int)_joints.size(); i++) {
-            if (_joints[i].parentIndex == jointIndex 
-                    || (std::find(result.begin(), result.end(), _joints[i].parentIndex) != result.end())) {
+        for (int i = jointIndex + 1; i < (int)_parentIndices.size(); i++) {
+            if (_parentIndices[i] == jointIndex || (std::find(result.begin(), result.end(), _parentIndices[i]) != result.end())) {
                 result.push_back(i);
             }
         }
@@ -128,7 +123,7 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& relati
     if (jointIndex < 0 || jointIndex >= (int)relativePoses.size() || jointIndex >= _jointsSize) {
         return AnimPose::identity;
     } else {
-        return getAbsolutePose(_joints[jointIndex].parentIndex, relativePoses) * relativePoses[jointIndex];
+        return getAbsolutePose(_parentIndices[jointIndex], relativePoses) * relativePoses[jointIndex];
     }
 }
 
@@ -136,7 +131,7 @@ void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     // poses start off relative and leave in absolute frame
     int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = 0; i < lastIndex; ++i) {
-        int parentIndex = _joints[i].parentIndex;
+        int parentIndex = _parentIndices[i];
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex] * poses[i];
         }
@@ -147,7 +142,7 @@ void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
     // poses start off absolute and leave in relative frame
     int lastIndex = std::min((int)poses.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
-        int parentIndex = _joints[i].parentIndex;
+        int parentIndex = _parentIndices[i];
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex].inverse() * poses[i];
         }
@@ -158,7 +153,7 @@ void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& ro
     // poses start off absolute and leave in relative frame
     int lastIndex = std::min((int)rotations.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
-        int parentIndex = _joints[i].parentIndex;
+        int parentIndex = _parentIndices[i];
         if (parentIndex != -1) {
             rotations[i] = glm::inverse(rotations[parentIndex]) * rotations[i];
         }
@@ -197,6 +192,14 @@ void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
 void AnimSkeleton::buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets) {
 
     _joints = joints;
+
+    // build a seperate vector of parentIndices for cache coherency
+    // AnimSkeleton::getParentIndex is called very frequently in tight loops.
+    _parentIndices.reserve(_joints.size());
+    for (auto& joint : _joints) {
+        _parentIndices.push_back(joint.parentIndex);
+    }
+
     _jointsSize = (int)joints.size();
     // build a cache of bind poses
 
@@ -289,8 +292,6 @@ void AnimSkeleton::dump(bool verbose) const {
         qCDebug(animation) << "        relDefaultPose =" << getRelativeDefaultPose(i);
         if (verbose) {
             qCDebug(animation) << "        hfmJoint =";
-            qCDebug(animation) << "            isFree =" << _joints[i].isFree;
-            qCDebug(animation) << "            freeLineage =" << _joints[i].freeLineage;
             qCDebug(animation) << "            parentIndex =" << _joints[i].parentIndex;
             qCDebug(animation) << "            translation =" << _joints[i].translation;
             qCDebug(animation) << "            preTransform =" << _joints[i].preTransform;

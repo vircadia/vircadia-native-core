@@ -277,7 +277,7 @@ void GeometryReader::run() {
         }
 
         QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(HFMModel::Pointer, hfmModel));
+                Q_ARG(HFMModel::Pointer, hfmModel), Q_ARG(QVariantHash, _mapping));
     } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
@@ -311,7 +311,7 @@ public:
     void setExtra(void* extra) override;
 
 protected:
-    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel);
+    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping);
 
 private:
     ModelLoader _modelLoader;
@@ -334,9 +334,9 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
     QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mapping, data, _combineParts, _request->getWebMediaType()));
 }
 
-void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel) {
+void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping) {
     // Do processing on the model
-    baker::Baker modelBaker(hfmModel);
+    baker::Baker modelBaker(hfmModel, mapping);
     modelBaker.run();
 
     // Assume ownership of the processed HFMModel

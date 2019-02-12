@@ -133,3 +133,11 @@ bool PlatformInfoScriptingInterface::hasRiftControllers() {
 bool PlatformInfoScriptingInterface::hasViveControllers() {
     return qApp->hasViveControllers();
 }
+
+bool PlatformInfoScriptingInterface::has3DHTML() {
+#if defined(Q_OS_ANDROID)
+    return false;
+#else
+    return true;
+#endif
+}

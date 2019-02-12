@@ -102,8 +102,6 @@ public:
     bool hazePropertiesChanged() const { return _hazePropertiesChanged; }
     bool bloomPropertiesChanged() const { return _bloomPropertiesChanged; }
 
-    bool stagePropertiesChanged() const { return _stagePropertiesChanged; }
-
     void resetRenderingPropertiesChanged();
 
     virtual bool supportsDetailedIntersection() const override { return true; }
@@ -155,7 +153,6 @@ protected:
     bool _skyboxPropertiesChanged { false };
     bool _hazePropertiesChanged{ false };
     bool _bloomPropertiesChanged { false };
-    bool _stagePropertiesChanged { false };
 
     static bool _drawZoneBoundaries;
     static bool _zonesArePickable;

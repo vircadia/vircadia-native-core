@@ -22,8 +22,10 @@
 #include <ResourceRequestObserver.h>
 #include <StatTracker.h>
 #include <test-utils/QTestExtensions.h>
+#include <test-utils/GLMTestUtils.h>
 
 QTEST_MAIN(AnimTests)
+
 
 const float TEST_EPSILON = 0.001f;
 
@@ -372,16 +374,10 @@ void AnimTests::testAnimPose() {
     const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
     const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
 
-    std::vector<glm::vec3> scaleVec = {
-        glm::vec3(1),
-        glm::vec3(2.0f, 1.0f, 1.0f),
-        glm::vec3(1.0f, 0.5f, 1.0f),
-        glm::vec3(1.0f, 1.0f, 1.5f),
-        glm::vec3(2.0f, 0.5f, 1.5f),
-        glm::vec3(-2.0f, 0.5f, 1.5f),
-        glm::vec3(2.0f, -0.5f, 1.5f),
-        glm::vec3(2.0f, 0.5f, -1.5f),
-        glm::vec3(-2.0f, -0.5f, -1.5f),
+    std::vector<float> scaleVec = {
+        1.0f,
+        2.0f,
+        0.5f
     };
 
     std::vector<glm::quat> rotVec = {
@@ -411,7 +407,7 @@ void AnimTests::testAnimPose() {
             for (auto& trans : transVec) {
 
                 // build a matrix the old fashioned way.
-                glm::mat4 scaleMat = glm::scale(glm::mat4(), scale);
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), glm::vec3(scale));
                 glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
                 glm::mat4 rawMat = rotTransMat * scaleMat;
 
@@ -429,7 +425,7 @@ void AnimTests::testAnimPose() {
             for (auto& trans : transVec) {
 
                 // build a matrix the old fashioned way.
-                glm::mat4 scaleMat = glm::scale(glm::mat4(), scale);
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), glm::vec3(scale));
                 glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
                 glm::mat4 rawMat = rotTransMat * scaleMat;
 
@@ -444,6 +440,145 @@ void AnimTests::testAnimPose() {
         }
     }
 }
+
+void AnimTests::testAnimPoseMultiply() {
+    const float PI = (float)M_PI;
+    const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
+    const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    std::vector<float> scaleVec = {
+        1.0f,
+        2.0f,
+        0.5f,
+    };
+
+    std::vector<glm::quat> rotVec = {
+        glm::quat(),
+        ROT_X_90,
+        ROT_Y_180,
+        ROT_Z_30,
+        ROT_X_90 * ROT_Y_180 * ROT_Z_30,
+        -ROT_Y_180
+    };
+
+    std::vector<glm::vec3> transVec = {
+        glm::vec3(),
+        glm::vec3(10.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 5.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, 7.5f),
+        glm::vec3(-10.0f, 5.0f, 7.5f),
+        glm::vec3(10.0f, -5.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, -7.5f)
+    };
+
+    const float TEST_EPSILON = 0.001f;
+
+    std::vector<glm::mat4> matrixVec;
+    std::vector<AnimPose> poseVec;
+
+    for (auto& scale : scaleVec) {
+        for (auto& rot : rotVec) {
+            for (auto& trans : transVec) {
+
+                // build a matrix the old fashioned way.
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), glm::vec3(scale));
+                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
+                glm::mat4 rawMat = rotTransMat * scaleMat;
+
+                matrixVec.push_back(rawMat);
+
+                // use an anim pose to build a matrix by parts.
+                AnimPose pose(scale, rot, trans);
+                poseVec.push_back(pose);
+            }
+        }
+    }
+
+    for (int i = 0; i < matrixVec.size(); i++) {
+        for (int j = 0; j < matrixVec.size(); j++) {
+
+            // multiply the matrices together
+            glm::mat4 matrix = matrixVec[i] * matrixVec[j];
+
+            // convert to matrix (note this will remove sheer from the matrix)
+            AnimPose resultA(matrix);
+
+            // multiply the poses together directly
+            AnimPose resultB = poseVec[i] * poseVec[j];
+
+            /*
+            qDebug() << "matrixVec[" << i << "] =" << matrixVec[i];
+            qDebug() << "matrixVec[" << j << "] =" << matrixVec[j];
+            qDebug() << "matrixResult =" << resultA;
+
+            qDebug() << "poseVec[" << i << "] =" << poseVec[i];
+            qDebug() << "poseVec[" << j << "] =" << poseVec[j];
+            qDebug() << "poseResult =" << resultB;
+            */
+
+            // compare results.
+            QCOMPARE_WITH_ABS_ERROR(resultA.scale(), resultB.scale(), TEST_EPSILON);
+            QCOMPARE_WITH_ABS_ERROR(resultA.rot(), resultB.rot(), TEST_EPSILON);
+            QCOMPARE_WITH_ABS_ERROR(resultA.trans(), resultB.trans(), TEST_EPSILON);
+        }
+    }
+}
+
+void AnimTests::testAnimPoseInverse() {
+    const float PI = (float)M_PI;
+    const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+    const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
+    const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+    std::vector<float> scaleVec = {
+        1.0f,
+        2.0f,
+        0.5f
+    };
+
+    std::vector<glm::quat> rotVec = {
+        glm::quat(),
+        ROT_X_90,
+        ROT_Y_180,
+        ROT_Z_30,
+        ROT_X_90 * ROT_Y_180 * ROT_Z_30,
+        -ROT_Y_180
+    };
+
+    std::vector<glm::vec3> transVec = {
+        glm::vec3(),
+        glm::vec3(10.0f, 0.0f, 0.0f),
+        glm::vec3(0.0f, 5.0f, 0.0f),
+        glm::vec3(0.0f, 0.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, 7.5f),
+        glm::vec3(-10.0f, 5.0f, 7.5f),
+        glm::vec3(10.0f, -5.0f, 7.5f),
+        glm::vec3(10.0f, 5.0f, -7.5f)
+    };
+
+    const float TEST_EPSILON = 0.001f;
+
+    for (auto& scale : scaleVec) {
+        for (auto& rot : rotVec) {
+            for (auto& trans : transVec) {
+
+                // build a matrix the old fashioned way.
+                glm::mat4 scaleMat = glm::scale(glm::mat4(), glm::vec3(scale));
+                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
+                glm::mat4 rawMat = glm::inverse(rotTransMat * scaleMat);
+
+                // use an anim pose to build a matrix by parts.
+                AnimPose pose(scale, rot, trans);
+                glm::mat4 poseMat = pose.inverse();
+
+                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, TEST_EPSILON);
+            }
+        }
+    }
+}
+
 
 void AnimTests::testExpressionTokenizer() {
     QString str = "(10 +  x) >= 20.1 && (y != !z)";
