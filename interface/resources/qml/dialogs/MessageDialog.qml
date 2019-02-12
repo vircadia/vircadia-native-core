@@ -75,7 +75,7 @@ ModalWindow {
 
         QtObject {
             id: d
-            readonly property int minWidth: 800
+            readonly property int minWidth: 1100
             readonly property int maxWidth: 1280
             readonly property int minHeight: 120
             readonly property int maxHeight: 720
