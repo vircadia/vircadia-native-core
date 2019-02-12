@@ -21,8 +21,6 @@
 #include "TestRunnerDesktop.h"
 #include "TestRunnerMobile.h"
 
-#include "AWSInterface.h"
-
 class Nitpick : public QMainWindow {
     Q_OBJECT
 
@@ -111,8 +109,6 @@ private:
 
     TestRunnerDesktop* _testRunnerDesktop{ nullptr };
     TestRunnerMobile* _testRunnerMobile{ nullptr };
-
-    AWSInterface _awsInterface;
 
     std::vector<Downloader*> _downloaders;
 

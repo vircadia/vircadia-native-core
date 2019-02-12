@@ -24,7 +24,7 @@ extern Nitpick* nitpick;
 
 #include <math.h>
 
-Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) {
+Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) : _awsInterface(NULL) {
     _progressBar = progressBar;
     _checkBoxInteractiveMode = checkBoxInteractiveMode;
 
@@ -966,11 +966,15 @@ void Test::createTestRailTestCases() {
         return;
     }
 
+    if (!_testRailInterface) {
+        _testRailInterface = new TestRailInterface;
+    }
+
     if (_testRailCreateMode == PYTHON) {
-        _testRailInterface.createTestSuitePython(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
+        _testRailInterface->createTestSuitePython(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
                                               nitpick->getSelectedBranch());
     } else {
-        _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
+        _testRailInterface->createTestSuiteXML(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
                                            nitpick->getSelectedBranch());
     }
 }
@@ -983,7 +987,12 @@ void Test::createTestRailRun() {
         return;
     }
 
-    _testRailInterface.createTestRailRun(outputDirectory);
+
+    if (!_testRailInterface) {
+        _testRailInterface = new TestRailInterface;
+    }
+
+    _testRailInterface->createTestRailRun(outputDirectory);
 }
 
 void Test::updateTestRailRunResult() {
@@ -999,7 +1008,12 @@ void Test::updateTestRailRunResult() {
         return;
     }
 
-    _testRailInterface.updateTestRailRunResults(testResults, tempDirectory);
+
+    if (!_testRailInterface) {
+        _testRailInterface = new TestRailInterface;
+    }
+
+    _testRailInterface->updateTestRailRunResults(testResults, tempDirectory);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
@@ -1088,5 +1102,9 @@ void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
         return;
     }
 
-    _awsInterface.createWebPageFromResults(testResults, workingDirectory, updateAWSCheckBox, urlLineEdit);
+    if (!_awsInterface) {
+        _awsInterface = new AWSInterface;
+    }
+
+    _awsInterface->createWebPageFromResults(testResults, workingDirectory, updateAWSCheckBox, urlLineEdit);
 }

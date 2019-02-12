@@ -17,6 +17,7 @@
 #include <QPushButton>
 
 #include "TestRunner.h"
+#include "AdbInterface.h"
 
 class TestRunnerMobile : public QObject, public TestRunner {
     Q_OBJECT
@@ -70,5 +71,7 @@ private:
     QString _adbCommand;
 
     std::map<QString, QString> modelNames;
+
+    AdbInterface* _adbInterface;
 };
 #endif
