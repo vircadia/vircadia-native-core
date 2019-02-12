@@ -2428,6 +2428,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
+    AndroidHelper::instance().notifyLoadComplete();
     pauseUntilLoginDetermined();
 }
 

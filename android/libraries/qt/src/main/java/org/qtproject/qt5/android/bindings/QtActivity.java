@@ -70,9 +70,6 @@ public class QtActivity extends Activity {
     public final String QT_ANDROID_DEFAULT_THEME = QT_ANDROID_THEMES[0]; // sets the default theme.
     private QtActivityLoader m_loader = new QtActivityLoader(this);
 
-    public boolean isLoading;
-    public boolean keepInterfaceRunning;
-
     public QtActivity() {
     }
 
@@ -229,10 +226,13 @@ public class QtActivity extends Activity {
     //---------------------------------------------------------------------------
 
     protected void onCreateHook(Bundle savedInstanceState) {
+
         m_loader.APPLICATION_PARAMETERS = APPLICATION_PARAMETERS;
         m_loader.ENVIRONMENT_VARIABLES = ENVIRONMENT_VARIABLES;
         m_loader.QT_ANDROID_THEMES = QT_ANDROID_THEMES;
         m_loader.QT_ANDROID_DEFAULT_THEME = QT_ANDROID_DEFAULT_THEME;
+
+
         m_loader.onCreate(savedInstanceState);
     }
 
@@ -506,9 +506,7 @@ public class QtActivity extends Activity {
         super.onPause();
         // GC: this trick allow us to show a splash activity until Qt app finishes
         // loading
-        if (!isLoading && !keepInterfaceRunning) {
-            QtApplication.invokeDelegate();
-        }
+        QtApplication.invokeDelegate();
     }
     //---------------------------------------------------------------------------
 
@@ -647,11 +645,7 @@ public class QtActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        if (!keepInterfaceRunning) {
-            QtApplication.invokeDelegate();
-        }
-        QtNative.terminateQt();
-        QtNative.setActivity(null,null);
+        QtApplication.invokeDelegate();
     }
 
     //---------------------------------------------------------------------------

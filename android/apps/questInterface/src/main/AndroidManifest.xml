@@ -32,13 +32,8 @@
             </intent-filter>
         </activity>
         <activity
-            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
-            android:name=".QuestActivity"
-            android:launchMode="singleTask"
-            android:screenOrientation="landscape"/>
-        <activity
             android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
-            android:name=".MainActivity"
+            android:name="io.highfidelity.oculus.OculusMobileActivity"
             android:label="@string/app_name"
             android:launchMode="singleTask">
             <meta-data android:name="android.app.lib_name" android:value="questInterface"/>
