@@ -81,7 +81,7 @@ void TestRunnerMobile::connectDevice() {
 
     const QString DEVICE{ "device" };
     if (line2.contains("unauthorized")) {
-        QMessageBox::critical(0, "Unauthorized device detected", "Please allow USB debug on device");
+        QMessageBox::critical(0, "Unauthorized device detected", "Please allow USB debugging on device");
     } else if (line2.contains(DEVICE)) {
             // Make sure only 1 device
         QString line3 = devicesFile.readLine();
