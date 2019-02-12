@@ -1897,7 +1897,7 @@ glm::vec3 EntityItem::getUnscaledDimensions() const {
 void EntityItem::setRotation(glm::quat rotation) {
     if (getLocalOrientation() != rotation) {
         setLocalOrientation(rotation);
-        markDirtyFlags(Simulation::DIRTY_ROTATION);
+        _flags |= Simulation::DIRTY_ROTATION;
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
@@ -1927,7 +1927,7 @@ void EntityItem::setVelocity(const glm::vec3& value) {
                     velocity = value;
                 }
                 setLocalVelocity(velocity);
-                markDirtyFlags(Simulation::DIRTY_LINEAR_VELOCITY);
+                _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
         }
     }
@@ -1982,7 +1982,7 @@ void EntityItem::setAngularVelocity(const glm::vec3& value) {
                     angularVelocity = value;
                 }
                 setLocalAngularVelocity(angularVelocity);
-                markDirtyFlags(Simulation::DIRTY_ANGULAR_VELOCITY);
+                _flags |= Simulation::DIRTY_ANGULAR_VELOCITY;
             }
         }
     }
@@ -2168,8 +2168,8 @@ bool EntityItem::addAction(EntitySimulationPointer simulation, EntityDynamicPoin
 
 void EntityItem::enableNoBootstrap() {
     if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
-        markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-        markSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+        _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
         // because most enableNoBootstrap() cases are already correctly handled outside this scope
@@ -2188,8 +2188,8 @@ void EntityItem::enableNoBootstrap() {
 
 void EntityItem::disableNoBootstrap() {
     if (!stillHasGrabActions()) {
-        markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
-        clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+        _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
+        _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
@@ -2588,7 +2588,7 @@ QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeT
 void EntityItem::locationChanged(bool tellPhysics) {
     requiresRecalcBoxes();
     if (tellPhysics) {
-        markDirtyFlags(Simulation::DIRTY_TRANSFORM);
+        _flags |= Simulation::DIRTY_TRANSFORM;
         EntityTreePointer tree = getTree();
         if (tree) {
             tree->entityChanged(getThisPointer());
