@@ -45,7 +45,7 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
-    NetworkTexture(const QUrl& url);
+    NetworkTexture(const QUrl& url, bool resourceTexture = false);
     NetworkTexture(const NetworkTexture& other);
     ~NetworkTexture() override;
 
@@ -183,7 +183,7 @@ public:
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
-    NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
+    NetworkTexturePointer getResourceTexture(const QUrl& resourceTextureUrl);
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);

@@ -333,14 +333,14 @@ QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<R
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
 
-NetworkTexture::NetworkTexture(const QUrl& url) :
+NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
     Resource(url),
-    _type(),
     _maxNumPixels(100)
 {
-    _textureSource = std::make_shared<gpu::TextureSource>(url);
-    _lowestRequestedMipLevel = 0;
-    _loaded = true;
+    if (resourceTexture) {
+        _textureSource = std::make_shared<gpu::TextureSource>(url);
+        _loaded = true;
+    }
 }
 
 NetworkTexture::NetworkTexture(const NetworkTexture& other) :
@@ -425,7 +425,7 @@ gpu::TexturePointer NetworkTexture::getFallbackTexture() const {
 class ImageReader : public QRunnable {
 public:
     ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url,
-                const QByteArray& data, int maxNumPixels);
+                const QByteArray& data, size_t extraHash, int maxNumPixels);
     void run() override final;
     void read();
 
@@ -435,6 +435,7 @@ private:
     QWeakPointer<Resource> _resource;
     QUrl _url;
     QByteArray _content;
+    size_t _extraHash;
     int _maxNumPixels;
 };
 
@@ -1068,7 +1069,7 @@ void NetworkTexture::loadTextureContent(const QByteArray& content) {
         return;
     }
 
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _maxNumPixels));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _extraHash, _maxNumPixels));
 }
 
 void NetworkTexture::refresh() {
@@ -1093,10 +1094,11 @@ void NetworkTexture::refresh() {
     Resource::refresh();
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, int maxNumPixels) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, size_t extraHash, int maxNumPixels) :
     _resource(resource),
     _url(url),
     _content(data),
+    _extraHash(extraHash),
     _maxNumPixels(maxNumPixels)
 {
     DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
@@ -1152,11 +1154,12 @@ void ImageReader::read() {
     }
     auto networkTexture = resource.staticCast<NetworkTexture>();
 
-    // Hash the source image to for KTX caching
+    // Hash the source image and extraHash for KTX caching
     std::string hash;
     {
         QCryptographicHash hasher(QCryptographicHash::Md5);
         hasher.addData(_content);
+        hasher.addData(std::to_string(_extraHash).c_str());
         hash = hasher.result().toHex().toStdString();
     }
 
@@ -1245,11 +1248,11 @@ void ImageReader::read() {
                                 Q_ARG(int, texture->getHeight()));
 }
 
-NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) {
+NetworkTexturePointer TextureCache::getResourceTexture(const QUrl& resourceTextureUrl) {
     gpu::TexturePointer texture;
     if (resourceTextureUrl == SPECTATOR_CAMERA_FRAME_URL) {
         if (!_spectatorCameraNetworkTexture) {
-            _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+            _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl, true));
         }
         if (!_spectatorCameraFramebuffer) {
             getSpectatorCameraFramebuffer(); // initialize frame buffer
@@ -1260,7 +1263,7 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
     // FIXME: Generalize this, DRY up this code
     if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
         if (!_hmdPreviewNetworkTexture) {
-            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl, true));
         }
         if (_hmdPreviewFramebuffer) {
             texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
