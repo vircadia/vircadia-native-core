@@ -45,8 +45,8 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
-    NetworkTexture(const QUrl& url);
-    NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
+    NetworkTexture(const QUrl& url, bool resourceTexture = false);
+    NetworkTexture(const NetworkTexture& other);
     ~NetworkTexture() override;
 
     QString getType() const override { return "NetworkTexture"; }
@@ -62,6 +62,8 @@ public:
     void refresh() override;
 
     Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
+
+    void setExtra(void* extra) override;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
@@ -181,7 +183,7 @@ public:
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
-    NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
+    NetworkTexturePointer getResourceTexture(const QUrl& resourceTextureUrl);
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer(int width, int height);
@@ -201,8 +203,8 @@ protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
 
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) override;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
+    QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
 
 private:
     friend class ImageReader;

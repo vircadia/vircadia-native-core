@@ -72,9 +72,11 @@ public:
 
     void updateTestRailRunResult();
 
-    void createRecursiveScript();
     void createAllRecursiveScripts();
-    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
+    void createAllRecursiveScripts(const QString& directory);
+
+    void createRecursiveScript();
+    void createRecursiveScript(const QString& directory, bool interactiveMode);
 
     int compareImageLists();
     int checkTextResults();
@@ -109,7 +111,8 @@ private:
     bool _isRunningFromCommandLine{ false };
     bool _isRunningInAutomaticTestRun{ false };
 
-    const QString TEST_FILENAME { "test.js" };
+    const QString TEST_FILENAME{ "test.js" };
+    const QString TEST_RECURSIVE_FILENAME{ "testRecursive.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 

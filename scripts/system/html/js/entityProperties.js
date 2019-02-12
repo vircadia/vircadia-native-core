@@ -2328,7 +2328,7 @@ function createTextureProperty(property, elProperty) {
     elInput.setAttribute("id", elementID);
     elInput.setAttribute("type", "text"); 
     
-    let imageLoad = _.debounce(function (url) {
+    let imageLoad = function(url) {
         if (url.slice(0, 5).toLowerCase() === "atp:/") {
             elImage.src = "";
             elImage.style.display = "none";
@@ -2348,15 +2348,12 @@ function createTextureProperty(property, elProperty) {
             elDiv.classList.remove("no-preview");
             elDiv.classList.add("no-texture");
         }
-    }, IMAGE_DEBOUNCE_TIMEOUT);
-    elInput.imageLoad = imageLoad;
-    elInput.oninput = function (event) {
-        // Add throttle
-        let url = event.target.value;
-        imageLoad(url);
-        updateProperty(property.name, url, property.isParticleProperty)
     };
-    elInput.onchange = elInput.oninput;
+    elInput.imageLoad = imageLoad;
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    elInput.addEventListener('change', function(ev) {
+        imageLoad(ev.target.value);
+    });
 
     elProperty.appendChild(elInput);
     elProperty.appendChild(elDiv);
