@@ -310,29 +310,54 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
             // make the dead zone PI/6.0
             
-            const float POWER = 4.0f;
+            const float POWER = 2.0f;
+            const float FLEX_BOUNDARY = PI / 2.0f;
+            const float EXTEND_BOUNDARY = -PI / 4.0f;
             /*
-            if (fabsf(flexTheta) > (PI / 6.0f)) {
-                fred -= glm::sign(flexTheta) * pow(flexTheta / PI, POWER) * 180.0f;
+            if (flexTheta > FLEX_BOUNDARY) {
+                fred -= glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY)  / PI, POWER) * 180.0f;
+            } else if (flexTheta < EXTEND_BOUNDARY) {
+                fred -= glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
             }
-            if (fabsf(ulnarDeviationTheta) > (PI / 6.0f)) {
+            
+            const float ULNAR_BOUNDARY = PI / 6.0f;
+            if (fabsf(ulnarDeviationTheta) > ULNAR_BOUNDARY) {
                 if (trueTwistTheta > 0.0f) {
-                    fred -= glm::sign(ulnarDeviationTheta) * pow(ulnarDeviationTheta / PI, POWER) * 180.0f;
+                    fred -= glm::sign(ulnarDeviationTheta) * pow(fabsf(ulnarDeviationTheta) - ULNAR_BOUNDARY / PI, POWER) * 180.0f;
                 } else {
-                    fred += glm::sign(ulnarDeviationTheta) * pow(ulnarDeviationTheta / PI, POWER) * 180.0f;
+                    fred += glm::sign(ulnarDeviationTheta) * pow(fabsf(ulnarDeviationTheta) - ULNAR_BOUNDARY/ PI, POWER) * 180.0f;
                 }
             }
             */
             // remember direction of travel.
             const float TWIST_DEADZONE = PI / 2.0f;
-            if (trueTwistTheta < -TWIST_DEADZONE) {
-                fred += glm::sign(trueTwistTheta) * pow((trueTwistTheta / PI), POWER) * 180.0f + pow(TWIST_DEADZONE / PI, POWER) * 180.0f;
-            } else {
-                if (trueTwistTheta > (PI / 2.0f)) {
-                    fred += glm::sign(trueTwistTheta) * pow((trueTwistTheta / PI), POWER) * 180.0f - pow(TWIST_DEADZONE / PI, POWER) * 180.0f;
+            if (!isLeft) {
+                if (trueTwistTheta < -TWIST_DEADZONE) {
+                    fred += glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
+                } else {
+                    if (trueTwistTheta > TWIST_DEADZONE) {
+                        fred += glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
+                    }
                 }
+            } else {
+                if (trueTwistTheta < -TWIST_DEADZONE) {
+                    fred -= glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
+                } else {
+                    if (trueTwistTheta > TWIST_DEADZONE) {
+                        fred -= glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
+                    }
+                }
+
+
             }
-            
+            /*
+            if (fred < 70.0f) {
+                fred = 70.0f;
+            }
+            if (fred > 175.0f) {
+                fred = 175.0f;
+            }
+            */
             if (isLeft) {
                 fred *= -1.0f;
             }
