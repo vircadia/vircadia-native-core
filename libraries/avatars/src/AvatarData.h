@@ -1147,7 +1147,7 @@ public:
      */
     Q_INVOKABLE virtual void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
-    virtual void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
     AvatarEntityIDs getAndClearRecentlyRemovedIDs();
 
     /**jsdoc

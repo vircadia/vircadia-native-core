@@ -525,6 +525,11 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 }
             }
             stateItr.value().success = success;
+            if (success) {
+                stateItr.value().hash = newHash;
+            } else {
+                stateItr.value().hash = 0;
+            }
         }
 
         AvatarEntityIDs recentlyRemovedAvatarEntities = getAndClearRecentlyRemovedIDs();
