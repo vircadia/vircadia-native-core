@@ -15,7 +15,6 @@
 #include <QVariant>
 
 #include <gpu/Texture.h>
-#include <shared/ColorChannelMapping.h>
 
 class QByteArray;
 class QImage;
@@ -40,6 +39,15 @@ enum Type {
     SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
     LIGHTMAP_TEXTURE,
     UNUSED_TEXTURE
+};
+
+enum class ColorChannel {
+    NONE,
+    RED,
+    GREEN,
+    BLUE,
+    ALPHA,
+    COUNT
 };
 
 using TextureLoader = std::function<gpu::TexturePointer(QImage&&, const std::string&, bool, gpu::BackendTarget, const std::atomic<bool>&)>;
@@ -82,7 +90,7 @@ gpu::TexturePointer processCubeTextureColorFromImage(QImage&& srcImage, const st
 
 const QStringList getSupportedFormats();
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url, ColorChannelMapping channelMapping,
+gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url, TextureUsage::ColorChannel sourceChannel,
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
 

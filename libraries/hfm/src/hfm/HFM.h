@@ -24,7 +24,8 @@
 
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
-#include <shared/ColorChannelMapping.h>
+
+#include "ColorChannel.h"
 
 #if defined(Q_OS_ANDROID)
 #define HFM_PACK_NORMALS 0
@@ -124,7 +125,7 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
-    ColorChannelMapping channelMapping { ColorChannelMapping::NONE };
+    ColorChannel sourceChannel { ColorChannel::NONE };
 
     Transform transform;
     int maxNumPixels { MAX_NUM_PIXELS_FOR_FBX_TEXTURE };

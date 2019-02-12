@@ -222,7 +222,7 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
     return QImage();
 }
 
-void mapToRedChannel(QImage& image, ColorChannelMapping sourceChannel) {
+void mapToRedChannel(QImage& image, TextureUsage::ColorChannel sourceChannel) {
     // Change format of image so we know exactly how to process it
     if (image.format() != QImage::Format_ARGB32) {
         image = image.convertToFormat(QImage::Format_ARGB32);
@@ -237,16 +237,16 @@ void mapToRedChannel(QImage& image, ColorChannelMapping sourceChannel) {
         for (; pixel < lineEnd; pixel++) {
             int colorValue;
             switch (sourceChannel) {
-            case ColorChannelMapping::RED:
+            case TextureUsage::ColorChannel::RED:
                 colorValue = qRed(*pixel);
                 break;
-            case ColorChannelMapping::GREEN:
+            case TextureUsage::ColorChannel::GREEN:
                 colorValue = qGreen(*pixel);
                 break;
-            case ColorChannelMapping::BLUE:
+            case TextureUsage::ColorChannel::BLUE:
                 colorValue = qBlue(*pixel);
                 break;
-            case ColorChannelMapping::ALPHA:
+            case TextureUsage::ColorChannel::ALPHA:
                 colorValue = qAlpha(*pixel);
                 break;
             default:
@@ -260,7 +260,7 @@ void mapToRedChannel(QImage& image, ColorChannelMapping sourceChannel) {
     }
 }
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename, ColorChannelMapping channelMapping,
+gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename, TextureUsage::ColorChannel sourceChannel,
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
 
@@ -293,8 +293,8 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     }
 
     // Re-map to image with single red channel texture if requested
-    if (channelMapping != ColorChannelMapping::NONE) {
-        mapToRedChannel(image, channelMapping);
+    if (sourceChannel != TextureUsage::ColorChannel::NONE) {
+        mapToRedChannel(image, sourceChannel);
     }
     
     auto loader = TextureUsage::getTextureLoaderForType(textureType);

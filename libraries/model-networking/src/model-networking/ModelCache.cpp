@@ -599,7 +599,7 @@ graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl
     }
 
     const auto url = getTextureUrl(baseUrl, hfmTexture);
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, hfmTexture.content, hfmTexture.maxNumPixels, hfmTexture.channelMapping);
+    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, hfmTexture.content, hfmTexture.maxNumPixels, hfmTexture.sourceChannel);
     _textures[channel] = Texture { hfmTexture.name, texture };
 
     auto map = std::make_shared<graphics::TextureMap>();
