@@ -216,18 +216,28 @@ void GL41FixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
     const auto numSlices = _gpuObject.getNumSlices();
+    const auto numSamples = _gpuObject.getNumSamples();
 
     // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
-    for (GLint level = 0; level < numMips; level++) {
-        Vec3u dimensions = _gpuObject.evalMipDimensions(level);
-        for (GLenum target : getFaceTargets(_target)) {
-            if (!_gpuObject.isArray()) {
-                glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
-                             texelFormat.type, nullptr);
-            } else {
-                glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
-                             texelFormat.format, texelFormat.type, nullptr);
+    if (!_gpuObject.isMultisample()) {
+        for (GLint level = 0; level < numMips; level++) {
+            Vec3u dimensions = _gpuObject.evalMipDimensions(level);
+            for (GLenum target : getFaceTargets(_target)) {
+                if (!_gpuObject.isArray()) {
+                    glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
+                                texelFormat.type, nullptr);
+                } else {
+                    glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
+                                    texelFormat.format, texelFormat.type, nullptr);
+                }
             }
+        }
+    } else {
+        const auto dimensions = _gpuObject.getDimensions();
+        if (!_gpuObject.isArray()) {
+            glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, numSamples, texelFormat.internalFormat, dimensions.x, dimensions.y, GL_FALSE);
+        } else {
+            glTexImage3DMultisample(GL_TEXTURE_2D_MULTISAMPLE_ARRAY, numSamples, texelFormat.internalFormat, dimensions.x, dimensions.y, dimensions.z, GL_FALSE);
         }
     }
 
