@@ -480,8 +480,6 @@ public:
     virtual void setModelScale(float scale) { _modelScale = scale; }
     virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
-    virtual void setAvatarEntityDataChanged(bool value) override;
-
     // Show hide the model representation of the avatar
     virtual void setEnableMeshVisible(bool isEnabled);
     virtual bool getEnableMeshVisible() const;
@@ -647,8 +645,8 @@ protected:
         bool success { false };
     };
 
-    using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
-    MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
+    //using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
+    //MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
 
     uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };

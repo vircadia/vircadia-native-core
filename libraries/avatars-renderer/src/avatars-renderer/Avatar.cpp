@@ -305,11 +305,6 @@ void Avatar::setTargetScale(float targetScale) {
     }
 }
 
-void Avatar::setAvatarEntityDataChanged(bool value) {
-    AvatarData::setAvatarEntityDataChanged(value);
-    _avatarEntityDataHashes.clear();
-}
-
 void Avatar::removeAvatarEntitiesFromTree() {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
