@@ -5312,3 +5312,11 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     }
 }
 
+void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) {
+    auto &flow = _skeletonModel->getRig().getFlow();
+    for (auto &handJointName : HAND_COLLISION_JOINTS) {
+        int jointIndex = otherAvatar->getJointIndex(handJointName);
+        glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
+        flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+    }
+}

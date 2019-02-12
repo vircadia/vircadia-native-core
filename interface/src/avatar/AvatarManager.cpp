@@ -271,14 +271,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
             avatar->removeOrb();
-            if (avatar->getWorkloadRegion() == workload::Region::R1) {
-                auto &flow = _myAvatar->getSkeletonModel()->getRig().getFlow();
-                for (auto &handJointName : HAND_COLLISION_JOINTS) {
-                    int jointIndex = avatar->getJointIndex(handJointName);
-                    glm::vec3 position = avatar->getJointPosition(jointIndex);
-                    flow.setOthersCollision(avatar->getID(), jointIndex, position);
-                }
-            }
             if (avatar->needsPhysicsUpdate()) {
                 _avatarsToChangeInPhysics.insert(avatar);
             }
@@ -305,6 +297,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 avatar->setIsNewAvatar(false);
             }
             avatar->simulate(deltaTime, inView);
+            if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
+                _myAvatar->addAvatarHandsToFlow(avatar);
+            }
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);

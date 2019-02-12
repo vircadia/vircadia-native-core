@@ -296,7 +296,6 @@ private:
     std::map<int, FlowJoint> _flowJointData;
     std::vector<FlowThread> _jointThreads;
     std::vector<QString> _flowJointKeywords;
-    std::vector<FlowJointInfo> _flowJointInfos;
     FlowCollisionSystem _collisionSystem;
     bool _initialized { false };
     bool _active { false };

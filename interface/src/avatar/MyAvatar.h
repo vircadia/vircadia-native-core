@@ -1182,6 +1182,8 @@ public:
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
     void avatarEntityDataToJson(QJsonObject& root) const override;
     int sendAvatarDataPacket(bool sendAll = false) override;
+    
+    void addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar);
 
 public slots:
 

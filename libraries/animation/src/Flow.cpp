@@ -461,7 +461,6 @@ void Flow::calculateConstraints() {
     auto simPrefix = SIM_JOINT_PREFIX.toUpper();
     auto skeleton = _rig->getAnimSkeleton();
     std::vector<int> handsIndices;
-    _collisionSystem.resetCollisions();
     if (skeleton) {
         for (int i = 0; i < skeleton->getNumJoints(); i++) {
             auto name = skeleton->getJointName(i);
@@ -516,10 +515,6 @@ void Flow::calculateConstraints() {
                 if (PRESET_COLLISION_DATA.find(name) != PRESET_COLLISION_DATA.end()) {
                     _collisionSystem.addCollisionSphere(i, PRESET_COLLISION_DATA.at(name));
                 }
-            }
-            if (isFlowJoint || isSimJoint) {
-                auto jointInfo = FlowJointInfo(i, parentIndex, -1, name);
-                _flowJointInfos.push_back(jointInfo);
             }
         }
     }
@@ -604,7 +599,9 @@ void Flow::cleanUp() {
     _flowJointData.clear();
     _jointThreads.clear();
     _flowJointKeywords.clear();
-    _flowJointInfos.clear();
+    _collisionSystem.resetCollisions();
+    _initialized = false;
+    _active = false;
  }
 
 void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat& rotation) {
@@ -619,9 +616,9 @@ void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat&
 }
 
 void Flow::update() {
-    QElapsedTimer _timer;
-    _timer.start();
     if (_initialized && _active) {
+        QElapsedTimer _timer;
+        _timer.start();
         updateJoints();
         int count = 0;
         for (auto &thread : _jointThreads) {
@@ -633,15 +630,14 @@ void Flow::update() {
             thread.apply();
         }
         setJoints();
-    }
-    _deltaTime += _timer.nsecsElapsed();
-    _updates++;
-    if (_deltaTime > _deltaTimeLimit) {
-        qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds";
-        _deltaTime = 0;
-        _updates = 0;
-    }
-    
+        _deltaTime += _timer.nsecsElapsed();
+        _updates++;
+        if (_deltaTime > _deltaTimeLimit) {
+            qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds";
+            _deltaTime = 0;
+            _updates = 0;
+        }
+    }    
 }
 
 bool Flow::worldToJointPoint(const glm::vec3& position, const int jointIndex, glm::vec3& jointSpacePosition) const {
