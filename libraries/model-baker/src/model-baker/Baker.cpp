@@ -155,8 +155,7 @@ namespace baker {
             const auto jointIndices = jointInfoOut.getN<PrepareJointsTask::Output>(2);
 
             // Parse material mapping
-            const auto materialMappingInputs = ParseMaterialMappingTask::Input(materials, mapping).asVarying();
-            const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", materialMappingInputs);
+            const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", mapping);
 
             // Combine the outputs into a new hfm::Model
             const auto buildBlendshapesInputs = BuildBlendshapesTask::Input(blendshapesPerMeshIn, normalsPerBlendshapePerMesh, tangentsPerBlendshapePerMesh).asVarying();

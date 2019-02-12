@@ -756,7 +756,16 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
 
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, _modelMeshMaterialNames[shapeID]);
+                auto& materialName = _modelMeshMaterialNames[shapeID];
+                result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
+
+                auto mappedMaterialIter = _materialMapping.find(shapeID);
+                if (mappedMaterialIter != _materialMapping.end()) {
+                    auto mappedMaterials = mappedMaterialIter->second;
+                    for (auto& mappedMaterial : mappedMaterials) {
+                        result.appendMaterial(mappedMaterial, shapeID, materialName);
+                    }
+                }
                 shapeID++;
             }
         }
@@ -1546,6 +1555,7 @@ void Model::applyMaterialMapping() {
                     auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
                     bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
                     graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, ++_priorityMap[shapeID]);
+                    _materialMapping[shapeID].push_back(material);
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                         data.addMaterial(material);
