@@ -64,7 +64,6 @@ void CauterizedModel::createRenderItemSet() {
         _modelMeshRenderItems.clear();
         _modelMeshMaterialNames.clear();
         _modelMeshRenderItemShapes.clear();
-        _priorityMap.clear();
 
         Transform transform;
         transform.setTranslation(_translation);
@@ -98,7 +97,6 @@ void CauterizedModel::createRenderItemSet() {
             }
         }
         _blendshapeOffsetsInitialized = true;
-        applyMaterialMapping();
     } else {
         Model::createRenderItemSet();
     }

@@ -956,6 +956,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
     }
 
     if (somethingAdded) {
+        applyMaterialMapping();
         _addedToScene = true;
         updateRenderItems();
         _needsFixupInScene = false;
@@ -973,6 +974,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItems.clear();
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
+    _priorityMap.clear();
 
     _blendshapeOffsets.clear();
     _blendshapeOffsetsInitialized = false;
@@ -1434,7 +1436,6 @@ void Model::createRenderItemSet() {
     _modelMeshRenderItems.clear();
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
-    _priorityMap.clear();
 
     Transform transform;
     transform.setTranslation(_translation);
@@ -1466,7 +1467,6 @@ void Model::createRenderItemSet() {
         }
     }
     _blendshapeOffsetsInitialized = true;
-    applyMaterialMapping();
 }
 
 bool Model::isRenderable() const {
@@ -1535,14 +1535,12 @@ void Model::applyMaterialMapping() {
         }
 
         auto materialLoaded = [this, networkMaterialResource, shapeIDs, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
-            qDebug() << "boop2" << networkMaterialResource->isFailed() << networkMaterialResource->parsedMaterials.names.size();
-            if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() > 0) {
+            if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
             render::Transaction transaction;
             auto networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
             for (auto shapeID : shapeIDs) {
-                qDebug() << "boop3" << shapeID << _modelMeshRenderItemIDs.size();
                 if (shapeID < _modelMeshRenderItemIDs.size()) {
                     auto itemID = _modelMeshRenderItemIDs[shapeID];
                     auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
@@ -1559,7 +1557,7 @@ void Model::applyMaterialMapping() {
             }
             AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
         };
-        qDebug() << "boop" << networkMaterialResource->isLoaded();
+
         if (networkMaterialResource->isLoaded()) {
             materialLoaded();
         } else {
