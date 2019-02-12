@@ -197,16 +197,16 @@ public:
 namespace std {
     template <>
     struct hash<QByteArray> {
-        size_t operator()(const QByteArray& a) const {
-            return qHash(a);
+        size_t operator()(const QByteArray& byteArray) const {
+            return qHash(byteArray);
         }
     };
 
     template <>
     struct hash<TextureExtra> {
-        size_t operator()(const TextureExtra& a) const {
+        size_t operator()(const TextureExtra& textureExtra) const {
             size_t result = 0;
-            hash_combine(result, (int)a.type, a.content, a.maxNumPixels);
+            hash_combine(result, (int)textureExtra.type, textureExtra.content, textureExtra.maxNumPixels);
             return result;
         }
     };
@@ -328,14 +328,13 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>()), &Resource::deleter);
 }
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
-    Resource(url),
-    _maxNumPixels(100)
+    Resource(url)
 {
     if (resourceTexture) {
         _textureSource = std::make_shared<gpu::TextureSource>(url);

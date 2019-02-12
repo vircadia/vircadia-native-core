@@ -76,9 +76,9 @@ namespace std {
 
     template <>
     struct hash<GeometryExtra> {
-        size_t operator()(const GeometryExtra& a) const {
+        size_t operator()(const GeometryExtra& geometryExtra) const {
             size_t result = 0;
-            hash_combine(result, a.mapping, a.textureBaseUrl, a.combineParts);
+            hash_combine(result, geometryExtra.mapping, geometryExtra.textureBaseUrl, geometryExtra.combineParts);
             return result;
         }
     };
@@ -394,7 +394,7 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
 }
 
 GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,

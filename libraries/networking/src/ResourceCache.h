@@ -489,14 +489,14 @@ protected:
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
 
-    qint64 _bytesReceived{ 0 };
-    qint64 _bytesTotal{ 0 };
-    qint64 _bytes{ 0 };
+    qint64 _bytesReceived { 0 };
+    qint64 _bytesTotal { 0 };
+    qint64 _bytes { 0 };
 
     int _requestID;
-    ResourceRequest* _request{ nullptr };
+    ResourceRequest* _request { nullptr };
 
-    size_t _extraHash;
+    size_t _extraHash { std::numeric_limits<size_t>::max() };
 
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);
