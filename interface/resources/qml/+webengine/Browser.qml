@@ -4,7 +4,7 @@ import QtWebEngine 1.5
 
 import controlsUit 1.0
 import stylesUit 1.0
-import "qrc:////qml//windows"
+import "windows" 
 
 ScrollingWindow {
     id: root

@@ -12,7 +12,7 @@ import QtQuick 2.5
 import Hifi 1.0 as Hifi
 
 import controlsUit 1.0
-import "qrc:////qml//windows" as Windows
+import "windows" as Windows
 
 Windows.ScrollingWindow {
     id: root

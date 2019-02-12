@@ -12,7 +12,7 @@ import QtQuick 2.5
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 
-import "qrc:////qml//windows" as Windows
+import "../windows" as Windows
 import controlsUit 1.0 as Controls
 import stylesUit 1.0
 
