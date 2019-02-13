@@ -1091,7 +1091,7 @@ void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
 
 void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
-                                                       "Zipped Test Results (*.zip)");
+                                                       "Zipped Test Results (TestResults--*.zip)");
     if (testResults.isNull()) {
         return;
     }
