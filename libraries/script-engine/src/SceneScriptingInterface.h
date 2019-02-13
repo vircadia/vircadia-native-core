@@ -115,6 +115,7 @@ namespace SceneScripting {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {string} backgroundMode
      * @property {Scene.Stage.KeyLight} keyLight
@@ -178,6 +179,7 @@ namespace SceneScripting {
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {boolean} shouldRenderAvatars
  * @property {boolean} shouldRenderEntities

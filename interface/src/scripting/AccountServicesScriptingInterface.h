@@ -42,6 +42,7 @@ class AccountServicesScriptingInterface : public QObject {
      * 
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @namespace AccountServices
      * @property {string} username <em>Read-only.</em>

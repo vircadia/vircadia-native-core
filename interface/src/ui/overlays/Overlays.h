@@ -87,6 +87,7 @@ public:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Uuid} keyboardFocusOverlay - Get or set the {@link Overlays.OverlayType|web3d} overlay that has keyboard focus.
  *     If no overlay has keyboard focus, get returns <code>null</code>; set to <code>null</code> or {@link Uuid|Uuid.NULL} to 

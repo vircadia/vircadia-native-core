@@ -196,6 +196,7 @@ public:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} cpuRunTime - <em>Read-only.</em>
  * @property {boolean} enabled
