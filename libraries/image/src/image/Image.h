@@ -43,15 +43,6 @@ enum Type {
     UNUSED_TEXTURE
 };
 
-enum class ColorChannel {
-    NONE,
-    RED,
-    GREEN,
-    BLUE,
-    ALPHA,
-    COUNT
-};
-
 using TextureLoader = std::function<gpu::TexturePointer(QImage&&, const std::string&, bool, gpu::BackendTarget, const std::atomic<bool>&)>;
 TextureLoader getTextureLoaderForType(Type type, const QVariantMap& options = QVariantMap());
 
