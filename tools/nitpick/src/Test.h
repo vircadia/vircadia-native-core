@@ -159,10 +159,10 @@ private:
 
     bool _exitWhenComplete{ false };
 
-    TestRailInterface _testRailInterface;
+    TestRailInterface* _testRailInterface;
     TestRailCreateMode _testRailCreateMode { PYTHON };
 
-    AWSInterface _awsInterface;
+    AWSInterface* _awsInterface;
 };
 
 #endif // hifi_test_h

@@ -14,8 +14,6 @@
 
 class PythonInterface {
 public:
-    PythonInterface();
-
     QString getPythonCommand();
 
 private:
