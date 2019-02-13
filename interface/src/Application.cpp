@@ -6311,7 +6311,10 @@ void Application::update(float deltaTime) {
                 {
                     PROFILE_RANGE(simulation_physics, "RemoveEntities");
                     const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
-                    _physicsEngine->removeObjects(motionStates);
+                    {
+                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
+                        _physicsEngine->removeObjects(motionStates);
+                    }
                     _entitySimulation->deleteObjectsRemovedFromPhysics();
                 }
 
@@ -6320,6 +6323,7 @@ void Application::update(float deltaTime) {
                     VectorOfMotionStates motionStates;
                     getEntities()->getTree()->withReadLock([&] {
                         _entitySimulation->getObjectsToAddToPhysics(motionStates);
+                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
                         _physicsEngine->addObjects(motionStates);
                     });
                 }
