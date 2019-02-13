@@ -78,8 +78,6 @@ private:
 
     // btHashMap is required because it supports memory alignment of the btCollisionShapes
     btHashMap<HashKey, ShapeReference> _shapeMap;
-    //btAlignedObjectArray<uint64_t> _pendingGarbage;
-
     std::vector<uint64_t> _garbageRing;
     uint32_t _ringIndex { 0 };
 };
