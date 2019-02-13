@@ -22,6 +22,7 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 #include <graphics/TextureMap.h>
+#include <image/ColorChannel.h>
 #include <image/Image.h>
 #include <ktx/KTX.h>
 #include <TextureMeta.h>
@@ -96,6 +97,7 @@ private:
     friend class ImageReader;
 
     image::TextureUsage::Type _type;
+    image::ColorChannel _sourceChannel;
 
     enum class ResourceType {
         META,
@@ -178,7 +180,8 @@ public:
 
     /// Loads a texture from the specified URL.
     NetworkTexturePointer getTexture(const QUrl& url, image::TextureUsage::Type type = image::TextureUsage::DEFAULT_TEXTURE,
-        const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
+        const QByteArray& content = QByteArray(), int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS,
+        image::ColorChannel sourceChannel = image::ColorChannel::NONE);
 
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
@@ -201,7 +204,7 @@ signals:
 protected:
     
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
-    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
+    Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, image::ColorChannel sourceChannel = image::ColorChannel::NONE);
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
     QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
