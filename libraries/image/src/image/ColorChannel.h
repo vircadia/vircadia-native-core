@@ -1,6 +1,6 @@
 //
 //  ColorChannel.h
-//  libraries/hfm/src
+//  libraries/image/src/image
 //
 //  Created by Sabrina Shanman on 2019/02/12.
 //  Copyright 2019 High Fidelity, Inc.
@@ -9,10 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_hfm_ColorChannel_h
-#define hifi_hfm_ColorChannel_h
+#ifndef hifi_image_ColorChannel_h
+#define hifi_image_ColorChannel_h
 
-namespace hfm {
+namespace image {
     enum class ColorChannel {
         NONE,
         RED,
@@ -23,4 +23,4 @@ namespace hfm {
     };
 };
 
-#endif // hifi_hfm_ColorChannel_h
+#endif // hifi_image_ColorChannel_h

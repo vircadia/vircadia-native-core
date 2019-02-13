@@ -192,7 +192,7 @@ public:
     image::TextureUsage::Type type;
     const QByteArray& content;
     int maxNumPixels;
-    hfm::ColorChannel sourceChannel;
+    image::ColorChannel sourceChannel;
 };
 
 namespace std {
@@ -213,13 +213,13 @@ namespace std {
     };
 }
 
-ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels, hfm::ColorChannel sourceChannel) {
+ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels, image::ColorChannel sourceChannel) {
     auto byteArray = QByteArray();
     TextureExtra extra = { (image::TextureUsage::Type)type, byteArray, maxNumPixels, sourceChannel };
     return ResourceCache::prefetch(url, &extra, std::hash<TextureExtra>()(extra));
 }
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels, hfm::ColorChannel sourceChannel) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels, image::ColorChannel sourceChannel) {
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
@@ -371,7 +371,7 @@ void NetworkTexture::setExtra(void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     _type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
     _maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
-    _sourceChannel = textureExtra ? textureExtra->sourceChannel : hfm::ColorChannel::NONE;
+    _sourceChannel = textureExtra ? textureExtra->sourceChannel : image::ColorChannel::NONE;
 
     _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
     _lowestRequestedMipLevel = 0;
@@ -434,7 +434,7 @@ class ImageReader : public QRunnable {
 public:
     ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url,
                 const QByteArray& data, size_t extraHash, int maxNumPixels,
-                hfm::ColorChannel sourceChannel);
+                image::ColorChannel sourceChannel);
     void run() override final;
     void read();
 
@@ -446,7 +446,7 @@ private:
     QByteArray _content;
     size_t _extraHash;
     int _maxNumPixels;
-    hfm::ColorChannel _sourceChannel;
+    image::ColorChannel _sourceChannel;
 };
 
 NetworkTexture::~NetworkTexture() {
@@ -1104,7 +1104,7 @@ void NetworkTexture::refresh() {
     Resource::refresh();
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, size_t extraHash, int maxNumPixels, hfm::ColorChannel sourceChannel) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, size_t extraHash, int maxNumPixels, image::ColorChannel sourceChannel) :
     _resource(resource),
     _url(url),
     _content(data),
@@ -1218,7 +1218,7 @@ void ImageReader::read() {
         constexpr bool shouldCompress = false;
 #endif
         auto target = getBackendTarget();
-        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), (image::TextureUsage::ColorChannel)_sourceChannel, _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
+        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _sourceChannel, _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
         if (!texture) {
             QMetaObject::invokeMethod(resource.data(), "setImage",
