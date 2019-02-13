@@ -49,6 +49,7 @@ public:
 
 private:
     QString _testResults;
+    QString _zipFolderName;
     QString _workingDirectory;
     QString _resultsFolder;
     QString _htmlFailuresFolder;
