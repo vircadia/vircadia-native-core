@@ -249,23 +249,51 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             }
             fred = findThetaNewWay(tipPose.trans(), basePose.trans(), isLeft);
 
+            glm::quat relativeHandRotation = (midPose.inverse() * tipPose).rot();
+
+            relativeHandRotation = glm::normalize(relativeHandRotation);
+            if (relativeHandRotation.w < 0.0f) {
+                relativeHandRotation.x *= -1.0f;
+                relativeHandRotation.y *= -1.0f;
+                relativeHandRotation.z *= -1.0f;
+                relativeHandRotation.w *= -1.0f;
+            }
+
+            glm::quat twist;
+            glm::quat ulnarDeviation;
+            //swingTwistDecomposition(twistUlnarSwing, Vectors::UNIT_Z, twist, ulnarDeviation);
+            swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_Z, twist, ulnarDeviation);
+
+            if (ulnarDeviation.w < 0.0f) {
+                ulnarDeviation.x *= -1.0f;
+                ulnarDeviation.y *= -1.0f;
+                ulnarDeviation.z *= -1.0f;
+                ulnarDeviation.w *= -1.0f;
+            }
+            //glm::vec3 twistAxis = glm::axis(twist);
+            glm::vec3 ulnarAxis = glm::axis(ulnarDeviation);
+            //float twistTheta = glm::sign(twistAxis[1]) * glm::angle(twist);
+            float ulnarDeviationTheta = glm::sign(ulnarAxis[2]) * glm::angle(ulnarDeviation);
+            _ulnarRadialThetaRunningAverage = 0.5f * _ulnarRadialThetaRunningAverage + 0.5f * ulnarDeviationTheta;
+
             //get the swingTwist of the hand to lower arm
             glm::quat flex;
             glm::quat twistUlnarSwing;
-            glm::quat relativeHandRotation = (midPose.inverse() * tipPose).rot();
-            swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_X, twistUlnarSwing, flex);
+
+            swingTwistDecomposition(twist, Vectors::UNIT_X, twistUlnarSwing, flex);
+            if (flex.w < 0.0f) {
+                flex.x *= -1.0f;
+                flex.y *= -1.0f;
+                flex.z *= -1.0f;
+                flex.w *= -1.0f;
+            }
+
             glm::vec3 flexAxis = glm::axis(flex);
-            
+
             //float swingTheta = glm::angle(twistUlnarSwing);
             float flexTheta = glm::sign(flexAxis[0]) * glm::angle(flex);
-            glm::quat twist;
-            glm::quat ulnarDeviation;
-            swingTwistDecomposition(twistUlnarSwing, Vectors::UNIT_Z, twist, ulnarDeviation);
-            
-            glm::vec3 twistAxis = glm::axis(twist);
-            glm::vec3 ulnarAxis = glm::axis(ulnarDeviation);
-            float twistTheta = glm::sign(twistAxis[1]) * glm::angle(twist);
-            float ulnarDeviationTheta = glm::sign(ulnarAxis[2]) * glm::angle(ulnarDeviation);
+            _flexThetaRunningAverage = 0.5f * _flexThetaRunningAverage + 0.5f * flexTheta;
+
 
             glm::quat trueTwist;
             glm::quat nonTwist;
@@ -279,6 +307,12 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             glm::vec3 trueTwistAxis = glm::axis(trueTwist);
             float trueTwistTheta = glm::angle(trueTwist);
             trueTwistTheta *= glm::sign(trueTwistAxis[1]) * glm::angle(trueTwist);
+            _twistThetaRunningAverage = 0.5f * _twistThetaRunningAverage + 0.5f * trueTwistTheta;
+
+            
+            
+
+            
             //while (trueTwistTheta > PI) {
             //    trueTwistTheta -= 2.0f * PI;
             //}
@@ -286,11 +320,11 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
            // glm::vec3 eulerVersion = glm::eulerAngles(relativeHandRotation);
             if (!isLeft) {
-                //qCDebug(animation) << "flex: " << (flexTheta / PI) * 180.0f << "    twist: " << (twistTheta / PI) * 180.0f << "   ulnar deviation: " << (ulnarDeviationTheta / PI) * 180.0f;
-                qCDebug(animation) << "trueTwist: " << (trueTwistTheta / PI) * 180.0f;// << "   old twist: " << (twistTheta / PI) * 180.0f;
+                qCDebug(animation) << "flex: " << (flexTheta / PI) * 180.0f << "    twist: " << (trueTwistTheta / PI) * 180.0f << "   ulnar deviation: " << (ulnarDeviationTheta / PI) * 180.0f;
+                //qCDebug(animation) << "trueTwist: " << (trueTwistTheta / PI) * 180.0f;// << "   old twist: " << (twistTheta / PI) * 180.0f;
                 //qCDebug(animation) << "ulnarAxis " << flexUlnarAxis;
-                qCDebug(animation) << "relative hand rotation " << relativeHandRotation;
-                qCDebug(animation) << "twist rotation " << trueTwist;
+              //  qCDebug(animation) << "relative hand rotation " << relativeHandRotation;
+               // qCDebug(animation) << "twist rotation " << trueTwist;
 
                 //QString name = QString("handMarker3");
                 //const vec4 WHITE(1.0f);
@@ -308,38 +342,88 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 deltaThetaUlnar = correctElbowForHandUlnarRadialDeviation(tipPose, midPose);
             }
 
+            if (isLeft) {
+                fred *= -1.0f;
+            }
+
             // make the dead zone PI/6.0
             
             const float POWER = 2.0f;
-            const float FLEX_BOUNDARY = PI / 2.0f;
-            const float EXTEND_BOUNDARY = -PI / 4.0f;
-            /*
-            if (flexTheta > FLEX_BOUNDARY) {
-                fred -= glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY)  / PI, POWER) * 180.0f;
-            } else if (flexTheta < EXTEND_BOUNDARY) {
-                fred -= glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
-            }
-            
-            const float ULNAR_BOUNDARY = PI / 6.0f;
-            if (fabsf(ulnarDeviationTheta) > ULNAR_BOUNDARY) {
-                if (trueTwistTheta > 0.0f) {
-                    fred -= glm::sign(ulnarDeviationTheta) * pow(fabsf(ulnarDeviationTheta) - ULNAR_BOUNDARY / PI, POWER) * 180.0f;
-                } else {
-                    fred += glm::sign(ulnarDeviationTheta) * pow(fabsf(ulnarDeviationTheta) - ULNAR_BOUNDARY/ PI, POWER) * 180.0f;
-                }
-            }
-            */
-            // remember direction of travel.
-            const float TWIST_DEADZONE = PI / 2.0f;
-            if (!isLeft) {
-                if (trueTwistTheta < -TWIST_DEADZONE) {
-                    fred += glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
-                } else {
-                    if (trueTwistTheta > TWIST_DEADZONE) {
-                        fred += glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
+            const float FLEX_BOUNDARY = PI / 4.0f;
+            const float EXTEND_BOUNDARY = -PI / 6.0f;
+            float flexCorrection = 0.0f;
+            if (isLeft) {
+                if (_flexThetaRunningAverage > FLEX_BOUNDARY) {
+                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
+                    if (flexCorrection > 30.0f) {
+                        flexCorrection = 30.0f;
                     }
+                } else if (_flexThetaRunningAverage < EXTEND_BOUNDARY) {
+                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
                 }
+                fred += flexCorrection;
             } else {
+                if (_flexThetaRunningAverage > FLEX_BOUNDARY) {
+                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
+                    if (flexCorrection > 30.0f) {
+                        flexCorrection = 30.0f;
+                    }
+                } else if (_flexThetaRunningAverage < EXTEND_BOUNDARY) {
+                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
+                }
+                fred -= flexCorrection;
+            }
+
+            const float TWIST_ULNAR_DEADZONE = 0.0f;
+            const float ULNAR_BOUNDARY = PI / 12.0f;
+            if (fabsf(_ulnarRadialThetaRunningAverage) > ULNAR_BOUNDARY) {
+                if (fabs(_twistThetaRunningAverage) > TWIST_ULNAR_DEADZONE) {
+                    float twistCoefficient = pow((fabs(_twistThetaRunningAverage) - TWIST_ULNAR_DEADZONE) / (PI / 20.0f), POWER);
+                    float ulnarCorrection = 0.0f;
+                    if (isLeft) {
+                        if (trueTwistTheta < 0.0f) {
+                            ulnarCorrection -= glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                        } else {
+                            ulnarCorrection += glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                        }
+                    } else {
+                        // right hand
+                        if (trueTwistTheta > 0.0f) {
+                            ulnarCorrection -= glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                        } else {
+                            ulnarCorrection += glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                        }
+
+                    }
+                    if (fabsf(ulnarCorrection) > 20.0f) {
+                        ulnarCorrection = glm::sign(ulnarCorrection) * 20.0f;
+                    }
+                    fred += ulnarCorrection;
+                }
+            }
+
+            // remember direction of travel.
+            const float TWIST_DEADZONE = (4.0f * PI) / 9.0f;
+            //if (!isLeft) {
+            float twistCorrection = 0.0f;
+            if (_twistThetaRunningAverage < -TWIST_DEADZONE) {
+                twistCorrection = glm::sign(_twistThetaRunningAverage) * pow((fabsf(_twistThetaRunningAverage) - TWIST_DEADZONE) / PI, POWER) * 80.0f;
+            } else {
+                if (_twistThetaRunningAverage > TWIST_DEADZONE) {
+                    twistCorrection = glm::sign(_twistThetaRunningAverage) * pow((fabsf(_twistThetaRunningAverage) - TWIST_DEADZONE) / PI, POWER) * 80.0f;
+                }
+            }
+            if (fabsf(twistCorrection) > 45.0f) {
+                fred += glm::sign(twistCorrection) * 45.0f;
+            } else {
+                fred += twistCorrection;
+            }
+
+            _lastTheta = 0.5f * _lastTheta + 0.5f * fred;
+
+            //}
+           
+            /*else {
                 if (trueTwistTheta < -TWIST_DEADZONE) {
                     fred -= glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
                 } else {
@@ -350,6 +434,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
 
             }
+            */
             /*
             if (fred < 70.0f) {
                 fred = 70.0f;
@@ -358,10 +443,8 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 fred = 175.0f;
             }
             */
-            if (isLeft) {
-                fred *= -1.0f;
-            }
-            theta = ((180.0f - fred) / 180.0f)*PI;
+            
+            theta = ((180.0f - _lastTheta) / 180.0f)*PI;
             
             //qCDebug(animation) << "the wrist correction theta is -----> " << isLeft << " theta: " << deltaTheta;
 
