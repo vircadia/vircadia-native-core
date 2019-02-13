@@ -593,9 +593,6 @@ void Flow::calculateConstraints() {
         }
     }
     _initialized = _jointThreads.size() > 0;
-    if (_initialized) {
-        _mtimer.restart();
-    }
 }
 
 void Flow::cleanUp() {
@@ -620,25 +617,29 @@ void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat&
 
 void Flow::update(float deltaTime) {
     if (_initialized && _active) {
-        QElapsedTimer timer;
-        timer.start();
+        QElapsedTimer _timer;
+        _timer.start();
         updateJoints();
-        int count = 0;
-        for (auto &thread : _jointThreads) {
+        for (size_t i = 0; i < _jointThreads.size(); i++) {
+            size_t index = _invertThreadLoop ? _jointThreads.size() - 1 - i : i;
+            auto &thread = _jointThreads[index];
             thread.update(deltaTime);
             thread.solve(USE_COLLISIONS, _collisionSystem);
-            if (!updateRootFramePositions(count++)) {
+            if (!updateRootFramePositions(index)) {
                 return;
             }
             thread.apply();
+            if (_timer.elapsed() > MAX_UPDATE_FLOW_TIME_BUDGET) {
+                break;
+                qWarning(animation) << "Flow Bones ran out of time updating threads";
+            }
         }
         setJoints();
-        _deltaTime += timer.nsecsElapsed();
+        _invertThreadLoop = !_invertThreadLoop;
+        _deltaTime += _timer.nsecsElapsed();
         _updates++;
         if (_deltaTime > _deltaTimeLimit) {
-            qint64 currentTime = _mtimer.elapsed();
-            qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds " << (currentTime - _lastTime) / _updates << " miliseconds since last update";
-            _lastTime = currentTime;
+            qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds ";
             _deltaTime = 0;
             _updates = 0;
         }
@@ -656,7 +657,7 @@ bool Flow::worldToJointPoint(const glm::vec3& position, const int jointIndex, gl
     return false;
 }
 
-bool Flow::updateRootFramePositions(int threadIndex) {
+bool Flow::updateRootFramePositions(size_t threadIndex) {
     auto &joints = _jointThreads[threadIndex]._joints;
     int rootIndex = _flowJointData[joints[0]]._parentIndex;
     _jointThreads[threadIndex]._rootFramePositions.clear();

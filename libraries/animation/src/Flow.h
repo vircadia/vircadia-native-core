@@ -62,6 +62,8 @@ const float DEFAULT_INERTIA = 0.8f;
 const float DEFAULT_DELTA = 0.55f;
 const float DEFAULT_RADIUS = 0.01f;
 
+const uint64_t MAX_UPDATE_FLOW_TIME_BUDGET = 2000;
+
 struct FlowPhysicsSettings {
     FlowPhysicsSettings() {};
     FlowPhysicsSettings(bool active, float stiffness, float gravity, float damping, float inertia, float delta, float radius) {
@@ -286,7 +288,7 @@ private:
     void setJoints();
     void cleanUp();
     void updateJoints();
-    bool updateRootFramePositions(int threadIndex);
+    bool updateRootFramePositions(size_t threadIndex);
     bool worldToJointPoint(const glm::vec3& position, const int jointIndex, glm::vec3& jointSpacePosition) const;
     Rig* _rig;
     float _scale { 1.0f };
@@ -301,8 +303,7 @@ private:
     int _deltaTime { 0 };
     int _deltaTimeLimit { 4000000 };
     int _updates { 0 };
-    QElapsedTimer _mtimer;
-    long _lastTime { 0 };
+    bool _invertThreadLoop { false };
 };
 
 #endif // hifi_Flow_h
