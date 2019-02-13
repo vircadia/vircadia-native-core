@@ -199,7 +199,7 @@ public:
     bool _colliding { false };
     bool _active { true };
 
-    void update(const glm::vec3& accelerationOffset);
+    void update(float deltaTime, const glm::vec3& accelerationOffset);
     void solve(const glm::vec3& constrainPoint, float maxDistance, const FlowCollisionResult& collision);
     void solveConstraints(const glm::vec3& constrainPoint, float maxDistance);
     void solveCollisions(const FlowCollisionResult& collision);
@@ -212,7 +212,7 @@ public:
     void setInitialData(const glm::vec3& initialPosition, const glm::vec3& initialTranslation, const glm::quat& initialRotation, const glm::vec3& parentPosition);
     void setUpdatedData(const glm::vec3& updatedPosition, const glm::vec3& updatedTranslation, const glm::quat& updatedRotation, const glm::vec3& parentPosition, const glm::quat& parentWorldRotation);
     void setRecoveryPosition(const glm::vec3& recoveryPosition);
-    void update();
+    void update(float deltaTime);
     void solve(const FlowCollisionResult& collision);
 
     int _index{ -1 };
@@ -257,7 +257,7 @@ public:
     void resetLength();
     void computeFlowThread(int rootIndex);
     void computeRecovery();
-    void update();
+    void update(float deltaTime);
     void solve(bool useCollisions, FlowCollisionSystem& collisionSystem);
     void computeJointRotations();
     void apply();
@@ -274,10 +274,9 @@ public:
 
 class Flow {
 public:
-    Flow() {};
-    void setRig(Rig* rig);
+    Flow(Rig* rig) { _rig = rig; };
     void calculateConstraints();
-    void update();
+    void update(float deltaTime);
     void setTransform(float scale, const glm::vec3& position, const glm::quat& rotation);
     const std::map<int, FlowJoint>& getJoints() const { return _flowJointData; }
     const std::vector<FlowThread>& getThreads() const { return _jointThreads; }
@@ -302,6 +301,8 @@ private:
     int _deltaTime { 0 };
     int _deltaTimeLimit { 4000000 };
     int _updates { 0 };
+    QElapsedTimer _mtimer;
+    long _lastTime { 0 };
 };
 
 #endif // hifi_Flow_h

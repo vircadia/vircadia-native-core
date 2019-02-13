@@ -75,7 +75,7 @@ static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_ROTATION("mainStateMachineRig
 static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_POSITION("mainStateMachineRightFootPosition");
 
 
-Rig::Rig() {
+Rig::Rig() : _flow(this) {
     // Ensure thread-safe access to the rigRegistry.
     std::lock_guard<std::mutex> guard(rigRegistryMutex);
 
@@ -1217,7 +1217,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
     buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
     buildAbsoluteRigPoses(_networkPoseSet._relativePoses, _networkPoseSet._absolutePoses);
     // copy internal poses to external poses
-    _flow.update();
+    _flow.update(deltaTime);
     {
         QWriteLocker writeLock(&_externalPoseSetLock);
         
@@ -1873,7 +1873,6 @@ void Rig::initAnimGraph(const QUrl& url) {
                 auto roleState = roleAnimState.second;
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
-            _flow.setRig(this);
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {

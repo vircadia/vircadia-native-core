@@ -206,22 +206,26 @@ void FlowCollisionSystem::prepareCollisions() {
     _othersCollisions.clear();
 }
 
-void FlowNode::update(const glm::vec3& accelerationOffset) {
+void FlowNode::update(float deltaTime, const glm::vec3& accelerationOffset) {
     _acceleration = glm::vec3(0.0f, _settings._gravity, 0.0f);
     _previousVelocity = _currentVelocity;
     _currentVelocity = _currentPosition - _previousPosition;
     _previousPosition = _currentPosition;
     if (!_anchored) {
         // Add inertia
+        const float FPS = 60.0f;
+        float timeRatio = (FPS * deltaTime);
+
         auto deltaVelocity = _previousVelocity - _currentVelocity;
         auto centrifugeVector = glm::length(deltaVelocity) != 0.0f ? glm::normalize(deltaVelocity) : glm::vec3();
-        _acceleration = _acceleration + centrifugeVector * _settings._inertia * glm::length(_currentVelocity);
+        _acceleration = _acceleration + centrifugeVector * _settings._inertia * glm::length(_currentVelocity) * (1 / timeRatio);
 
         // Add offset
         _acceleration += accelerationOffset;
-        // Calculate new position
-        _currentPosition = (_currentPosition + _currentVelocity * _settings._damping) +
-            (_acceleration * glm::pow(_settings._delta * _scale, 2));
+        
+        glm::vec3 deltaAcceleration = timeRatio * _acceleration * glm::pow(_settings._delta * _scale, 2);
+        // Calculate new position        
+        _currentPosition = (_currentPosition + _currentVelocity * _settings._damping) + deltaAcceleration;
     }
     else {
         _acceleration = glm::vec3(0.0f);
@@ -289,13 +293,13 @@ void FlowJoint::setRecoveryPosition(const glm::vec3& recoveryPosition) {
     _applyRecovery = true;
 }
 
-void FlowJoint::update() {
+void FlowJoint::update(float deltaTime) {
     glm::vec3 accelerationOffset = glm::vec3(0.0f);
     if (_node._settings._stiffness > 0.0f) {
         glm::vec3 recoveryVector = _recoveryPosition - _node._currentPosition;
         accelerationOffset = recoveryVector * glm::pow(_node._settings._stiffness, 3);
     }
-    _node.update(accelerationOffset);
+    _node.update(deltaTime, accelerationOffset);
     if (_node._anchored) {
         if (!_isDummy) {
             _node._currentPosition = _updatedPosition;
@@ -368,14 +372,14 @@ void FlowThread::computeRecovery() {
     }
 };
 
-void FlowThread::update() {
+void FlowThread::update(float deltaTime) {
     if (getActive()) {
         _positions.clear();
         _radius = _jointsPointer->at(_joints[0])._node._settings._radius;
         computeRecovery();
         for (size_t i = 0; i < _joints.size(); i++) {
             auto &joint = _jointsPointer->at(_joints[i]);
-            joint.update();
+            joint.update(deltaTime);
             _positions.push_back(joint._node._currentPosition);
         }
     }
@@ -445,10 +449,6 @@ void FlowThread::apply() {
 
 bool FlowThread::getActive() {
     return _jointsPointer->at(_joints[0])._node._active;
-};
-
-void Flow::setRig(Rig* rig) {
-    _rig = rig;
 };
 
 void Flow::calculateConstraints() {
@@ -593,6 +593,9 @@ void Flow::calculateConstraints() {
         }
     }
     _initialized = _jointThreads.size() > 0;
+    if (_initialized) {
+        _mtimer.restart();
+    }
 }
 
 void Flow::cleanUp() {
@@ -615,14 +618,14 @@ void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat&
     _active = true;
 }
 
-void Flow::update() {
+void Flow::update(float deltaTime) {
     if (_initialized && _active) {
-        QElapsedTimer _timer;
-        _timer.start();
+        QElapsedTimer timer;
+        timer.start();
         updateJoints();
         int count = 0;
         for (auto &thread : _jointThreads) {
-            thread.update();
+            thread.update(deltaTime);
             thread.solve(USE_COLLISIONS, _collisionSystem);
             if (!updateRootFramePositions(count++)) {
                 return;
@@ -630,10 +633,12 @@ void Flow::update() {
             thread.apply();
         }
         setJoints();
-        _deltaTime += _timer.nsecsElapsed();
+        _deltaTime += timer.nsecsElapsed();
         _updates++;
         if (_deltaTime > _deltaTimeLimit) {
-            qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds";
+            qint64 currentTime = _mtimer.elapsed();
+            qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds " << (currentTime - _lastTime) / _updates << " miliseconds since last update";
+            _lastTime = currentTime;
             _deltaTime = 0;
             _updates = 0;
         }
