@@ -10,7 +10,7 @@
 #ifndef hifi_PathUtils_h
 #define hifi_PathUtils_h
 
-#include <Qstring>
+#include <QString>
 
 class PathUtils {
 public:
