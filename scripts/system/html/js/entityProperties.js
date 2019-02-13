@@ -185,6 +185,20 @@ const GROUPS = [
         addToGroup: "base",
         properties: [
             {
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "sphere": "Sphere", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "compound": "Use Compound Shape URL" },
+                propertyID: "zoneShapeType",
+                propertyName: "shapeType", // actual entity property name
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "zoneCompoundShapeURL",
+                propertyName: "compoundShapeURL", // actual entity property name
+            },
+            {
                 label: "Flying Allowed",
                 type: "bool",
                 propertyID: "flyingAllowed",
@@ -1346,24 +1360,6 @@ const GROUPS = [
         ]
     },
     {
-        id: "zone_shape",
-        label: "ZONE SHAPE",
-        properties: [
-            {
-                label: "Shape Type",
-                type: "dropdown",
-                options: { "box": "Box", "sphere": "Sphere", "ellipsoid": "Ellipsoid", 
-                           "cylinder-y": "Cylinder", "compound": "Use Compound Shape URL" },
-                propertyID: "shapeType",
-            },
-            {
-                label: "Compound Shape URL",
-                type: "string",
-                propertyID: "compoundShapeURL",
-            },
-        ]
-    },
-    {
         id: "physics",
         label: "PHYSICS",
         properties: [
@@ -1454,7 +1450,7 @@ const GROUPS_PER_TYPE = {
   None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
   Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
-  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'zone_shape', 'physics' ],
+  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'physics' ],
   Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
   Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],
@@ -2332,7 +2328,7 @@ function createTextureProperty(property, elProperty) {
     elInput.setAttribute("id", elementID);
     elInput.setAttribute("type", "text"); 
     
-    let imageLoad = _.debounce(function (url) {
+    let imageLoad = function(url) {
         if (url.slice(0, 5).toLowerCase() === "atp:/") {
             elImage.src = "";
             elImage.style.display = "none";
@@ -2352,15 +2348,12 @@ function createTextureProperty(property, elProperty) {
             elDiv.classList.remove("no-preview");
             elDiv.classList.add("no-texture");
         }
-    }, IMAGE_DEBOUNCE_TIMEOUT);
-    elInput.imageLoad = imageLoad;
-    elInput.oninput = function (event) {
-        // Add throttle
-        let url = event.target.value;
-        imageLoad(url);
-        updateProperty(property.name, url, property.isParticleProperty)
     };
-    elInput.onchange = elInput.oninput;
+    elInput.imageLoad = imageLoad;
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    elInput.addEventListener('change', function(ev) {
+        imageLoad(ev.target.value);
+    });
 
     elProperty.appendChild(elInput);
     elProperty.appendChild(elDiv);
@@ -3317,7 +3310,8 @@ function loaded() {
                             }
                         }
 
-                        let doSelectElement = lastEntityID === '"' + selectedEntityProperties.id + '"';
+                        let hasSelectedEntityChanged = lastEntityID !== '"' + selectedEntityProperties.id + '"';
+                        let doSelectElement = !hasSelectedEntityChanged;
 
                         // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + selectedEntityProperties.id + '"';
@@ -3437,7 +3431,7 @@ function loaded() {
                                     property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
-                                    if ($(property.elColorPicker).attr('active') === 'true') {
+                                    if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
                                         // Set the color picker inactive before setting the color,
                                         // otherwise an update will be sent directly after setting it here.
                                         $(property.elColorPicker).attr('active', 'false');
@@ -3801,6 +3795,11 @@ function loaded() {
             if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
+
+            if (elUserDataEditor.contains(keyUpEvent.target) || elMaterialDataEditor.contains(keyUpEvent.target)) {
+                return;
+            }
+
             let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
 
             let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;

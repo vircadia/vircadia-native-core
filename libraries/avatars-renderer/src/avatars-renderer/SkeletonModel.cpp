@@ -249,14 +249,6 @@ bool SkeletonModel::getRightHandPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getRightHandJointIndex(), position);
 }
 
-bool SkeletonModel::getLeftShoulderPosition(glm::vec3& position) const {
-    return getJointPositionInWorldFrame(getLastFreeJointIndex(getLeftHandJointIndex()), position);
-}
-
-bool SkeletonModel::getRightShoulderPosition(glm::vec3& position) const {
-    return getJointPositionInWorldFrame(getLastFreeJointIndex(getRightHandJointIndex()), position);
-}
-
 bool SkeletonModel::getHeadPosition(glm::vec3& headPosition) const {
     return isActive() && getJointPositionInWorldFrame(_rig.indexOfJoint("Head"), headPosition);
 }

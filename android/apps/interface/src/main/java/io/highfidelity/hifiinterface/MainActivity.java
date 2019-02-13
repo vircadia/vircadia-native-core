@@ -33,13 +33,15 @@ import com.squareup.picasso.Picasso;
 import io.highfidelity.hifiinterface.fragment.FriendsFragment;
 import io.highfidelity.hifiinterface.fragment.HomeFragment;
 import io.highfidelity.hifiinterface.fragment.PolicyFragment;
+import io.highfidelity.hifiinterface.fragment.ProfileFragment;
 import io.highfidelity.hifiinterface.fragment.SettingsFragment;
 import io.highfidelity.hifiinterface.fragment.SignupFragment;
 import io.highfidelity.hifiinterface.task.DownloadProfileImageTask;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener,
                                                                 HomeFragment.OnHomeInteractionListener,
-                                                                FriendsFragment.OnHomeInteractionListener {
+                                                                FriendsFragment.OnHomeInteractionListener,
+                                                                ProfileFragment.OnProfileInteractionListener {
 
     private static final int PROFILE_PICTURE_PLACEHOLDER = R.drawable.default_profile_avatar;
     public static final String DEFAULT_FRAGMENT = "Home";
@@ -61,6 +63,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private View mProfilePanel;
     private TextView mLogoutOption;
     private MenuItem mPeopleMenuItem;
+    private MenuItem mProfileMenuItem;
 
     private boolean backToScene;
     private String backToUrl;
@@ -82,6 +85,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mProfilePicture = mNavigationView.getHeaderView(0).findViewById(R.id.profilePicture);
 
         mPeopleMenuItem = mNavigationView.getMenu().findItem(R.id.action_people);
+
+        mProfileMenuItem = mNavigationView.getMenu().findItem(R.id.action_profile);
 
         updateDebugMenu(mNavigationView.getMenu());
 
@@ -160,6 +165,12 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         Fragment fragment = FriendsFragment.newInstance();
 
         loadFragment(fragment, getString(R.string.people), getString(R.string.tagFragmentPeople), true, true);
+    }
+
+    private void loadProfileFragment() {
+        Fragment fragment = ProfileFragment.newInstance();
+
+        loadFragment(fragment, getString(R.string.profile), getString(R.string.tagFragmentProfile), true, true);
     }
 
     private void loadSettingsFragment() {
@@ -261,6 +272,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             case R.id.action_people:
                 loadPeopleFragment();
                 return true;
+            case R.id.action_profile:
+                loadProfileFragment();
+                break;
             case R.id.action_debug_settings:
                 loadSettingsFragment();
                 return true;
@@ -349,6 +363,21 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     @Override
     public void onVisitUserSelected(String username) {
         goToUser(username);
+    }
+
+    @Override
+    public void onCancelProfileEdit() {
+        loadHomeFragment(false);
+    }
+
+    @Override
+    public void onCompleteProfileEdit() {
+        loadHomeFragment(false);
+    }
+
+    @Override
+    public void onAvatarChosen() {
+        loadHomeFragment(false);
     }
 
     private class RoundProfilePictureCallback implements Callback {

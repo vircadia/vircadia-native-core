@@ -29,6 +29,8 @@ Item {
     property bool withSteam: withSteam
     property bool withOculus: withOculus
     property bool linkSteam: linkSteam
+    property bool linkOculus: linkOculus
+    property bool createOculus: createOculus
 
     readonly property bool loginDialogPoppedUp: loginDialog.getLoginDialogPoppedUp()
 
@@ -75,15 +77,25 @@ Item {
         }
     }
 
+    Timer {
+        id: oculusSuccessTimer
+        interval: 500;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            loginDialog.loginThroughOculus();
+            init();
+        }
+    }
+
     function init() {
         // For the process of logging in.
         loggingInText.wrapMode = Text.NoWrap;
-
-        if (loggingInBody.linkSteam) {
+        if (loggingInBody.createOculus) {
+            loggingInGlyph.text = hifi.glyphs.oculus;
             loggingInGlyph.visible = true;
-            loggingInText.text = "Linking to Steam";
+            loggingInText.text = "Creating account with Oculus";
             loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
-            loginDialog.linkSteam();
         } else if (loggingInBody.withSteam) {
             loggingInGlyph.visible = true;
             loggingInText.text = "Logging in to Steam";
@@ -100,12 +112,18 @@ Item {
         loggingInSpinner.visible = true;
     }
     function loadingSuccess() {
-        loggingInSpinner.visible = false;
         if (loggingInBody.linkSteam) {
             loggingInText.text = "Linking to Steam";
+            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
             loginDialog.linkSteam();
             return;
+        } else if (loggingInBody.linkOculus) {
+            loggingInText.text = "Linking to Oculus";
+            loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+            loginDialog.linkOculus();
+            return;
         }
+        loggingInSpinner.visible = false;
         if (loggingInBody.withSteam) {
             // reset the flag.
             loggingInGlyph.visible = false;
@@ -246,6 +264,26 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
                     visible: false;
                 }
+                HifiControlsUit.Button {
+                    id: okButton;
+                    width: d.minWidthButton
+                    height: d.minHeightButton
+                    text: qsTr("OK")
+                    color: hifi.buttons.white
+                    anchors {
+                        top: loggedInGlyph.bottom
+                        topMargin: 3 * hifi.dimensions.contentSpacing.y
+                        left: parent.left
+                        leftMargin: (parent.width - width) / 2;
+                    }
+                    onClicked: {
+                        root.tryDestroy();
+                        if (loginDialog.getLoginDialogPoppedUp()) {
+                            loginDialog.dismissLoginDialog();
+                        }
+                    }
+                    visible: false
+                }
             }
         }
     }
@@ -257,6 +295,34 @@ Item {
 
     Connections {
         target: loginDialog
+        onHandleCreateCompleted: {
+            console.log("Create Succeeded")
+            if (loggingInBody.withOculus) {
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user created Oculus account successfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+                loggingInBody.createOculus = false;
+                loggingInText.text = "Account created!";
+                loggingInText.x = loggingInHeader.width/2 - loggingInTextMetrics.width/2 + loggingInGlyphTextMetrics.width/2;
+                oculusSuccessTimer.start();
+            }
+        }
+        onHandleCreateFailed: {
+            console.log("Create Failed: " + error);
+            if (loggingInBody.withOculus) {
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user created Oculus account unsuccessfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
+                    "withOculus": loggingInBody.withOculus, "errorString": error });
+            }
+        }
         onHandleLinkCompleted: {
             console.log("Link Succeeded");
             if (loggingInBody.linkSteam) {
@@ -267,21 +333,40 @@ Item {
                     };
                     UserActivityLogger.logAction("encourageLoginDialog", data);
                 }
-
-                loggingInBody.loadingSuccess();
+            } else if (loggingInBody.linkOculus) {
+                loggingInBody.linkOculus = false;
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user linked Oculus with their hifi account credentials successfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
             }
+            loggingInBody.loadingSuccess();
         }
         onHandleLinkFailed: {
             console.log("Link Failed: " + error);
-            if (loggingInBody.linkSteam) {
+            loggingInSpinner.visible = false;
+            if (loggingInBody.linkOculus) {
+                loggingInText.text = "Oculus failed to link";
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user linked Oculus unsuccessfully"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+                okButton.visible = true;
+            } else if (loggingInBody.linkSteam){
                 if (loggingInBody.loginDialogPoppedUp) {
                     var data = {
                         "action": "user linked Steam unsuccessfully"
                     };
                     UserActivityLogger.logAction("encourageLoginDialog", data);
                 }
+            } else {
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": loggingInBody.linkSteam,
+                    "linkOculus": loggingInBody.linkOculus, "errorString": error });
             }
-            bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "linkSteam": true, "errorString": error });
         }
 
         onHandleLoginCompleted: {
@@ -292,8 +377,19 @@ Item {
         onHandleLoginFailed: {
             console.log("Login Failed")
             loggingInSpinner.visible = false;
+            loggingInGlyph.visible = false;
             var errorString = "";
-            if (loggingInBody.linkSteam && loggingInBody.withSteam) {
+            if (loggingInBody.linkOculus && loggingInBody.withOculus) {
+                errorString = "Username or password is incorrect.";
+                if (loggingInBody.loginDialogPoppedUp) {
+                    var data = {
+                        "action": "user failed to link Oculus with their hifi account credentials"
+                    };
+                    UserActivityLogger.logAction("encourageLoginDialog", data);
+                }
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
+                    "withOculus": loggingInBody.withOculus, "linkSteam": loggingInBody.linkSteam, "linkOculus": loggingInBody.linkOculus, "errorString": errorString });
+            } else if (loggingInBody.linkSteam && loggingInBody.withSteam) {
                 errorString = "Username or password is incorrect.";
                 if (loggingInBody.loginDialogPoppedUp) {
                     var data = {
@@ -301,9 +397,9 @@ Item {
                     };
                     UserActivityLogger.logAction("encourageLoginDialog", data);
                 }
-                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "linkSteam": loggingInBody.linkSteam, "errorString": errorString });
+                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
+                    "withOculus": loggingInBody.withOculus, "linkSteam": loggingInBody.linkSteam, "linkOculus": loggingInBody.linkOculus, "errorString": errorString });
             } else if (loggingInBody.withSteam) {
-                loggingInGlyph.visible = false;
                 errorString = "Your Steam authentication has failed. Please make sure you are logged into Steam and try again.";
                 if (loggingInBody.loginDialogPoppedUp) {
                     var data = {
@@ -311,19 +407,19 @@ Item {
                     };
                     UserActivityLogger.logAction("encourageLoginDialog", data);
                 }
-                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam, "errorString": errorString });
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
+                    "withOculus": loggingInBody.withOculus, "linkSteam": loggingInBody.linkSteam, "linkOculus": loggingInBody.linkOculus, "errorString": errorString });
             } else if (loggingInBody.withOculus) {
-                loggingInGlyph.visible = false;
-                errorString = "Your Oculus authentication has failed. Please make sure you are logged into Oculus and try again."
+                errorString = "Your Oculus account is not connected to an existing High Fidelity account. Please create a new one."
                 if (loggingInBody.loginDialogPoppedUp) {
                     var data = {
                         "action": "user failed to authenticate with Oculus to log in"
                     };
                     UserActivityLogger.logAction("encourageLoginDialog", data);
                 }
-                bodyLoader.setSource("LinkAccountBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "errorString": errorString });
-            }
-            else {
+                bodyLoader.setSource("CompleteProfileBody.qml", { "loginDialog": loginDialog, "root": root, "bodyLoader": bodyLoader, "withSteam": loggingInBody.withSteam,
+                    "withOculus": loggingInBody.withOculus, "linkSteam": loggingInBody.linkSteam, "linkOculus": loggingInBody.linkOculus, "errorString": errorString });
+            } else {
                 errorString = "Username or password is incorrect.";
                 if (loggingInBody.loginDialogPoppedUp) {
                     var data = {

@@ -36,6 +36,7 @@
  * 
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @property {boolean} navigationFocused
  * @property {boolean} navigationFocusDisabled
  */

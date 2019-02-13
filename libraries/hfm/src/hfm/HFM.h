@@ -25,6 +25,8 @@
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
+#include <image/ColorChannel.h>
+
 #if defined(Q_OS_ANDROID)
 #define HFM_PACK_NORMALS 0
 #else
@@ -75,8 +77,6 @@ struct JointShapeInfo {
 class Joint {
 public:
     JointShapeInfo shapeInfo;
-    QVector<int> freeLineage;
-    bool isFree;
     int parentIndex;
     float distanceToParent;
 
@@ -125,6 +125,7 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
+    image::ColorChannel sourceChannel { image::ColorChannel::NONE };
 
     Transform transform;
     int maxNumPixels { MAX_NUM_PIXELS_FOR_FBX_TEXTURE };
@@ -239,9 +240,6 @@ public:
 
     graphics::MeshPointer _mesh;
     bool wasCompressed { false };
-
-    void createMeshTangents(bool generateFromTexCoords);
-    void createBlendShapeTangents(bool generateTangents);
 };
 
 /**jsdoc
@@ -294,8 +292,6 @@ public:
 
     glm::mat4 offset; // This includes offset, rotation, and scale as specified by the FST file
 
-    glm::vec3 palmDirection;
-
     glm::vec3 neckPivot;
 
     Extents bindExtents;
@@ -322,7 +318,6 @@ public:
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
-    QMap<QString, QString> hfmToHifiJointNameMapping;
 };
 
 };

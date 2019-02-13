@@ -54,7 +54,6 @@
 #include "AvatarTraits.h"
 #include "HeadData.h"
 #include "PathUtils.h"
-#include "Grab.h"
 
 #include <graphics/Material.h>
 
@@ -67,8 +66,6 @@ using PackedAvatarEntityMap = QMap<QUuid, QByteArray>; // similar to AvatarEntit
 using AvatarEntityIDs = QSet<QUuid>;
 
 using AvatarGrabDataMap = QMap<QUuid, QByteArray>;
-using AvatarGrabIDs = QSet<QUuid>;
-using AvatarGrabMap = QMap<QUuid, GrabPointer>;
 
 using AvatarDataSequenceNumber = uint16_t;
 
@@ -277,8 +274,8 @@ namespace AvatarDataPacket {
         uint8_t rotationValidityBits[ceil(numJoints / 8)];     // one bit per joint, if true then a compressed rotation follows.
         SixByteQuat rotation[numValidRotations];               // encodeded and compressed by packOrientationQuatToSixBytes()
         uint8_t translationValidityBits[ceil(numJoints / 8)];  // one bit per joint, if true then a compressed translation follows.
-        SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
-
+        float maxTranslationDimension;                         // used to normalize fixed point translation values.
+        SixByteTrans translation[numValidTranslations];        // normalized and compressed by packFloatVec3ToSignedTwoByteFixed()
         SixByteQuat leftHandControllerRotation;
         SixByteTrans leftHandControllerTranslation;
         SixByteQuat rightHandControllerRotation;
@@ -286,6 +283,7 @@ namespace AvatarDataPacket {
     };
     */
     size_t maxJointDataSize(size_t numJoints, bool hasGrabJoints);
+    size_t minJointDataSize(size_t numJoints);
 
     /*
     struct JointDefaultPoseFlags {
@@ -494,6 +492,8 @@ public:
     /// \param offset number of bytes into packet where data starts
     /// \return number of bytes parsed
     virtual int parseDataFromBuffer(const QByteArray& buffer);
+
+    virtual void setCollisionWithOtherAvatarsFlags() {};
 
     // Body Rotation (degrees)
     float getBodyYaw() const;
@@ -1472,8 +1472,6 @@ protected:
     mutable ReadWriteLockable _avatarGrabsLock;
     AvatarGrabDataMap _avatarGrabData;
     bool _avatarGrabDataChanged { false }; // by network
-    AvatarGrabIDs _changedAvatarGrabs; // updated grab IDs -- changes needed to entities or physics
-    AvatarGrabIDs _deletedAvatarGrabs; // deleted grab IDs -- changes needed to entities or physics
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
@@ -1536,7 +1534,7 @@ protected:
     }
 
     bool updateAvatarGrabData(const QUuid& grabID, const QByteArray& grabData);
-    void clearAvatarGrabData(const QUuid& grabID);
+    virtual void clearAvatarGrabData(const QUuid& grabID);
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -1617,6 +1615,7 @@ public:
     BoxFace face;
     glm::vec3 intersection;
     glm::vec3 surfaceNormal;
+    int jointIndex { -1 };
     QVariantMap extraInfo;
 };
 Q_DECLARE_METATYPE(RayToAvatarIntersectionResult)

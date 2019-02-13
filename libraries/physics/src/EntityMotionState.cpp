@@ -81,7 +81,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     setShape(shape);
 
     if (_entity->isAvatarEntity() && _entity->getOwningAvatarID() != Physics::getSessionUUID()) {
-        // avatar entities entities are always thus, so we cache this fact in _ownershipState
+        // avatar entities are always thus, so we cache this fact in _ownershipState
         _ownershipState = EntityMotionState::OwnershipState::Unownable;
     }
 
@@ -115,17 +115,30 @@ void EntityMotionState::updateServerPhysicsVariables() {
 }
 
 void EntityMotionState::handleDeactivation() {
-    // copy _server data to entity
-    Transform localTransform = _entity->getLocalTransform();
-    localTransform.setTranslation(_serverPosition);
-    localTransform.setRotation(_serverRotation);
-    _entity->setLocalTransformAndVelocities(localTransform, ENTITY_ITEM_ZERO_VEC3, ENTITY_ITEM_ZERO_VEC3);
-    // and also to RigidBody
-    btTransform worldTrans;
-    worldTrans.setOrigin(glmToBullet(_entity->getWorldPosition()));
-    worldTrans.setRotation(glmToBullet(_entity->getWorldOrientation()));
-    _body->setWorldTransform(worldTrans);
-    // no need to update velocities... should already be zero
+   if (_entity->getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES)) {
+       // Some non-physical event (script-call or network-packet) has modified the entity's transform and/or velocities
+       // at the last minute before deactivation --> the values stored in _server* and _body are stale.
+       // We assume the EntityMotionState is the last to know, so we copy from EntityItem and let things sort themselves out.
+       Transform localTransform;
+       _entity->getLocalTransformAndVelocities(localTransform, _serverVelocity, _serverAngularVelocity);
+       _serverPosition = localTransform.getTranslation();
+       _serverRotation = localTransform.getRotation();
+       _serverAcceleration = _entity->getAcceleration();
+       _serverActionData = _entity->getDynamicData();
+       _lastStep = ObjectMotionState::getWorldSimulationStep();
+   } else {
+       // copy _server data to entity
+       Transform localTransform = _entity->getLocalTransform();
+       localTransform.setTranslation(_serverPosition);
+       localTransform.setRotation(_serverRotation);
+       _entity->setLocalTransformAndVelocities(localTransform, ENTITY_ITEM_ZERO_VEC3, ENTITY_ITEM_ZERO_VEC3);
+       // and also to RigidBody
+       btTransform worldTrans;
+       worldTrans.setOrigin(glmToBullet(_entity->getWorldPosition()));
+       worldTrans.setRotation(glmToBullet(_entity->getWorldOrientation()));
+       _body->setWorldTransform(worldTrans);
+       // no need to update velocities... should already be zero
+   }
 }
 
 // virtual
@@ -211,6 +224,7 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     }
     if (_entity->isMovingRelativeToParent() ||
         _entity->hasActions() ||
+        _entity->hasGrabs() ||
         _entity->hasAncestorOfType(NestableType::Avatar)) {
         return MOTION_TYPE_KINEMATIC;
     }
@@ -235,11 +249,19 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
     assert(entityTreeIsLocked());
     if (_motionType == MOTION_TYPE_KINEMATIC) {
         BT_PROFILE("kinematicIntegration");
+        uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
+        if (hasInternalKinematicChanges()) {
+            // ACTION_CAN_CONTROL_KINEMATIC_OBJECT_HACK: This kinematic body was moved by an Action
+            // and doesn't require transform update because the body is authoritative and its transform
+            // has already been copied out --> do no kinematic integration.
+            clearInternalKinematicChanges();
+            _lastKinematicStep = thisStep;
+            return;
+        }
         // This is physical kinematic motion which steps strictly by the subframe count
         // of the physics simulation and uses full gravity for acceleration.
         _entity->setAcceleration(_entity->getGravity());
 
-        uint32_t thisStep = ObjectMotionState::getWorldSimulationStep();
         float dt = (thisStep - _lastKinematicStep) * PHYSICS_ENGINE_FIXED_SUBSTEP;
         _lastKinematicStep = thisStep;
         _entity->stepKinematicMotion(dt);
@@ -767,6 +789,7 @@ bool EntityMotionState::shouldSendBid() const {
     // NOTE: this method is only ever called when the entity's simulation is NOT locally owned
     return _body->isActive()
         && (_region == workload::Region::R1)
+        && _ownershipState != EntityMotionState::OwnershipState::Unownable
         && glm::max(glm::max(VOLUNTEER_SIMULATION_PRIORITY, _bumpedPriority), _entity->getScriptSimulationPriority()) >= _entity->getSimulationPriority()
         && !_entity->getLocked();
 }

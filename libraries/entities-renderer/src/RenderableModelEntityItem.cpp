@@ -280,11 +280,7 @@ bool RenderableModelEntityItem::findDetailedParabolaIntersection(const glm::vec3
 }
 
 void RenderableModelEntityItem::fetchCollisionGeometryResource() {
-    QUrl hullURL(getCollisionShapeURL());
-    QUrlQuery queryArgs(hullURL);
-    queryArgs.addQueryItem("collision-hull", "");
-    hullURL.setQuery(queryArgs);
-    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+    _compoundShapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(getCollisionShapeURL());
 }
 
 bool RenderableModelEntityItem::computeShapeFailedToLoad() {
@@ -959,23 +955,6 @@ QStringList RenderableModelEntityItem::getJointNames() const {
     return result;
 }
 
-void RenderableModelEntityItem::setAnimationURL(const QString& url) {
-    QString oldURL = getAnimationURL();
-    ModelEntityItem::setAnimationURL(url);
-    if (oldURL != getAnimationURL()) {
-        _needsAnimationReset = true;
-    }
-}
-
-bool RenderableModelEntityItem::needsAnimationReset() const {
-    return _needsAnimationReset;
-}
-
-QString RenderableModelEntityItem::getAnimationURLAndReset() {
-    _needsAnimationReset = false;
-    return getAnimationURL();
-}
-
 scriptable::ScriptableModelBase render::entities::ModelEntityRenderer::getScriptableModel() {
     auto model = resultWithReadLock<ModelPointer>([this]{ return _model; });
 
@@ -1074,10 +1053,16 @@ ModelEntityRenderer::ModelEntityRenderer(const EntityItemPointer& entity) : Pare
 }
 
 void ModelEntityRenderer::setKey(bool didVisualGeometryRequestSucceed) {
+    auto builder = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
+
+    if (_model && _model->isGroupCulled()) {
+        builder.withMetaCullGroup();
+    }
+
     if (didVisualGeometryRequestSucceed) {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTagBits(getTagMask());
+        _itemKey = builder.build();
     } else {
-        _itemKey = ItemKey::Builder().withTypeMeta().withTypeShape().withTagBits(getTagMask());
+        _itemKey = builder.withTypeShape().build();
     }
 }
 
@@ -1258,7 +1243,7 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
             return false;
         }
 
-        if (_lastTextures != entity->getTextures()) {
+        if (_textures != entity->getTextures()) {
             return true;
         }
 
@@ -1293,6 +1278,10 @@ bool ModelEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoin
 
         if (model->getScaleToFitDimensions() != entity->getScaledDimensions() ||
             model->getRegistrationPoint() != entity->getRegistrationPoint()) {
+            return true;
+        }
+
+        if (model->isGroupCulled() != entity->getGroupCulled()) {
             return true;
         }
     }
@@ -1351,6 +1340,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         connect(model.get(), &Model::requestRenderUpdate, this, &ModelEntityRenderer::requestRenderUpdate);
         connect(model.get(), &Model::setURLFinished, this, [&](bool didVisualGeometryRequestSucceed) {
             setKey(didVisualGeometryRequestSucceed);
+            _model->setTagMask(getTagMask());
+            _model->setHifiRenderLayer(getHifiRenderLayer());
             emit requestRenderUpdate();
             if(didVisualGeometryRequestSucceed) {
                 emit DependencyManager::get<scriptable::ModelProviderFactory>()->
@@ -1406,15 +1397,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
         entity->_originalTexturesRead = true;
     }
 
-    if (_lastTextures != entity->getTextures()) {
+    if (_textures != entity->getTextures()) {
+        QVariantMap newTextures;
         withWriteLock([&] {
             _texturesLoaded = false;
-            _lastTextures = entity->getTextures();
+            _textures = entity->getTextures();
+            newTextures = parseTexturesToMap(_textures, entity->_originalTextures);
         });
-        auto newTextures = parseTexturesToMap(_lastTextures, entity->_originalTextures);
-        if (newTextures != model->getTextures()) {
-            model->setTextures(newTextures);
-        }
+        model->setTextures(newTextures);
     }
     if (entity->_needsJointSimulation) {
         entity->copyAnimationJointDataToModel();
@@ -1435,6 +1425,14 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 
     if (model->canCastShadow() != _canCastShadow) {
         model->setCanCastShadow(_canCastShadow, scene);
+    }
+
+    {
+        bool groupCulled = entity->getGroupCulled();
+        if (model->isGroupCulled() != groupCulled) {
+            model->setGroupCulled(groupCulled);
+            setKey(_didLastVisualGeometryRequestSucceed);
+        }
     }
 
     {
@@ -1474,11 +1472,17 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (_animating) {
         DETAILED_PROFILE_RANGE(simulation_physics, "Animate");
 
-        if (_animation && entity->needsAnimationReset()) {
-            //(_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
-            // the joints have been mapped before but we have a new animation to load
-            _animation.reset();
-            _jointMappingCompleted = false;
+        auto animationURL = entity->getAnimationURL();
+        bool animationChanged = _animationURL != animationURL;
+        if (animationChanged) {
+            _animationURL = animationURL;
+
+            if (_animation) {
+                //(_animation->getURL().toString() != entity->getAnimationURL())) { // bad check
+                // the joints have been mapped before but we have a new animation to load
+                _animation.reset();
+                _jointMappingCompleted = false;
+            }
         }
 
         if (!_jointMappingCompleted) {
@@ -1494,6 +1498,24 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
 void ModelEntityRenderer::setIsVisibleInSecondaryCamera(bool value) {
     Parent::setIsVisibleInSecondaryCamera(value);
     setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setTagMask(getTagMask());
+    }
+}
+
+void ModelEntityRenderer::setRenderLayer(RenderLayer value) {
+    Parent::setRenderLayer(value);
+    setKey(_didLastVisualGeometryRequestSucceed);
+    if (_model) {
+        _model->setHifiRenderLayer(getHifiRenderLayer());
+    }
+}
+
+void ModelEntityRenderer::setPrimitiveMode(PrimitiveMode value) {
+    Parent::setPrimitiveMode(value);
+    if (_model) {
+        _model->setPrimitiveMode(_primitiveMode);
+    }
 }
 
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items
@@ -1525,7 +1547,7 @@ void ModelEntityRenderer::mapJoints(const TypedEntityPointer& entity, const Mode
     }
 
     if (!_animation) {
-        _animation = DependencyManager::get<AnimationCache>()->getAnimation(entity->getAnimationURLAndReset());
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(_animationURL);
     }
 
     if (_animation && _animation->isLoaded()) {

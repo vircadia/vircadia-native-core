@@ -24,6 +24,7 @@
 #include "Pipeline.h"
 #include "Framebuffer.h"
 #include "Frame.h"
+#include "PointerStorage.h"
 
 class QImage;
 
@@ -65,6 +66,7 @@ public:
     virtual void syncProgram(const gpu::ShaderPointer& program) = 0;
     virtual void recycle() const = 0;
     virtual void downloadFramebuffer(const FramebufferPointer& srcFramebuffer, const Vec4i& region, QImage& destImage) = 0;
+    virtual void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false) {}
 
     virtual bool supportedTextureFormat(const gpu::Element& format) = 0;
 
@@ -116,7 +118,6 @@ public:
     static ContextMetricSize textureResourcePopulatedGPUMemSize;
     static ContextMetricSize textureResourceIdealGPUMemSize;
 
-protected:
     virtual bool isStereo() const {
         return _stereo.isStereo();
     }
@@ -126,6 +127,7 @@ protected:
             eyeProjections[i] = _stereo._eyeProjections[i];
         }
     }
+protected:
 
     void getStereoViews(mat4* eyeViews) const {
         for (int i = 0; i < 2; ++i) {
@@ -162,8 +164,8 @@ public:
     void appendFrameBatch(const BatchPointer& batch);
     FramePointer endFrame();
 
-    BatchPointer acquireBatch(const char* name = nullptr);
-    void releaseBatch(Batch* batch);
+    static BatchPointer acquireBatch(const char* name = nullptr);
+    static void releaseBatch(Batch* batch);
 
     // MUST only be called on the rendering thread
     //
@@ -174,6 +176,11 @@ public:
     //
     // Execute a batch immediately, rather than as part of a frame
     void executeBatch(Batch& batch) const;
+
+    // MUST only be called on the rendering thread
+    //
+    // Execute a batch immediately, rather than as part of a frame
+    void executeBatch(const char* name, std::function<void(Batch&)> lambda) const;
 
     // MUST only be called on the rendering thread
     //
@@ -267,8 +274,6 @@ protected:
     Context(const Context& context);
 
     std::shared_ptr<Backend> _backend;
-    std::mutex _batchPoolMutex;
-    std::list<Batch*> _batchPool;
     bool _frameActive{ false };
     FramePointer _currentFrame;
     RangeTimerPointer _frameRangeTimer;
@@ -284,6 +289,11 @@ protected:
 
     static CreateBackend _createBackendCallback;
     static std::once_flag _initialized;
+
+    // Should probably move this functionality to Batch
+    static void clearBatches();
+    static std::mutex _batchPoolMutex;
+    static std::list<Batch*> _batchPool;
 
     friend class Shader;
     friend class Backend;

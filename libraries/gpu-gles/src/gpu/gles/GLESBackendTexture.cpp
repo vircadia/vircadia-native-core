@@ -272,28 +272,40 @@ void GLESFixedAllocationTexture::allocateStorage() const {
     const GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat());
     const auto numMips = _gpuObject.getNumMips();
     const auto numSlices = _gpuObject.getNumSlices();
+    const auto numSamples = _gpuObject.getNumSamples();
 
     // glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
-    for (GLint level = 0; level < numMips; level++) {
-        Vec3u dimensions = _gpuObject.evalMipDimensions(level);
-        for (GLenum target : getFaceTargets(_target)) {
-            if (texelFormat.isCompressed()) {
-                auto size = getCompressedImageSize(dimensions.x, dimensions.y, texelFormat.internalFormat);
-                if (!_gpuObject.isArray()) {
-                    glCompressedTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, size, nullptr);
+    if (!_gpuObject.isMultisample()) {
+        for (GLint level = 0; level < numMips; level++) {
+            Vec3u dimensions = _gpuObject.evalMipDimensions(level);
+            for (GLenum target : getFaceTargets(_target)) {
+                if (texelFormat.isCompressed()) {
+                    auto size = getCompressedImageSize(dimensions.x, dimensions.y, texelFormat.internalFormat);
+                    if (!_gpuObject.isArray()) {
+                        glCompressedTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, size, nullptr);
+                    } else {
+                        glCompressedTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0, size * numSlices, nullptr);
+                    }
                 } else {
-                    glCompressedTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0, size * numSlices, nullptr);
-                }
-            } else {
-                if (!_gpuObject.isArray()) {
-                    glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
-                                texelFormat.type, nullptr);
-                } else {
-                    glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
-                                texelFormat.format, texelFormat.type, nullptr);
+                    if (!_gpuObject.isArray()) {
+                        glTexImage2D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, 0, texelFormat.format,
+                                    texelFormat.type, nullptr);
+                    } else {
+                        glTexImage3D(target, level, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, 0,
+                                    texelFormat.format, texelFormat.type, nullptr);
+                    }
                 }
             }
         }
+    } else {
+        const auto dimensions = _gpuObject.getDimensions();
+        if (!_gpuObject.isArray()) {
+            glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, numSamples,
+                                      texelFormat.internalFormat, dimensions.x, dimensions.y,
+                                      GL_FALSE);
+        } else {
+            // NOT SUPPORTED (yet)
+        }       
     }
 
     glTexParameteri(_target, GL_TEXTURE_BASE_LEVEL, 0);

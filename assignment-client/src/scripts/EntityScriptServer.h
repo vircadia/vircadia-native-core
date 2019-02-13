@@ -67,7 +67,7 @@ private:
     void addingEntity(const EntityItemID& entityID);
     void deletingEntity(const EntityItemID& entityID);
     void entityServerScriptChanging(const EntityItemID& entityID, bool reload);
-    void checkAndCallPreload(const EntityItemID& entityID, bool reload = false);
+    void checkAndCallPreload(const EntityItemID& entityID, bool forceRedownload = false);
 
     void cleanupOldKilledListeners();
 

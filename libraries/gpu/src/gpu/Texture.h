@@ -189,6 +189,8 @@ public:
     }
 protected:
     Desc _desc;
+
+    friend class Deserializer;
 };
 
 enum class TextureUsageType : uint8 {
@@ -371,6 +373,8 @@ public:
 
         ktx::KTXDescriptorPointer _ktxDescriptor;
         friend class Texture;
+        friend class Serializer;
+        friend class Deserializer;
     };
 
     uint16 minAvailableMipLevel() const { return _storage->minAvailableMipLevel(); };
@@ -383,7 +387,9 @@ public:
     static TexturePointer create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
     static TexturePointer createCube(const Element& texelFormat, uint16 width, uint16 numMips = 1, const Sampler& sampler = Sampler());
     static TexturePointer createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static TexturePointer createRenderBufferMultisample(const Element& texelFormat, uint16 width, uint16 height, uint16 numSamples, const Sampler& sampler = Sampler());
     static TexturePointer createRenderBufferArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static TexturePointer createRenderBufferMultisampleArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numSamples, const Sampler& sampler = Sampler());
     static TexturePointer createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
     static TexturePointer createExternal(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
@@ -431,6 +437,7 @@ public:
     uint16 getNumSamples() const { return _numSamples; }
     // NumSamples can only have certain values based on the hw
     static uint16 evalNumSamplesUsed(uint16 numSamplesTried);
+    bool isMultisample() const { return _numSamples > 1; }
 
     // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
     // It is defined at creation time (immutable)
@@ -628,6 +635,9 @@ protected:
     static TexturePointer create(TextureUsageType usageType, Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips, const Sampler& sampler);
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, uint16 numMips);
+
+    friend class Serializer;
+    friend class Deserializer;
 };
 
 typedef std::shared_ptr<Texture> TexturePointer;

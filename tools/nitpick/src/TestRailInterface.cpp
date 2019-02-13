@@ -20,7 +20,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-TestRailInterface::TestRailInterface() {
+TestRailInterface::TestRailInterface() : _pythonInterface(NULL) {
     _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
 

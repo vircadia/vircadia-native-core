@@ -25,6 +25,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} PICK_ENTITIES <em>Read-only.</em>
  * @property {number} PICK_OVERLAYS <em>Read-only.</em>

@@ -217,15 +217,21 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
                                 uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
-    
+
     if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
         requestURL = getMetaverseServerURL();
     }
 
+    int queryStringLocation = path.indexOf("?");
     if (path.startsWith("/")) {
-        requestURL.setPath(path);
+        requestURL.setPath(path.left(queryStringLocation));
     } else {
-        requestURL.setPath("/" + path);
+        requestURL.setPath("/" + path.left(queryStringLocation));
+    }
+
+    if (queryStringLocation >= 0) {
+        QUrlQuery query(path.mid(queryStringLocation+1));
+        requestURL.setQuery(query);
     }
 
     if (authType != AccountManagerAuth::None ) {
@@ -252,8 +258,7 @@ void AccountManager::sendRequest(const QString& path,
                                  const JSONCallbackParameters& callbackParams,
                                  const QByteArray& dataByteArray,
                                  QHttpMultiPart* dataMultiPart,
-                                 const QVariantMap& propertyMap,
-                                 QUrlQuery query) {
+                                 const QVariantMap& propertyMap) {
 
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendRequest",
@@ -578,6 +583,29 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
+    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
+}
+
+void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QString &oculusID) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkRequest request;
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    QUrl grantURL = _authURL;
+    grantURL.setPath("/oauth/token");
+
+    QByteArray postData;
+    postData.append("grant_type=password&");
+    postData.append("oculus_nonce=" + nonce + "&");
+    postData.append("oculus_id=" + oculusID + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
     request.setUrl(grantURL);

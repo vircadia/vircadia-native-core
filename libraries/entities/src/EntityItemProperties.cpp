@@ -42,6 +42,8 @@ BloomPropertyGroup EntityItemProperties::_staticBloom;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 GrabPropertyGroup EntityItemProperties::_staticGrab;
+PulsePropertyGroup EntityItemProperties::_staticPulse;
+RingGizmoPropertyGroup EntityItemProperties::_staticRing;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -340,14 +342,118 @@ QString EntityItemProperties::getBillboardModeAsString() const {
     return BillboardModeHelpers::getNameForBillboardMode(_billboardMode);
 }
 
-void EntityItemProperties::setBillboardModeFromString(const QString& materialMappingMode) {
+void EntityItemProperties::setBillboardModeFromString(const QString& billboardMode) {
     if (stringToBillboardModeLookup.empty()) {
         buildStringToBillboardModeLookup();
     }
-    auto billboardModeItr = stringToBillboardModeLookup.find(materialMappingMode.toLower());
+    auto billboardModeItr = stringToBillboardModeLookup.find(billboardMode.toLower());
     if (billboardModeItr != stringToBillboardModeLookup.end()) {
         _billboardMode = billboardModeItr.value();
         _billboardModeChanged = true;
+    }
+}
+
+QHash<QString, RenderLayer> stringToRenderLayerLookup;
+
+void addRenderLayer(RenderLayer mode) {
+    stringToRenderLayerLookup[RenderLayerHelpers::getNameForRenderLayer(mode)] = mode;
+}
+
+void buildStringToRenderLayerLookup() {
+    addRenderLayer(RenderLayer::WORLD);
+    addRenderLayer(RenderLayer::FRONT);
+    addRenderLayer(RenderLayer::HUD);
+}
+
+QString EntityItemProperties::getRenderLayerAsString() const {
+    return RenderLayerHelpers::getNameForRenderLayer(_renderLayer);
+}
+
+void EntityItemProperties::setRenderLayerFromString(const QString& renderLayer) {
+    if (stringToRenderLayerLookup.empty()) {
+        buildStringToRenderLayerLookup();
+    }
+    auto renderLayerItr = stringToRenderLayerLookup.find(renderLayer.toLower());
+    if (renderLayerItr != stringToRenderLayerLookup.end()) {
+        _renderLayer = renderLayerItr.value();
+        _renderLayerChanged = true;
+    }
+}
+
+QHash<QString, PrimitiveMode> stringToPrimitiveModeLookup;
+
+void addPrimitiveMode(PrimitiveMode mode) {
+    stringToPrimitiveModeLookup[PrimitiveModeHelpers::getNameForPrimitiveMode(mode)] = mode;
+}
+
+void buildStringToPrimitiveModeLookup() {
+    addPrimitiveMode(PrimitiveMode::SOLID);
+    addPrimitiveMode(PrimitiveMode::LINES);
+}
+
+QString EntityItemProperties::getPrimitiveModeAsString() const {
+    return PrimitiveModeHelpers::getNameForPrimitiveMode(_primitiveMode);
+}
+
+void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMode) {
+    if (stringToPrimitiveModeLookup.empty()) {
+        buildStringToPrimitiveModeLookup();
+    }
+    auto primitiveModeItr = stringToPrimitiveModeLookup.find(primitiveMode.toLower());
+    if (primitiveModeItr != stringToPrimitiveModeLookup.end()) {
+        _primitiveMode = primitiveModeItr.value();
+        _primitiveModeChanged = true;
+    }
+}
+
+QHash<QString, WebInputMode> stringToWebInputModeLookup;
+
+void addWebInputMode(WebInputMode mode) {
+    stringToWebInputModeLookup[WebInputModeHelpers::getNameForWebInputMode(mode)] = mode;
+}
+
+void buildStringToWebInputModeLookup() {
+    addWebInputMode(WebInputMode::TOUCH);
+    addWebInputMode(WebInputMode::MOUSE);
+}
+
+QString EntityItemProperties::getInputModeAsString() const {
+    return WebInputModeHelpers::getNameForWebInputMode(_inputMode);
+}
+
+void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
+    if (stringToWebInputModeLookup.empty()) {
+        buildStringToWebInputModeLookup();
+    }
+    auto webInputModeItr = stringToWebInputModeLookup.find(webInputMode.toLower());
+    if (webInputModeItr != stringToWebInputModeLookup.end()) {
+        _inputMode = webInputModeItr.value();
+        _inputModeChanged = true;
+    }
+}
+
+QHash<QString, GizmoType> stringToGizmoTypeLookup;
+
+void addGizmoType(GizmoType mode) {
+    stringToGizmoTypeLookup[GizmoTypeHelpers::getNameForGizmoType(mode)] = mode;
+}
+
+void buildStringToGizmoTypeLookup() {
+    addGizmoType(GizmoType::RING);
+}
+
+QString EntityItemProperties::getGizmoTypeAsString() const {
+    return GizmoTypeHelpers::getNameForGizmoType(_gizmoType);
+}
+
+void EntityItemProperties::setGizmoTypeFromString(const QString& gizmoType) {
+    if (stringToGizmoTypeLookup.empty()) {
+        buildStringToGizmoTypeLookup();
+    }
+    auto gizmoTypeItr = stringToGizmoTypeLookup.find(gizmoType.toLower());
+    if (gizmoTypeItr != stringToGizmoTypeLookup.end()) {
+        _gizmoType = gizmoTypeItr.value();
+        _gizmoTypeChanged = true;
     }
 }
 
@@ -375,6 +481,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
     CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
+    CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
+    CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     changedProperties += _grab.getChangedProperties();
 
     // Physics
@@ -432,6 +541,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
+    changedProperties += _pulse.getChangedProperties();
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
 
     // Particles
@@ -474,6 +584,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS, jointTranslations);
     CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+    CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
     changedProperties += _animation.getChangedProperties();
 
     // Light
@@ -528,6 +639,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     // Web
     CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_URL, scriptURL);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_FPS, maxFPS);
+    CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
 
     // Polyline
     CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
@@ -563,6 +677,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
     CHECK_PROPERTY_CHANGE(PROP_MINOR_GRID_EVERY, minorGridEvery);
 
+    // Gizmo
+    CHECK_PROPERTY_CHANGE(PROP_GIZMO_TYPE, gizmoType);
+    changedProperties += _ring.getChangedProperties();
+
     return changedProperties;
 }
 
@@ -579,15 +697,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
  * @property {EntityHostType} entityHostType="domain" - How this entity will behave, including if and how it is sent to other people.
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
- *     {@link Entities.addEntity}.
+ *     {@link Entities.addEntity}.  Read-only.
  * @property {boolean} avatarEntity=false - If <code>true</code> then the entity is an avatar entity;  An avatar entity follows you to each domain you visit,
  *     rendering at the same world coordinates unless it's parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in 
- *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.
+ *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.  Read-only.
  * @property {boolean} localEntity=false - If <code>true</code> then the entity is a local entity;  Local entities only render for you and are not sent over the wire.
  *     <em>Value cannot be changed after the entity is created.</em><br />
  *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
- *     {@link Entities.addEntity}.
+ *     {@link Entities.addEntity}.  Read-only.
  * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is 
  *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
  *
@@ -611,6 +729,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
  * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
+ * @property {RenderLayer} renderLayer="world" - In which layer this entity renders.
+ * @property {PrimitiveMode} primitiveMode="solid" - How this entity's geometry is rendered.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the entity.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -753,6 +874,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
  * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
  * @see {@link Entities.EntityProperties-Grid|EntityProperties-Grid}
+ * @see {@link Entities.EntityProperties-Gizmo|EntityProperties-Gizmo}
  * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
  * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
@@ -841,10 +963,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
- * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
- *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
- *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
- *     parsed to <code>0</code>.
+ * @property {string} parentMaterialName="0" - Selects the mesh part or parts within the parent to which to apply the material.
+ *     If in the format <code>"mat::string"</code>, all mesh parts with material name <code>"string"</code> are replaced.
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh part index to modify.  If <code>"all"</code>,
+ *     all mesh parts will be replaced.  If an array (starts with <code>"["</code> and ends with <code>"]"</code>), the string will be
+ *     split at each <code>","</code> and each element will be parsed as either a number or a string if it starts with
+ *     <code>"mat::"</code>.  In other words, <code>"[0,1,mat::string,mat::string2]"</code> will replace mesh parts 0 and 1, and any
+ *     mesh parts with material <code>"string"</code> or <code>"string2"</code>.  Do not put spaces around the commas.  Invalid values
+ *     are parsed to <code>0</code>.
  * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
  *     <code>"projected"</code>. In "uv" mode, the material will be evaluated within the UV space of the mesh it is applied to.  In
  *     "projected" mode, the 3D transform of the Material Entity will be used to evaluate the texture coordinates for the material.
@@ -900,7 +1026,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
  *
  * @property {ShapeType} shapeType="none" - The shape of the collision hull used if collisions are enabled.
- * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is
+ * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is
  *     <code>"compound"</code>.
  *
  * @property {Entities.AnimationProperties} animation - An animation to play on the model.
@@ -925,6 +1051,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.getJointIndex|getJointIndex}.
  * @property {boolean} relayParentJoints=false - If <code>true</code> and the entity is parented to an avatar, then the 
  *     avatar's joint rotations are applied to the entity's joints.
+ * @property {boolean} groupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
+ *     If <code>false</code>, separate mesh parts will be LOD culled individually.
  *
  * @example <caption>Rez a Vive tracker puck.</caption>
  * var entity = Entities.addEntity({
@@ -1020,6 +1148,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
  * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
  * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -1147,6 +1276,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.Shape} shape="Sphere" - The shape of the entity.
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
  * @property {Color} color=255,255,255 - The color of the entity.
+ * @property {number} alpha=1 - The alpha of the shape.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a cylinder.</caption>
  * var shape = Entities.addEntity({
  *     type: "Shape",
@@ -1186,6 +1317,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} rightMargin=0.0 - The right margin, in meters.
  * @property {number} topMargin=0.0 - The top margin, in meters.
  * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a text entity.</caption>
  * var text = Entities.addEntity({
  *     type: "Text",
@@ -1205,11 +1337,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * The entity has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * @typedef {object} Entities.EntityProperties-Web
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {Color} color=255,255,255 - The color of the web surface.
+ * @property {number} alpha=1 - The alpha of the web surface.
  * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
  *     on the Web entity.
  * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
  *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
  *     you get the resolution in pixels.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web content, in frames/second.
+ * @property {WebInputMode} inputMode="touch" - The user input mode to use.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1238,7 +1376,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {ShapeType} shapeType="box" - The shape of the volume in which the zone's lighting effects and avatar 
  *     permissions have effect. Reverts to the default value if set to <code>"none"</code>, or set to <code>"compound"</code> 
  *     and <code>compoundShapeURL</code> is <code>""</code>.
-  * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is 
+  * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is 
  *     <code>"compound"</code>.
  *
  * @property {string} keyLightMode="inherit" - Configures the key light in the zone. Possible values:<br />
@@ -1276,8 +1414,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.Bloom} bloom - The bloom properties of the zone.
  *
  * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise they cannot.
+ *     Only works on domain entities.
  * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
- *     collide with content in the zone; otherwise visitors will always collide with content in the zone.
+ *     collide with content in the zone; otherwise visitors will always collide with content in the zone.  Only works on domain entities.
  
  * @property {string} filterURL="" - The URL of a JavaScript file that filters changes to properties of entities within the 
  *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
@@ -1319,6 +1458,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     the full image in that dimension.
  * @property {Color} color=255,255,255 - The color of the image.
  * @property {number} alpha=1 - The alpha of the image.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a image entity.</caption>
  * var image = Entities.addEntity({
  *     type: "Image",
@@ -1342,6 +1482,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     line. Minimum value = <code>1</code>.
  * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value =
  *     <code>0.001</code>.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a grid entity.</caption>
  * var grid = Entities.addEntity({
  *     type: "Grid",
@@ -1352,6 +1493,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     minorGridEvery: 0.5,
  *     lifetime: 300  // Delete after 5 minutes.
  * });
+ */
+
+/**jsdoc
+ * The <code>"Gizmo"</code> {@link Entities.EntityType|EntityType} displays an entity that could be used as UI.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Gizmo
+ * @property {GizmoType} gizmoType="ring" - The gizmo type of the entity.
+ * @property {Entities.RingGizmo} ring - The ring gizmo properties.
  */
 
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime,
@@ -1416,6 +1565,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
     _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
     // Physics
@@ -1476,6 +1628,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
@@ -1532,6 +1685,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
@@ -1548,6 +1702,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
     }
 
@@ -1563,11 +1718,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Text only
     if (_type == EntityTypes::Text) {
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT, text);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_TEXT_COLOR, textColor, getTextColor(), u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_TEXT_COLOR, textColor, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT_ALPHA, textAlpha);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, getBackgroundColor(), u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BACKGROUND_ALPHA, backgroundAlpha);
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LEFT_MARGIN, leftMargin);
@@ -1602,8 +1759,15 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Web only
     if (_type == EntityTypes::Web) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_URL, scriptURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_FPS, maxFPS);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
     }
 
     // PolyVoxel only
@@ -1662,6 +1826,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Image) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMISSIVE, emissive);
@@ -1682,10 +1847,17 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (_type == EntityTypes::Grid) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRID_FOLLOW_CAMERA, followCamera);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MINOR_GRID_EVERY, minorGridEvery);
+    }
+
+    // Gizmo only
+    if (_type == EntityTypes::Gizmo) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_GIZMO_TYPE, gizmoType, getGizmoTypeAsString());
+        _ring.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
     /**jsdoc
@@ -1797,6 +1969,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube); // TODO: should scripts be able to set this?
     COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(ignorePickIntersection, bool, setIgnorePickIntersection);
     _grab.copyFromScriptValue(object, _defaultSettings);
 
     // Physics
@@ -1859,6 +2034,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(color, u8vec3Color, setColor);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
+    _pulse.copyFromScriptValue(object, _defaultSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
 
     // Particles
@@ -1901,6 +2077,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
     _animation.copyFromScriptValue(object, _defaultSettings);
 
     // Light
@@ -1955,6 +2132,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     // Web
     COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptURL, QString, setScriptURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxFPS, uint8_t, setMaxFPS);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
 
     // Polyline
     COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
@@ -1989,6 +2169,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(followCamera, bool, setFollowCamera);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(majorGridEvery, uint32_t, setMajorGridEvery);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(minorGridEvery, float, setMinorGridEvery);
+
+    // Gizmo
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(gizmoType, GizmoType);
+    _ring.copyFromScriptValue(object, _defaultSettings);
 
     // Handle conversions from old 'textures' property to "imageURL"
     {
@@ -2068,6 +2252,9 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(queryAACube);
     COPY_PROPERTY_IF_CHANGED(canCastShadow);
     COPY_PROPERTY_IF_CHANGED(isVisibleInSecondaryCamera);
+    COPY_PROPERTY_IF_CHANGED(renderLayer);
+    COPY_PROPERTY_IF_CHANGED(primitiveMode);
+    COPY_PROPERTY_IF_CHANGED(ignorePickIntersection);
     _grab.merge(other._grab);
 
     // Physics
@@ -2125,6 +2312,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
     COPY_PROPERTY_IF_CHANGED(color);
     COPY_PROPERTY_IF_CHANGED(alpha);
+    _pulse.merge(other._pulse);
     COPY_PROPERTY_IF_CHANGED(textures);
 
     // Particles
@@ -2167,6 +2355,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
     COPY_PROPERTY_IF_CHANGED(jointTranslations);
     COPY_PROPERTY_IF_CHANGED(relayParentJoints);
+    COPY_PROPERTY_IF_CHANGED(groupCulled);
     _animation.merge(other._animation);
 
     // Light
@@ -2221,6 +2410,9 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     // Web
     COPY_PROPERTY_IF_CHANGED(sourceUrl);
     COPY_PROPERTY_IF_CHANGED(dpi);
+    COPY_PROPERTY_IF_CHANGED(scriptURL);
+    COPY_PROPERTY_IF_CHANGED(maxFPS);
+    COPY_PROPERTY_IF_CHANGED(inputMode);
 
     // Polyline
     COPY_PROPERTY_IF_CHANGED(linePoints);
@@ -2255,6 +2447,10 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(followCamera);
     COPY_PROPERTY_IF_CHANGED(majorGridEvery);
     COPY_PROPERTY_IF_CHANGED(minorGridEvery);
+
+    // Gizmo
+    COPY_PROPERTY_IF_CHANGED(gizmoType);
+    _ring.merge(other._ring);
 
     _lastEdited = usecTimestampNow();
 }
@@ -2338,6 +2534,9 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube);
         ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
+        ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
+        ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
         { // Grab
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
@@ -2425,6 +2624,13 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, u8vec3Color);
         ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA, Alpha, alpha, float, particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        { // Pulse
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_MIN, Pulse, pulse, Min, min);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_MAX, Pulse, pulse, Max, max);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_PERIOD, Pulse, pulse, Period, period);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_COLOR_MODE, Pulse, pulse, ColorMode, colorMode);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_ALPHA_MODE, Pulse, pulse, AlphaMode, alphaMode);
+        }
         ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
 
         // Particles
@@ -2491,6 +2697,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<vec3>);
         ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
         { // Animation
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
             ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
@@ -2587,6 +2794,9 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         // Web
         ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
         ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t);
+        ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
 
         // Polyline
         ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
@@ -2621,6 +2831,32 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_GRID_FOLLOW_CAMERA, FollowCamera, followCamera, bool);
         ADD_PROPERTY_TO_MAP(PROP_MAJOR_GRID_EVERY, MajorGridEvery, majorGridEvery, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float);
+
+        // Gizmo
+        ADD_PROPERTY_TO_MAP(PROP_GIZMO_TYPE, GizmoType, gizmoType, GizmoType);
+        { // RingGizmo
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_START_ANGLE, Ring, ring, StartAngle, startAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_END_ANGLE, Ring, ring, EndAngle, endAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_RADIUS, Ring, ring, InnerRadius, innerRadius, RingGizmoPropertyGroup::MIN_RADIUS, RingGizmoPropertyGroup::MAX_RADIUS);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_INNER_START_COLOR, Ring, ring, InnerStartColor, innerStartColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_INNER_END_COLOR, Ring, ring, InnerEndColor, innerEndColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_OUTER_START_COLOR, Ring, ring, OuterStartColor, outerStartColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_OUTER_END_COLOR, Ring, ring, OuterEndColor, outerEndColor);
+
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_START_ALPHA, Ring, ring, InnerStartAlpha, innerStartAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_END_ALPHA, Ring, ring, InnerEndAlpha, innerEndAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_OUTER_START_ALPHA, Ring, ring, OuterStartAlpha, outerStartAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_OUTER_END_ALPHA, Ring, ring, OuterEndAlpha, outerEndAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAS_TICK_MARKS, Ring, ring, HasTickMarks, hasTickMarks);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_MAJOR_TICK_MARKS_ANGLE, Ring, ring, MajorTickMarksAngle, majorTickMarksAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_MINOR_TICK_MARKS_ANGLE, Ring, ring, MinorTickMarksAngle, minorTickMarksAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MAJOR_TICK_MARKS_LENGTH, Ring, ring, MajorTickMarksLength, majorTickMarksLength);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MINOR_TICK_MARKS_LENGTH, Ring, ring, MinorTickMarksLength, minorTickMarksLength);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MAJOR_TICK_MARKS_COLOR, Ring, ring, MajorTickMarksColor, majorTickMarksColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MINOR_TICK_MARKS_COLOR, Ring, ring, MinorTickMarksColor, minorTickMarksColor);
+        }
     });
 
     auto iter = _propertyInfos.find(propertyName);
@@ -2767,6 +3003,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, properties.getQueryAACube());
             APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
             // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, properties.getIsVisibleInSecondaryCamera()); // not sent over the wire
+            APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
+            APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
+            APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
             _staticGrab.setProperties(properties);
             _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
                                            propertiesDidntFit, propertyCount, appendState);
@@ -2818,6 +3057,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
 
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
@@ -2873,6 +3115,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
                 APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
                 APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
+                APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
 
                 _staticAnimation.setProperties(properties);
                 _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -2888,6 +3131,10 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Text) {
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+
                 APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
                 APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
                 APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
@@ -2947,8 +3194,17 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             }
 
             if (properties.getType() == EntityTypes::Web) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+
                 APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
                 APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
+                APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, properties.getScriptURL());
+                APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, properties.getMaxFPS());
+                APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
             }
 
             if (properties.getType() == EntityTypes::Line) {
@@ -2977,6 +3233,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 properties.getType() == EntityTypes::Sphere) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
@@ -2997,6 +3256,9 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             if (properties.getType() == EntityTypes::Image) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
                 APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, properties.getEmissive());
@@ -3009,10 +3271,20 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             if (properties.getType() == EntityTypes::Grid) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, properties.getFollowCamera());
                 APPEND_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, properties.getMajorGridEvery());
                 APPEND_ENTITY_PROPERTY(PROP_MINOR_GRID_EVERY, properties.getMinorGridEvery());
+            }
+
+            if (properties.getType() == EntityTypes::Gizmo) {
+                APPEND_ENTITY_PROPERTY(PROP_GIZMO_TYPE, (uint32_t)properties.getGizmoType());
+                _staticRing.setProperties(properties);
+                _staticRing.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
             }
         }
 
@@ -3208,6 +3480,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera); // not sent over the wire
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
     // Physics
@@ -3257,6 +3532,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, quint32, setMaxParticles);
@@ -3312,6 +3588,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<vec3>, setJointTranslations);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
 
         properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
@@ -3327,6 +3604,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Text) {
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, u8vec3Color, setTextColor);
@@ -3377,8 +3656,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     }
 
     if (properties.getType() == EntityTypes::Web) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_URL, QString, setScriptURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_FPS, uint8_t, setMaxFPS);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
     }
 
     if (properties.getType() == EntityTypes::Line) {
@@ -3407,6 +3693,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         properties.getType() == EntityTypes::Sphere) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
@@ -3427,6 +3715,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Image) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IMAGE_URL, QString, setImageURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMISSIVE, bool, setEmissive);
@@ -3439,10 +3728,16 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Grid) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRID_FOLLOW_CAMERA, bool, setFollowCamera);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAJOR_GRID_EVERY, uint32_t, setMajorGridEvery);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MINOR_GRID_EVERY, float, setMinorGridEvery);
+    }
+
+    if (properties.getType() == EntityTypes::Gizmo) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GIZMO_TYPE, GizmoType, setGizmoType);
+        properties.getRing().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
     }
 
     return valid;
@@ -3590,6 +3885,9 @@ void EntityItemProperties::markAllChanged() {
     _queryAACubeChanged = true;
     _canCastShadowChanged = true;
     _isVisibleInSecondaryCameraChanged = true;
+    _renderLayerChanged = true;
+    _primitiveModeChanged = true;
+    _ignorePickIntersectionChanged = true;
     _grab.markAllChanged();
 
     // Physics
@@ -3639,6 +3937,7 @@ void EntityItemProperties::markAllChanged() {
     _shapeTypeChanged = true;
     _colorChanged = true;
     _alphaChanged = true;
+    _pulse.markAllChanged();
     _texturesChanged = true;
     _compoundShapeURLChanged = true;
 
@@ -3682,6 +3981,7 @@ void EntityItemProperties::markAllChanged() {
     _jointTranslationsSetChanged = true;
     _jointTranslationsChanged = true;
     _relayParentJointsChanged = true;
+    _groupCulledChanged = true;
     _animation.markAllChanged();
 
     // Light
@@ -3736,6 +4036,9 @@ void EntityItemProperties::markAllChanged() {
     // Web
     _sourceUrlChanged = true;
     _dpiChanged = true;
+    _scriptURLChanged = true;
+    _maxFPSChanged = true;
+    _inputModeChanged = true;
 
     // Polyline
     _linePointsChanged = true;
@@ -3770,6 +4073,10 @@ void EntityItemProperties::markAllChanged() {
     _followCameraChanged = true;
     _majorGridEveryChanged = true;
     _minorGridEveryChanged = true;
+
+    // Gizmo
+    _gizmoTypeChanged = true;
+    _ring.markAllChanged();
 }
 
 // The minimum bounding box for the entity.
@@ -3962,6 +4269,15 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (isVisibleInSecondaryCameraChanged()) {
         out += "isVisibleInSecondaryCamera";
     }
+    if (renderLayerChanged()) {
+        out += "renderLayer";
+    }
+    if (primitiveModeChanged()) {
+        out += "primitiveMode";
+    }
+    if (ignorePickIntersectionChanged()) {
+        out += "ignorePickIntersection";
+    }
     getGrab().listChangedProperties(out);
 
     // Physics
@@ -4090,6 +4406,7 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (alphaChanged()) {
         out += "alpha";
     }
+    getPulse().listChangedProperties(out);
     if (texturesChanged()) {
         out += "textures";
     }
@@ -4207,6 +4524,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (relayParentJointsChanged()) {
         out += "relayParentJoints";
+    }
+    if (groupCulledChanged()) {
+        out += "groupCulled";
     }
     getAnimation().listChangedProperties(out);
 
@@ -4338,6 +4658,15 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (dpiChanged()) {
         out += "dpi";
     }
+    if (scriptURLChanged()) {
+        out += "scriptURL";
+    }
+    if (maxFPSChanged()) {
+        out += "maxFPS";
+    }
+    if (inputModeChanged()) {
+        out += "inputMode";
+    }
 
     // Polyline
     if (linePointsChanged()) {
@@ -4420,6 +4749,12 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (minorGridEveryChanged()) {
         out += "minorGridEvery";
     }
+
+    // Gizmo
+    if (gizmoTypeChanged()) {
+        out += "gizmoType";
+    }
+    getRing().listChangedProperties(out);
 
     return out;
 }

@@ -721,11 +721,16 @@ QHash<SimpleProgramKey, gpu::PipelinePointer> GeometryCache::_simplePrograms;
 gpu::ShaderPointer GeometryCache::_simpleShader;
 gpu::ShaderPointer GeometryCache::_transparentShader;
 gpu::ShaderPointer GeometryCache::_unlitShader;
+gpu::ShaderPointer GeometryCache::_forwardSimpleShader;
+gpu::ShaderPointer GeometryCache::_forwardTransparentShader;
+gpu::ShaderPointer GeometryCache::_forwardUnlitShader;
 gpu::ShaderPointer GeometryCache::_simpleFadeShader;
 gpu::ShaderPointer GeometryCache::_unlitFadeShader;
 
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
+render::ShapePipelinePointer GeometryCache::_forwardSimpleOpaquePipeline;
+render::ShapePipelinePointer GeometryCache::_forwardSimpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
@@ -805,6 +810,8 @@ void GeometryCache::initializeShapePipelines() {
     if (!_simpleOpaquePipeline) {
         _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
         _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
+        _forwardSimpleOpaquePipeline = getShapePipeline(false, false, true, false, false, true);
+        _forwardSimpleTransparentPipeline = getShapePipeline(false, true, true, false, false, true);
         _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
         _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);
@@ -812,9 +819,9 @@ void GeometryCache::initializeShapePipelines() {
 }
 
 render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias) {
+    bool unlit, bool depthBias, bool forward) {
 
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true), nullptr,
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false, true, forward), nullptr,
         [](const render::ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
             batch.setResourceTexture(gr::Texture::MaterialAlbedo, DependencyManager::get<TextureCache>()->getWhiteTexture());
             DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch);
@@ -2165,6 +2172,7 @@ public:
         HAS_DEPTH_BIAS_FLAG,
         IS_FADING_FLAG,
         IS_ANTIALIASED_FLAG,
+        IS_FORWARD_FLAG,
 
         NUM_FLAGS,
     };
@@ -2177,6 +2185,7 @@ public:
         HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
         IS_FADING = (1 << IS_FADING_FLAG),
         IS_ANTIALIASED = (1 << IS_ANTIALIASED_FLAG),
+        IS_FORWARD = (1 << IS_FORWARD_FLAG),
     };
     typedef unsigned short Flags;
 
@@ -2189,6 +2198,7 @@ public:
     bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
     bool isFading() const { return isFlag(IS_FADING); }
     bool isAntiAliased() const { return isFlag(IS_ANTIALIASED); }
+    bool isForward() const { return isFlag(IS_FORWARD); }
 
     Flags _flags = 0;
 #if defined(__clang__)
@@ -2200,9 +2210,9 @@ public:
 
 
     SimpleProgramKey(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true) {
+        bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true, bool forward = false) {
         _flags = (textured ? IS_TEXTURED : 0) | (transparent ? IS_TRANSPARENT : 0) | (culled ? IS_CULLED : 0) |
-            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAntiAliased ? IS_ANTIALIASED : 0);
+            (unlit ? IS_UNLIT : 0) | (depthBias ? HAS_DEPTH_BIAS : 0) | (fading ? IS_FADING : 0) | (isAntiAliased ? IS_ANTIALIASED : 0) | (forward ? IS_FORWARD : 0);
     }
 
     SimpleProgramKey(int bitmask) : _flags(bitmask) {}
@@ -2245,8 +2255,8 @@ gpu::PipelinePointer GeometryCache::getWebBrowserProgram(bool transparent) {
     return transparent ? _simpleTransparentWebBrowserPipeline : _simpleOpaqueWebBrowserPipeline;
 }
 
-void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased) {
-    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased));
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool isAntiAliased, bool forward) {
+    batch.setPipeline(getSimplePipeline(textured, transparent, culled, unlit, depthBiased, false, isAntiAliased, forward));
 
     // If not textured, set a default albedo map
     if (!textured) {
@@ -2255,8 +2265,8 @@ void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool tra
     }
 }
 
-gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAntiAliased) {
-    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased };
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transparent, bool culled, bool unlit, bool depthBiased, bool fading, bool isAntiAliased, bool forward) {
+    SimpleProgramKey config { textured, transparent, culled, unlit, depthBiased, fading, isAntiAliased, forward };
 
     // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
@@ -2269,13 +2279,20 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         static std::once_flag once;
         std::call_once(once, [&]() {
             using namespace shader::render_utils::program;
-            auto PS = DISABLE_DEFERRED ? forward_simple_textured : simple_textured;
-            // Use the forward pipeline for both here, otherwise transparents will be unlit
-            auto PSTransparent = DISABLE_DEFERRED ? forward_simple_textured_transparent : forward_simple_textured_transparent;
-            auto PSUnlit = DISABLE_DEFERRED ? forward_simple_textured_unlit : simple_textured_unlit;
-            _simpleShader = gpu::Shader::createProgram(PS);
-            _transparentShader = gpu::Shader::createProgram(PSTransparent);
-            _unlitShader = gpu::Shader::createProgram(PSUnlit);
+
+            _forwardSimpleShader = gpu::Shader::createProgram(forward_simple_textured);
+            _forwardTransparentShader = gpu::Shader::createProgram(forward_simple_textured_transparent);
+            _forwardUnlitShader = gpu::Shader::createProgram(forward_simple_textured_unlit);
+            if (DISABLE_DEFERRED) {
+                _simpleShader = _forwardSimpleShader;
+                _transparentShader = _forwardTransparentShader;
+                _unlitShader = _forwardUnlitShader;
+            } else {
+                _simpleShader = gpu::Shader::createProgram(simple_textured);
+                // Use the forward pipeline for both here, otherwise transparents will be unlit
+                _transparentShader = gpu::Shader::createProgram(forward_simple_textured_transparent);
+                _unlitShader = gpu::Shader::createProgram(simple_textured_unlit);
+            }
         });
     } else {
         static std::once_flag once;
@@ -2308,8 +2325,14 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
         PrepareStencil::testMaskDrawShapeNoAA(*state);
     }
 
-    gpu::ShaderPointer program = (config.isUnlit()) ? (config.isFading() ? _unlitFadeShader : _unlitShader) :
-                                                      (config.isFading() ? _simpleFadeShader : (config.isTransparent() ? _transparentShader : _simpleShader));
+    gpu::ShaderPointer program;
+    if (config.isForward()) {
+        program = (config.isUnlit()) ? (config.isFading() ? _unlitFadeShader : _forwardUnlitShader) :
+                                       (config.isFading() ? _simpleFadeShader : (config.isTransparent() ? _forwardTransparentShader : _forwardSimpleShader));
+    } else {
+        program = (config.isUnlit()) ? (config.isFading() ? _unlitFadeShader : _unlitShader) :
+                                       (config.isFading() ? _simpleFadeShader : (config.isTransparent() ? _transparentShader : _simpleShader));
+    }
     gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
     _simplePrograms.insert(config, pipeline);
     return pipeline;

@@ -41,7 +41,7 @@ static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     if (myAvatar->isJointPinned(hipsIndex)) {
         Transform avatarTransform = myAvatar->getTransform();
         AnimPose result = AnimPose(worldToSensorMat * avatarTransform.getMatrix() * Matrices::Y_180);
-        result.scale() = glm::vec3(1.0f, 1.0f, 1.0f);
+        result.scale() = 1.0f;
         return result;
     }
 
@@ -108,7 +108,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     Rig::ControllerParameters params;
 
-    AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
+    AnimPose avatarToRigPose(1.0f, Quaternions::Y_180, glm::vec3(0.0f));
 
     glm::mat4 rigToAvatarMatrix = Matrices::Y_180;
     glm::mat4 avatarToWorldMatrix = createMatFromQuatAndPos(myAvatar->getWorldOrientation(), myAvatar->getWorldPosition());
@@ -127,7 +127,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         // preMult 180 is necessary to convert from avatar to rig coordinates.
         // postMult 180 is necessary to convert head from -z forward to z forward.
         glm::quat headRot = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
-        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = AnimPose(glm::vec3(1.0f), headRot, glm::vec3(0.0f));
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = AnimPose(1.0f, headRot, glm::vec3(0.0f));
         params.primaryControllerFlags[Rig::PrimaryControllerType_Head] = 0;
     }
 
@@ -187,7 +187,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         }
     }
 
-    bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
+    bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS);
     if (isFlying != _prevIsFlying) {
         const float FLY_TO_IDLE_HIPS_TRANSITION_TIME = 0.5f;
         _flyIdleTimer = FLY_TO_IDLE_HIPS_TRANSITION_TIME;
@@ -198,7 +198,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     // if hips are not under direct control, estimate the hips position.
     if (avatarHeadPose.isValid() && !(params.primaryControllerFlags[Rig::PrimaryControllerType_Hips] & (uint8_t)Rig::ControllerFlags::Enabled)) {
-        bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS);
+        bool isFlying = (myAvatar->getCharacterController()->getState() == CharacterController::State::Hover || myAvatar->getCharacterController()->computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS);
 
         // timescale in seconds
         const float TRANS_HORIZ_TIMESCALE = 0.15f;

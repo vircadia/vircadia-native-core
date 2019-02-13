@@ -21,6 +21,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class GooglePolyScriptingInterface : public QObject, public Dependency {

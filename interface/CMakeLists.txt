@@ -211,7 +211,10 @@ link_hifi_libraries(
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
+  # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
+  # Plaform specific input & display plugin libraries
+  ${PLATFORM_PLUGIN_LIBRARIES}
   shaders
 )
 
@@ -265,7 +268,7 @@ foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
 endforeach()
 
 # include headers for interface and InterfaceConfig.
-include_directories("${PROJECT_SOURCE_DIR}/src")
+target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
 if (ANDROID)
   find_library(ANDROID_LOG_LIB log)

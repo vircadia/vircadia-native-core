@@ -82,12 +82,17 @@ var selectionManager = SelectionManager;
 var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
 var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
+var ZONE_URL = Script.resolvePath("assets/images/icon-zone.svg");
 
-var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect', 'Zone'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
     if (properties.type === 'Light') {
         return {
             url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+        };
+    } else if (properties.type === 'Zone') {
+        return {
+            url: ZONE_URL,
         };
     } else {
         return {
@@ -106,11 +111,15 @@ var gridTool = new GridTool({
 });
 gridTool.setVisible(false);
 
+var EntityShapeVisualizer = Script.require('./modules/entityShapeVisualizer.js');
+var entityShapeVisualizer = new EntityShapeVisualizer(["Zone"]);
+
 var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
+    entityShapeVisualizer.setEntities(selectionManager.selections);
 });
 
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
@@ -836,7 +845,7 @@ var toolBar = (function () {
                     dialogWindow.fromQml.connect(fromQml);
                 }
             };
-        };
+        }
 
         addButton("newModelButton", createNewEntityDialogButtonCallback("Model"));
 
@@ -1492,6 +1501,7 @@ Script.scriptEnding.connect(function () {
     cleanupModelMenus();
     tooltip.cleanup();
     selectionDisplay.cleanup();
+    entityShapeVisualizer.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
 
     Overlays.deleteOverlay(importingSVOImageOverlay);
@@ -1598,30 +1608,42 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList, deletedIDs) {
+function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
+    var wantDebug = false;
     var entitiesLength = entities.length;
-    for (var i = 0; i < entitiesLength; i++) {
+    var initialPropertySets = Entities.getMultipleEntityProperties(entities);
+    var entityHostTypes = Entities.getMultipleEntityProperties(entities, 'entityHostType');
+    for (var i = 0; i < entitiesLength; ++i) {
         var entityID = entities[i];
+
+        if (entityHostTypes[i].entityHostType !== entityHostType) {
+            if (wantDebug) {
+                console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
+                    entityHostTypes[i].entityHostType);
+            }
+            continue;
+        }
+
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList, deletedIDs);
-        var initialProperties = Entities.getEntityProperties(entityID);
+        recursiveDelete(children, grandchildrenList, deletedIDs, entityHostType);
         childrenList.push({
             entityID: entityID,
-            properties: initialProperties,
+            properties: initialPropertySets[i],
             children: grandchildrenList
         });
         deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
+
 function unparentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var selectedEntities = selectionManager.selections;
         var parentCheck = false;
 
         if (selectedEntities.length < 1) {
-            Window.notifyEditError("You must have an entity selected inorder to unparent it.");
+            Window.notifyEditError("You must have an entity selected in order to unparent it.");
             return;
         }
         selectedEntities.forEach(function (id, index) {
@@ -1684,21 +1706,24 @@ function deleteSelectedEntities() {
         SelectionManager.saveProperties();
         var savedProperties = [];
         var newSortedSelection = sortSelectedEntities(selectionManager.selections);
-        for (var i = 0; i < newSortedSelection.length; i++) {
+        var entityHostTypes = Entities.getMultipleEntityProperties(newSortedSelection, 'entityHostType');
+        for (var i = 0; i < newSortedSelection.length; ++i) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            if (!initialProperties.locked) {
-                var children = Entities.getChildrenIDs(entityID);
-                var childList = [];
-                recursiveDelete(children, childList, deletedIDs);
-                savedProperties.push({
-                    entityID: entityID,
-                    properties: initialProperties,
-                    children: childList
-                });
-                deletedIDs.push(entityID);
-                Entities.deleteEntity(entityID);
+            if (initialProperties.locked ||
+                (initialProperties.avatarEntity && initialProperties.owningAvatarID !== MyAvatar.sessionUUID)) {
+                continue;
             }
+            var children = Entities.getChildrenIDs(entityID);
+            var childList = [];
+            recursiveDelete(children, childList, deletedIDs, entityHostTypes[i].entityHostType);
+            savedProperties.push({
+                entityID: entityID,
+                properties: initialProperties,
+                children: childList
+            });
+            deletedIDs.push(entityID);
+            Entities.deleteEntity(entityID);
         }
 
         if (savedProperties.length > 0) {

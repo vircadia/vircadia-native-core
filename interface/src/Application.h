@@ -217,6 +217,8 @@ public:
     void setDesktopTabletScale(float desktopTabletScale);
 
     bool getDesktopTabletBecomesToolbarSetting() { return _desktopTabletBecomesToolbarSetting.get(); }
+    bool getLogWindowOnTopSetting() { return _keepLogWindowOnTop.get(); }
+    void setLogWindowOnTopSetting(bool keepOnTop) { _keepLogWindowOnTop.set(keepOnTop); }
     void setDesktopTabletBecomesToolbarSetting(bool value);
     bool getHmdTabletBecomesToolbarSetting() { return _hmdTabletBecomesToolbarSetting.get(); }
     void setHmdTabletBecomesToolbarSetting(bool value);
@@ -249,7 +251,9 @@ public:
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
+#ifndef Q_OS_ANDROID
     FileLogger* getLogger() const { return _logger; }
+#endif
 
     float getRenderResolutionScale() const;
 
@@ -365,6 +369,7 @@ public slots:
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
+    void recreateLogWindow(int);
     void toggleEntityScriptServerLogDialog();
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
@@ -589,12 +594,16 @@ private:
     void maybeToggleMenuVisible(QMouseEvent* event) const;
     void toggleTabletUI(bool shouldOpen = false) const;
 
+    static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
 
     bool _aboutToQuit { false };
 
+#ifndef Q_OS_ANDROID
     FileLogger* _logger { nullptr };
+#endif
 
     bool _previousSessionCrashed;
 
@@ -654,6 +663,7 @@ private:
     Setting::Handle<bool> _constrainToolbarPosition;
     Setting::Handle<QString> _preferredCursor;
     Setting::Handle<bool> _miniTabletEnabledSetting;
+    Setting::Handle<bool> _keepLogWindowOnTop { "keepLogWindowOnTop", false };
 
     float _scaleMirror;
     float _mirrorYawOffset;

@@ -26,16 +26,16 @@ public:
     void accumulate(glm::vec3 position, glm::quat orientation) {
         _position += position;
         _orientation = orientation; // XXX
-        count++;
+        _count++;
     }
 
-    glm::vec3 finalizePosition() { return count > 0 ? _position * (1.0f / count) : glm::vec3(0.0f); }
+    glm::vec3 finalizePosition() { return _count > 0 ? _position * (1.0f / _count) : glm::vec3(0.0f); }
     glm::quat finalizeOrientation() { return _orientation; } // XXX
 
 protected:
     glm::vec3 _position;
     glm::quat _orientation;
-    int count { 0 };
+    int _count { 0 };
 };
 
 class Grab {
@@ -48,7 +48,8 @@ public:
         _parentJointIndex(newParentJointIndex),
         _hand(newHand),
         _positionalOffset(newPositionalOffset),
-        _rotationalOffset(newRotationalOffset) {}
+        _rotationalOffset(newRotationalOffset),
+        _released(false) {}
 
     QByteArray toByteArray();
     bool fromByteArray(const QByteArray& grabData);
@@ -61,6 +62,7 @@ public:
         _positionalOffset = other->_positionalOffset;
         _rotationalOffset = other->_rotationalOffset;
         _actionID = other->_actionID;
+        _released = other->_released;
         return *this;
     }
 
@@ -85,6 +87,9 @@ public:
     glm::quat getRotationalOffset() const { return _rotationalOffset; }
     void setRotationalOffset(glm::quat rotationalOffset) { _rotationalOffset = rotationalOffset; }
 
+    bool getReleased() const { return _released; }
+    void setReleased(bool value) { _released = value; }
+
 protected:
     QUuid _actionID; // if an action is created in bullet for this grab, this is the ID
     QUuid _ownerID; // avatar ID of grabber
@@ -93,6 +98,7 @@ protected:
     QString _hand; // "left" or "right"
     glm::vec3 _positionalOffset; // relative to joint
     glm::quat _rotationalOffset; // relative to joint
+    bool _released { false }; // released and scheduled for deletion
 };
 
 

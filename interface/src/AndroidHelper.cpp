@@ -15,6 +15,7 @@
 #include <src/ui/LoginDialog.h>
 #include "Application.h"
 #include "Constants.h"
+#include "avatar/AvatarManager.h"
 
 #if defined(qApp)
 #undef qApp
@@ -151,4 +152,17 @@ void AndroidHelper::signupFailed(QNetworkReply* reply) {
         static const QString DEFAULT_SIGN_UP_FAILURE_MESSAGE = "There was an unknown error while creating your account. Please try again later.";
         emit handleSignupFailed(DEFAULT_SIGN_UP_FAILURE_MESSAGE);
     }
+}
+
+QString AndroidHelper::getDisplayName() {
+    return DependencyManager::get<AvatarManager>()->getMyAvatar()->getDisplayName();
+}
+
+void AndroidHelper::setDisplayName(const QString &displayName) {
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->setDisplayName(displayName);
+}
+
+void AndroidHelper::setMyAvatarUrl(const QString &avatarUrl) {
+    QUrl url = QUrl(avatarUrl);
+    DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(url);
 }
