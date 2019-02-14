@@ -68,6 +68,7 @@ public:
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {number} Ray Ray picks intersect a ray with the nearest object in front of them, along a given direction.
      * @property {number} Stylus Stylus picks provide "tapping" functionality on/into flat surfaces.

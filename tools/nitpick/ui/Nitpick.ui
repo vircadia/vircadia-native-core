@@ -686,8 +686,8 @@
      <widget class="QLabel" name="workingFolderLabel_4">
       <property name="geometry">
        <rect>
-        <x>290</x>
-        <y>20</y>
+        <x>300</x>
+        <y>60</y>
         <width>41</width>
         <height>31</height>
        </rect>
@@ -699,8 +699,8 @@
      <widget class="QLabel" name="statusLabelOnMobile">
       <property name="geometry">
        <rect>
-        <x>340</x>
-        <y>20</y>
+        <x>350</x>
+        <y>60</y>
         <width>271</width>
         <height>31</height>
        </rect>

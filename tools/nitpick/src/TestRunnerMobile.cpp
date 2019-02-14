@@ -30,7 +30,7 @@ TestRunnerMobile::TestRunnerMobile(
     QLabel* statusLabel,
 
     QObject* parent
-) : QObject(parent) 
+) : QObject(parent), _adbInterface(NULL)
 {
     _workingFolderLabel = workingFolderLabel;
     _connectDeviceButton = connectDeviceButton;
@@ -47,30 +47,6 @@ TestRunnerMobile::TestRunnerMobile(
     folderLineEdit->setText("/sdcard/DCIM/TEST");
 
     modelNames["SM_G955U1"] = "Samsung S8+ unlocked";
-
-    // Find ADB (Android Debugging Bridge)
-#ifdef Q_OS_WIN
-    if (QProcessEnvironment::systemEnvironment().contains("ADB_PATH")) {
-        QString adbExePath = QProcessEnvironment::systemEnvironment().value("ADB_PATH") + "/platform-tools";
-        if (!QFile::exists(adbExePath + "/" + _adbExe)) {
-            QMessageBox::critical(0, _adbExe, QString("ADB executable not found in ") + adbExePath);
-            exit(-1);
-        }
-
-        _adbCommand = adbExePath + "/" + _adbExe;
-    } else {
-        QMessageBox::critical(0, "ADB_PATH not defined",
-            "Please set ADB_PATH to directory containing the `adb` executable");
-        exit(-1);
-    }
-#elif defined Q_OS_MAC
-    _adbCommand = "/usr/local/bin/adb";
-    if (!QFile::exists(_adbCommand)) {
-        QMessageBox::critical(0, "adb not found",
-            "python3 not found at " + _adbCommand);
-        exit(-1);
-    }
-#endif
 }
 
 TestRunnerMobile::~TestRunnerMobile() {
@@ -84,8 +60,12 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
 
 void TestRunnerMobile::connectDevice() {
 #if defined Q_OS_WIN || defined Q_OS_MAC
+    if (!_adbInterface) {
+        _adbInterface = new AdbInterface();
+    }
+    
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
-    QString command = _adbCommand + " devices -l > " + devicesFullFilename;
+    QString command = _adbInterface->getAdbCommand() + " devices -l > " + devicesFullFilename;
     system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
@@ -100,12 +80,13 @@ void TestRunnerMobile::connectDevice() {
     QString line2 = devicesFile.readLine();
 
     const QString DEVICE{ "device" };
-    if (line2.contains(DEVICE)) {
-        // Make sure only 1 device
+    if (line2.contains("unauthorized")) {
+        QMessageBox::critical(0, "Unauthorized device detected", "Please allow USB debugging on device");
+    } else if (line2.contains(DEVICE)) {
+            // Make sure only 1 device
         QString line3 = devicesFile.readLine();
         if (line3.contains(DEVICE)) {
             QMessageBox::critical(0, "Too many devices detected", "Tests will run only if a single device is attached");
-
         } else {
             // Line looks like this: 988a1b47335239434b     device product:dream2qlteue model:SM_G955U1 device:dream2qlteue transport_id:2
             QStringList tokens = line2.split(QRegExp("[\r\n\t ]+"));
@@ -169,8 +150,12 @@ void TestRunnerMobile::downloadComplete() {
 
 void TestRunnerMobile::installAPK() {
 #if defined Q_OS_WIN || defined Q_OS_MAC
+    if (!_adbInterface) {
+        _adbInterface = new AdbInterface();
+    }
+
     _statusLabel->setText("Installing");
-    QString command = _adbCommand + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
+    QString command = _adbInterface->getAdbCommand() + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
     system(command.toStdString().c_str());
     _statusLabel->setText("Installation complete");
     _runInterfacePushbutton->setEnabled(true);
@@ -179,8 +164,12 @@ void TestRunnerMobile::installAPK() {
 
 void TestRunnerMobile::runInterface() {
 #if defined Q_OS_WIN || defined Q_OS_MAC
+    if (!_adbInterface) {
+        _adbInterface = new AdbInterface();
+    }
+
     _statusLabel->setText("Starting Interface");
-    QString command = _adbCommand + " shell monkey -p io.highfidelity.hifiinterface -v 1";
+    QString command = _adbInterface->getAdbCommand() + " shell monkey -p io.highfidelity.hifiinterface -v 1";
     system(command.toStdString().c_str());
     _statusLabel->setText("Interface started");
 #endif
@@ -188,8 +177,12 @@ void TestRunnerMobile::runInterface() {
 
 void TestRunnerMobile::pullFolder() {
 #if defined Q_OS_WIN || defined Q_OS_MAC
+    if (!_adbInterface) {
+        _adbInterface = new AdbInterface();
+    }
+
     _statusLabel->setText("Pulling folder");
-    QString command = _adbCommand + " pull " + _folderLineEdit->text() + " " + _workingFolder + _installerFilename;
+    QString command = _adbInterface->getAdbCommand() + " pull " + _folderLineEdit->text() + " " + _workingFolder + _installerFilename;
     system(command.toStdString().c_str());
     _statusLabel->setText("Pull complete");
 #endif

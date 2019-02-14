@@ -107,6 +107,9 @@ exports.handlers = {
             if (e.doclet.hifiClientEntity) {
                 rows.push("Client Entity Scripts");
             }
+            if (e.doclet.hifiAvatar) {
+                rows.push("Avatar Scripts");
+            }
             if (e.doclet.hifiServerEntity) {
                 rows.push("Server Entity Scripts");
             }
@@ -139,6 +142,14 @@ exports.defineTags = function (dictionary) {
             doclet.hifiAssignmentClient = true;
         }
     });
+
+    // @hifi-avatar-script
+    dictionary.defineTag("hifi-avatar", {
+        onTagged: function (doclet, tag) {
+            doclet.hifiAvatar = true;
+        }
+    });
+
 
     // @hifi-client-entity
     dictionary.defineTag("hifi-client-entity", {
