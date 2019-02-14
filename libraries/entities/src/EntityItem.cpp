@@ -2640,15 +2640,8 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
 
-    foreach(const auto& property, jsonFilters.keys()) {
-        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
-            // check if this entity has a non-default value for serverScripts
-            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
-                return true;
-            } else {
-                return false;
-            }
-        }
+    if (jsonFilters[SERVER_SCRIPTS_PROPERTY] == EntityQueryFilterSymbol::NonDefault) {
+        return _serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS;
     }
 
     // the json filter syntax did not match what we expected, return a match
