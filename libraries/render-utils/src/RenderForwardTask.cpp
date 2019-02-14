@@ -129,10 +129,16 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
+    // Just resolve the msaa
+/*    const auto resolveInputs =
+        ResolveFramebuffer::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+    auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs); */
+    auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
+
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Layered Overlays
@@ -144,26 +150,32 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // task.addJob<Blit>("Blit", framebuffer);
 }
 
+void PrepareFramebuffer::configure(const Config& config) {
+    _numSamples = config.getNumSamples();
+}
+
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
     glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
-    if (_framebuffer && _framebuffer->getSize() != frameSize) {
+    if (_framebuffer && (_framebuffer->getSize() != frameSize || _framebuffer->getNumSamples() != _numSamples)) {
         _framebuffer.reset();
     }
 
     if (!_framebuffer) {
         _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("forward"));
 
+        int numSamples = _numSamples;
+
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
         auto colorTexture =
-            gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+            gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
         _framebuffer->setRenderBuffer(0, colorTexture);
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);  // Depth24_Stencil8 texel format
         auto depthTexture =
-            gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+           gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
     }
 
