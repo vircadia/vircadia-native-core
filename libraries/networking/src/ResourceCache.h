@@ -272,7 +272,7 @@ private:
     friend class ScriptableResourceCache;
 
     void reserveUnusedResource(qint64 resourceSize);
-    void removeResource(const QUrl& url, qint64 size = 0);
+    void removeResource(const QUrl& url, size_t extraHash, qint64 size = 0);
 
     void resetTotalResourceCounter();
     void resetUnusedResourceCounter();
@@ -419,6 +419,7 @@ public:
 
     virtual void setExtra(void* extra) {};
     void setExtraHash(size_t extraHash) { _extraHash = extraHash; }
+    size_t getExtraHash() const { return _extraHash; }
 
 signals:
     /// Fired when the resource begins downloading.

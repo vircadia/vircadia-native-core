@@ -40,7 +40,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
  
     _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v2.1.1");
+   setWindowTitle("Nitpick - v2.1.2");
 }
 
 Nitpick::~Nitpick() {
