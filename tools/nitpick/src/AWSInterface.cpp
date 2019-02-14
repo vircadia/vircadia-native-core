@@ -14,6 +14,7 @@
 #include <QJsonObject>
 #include <QMessageBox>
 #include <QProcess>
+#include <QRegularExpression>
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
