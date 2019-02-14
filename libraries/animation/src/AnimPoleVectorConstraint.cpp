@@ -230,6 +230,19 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     glm::vec3 refVectorProj = refVector - glm::dot(refVector, unitAxis) * unitAxis;
     float refVectorProjLength = glm::length(refVectorProj);
 
+    float lastDot;
+    if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
+        //fake pole vector computation.
+        lastDot = cosf(((180.0f - _lastTheta) / 180.0f)*PI);
+        float lastSideDot = sqrt(1.0f - (lastDot*lastDot));
+        glm::vec3 pretendPoleVector;
+        if (refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH) {
+            poleVector = lastDot * (refVectorProj / refVectorProjLength) + glm::sign(_lastTheta) * lastSideDot * (sideVector / sideVectorLength);
+        } else {
+            poleVector = glm::vec3(1.0f, 0.0f, 0.0f);
+        }
+    }
+
     // project poleVector on plane formed by axis.
     glm::vec3 poleVectorProj = poleVector - glm::dot(poleVector, unitAxis) * unitAxis;
     float poleVectorProjLength = glm::length(poleVectorProj);
@@ -328,32 +341,12 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
             _twistThetaRunningAverage = 0.5f * _twistThetaRunningAverage + 0.5f * trueTwistTheta;
 
-            
-            
 
-            
-            //while (trueTwistTheta > PI) {
-            //    trueTwistTheta -= 2.0f * PI;
-            //}
-            
-
-           // glm::vec3 eulerVersion = glm::eulerAngles(relativeHandRotation);
             if (!isLeft) {
-                qCDebug(animation) << "flex ave: " << (_flexThetaRunningAverage / PI) * 180.0f << "    twist ave: " << (_twistThetaRunningAverage / PI) * 180.0f << "   ulnar deviation ave: " << (_ulnarRadialThetaRunningAverage / PI) * 180.0f;
-                qCDebug(animation) << "flex: " << (flexTheta / PI) * 180.0f << "    twist: " << (trueTwistTheta / PI) * 180.0f << "   ulnar deviation: " << (ulnarDeviationTheta / PI) * 180.0f;
-                //qCDebug(animation) << "trueTwist: " << (trueTwistTheta / PI) * 180.0f;// << "   old twist: " << (twistTheta / PI) * 180.0f;
-                //qCDebug(animation) << "ulnarAxis " << flexUlnarAxis;
-              //  qCDebug(animation) << "relative hand rotation " << relativeHandRotation;
-               // qCDebug(animation) << "twist rotation " << trueTwist;
-
-                //QString name = QString("handMarker3");
-                //const vec4 WHITE(1.0f);
-                //DebugDraw::getInstance().addMyAvatarMarker(name, relativeHandRotation, midPose.trans(), WHITE);
+                //qCDebug(animation) << "flex ave: " << (_flexThetaRunningAverage / PI) * 180.0f << "    twist ave: " << (_twistThetaRunningAverage / PI) * 180.0f << "   ulnar deviation ave: " << (_ulnarRadialThetaRunningAverage / PI) * 180.0f;
+                //qCDebug(animation) << "flex: " << (flexTheta / PI) * 180.0f << "    twist: " << (trueTwistTheta / PI) * 180.0f << "   ulnar deviation: " << (ulnarDeviationTheta / PI) * 180.0f;
+             
             }
-
-            //QString name = QString("wrist_target").arg(_id);
-            //glm::vec4 markerColor(1.0f, 1.0f, 0.0f, 0.0f);
-            //DebugDraw::getInstance().addMyAvatarMarker(name, midPose.rot(), midPose.trans(), markerColor);
 
             // here is where we would do the wrist correction.
             float deltaTheta = correctElbowForHandFlexionExtension(tipPose, midPose);
@@ -374,9 +367,9 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             float flexCorrection = 0.0f;
             if (isLeft) {
                 if (_flexThetaRunningAverage > FLEX_BOUNDARY) {
-                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 90.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
+                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;  
                 } else if (_flexThetaRunningAverage < EXTEND_BOUNDARY) {
-                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 90.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
+                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; 
                 }
                 if (fabs(flexCorrection) > 30.0f) {
                     flexCorrection = glm::sign(flexCorrection) * 30.0f;
@@ -384,9 +377,9 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 fred += flexCorrection;
             } else {
                 if (_flexThetaRunningAverage > FLEX_BOUNDARY) {
-                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
+                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;   
                 } else if (_flexThetaRunningAverage < EXTEND_BOUNDARY) {
-                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
+                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; 
                 }
                 if (fabs(flexCorrection) > 30.0f) {
                     flexCorrection = glm::sign(flexCorrection) * 30.0f;
@@ -452,22 +445,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
             _lastTheta = 0.5f * _lastTheta + 0.5f * fred;
 
-            qCDebug(animation) << "twist correction: " << twistCorrection << "   flex correction: " << flexCorrection << " ulnar correction " << ulnarCorrection;
-
-            //}
-           
-            /*else {
-                if (trueTwistTheta < -TWIST_DEADZONE) {
-                    fred -= glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
-                } else {
-                    if (trueTwistTheta > TWIST_DEADZONE) {
-                        fred -= glm::sign(trueTwistTheta) * pow((fabsf(trueTwistTheta) - TWIST_DEADZONE) / PI, POWER) * 90.0f;
-                    }
-                }
-
-
-            }
-            */
+            //qCDebug(animation) << "twist correction: " << twistCorrection << "   flex correction: " << flexCorrection << " ulnar correction " << ulnarCorrection;
             
             if (fabsf(_lastTheta) < 50.0f) {
                 if (fabsf(_lastTheta) < 50.0f) {
@@ -478,10 +456,9 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 _lastTheta = glm::sign(_lastTheta) * 175.0f;
             }
             
-            
+            float poleVectorTheta = theta;
             theta = ((180.0f - _lastTheta) / 180.0f)*PI;
-            
-            //qCDebug(animation) << "the wrist correction theta is -----> " << isLeft << " theta: " << deltaTheta;
+            qCDebug(animation) << "fake theta " << poleVectorTheta << " newly computed theta " << theta << " dot " << dot << " last dot "<< lastDot; 
 
         }
 
