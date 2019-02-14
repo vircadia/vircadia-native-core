@@ -221,7 +221,11 @@ Leaving the Run Latest checkbox checked will download the latest APK.  Uncheckin
 Clicking the Download APK button will set the status to *Downloading installer*; this status will change to *Installer Download complete" when the download has completed.  The APK will be located in the working folder.
 ### Installing APK
 After download it is possible to install the APK on the selected device.  
-When installation completes, the status will be *Instalaltion complete*
+When installation completes, the status will be *Installation complete*
+### Run Interface
+Pressing this button will run the full test suite on the device.  Snapshots will be stored on the device in */sdcard/DCIM/TEST.
+### Pull Folder
+This button is used to copy the snapshots from a test to the local device for evaluation.  The default is the default snapshot folder on the device.
 ## Evaluate
 ![](./Evaluate.PNG)
 
