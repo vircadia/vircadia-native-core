@@ -35,7 +35,8 @@ Rectangle {
     property string category: ""
     property int price: 0
     property bool available: false
-    property bool isLoggedIn: false;
+    property bool isLoggedIn: false
+    property bool standaloneOptimized: false
 
     signal buy()
     signal showItem()
@@ -288,8 +289,38 @@ Rectangle {
                     onClicked: root.categoryClicked(root.category);
                 }
             }
+            Item {
+                id: badges
+                
+                anchors {
+                    left: parent.left
+                    top: categoryLabel.bottom
+                    right: buyButton.left
+                }
+                height: childrenRect.height
+                
+                HiFiGlyphs {
+                    id: standaloneOptomizedBadge
+
+                    anchors {
+                        left: parent.left
+                        leftMargin: 15
+                        verticalCenter: parent.verticalCenter
+
+                    }
+                    height: 24
+                    
+                    visible: root.standaloneOptimized
+
+                    text: hifi.glyphs.hmd
+                    size: 24
+                    horizontalAlignment: Text.AlignHCenter
+                    color: hifi.colors.blueHighlight
+                }   
+            }            
 
             HifiControlsUit.Button {
+                id: buyButton
                 anchors {
                     right: parent.right
                     top: parent.top

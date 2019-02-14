@@ -39,6 +39,7 @@ Item {
     property bool isConcurrency: action === 'concurrency';
     property bool isAnnouncement: action === 'announcement';
     property bool isStacked: !isConcurrency && drillDownToPlace;
+    property bool standaloneOptimized: true;
 
     property int textPadding: 10;
     property int smallMargin: 4;
@@ -281,7 +282,26 @@ Item {
             right: parent.right;
             margins: smallMargin;
         }
+        
     }
+    HiFiGlyphs {
+        id: standaloneOptomizedBadge
+
+        anchors {
+            right: actionIcon.left
+            verticalCenter: parent.verticalCenter
+            bottom: parent.bottom;
+        }
+        height: root.standaloneOptimized ? 34 : 0
+        
+        visible: standaloneOptimized
+
+        text: hifi.glyphs.hmd
+        size: 34
+        horizontalAlignment: Text.AlignHCenter
+        color: hifi.colors.blueHighlight
+    }  
+
     function go() {
         Tablet.playSound(TabletEnums.ButtonClick);
         goFunction(drillDownToPlace ? ("/places/" + placeName) : ("/user_stories/" + storyId));

@@ -50,6 +50,8 @@ Item {
     property string upgradeTitle;
     property bool updateAvailable: root.updateItemId && root.updateItemId !== "";
     property bool valid;
+    property bool standaloneOptimized;
+    property bool standaloneIncompatible;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -838,6 +840,25 @@ Item {
                     root.sendToPurchases({ method: 'flipCard' });
                 }
             }
+        } 
+
+        HiFiGlyphs {
+            id: standaloneOptomizedBadge
+
+            anchors {
+                right: parent.right
+                bottom: parent.bottom
+                rightMargin: 15
+                bottomMargin:12
+            }
+            height: root.standaloneOptimized ? 34 : 0
+            
+            visible: root.standaloneOptimized
+
+            text: hifi.glyphs.hmd
+            size: 34
+            horizontalAlignment: Text.AlignHCenter
+            color: hifi.colors.blueHighlight
         }
     }
 

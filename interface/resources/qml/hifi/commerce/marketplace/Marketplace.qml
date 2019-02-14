@@ -122,6 +122,8 @@ Rectangle {
                 marketplaceItem.license = result.data.license;
                 marketplaceItem.available = result.data.availability === "available";
                 marketplaceItem.created_at = result.data.created_at;
+                marketplaceItem.standaloneOptimized = result.data.standalone_optimized;
+                marketplaceItem.standaloneVisible = result.data.standalone_optimized || result.data.standalone_incompatible;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
@@ -534,7 +536,8 @@ Rectangle {
                 price: model.cost
                 available: model.availability === "available"
                 isLoggedIn: root.isLoggedIn;
-
+                standaloneOptimized: model.standalone_optimized
+    
                 onShowItem: {
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }

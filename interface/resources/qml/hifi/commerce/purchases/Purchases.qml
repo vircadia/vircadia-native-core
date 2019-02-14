@@ -553,6 +553,8 @@ Rectangle {
                 upgradeTitle: model.upgrade_title;
                 itemType: model.item_type;
                 valid: model.valid;
+                standaloneOptimized: model.standalone_optimized
+                standaloneIncompatible: model.standalone_incompatible
                 anchors.topMargin: 10;
                 anchors.bottomMargin: 10;
 

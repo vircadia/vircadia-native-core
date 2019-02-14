@@ -39,9 +39,11 @@ Rectangle {
     property string posted: ""
     property bool available: false
     property string created_at: ""
-    property bool isLoggedIn: false;
-    property int edition: -1;
-    property bool supports3DHTML: false;
+    property bool isLoggedIn: false
+    property int edition: -1
+    property bool supports3DHTML: false
+    property bool standaloneVisible: false
+    property bool standaloneOptimized: false
 
     
     onCategoriesChanged: {
@@ -49,16 +51,6 @@ Rectangle {
         categories.forEach(function(category) {
             categoriesListModel.append({"category":category});
         });
-    }
-    
-    onDescriptionChanged: {
-    
-        if(root.supports3DHTML) {
-            descriptionTextModel.clear();
-            descriptionTextModel.append({text: description});
-        } else {
-            descriptionText.text = description;
-        }
     }
 
     onAttributionsChanged: {
@@ -246,11 +238,38 @@ Rectangle {
             right: parent.right;
             top: itemImage.bottom;
         }
-        height: categoriesList.y - buyButton.y + categoriesList.height
+        height: categoriesList.y - badges.y + categoriesList.height
         
         function evalHeight() {
-            height = categoriesList.y - buyButton.y + categoriesList.height;
-            console.log("HEIGHT: " + height);
+            height = categoriesList.y - badges.y + categoriesList.height;
+        }
+        
+        Item {
+            id: badges
+            
+            anchors {
+                left: parent.left
+                top: parent.top
+                right: parent.right
+            }
+            height: childrenRect.height
+            
+            HiFiGlyphs {
+                id: standaloneOptomizedBadge
+
+                anchors {
+                    left: parent.left
+                    verticalCenter: parent.verticalCenter
+                }
+                height: root.standaloneOptimized ? 34 : 0
+                
+                visible: root.standaloneOptimized
+
+                text: hifi.glyphs.hmd
+                size: 34
+                horizontalAlignment: Text.AlignHCenter
+                color: hifi.colors.blueHighlight
+            }   
         }
         
         HifiControlsUit.Button {
@@ -258,7 +277,7 @@ Rectangle {
 
             anchors {
                 right: parent.right
-                top: parent.top
+                top: badges.bottom
                 left: parent.left
                 topMargin: 15
             }
@@ -529,13 +548,55 @@ Rectangle {
                 }
             }
         }
+        
+        Item {
+            id: standaloneItem
+            
+            anchors {
+                top: licenseItem.bottom
+                topMargin: 15
+                left: parent.left
+                right: parent.right
+            }
+            height: root.standaloneVisible ? childrenRect.height : 0
+            
+            visible: root.standaloneVisible
+            
+            RalewaySemiBold {
+                id: standaloneLabel
+                
+                anchors.top: parent.top
+                anchors.left: parent.left
+                width: paintedWidth
+                height: 20
+
+                text: root.standaloneOptimized  ? "STAND-ALONE OPTIMIZED:" : "STAND-ALONE INCOMPATIBLE:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
+            }
+            
+            RalewaySemiBold {
+                id: standaloneOptimizedText
+
+                anchors.top: standaloneLabel.bottom
+                anchors.left: parent.left
+                anchors.topMargin: 5
+                width: paintedWidth
+
+                text: root.standaloneOptimized ? "This item is stand-alone optimized" : "This item is incompatible with stand-alone devices"
+                size: 14
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
 
         Item {
             id: descriptionItem
             property string text: ""
 
             anchors {
-                top: licenseItem.bottom
+                top: standaloneItem.bottom
                 topMargin: 15
                 left: parent.left
                 right: parent.right
