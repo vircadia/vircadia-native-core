@@ -29,8 +29,8 @@ Note that X.X.X is the latest version.
 1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.exe: aws s3 cp nitpick-installer-v1.2.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-vX.X.X.exe
 #### Mac
 These steps assume the hifi repository has been cloned to `~/hifi`.
-1.  (first time) Install brew
-    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+1.  (first time) Install brew  
+    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
 1.  (First time) install create-dmg:
     In a terminal: `brew install create-dmg`
 1.  In a terminal: cd to the `build/tools/nitpick/Release` folder
