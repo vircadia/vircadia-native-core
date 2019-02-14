@@ -188,6 +188,7 @@ let renameTimeout = null;
 let renameLastBlur = null;
 let renameLastEntityID = null;
 let isRenameFieldBeingMoved = false;
+let elFilterTypeInputs = {};
 
 let elEntityTable,
     elEntityTableHeader,
@@ -201,6 +202,8 @@ let elEntityTable,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
+    elFilterTypeSelectAll,
+    elFilterTypeClearAll,
     elFilterSearch,
     elFilterInView,
     elFilterRadius,
@@ -243,6 +246,8 @@ function loaded() {
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
+        elFilterTypeSelectAll = document.getElementById('filter-type-select-all');
+        elFilterTypeClearAll = document.getElementById('filter-type-clear-all');
         elFilterSearch = document.getElementById("filter-search");
         elFilterInView = document.getElementById("filter-in-view");
         elFilterRadius = document.getElementById("filter-radius");
@@ -276,6 +281,8 @@ function loaded() {
         };
         elRefresh.onclick = refreshEntities;
         elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
+        elFilterTypeSelectAll.onclick = onSelectAllTypes;
+        elFilterTypeClearAll.onclick = onClearAllTypes;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = onToggleFilterInView;
@@ -297,6 +304,7 @@ function loaded() {
             elInput.setAttribute("id", typeFilterID);
             elInput.setAttribute("filterType", type);
             elInput.checked = true; // all types are checked initially
+            elFilterTypeInputs[type] = elInput;
             elDiv.appendChild(elInput);
             
             let elLabel = document.createElement('label');
@@ -1065,7 +1073,21 @@ function loaded() {
             event.stopPropagation();
         }
         
-        function toggleTypeFilter(elInput, refresh) {
+        function refreshTypeFilter(refreshList) {
+            if (typeFilters.length === 0) {
+                elFilterTypeText.innerText = "No Types";
+            } else if (typeFilters.length === FILTER_TYPES.length) {
+                elFilterTypeText.innerText = "All Types";
+            } else {
+                elFilterTypeText.innerText = "Types...";
+            }
+            
+            if (refreshList) {
+                refreshEntityList();
+            }
+        }
+        
+        function toggleTypeFilter(elInput, refreshList) {
             let type = elInput.getAttribute("filterType");
             let typeChecked = elInput.checked;
             
@@ -1076,17 +1098,7 @@ function loaded() {
                 typeFilters.push(type);
             }
             
-            if (typeFilters.length === 0) {
-                elFilterTypeText.innerText = "No Types";
-            } else if (typeFilters.length === FILTER_TYPES.length) {
-                elFilterTypeText.innerText = "All Types";
-            } else {
-                elFilterTypeText.innerText = "Types...";
-            }
-            
-            if (refresh) {
-                refreshEntityList();
-            }
+            refreshTypeFilter(refreshList);
         }
         
         function onToggleTypeFilter(event) {
@@ -1094,6 +1106,24 @@ function loaded() {
             if (elTarget instanceof HTMLInputElement) {
                 toggleTypeFilter(elTarget, true);
             }
+            event.stopPropagation();
+        }
+        
+        function onSelectAllTypes(event) {
+            for (let type in elFilterTypeInputs) {
+                elFilterTypeInputs[type].checked = true;
+            }
+            typeFilters = FILTER_TYPES;
+            refreshTypeFilter(true);
+            event.stopPropagation();
+        }
+        
+        function onClearAllTypes(event) {
+            for (let type in elFilterTypeInputs) {
+                elFilterTypeInputs[type].checked = false;
+            }
+            typeFilters = [];
+            refreshTypeFilter(true);
             event.stopPropagation();
         }
         
