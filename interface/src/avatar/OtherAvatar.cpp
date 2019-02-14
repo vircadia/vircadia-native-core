@@ -447,6 +447,10 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             EntityItemProperties properties;
             int32_t bytesLeftToRead = data.size();
             unsigned char* dataAt = (unsigned char*)(data.data());
+            // FIXME: This function will cause unintented changes in SpaillyNestable
+            // E.g overriding the ID index of an exisiting entity to temporary entity
+            // in the following map QHash<QUuid, SpatiallyNestableWeakPointer> _children;
+            // Andrew Meadows will address this issue
             if (!properties.constructFromBuffer(dataAt, bytesLeftToRead)) {
                 // properties are corrupt
                 continue;
@@ -489,6 +493,17 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             bool success = true;
             if (entity) {
                 QUuid oldParentID = entity->getParentID();
+
+                // Since  has overwrtiiten the back pointer
+                // from the parent children map (see comment for function call above),
+                // we need to for reset the back pointer in the map correctly by setting the parentID, but
+                // since the parentID of the entity has not changed we first need to set it some ither ID,
+                // then set the the original ID for the changes to take effect
+                // TODO: This is a horrible hack and once properties.constructFromBuffer no longer causes
+                // side effects...remove the following three lines
+                const QUuid NULL_ID = QUuid("{00000000-0000-0000-0000-000000000005}");
+                entity->setParentID(NULL_ID);
+                entity->setParentID(oldParentID);
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
                 } else {

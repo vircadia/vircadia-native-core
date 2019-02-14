@@ -4,5 +4,6 @@ link_hifi_libraries(shared graphics fbx)
 include_hifi_library_headers(networking)
 include_hifi_library_headers(gpu)
 include_hifi_library_headers(hfm)
+include_hifi_library_headers(image)
 
 target_nsight()

@@ -81,7 +81,6 @@ protected:
         mat4 presentPose;
         double sensorSampleTime { 0 };
         double predictedDisplayTime { 0 };
-        mat3 presentReprojection;
     };
 
     QMap<uint32_t, FrameInfo> _frameInfos;

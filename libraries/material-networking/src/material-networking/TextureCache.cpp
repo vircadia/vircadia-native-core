@@ -192,6 +192,7 @@ public:
     image::TextureUsage::Type type;
     const QByteArray& content;
     int maxNumPixels;
+    image::ColorChannel sourceChannel;
 };
 
 namespace std {
@@ -206,19 +207,19 @@ namespace std {
     struct hash<TextureExtra> {
         size_t operator()(const TextureExtra& textureExtra) const {
             size_t result = 0;
-            hash_combine(result, (int)textureExtra.type, textureExtra.content, textureExtra.maxNumPixels);
+            hash_combine(result, (int)textureExtra.type, textureExtra.content, textureExtra.maxNumPixels, (int)textureExtra.sourceChannel);
             return result;
         }
     };
 }
 
-ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels) {
+ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNumPixels, image::ColorChannel sourceChannel) {
     auto byteArray = QByteArray();
-    TextureExtra extra = { (image::TextureUsage::Type)type, byteArray, maxNumPixels };
+    TextureExtra extra = { (image::TextureUsage::Type)type, byteArray, maxNumPixels, sourceChannel };
     return ResourceCache::prefetch(url, &extra, std::hash<TextureExtra>()(extra));
 }
 
-NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) {
+NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels, image::ColorChannel sourceChannel) {
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
@@ -228,7 +229,7 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
         query.addQueryItem("skybox", "");
         modifiedUrl.setQuery(query.toString());
     }
-    TextureExtra extra = { type, content, maxNumPixels };
+    TextureExtra extra = { type, content, maxNumPixels, sourceChannel };
     return ResourceCache::getResource(modifiedUrl, QUrl(), &extra, std::hash<TextureExtra>()(extra)).staticCast<NetworkTexture>();
 }
 
@@ -345,6 +346,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
 NetworkTexture::NetworkTexture(const NetworkTexture& other) :
     Resource(other),
     _type(other._type),
+    _sourceChannel(other._sourceChannel),
     _currentlyLoadingResourceType(other._currentlyLoadingResourceType),
     _originalWidth(other._originalWidth),
     _originalHeight(other._originalHeight),
@@ -352,6 +354,11 @@ NetworkTexture::NetworkTexture(const NetworkTexture& other) :
     _height(other._height),
     _maxNumPixels(other._maxNumPixels)
 {
+    if (_width == 0 || _height == 0 ||
+        other._currentlyLoadingResourceType == ResourceType::META ||
+        (other._currentlyLoadingResourceType == ResourceType::KTX && other._ktxResourceState != KTXResourceState::WAITING_FOR_MIP_REQUEST)) {
+        _startedLoading = false;
+    }
 }
 
 static bool isLocalUrl(const QUrl& url) {
@@ -363,6 +370,7 @@ void NetworkTexture::setExtra(void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     _type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
     _maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
+    _sourceChannel = textureExtra ? textureExtra->sourceChannel : image::ColorChannel::NONE;
 
     _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
     _lowestRequestedMipLevel = 0;
@@ -424,7 +432,8 @@ gpu::TexturePointer NetworkTexture::getFallbackTexture() const {
 class ImageReader : public QRunnable {
 public:
     ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url,
-                const QByteArray& data, size_t extraHash, int maxNumPixels);
+                const QByteArray& data, size_t extraHash, int maxNumPixels,
+                image::ColorChannel sourceChannel);
     void run() override final;
     void read();
 
@@ -436,6 +445,7 @@ private:
     QByteArray _content;
     size_t _extraHash;
     int _maxNumPixels;
+    image::ColorChannel _sourceChannel;
 };
 
 NetworkTexture::~NetworkTexture() {
@@ -1068,7 +1078,7 @@ void NetworkTexture::loadTextureContent(const QByteArray& content) {
         return;
     }
 
-    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _extraHash, _maxNumPixels));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, _url, content, _extraHash, _maxNumPixels, _sourceChannel));
 }
 
 void NetworkTexture::refresh() {
@@ -1093,12 +1103,13 @@ void NetworkTexture::refresh() {
     Resource::refresh();
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, size_t extraHash, int maxNumPixels) :
+ImageReader::ImageReader(const QWeakPointer<Resource>& resource, const QUrl& url, const QByteArray& data, size_t extraHash, int maxNumPixels, image::ColorChannel sourceChannel) :
     _resource(resource),
     _url(url),
     _content(data),
     _extraHash(extraHash),
-    _maxNumPixels(maxNumPixels)
+    _maxNumPixels(maxNumPixels),
+    _sourceChannel(sourceChannel)
 {
     DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
     listSupportedImageFormats();
@@ -1206,7 +1217,7 @@ void ImageReader::read() {
         constexpr bool shouldCompress = false;
 #endif
         auto target = getBackendTarget();
-        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
+        texture = image::processImage(std::move(buffer), _url.toString().toStdString(), _sourceChannel, _maxNumPixels, networkTexture->getTextureType(), shouldCompress, target);
 
         if (!texture) {
             QMetaObject::invokeMethod(resource.data(), "setImage",

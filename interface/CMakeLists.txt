@@ -211,7 +211,10 @@ link_hifi_libraries(
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
+  # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
+  # Plaform specific input & display plugin libraries
+  ${PLATFORM_PLUGIN_LIBRARIES}
   shaders
 )
 

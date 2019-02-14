@@ -27,6 +27,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class SpeechRecognizer : public QObject, public Dependency {
     Q_OBJECT

@@ -36,6 +36,7 @@ class AABox;
   *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} presentTime <em>Read-only.</em>
  * @property {number} engineRunTime <em>Read-only.</em>

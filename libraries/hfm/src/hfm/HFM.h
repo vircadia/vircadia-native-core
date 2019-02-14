@@ -25,6 +25,8 @@
 #include <graphics/Geometry.h>
 #include <graphics/Material.h>
 
+#include <image/ColorChannel.h>
+
 #if defined(Q_OS_ANDROID)
 #define HFM_PACK_NORMALS 0
 #else
@@ -123,6 +125,7 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
+    image::ColorChannel sourceChannel { image::ColorChannel::NONE };
 
     Transform transform;
     int maxNumPixels { MAX_NUM_PIXELS_FOR_FBX_TEXTURE };

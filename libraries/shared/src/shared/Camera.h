@@ -43,6 +43,7 @@ class Camera : public QObject {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {Vec3} position - The position of the camera. You can set this value only when the camera is in independent 
      *     mode.
