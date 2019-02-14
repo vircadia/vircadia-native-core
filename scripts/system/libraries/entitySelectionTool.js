@@ -284,9 +284,11 @@ SelectionManager = (function() {
                     properties.parentJointIndex = null;
                     properties.localPosition = properties.position;
                     properties.localRotation = properties.rotation;
-                    properties.velocity = { x: 0, y: 0, z: 0 };
-                    properties.angularVelocity = { x: 0, y: 0, z: 0 };
                 }
+
+                properties.localVelocity = Vec3.ZERO;
+                properties.localAngularVelocity = Vec3.ZERO;
+
                 delete properties.actionData;
                 var newEntityID = Entities.addEntity(properties);
 
