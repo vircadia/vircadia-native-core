@@ -20,7 +20,7 @@
 
 #include "OvenCLIApplication.h"
 #include "ModelBakingLoggingCategory.h"
-#include "FBXBaker.h"
+#include "baking/BakerLibrary.h"
 #include "JSBaker.h"
 #include "TextureBaker.h"
 
@@ -41,7 +41,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     static const QString SCRIPT_EXTENSION { "js" };
 
     // check what kind of baker we should be creating
-    bool isFBX = type == MODEL_EXTENSION;
+    bool isModel = type == MODEL_EXTENSION;
     bool isScript = type == SCRIPT_EXTENSION;
 
     // If the type doesn't match the above, we assume we have a texture, and the type specified is the
@@ -54,13 +54,17 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     _outputPath = outputPath;
 
     // create our appropiate baker
-    if (isFBX) {
-        _baker = std::unique_ptr<Baker> {
-            new FBXBaker(inputUrl,
-                         []() -> QThread* { return Oven::instance().getNextWorkerThread(); },
-                         outputPath)
-        };
-        _baker->moveToThread(Oven::instance().getNextWorkerThread());
+    if (isModel) {
+        QUrl bakeableModelURL = getBakeableModelURL(inputUrl, false);
+        if (!bakeableModelURL.isEmpty()) {
+            auto getWorkerThreadCallback = []() -> QThread* {
+                return Oven::instance().getNextWorkerThread();
+            };
+            _baker = getModelBaker(bakeableModelURL, getWorkerThreadCallback, outputPath);
+            if (_baker) {
+                _baker->moveToThread(Oven::instance().getNextWorkerThread());
+            }
+        }
     } else if (isScript) {
         _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());

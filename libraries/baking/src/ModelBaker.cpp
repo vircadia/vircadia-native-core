@@ -64,6 +64,29 @@ ModelBaker::~ModelBaker() {
     }
 }
 
+void ModelBaker::initializeOutputDirs() {
+    // Attempt to make the output folders
+    // Warn if there is an output directory using the same name
+
+    if (QDir(_bakedOutputDir).exists()) {
+        qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
+    } else {
+        qCDebug(model_baking) << "Creating baked output folder" << _bakedOutputDir;
+        if (!QDir().mkpath(_bakedOutputDir)) {
+            handleError("Failed to create baked output folder " + _bakedOutputDir);
+        }
+    }
+
+    if (QDir(_originalOutputDir).exists()) {
+        qWarning() << "Output path" << _originalOutputDir << "already exists. Continuing.";
+    } else {
+        qCDebug(model_baking) << "Creating original output folder" << _originalOutputDir;
+        if (!QDir().mkpath(_originalOutputDir)) {
+            handleError("Failed to create original output folder " + _originalOutputDir);
+        }
+    }
+}
+
 void ModelBaker::abort() {
     Baker::abort();
 

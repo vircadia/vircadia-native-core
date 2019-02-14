@@ -44,8 +44,6 @@ private slots:
     void handleFBXNetworkReply();
 
 private:
-    void setupOutputFolder();
-
     void loadSourceFBX();
 
     void importScene();

@@ -40,8 +40,8 @@
 void FBXBaker::bake() {    
     qDebug() << "FBXBaker" << _modelURL << "bake starting";
 
-    // setup the output folder for the results of this bake
-    setupOutputFolder();
+    // Setup the output folders for the results of this bake
+    initializeOutputDirs();
 
     if (shouldStop()) {
         return;
@@ -76,26 +76,6 @@ void FBXBaker::bakeSourceCopy() {
 
     // check if we're already done with textures (in case we had none to re-write)
     checkIfTexturesFinished();
-}
-
-void FBXBaker::setupOutputFolder() {
-    // make sure there isn't already an output directory using the same name
-    if (QDir(_bakedOutputDir).exists()) {
-        qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
-    } else {
-        qCDebug(model_baking) << "Creating FBX output folder" << _bakedOutputDir;
-
-        // attempt to make the output folder
-        if (!QDir().mkpath(_bakedOutputDir)) {
-            handleError("Failed to create FBX output folder " + _bakedOutputDir);
-            return;
-        }
-        // attempt to make the output folder
-        if (!QDir().mkpath(_originalOutputDir)) {
-            handleError("Failed to create FBX output folder " + _originalOutputDir);
-            return;
-        }
-    }
 }
 
 void FBXBaker::loadSourceFBX() {

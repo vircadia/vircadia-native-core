@@ -20,8 +20,7 @@
 
 #include "Gzip.h"
 #include "Oven.h"
-#include "FBXBaker.h"
-#include "OBJBaker.h"
+#include "baking/BakerLibrary.h"
 
 DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
                          const QString& baseOutputPath, const QUrl& destinationPath,
@@ -163,82 +162,37 @@ void DomainBaker::enumerateEntities() {
             // check if this is an entity with a model URL or is a skybox texture
             if (entity.contains(ENTITY_MODEL_URL_KEY)) {
                 // grab a QUrl for the model URL
-                QUrl modelURL { entity[ENTITY_MODEL_URL_KEY].toString() };
+                QUrl bakeableModelURL = getBakeableModelURL(entity[ENTITY_MODEL_URL_KEY].toString(), _shouldRebakeOriginals);
 
-                // check if the file pointed to by this URL is a bakeable model, by comparing extensions
-                auto modelFileName = modelURL.fileName();
-
-                static const QString BAKEABLE_MODEL_FBX_EXTENSION { ".fbx" };
-                static const QString BAKEABLE_MODEL_OBJ_EXTENSION { ".obj" };
-                static const QString BAKED_MODEL_EXTENSION = ".baked.fbx";
-
-                bool isBakedModel = modelFileName.endsWith(BAKED_MODEL_EXTENSION, Qt::CaseInsensitive);
-                bool isBakeableFBX = modelFileName.endsWith(BAKEABLE_MODEL_FBX_EXTENSION, Qt::CaseInsensitive);
-                bool isBakeableOBJ = modelFileName.endsWith(BAKEABLE_MODEL_OBJ_EXTENSION, Qt::CaseInsensitive);
-                bool isBakeable = isBakeableFBX || isBakeableOBJ;
-
-                if (isBakeable || (_shouldRebakeOriginals && isBakedModel)) {
-
-                    if (isBakedModel) {
-                        // grab a URL to the original, that we assume is stored a directory up, in the "original" folder
-                        // with just the fbx extension
-                        qDebug() << "Re-baking original for" << modelURL;
-
-                        auto originalFileName = modelFileName;
-                        originalFileName.replace(".baked", "");
-                        modelURL = modelURL.resolved("../original/" + originalFileName);
-
-                        qDebug() << "Original must be present at" << modelURL;
-                    } else {
-                        // grab a clean version of the URL without a query or fragment
-                        modelURL = modelURL.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
-                    }
+                if (!bakeableModelURL.isEmpty()) {
 
                     // setup a ModelBaker for this URL, as long as we don't already have one
-                    if (!_modelBakers.contains(modelURL)) {
-                        auto filename = modelURL.fileName();
-                        auto baseName = filename.left(filename.lastIndexOf('.'));
-                        auto subDirName = "/" + baseName;
-                        int i = 1;
-                        while (QDir(_contentOutputPath + subDirName).exists()) {
-                            subDirName = "/" + baseName + "-" + QString::number(i++);
+                    if (!_modelBakers.contains(bakeableModelURL)) {
+                        auto getWorkerThreadCallback = []() -> QThread* {
+                            return Oven::instance().getNextWorkerThread();
+                        };
+                        QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, getWorkerThreadCallback, _contentOutputPath).release(), &ModelBaker::deleteLater);
+                        if (baker) {
+                            // make sure our handler is called when the baker is done
+                            connect(baker.data(), &Baker::finished, this, &DomainBaker::handleFinishedModelBaker);
+
+                            // insert it into our bakers hash so we hold a strong pointer to it
+                            _modelBakers.insert(bakeableModelURL, baker);
+
+                            // move the baker to the baker thread
+                            // and kickoff the bake
+                            baker->moveToThread(Oven::instance().getNextWorkerThread());
+                            QMetaObject::invokeMethod(baker.data(), "bake");
+
+                            // keep track of the total number of baking entities
+                            ++_totalNumberOfSubBakes;
+
+                            // add this QJsonValueRef to our multi hash so that we can easily re-write
+                            // the model URL to the baked version once the baker is complete
+                            _entitiesNeedingRewrite.insert(bakeableModelURL, *it);
                         }
 
-                        QSharedPointer<ModelBaker> baker;
-                        if (isBakeableFBX) {
-                            baker = {
-                                new FBXBaker(modelURL, []() -> QThread* {
-                                    return Oven::instance().getNextWorkerThread();
-                                }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
-                                &FBXBaker::deleteLater
-                            };
-                        } else {
-                            baker = {
-                                new OBJBaker(modelURL, []() -> QThread* {
-                                    return Oven::instance().getNextWorkerThread();
-                                }, _contentOutputPath + subDirName + "/baked", _contentOutputPath + subDirName + "/original"),
-                                &OBJBaker::deleteLater
-                            };
-                        }
-
-                        // make sure our handler is called when the baker is done
-                        connect(baker.data(), &Baker::finished, this, &DomainBaker::handleFinishedModelBaker);
-
-                        // insert it into our bakers hash so we hold a strong pointer to it
-                        _modelBakers.insert(modelURL, baker);
-
-                        // move the baker to the baker thread
-                        // and kickoff the bake
-                        baker->moveToThread(Oven::instance().getNextWorkerThread());
-                        QMetaObject::invokeMethod(baker.data(), "bake");
-
-                        // keep track of the total number of baking entities
-                        ++_totalNumberOfSubBakes;
                     }
-
-                    // add this QJsonValueRef to our multi hash so that we can easily re-write
-                    // the model URL to the baked version once the baker is complete
-                    _entitiesNeedingRewrite.insert(modelURL, *it);
                 }
             } else {
 //                // We check now to see if we have either a texture for a skybox or a keylight, or both.

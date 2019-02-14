@@ -31,6 +31,8 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 using GetMaterialIDCallback = std::function <int(int)>;
 
 static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
+static const QString BAKEABLE_MODEL_FBX_EXTENSION { ".fbx" };
+static const QString BAKEABLE_MODEL_OBJ_EXTENSION { ".obj" };
 
 class ModelBaker : public Baker {
     Q_OBJECT
@@ -39,6 +41,8 @@ public:
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "");
     virtual ~ModelBaker();
+
+    void initializeOutputDirs();
 
     bool compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
     QString compressTexture(QString textureFileName, image::TextureUsage::Type = image::TextureUsage::Type::DEFAULT_TEXTURE);
