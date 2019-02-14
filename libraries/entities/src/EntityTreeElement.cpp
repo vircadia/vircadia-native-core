@@ -151,7 +151,7 @@ bool EntityTreeElement::checkFilterSettings(const EntityItemPointer& entity, Pic
     // We only check the collidable filters for non-local entities, because local entities are always collisionless
     bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
     if (hostType != entity::HostType::LOCAL) {
-        if ((!searchFilter.doesPickCollidable() && collidable) || (!searchFilter.doesPickNonCollidable() && !collidable)) {
+        if ((collidable && !searchFilter.doesPickCollidable()) || (!collidable && !searchFilter.doesPickNonCollidable())) {
             return false;
         }
     }

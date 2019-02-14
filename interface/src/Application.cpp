@@ -1900,11 +1900,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, keyboardFocusOperator);
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, [this](const EntityItemID& entityItemID) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::deletingEntity, this, [this](const EntityItemID& entityItemID) {
         if (entityItemID == _keyboardFocusedEntity.get()) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         }
-    });
+    }, Qt::QueuedConnection);
 
     EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         if (_aboutToQuit) {

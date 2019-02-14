@@ -242,7 +242,7 @@ void PolyLineEntityRenderer::updateGeometry() {
                 binormal = glm::normalize(glm::cross(tangent, normal));
 
                 // Check to make sure binormal is not a NAN. If it is, don't add to vertices vector
-                if (binormal.x != binormal.x) {
+                if (glm::any(glm::isnan(binormal))) {
                     continue;
                 }
             }

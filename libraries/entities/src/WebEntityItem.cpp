@@ -304,15 +304,11 @@ WebInputMode WebEntityItem::getInputMode() const {
 }
 
 void WebEntityItem::setShowKeyboardFocusHighlight(bool value) {
-    withWriteLock([&] {
-        _showKeyboardFocusHighlight = value;
-    });
+    _showKeyboardFocusHighlight = value;
 }
 
 bool WebEntityItem::getShowKeyboardFocusHighlight() const {
-    return resultWithReadLock<bool>([&] {
-        return _showKeyboardFocusHighlight;
-    });
+    return _showKeyboardFocusHighlight;
 }
 
 PulsePropertyGroup WebEntityItem::getPulseProperties() const {
