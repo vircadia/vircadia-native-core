@@ -323,7 +323,7 @@ private:
 void GeometryDefinitionResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
     _mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
-    _textureBaseUrl = resolveTextureBaseUrl(_url, geometryExtra ? geometryExtra->textureBaseUrl : QUrl());
+    _textureBaseUrl = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
 
