@@ -1,18 +1,47 @@
 # nitpick
 
-Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple: 
-* Each test folder has a script that produces a set of snapshots.
-* The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
+Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple:  
+* Each test folder has a script that produces a set of snapshots.  
+* The snapshots are compared to a 'canonical' set of images that have been produced beforehand.  
 * The result, if any test failed, is a zipped folder describing the failure.
 
-Nitpick has 5 functions, separated into separate tabs:
+Nitpick has 6 functions, separated into separate tabs:
 
 1. Creating tests, MD files and recursive scripts
 1. Windows task bar utility (Windows only)
-1. Running tests
+1. Running tests on desktop (i.e. locally)
+1. Running tests on an attached device
 1. Evaluating the results of running tests
 1. Web interface
-
+## Creating Installers (for developers)
+Nitpick is built as part of the High Fidelity build.
+### Creating installers
+#### Windows
+Note that X.X.X is the latest version.
+1.  Verify that 7Zip is installed.
+1.  cd to the `build\tools\nitpick\Release` directory
+1.  Delete any existing installers (named nitpick-installer-vX.X.X.exe)
+1.  Select all, right-click and select 7-Zip->Add to archive...
+1.  Set Archive format to 7z
+1.  Check "Create SFX archive
+1.  Enter installer name (i.e. `nitpick-installer-vX.X.X.exe`)
+1.  Click "OK"
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.exe: aws s3 cp nitpick-installer-v1.2.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-vX.X.X.exe
+#### Mac
+These steps assume the hifi repository has been cloned to `~/hifi`.
+1.  (first time) Install brew
+    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+1.  (First time) install create-dmg:
+    In a terminal: `brew install create-dmg`
+1.  In a terminal: cd to the `build/tools/nitpick/Release` folder
+1.  Copy the quazip dynamic library (note final period):
+    In a terminal: `cp ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib .`
+1.  Change the loader instruction to find the dynamic library locally
+    In a terminal: `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
+1.  Delete any existing disk images. In a terminal: `rm *.dmg`
+1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-vX.X.X nitpick-installer-vX.X.X.dmg .`  
+    Make sure to wait for completion.
+1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-vX.X.X.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-vX.X.X.dmg`
 ## Installation
 `nitpick` is packaged with High Fidelity PR and Development builds.
 ### Windows
@@ -32,6 +61,8 @@ Nitpick has 5 functions, separated into separate tabs:
     1.  Copy the downloaded file to (for example) **C:\adb** and extract in place.  
         Verify you see *adb.exe* in **C:\adb\platform-tools\\**.
     1.  After installation - add the path to adb.exe to the Windows PATH environment variable (note that it is in *adb\platform-tools*).
+1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
+[here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.dmg>).* 
 ### Mac
 1.  (first time) Install brew
     In a terminal:  
@@ -61,7 +92,13 @@ This is needed because the Mac Python supplied no longer links with the deprecat
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3  
 1.  (First time)Install adb (the Android Debug Bridge) - in a terminal:  
     `brew cask install android-platform-tools`
+1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
+[here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-vX.X.X.dmg>).* 
 # Usage
+## Menu
+File->Close: Closes `nitpick`  
+Help->About: Provides the build date  
+Help->Online readme: Links to this file on GitHub
 ## Create
 ![](./Create.PNG)
 
@@ -139,15 +176,15 @@ nitpick.runRecursive();
 In this case all recursive scripts, from the selected folder down, are created.
 
 Running this function in the tests root folder will create (or update) all the recursive scripts.
-## Windows (only)
+## Windows (only on Windows)
 ![](./Windows.PNG)
 
 This tab is Windows-specific.  It provides buttons to hide and show the task bar.
 
 The task bar should be hidden for all tests that use the primary camera.  This is required to ensure that the snapshots are the right size.
-## Run
-![](./Run.PNG)
-The run tab is used to run tests in automatic mode.  The tests require the location of a folder to store files in; this folder can safely be re-used for any number of runs (the "Working Folder"). 
+## Test on Desktop
+![](./TestOnDesktop.PNG)
+The TestOnDesktop tab is used to run tests on desktop in automatic mode.  The tests require the location of a folder to store files in; this folder can safely be re-used for any number of runs (the "Working Folder").  
 The test script that is run is `https://github.com/highfidelity/hifi_tests/blob/master/tests/testRecursive.js`.  The user can use a different branch' or even repository, if required.  
 Tests can be run server-less, or with the local host.  In the second case, the domain-server and assignment-clients are run before starting Interface.  
 The default is to run the latest build.  The user can select a specific build or PR if desired.
@@ -167,6 +204,24 @@ The working folder will ultimately contain the following:
 1.  The `dev-builds.xml` file, if it was downloaded.  
 1.  The HighFidelity installer.  Note that this is always named `HighFidelity-Beta-latest-dev` so as not to store too many installers over time.  
 1.  A log file describing the runs.  This file is appended to after each run.
+## Test on Mobile
+![](./TestOnMobile.PNG)
+The TestOnMobile tab is used to run tests on a mobile device connected to the desktop running `nitpick`.  
+The test script that is run is `https://github.com/highfidelity/hifi_tests/blob/master/tests/testRecursive.js`.  The user can use a different branch' or even repository, if required.  
+Tests can be run server-less, or with the local host.  In the second case, the domain-server and assignment-clients are run before starting Interface.  
+The default is to run the latest build.  The user can select a specific build or PR if desired.  
+### Set Working Folder  
+This mode needs a working folder to store downloads and temporary files.  All other commands are disabled until this folder has been selected.
+### Connect Device
+Clicking this button will initiate and attempt to connect to a connected device.  If successful, the following will appear (as appropriate for the device):
+![](./ConnectedDevice.PNG)
+
+### Download APK
+Leaving the Run Latest checkbox checked will download the latest APK.  Unchecking will enable entering a URL to a desired APK (such as a PR build).  
+Clicking the Download APK button will set the status to *Downloading installer*; this status will change to *Installer Download complete" when the download has completed.  The APK will be located in the working folder.
+### Installing APK
+After download it is possible to install the APK on the selected device.  
+When installation completes, the status will be *Instalaltion complete*
 ## Evaluate
 ![](./Evaluate.PNG)
 
