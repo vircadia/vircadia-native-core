@@ -243,6 +243,12 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
     return uploader;
 }
 
+AvatarDoctor* AvatarProject::diagnose() {
+    auto avatarDoctor = new AvatarDoctor(QUrl(getFSTPath()));
+
+    return avatarDoctor;
+}
+
 void AvatarProject::openInInventory() const {
     constexpr int TIME_TO_WAIT_FOR_INVENTORY_TO_OPEN_MS { 1000 };
 

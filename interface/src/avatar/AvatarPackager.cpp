@@ -31,6 +31,9 @@ AvatarPackager::AvatarPackager() {
         qmlRegisterType<MarketplaceItemUploader>();
         qRegisterMetaType<AvatarPackager*>();
         qRegisterMetaType<AvatarProject*>();
+        qRegisterMetaType<AvatarDoctor*>();
+        qRegisterMetaType<AvatarDiagnosticResult>();
+        qRegisterMetaType<QVector<AvatarDiagnosticResult>>();
         qRegisterMetaType<AvatarProjectStatus::AvatarProjectStatus>();
         qmlRegisterUncreatableMetaObject(
             AvatarProjectStatus::staticMetaObject,
@@ -84,7 +87,7 @@ void AvatarPackager::addCurrentProjectToRecentProjects() {
         _recentProjects.removeOne(removeProject);
     }
 
-    const auto newRecentProject = RecentAvatarProject(_currentAvatarProject->getProjectName(), fstPath);
+    const auto newRecentProject = RecentAvatarProject(_currentAvatarProject->getProjectName(), fstPath, _currentAvatarProject->getHasErrors());
     _recentProjects.prepend(newRecentProject);
 
     while (_recentProjects.size() > MAX_RECENT_PROJECTS) {
@@ -101,6 +104,7 @@ QVariantList AvatarPackager::recentProjectsToVariantList(bool includeProjectPath
         QVariantMap projectVariant;
         projectVariant.insert("name", project.getProjectName());
         projectVariant.insert("path", project.getProjectFSTPath());
+        projectVariant.insert("hadErrors", project.getHadErrors());
         if (includeProjectPaths) {
             projectVariant.insert("projectPath", project.getProjectPath());
         }
@@ -113,7 +117,10 @@ void AvatarPackager::recentProjectsFromVariantList(QVariantList projectsVariant)
     _recentProjects.clear();
     for (const auto& projectVariant : projectsVariant) {
         auto map = projectVariant.toMap();
-        _recentProjects.append(RecentAvatarProject(map.value("name").toString(), map.value("path").toString()));
+        _recentProjects.append(RecentAvatarProject(
+            map.value("name").toString(),
+            map.value("path").toString(),
+            map.value("hadErrors", false).toBool()));
     }
 }
 
