@@ -277,6 +277,10 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             glm::vec3 ulnarAxis = glm::axis(ulnarDeviation);
             //float twistTheta = glm::sign(twistAxis[1]) * glm::angle(twist);
             float ulnarDeviationTheta = glm::sign(ulnarAxis[2]) * glm::angle(ulnarDeviation);
+            if (glm::sign(ulnarDeviationTheta) != glm::sign(_ulnarRadialThetaRunningAverage) && fabsf(ulnarDeviationTheta) >(5.0f * PI) / 6.0f) {
+                // don't allow the theta to cross the 180 degree limit.
+                ulnarDeviationTheta = -1.0f * ulnarDeviationTheta;
+            }
             _ulnarRadialThetaRunningAverage = 0.5f * _ulnarRadialThetaRunningAverage + 0.5f * ulnarDeviationTheta;
 
             //get the swingTwist of the hand to lower arm
@@ -297,6 +301,10 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
             //float swingTheta = glm::angle(twistUlnarSwing);
             float flexTheta = glm::sign(flexAxis[0]) * glm::angle(flex);
+            if (glm::sign(flexTheta) != glm::sign(_flexThetaRunningAverage) && fabsf(flexTheta) > (5.0f * PI) / 6.0f) {
+                // don't allow the theta to cross the 180 degree limit.
+                flexTheta = -1.0f * flexTheta;
+            }
             _flexThetaRunningAverage = 0.5f * _flexThetaRunningAverage + 0.5f * flexTheta;
 
 
@@ -313,6 +321,11 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             glm::vec3 trueTwistAxis = glm::axis(trueTwist);
             float trueTwistTheta;
             trueTwistTheta = glm::sign(trueTwistAxis[1]) * glm::angle(trueTwist);
+            if (glm::sign(trueTwistTheta) != glm::sign(_twistThetaRunningAverage) && fabsf(trueTwistTheta) >(5.0f * PI) / 6.0f) {
+                // don't allow the theta to cross the 180 degree limit.
+                trueTwistTheta = -1.0f * trueTwistTheta;
+            }
+
             _twistThetaRunningAverage = 0.5f * _twistThetaRunningAverage + 0.5f * trueTwistTheta;
 
             
