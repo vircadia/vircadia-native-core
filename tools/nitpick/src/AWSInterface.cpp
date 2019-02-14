@@ -33,7 +33,6 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
     // For example `D:/tt/TestResults--2019-02-10_17-30-57(local)[DESKTOP-6BO62Q9].zip`
     QStringList parts = testResults.split('/');
     QString zipFilename = parts[parts.length() - 1];
-    _zipFolderName = _workingDirectory + "/" + zipFilename.split('.')[0];
 
     QStringList zipFolderNameParts = zipFilename.split(QRegExp("[\\(\\)\\[\\]]"), QString::SkipEmptyParts);
 
@@ -50,7 +49,8 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
     _urlLineEdit = urlLineEdit;
     _urlLineEdit->setEnabled(false);
 
-    extractTestFailuresFromZippedFolder();
+    QString zipFilenameWithoutExtension = zipFilename.split('.')[0];
+    extractTestFailuresFromZippedFolder(_workingDirectory + "/" + zipFilenameWithoutExtension);
     createHTMLFile();
 
     if (updateAWSCheckBox->isChecked()) {
@@ -61,12 +61,12 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
     }
 }
 
-void AWSInterface::extractTestFailuresFromZippedFolder() {
+void AWSInterface::extractTestFailuresFromZippedFolder(const QString& folderName) {
     // For a test results zip file called `D:/tt/TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ].zip`
     //   the folder will be called `TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ]`
     //   and, this folder will be in the working directory
-    if (QDir(_zipFolderName).exists()) {
-        QDir dir = _zipFolderName;
+    if (QDir(folderName).exists()) {
+        QDir dir = folderName;
         dir.removeRecursively();
     }
 
