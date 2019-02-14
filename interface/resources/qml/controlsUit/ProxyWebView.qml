@@ -18,6 +18,7 @@ Rectangle {
 
     property bool safeLoading: false
     property bool loadingLatched: false
+    property bool loading: false
     property var loadingRequest: null
 
 
