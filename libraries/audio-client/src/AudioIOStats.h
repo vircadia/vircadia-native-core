@@ -44,6 +44,7 @@ class AudioStreamStatsInterface : public QObject {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {number} lossRate <em>Read-only.</em>
      * @property {number} lossCount <em>Read-only.</em>
@@ -192,6 +193,7 @@ class AudioStatsInterface : public QObject {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {number} pingMs <em>Read-only.</em>
      * @property {number} inputReadMsMax <em>Read-only.</em>

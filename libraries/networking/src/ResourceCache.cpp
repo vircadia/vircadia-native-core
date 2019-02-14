@@ -362,7 +362,6 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
             resource->moveToThread(qApp->thread());
             connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
             resourcesWithExtraHash.insert(extraHash, resource);
-            removeUnusedResource(resource);
             resource->ensureLoading();
         }
     }
@@ -404,7 +403,7 @@ void ResourceCache::addUnusedResource(const QSharedPointer<Resource>& resource) 
     // If it doesn't fit or its size is unknown, remove it from the cache.
     if (resource->getBytes() == 0 || resource->getBytes() > _unusedResourcesMaxSize) {
         resource->setCache(nullptr);
-        removeResource(resource->getURL(), resource->getBytes());
+        removeResource(resource->getURL(), resource->getExtraHash(), resource->getBytes());
         resetTotalResourceCounter();
         return;
     }
@@ -443,7 +442,7 @@ void ResourceCache::reserveUnusedResource(qint64 resourceSize) {
         auto size = it.value()->getBytes();
 
         locker.unlock();
-        removeResource(it.value()->getURL(), size);
+        removeResource(it.value()->getURL(), it.value()->getExtraHash(), size);
         locker.relock();
 
         _unusedResourcesSize -= size;
@@ -489,9 +488,13 @@ void ResourceCache::resetResourceCounters() {
     emit dirty();
 }
 
-void ResourceCache::removeResource(const QUrl& url, qint64 size) {
+void ResourceCache::removeResource(const QUrl& url, size_t extraHash, qint64 size) {
     QWriteLocker locker(&_resourcesLock);
-    _resources.remove(url);
+    auto& resources = _resources[url];
+    resources.remove(extraHash);
+    if (resources.size() == 0) {
+        _resources.remove(url);
+    }
     _totalResourcesSize -= size;
 }
 
@@ -664,7 +667,7 @@ void Resource::allReferencesCleared() {
     } else {
         if (_cache) {
             // remove from the cache
-            _cache->removeResource(getURL(), getBytes());
+            _cache->removeResource(getURL(), getExtraHash(), getBytes());
             _cache->resetTotalResourceCounter();
         }
 

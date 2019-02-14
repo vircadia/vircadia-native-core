@@ -322,7 +322,7 @@ private:
 void GeometryDefinitionResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
     _mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
-    _textureBaseUrl = resolveTextureBaseUrl(_url, geometryExtra ? geometryExtra->textureBaseUrl : QUrl());
+    _textureBaseUrl = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
 
@@ -599,7 +599,7 @@ graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl
     }
 
     const auto url = getTextureUrl(baseUrl, hfmTexture);
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, hfmTexture.content, hfmTexture.maxNumPixels);
+    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, hfmTexture.content, hfmTexture.maxNumPixels, hfmTexture.sourceChannel);
     _textures[channel] = Texture { hfmTexture.name, texture };
 
     auto map = std::make_shared<graphics::TextureMap>();

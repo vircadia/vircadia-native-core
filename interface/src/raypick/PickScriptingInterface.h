@@ -23,6 +23,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} PICK_ENTITIES A filter flag. Include domain and avatar entities when intersecting. <em>Read-only.</em>.  Deprecated.
  * @property {number} PICK_OVERLAYS A filter flag. Include local entities when intersecting. <em>Read-only.</em>. Deprecated.

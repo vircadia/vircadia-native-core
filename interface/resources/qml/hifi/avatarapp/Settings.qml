@@ -21,7 +21,7 @@ Rectangle {
     HifiControlsUit.Keyboard {
         id: keyboard
         z: 1000
-        raised: parent.keyboardEnabled && parent.keyboardRaised
+        raised: parent.keyboardEnabled && parent.keyboardRaised && HMD.active
         numeric: parent.punctuationMode
         anchors {
             left: parent.left

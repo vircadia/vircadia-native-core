@@ -27,6 +27,7 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 public:
 

@@ -24,7 +24,7 @@ Windows.ScrollingWindow {
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
 
-        ProxyWebView {
+        BaseWebView {
             id: webview
             objectName: "WebView"
             anchors.fill: parent

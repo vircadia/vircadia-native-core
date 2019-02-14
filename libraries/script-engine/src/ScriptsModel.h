@@ -71,6 +71,7 @@ public:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ScriptsModel : public QAbstractItemModel {
     Q_OBJECT
