@@ -62,6 +62,7 @@ extern "C" {
         initOculusPlatform(env, obj);
     }
 QAndroidJniObject __interfaceActivity;
+
     JNIEXPORT void JNICALL
     Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnCreate(JNIEnv *env, jobject obj) {
         __android_log_print(ANDROID_LOG_INFO, "QQQ", __FUNCTION__);
@@ -84,10 +85,6 @@ QAndroidJniObject __interfaceActivity;
 JNIEXPORT void Java_io_highfidelity_oculus_OculusMobileActivity_questOnAppAfterLoad(JNIEnv* env, jobject obj) {
     AndroidHelper::instance().moveToThread(qApp->thread());
 }
-
-    JNIEXPORT void JNICALL
-    Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnDestroy(JNIEnv *env, jobject obj) {
-    }
 
     JNIEXPORT void JNICALL
     Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnPause(JNIEnv *env, jobject obj) {

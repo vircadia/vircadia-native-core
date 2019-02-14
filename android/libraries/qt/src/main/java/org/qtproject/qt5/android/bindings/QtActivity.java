@@ -364,7 +364,10 @@ public class QtActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        QtApplication.invokeDelegate();
+
+        QtNative.terminateQt();
+        QtNative.setActivity(null,null);
+        System.exit(0);
     }
     //---------------------------------------------------------------------------
 
@@ -506,7 +509,9 @@ public class QtActivity extends Activity {
         super.onPause();
         // GC: this trick allow us to show a splash activity until Qt app finishes
         // loading
-        QtApplication.invokeDelegate();
+
+
+//        QtApplication.invokeDelegate();
     }
     //---------------------------------------------------------------------------
 

@@ -92,7 +92,9 @@ android {
             variant.mergeResources.dependsOn(task)
             if (Os.isFamily(Os.FAMILY_UNIX)) {
                 // FIXME
+
                 def uploadDumpSymsTask = rootProject.getTasksByName("uploadBreakpadDumpSyms${variant.name.capitalize()}", false).first()
+
                 def runDumpSymsTask = rootProject.getTasksByName("runBreakpadDumpSyms${variant.name.capitalize()}", false).first()
                 def renameHifiACTask = rootProject.getTasksByName("renameHifiACTask${variant.name.capitalize()}", false).first()
                 runDumpSymsTask.dependsOn(task)
