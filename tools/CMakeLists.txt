@@ -19,8 +19,8 @@ function(check_test name)
 endfunction()
 
 if (BUILD_TOOLS)
-    # Allow different tools for production builds
-    if (RELEASE_TYPE STREQUAL "PRODUCTION")
+    # Allow different tools for stable builds
+    if (STABLE_BUILD)
         set(ALL_TOOLS 
             udt-test 
             vhacd-util
