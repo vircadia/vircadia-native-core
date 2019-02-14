@@ -37,8 +37,6 @@
 #include "EntityDynamicInterface.h"
 #include "GrabPropertyGroup.h"
 
-#include "graphics/Material.h"
-
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -542,10 +540,6 @@ public:
     virtual void preDelete();
     virtual void postParentFixup() {}
 
-    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
-    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
-    std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
-
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
@@ -749,10 +743,6 @@ protected:
     GrabPropertyGroup _grabProperties;
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
-
-private:
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
 
 };
 

@@ -13,6 +13,9 @@
 
 #include <MaterialEntityItem.h>
 
+#include <model-networking/ModelCache.h>
+#include <model-networking/MaterialCache.h>
+
 class NetworkMaterial;
 
 namespace render { namespace entities { 
@@ -22,22 +25,45 @@ class MaterialEntityRenderer : public TypedEntityRenderer<MaterialEntityItem> {
     using Pointer = std::shared_ptr<MaterialEntityRenderer>;
 public:
     MaterialEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
+    ~MaterialEntityRenderer() { deleteMaterial(); }
 
 private:
+    virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
-    virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
+    virtual void doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
 
     ItemKey getKey() override;
     ShapeKey getShapeKey() override;
 
+    QString _materialURL;
+    QString _materialData;
+    QString _parentMaterialName;
+    quint16 _priority;
     QUuid _parentID;
+
+    MaterialMappingMode _materialMappingMode;
+    bool _materialRepeat;
     glm::vec2 _materialMappingPos;
     glm::vec2 _materialMappingScale;
     float _materialMappingRot;
-    bool _texturesLoaded { false };
+    Transform _transform;
+    glm::vec3 _dimensions;
 
-    std::shared_ptr<NetworkMaterial> _drawMaterial;
+    bool _texturesLoaded { false };
+    bool _retryApply { false };
+
+    std::shared_ptr<NetworkMaterial> getMaterial() const;
+    void setMaterialURL(const QString& materialURLString, bool materialDataChanged = false);
+    void setCurrentMaterialName(const std::string& currentMaterialName);
+
+    void applyMaterial();
+    void deleteMaterial();
+
+    NetworkMaterialResourcePointer _networkMaterial;
+    NetworkMaterialResource::ParsedMaterials _parsedMaterials;
+    std::string _currentMaterialName;
+
 };
 
 } } 
