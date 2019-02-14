@@ -130,20 +130,20 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     }
 
     // Just resolve the msaa
-/*    const auto resolveInputs =
+    const auto resolveInputs =
         ResolveFramebuffer::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs); */
-    auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
+    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+    //auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
 
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
-    task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+    //const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+    //task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Layered Overlays
     // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD");
+    task.addJob<CompositeHUD>("HUD", resolvedFramebuffer);
 
     // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!

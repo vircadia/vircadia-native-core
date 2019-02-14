@@ -77,10 +77,12 @@ protected:
 
 class CompositeHUD {
 public:
-    using JobModel = render::Job::Model<CompositeHUD>;
+    // IF specified the input Framebuffer is actively set by the batch of this job before calling the HUDOperator.
+    // If not, the current Framebuffer is left unchanged.
+    //using Inputs = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelI<CompositeHUD, gpu::FramebufferPointer>;
 
-    CompositeHUD() {}
-    void run(const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs);
 };
 
 class Blit {

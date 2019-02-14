@@ -101,7 +101,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     }
 }
 
-void CompositeHUD::run(const RenderContextPointer& renderContext) {
+void CompositeHUD::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
@@ -119,6 +119,9 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
         renderContext->args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat, true);
+        if (inputs) {
+            batch.setFramebuffer(inputs);
+        }
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
