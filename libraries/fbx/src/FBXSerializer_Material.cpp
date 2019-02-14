@@ -76,13 +76,12 @@ HFMTexture FBXSerializer::getTexture(const QString& textureID, const QString& ma
 }
 
 void FBXSerializer::consolidateHFMMaterials(const QVariantHash& mapping) {
-
-    QString materialMapString = mapping.value("materialMap").toString();
-    QJsonDocument materialMapDocument = QJsonDocument::fromJson(materialMapString.toUtf8());
-    QJsonObject materialMap = materialMapDocument.object();
-    if (!materialMapString.isEmpty()) {
-        if (materialMapDocument.isEmpty() || materialMap.isEmpty()) {
-            qCDebug(modelformat) << "fbx Material Map found but did not produce valid JSON:" << materialMapString;
+    QJsonObject materialMap;
+    if (mapping.contains("materialMap")) {
+        QByteArray materialMapValue = mapping.value("materialMap").toByteArray();
+        materialMap = QJsonDocument::fromJson(materialMapValue).object();
+        if (materialMap.isEmpty()) {
+            qCDebug(modelformat) << "fbx Material Map found but did not produce valid JSON:" << materialMapValue;
         }
     }
     for (QHash<QString, HFMMaterial>::iterator it = _hfmMaterials.begin(); it != _hfmMaterials.end(); it++) {

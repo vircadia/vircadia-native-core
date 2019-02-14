@@ -43,6 +43,7 @@ class AccountServicesScriptingInterface : public QObject {
      * 
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @namespace AccountServices
      * @property {string} username - The user name if the user is logged in, otherwise <code>"Unknown user"</code>.

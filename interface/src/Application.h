@@ -251,7 +251,9 @@ public:
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
+#ifndef Q_OS_ANDROID
     FileLogger* getLogger() const { return _logger; }
+#endif
 
     float getRenderResolutionScale() const;
 
@@ -599,7 +601,9 @@ private:
 
     bool _aboutToQuit { false };
 
+#ifndef Q_OS_ANDROID
     FileLogger* _logger { nullptr };
+#endif
 
     bool _previousSessionCrashed;
 

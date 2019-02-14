@@ -720,6 +720,8 @@ void OpenGLDisplayPlugin::present() {
         }
 
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
+    } else {
+        internalPresent();
     }
     _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }

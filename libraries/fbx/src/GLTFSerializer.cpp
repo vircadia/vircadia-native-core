@@ -32,6 +32,7 @@
 #include <NetworkAccessManager.h>
 #include <ResourceManager.h>
 #include <PathUtils.h>
+#include <image/ColorChannel.h>
 
 #include "FBXSerializer.h"
 
@@ -122,6 +123,31 @@ bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString&
     }
     defined.insert(fieldname, _defined);
     return _defined;
+}
+
+QByteArray GLTFSerializer::setGLBChunks(const QByteArray& data) {
+    int byte = 4; 
+    int jsonStart = data.indexOf("JSON", Qt::CaseSensitive);
+    int binStart = data.indexOf("BIN", Qt::CaseSensitive);
+    int jsonLength, binLength;
+    QByteArray jsonLengthChunk, binLengthChunk;
+
+    jsonLengthChunk = data.mid(jsonStart - byte, byte);
+    QDataStream tempJsonLen(jsonLengthChunk);
+    tempJsonLen.setByteOrder(QDataStream::LittleEndian);
+    tempJsonLen >> jsonLength;
+    QByteArray jsonChunk = data.mid(jsonStart + byte, jsonLength);
+
+    if (binStart != -1) {
+        binLengthChunk = data.mid(binStart - byte, byte);
+
+        QDataStream tempBinLen(binLengthChunk);
+        tempBinLen.setByteOrder(QDataStream::LittleEndian);
+        tempBinLen >> binLength;
+
+        _glbBinary = data.mid(binStart + byte, binLength);
+    }
+    return jsonChunk;
 }
 
 int GLTFSerializer::getMeshPrimitiveRenderingMode(const QString& type)
@@ -309,6 +335,14 @@ bool GLTFSerializer::addBuffer(const QJsonObject& object) {
     GLTFBuffer buffer;
    
     getIntVal(object, "byteLength", buffer.byteLength, buffer.defined);
+
+    if (_url.toString().endsWith("glb")) {
+        if (!_glbBinary.isEmpty()) {
+            buffer.blob = _glbBinary;
+        } else {
+            return false;
+        }
+    }
     if (getStringVal(object, "uri", buffer.uri, buffer.defined)) {
         if (!readBinary(buffer.uri, buffer.blob)) {
             return false;
@@ -535,9 +569,16 @@ bool GLTFSerializer::addTexture(const QJsonObject& object) {
 
 bool GLTFSerializer::parseGLTF(const QByteArray& data) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    
-    QJsonDocument d = QJsonDocument::fromJson(data);
+
+    QByteArray jsonChunk = data;
+
+    if (_url.toString().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
+        jsonChunk = setGLBChunks(data);
+    }    
+   
+    QJsonDocument d = QJsonDocument::fromJson(jsonChunk);
     QJsonObject jsFile = d.object();
+
     bool success = setAsset(jsFile);
     if (success) {
         QJsonArray accessors;
@@ -924,6 +965,10 @@ MediaType GLTFSerializer::getMediaType() const {
     MediaType mediaType("gltf");
     mediaType.extensions.push_back("gltf");
     mediaType.webMediaTypes.push_back("model/gltf+json");
+
+    mediaType.extensions.push_back("glb");
+    mediaType.webMediaTypes.push_back("model/gltf-binary");
+
     return mediaType;
 }
 
@@ -932,9 +977,9 @@ std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
 }
 
 HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
-    
-    _url = url;
 
+    _url = url;
+    
     // Normalize url for local files
     QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
@@ -1032,7 +1077,7 @@ QNetworkReply* GLTFSerializer::request(QUrl& url, bool isTest) {
 HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
-    
+  
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
 
@@ -1041,6 +1086,17 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
         qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
+        
+        if (_url.toString().endsWith("glb") && !_glbBinary.isEmpty()) {
+            int bufferView = _file.images[texture.source].bufferView;
+       
+            GLTFBufferView& imagesBufferview = _file.bufferviews[bufferView];
+            int offset = imagesBufferview.byteOffset;
+            int length = imagesBufferview.byteLength;
+
+            fbxtex.content = _glbBinary.mid(offset, length);
+            fbxtex.filename = textureUrl.toEncoded().append(texture.source);
+        }
 
         if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
             fbxtex.content = requestEmbeddedData(url); 
@@ -1091,8 +1147,10 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& mat
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
             fbxmat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.roughnessTexture.sourceChannel = image::ColorChannel::GREEN;
             fbxmat.useRoughnessMap = true;
             fbxmat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.metallicTexture.sourceChannel = image::ColorChannel::BLUE;
             fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {

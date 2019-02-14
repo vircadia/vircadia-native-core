@@ -23,7 +23,8 @@
  *
  * @hifi-interface
  * @hifi-client-entity
- * 
+ * @hifi-avatar
+ *
  * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
  * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
  * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>

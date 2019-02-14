@@ -171,6 +171,8 @@ private:
     void handleHeadPose(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
                         const ovrRigidBodyPosef& headPose);
 
+    void reconnectTouchControllers(ovrMobile* session);
+
     // perform an action when the TouchDevice mutex is acquired.
     using Locker = std::unique_lock<std::recursive_mutex>;
 
@@ -637,7 +639,6 @@ controller::Input::NamedVector OculusMobileInputDevice::getAvailableInputs() con
         makePair(RIGHT_THUMB_UP, "RightThumbUp"),
         makePair(LEFT_INDEX_POINT, "LeftIndexPoint"),
         makePair(RIGHT_INDEX_POINT, "RightIndexPoint"),
-
         makePair(BACK, "LeftApplicationMenu"),
         makePair(START, "RightApplicationMenu"),
     };
@@ -665,8 +666,40 @@ OculusMobileInputDevice::OculusMobileInputDevice(ovrMobile* session, const std::
 
 void OculusMobileInputDevice::updateHands(ovrMobile* session) {
     _headTracking = vrapi_GetPredictedTracking2(session, 0.0);
+
+    bool touchControllerNotConnected = false;
     for (auto& hand : _hands) {
         hand.update(session);
+
+        if (hand.stateResult < 0 || hand.trackingResult < 0) {
+            touchControllerNotConnected = true;
+        }
+    }
+
+    if (touchControllerNotConnected) {
+        reconnectTouchControllers(session);
+    }
+}
+
+void OculusMobileInputDevice::reconnectTouchControllers(ovrMobile* session) {
+    uint32_t deviceIndex { 0 };
+    ovrInputCapabilityHeader capsHeader;
+    while (vrapi_EnumerateInputDevices(session, deviceIndex, &capsHeader) >= 0) {
+        if (capsHeader.Type == ovrControllerType_TrackedRemote) {
+            ovrInputTrackedRemoteCapabilities caps;
+            caps.Header = capsHeader;
+            vrapi_GetInputDeviceCapabilities(session, &caps.Header);
+
+            if (caps.ControllerCapabilities & ovrControllerCaps_LeftHand || caps.ControllerCapabilities & ovrControllerCaps_RightHand) {
+                size_t handIndex = caps.ControllerCapabilities & ovrControllerCaps_LeftHand ? 0 : 1;
+                HandData& handData = _hands[handIndex];
+                handData.state.Header.ControllerType = ovrControllerType_TrackedRemote;
+                handData.valid = true;
+                handData.caps = caps;
+                handData.update(session);
+            }
+        }
+        ++deviceIndex;
     }
 }
 

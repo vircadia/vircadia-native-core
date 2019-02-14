@@ -62,6 +62,8 @@ public:
                     if (gltexture) {
                         if (gltexture->_target == GL_TEXTURE_2D) {
                             glNamedFramebufferTexture(_id, colorAttachments[unit], gltexture->_texture, 0);
+                        } else if (gltexture->_target == GL_TEXTURE_2D_MULTISAMPLE) {
+                            glNamedFramebufferTexture(_id, colorAttachments[unit], gltexture->_texture, 0);
                         } else {
                             glNamedFramebufferTextureLayer(_id, colorAttachments[unit], gltexture->_texture, 0, b._subresource);
                         }
@@ -92,6 +94,9 @@ public:
 
             if (gltexture) {
                 if (gltexture->_target == GL_TEXTURE_2D) {
+                    glNamedFramebufferTexture(_id, attachement, gltexture->_texture, 0);
+                }
+                else if (gltexture->_target == GL_TEXTURE_2D_MULTISAMPLE) {
                     glNamedFramebufferTexture(_id, attachement, gltexture->_texture, 0);
                 } else {
                     glNamedFramebufferTextureLayer(_id, attachement, gltexture->_texture, 0,
