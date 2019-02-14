@@ -150,6 +150,17 @@ unsigned int PointerScriptingInterface::createStylus(const QVariant& properties)
 unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& properties) const {
     QVariantMap propertyMap = properties.toMap();
 
+#if defined (Q_OS_ANDROID)
+    QString jointName { "" };
+    if (propertyMap["joint"].isValid()) {
+        QString jointName = propertyMap["joint"].toString();
+        QString mouseJoint { "Mouse" };
+        if (jointName == mouseJoint) {
+            return PointerEvent::INVALID_POINTER_ID;
+        }
+    }
+#endif
+
     bool faceAvatar = false;
     if (propertyMap["faceAvatar"].isValid()) {
         faceAvatar = propertyMap["faceAvatar"].toBool();
