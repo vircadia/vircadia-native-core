@@ -131,11 +131,13 @@ float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm
         initial_valuesZ = zWeightBottom * glm::max(zStart - (armToHand[2] / defaultArmLength), 0.0f) * fabs(armToHand[1] / defaultArmLength);
     }
 
+    //1.0f + armToHand[1]/defaultArmLength
+
     float initial_valuesX;
     if (left) {
         initial_valuesX = weights[0] * glm::max(-1.0f * (armToHand[0] / defaultArmLength) + xStart, 0.0f);
     } else {
-        initial_valuesX = weights[0] * ((armToHand[0] / defaultArmLength) + xStart);
+        initial_valuesX = weights[0] * (((armToHand[0] / defaultArmLength) + xStart) - (0.3f) * ((1.0f + (armToHand[1] / defaultArmLength))/2.0f));
     }
 
     float theta = initial_valuesX + initial_valuesY + initial_valuesZ;
@@ -264,6 +266,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             //swingTwistDecomposition(twistUlnarSwing, Vectors::UNIT_Z, twist, ulnarDeviation);
             swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_Z, twist, ulnarDeviation);
 
+            ulnarDeviation = glm::normalize(ulnarDeviation);
             if (ulnarDeviation.w < 0.0f) {
                 ulnarDeviation.x *= -1.0f;
                 ulnarDeviation.y *= -1.0f;
@@ -280,7 +283,9 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             glm::quat flex;
             glm::quat twistUlnarSwing;
 
-            swingTwistDecomposition(twist, Vectors::UNIT_X, twistUlnarSwing, flex);
+            swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_X, twistUlnarSwing, flex);
+
+            flex = glm::normalize(flex);
             if (flex.w < 0.0f) {
                 flex.x *= -1.0f;
                 flex.y *= -1.0f;
@@ -298,6 +303,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             glm::quat trueTwist;
             glm::quat nonTwist;
             swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_Y, nonTwist, trueTwist);
+            trueTwist = glm::normalize(trueTwist);
             if (trueTwist.w < 0.0f) {
                 trueTwist.x *= -1.0f;
                 trueTwist.y *= -1.0f;
@@ -320,6 +326,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
            // glm::vec3 eulerVersion = glm::eulerAngles(relativeHandRotation);
             if (!isLeft) {
+                qCDebug(animation) << "flex ave: " << (_flexThetaRunningAverage / PI) * 180.0f << "    twist ave: " << (_twistThetaRunningAverage / PI) * 180.0f << "   ulnar deviation ave: " << (_ulnarRadialThetaRunningAverage / PI) * 180.0f;
                 qCDebug(animation) << "flex: " << (flexTheta / PI) * 180.0f << "    twist: " << (trueTwistTheta / PI) * 180.0f << "   ulnar deviation: " << (ulnarDeviationTheta / PI) * 180.0f;
                 //qCDebug(animation) << "trueTwist: " << (trueTwistTheta / PI) * 180.0f;// << "   old twist: " << (twistTheta / PI) * 180.0f;
                 //qCDebug(animation) << "ulnarAxis " << flexUlnarAxis;
@@ -350,48 +357,59 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             
             const float POWER = 2.0f;
             const float FLEX_BOUNDARY = PI / 4.0f;
-            const float EXTEND_BOUNDARY = -PI / 6.0f;
+            const float EXTEND_BOUNDARY = -PI / 5.0f;
             float flexCorrection = 0.0f;
             if (isLeft) {
                 if (_flexThetaRunningAverage > FLEX_BOUNDARY) {
-                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
-                    if (flexCorrection > 30.0f) {
-                        flexCorrection = 30.0f;
-                    }
+                    flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 90.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
                 } else if (_flexThetaRunningAverage < EXTEND_BOUNDARY) {
-                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
+                    flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 90.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
+                }
+                if (fabs(flexCorrection) > 30.0f) {
+                    flexCorrection = glm::sign(flexCorrection) * 30.0f;
                 }
                 fred += flexCorrection;
             } else {
                 if (_flexThetaRunningAverage > FLEX_BOUNDARY) {
                     flexCorrection = ((_flexThetaRunningAverage - FLEX_BOUNDARY) / PI) * 180.0f;   // glm::sign(flexTheta) * pow((flexTheta - FLEX_BOUNDARY) / PI, POWER) * 180.0f;
-                    if (flexCorrection > 30.0f) {
-                        flexCorrection = 30.0f;
-                    }
                 } else if (_flexThetaRunningAverage < EXTEND_BOUNDARY) {
                     flexCorrection = ((_flexThetaRunningAverage - EXTEND_BOUNDARY) / PI) * 180.0f; // glm::sign(flexTheta) * pow((flexTheta - EXTEND_BOUNDARY) / PI, POWER) * 180.0f;
+                }
+                if (fabs(flexCorrection) > 30.0f) {
+                    flexCorrection = glm::sign(flexCorrection) * 30.0f;
                 }
                 fred -= flexCorrection;
             }
 
             const float TWIST_ULNAR_DEADZONE = 0.0f;
-            const float ULNAR_BOUNDARY = PI / 12.0f;
-            if (fabsf(_ulnarRadialThetaRunningAverage) > ULNAR_BOUNDARY) {
+            const float ULNAR_BOUNDARY_MINUS = -PI / 12.0f;
+            const float ULNAR_BOUNDARY_PLUS = PI / 24.0f;
+            float ulnarDiff = 0.0f;
+            float ulnarCorrection = 0.0f;
+            if (_ulnarRadialThetaRunningAverage > ULNAR_BOUNDARY_PLUS) {
+                ulnarDiff = _ulnarRadialThetaRunningAverage - ULNAR_BOUNDARY_PLUS;
+            } else if (_ulnarRadialThetaRunningAverage < ULNAR_BOUNDARY_MINUS) {
+                ulnarDiff = _ulnarRadialThetaRunningAverage - ULNAR_BOUNDARY_MINUS;
+            }
+            if(fabs(ulnarDiff) > 0.0f){
                 if (fabs(_twistThetaRunningAverage) > TWIST_ULNAR_DEADZONE) {
-                    float twistCoefficient = pow((fabs(_twistThetaRunningAverage) - TWIST_ULNAR_DEADZONE) / (PI / 20.0f), POWER);
-                    float ulnarCorrection = 0.0f;
+                    float twistCoefficient = (fabs(_twistThetaRunningAverage) / (PI / 20.0f));
+                    if (twistCoefficient > 1.0f) {
+                        twistCoefficient = 1.0f;
+                    }
+                    
                     if (isLeft) {
                         if (trueTwistTheta < 0.0f) {
-                            ulnarCorrection -= glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                            ulnarCorrection -= glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
                         } else {
-                            ulnarCorrection += glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                            ulnarCorrection += glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
                         }
                     } else {
                         // right hand
                         if (trueTwistTheta > 0.0f) {
-                            ulnarCorrection -= glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                            ulnarCorrection -= glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
                         } else {
-                            ulnarCorrection += glm::sign(_ulnarRadialThetaRunningAverage) * pow((fabsf(_ulnarRadialThetaRunningAverage) - ULNAR_BOUNDARY) / PI, POWER) * 80.0f * twistCoefficient;
+                            ulnarCorrection += glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
                         }
 
                     }
@@ -403,23 +421,25 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             }
 
             // remember direction of travel.
-            const float TWIST_DEADZONE = (4.0f * PI) / 9.0f;
+            const float TWIST_DEADZONE = PI / 2.0f;
             //if (!isLeft) {
             float twistCorrection = 0.0f;
             if (_twistThetaRunningAverage < -TWIST_DEADZONE) {
-                twistCorrection = glm::sign(_twistThetaRunningAverage) * pow((fabsf(_twistThetaRunningAverage) - TWIST_DEADZONE) / PI, POWER) * 80.0f;
+                twistCorrection = glm::sign(_twistThetaRunningAverage) * ((fabsf(_twistThetaRunningAverage) - TWIST_DEADZONE) / PI) * 60.0f;
             } else {
                 if (_twistThetaRunningAverage > TWIST_DEADZONE) {
-                    twistCorrection = glm::sign(_twistThetaRunningAverage) * pow((fabsf(_twistThetaRunningAverage) - TWIST_DEADZONE) / PI, POWER) * 80.0f;
+                    twistCorrection = glm::sign(_twistThetaRunningAverage) * ((fabsf(_twistThetaRunningAverage) - TWIST_DEADZONE) / PI) * 60.0f;
                 }
             }
-            if (fabsf(twistCorrection) > 45.0f) {
-                fred += glm::sign(twistCorrection) * 45.0f;
+            if (fabsf(twistCorrection) > 30.0f) {
+                fred += glm::sign(twistCorrection) * 30.0f;
             } else {
                 fred += twistCorrection;
             }
 
             _lastTheta = 0.5f * _lastTheta + 0.5f * fred;
+
+            qCDebug(animation) << "twist correction: " << twistCorrection << "   flex correction: " << flexCorrection << " ulnar correction " << ulnarCorrection;
 
             //}
            
@@ -435,14 +455,16 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
             }
             */
-            /*
-            if (fred < 70.0f) {
-                fred = 70.0f;
+            
+            if (fabsf(_lastTheta) < 50.0f) {
+                if (fabsf(_lastTheta) < 50.0f) {
+                    _lastTheta = glm::sign(_lastTheta) * 50.0f;
+                }
             }
-            if (fred > 175.0f) {
-                fred = 175.0f;
+            if (fabsf(_lastTheta) > 175.0f) {
+                _lastTheta = glm::sign(_lastTheta) * 175.0f;
             }
-            */
+            
             
             theta = ((180.0f - _lastTheta) / 180.0f)*PI;
             
