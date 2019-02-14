@@ -310,16 +310,12 @@ void MaterialEntityItem::removeMaterial() {
         return;
     }
 
-    // Our parent could be an entity, an avatar, or an overlay
+    // Our parent could be an entity or an avatar
     if (EntityTree::removeMaterialFromEntity(parentID, material, getParentMaterialName().toStdString())) {
         return;
     }
 
     if (EntityTree::removeMaterialFromAvatar(parentID, material, getParentMaterialName().toStdString())) {
-        return;
-    }
-
-    if (EntityTree::removeMaterialFromOverlay(parentID, material, getParentMaterialName().toStdString())) {
         return;
     }
 
@@ -349,16 +345,12 @@ void MaterialEntityItem::applyMaterial() {
 
     graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, getPriority());
 
-    // Our parent could be an entity, an avatar, or an overlay
+    // Our parent could be an entity or an avatar
     if (EntityTree::addMaterialToEntity(parentID, materialLayer, getParentMaterialName().toStdString())) {
         return;
     }
 
     if (EntityTree::addMaterialToAvatar(parentID, materialLayer, getParentMaterialName().toStdString())) {
-        return;
-    }
-
-    if (EntityTree::addMaterialToOverlay(parentID, materialLayer, getParentMaterialName().toStdString())) {
         return;
     }
 

@@ -72,8 +72,8 @@ void PointerEvent::setButton(Button button) {
  *     <code>"Move"</code>.
  * @property {number} id - Integer number used to identify the pointer: <code>0</code> = hardware mouse, <code>1</code> = left
  *     controller, <code>2</code> = right controller.
- * @property {Vec2} pos2D - The 2D position of the event on the intersected overlay or entity XY plane, where applicable.
- * @property {Vec3} pos3D - The 3D position of the event on the intersected overlay or entity, where applicable.
+ * @property {Vec2} pos2D - The 2D position of the event on the intersected object XY plane, where applicable.
+ * @property {Vec3} pos3D - The 3D position of the event on the intersected object, where applicable.
  * @property {Vec3} normal - The surface normal at the intersection point.
  * @property {Vec3} direction - The direction of the intersection ray.
  * @property {string} button - The name of the button pressed: <code>None</code>, <code>Primary</code>, <code>Secondary</code>,

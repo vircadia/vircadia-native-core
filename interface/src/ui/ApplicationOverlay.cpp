@@ -134,9 +134,7 @@ void ApplicationOverlay::renderOverlays(RenderArgs* renderArgs) {
     batch.resetViewTransform();
 
     // Render all of the Script based "HUD" aka 2D overlays.
-    // note: we call them HUD, as opposed to 2D, only because there are some cases of 3D HUD overlays, like the
-    // cameral controls for the edit.js
-    qApp->getOverlays().renderHUD(renderArgs);
+    qApp->getOverlays().render(renderArgs);
 }
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderArgs) {

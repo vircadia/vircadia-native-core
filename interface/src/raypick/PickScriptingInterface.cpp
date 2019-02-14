@@ -26,7 +26,6 @@
 #include "avatar/AvatarManager.h"
 #include "NestableTransformNode.h"
 #include "avatars-renderer/AvatarTransformNode.h"
-#include "ui/overlays/OverlayTransformNode.h"
 #include "EntityTransformNode.h"
 
 #include <ScriptEngine.h>
@@ -61,7 +60,7 @@ PickFilter getPickFilter(unsigned int filter) {
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
  * @property {number} [filter=0] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
- * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
+ * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or a pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
  * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
  * @property {Vec3} [posOffset=Vec3.ZERO] Only for Joint Ray Picks.  A local joint position offset, in meters.  x = upward, y = forward, z = lateral
@@ -161,7 +160,7 @@ unsigned int PickScriptingInterface::createStylusPick(const QVariant& properties
  * @property {boolean} [enabled=false] If this Pick should start enabled or not.  Disabled Picks do not updated their pick results.
  * @property {number} [filter=0] The filter for this Pick to use, constructed using filter flags combined using bitwise OR.
  * @property {number} [maxDistance=0.0] The max distance at which this Pick will intersect.  0.0 = no max.  < 0.0 is invalid.
- * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
+ * @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or a pick.
  * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
  * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
  * @property {Vec3} [posOffset=Vec3.ZERO] Only for Joint Parabola Picks.  A local joint position offset, in meters.  x = upward, y = forward, z = lateral
@@ -264,7 +263,7 @@ unsigned int PickScriptingInterface::createParabolaPick(const QVariant& properti
 * The depth is measured in world space, but will scale with the parent if defined.
 * @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
 * will be considered colliding with the pick.
-* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, an overlay, or a pick.
+* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or a pick.
 * @property {number} [parentJointIndex=0] - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
 * @property {boolean} [scaleWithParent=true] If true, the collision pick's dimensions and threshold will adjust according to the scale of the parent.
@@ -415,8 +414,6 @@ void PickScriptingInterface::setParentTransform(std::shared_ptr<PickQuery> pick,
             NestableType nestableType = sharedNestablePointer->getNestableType();
             if (nestableType == NestableType::Avatar) {
                 pick->parentTransform = std::make_shared<AvatarTransformNode>(std::static_pointer_cast<Avatar>(sharedNestablePointer), parentJointIndex);
-            } else if (nestableType == NestableType::Overlay) {
-                pick->parentTransform = std::make_shared<OverlayTransformNode>(std::static_pointer_cast<Base3DOverlay>(sharedNestablePointer), parentJointIndex);
             } else if (nestableType == NestableType::Entity) {
                 pick->parentTransform = std::make_shared<EntityTransformNode>(std::static_pointer_cast<EntityItem>(sharedNestablePointer), parentJointIndex);
             } else {
