@@ -554,7 +554,7 @@ void TestRunnerDesktop::evaluateResults() {
     nitpick->startTestsEvaluation(false, true, _snapshotFolder, _branch, _user);
 }
 
-void TestRunnerDesktop::automaticTestRunEvaluationComplete(QString zippedFolder, int numberOfFailures) {
+void TestRunnerDesktop::automaticTestRunEvaluationComplete(const QString& zippedFolder, int numberOfFailures) {
     addBuildNumberToResults(zippedFolder);
     restoreHighFidelityAppDataFolder();
 
@@ -580,14 +580,19 @@ void TestRunnerDesktop::automaticTestRunEvaluationComplete(QString zippedFolder,
     _runNow->setEnabled(true);
 }
 
-void TestRunnerDesktop::addBuildNumberToResults(QString zippedFolderName) {
-    QString augmentedFilename;
+void TestRunnerDesktop::addBuildNumberToResults(const QString& zippedFolderName) {
+    QString augmentedFilename { zippedFolderName };
     if (!_runLatest->isChecked()) {
-        augmentedFilename = zippedFolderName.replace("local", getPRNumberFromURL(_url->text()));
+        augmentedFilename.replace("local", getPRNumberFromURL(_url->text()));
     } else {
-        augmentedFilename = zippedFolderName.replace("local", _buildInformation.build);
+        augmentedFilename.replace("local", _buildInformation.build);
     }
-    QFile::rename(zippedFolderName, augmentedFilename);
+
+    if (!QFile::rename(zippedFolderName, augmentedFilename)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Could not rename '" + zippedFolderName + "' to '" + augmentedFilename);
+        exit(-1);
+    
+    }
 }
 
 void TestRunnerDesktop::restoreHighFidelityAppDataFolder() {

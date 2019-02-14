@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.text.TextUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,9 +28,14 @@ public class PermissionChecker extends Activity {
     private static final boolean CHOOSE_AVATAR_ON_STARTUP = false;
     private static final String TAG = "Interface";
 
+    private static final String EXTRA_ARGS = "args";
+    private String mArgs;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mArgs =(getIntent().getStringExtra(EXTRA_ARGS));
+
         Intent myIntent = new Intent(this, BreakpadUploaderService.class);
         startService(myIntent);
         if (CHOOSE_AVATAR_ON_STARTUP) {
@@ -76,6 +82,11 @@ public class PermissionChecker extends Activity {
 
     private void launchActivityWithPermissions(){
         Intent i = new Intent(this, InterfaceActivity.class);
+        
+        if (!TextUtils.isEmpty(mArgs)) {
+            i.putExtra(EXTRA_ARGS, mArgs);
+        }
+
         startActivity(i);
         finish();
     }
