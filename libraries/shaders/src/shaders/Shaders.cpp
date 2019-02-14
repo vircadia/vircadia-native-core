@@ -35,7 +35,7 @@ namespace shader {
 static const Dialect DEFAULT_DIALECT = Dialect::glsl310es;
 
 const std::vector<Dialect>& allDialects() {
-    static const std::vector<Dialect> ALL_DIALECTS{ Dialect::glsl310es };
+    static const std::vector<Dialect> ALL_DIALECTS{ { Dialect::glsl310es } };
     return ALL_DIALECTS;
 }
     

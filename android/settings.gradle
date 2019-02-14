@@ -12,8 +12,8 @@ project(':qt').projectDir = new File(settingsDir, 'libraries/qt')
 // Applications
 //
 
-//include ':interface'
-//project(':interface').projectDir = new File(settingsDir, 'apps/interface')
+include ':interface'
+project(':interface').projectDir = new File(settingsDir, 'apps/interface')
 
 include ':questInterface'
 project(':questInterface').projectDir = new File(settingsDir, 'apps/questInterface')
@@ -22,8 +22,8 @@ project(':questInterface').projectDir = new File(settingsDir, 'apps/questInterfa
 // Test projects
 //
 
-//include ':framePlayer'
-//project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
+include ':framePlayer'
+project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
 
-//include ':questFramePlayer'
-//project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')
+include ':questFramePlayer'
+project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')
