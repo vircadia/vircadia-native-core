@@ -900,16 +900,16 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                             tangents,
                             accessor.type, 
                             accessor.componentType);
-                    if (!success) {
-                        qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
-                        continue;
-                    }
-                    int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
-                    for (int n = 0; n < tangents.size() - 3; n += stride) {
-                        float tanW = stride == 4 ? tangents[n + 3] : 1; 
-                        mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tangents[n + 2]));
-                    }
-                } else if (key == "TEXCOORD_0") {
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < tangents.size() - 3; n += stride) {
+                            float tanW = stride == 4 ? tangents[n + 3] : 1; 
+                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tangents[n + 2]));
+                        }
+                    } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
                         success = addArrayOfType(buffer.blob, 
                             bufferview.byteOffset + accBoffset, 
