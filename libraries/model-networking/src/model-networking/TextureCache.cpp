@@ -336,6 +336,7 @@ int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkText
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
     Resource(url),
+    Texture(),
     _maxNumPixels(100)
 {
     if (resourceTexture) {
@@ -346,6 +347,7 @@ NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
 
 NetworkTexture::NetworkTexture(const NetworkTexture& other) :
     Resource(other),
+    Texture(other),
     _type(other._type),
     _sourceChannel(other._sourceChannel),
     _currentlyLoadingResourceType(other._currentlyLoadingResourceType),
@@ -373,7 +375,12 @@ void NetworkTexture::setExtra(void* extra) {
     _maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
     _sourceChannel = textureExtra ? textureExtra->sourceChannel : image::ColorChannel::NONE;
 
-    _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
+    if (_textureSource) {
+        _textureSource->setUrl(_url);
+        _textureSource->setType((int)_type);
+    } else {
+        _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
+    }
     _lowestRequestedMipLevel = 0;
 
     auto fileNameLowercase = _url.fileName().toLower();
