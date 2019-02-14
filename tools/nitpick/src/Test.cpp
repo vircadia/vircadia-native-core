@@ -766,18 +766,12 @@ void Test::createAllRecursiveScripts() {
 void Test::createAllRecursiveScripts(const QString& directory) {
     QDirIterator it(directory, QDirIterator::Subdirectories);
 
-    QStringList directories;
     while (it.hasNext()) {
         QString nextDirectory = it.next();
         if (isAValidDirectory(nextDirectory)) {
-            directories.push_front(nextDirectory);
+            createAllRecursiveScripts(nextDirectory);
+            createRecursiveScript(nextDirectory, false);
         }
-    }
-
-    for (int i = directories.length(); i > 0; --i) {
-        QString nextDirectory = directories[i];
-        createAllRecursiveScripts(nextDirectory);
-        createRecursiveScript(nextDirectory, false);
     }
 }
 
@@ -841,11 +835,16 @@ void Test::createRecursiveScript(const QString& directory, bool interactiveMode)
         << endl;
     textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl << endl;
 
-    textStream << "if (typeof nitpick === 'undefined') nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
-    textStream << "if (typeof testsRootPath === 'undefined') testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
-
-    textStream << "nitpick.enableRecursive();" << endl;
-    textStream << "nitpick.enableAuto();" << endl << endl;
+    // The 'depth' variable is used to signal when to start running the recursive scripts
+    textStream << "if (typeof depth === 'undefined') {" << endl; 
+    textStream << "   depth = 0;" << endl;
+    textStream << "   nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
+    textStream << "   testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
+    textStream << "   nitpick.enableRecursive();" << endl;
+    textStream << "   nitpick.enableAuto();" << endl;
+    textStream << "} else {" << endl;
+    textStream << "   depth++" << endl;
+    textStream << "}" << endl << endl;
 
     // Now include the test scripts
     for (int i = 0; i < directories.length(); ++i) {
@@ -853,8 +852,9 @@ void Test::createRecursiveScript(const QString& directory, bool interactiveMode)
     }
 
     textStream << endl;
-    textStream << "if (typeof runningRecursive === 'undefined') {" << endl; 
-    textStream << "   runningRecursive = true;" << endl;
+    textStream << "if (depth > 0) {" << endl;
+    textStream << "   depth--;" << endl;
+    textStream << "} else {" << endl;
     textStream << "   nitpick.runRecursive();" << endl;
     textStream << "}" << endl << endl;
 
