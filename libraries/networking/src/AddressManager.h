@@ -43,6 +43,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-assignment-client
  *
  * @property {Uuid} domainID - A UUID uniquely identifying the domain you're visiting. Is {@link Uuid|Uuid.NULL} if you're not

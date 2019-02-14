@@ -121,6 +121,7 @@ public:
 /// A texture map.
 class Texture {
 public:
+
     QString id;
     QString name;
     QByteArray filename;

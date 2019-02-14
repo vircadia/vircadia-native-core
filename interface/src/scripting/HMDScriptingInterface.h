@@ -31,6 +31,7 @@ class QScriptEngine;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>

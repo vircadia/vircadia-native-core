@@ -18,7 +18,7 @@ Nitpick has 5 functions, separated into separate tabs:
 ### Windows
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. Click the "add python to path" checkbox on the python installer  
-    1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+    1. After installation - add the path to python.exe to the Windows PATH environment variable.
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
     1.  Open a new command prompt and run  
         `aws configure`
@@ -31,7 +31,7 @@ Nitpick has 5 functions, separated into separate tabs:
 1.  (First time) Download adb (Android Debug Bridge) from *https://dl.google.com/android/repository/platform-tools-latest-windows.zip*
     1.  Copy the downloaded file to (for example) **C:\adb** and extract in place.  
         Verify you see *adb.exe* in **C:\adb\platform-tools\\**.
-    1.  Create an environment variable named ADB_PATH and set its value to the installation location (e.g. **C:\adb**)
+    1.  After installation - add the path to adb.exe to the Windows PATH environment variable (note that it is in *adb\platform-tools*).
 ### Mac
 1.  (first time) Install brew
     In a terminal:  

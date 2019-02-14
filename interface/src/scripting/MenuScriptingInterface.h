@@ -35,6 +35,7 @@ class MenuItemProperties;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 /**

@@ -22,6 +22,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class PointerScriptingInterface : public QObject, public Dependency {
