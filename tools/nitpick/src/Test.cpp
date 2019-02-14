@@ -766,12 +766,18 @@ void Test::createAllRecursiveScripts() {
 void Test::createAllRecursiveScripts(const QString& directory) {
     QDirIterator it(directory, QDirIterator::Subdirectories);
 
+    QStringList directories;
     while (it.hasNext()) {
         QString nextDirectory = it.next();
         if (isAValidDirectory(nextDirectory)) {
-            createAllRecursiveScripts(nextDirectory);
-            createRecursiveScript(nextDirectory, false);
+            directories.push_front(nextDirectory);
         }
+    }
+
+    for (int i = directories.length(); i > 0; --i) {
+        QString nextDirectory = directories[i];
+        createAllRecursiveScripts(nextDirectory);
+        createRecursiveScript(nextDirectory, false);
     }
 }
 
