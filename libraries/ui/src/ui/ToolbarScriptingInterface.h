@@ -24,6 +24,7 @@ class QQuickItem;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ToolbarButtonProxy : public QmlWrapper {
     Q_OBJECT
@@ -83,6 +84,7 @@ Q_DECLARE_METATYPE(ToolbarButtonProxy*);
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ToolbarProxy : public QmlWrapper {
     Q_OBJECT
@@ -136,6 +138,7 @@ Q_DECLARE_METATYPE(ToolbarProxy*);
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ToolbarScriptingInterface : public QObject, public Dependency {
     Q_OBJECT

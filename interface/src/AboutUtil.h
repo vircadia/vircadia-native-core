@@ -20,7 +20,8 @@
  *
  * @hifi-interface
  * @hifi-client-entity
- * 
+ * @hifi-avatar
+ *
  * @property {string} buildDate
  * @property {string} buildVersion
  * @property {string} qtVersion

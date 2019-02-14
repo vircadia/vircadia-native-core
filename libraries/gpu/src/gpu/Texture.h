@@ -397,8 +397,6 @@ public:
     bool isDefined() const { return _defined; }
 
     Texture(TextureUsageType usageType);
-    Texture(const Texture& buf); // deep copy of the sysmem texture
-    Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
 
     Stamp getStamp() const { return _stamp; }
@@ -693,8 +691,10 @@ class TextureSource {
 public:
     TextureSource(const QUrl& url, int type = 0) : _imageUrl(url), _type(type) {}
 
+    void setUrl(const QUrl& url) { _imageUrl = url; }
     const QUrl& getUrl() const { return _imageUrl; }
     const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
+    void setType(int type) { _type = type; }
     int getType() const { return _type; }
 
     void resetTexture(gpu::TexturePointer texture);

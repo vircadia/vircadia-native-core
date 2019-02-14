@@ -24,6 +24,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {bool} raised - <code>true</code> If the keyboard is visible <code>false</code> otherwise
  * @property {bool} password - <code>true</code> Will show * instead of characters in the text display <code>false</code> otherwise
