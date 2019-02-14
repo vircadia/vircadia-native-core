@@ -311,8 +311,8 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 trueTwist.w *= -1.0f;
             }
             glm::vec3 trueTwistAxis = glm::axis(trueTwist);
-            float trueTwistTheta = glm::angle(trueTwist);
-            trueTwistTheta *= glm::sign(trueTwistAxis[1]) * glm::angle(trueTwist);
+            float trueTwistTheta;
+            trueTwistTheta = glm::sign(trueTwistAxis[1]) * glm::angle(trueTwist);
             _twistThetaRunningAverage = 0.5f * _twistThetaRunningAverage + 0.5f * trueTwistTheta;
 
             
