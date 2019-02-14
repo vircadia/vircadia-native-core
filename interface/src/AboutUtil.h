@@ -16,14 +16,22 @@
 #include <QObject>
 
 /**jsdoc
+ * The <code>HifiAbout</code> API provides information about the version of Interface that is currently running. It also 
+ * provides the ability to open a Web page in an Interface browser window.
+ *
  * @namespace HifiAbout
  *
  * @hifi-interface
  * @hifi-client-entity
  * 
- * @property {string} buildDate
- * @property {string} buildVersion
- * @property {string} qtVersion
+ * @property {string} buildDate - The build date of Interface that is currently running. <em>Read-only.</em>
+ * @property {string} buildVersion - The build version of Interface that is currently running. <em>Read-only.</em>
+ * @property {string} qtVersion - The Qt version used in Interface that is currently running. <em>Read-only.</em>
+ *
+ * @example <caption>Report build information for the version of Interface currently running.</caption>
+ * print("HiFi build date: " + HifiAbout.buildDate);  // 11 Feb 2019
+ * print("HiFi version: " + HifiAbout.buildVersion);  // 0.78.0
+ * print("Qt version: " + HifiAbout.qtVersion);  // 5.10.1
  */
 
 class AboutUtil : public QObject {
@@ -43,8 +51,9 @@ public:
 public slots:
 
     /**jsdoc
+     * Display a Web page in an Interface browser window.
      * @function HifiAbout.openUrl
-     * @param {string} url
+     * @param {string} url - The URL of the Web page to display.
      */
     void openUrl(const QString &url) const;
 private:
