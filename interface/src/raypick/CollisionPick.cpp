@@ -409,10 +409,6 @@ PickResultPointer CollisionPick::getEntityIntersection(const CollisionRegion& pi
     return std::make_shared<CollisionPickResult>(pick, entityIntersections, std::vector<ContactTestResult>());
 }
 
-PickResultPointer CollisionPick::getOverlayIntersection(const CollisionRegion& pick) {
-    return std::make_shared<CollisionPickResult>(pick, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
-}
-
 PickResultPointer CollisionPick::getAvatarIntersection(const CollisionRegion& pick) {
     if (!pick.loaded) {
         // Cannot compute result

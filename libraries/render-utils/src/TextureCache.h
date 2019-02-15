@@ -1,2 +1,2 @@
 // Compatibility
-#include <model-networking/TextureCache.h>
+#include <material-networking/TextureCache.h>

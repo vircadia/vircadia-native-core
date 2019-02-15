@@ -57,6 +57,7 @@ protected:
     void internalPresent() override;
     void hmdPresent() override { throw std::runtime_error("Unused"); }
     bool isHmdMounted() const override;
+    bool alwaysPresent() const override { return true; }
 
     static const char* NAME;
     mutable gl::Context* _mainContext{ nullptr };

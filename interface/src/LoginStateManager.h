@@ -26,7 +26,7 @@ public:
     void setUp();
     void tearDown();
 
-    void update(const QString dominantHand, const QUuid loginOverlayID);
+    void update(const QString& dominantHand, const QUuid& loginObjectID);
 
     bool isSetUp() const { return (_leftLoginPointerID > PointerEvent::INVALID_POINTER_ID) && (_rightLoginPointerID > PointerEvent::INVALID_POINTER_ID); }
 

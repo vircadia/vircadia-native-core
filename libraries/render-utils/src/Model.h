@@ -183,6 +183,7 @@ public:
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getHFMModel() isn't chained everywhere
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
+    const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
     bool isActive() const { return isLoaded(); }
 
@@ -298,9 +299,9 @@ public:
         TransformDualQuaternion() {}
         TransformDualQuaternion(const glm::mat4& m) {
             AnimPose p(m);
-            _scale.x = p.scale();
-            _scale.y = p.scale();
-            _scale.z = p.scale();
+            _scale.x = p.scale().x;
+            _scale.y = p.scale().y;
+            _scale.z = p.scale().z;
             _scale.w = 0.0f;
             _dq = DualQuaternion(p.rot(), p.trans());
         }
@@ -372,6 +373,10 @@ signals:
     void rigReset();
 
 protected:
+
+    std::unordered_map<unsigned int, quint16> _priorityMap; // only used for materialMapping
+    std::unordered_map<unsigned int, std::vector<graphics::MaterialLayer>> _materialMapping; // generated during applyMaterialMapping
+    void applyMaterialMapping();
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }

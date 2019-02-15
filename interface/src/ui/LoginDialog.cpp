@@ -34,7 +34,7 @@
 HIFI_QML_DEF(LoginDialog)
 
 static const QUrl TABLET_LOGIN_DIALOG_URL("dialogs/TabletLoginDialog.qml");
-const QUrl OVERLAY_LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
+const QUrl LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
 
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
@@ -71,7 +71,7 @@ void LoginDialog::showWithSelection() {
         if (!qApp->getLoginDialogPoppedUp()) {
             tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
         } else {
-            qApp->createLoginDialogOverlay();
+            qApp->createLoginDialog();
         }
     }
 

@@ -21,8 +21,6 @@
 #include "TestRunnerDesktop.h"
 #include "TestRunnerMobile.h"
 
-#include "AWSInterface.h"
-
 class Nitpick : public QMainWindow {
     Q_OBJECT
 
@@ -112,8 +110,6 @@ private:
     TestRunnerDesktop* _testRunnerDesktop{ nullptr };
     TestRunnerMobile* _testRunnerMobile{ nullptr };
 
-    AWSInterface _awsInterface;
-
     std::vector<Downloader*> _downloaders;
 
     // local storage for parameters - folder to store downloaded files in, and a list of their names
@@ -130,6 +126,8 @@ private:
     bool _isRunningFromCommandline{ false };
 
     void* _caller;
+
+    QStringList clientProfiles;
 };
 
 #endif  // hifi_Nitpick_h

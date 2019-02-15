@@ -153,7 +153,7 @@ public:
     QHash<QString, HFMMaterial> _hfmMaterials;
     QHash<QString, MaterialParam> _materialParams;
 
-    void consolidateHFMMaterials(const QVariantHash& mapping);
+    void consolidateHFMMaterials();
 
     bool _loadLightmaps { true };
     float _lightmapOffset { 0.0f };

@@ -43,7 +43,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>3</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -52,8 +52,8 @@
      <widget class="QPushButton" name="createTestsPushbutton">
       <property name="geometry">
        <rect>
-        <x>210</x>
-        <y>60</y>
+        <x>70</x>
+        <y>40</y>
         <width>220</width>
         <height>40</height>
        </rect>
@@ -85,7 +85,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create all  MD files</string>
+       <string>Create all MD files</string>
       </property>
      </widget>
      <widget class="QPushButton" name="createTestsOutlinePushbutton">
@@ -124,7 +124,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>Create all  Recursive Scripts</string>
+       <string>Create all Recursive Scripts</string>
       </property>
      </widget>
      <widget class="QPushButton" name="createTestAutoScriptPushbutton">
@@ -151,6 +151,16 @@
       </property>
       <property name="text">
        <string>Create all testAuto scripts</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="clientProfileComboBox">
+      <property name="geometry">
+       <rect>
+        <x>320</x>
+        <y>40</y>
+        <width>120</width>
+        <height>40</height>
+       </rect>
       </property>
      </widget>
     </widget>
@@ -686,8 +696,8 @@
      <widget class="QLabel" name="workingFolderLabel_4">
       <property name="geometry">
        <rect>
-        <x>290</x>
-        <y>20</y>
+        <x>300</x>
+        <y>60</y>
         <width>41</width>
         <height>31</height>
        </rect>
@@ -699,8 +709,8 @@
      <widget class="QLabel" name="statusLabelOnMobile">
       <property name="geometry">
        <rect>
-        <x>340</x>
-        <y>20</y>
+        <x>350</x>
+        <y>60</y>
         <width>271</width>
         <height>31</height>
        </rect>

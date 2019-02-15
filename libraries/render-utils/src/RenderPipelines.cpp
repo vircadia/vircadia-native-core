@@ -15,7 +15,7 @@
 #include <functional>
 
 #include <gpu/Context.h>
-#include <model-networking/TextureCache.h>
+#include <material-networking/TextureCache.h>
 #include <render/DrawTask.h>
 #include <shaders/Shaders.h>
 #include <graphics/ShaderConstants.h>
@@ -579,7 +579,7 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
                         } else {
                             forceDefault = true;
                         }
-                        schemaKey.setScattering(true);
+                        schemaKey.setScatteringMap(true);
                     }
                     break;
                 case graphics::MaterialKey::EMISSIVE_MAP_BIT:

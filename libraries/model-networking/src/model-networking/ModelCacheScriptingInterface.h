@@ -30,6 +30,7 @@ class ModelCacheScriptingInterface : public ScriptableResourceCache, public Depe
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>
      * @property {number} numCached - Total number of cached resource. <em>Read-only.</em>

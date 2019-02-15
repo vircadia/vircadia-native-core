@@ -324,12 +324,6 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     if (isFullScene) {
         // we're forcing a full scene, clear the force in OctreeQueryNode so we don't force it next time again
         nodeData->setShouldForceFullScene(false);
-    } else {
-        // we aren't forcing a full scene, check if something else suggests we should
-        isFullScene = nodeData->haveJSONParametersChanged() ||
-                      (nodeData->hasConicalViews() &&
-                       (nodeData->getViewFrustumJustStoppedChanging() ||
-                        nodeData->hasLodChanged()));
     }
 
     if (nodeData->isPacketWaiting()) {

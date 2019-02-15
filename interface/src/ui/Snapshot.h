@@ -42,6 +42,7 @@ private:
  * 
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class Snapshot : public QObject, public Dependency {

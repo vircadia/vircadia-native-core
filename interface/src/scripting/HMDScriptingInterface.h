@@ -31,6 +31,7 @@ class QScriptEngine;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
@@ -53,12 +54,12 @@ class QScriptEngine;
  * @property {boolean} tabletContextualMode - <code>true</code> if the tablet has been opened in contextual mode, otherwise 
  *     <code>false</code>. In contextual mode, the tablet has been opened at a specific world position and orientation rather 
  *     than at a position and orientation relative to the user. <em>Read-only.</em>
- * @property {Uuid} tabletID - The UUID of the tablet body model overlay.
- * @property {Uuid} tabletScreenID - The UUID of the tablet's screen overlay.
- * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button overlay.
- * @property {Uuid} homeButtonHighlightID - The UUID of the tablet's "home" button highlight overlay.
- * @property {Uuid} miniTabletID - The UUID of the mini tablet's body model overlay. <code>null</code> if not in HMD mode.
- * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen overlay. <code>null</code> if not in HMD mode.
+ * @property {Uuid} tabletID - The UUID of the tablet body model entity.
+ * @property {Uuid} tabletScreenID - The UUID of the tablet's screen entity.
+ * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button entity.
+ * @property {Uuid} homeButtonHighlightID - The UUID of the tablet's "home" button highlight entity.
+ * @property {Uuid} miniTabletID - The UUID of the mini tablet's body model entity. <code>null</code> if not in HMD mode.
+ * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen entity. <code>null</code> if not in HMD mode.
  * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
  *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
  * @property {bool} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 

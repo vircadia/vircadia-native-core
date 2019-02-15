@@ -52,7 +52,7 @@ public:
 
     void finishTestsEvaluation();
 
-    void createTests();
+    void createTests(const QString& clientProfile);
 
     void createTestsOutline();
 
@@ -72,9 +72,11 @@ public:
 
     void updateTestRailRunResult();
 
-    void createRecursiveScript();
     void createAllRecursiveScripts();
-    void createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode);
+    void createAllRecursiveScripts(const QString& directory);
+
+    void createRecursiveScript();
+    void createRecursiveScript(const QString& directory, bool interactiveMode);
 
     int compareImageLists();
     int checkTextResults();
@@ -109,7 +111,8 @@ private:
     bool _isRunningFromCommandLine{ false };
     bool _isRunningInAutomaticTestRun{ false };
 
-    const QString TEST_FILENAME { "test.js" };
+    const QString TEST_FILENAME{ "test.js" };
+    const QString TEST_RECURSIVE_FILENAME{ "testRecursive.js" };
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
@@ -156,10 +159,10 @@ private:
 
     bool _exitWhenComplete{ false };
 
-    TestRailInterface _testRailInterface;
+    TestRailInterface* _testRailInterface;
     TestRailCreateMode _testRailCreateMode { PYTHON };
 
-    AWSInterface _awsInterface;
+    AWSInterface* _awsInterface;
 };
 
 #endif // hifi_test_h

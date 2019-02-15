@@ -29,6 +29,7 @@ class AvatarInputs : public QObject {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {boolean} cameraEnabled <em>Read-only.</em>
      * @property {boolean} cameraMuted <em>Read-only.</em>

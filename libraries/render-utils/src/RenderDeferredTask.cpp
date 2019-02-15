@@ -116,13 +116,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         const auto& items = fetchedItems.get0();
 
-            // Extract opaques / transparents / lights / metas / overlays / background
+            // Extract opaques / transparents / lights / metas / layered / background
             const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
             const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-            const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
-            const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
-            const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
-            const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+            const auto& inFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+            const auto& inFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+            const auto& hudOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+            const auto& hudTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
 
     // Lighting model comes next, the big configuration of the view
     const auto& lightingModel = inputs[1];
@@ -227,12 +227,12 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<EndGPURangeTimer>("HighlightRangeTimer", outlineRangeTimer);
 
     // Layered Over (in front)
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, jitter).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, jitter).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
+    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, jitter).asVarying();
+    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, jitter).asVarying();
+    task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
+    task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
-    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneOverlaysAntialiasing");
+    const auto toneAndPostRangeTimer = task.addJob<BeginGPURangeTimer>("BeginToneAndPostRangeTimer", "PostToneLayeredAntialiasing");
 
     // AA job before bloom to limit flickering
     const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, lightingFramebuffer, linearDepthTarget, velocityBuffer).asVarying();
@@ -257,14 +257,14 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Upscale to finale resolution
     const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
 
-    // Composite the HUD and HUD overlays
+    // Composite the HUD and HUD layered objects
     task.addJob<CompositeHUD>("HUD");
 
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
-    const auto overlayHUDOpaquesInputs = DrawOverlay3D::Inputs(overlaysHUDOpaque, lightingModel, nullJitter).asVarying();
-    const auto overlayHUDTransparentsInputs = DrawOverlay3D::Inputs(overlaysHUDTransparent, lightingModel, nullJitter).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayHUDOpaque", overlayHUDOpaquesInputs, true);
-    task.addJob<DrawOverlay3D>("DrawOverlayHUDTransparent", overlayHUDTransparentsInputs, false);
+    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
+    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
+    task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
+    task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
 
     task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 
@@ -283,15 +283,15 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
     const auto& fetchCullSortTaskOut = inputs.get0();
         const auto& items = fetchCullSortTaskOut.get0();
 
-            // Extract opaques / transparents / lights / metas / overlays InFront and HUD / background
+            // Extract opaques / transparents / lights / metas / layered / background
             const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
             const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
             const auto& lights = items[RenderFetchCullSortTask::LIGHT];
             const auto& metas = items[RenderFetchCullSortTask::META];
-            const auto& overlaysInFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
-            const auto& overlaysInFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
-            const auto& overlaysHUDOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
-            const auto& overlaysHUDTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+            const auto& inFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+            const auto& inFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+            const auto& hudOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+            const auto& hudTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
 
         const auto& spatialSelection = fetchCullSortTaskOut[1];
 
@@ -388,14 +388,14 @@ void RenderDeferredTaskDebug::build(JobModel& task, const render::Varying& input
         task.addJob<DrawBounds>("DrawSelectionBounds", selectedItems);
     }
 
-    { // Debug the bounds of the rendered Overlay items that are marked drawInFront, still look at the zbuffer
-        task.addJob<DrawBounds>("DrawOverlayInFrontOpaqueBounds", overlaysInFrontOpaque);
-        task.addJob<DrawBounds>("DrawOverlayInFrontTransparentBounds", overlaysInFrontTransparent);
+    { // Debug the bounds of the layered objects, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawInFrontOpaqueBounds", inFrontOpaque);
+        task.addJob<DrawBounds>("DrawInFrontTransparentBounds", inFrontTransparent);
     }
 
-    { // Debug the bounds of the rendered Overlay items that are marked drawHUDLayer, still look at the zbuffer
-        task.addJob<DrawBounds>("DrawOverlayHUDOpaqueBounds", overlaysHUDOpaque);
-        task.addJob<DrawBounds>("DrawOverlayHUDTransparentBounds", overlaysHUDTransparent);
+    { // Debug the bounds of the layered objects, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawHUDOpaqueBounds", hudOpaque);
+        task.addJob<DrawBounds>("DrawHUDTransparentBounds", hudTransparent);
     }
 
     // Debugging stages

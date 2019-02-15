@@ -387,7 +387,9 @@ public:
     static TexturePointer create3D(const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
     static TexturePointer createCube(const Element& texelFormat, uint16 width, uint16 numMips = 1, const Sampler& sampler = Sampler());
     static TexturePointer createRenderBuffer(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static TexturePointer createRenderBufferMultisample(const Element& texelFormat, uint16 width, uint16 height, uint16 numSamples, const Sampler& sampler = Sampler());
     static TexturePointer createRenderBufferArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
+    static TexturePointer createRenderBufferMultisampleArray(const Element& texelFormat, uint16 width, uint16 height, uint16 numSlices, uint16 numSamples, const Sampler& sampler = Sampler());
     static TexturePointer createStrict(const Element& texelFormat, uint16 width, uint16 height, uint16 numMips = SINGLE_MIP, const Sampler& sampler = Sampler());
     static TexturePointer createExternal(const ExternalRecycler& recycler, const Sampler& sampler = Sampler());
 
@@ -395,8 +397,6 @@ public:
     bool isDefined() const { return _defined; }
 
     Texture(TextureUsageType usageType);
-    Texture(const Texture& buf); // deep copy of the sysmem texture
-    Texture& operator=(const Texture& buf); // deep copy of the sysmem texture
     ~Texture();
 
     Stamp getStamp() const { return _stamp; }
@@ -435,6 +435,7 @@ public:
     uint16 getNumSamples() const { return _numSamples; }
     // NumSamples can only have certain values based on the hw
     static uint16 evalNumSamplesUsed(uint16 numSamplesTried);
+    bool isMultisample() const { return _numSamples > 1; }
 
     // max mip is in the range [ 0 if no sub mips, log2(max(width, height, depth))]
     // It is defined at creation time (immutable)
@@ -690,8 +691,10 @@ class TextureSource {
 public:
     TextureSource(const QUrl& url, int type = 0) : _imageUrl(url), _type(type) {}
 
+    void setUrl(const QUrl& url) { _imageUrl = url; }
     const QUrl& getUrl() const { return _imageUrl; }
     const gpu::TexturePointer getGPUTexture() const { return _gpuTexture; }
+    void setType(int type) { _type = type; }
     int getType() const { return _type; }
 
     void resetTexture(gpu::TexturePointer texture);

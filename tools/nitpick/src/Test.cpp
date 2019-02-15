@@ -24,7 +24,7 @@ extern Nitpick* nitpick;
 
 #include <math.h>
 
-Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) {
+Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) : _awsInterface(NULL) {
     _progressBar = progressBar;
     _checkBoxInteractiveMode = checkBoxInteractiveMode;
 
@@ -391,7 +391,7 @@ void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     textStream << "Script.include(testsRootPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
-void Test::createTests() {
+void Test::createTests(const QString& clientProfile) {
     // Rename files sequentially, as ExpectedResult_00000.png, ExpectedResult_00001.png and so on
     // Any existing expected result images will be deleted
     QString previousSelection = _snapshotDirectory;
@@ -758,47 +758,66 @@ void Test::createAllRecursiveScripts() {
         return;
     }
 
+    createAllRecursiveScripts(_testsRootDirectory);
     createRecursiveScript(_testsRootDirectory, false);
-
-    QDirIterator it(_testsRootDirectory, QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString directory = it.next();
-
-        // Only process directories
-        QDir dir;
-        if (!isAValidDirectory(directory)) {
-            continue;
-        }
-
-        // Only process directories that have sub-directories
-        bool hasNoSubDirectories{ true };
-        QDirIterator it2(directory, QDirIterator::Subdirectories);
-        while (it2.hasNext()) {
-            QString directory2 = it2.next();
-
-            // Only process directories
-            QDir dir;
-            if (isAValidDirectory(directory2)) {
-                hasNoSubDirectories = false;
-                break;
-            }
-        }
-
-        if (!hasNoSubDirectories) {
-            createRecursiveScript(directory, false);
-        }
-    }
-
     QMessageBox::information(0, "Success", "Scripts have been created");
 }
 
-void Test::createRecursiveScript(const QString& topLevelDirectory, bool interactiveMode) {
-    const QString recursiveTestsScriptName("testRecursive.js");
-    const QString recursiveTestsFilename(topLevelDirectory + "/" + recursiveTestsScriptName);
+void Test::createAllRecursiveScripts(const QString& directory) {
+    QDirIterator it(directory, QDirIterator::Subdirectories);
+
+    while (it.hasNext()) {
+        QString nextDirectory = it.next();
+        if (isAValidDirectory(nextDirectory)) {
+            createAllRecursiveScripts(nextDirectory);
+            createRecursiveScript(nextDirectory, false);
+        }
+    }
+}
+
+void Test::createRecursiveScript(const QString& directory, bool interactiveMode) {
+    // If folder contains a test, then we are at a leaf
+    const QString testPathname{ directory + "/" + TEST_FILENAME };
+    if (QFileInfo(testPathname).exists()) {
+        return;
+    }
+
+    // Directories are included in reverse order.  The nitpick scripts use a stack mechanism,
+    // so this ensures that the tests run in alphabetical order (a convenience when debugging)
+    QStringList directories;
+    QDirIterator it(directory);
+    while (it.hasNext()) {
+        QString subDirectory = it.next();
+
+        // Only process directories
+        if (!isAValidDirectory(subDirectory)) {
+            continue;
+        }
+
+        const QString testPathname{ subDirectory + "/" + TEST_FILENAME };
+        if (QFileInfo(testPathname).exists()) {
+            // Current folder contains a test script
+            directories.push_front(testPathname);
+        }
+
+        const QString testRecursivePathname{ subDirectory + "/" + TEST_RECURSIVE_FILENAME };
+        if (QFileInfo(testRecursivePathname).exists()) {
+            // Current folder contains a recursive script
+            directories.push_front(testRecursivePathname);
+        }
+    }
+
+    // If 'directories' is empty, this means that this recursive script has no tests to call, so it is redundant
+    if (directories.length() == 0) {
+        return;
+    }
+
+    // Open the recursive script file
+    const QString recursiveTestsFilename(directory + "/" + TEST_RECURSIVE_FILENAME);
     QFile recursiveTestsFile(recursiveTestsFilename);
     if (!recursiveTestsFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Failed to create \"" + recursiveTestsScriptName + "\" in directory \"" + topLevelDirectory + "\"");
+            "Failed to create \"" + TEST_RECURSIVE_FILENAME + "\" in directory \"" + directory + "\"");
 
         exit(-1);
     }
@@ -812,71 +831,20 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     QString user = nitpick->getSelectedUser();
 
     textStream << "PATH_TO_THE_REPO_PATH_UTILS_FILE = \"https://raw.githubusercontent.com/" + user + "/hifi_tests/" + branch +
-                      "/tests/utils/branchUtils.js\";"
-               << endl;
-    textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl;
-    textStream << "var nitpick = createNitpick(Script.resolvePath(\".\"));" << endl << endl;
+        "/tests/utils/branchUtils.js\";"
+        << endl;
+    textStream << "Script.include(PATH_TO_THE_REPO_PATH_UTILS_FILE);" << endl << endl;
 
-    textStream << "var testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
-
-    // Wait 10 seconds before starting
-    textStream << "if (typeof Test !== 'undefined') {" << endl;
-    textStream << "    Test.wait(10000);" << endl;
-    textStream << "};" << endl << endl;
-
-    textStream << "nitpick.enableRecursive();" << endl;
-    textStream << "nitpick.enableAuto();" << endl << endl;
-
-    // This is used to verify that the recursive test contains at least one test
-    bool testFound{ false };
-
-    // Directories are included in reverse order.  The nitpick scripts use a stack mechanism,
-    // so this ensures that the tests run in alphabetical order (a convenience when debugging)
-    QStringList directories;
-
-    // First test if top-level folder has a test.js file
-    const QString testPathname{ topLevelDirectory + "/" + TEST_FILENAME };
-    QFileInfo fileInfo(testPathname);
-    if (fileInfo.exists()) {
-        // Current folder contains a test
-        directories.push_front(testPathname);
-
-        testFound = true;
-    }
-
-    QDirIterator it(topLevelDirectory, QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        QString directory = it.next();
-
-        // Only process directories
-        QDir dir(directory);
-        if (!isAValidDirectory(directory)) {
-            continue;
-        }
-
-        const QString testPathname{ directory + "/" + TEST_FILENAME };
-        QFileInfo fileInfo(testPathname);
-        if (fileInfo.exists()) {
-            // Current folder contains a test
-            directories.push_front(testPathname);
-
-            testFound = true;
-        }
-    }
-
-    if (interactiveMode && !testFound) {
-        QMessageBox::information(0, "Failure", "No \"" + TEST_FILENAME + "\" files found");
-        recursiveTestsFile.close();
-        return;
-    }
-
-    // If 'directories' is empty, this means that this recursive script has no tests to call, so it is redundant
-    // The script will be closed and deleted
-    if (directories.length() == 0) {
-        recursiveTestsFile.close();
-        QFile::remove(recursiveTestsFilename);
-        return;
-    }
+    // The 'depth' variable is used to signal when to start running the recursive scripts
+    textStream << "if (typeof depth === 'undefined') {" << endl; 
+    textStream << "   depth = 0;" << endl;
+    textStream << "   nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
+    textStream << "   testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
+    textStream << "   nitpick.enableRecursive();" << endl;
+    textStream << "   nitpick.enableAuto();" << endl;
+    textStream << "} else {" << endl;
+    textStream << "   depth++" << endl;
+    textStream << "}" << endl << endl;
 
     // Now include the test scripts
     for (int i = 0; i < directories.length(); ++i) {
@@ -884,7 +852,11 @@ void Test::createRecursiveScript(const QString& topLevelDirectory, bool interact
     }
 
     textStream << endl;
-    textStream << "nitpick.runRecursive();" << endl;
+    textStream << "if (depth > 0) {" << endl;
+    textStream << "   depth--;" << endl;
+    textStream << "} else {" << endl;
+    textStream << "   nitpick.runRecursive();" << endl;
+    textStream << "}" << endl << endl;
 
     recursiveTestsFile.close();
 }
@@ -928,7 +900,6 @@ void Test::createTestsOutline() {
         QString directory = it.next();
 
         // Only process directories
-        QDir dir;
         if (!isAValidDirectory(directory)) {
             continue;
         }
@@ -1001,11 +972,15 @@ void Test::createTestRailTestCases() {
         return;
     }
 
+    if (!_testRailInterface) {
+        _testRailInterface = new TestRailInterface;
+    }
+
     if (_testRailCreateMode == PYTHON) {
-        _testRailInterface.createTestSuitePython(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
+        _testRailInterface->createTestSuitePython(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
                                               nitpick->getSelectedBranch());
     } else {
-        _testRailInterface.createTestSuiteXML(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
+        _testRailInterface->createTestSuiteXML(_testDirectory, outputDirectory, nitpick->getSelectedUser(),
                                            nitpick->getSelectedBranch());
     }
 }
@@ -1018,7 +993,12 @@ void Test::createTestRailRun() {
         return;
     }
 
-    _testRailInterface.createTestRailRun(outputDirectory);
+
+    if (!_testRailInterface) {
+        _testRailInterface = new TestRailInterface;
+    }
+
+    _testRailInterface->createTestRailRun(outputDirectory);
 }
 
 void Test::updateTestRailRunResult() {
@@ -1034,7 +1014,12 @@ void Test::updateTestRailRunResult() {
         return;
     }
 
-    _testRailInterface.updateTestRailRunResults(testResults, tempDirectory);
+
+    if (!_testRailInterface) {
+        _testRailInterface = new TestRailInterface;
+    }
+
+    _testRailInterface->updateTestRailRunResults(testResults, tempDirectory);
 }
 
 QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
@@ -1112,7 +1097,7 @@ void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
 
 void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
-                                                       "Zipped Test Results (*.zip)");
+                                                       "Zipped Test Results (TestResults--*.zip)");
     if (testResults.isNull()) {
         return;
     }
@@ -1123,5 +1108,9 @@ void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
         return;
     }
 
-    _awsInterface.createWebPageFromResults(testResults, workingDirectory, updateAWSCheckBox, urlLineEdit);
+    if (!_awsInterface) {
+        _awsInterface = new AWSInterface;
+    }
+
+    _awsInterface->createWebPageFromResults(testResults, workingDirectory, updateAWSCheckBox, urlLineEdit);
 }

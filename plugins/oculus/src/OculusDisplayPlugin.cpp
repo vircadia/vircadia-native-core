@@ -138,6 +138,10 @@ void OculusDisplayPlugin::hmdPresent() {
         return;
     }
 
+    if (!_currentFrame) {
+        return;
+    }
+
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     {

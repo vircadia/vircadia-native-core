@@ -232,7 +232,7 @@ public:
 };
 
 /**jsdoc
- * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
+ * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or avatars that lie under a
  * mouse click or intersect a laser beam.
  *
  * @typedef {object} PickRay
@@ -351,7 +351,7 @@ public:
 * The depth is measured in world space, but will scale with the parent if defined.
 * @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
 * will be considered colliding with the pick.
-* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
+* @property {Uuid} parentID - The ID of the parent, either an avatar or an entity.
 * @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
 */
@@ -645,6 +645,7 @@ using MeshPointer = std::shared_ptr<graphics::Mesh>;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  *

@@ -55,44 +55,47 @@ OtherAvatar::~OtherAvatar() {
 
 void OtherAvatar::removeOrb() {
     if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
-        qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
-        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_OVERLAY_ID;
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_otherAvatarOrbMeshPlaceholderID);
+        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_ENTITY_ID;
     }
 }
 
 void OtherAvatar::updateOrbPosition() {
-    if (_otherAvatarOrbMeshPlaceholder != nullptr) {
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-        if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
-            _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
-        }
+    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+        EntityItemProperties properties;
+        properties.setPosition(getHead()->getPosition());
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }
 
 void OtherAvatar::createOrb() {
     if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
-        _otherAvatarOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
-        _otherAvatarOrbMeshPlaceholder->setAlpha(1.0f);
-        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
-        _otherAvatarOrbMeshPlaceholder->setIsSolid(false);
-        _otherAvatarOrbMeshPlaceholder->setPulseMin(0.5);
-        _otherAvatarOrbMeshPlaceholder->setPulseMax(1.0);
-        _otherAvatarOrbMeshPlaceholder->setColorPulse(1.0);
-        _otherAvatarOrbMeshPlaceholder->setIgnorePickIntersection(true);
-        _otherAvatarOrbMeshPlaceholder->setDrawInFront(false);
-        _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
-        // Position focus
-        _otherAvatarOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-        _otherAvatarOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
-        _otherAvatarOrbMeshPlaceholder->setVisible(true);
+        EntityItemProperties properties;
+        properties.setType(EntityTypes::Sphere);
+        properties.setAlpha(1.0f);
+        properties.setColor(getLoadingOrbColor(_loadingStatus));
+        properties.setPrimitiveMode(PrimitiveMode::LINES);
+        properties.getPulse().setMin(0.5f);
+        properties.getPulse().setMax(1.0f);
+        properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+        properties.setIgnorePickIntersection(true);
+
+        properties.setPosition(getHead()->getPosition());
+        properties.setRotation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
+        properties.setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
+        properties.setVisible(true);
+
+        _otherAvatarOrbMeshPlaceholderID = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(properties, entity::HostType::LOCAL);
     }
 }
 
 void OtherAvatar::indicateLoadingStatus(LoadingStatus loadingStatus) {
     Avatar::indicateLoadingStatus(loadingStatus);
-    if (_otherAvatarOrbMeshPlaceholder) {
-        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
+
+    if (_otherAvatarOrbMeshPlaceholderID != UNKNOWN_ENTITY_ID) {
+        EntityItemProperties properties;
+        properties.setColor(getLoadingOrbColor(_loadingStatus));
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }
 
@@ -447,6 +450,10 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             EntityItemProperties properties;
             int32_t bytesLeftToRead = data.size();
             unsigned char* dataAt = (unsigned char*)(data.data());
+            // FIXME: This function will cause unintented changes in SpaillyNestable
+            // E.g overriding the ID index of an exisiting entity to temporary entity
+            // in the following map QHash<QUuid, SpatiallyNestableWeakPointer> _children;
+            // Andrew Meadows will address this issue
             if (!properties.constructFromBuffer(dataAt, bytesLeftToRead)) {
                 // properties are corrupt
                 continue;
@@ -489,6 +496,17 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             bool success = true;
             if (entity) {
                 QUuid oldParentID = entity->getParentID();
+
+                // Since  has overwrtiiten the back pointer
+                // from the parent children map (see comment for function call above),
+                // we need to for reset the back pointer in the map correctly by setting the parentID, but
+                // since the parentID of the entity has not changed we first need to set it some ither ID,
+                // then set the the original ID for the changes to take effect
+                // TODO: This is a horrible hack and once properties.constructFromBuffer no longer causes
+                // side effects...remove the following three lines
+                const QUuid NULL_ID = QUuid("{00000000-0000-0000-0000-000000000005}");
+                entity->setParentID(NULL_ID);
+                entity->setParentID(oldParentID);
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
                 } else {
@@ -510,6 +528,11 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 }
             }
             stateItr.value().success = success;
+            if (success) {
+                stateItr.value().hash = newHash;
+            } else {
+                stateItr.value().hash = 0;
+            }
         }
 
         AvatarEntityIDs recentlyRemovedAvatarEntities = getAndClearRecentlyRemovedIDs();

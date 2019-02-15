@@ -30,7 +30,7 @@ public:
                                   QCheckBox* updateAWSCheckBox,
                                   QLineEdit* urlLineEdit);
 
-    void extractTestFailuresFromZippedFolder();
+    void extractTestFailuresFromZippedFolder(const QString& folderName);
     void createHTMLFile();
 
     void startHTMLpage(QTextStream& stream);

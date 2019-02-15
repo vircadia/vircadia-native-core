@@ -238,7 +238,10 @@ void OffscreenQmlSurface::clearFocusItem() {
 
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
-    QQmlFileSelector* fileSelector = new QQmlFileSelector(engine);
+    auto fileSelector = QQmlFileSelector::get(engine);
+    if (!fileSelector) {
+        fileSelector = new QQmlFileSelector(engine);
+    }
     fileSelector->setExtraSelectors(FileUtils::getFileSelectors());
 
     static std::once_flag once;
@@ -716,11 +719,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        emit scriptEventReceived(message);
-    }
+    emit scriptEventReceived(message);
 }
 
 void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {

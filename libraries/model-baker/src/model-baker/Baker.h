@@ -18,6 +18,8 @@
 
 #include "Engine.h"
 
+#include "ParseMaterialMappingTask.h"
+
 namespace baker {
     class Baker {
     public:
@@ -27,6 +29,7 @@ namespace baker {
 
         // Outputs, available after run() is called
         hfm::Model::Pointer hfmModel;
+        MaterialMapping materialMapping;
 
     protected:
         EnginePointer _engine;

@@ -64,6 +64,6 @@ bool KeyboardScriptingInterface::getPreferMalletsOverLasers() const {
     return DependencyManager::get<Keyboard>()->getPreferMalletsOverLasers();
 }
 
-bool KeyboardScriptingInterface::containsID(OverlayID overlayID) const {
-    return DependencyManager::get<Keyboard>()->containsID(overlayID);
+bool KeyboardScriptingInterface::containsID(const QUuid& id) const {
+    return DependencyManager::get<Keyboard>()->containsID(id);
 }
