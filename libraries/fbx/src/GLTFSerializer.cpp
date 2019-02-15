@@ -892,6 +892,23 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                         for (int n = 0; n < colors.size() - 3; n += stride) {
                             mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
                         }
+                    } else if (key == "TANGENT") {
+                        QVector<float> tangents;
+                        success = addArrayOfType(buffer.blob, 
+                            bufferview.byteOffset + accBoffset, 
+                            accessor.count, 
+                            tangents,
+                            accessor.type, 
+                            accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < tangents.size() - 3; n += stride) {
+                            float tanW = stride == 4 ? tangents[n + 3] : 1; 
+                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tangents[n + 2]));
+                        }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
                         success = addArrayOfType(buffer.blob, 
@@ -931,7 +948,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 }
                 mesh.parts.push_back(part);
 
-                // populate the texture coordenates if they don't exist
+                // populate the texture coordinates if they don't exist
                 if (mesh.texCoords.size() == 0) {
                     for (int i = 0; i < part.triangleIndices.size(); i++) mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
                 }

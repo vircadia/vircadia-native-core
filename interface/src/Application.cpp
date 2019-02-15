@@ -103,7 +103,7 @@
 #include <MessagesClient.h>
 #include <hfm/ModelFormatRegistry.h>
 #include <model-networking/ModelCacheScriptingInterface.h>
-#include <model-networking/TextureCacheScriptingInterface.h>
+#include <material-networking/TextureCacheScriptingInterface.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -155,7 +155,7 @@
 #include <RenderableEntityItem.h>
 #include <RenderableTextEntityItem.h>
 #include <RenderableWebEntityItem.h>
-#include <model-networking/MaterialCache.h>
+#include <material-networking/MaterialCache.h>
 #include "recording/ClipCache.h"
 
 #include "AudioClient.h"
@@ -3106,12 +3106,12 @@ void Application::initializeUi() {
         }
         if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
             _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
-#if defined(Q_OS_ANDROID)
- //          auto& virtualPadManager = VirtualPad::Manager::instance();
- //          connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
- //                  this, [](int duration) {
- //                      AndroidHelper::instance().performHapticFeedback(duration);
- //                  });
+#if defined(ANDROID_APP_INTERFACE)
+            auto& virtualPadManager = VirtualPad::Manager::instance();
+            connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
+                    this, [](int duration) {
+                        AndroidHelper::instance().performHapticFeedback(duration);
+                    });
 #endif
         }
     }
@@ -3638,7 +3638,7 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     }
 
     // Get controller availability
-#ifdef Q_OS_ANDROID
+#ifdef ANDROID_APP_QUEST_INTERFACE
     bool hasHandControllers = true;
 #else
     bool hasHandControllers = false;
@@ -8260,7 +8260,7 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
-#ifndef Q_OS_ANDROID
+#ifndef ANDROID_APP_QUEST_INTERFACE
     if (getLoginDialogPoppedUp()) {
         return;
     }

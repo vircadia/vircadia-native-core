@@ -462,9 +462,11 @@ FocusScope {
             return;
         }
 */
+
         var oldRecommendedRect = recommendedRect;
         var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
         var newRecommendedRect = { width: 1280, height: 720, x: 0, y: 0 };
+		if (typeof Controller !== "undefined") newRecommendedRect = Controller.getRecommendedHUDRect();
         var newRecommendedDimmensions = { x: newRecommendedRect.width, y: newRecommendedRect.height };
         repositionWindow(targetWindow, false, oldRecommendedRect, oldRecommendedDimmensions, newRecommendedRect, newRecommendedDimmensions);
     }
@@ -481,7 +483,8 @@ FocusScope {
             return;
         }
 
-        var recommended = { width: 1280, height: 720, x: 0, y: 0 }; //Controller.getRecommendedHUDRect();
+        var recommended = { width: 1280, height: 720, x: 0, y: 0 };
+   	    if (typeof Controller !== "undefined") recommended = Controller.getRecommendedHUDRect();
         var maxX = recommended.x + recommended.width;
         var maxY = recommended.y + recommended.height;
         var newPosition = Qt.vector2d(targetWindow.x, targetWindow.y);

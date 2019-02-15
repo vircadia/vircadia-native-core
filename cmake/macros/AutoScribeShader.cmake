@@ -270,6 +270,16 @@ macro(AUTOSCRIBE_SHADER_LIBS)
     set(AUTOSCRIBE_SHADERGEN_COMMANDS_FILE ${CMAKE_CURRENT_BINARY_DIR}/shadergen.txt)
     file(WRITE ${AUTOSCRIBE_SHADERGEN_COMMANDS_FILE} "${AUTOSCRIBE_SHADERGEN_COMMANDS}")
 
+    if (HIFI_ANDROID)
+        if (
+            (${HIFI_ANDROID_APP} STREQUAL "questInterface") OR 
+            (${HIFI_ANDROID_APP} STREQUAL "questFramePlayer") OR
+            (${HIFI_ANDROID_APP} STREQUAL "framePlayer") 
+        )
+            set(EXTRA_SHADERGEN_ARGS "--extensions EXT_clip_cull_distance")
+        endif()
+    endif()
+
     # A custom python script which will generate all our shader artifacts
     add_custom_command(
         OUTPUT ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS}
@@ -279,6 +289,7 @@ macro(AUTOSCRIBE_SHADER_LIBS)
             --tools-dir ${VCPKG_TOOLS_DIR}
             --build-dir ${CMAKE_CURRENT_BINARY_DIR}
             --source-dir ${CMAKE_SOURCE_DIR}
+            ${EXTRA_SHADERGEN_ARGS}
         DEPENDS ${AUTOSCRIBE_SHADER_HEADERS} ${CMAKE_SOURCE_DIR}/tools/shadergen.py ${ALL_SCRIBE_SHADERS})
 
     add_custom_target(shadergen DEPENDS ${SCRIBED_SHADERS} ${SPIRV_SHADERS} ${REFLECTED_SHADERS})

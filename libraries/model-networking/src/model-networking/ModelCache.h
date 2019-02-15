@@ -15,17 +15,13 @@
 #include <DependencyManager.h>
 #include <ResourceCache.h>
 
-#include <graphics/Material.h>
 #include <graphics/Asset.h>
 
 #include "FBXSerializer.h"
-#include "TextureCache.h"
+#include <material-networking/MaterialCache.h>
+#include <material-networking/TextureCache.h>
 #include "ModelLoader.h"
 
-// Alias instead of derive to avoid copying
-
-class NetworkTexture;
-class NetworkMaterial;
 class MeshPart;
 
 class GeometryMappingResource;
@@ -49,6 +45,7 @@ public:
     bool isHFMModelLoaded() const { return (bool)_hfmModel; }
 
     const HFMModel& getHFMModel() const { return *_hfmModel; }
+    const MaterialMapping& getMaterialMapping() const { return _materialMapping; }
     const GeometryMeshes& getMeshes() const { return *_meshes; }
     const std::shared_ptr<NetworkMaterial> getShapeMaterial(int shapeID) const;
 
@@ -64,6 +61,7 @@ protected:
 
     // Shared across all geometries, constant throughout lifetime
     std::shared_ptr<const HFMModel> _hfmModel;
+    MaterialMapping _materialMapping;
     std::shared_ptr<const GeometryMeshes> _meshes;
     std::shared_ptr<const GeometryMeshParts> _meshParts;
 
@@ -164,59 +162,6 @@ private:
     ModelCache();
     virtual ~ModelCache() = default;
     ModelLoader _modelLoader;
-};
-
-class NetworkMaterial : public graphics::Material {
-public:
-    using MapChannel = graphics::Material::MapChannel;
-
-    NetworkMaterial() : _textures(MapChannel::NUM_MAP_CHANNELS) {}
-    NetworkMaterial(const HFMMaterial& material, const QUrl& textureBaseUrl);
-    NetworkMaterial(const NetworkMaterial& material);
-
-    void setAlbedoMap(const QUrl& url, bool useAlphaChannel);
-    void setNormalMap(const QUrl& url, bool isBumpmap);
-    void setRoughnessMap(const QUrl& url, bool isGloss);
-    void setMetallicMap(const QUrl& url, bool isSpecular);
-    void setOcclusionMap(const QUrl& url);
-    void setEmissiveMap(const QUrl& url);
-    void setScatteringMap(const QUrl& url);
-    void setLightmapMap(const QUrl& url);
-
-    bool isMissingTexture();
-    void checkResetOpacityMap();
-
-protected:
-    friend class Geometry;
-
-    class Texture {
-    public:
-        QString name;
-        NetworkTexturePointer texture;
-    };
-    using Textures = std::vector<Texture>;
-
-    Textures _textures;
-
-    static const QString NO_TEXTURE;
-    const QString& getTextureName(MapChannel channel);
-
-    void setTextures(const QVariantMap& textureMap);
-
-    const bool& isOriginal() const { return _isOriginal; }
-
-private:
-    // Helpers for the ctors
-    QUrl getTextureUrl(const QUrl& baseUrl, const HFMTexture& hfmTexture);
-    graphics::TextureMapPointer fetchTextureMap(const QUrl& baseUrl, const HFMTexture& hfmTexture,
-                                             image::TextureUsage::Type type, MapChannel channel);
-    graphics::TextureMapPointer fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel);
-
-    Transform _albedoTransform;
-    Transform _lightmapTransform;
-    vec2 _lightmapParams;
-
-    bool _isOriginal { true };
 };
 
 class MeshPart {

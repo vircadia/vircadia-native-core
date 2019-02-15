@@ -1,5 +1,3 @@
-#version 410 core
-#define GPU_GL410
 #define BITFIELD int
 #if defined(VULKAN)
   #extension GL_ARB_shading_language_420pack : require

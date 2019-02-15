@@ -40,5 +40,5 @@ QSharedPointer<Resource> SoundCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> SoundCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new Sound(*resource.staticCast<Sound>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new Sound(*resource.staticCast<Sound>()), &Resource::deleter);
 }

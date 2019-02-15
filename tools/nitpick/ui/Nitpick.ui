@@ -52,8 +52,8 @@
      <widget class="QPushButton" name="createTestsPushbutton">
       <property name="geometry">
        <rect>
-        <x>210</x>
-        <y>60</y>
+        <x>70</x>
+        <y>40</y>
         <width>220</width>
         <height>40</height>
        </rect>
@@ -151,6 +151,16 @@
       </property>
       <property name="text">
        <string>Create all testAuto scripts</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="clientProfileComboBox">
+      <property name="geometry">
+       <rect>
+        <x>320</x>
+        <y>40</y>
+        <width>120</width>
+        <height>40</height>
+       </rect>
       </property>
      </widget>
     </widget>
