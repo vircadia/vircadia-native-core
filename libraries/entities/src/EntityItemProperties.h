@@ -242,6 +242,7 @@ public:
     DEFINE_PROPERTY(PROP_ALPHA, Alpha, alpha, float, ENTITY_ITEM_DEFAULT_ALPHA);
     DEFINE_PROPERTY_GROUP(Pulse, pulse, PulsePropertyGroup);
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
+    DEFINE_PROPERTY_REF_ENUM(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode, BillboardMode::NONE);
 
     // Particles
     DEFINE_PROPERTY(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, particle::DEFAULT_MAX_PARTICLES);
@@ -300,7 +301,6 @@ public:
     DEFINE_PROPERTY_REF(PROP_TEXT_ALPHA, TextAlpha, textAlpha, float, TextEntityItem::DEFAULT_TEXT_ALPHA);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, u8vec3Color, TextEntityItem::DEFAULT_BACKGROUND_COLOR);
     DEFINE_PROPERTY_REF(PROP_BACKGROUND_ALPHA, BackgroundAlpha, backgroundAlpha, float, TextEntityItem::DEFAULT_TEXT_ALPHA);
-    DEFINE_PROPERTY_REF_ENUM(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode, BillboardMode::NONE);
     DEFINE_PROPERTY_REF(PROP_LEFT_MARGIN, LeftMargin, leftMargin, float, TextEntityItem::DEFAULT_MARGIN);
     DEFINE_PROPERTY_REF(PROP_RIGHT_MARGIN, RightMargin, rightMargin, float, TextEntityItem::DEFAULT_MARGIN);
     DEFINE_PROPERTY_REF(PROP_TOP_MARGIN, TopMargin, topMargin, float, TextEntityItem::DEFAULT_MARGIN);
@@ -341,6 +341,7 @@ public:
     DEFINE_PROPERTY_REF(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString, "");
     DEFINE_PROPERTY_REF(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t, WebEntityItem::DEFAULT_MAX_FPS);
     DEFINE_PROPERTY_REF_ENUM(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode, WebInputMode::TOUCH);
+    DEFINE_PROPERTY_REF(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool, true);
 
     // Polyline
     DEFINE_PROPERTY_REF(PROP_LINE_POINTS, LinePoints, linePoints, QVector<glm::vec3>, ENTITY_ITEM_DEFAULT_EMPTY_VEC3_QVEC);

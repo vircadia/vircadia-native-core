@@ -93,8 +93,8 @@ public:
     void reloadEntityScripts();
 
     // event handles which may generate entity related events
+    std::pair<float, QUuid> mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
-    void mousePressEvent(QMouseEvent* event);
     void mouseDoublePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
 
@@ -117,9 +117,6 @@ public:
 
     // Access the workload Space
     workload::SpacePointer getWorkloadSpace() const { return _space; }
-
-    static void setGetAvatarUpOperator(std::function<glm::vec3()> getAvatarUpOperator) { _getAvatarUpOperator = getAvatarUpOperator; }
-    static glm::vec3 getAvatarUp() { return _getAvatarUpOperator(); }
 
     EntityEditPacketSender* getPacketSender();
 
@@ -274,6 +271,7 @@ private:
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
+
 };
 
 

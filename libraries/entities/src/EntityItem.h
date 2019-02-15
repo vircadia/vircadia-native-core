@@ -557,6 +557,9 @@ public:
     virtual void removeGrab(GrabPointer grab) override;
     virtual void disableGrab(GrabPointer grab) override;
 
+    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
+    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode) { return _getBillboardRotationOperator(position, rotation, billboardMode); }
+
 signals:
     void requestRenderUpdate();
     void spaceUpdate(std::pair<int32_t, glm::vec4> data);
@@ -744,6 +747,8 @@ protected:
 
     QHash<QUuid, EntityDynamicPointer> _grabActions;
 
+private:
+    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> _getBillboardRotationOperator;
 };
 
 #endif // hifi_EntityItem_h

@@ -262,6 +262,12 @@ public:
     void setIsServerlessMode(bool value) { _serverlessDomain = value; }
     bool isServerlessMode() const { return _serverlessDomain; }
 
+    static void setGetEntityObjectOperator(std::function<QObject*(const QUuid&)> getEntityObjectOperator) { _getEntityObjectOperator = getEntityObjectOperator; }
+    static QObject* getEntityObject(const QUuid& id);
+
+    static void setTextSizeOperator(std::function<QSizeF(const QUuid&, const QString&)> textSizeOperator) { _textSizeOperator = textSizeOperator; }
+    static QSizeF textSize(const QUuid& id, const QString& text);
+
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
@@ -369,6 +375,9 @@ private:
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
+
+    static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
+    static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
 
     std::vector<int32_t> _staleProxies;
 

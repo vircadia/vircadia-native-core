@@ -2953,6 +2953,23 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
+std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
+std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
+
+QObject* EntityTree::getEntityObject(const QUuid& id) {
+    if (_getEntityObjectOperator) {
+        return _getEntityObjectOperator(id);
+    }
+    return nullptr;
+}
+
+QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
+    if (_textSizeOperator) {
+        return _textSizeOperator(id, text);
+    }
+    return QSizeF(0.0f, 0.0f);
+}
+
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                                MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
     // if the queryBox has changed, tell the entity-server

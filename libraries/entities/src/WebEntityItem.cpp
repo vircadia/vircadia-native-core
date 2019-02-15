@@ -48,12 +48,14 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
     withReadLock([&] {
         _pulseProperties.getProperties(properties);
     });
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dpi, getDPI);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptURL, getScriptURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(maxFPS, getMaxFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(inputMode, getInputMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(showKeyboardFocusHighlight, getShowKeyboardFocusHighlight);
     return properties;
 }
 
@@ -67,12 +69,14 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
     });
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(sourceUrl, setSourceUrl);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dpi, setDPI);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(scriptURL, setScriptURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(maxFPS, setMaxFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(inputMode, setInputMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(showKeyboardFocusHighlight, setShowKeyboardFocusHighlight);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -105,12 +109,14 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
         bytesRead += bytesFromPulse;
         dataAt += bytesFromPulse;
     });
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
     READ_ENTITY_PROPERTY(PROP_SOURCE_URL, QString, setSourceUrl);
     READ_ENTITY_PROPERTY(PROP_DPI, uint16_t, setDPI);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_URL, QString, setScriptURL);
     READ_ENTITY_PROPERTY(PROP_MAX_FPS, uint8_t, setMaxFPS);
     READ_ENTITY_PROPERTY(PROP_INPUT_MODE, WebInputMode, setInputMode);
+    READ_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
 
     return bytesRead;
 }
@@ -120,12 +126,14 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
     requestedProperties += _pulseProperties.getEntityProperties(params);
+    requestedProperties += PROP_BILLBOARD_MODE;
 
     requestedProperties += PROP_SOURCE_URL;
     requestedProperties += PROP_DPI;
     requestedProperties += PROP_SCRIPT_URL;
     requestedProperties += PROP_MAX_FPS;
     requestedProperties += PROP_INPUT_MODE;
+    requestedProperties += PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT;
     return requestedProperties;
 }
 
@@ -144,12 +152,24 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
         _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
             propertyFlags, propertiesDidntFit, propertyCount, appendState);
     });
+    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
 
     APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, getSourceUrl());
     APPEND_ENTITY_PROPERTY(PROP_DPI, getDPI());
     APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, getScriptURL());
     APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, getMaxFPS());
     APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)getInputMode());
+    APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, getShowKeyboardFocusHighlight());
+}
+
+glm::vec3 WebEntityItem::getRaycastDimensions() const {
+    glm::vec3 dimensions = getScaledDimensions();
+    if (getBillboardMode() != BillboardMode::NONE) {
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        return glm::vec3(SQRT_2 * max);
+    }
+    return dimensions;
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -160,6 +180,7 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 forward = rotation * Vectors::FRONT;
@@ -230,17 +251,21 @@ float WebEntityItem::getAlpha() const {
     });
 }
 
+BillboardMode WebEntityItem::getBillboardMode() const {
+    return resultWithReadLock<BillboardMode>([&] {
+        return _billboardMode;
+    });
+}
+
+void WebEntityItem::setBillboardMode(BillboardMode value) {
+    withWriteLock([&] {
+        _billboardMode = value;
+    });
+}
+
 void WebEntityItem::setSourceUrl(const QString& value) {
     withWriteLock([&] {
-        if (_sourceUrl != value) {
-            auto newURL = QUrl::fromUserInput(value);
-
-            if (newURL.isValid()) {
-                _sourceUrl = newURL.toDisplayString();
-            } else {
-                qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
-            }
-        }
+        _sourceUrl = value;
     });
 }
 
@@ -270,7 +295,7 @@ void WebEntityItem::setScriptURL(const QString& value) {
             if (newURL.isValid()) {
                 _scriptURL = newURL.toDisplayString();
             } else {
-                qCDebug(entities) << "Clearing web entity source URL since" << value << "cannot be parsed to a valid URL.";
+                qCDebug(entities) << "Not setting web entity script URL since" << value << "cannot be parsed to a valid URL.";
             }
         }
     });
@@ -304,6 +329,14 @@ WebInputMode WebEntityItem::getInputMode() const {
     return resultWithReadLock<WebInputMode>([&] {
         return _inputMode;
     });
+}
+
+void WebEntityItem::setShowKeyboardFocusHighlight(bool value) {
+    _showKeyboardFocusHighlight = value;
+}
+
+bool WebEntityItem::getShowKeyboardFocusHighlight() const {
+    return _showKeyboardFocusHighlight;
 }
 
 PulsePropertyGroup WebEntityItem::getPulseProperties() const {

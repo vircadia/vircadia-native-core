@@ -1,14 +1,13 @@
 import QtQuick 2.5
-
 import controlsUit 1.0
 import stylesUit 1.0
-
 import "windows"
+import "."
 
 ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
-    //HifiStyles.HifiConstants { id: hifistyles }
+
     title: "Browser"
     resizable: true
     destroyOnHidden: true
@@ -30,6 +29,7 @@ ScrollingWindow {
     }
 
     function setProfile(profile) {
+        webview.profile = profile;
     }
 
     function showPermissionsBar(){
@@ -41,6 +41,7 @@ ScrollingWindow {
     }
 
     function allowPermissions(){
+        webview.grantFeaturePermission(permissionsBar.securityOrigin, permissionsBar.feature, true);
         hidePermissionsBar();
     }
 
@@ -198,10 +199,15 @@ ScrollingWindow {
             }
         }
 
-        ProxyWebView {
+        BrowserWebView {
             id: webview
-            anchors.centerIn: parent
-            url: "https://highfidelity.com/"
+            parentRoot: root
+
+            anchors.top: buttons.bottom
+            anchors.topMargin: 8
+            anchors.bottom: parent.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
         }
 
     } // item

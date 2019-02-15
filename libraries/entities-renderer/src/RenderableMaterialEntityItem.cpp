@@ -25,37 +25,43 @@ bool MaterialEntityRenderer::needsRenderUpdate() const {
 }
 
 bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
-    // Could require material re-apply
-    if (entity->getMaterialURL() != _materialURL) {
-        return true;
-    }
-    if (entity->getMaterialData() != _materialData) {
-        return true;
-    }
-    if (entity->getParentMaterialName() != _parentMaterialName) {
-        return true;
-    }
-    if (entity->getParentID() != _parentID) {
-        return true;
-    }
-    if (entity->getPriority() != _priority) {
-        return true;
-    }
+    if (resultWithReadLock<bool>([&] {
+        // Won't cause material re-apply
+        if (entity->getMaterialMappingMode() != _materialMappingMode) {
+            return true;
+        }
+        if (entity->getMaterialRepeat() != _materialRepeat) {
+            return true;
+        }
+        if (entity->getMaterialMappingPos() != _materialMappingPos || entity->getMaterialMappingScale() != _materialMappingScale || entity->getMaterialMappingRot() != _materialMappingRot) {
+            return true;
+        }
+        if (entity->getTransform() != _transform) {
+            return true;
+        }
+        if (entity->getUnscaledDimensions() != _dimensions) {
+            return true;
+        }
 
-    // Won't cause material re-apply
-    if (entity->getMaterialMappingMode() != _materialMappingMode) {
-        return true;
-    }
-    if (entity->getMaterialRepeat() != _materialRepeat) {
-        return true;
-    }
-    if (entity->getMaterialMappingPos() != _materialMappingPos || entity->getMaterialMappingScale() != _materialMappingScale || entity->getMaterialMappingRot() != _materialMappingRot) {
-        return true;
-    }
-    if (entity->getTransform() != _transform) {
-        return true;
-    }
-    if (entity->getUnscaledDimensions() != _dimensions) {
+        // Could require material re-apply
+        if (entity->getMaterialURL() != _materialURL) {
+            return true;
+        }
+        if (entity->getMaterialData() != _materialData) {
+            return true;
+        }
+        if (entity->getParentMaterialName() != _parentMaterialName) {
+            return true;
+        }
+        if (entity->getParentID() != _parentID) {
+            return true;
+        }
+        if (entity->getPriority() != _priority) {
+            return true;
+        }
+
+        return false;
+    })) {
         return true;
     }
     return false;
@@ -63,24 +69,86 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 
 void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     withWriteLock([&] {
+        bool transformChanged = false;
+        {
+            MaterialMappingMode mode = entity->getMaterialMappingMode();
+            if (mode != _materialMappingMode) {
+                _materialMappingMode = mode;
+                transformChanged = true;
+            }
+        }
+        {
+            bool repeat = entity->getMaterialRepeat();
+            if (repeat != _materialRepeat) {
+                _materialRepeat = repeat;
+                transformChanged = true;
+            }
+        }
+        {
+            glm::vec2 mappingPos = entity->getMaterialMappingPos();
+            glm::vec2 mappingScale = entity->getMaterialMappingScale();
+            float mappingRot = entity->getMaterialMappingRot();
+            if (mappingPos != _materialMappingPos || mappingScale != _materialMappingScale || mappingRot != _materialMappingRot) {
+                _materialMappingPos = mappingPos;
+                _materialMappingScale = mappingScale;
+                _materialMappingRot = mappingRot;
+                transformChanged |= _materialMappingMode == MaterialMappingMode::UV;
+            }
+        }
+        {
+            Transform transform = entity->getTransform();
+            glm::vec3 dimensions = entity->getUnscaledDimensions();
+            if (transform != _transform || dimensions != _dimensions) {
+                _transform = transform;
+                _dimensions = dimensions;
+                transformChanged |= _materialMappingMode == MaterialMappingMode::PROJECTED;
+            }
+        }
+
+        auto& material = getMaterial();
+        // Update the old material regardless of if it's going to change
+        if (transformChanged && material && !_parentID.isNull()) {
+            Transform textureTransform;
+            if (_materialMappingMode == MaterialMappingMode::UV) {
+                textureTransform.setTranslation(glm::vec3(_materialMappingPos, 0.0f));
+                textureTransform.setRotation(glm::vec3(0.0f, 0.0f, glm::radians(_materialMappingRot)));
+                textureTransform.setScale(glm::vec3(_materialMappingScale, 1.0f));
+            } else if (_materialMappingMode == MaterialMappingMode::PROJECTED) {
+                textureTransform = _transform;
+                textureTransform.postScale(_dimensions);
+                // Pass the inverse transform here so we don't need to compute it in the shaders
+                textureTransform.evalFromRawMatrix(textureTransform.getInverseMatrix());
+            }
+            material->setTextureTransforms(textureTransform, _materialMappingMode, _materialRepeat);
+        }
+
+        bool deleteNeeded = false;
+        bool addNeeded = _retryApply;
+
+        {
+            QString materialURL = entity->getMaterialURL();
+            if (materialURL != _materialURL) {
+                _materialURL = materialURL;
+                deleteNeeded = true;
+                addNeeded = true;
+            }
+        }
+
         if (_drawMaterial != entity->getMaterial()) {
             _texturesLoaded = false;
             _drawMaterial = entity->getMaterial();
         }
-        _parentID = entity->getParentID();
-        _materialMappingPos = entity->getMaterialMappingPos();
-        _materialMappingScale = entity->getMaterialMappingScale();
-        _materialMappingRot = entity->getMaterialMappingRot();
-        _renderTransform = getModelTransform();
-        const float MATERIAL_ENTITY_SCALE = 0.5f;
-        _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
-        _renderTransform.postScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
 
         bool newTexturesLoaded = _drawMaterial ? !_drawMaterial->isMissingTexture() : false;
         if (!_texturesLoaded && newTexturesLoaded) {
             _drawMaterial->checkResetOpacityMap();
         }
         _texturesLoaded = newTexturesLoaded;
+
+        _renderTransform = getModelTransform();
+        const float MATERIAL_ENTITY_SCALE = 0.5f;
+        _renderTransform.postScale(MATERIAL_ENTITY_SCALE);
+        _renderTransform.postScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     });
 }
 

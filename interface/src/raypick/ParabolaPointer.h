@@ -10,6 +10,8 @@
 
 #include "PathPointer.h"
 
+#include <render/Item.h>
+
 class ParabolaPointer : public PathPointer {
     using Parent = PathPointer;
 public:
@@ -79,7 +81,7 @@ public:
         };
 
         RenderState() {}
-        RenderState(const OverlayID& startID, const OverlayID& endID, const glm::vec3& pathColor, float pathAlpha, float parentScale,
+        RenderState(const QUuid& startID, const QUuid& endID, const glm::vec3& pathColor, float pathAlpha, float parentScale,
                     bool isVisibleInSecondaryCamera, bool drawInFront, bool pathEnabled);
 
         void setPathWidth(float width) { _pathWidth = width; }
