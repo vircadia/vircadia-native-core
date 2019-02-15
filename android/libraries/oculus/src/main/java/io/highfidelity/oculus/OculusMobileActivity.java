@@ -7,17 +7,11 @@
 //
 package io.highfidelity.oculus;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.WindowManager;
-import android.widget.LinearLayout;
 
 import org.qtproject.qt5.android.bindings.QtActivity;
 import io.highfidelity.utils.HifiUtils;
