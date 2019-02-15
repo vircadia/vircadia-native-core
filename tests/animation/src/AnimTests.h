@@ -27,7 +27,6 @@ private slots:
     void testVariant();
     void testAccumulateTime();
     void testAnimPose();
-    void testAnimPoseMultiply();
     void testExpressionTokenizer();
     void testExpressionParser();
     void testExpressionEvaluator();

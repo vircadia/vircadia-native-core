@@ -2980,7 +2980,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
         auto animSkeleton = _skeletonModel->getRig().getAnimSkeleton();
 
         // the rig is in the skeletonModel frame
-        AnimPose xform(1.0f, _skeletonModel->getRotation(), _skeletonModel->getTranslation());
+        AnimPose xform(glm::vec3(1), _skeletonModel->getRotation(), _skeletonModel->getTranslation());
 
         if (_enableDebugDrawDefaultPose && animSkeleton) {
             glm::vec4 gray(0.2f, 0.2f, 0.2f, 0.2f);
@@ -3025,7 +3025,7 @@ void MyAvatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
 
     if (_enableDebugDrawDetailedCollision) {
-        AnimPose rigToWorldPose(1.0f, getWorldOrientation() * Quaternions::Y_180, getWorldPosition());
+        AnimPose rigToWorldPose(glm::vec3(1.0f), getWorldOrientation() * Quaternions::Y_180, getWorldPosition());
         const int NUM_DEBUG_COLORS = 8;
         const glm::vec4 DEBUG_COLORS[NUM_DEBUG_COLORS] = {
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
@@ -4821,7 +4821,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     swingTwistDecomposition(hipsinWorldSpace, avatarUpWorld, resultingSwingInWorld, resultingTwistInWorld);
 
     // remove scale present from sensorToWorldMatrix
-    followWorldPose.scale() = 1.0f;
+    followWorldPose.scale() = glm::vec3(1.0f);
 
     if (isActive(Rotation)) {
             //use the hmd reading for the hips follow

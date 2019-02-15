@@ -14,14 +14,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "AnimUtil.h"
 
-const AnimPose AnimPose::identity = AnimPose(1.0f, glm::quat(), glm::vec3(0.0f));
+const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
+                                             glm::quat(),
+                                             glm::vec3(0.0f));
 
 AnimPose::AnimPose(const glm::mat4& mat) {
     static const float EPSILON = 0.0001f;
-    glm::vec3 scale = extractScale(mat);
+    _scale = extractScale(mat);
     // quat_cast doesn't work so well with scaled matrices, so cancel it out.
-    glm::mat4 tmp = glm::scale(mat, 1.0f / scale);
-    _scale = extractUniformScale(scale);
+    glm::mat4 tmp = glm::scale(mat, 1.0f / _scale);
     _rot = glm::quat_cast(tmp);
     float lengthSquared = glm::length2(_rot);
     if (glm::abs(lengthSquared - 1.0f) > EPSILON) {
@@ -39,15 +40,25 @@ glm::vec3 AnimPose::xformPoint(const glm::vec3& rhs) const {
     return *this * rhs;
 }
 
+// really slow, but accurate for transforms with non-uniform scale
 glm::vec3 AnimPose::xformVector(const glm::vec3& rhs) const {
+    glm::vec3 xAxis = _rot * glm::vec3(_scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale.y, 0.0f);
+    glm::vec3 zAxis = _rot * glm::vec3(0.0f, 0.0f, _scale.z);
+    glm::mat3 mat(xAxis, yAxis, zAxis);
+    glm::mat3 transInvMat = glm::inverse(glm::transpose(mat));
+    return transInvMat * rhs;
+}
+
+// faster, but does not handle non-uniform scale correctly.
+glm::vec3 AnimPose::xformVectorFast(const glm::vec3& rhs) const {
     return _rot * (_scale * rhs);
 }
 
 AnimPose AnimPose::operator*(const AnimPose& rhs) const {
-    float scale = _scale * rhs._scale;
-    glm::quat rot = _rot * rhs._rot;
-    glm::vec3 trans = _trans + (_rot * (_scale * rhs._trans));
-    return AnimPose(scale, rot, trans);
+    glm::mat4 result;
+    glm_mat4u_mul(*this, rhs, result);
+    return AnimPose(result);
 }
 
 AnimPose AnimPose::inverse() const {
@@ -60,10 +71,11 @@ AnimPose AnimPose::mirror() const {
 }
 
 AnimPose::operator glm::mat4() const {
-    glm::vec3 xAxis = _rot * glm::vec3(_scale, 0.0f, 0.0f);
-    glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale, 0.0f);
-    glm::vec3 zAxis = _rot * glm::vec3(0.0f, 0.0f, _scale);
-    return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f), glm::vec4(zAxis, 0.0f), glm::vec4(_trans, 1.0f));
+    glm::vec3 xAxis = _rot * glm::vec3(_scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = _rot * glm::vec3(0.0f, _scale.y, 0.0f);
+    glm::vec3 zAxis = _rot * glm::vec3(0.0f, 0.0f, _scale.z);
+    return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
+        glm::vec4(zAxis, 0.0f), glm::vec4(_trans, 1.0f));
 }
 
 void AnimPose::blend(const AnimPose& srcPose, float alpha) {

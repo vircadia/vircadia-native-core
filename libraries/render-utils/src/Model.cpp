@@ -1364,7 +1364,7 @@ void Model::updateClusterMatrices() {
 
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
-                Transform jointTransform(jointPose.rot(), glm::vec3(jointPose.scale()), jointPose.trans());
+                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
