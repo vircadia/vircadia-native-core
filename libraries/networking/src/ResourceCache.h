@@ -360,13 +360,13 @@ class Resource : public QObject {
     Q_OBJECT
 
 public:
-
+    Resource() : QObject(), _loaded(true) {}
     Resource(const Resource& other);
     Resource(const QUrl& url);
     virtual ~Resource();
 
     virtual QString getType() const { return "Resource"; }
-    
+
     /// Returns the key last used to identify this resource in the unused map.
     int getLRUKey() const { return _lruKey; }
 
@@ -375,13 +375,13 @@ public:
 
     /// Sets the load priority for one owner.
     virtual void setLoadPriority(const QPointer<QObject>& owner, float priority);
-    
+
     /// Sets a set of priorities at once.
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
-    
+
     /// Clears the load priority for one owner.
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
-    
+
     /// Returns the highest load priority across all owners.
     float getLoadPriority();
 
@@ -491,14 +491,14 @@ protected:
     QWeakPointer<Resource> _self;
     QPointer<ResourceCache> _cache;
 
-    qint64 _bytesReceived{ 0 };
-    qint64 _bytesTotal{ 0 };
-    qint64 _bytes{ 0 };
+    qint64 _bytesReceived { 0 };
+    qint64 _bytesTotal { 0 };
+    qint64 _bytes { 0 };
 
     int _requestID;
-    ResourceRequest* _request{ nullptr };
+    ResourceRequest* _request { nullptr };
 
-    size_t _extraHash;
+    size_t _extraHash { std::numeric_limits<size_t>::max() };
 
 public slots:
     void handleDownloadProgress(uint64_t bytesReceived, uint64_t bytesTotal);

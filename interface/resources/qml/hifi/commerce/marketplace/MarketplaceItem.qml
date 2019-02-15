@@ -526,7 +526,7 @@ Rectangle {
                         } else if (root.license === "Attribution-NonCommercial-NoDerivs (CC BY-NC-ND)") {
                           url = "https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode.txt"
                         } else if (root.license === "Proof of Provenance License (PoP License)") {
-                          url = "https://digitalassetregistry.com/PoP-License/v1/"
+                          url = "licenses/Popv1.txt"
                         }
                         if(url) {
                             showLicense(url)

@@ -8,4 +8,4 @@
 
 #include "ModelNetworkingLogging.h"
 
-Q_LOGGING_CATEGORY(modelnetworking, "hifi.gpu-network")
+Q_LOGGING_CATEGORY(modelnetworking, "hifi.gpu-model-network")

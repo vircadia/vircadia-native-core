@@ -126,6 +126,8 @@ private:
     bool _isRunningFromCommandline{ false };
 
     void* _caller;
+
+    QStringList clientProfiles;
 };
 
 #endif  // hifi_Nitpick_h

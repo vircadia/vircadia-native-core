@@ -1326,7 +1326,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     hfmModel.meshExtents.reset();
 
     // Create the Material Library
-    consolidateHFMMaterials(mapping);
+    consolidateHFMMaterials();
 
     // We can't allow the scaling of a given image to different sizes, because the hash used for the KTX cache is based on the original image
     // Allowing scaling of the same image to different sizes would cause different KTX files to target the same cache key
