@@ -1863,14 +1863,14 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     }
 
     const float POWER = 2.0f;
-    const float FLEX_BOUNDARY = PI / 5.0f;
-    const float EXTEND_BOUNDARY = -PI / 6.0f;
+    const float FLEX_BOUNDARY = PI / 6.0f;
+    const float EXTEND_BOUNDARY = -PI / 4.0f;
     float flexCorrection = 0.0f;
     if (left) {
         if (_flexThetaRunningAverageLeft > FLEX_BOUNDARY) {
-            flexCorrection = ((_flexThetaRunningAverageLeft - FLEX_BOUNDARY) / PI) * 180.0f;
+            flexCorrection = ((_flexThetaRunningAverageLeft - FLEX_BOUNDARY) / PI) * 90.0f;
         } else if (_flexThetaRunningAverageLeft < EXTEND_BOUNDARY) {
-            flexCorrection = ((_flexThetaRunningAverageLeft - EXTEND_BOUNDARY) / PI) * 180.0f;
+            flexCorrection = ((_flexThetaRunningAverageLeft - EXTEND_BOUNDARY) / PI) * 90.0f;
         }
         if (fabs(flexCorrection) > 30.0f) {
             flexCorrection = glm::sign(flexCorrection) * 30.0f;
@@ -1889,8 +1889,8 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     }
 
     const float TWIST_ULNAR_DEADZONE = 0.0f;
-    const float ULNAR_BOUNDARY_MINUS = -PI / 12.0f;
-    const float ULNAR_BOUNDARY_PLUS = PI / 24.0f;
+    const float ULNAR_BOUNDARY_MINUS = -PI / 6.0f;
+    const float ULNAR_BOUNDARY_PLUS = PI / 6.0f;
     float ulnarDiff = 0.0f;
     float ulnarCorrection = 0.0f;
     if (left) {
@@ -1907,16 +1907,16 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
                 }
                 if (left) {
                     if (trueTwistTheta < 0.0f) {
-                        ulnarCorrection -= glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
+                        ulnarCorrection -= glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 40.0f * twistCoefficient;
                     } else {
-                        ulnarCorrection += glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
+                        ulnarCorrection += glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 40.0f * twistCoefficient;
                     }
                 } else {
                     // right hand
                     if (trueTwistTheta > 0.0f) {
-                        ulnarCorrection -= glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
+                        ulnarCorrection -= glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 40.0f * twistCoefficient;
                     } else {
-                        ulnarCorrection += glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 90.0f * twistCoefficient;
+                        ulnarCorrection += glm::sign(ulnarDiff) * (fabs(ulnarDiff) / PI) * 40.0f * twistCoefficient;
                     }
                 }
                 if (fabsf(ulnarCorrection) > 20.0f) {
