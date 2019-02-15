@@ -14,13 +14,14 @@ using System.Collections.Generic;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.1";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.2";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
     static readonly int MAXIMUM_USER_BONE_COUNT = 256;
     static readonly string EMPTY_WARNING_TEXT = "None";
     
+    // TODO: use regex
     static readonly string[] RECOMMENDED_UNITY_VERSIONS = new string[] {
         "2018.2.12f1",
         "2018.2.11f1",
@@ -262,8 +263,8 @@ class AvatarExporter : MonoBehaviour {
     static string assetPath = "";
     static string assetName = "";
     static HumanDescription humanDescription;
-    
- 
+    static Dictionary<string, string> dependencyTextures = new Dictionary<string, string>();
+
     [MenuItem("High Fidelity/Export New Avatar")]
     static void ExportNewAvatar() {
         ExportSelectedAvatar(false);
@@ -301,53 +302,37 @@ class AvatarExporter : MonoBehaviour {
                                                  " the Rig section of it's Inspector window.", "Ok");
             return;
         }
-        
+
         humanDescription = modelImporter.humanDescription;
         SetUserBoneInformation();
+        string textureWarnings = SetTextureDependencies();
+        
+        // check if we should be substituting a bone for a missing UpperChest mapping
+        AdjustUpperChestMapping();
 
         // format resulting bone rule failure strings
         // consider export-blocking bone rules to be errors and show them in an error dialog,
-        // and also include any other bone rule failures as warnings in the dialog
+        // and also include any other bone rule failures plus texture warnings as warnings in the dialog
         string boneErrors = "";
-        string boneWarnings = "";
+        string warnings = "";
         foreach (var failedBoneRule in failedBoneRules) {
             if (Array.IndexOf(EXPORT_BLOCKING_BONE_RULES, failedBoneRule.Key) >= 0) {
                 boneErrors += failedBoneRule.Value + "\n\n";
             } else {
-                boneWarnings += failedBoneRule.Value + "\n\n";
+                warnings += failedBoneRule.Value + "\n\n";
             }           
         }
+        warnings += textureWarnings;
         if (!string.IsNullOrEmpty(boneErrors)) {
             // if there are both errors and warnings then warnings will be displayed with errors in the error dialog
-            if (!string.IsNullOrEmpty(boneWarnings)) {
+            if (!string.IsNullOrEmpty(warnings)) {
                 boneErrors = "Errors:\n\n" + boneErrors;
-                boneErrors += "Warnings:\n\n" + boneWarnings;
+                boneErrors += "Warnings:\n\n" + warnings;
             }
             // remove ending newlines from the last rule failure string that was added above
             boneErrors = boneErrors.Substring(0, boneErrors.LastIndexOf("\n\n"));
             EditorUtility.DisplayDialog("Error", boneErrors, "Ok");
             return;
-        }
-        
-        if (!humanoidToUserBoneMappings.ContainsKey("UpperChest")) {
-            // if parent of Neck is not Chest then map the parent to UpperChest
-            string neckUserBone;
-            if (humanoidToUserBoneMappings.TryGetValue("Neck", out neckUserBone)) {
-                UserBoneInformation neckParentBoneInfo;
-                string neckParentUserBone = userBoneInfos[neckUserBone].parentName;
-                if (userBoneInfos.TryGetValue(neckParentUserBone, out neckParentBoneInfo) && !neckParentBoneInfo.HasHumanMapping()) {
-                    neckParentBoneInfo.humanName = "UpperChest";
-                    humanoidToUserBoneMappings.Add("UpperChest", neckParentUserBone);
-                }
-            }
-            // if there is still no UpperChest bone but there is a Chest bone then we remap Chest to UpperChest 
-            string chestUserBone;
-            if (!humanoidToUserBoneMappings.ContainsKey("UpperChest") && 
-                humanoidToUserBoneMappings.TryGetValue("Chest", out chestUserBone)) {       
-                userBoneInfos[chestUserBone].humanName = "UpperChest";
-                humanoidToUserBoneMappings.Remove("Chest");
-                humanoidToUserBoneMappings.Add("UpperChest", chestUserBone);
-            }
         }
 
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
@@ -407,7 +392,13 @@ class AvatarExporter : MonoBehaviour {
                         return;
                     } else if (option == 0) { // Yes - copy model to Unity project
                         // copy the fbx from the project folder to Unity Assets, overwriting the existing fbx, and re-import it
-                        File.Copy(exportModelPath, assetPath, true);
+                        try {
+                            File.Copy(exportModelPath, assetPath, true);
+                        } catch {
+                            EditorUtility.DisplayDialog("Error", "Failed to copy existing file " + exportModelPath + " to " + assetPath + 
+                                                        ". Please check the location and try again.", "Ok");
+                            return;
+                        }
                         AssetDatabase.ImportAsset(assetPath);
                         
                         // set model to Humanoid animation type and force another refresh on it to process Humanoid
@@ -455,12 +446,20 @@ class AvatarExporter : MonoBehaviour {
             }
 
             // write out a new fst file in place of the old file
-            WriteFST(exportFstPath, projectName);
+            if (!WriteFST(exportFstPath, projectName)) {
+                return;
+            }
+            
+            // copy any external texture files to the project's texture directory that are considered dependencies of the model
+            string texturesDirectory = GetTextureDirectory(exportFstPath);
+            if (!CopyExternalTextures(texturesDirectory)) {
+                return;
+            }
             
             // display success dialog with any bone rule warnings
             string successDialog = "Avatar successfully updated!";
-            if (!string.IsNullOrEmpty(boneWarnings)) {
-                successDialog += "\n\nWarnings:\n" + boneWarnings;
+            if (!string.IsNullOrEmpty(warnings)) {
+                successDialog += "\n\nWarnings:\n" + warnings;
             }
             EditorUtility.DisplayDialog("Success!", successDialog, "Ok");
         } else { // Export New Avatar menu option
@@ -469,13 +468,13 @@ class AvatarExporter : MonoBehaviour {
                 Directory.CreateDirectory(hifiFolder);
             }
             
-            if (string.IsNullOrEmpty(boneWarnings)) {
-                boneWarnings = EMPTY_WARNING_TEXT;
+            if (string.IsNullOrEmpty(warnings)) {
+                warnings = EMPTY_WARNING_TEXT;
             }
             
             // open a popup window to enter new export project name and project location
             ExportProjectWindow window = ScriptableObject.CreateInstance<ExportProjectWindow>();
-            window.Init(hifiFolder, boneWarnings, OnExportProjectWindowClose);
+            window.Init(hifiFolder, warnings, OnExportProjectWindowClose);
         }
     }
     
@@ -485,28 +484,34 @@ class AvatarExporter : MonoBehaviour {
         File.Copy(assetPath, exportModelPath);
         
         // create empty Textures and Scripts folders in the project directory
-        string texturesDirectory = projectDirectory + "\\textures";
+        string texturesDirectory = GetTextureDirectory(projectDirectory);
         string scriptsDirectory = projectDirectory + "\\scripts";
         Directory.CreateDirectory(texturesDirectory);
         Directory.CreateDirectory(scriptsDirectory);
         
         // write out the avatar.fst file to the project directory
         string exportFstPath = projectDirectory + "avatar.fst";
-        WriteFST(exportFstPath, projectName);
+        if (!WriteFST(exportFstPath, projectName)) {
+            return;
+        }
+        
+        // copy any external texture files to the project's texture directory that are considered dependencies of the model
+        if (!CopyExternalTextures(texturesDirectory)) {
+            return;
+        }
         
         // remove any double slashes in texture directory path, display success dialog with any
         // bone warnings previously mentioned, and suggest user to copy external textures over
-        texturesDirectory = texturesDirectory.Replace("\\\\", "\\");
         string successDialog = "Avatar successfully exported!\n\n";
         if (warnings != EMPTY_WARNING_TEXT) {
             successDialog += "Warnings:\n" + warnings;
         }
         successDialog += "Note: If you are using any external textures with your model, " +
-                         "please copy those textures to " + texturesDirectory;
+                         "please ensure those textures are copied to " + texturesDirectory;
         EditorUtility.DisplayDialog("Success!", successDialog, "Ok");
     }
     
-    static void WriteFST(string exportFstPath, string projectName) {        
+    static bool WriteFST(string exportFstPath, string projectName) {        
         // write out core fields to top of fst file
         try {
             File.WriteAllText(exportFstPath, "name = " + projectName + "\ntype = body+head\nscale = 1\nfilename = " + 
@@ -514,7 +519,7 @@ class AvatarExporter : MonoBehaviour {
         } catch { 
             EditorUtility.DisplayDialog("Error", "Failed to write file " + exportFstPath + 
                                         ". Please check the location and try again.", "Ok");
-            return;
+            return false;
         }
         
         // write out joint mappings to fst file
@@ -573,6 +578,8 @@ class AvatarExporter : MonoBehaviour {
              
         // open File Explorer to the project directory once finished
         System.Diagnostics.Process.Start("explorer.exe", "/select," + exportFstPath);
+        
+        return true;
     }
     
     static void SetUserBoneInformation() {
@@ -650,6 +657,29 @@ class AvatarExporter : MonoBehaviour {
             result = userBoneInfos[result].parentName;            
         }
         return result;
+    }
+    
+    static void AdjustUpperChestMapping() {
+        if (!humanoidToUserBoneMappings.ContainsKey("UpperChest")) {
+            // if parent of Neck is not Chest then map the parent to UpperChest
+            string neckUserBone;
+            if (humanoidToUserBoneMappings.TryGetValue("Neck", out neckUserBone)) {
+                UserBoneInformation neckParentBoneInfo;
+                string neckParentUserBone = userBoneInfos[neckUserBone].parentName;
+                if (userBoneInfos.TryGetValue(neckParentUserBone, out neckParentBoneInfo) && !neckParentBoneInfo.HasHumanMapping()) {
+                    neckParentBoneInfo.humanName = "UpperChest";
+                    humanoidToUserBoneMappings.Add("UpperChest", neckParentUserBone);
+                }
+            }
+            // if there is still no UpperChest bone but there is a Chest bone then we remap Chest to UpperChest 
+            string chestUserBone;
+            if (!humanoidToUserBoneMappings.ContainsKey("UpperChest") && 
+                humanoidToUserBoneMappings.TryGetValue("Chest", out chestUserBone)) {       
+                userBoneInfos[chestUserBone].humanName = "UpperChest";
+                humanoidToUserBoneMappings.Remove("Chest");
+                humanoidToUserBoneMappings.Add("UpperChest", chestUserBone);
+            }
+        }
     }
     
     static void SetFailedBoneRules() {
@@ -864,6 +894,50 @@ class AvatarExporter : MonoBehaviour {
                                           leftCount + ") does not match the number of bones mapped in Humanoid for the right " +
                                           appendage + " (" + rightCount + ").");
         }
+    }
+    
+    static string GetTextureDirectory(string basePath) {
+        string textureDirectory = Path.GetDirectoryName(basePath) + "\\textures";
+        textureDirectory = textureDirectory.Replace("\\\\", "\\");
+        return textureDirectory;
+    }
+    
+    static string SetTextureDependencies() {
+        string textureWarnings = "";
+        dependencyTextures.Clear();
+        
+        // build the list of all local asset paths for textures that Unity considers dependencies of the model
+        // for any textures that have duplicate names, return a string of duplicate name warnings
+        string[] dependencies = AssetDatabase.GetDependencies(assetPath);
+        foreach (string dependencyPath in dependencies) {
+            UnityEngine.Object textureObject = AssetDatabase.LoadAssetAtPath(dependencyPath, typeof(Texture2D));
+            if (textureObject != null) {
+                string textureName = Path.GetFileName(dependencyPath);
+                if (dependencyTextures.ContainsKey(textureName)) {
+                    textureWarnings += "There is more than one texture with the name " + textureName + 
+                                       " referenced in the selected avatar.\n\n";
+                } else {
+                    dependencyTextures.Add(textureName, dependencyPath);
+                }
+            }
+        }
+        
+        return textureWarnings;
+    }
+    
+    static bool CopyExternalTextures(string texturesDirectory) {
+        // copy the found dependency textures from the local asset folder to the textures folder in the target export project
+        foreach (var texture in dependencyTextures) {
+            string targetPath = texturesDirectory + "\\" + texture.Key;
+            try {
+                File.Copy(texture.Value, targetPath, true);
+            } catch {
+                EditorUtility.DisplayDialog("Error", "Failed to copy texture file " + texture.Value + " to " + targetPath +
+                                            ". Please check the location and try again.", "Ok");
+                return false;
+            }
+        }
+        return true;
     }
 }
 
