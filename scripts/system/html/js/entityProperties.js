@@ -1485,6 +1485,8 @@ const ENTITY_SCRIPT_STATUS = {
     unloaded: "Unloaded"
 };
 
+const ENABLE_DISABLE_SELECTOR = "input, textarea, span, .dropdown dl, .color-picker";
+
 const PROPERTY_NAME_DIVISION = {
     GROUP: 0,
     PROPERTY: 1,
@@ -1584,8 +1586,7 @@ function disableChildren(el, selector) {
 }
 
 function enableProperties() {
-    enableChildren(document.getElementById("properties-list"),
-                   "input, textarea, checkbox, .dropdown dl, .color-picker , .draggable-number.text");
+    enableChildren(document.getElementById("properties-list"), ENABLE_DISABLE_SELECTOR);
     enableChildren(document, ".colpick");
     
     let elLocked = getPropertyInputElement("locked");
@@ -1596,8 +1597,7 @@ function enableProperties() {
 }
 
 function disableProperties() {
-    disableChildren(document.getElementById("properties-list"),
-                    "input, textarea, checkbox, .dropdown dl, .color-picker, .draggable-number.text");
+    disableChildren(document.getElementById("properties-list"), ENABLE_DISABLE_SELECTOR);
     disableChildren(document, ".colpick");
     for (let pickKey in colorPickers) {
         colorPickers[pickKey].colpickHide();
@@ -3349,8 +3349,8 @@ function loaded() {
                                 let shouldHide = selectedEntityProperties.certificateID !== "";
                                 if (shouldHide) {
                                     propertyValue = "** Certified **";
+                                    property.elInput.disabled = true;
                                 }
-                                property.elInput.disabled = shouldHide;
                             }
                             
                             let isPropertyNotNumber = false;
