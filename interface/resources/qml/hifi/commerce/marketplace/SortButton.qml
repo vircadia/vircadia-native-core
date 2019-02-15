@@ -28,8 +28,8 @@ Item {
     
     id: root;
     
-    property string ascGlyph: "\u2191"
-    property string descGlyph: "\u2193"
+    property string ascGlyph: "\u2193"
+    property string descGlyph: "\u2191"
     property string text: ""
     property bool ascending: false
     property bool checked: false
