@@ -117,30 +117,29 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         bool addNeeded = _retryApply;
         bool urlChanged = false;
 
+        std::string newCurrentMaterialName = _currentMaterialName;
         {
             QString materialURL = entity->getMaterialURL();
             if (materialURL != _materialURL) {
                 _materialURL = materialURL;
                 if (_materialURL.contains("?")) {
                     auto split = _materialURL.split("?");
-                    _currentMaterialName = split.last().toStdString();
+                    newCurrentMaterialName = split.last().toStdString();
                 }
                 urlChanged = true;
             }
         }
 
         bool usingMaterialData = _materialURL.startsWith("materialData");
+        bool materialDataChanged = false;
+        QUuid oldParentID = _parentID;
+        QString oldParentMaterialName = _parentMaterialName;
         {
             QString materialData = entity->getMaterialData();
             if (materialData != _materialData) {
                 _materialData = materialData;
                 if (usingMaterialData) {
-                    _texturesLoaded = false;
-                    deleteNeeded = true;
-                    addNeeded = true;
-                    _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(_materialData.toUtf8()), _materialURL);
-                    // Since our material changed, the current name might not be valid anymore, so we need to update	
-                    setCurrentMaterialName(_currentMaterialName);
+                    materialDataChanged = true;
                 }
             }
         }
@@ -152,7 +151,6 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
                 addNeeded = true;
             }
         }
-        QUuid oldParentID = _parentID;
         {
             QUuid parentID = entity->getParentID();
             if (parentID != _parentID) {
@@ -172,13 +170,17 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
 
         if (urlChanged && !usingMaterialData) {
             _networkMaterial = MaterialCache::instance().getMaterial(_materialURL);
-            auto onMaterialRequestFinished = [&, oldParentID](bool success) {
+            auto onMaterialRequestFinished = [&, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
                 if (success) {
+                    deleteMaterial(oldParentID, oldParentMaterialName);
                     _texturesLoaded = false;
                     _parsedMaterials = _networkMaterial->parsedMaterials;
-                    setCurrentMaterialName(_currentMaterialName);
-                    deleteMaterial(oldParentID);
+                    setCurrentMaterialName(newCurrentMaterialName);
                     applyMaterial();
+                } else {
+                    deleteMaterial(oldParentID, oldParentMaterialName);
+                    _retryApply = false;
+                    _texturesLoaded = true;
                 }
             };
             if (_networkMaterial) {
@@ -188,9 +190,16 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
                     connect(_networkMaterial.data(), &Resource::finished, this, onMaterialRequestFinished);
                 }
             }
+        } else if (materialDataChanged && usingMaterialData) {
+            deleteMaterial(oldParentID, oldParentMaterialName);
+            _texturesLoaded = false;
+            _parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument::fromJson(_materialData.toUtf8()), _materialURL);
+            // Since our material changed, the current name might not be valid anymore, so we need to update
+            setCurrentMaterialName(newCurrentMaterialName);
+            applyMaterial();
         } else {
             if (deleteNeeded) {
-                deleteMaterial(oldParentID);
+                deleteMaterial(oldParentID, oldParentMaterialName);
             }
             if (addNeeded) {
                 applyMaterial();
@@ -328,21 +337,21 @@ std::shared_ptr<NetworkMaterial> MaterialEntityRenderer::getMaterial() const {
     }
 }
 
-void MaterialEntityRenderer::deleteMaterial(const QUuid& oldParentID) {
-    std::shared_ptr<NetworkMaterial> material = getMaterial();
-    if (!material) {
-        return;
-    }
-    if (oldParentID.isNull()) {
+void MaterialEntityRenderer::deleteMaterial(const QUuid& oldParentID, const QString& oldParentMaterialName) {
+    std::shared_ptr<NetworkMaterial> material = _appliedMaterial;
+    if (!material || oldParentID.isNull()) {
         return;
     }
 
     // Our parent could be an entity or an avatar
-    if (EntityTreeRenderer::removeMaterialFromEntity(oldParentID, material, _parentMaterialName.toStdString())) {
+    std::string oldParentMaterialNameStd = oldParentMaterialName.toStdString();
+    if (EntityTreeRenderer::removeMaterialFromEntity(oldParentID, material, oldParentMaterialNameStd)) {
+        _appliedMaterial = nullptr;
         return;
     }
 
-    if (EntityTreeRenderer::removeMaterialFromAvatar(oldParentID, material, _parentMaterialName.toStdString())) {
+    if (EntityTreeRenderer::removeMaterialFromAvatar(oldParentID, material, oldParentMaterialNameStd)) {
+        _appliedMaterial = nullptr;
         return;
     }
 
@@ -366,9 +375,11 @@ void MaterialEntityRenderer::applyTextureTransform(std::shared_ptr<NetworkMateri
 
 void MaterialEntityRenderer::applyMaterial() {
     _retryApply = false;
+
     std::shared_ptr<NetworkMaterial>& material = getMaterial();
     QUuid parentID = _parentID;
     if (!material || parentID.isNull()) {
+        _appliedMaterial = nullptr;
         return;
     }
 
@@ -377,11 +388,14 @@ void MaterialEntityRenderer::applyMaterial() {
     graphics::MaterialLayer materialLayer = graphics::MaterialLayer(material, _priority);
 
     // Our parent could be an entity or an avatar
-    if (EntityTreeRenderer::addMaterialToEntity(parentID, materialLayer, _parentMaterialName.toStdString())) {
+    std::string parentMaterialName = _parentMaterialName.toStdString();
+    if (EntityTreeRenderer::addMaterialToEntity(parentID, materialLayer, parentMaterialName)) {
+        _appliedMaterial = material;
         return;
     }
 
-    if (EntityTreeRenderer::addMaterialToAvatar(parentID, materialLayer, _parentMaterialName.toStdString())) {
+    if (EntityTreeRenderer::addMaterialToAvatar(parentID, materialLayer, parentMaterialName)) {
+        _appliedMaterial = material;
         return;
     }
 

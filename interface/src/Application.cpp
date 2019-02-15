@@ -1919,6 +1919,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
             renderable->addMaterial(material, parentMaterialName);
+            return true;
         }
 
         return false;
@@ -1931,6 +1932,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
             renderable->removeMaterial(material, parentMaterialName);
+            return true;
         }
 
         return false;

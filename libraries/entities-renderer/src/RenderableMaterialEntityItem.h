@@ -24,7 +24,7 @@ class MaterialEntityRenderer : public TypedEntityRenderer<MaterialEntityItem> {
     using Pointer = std::shared_ptr<MaterialEntityRenderer>;
 public:
     MaterialEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
-    ~MaterialEntityRenderer() { deleteMaterial(_parentID); }
+    ~MaterialEntityRenderer() { deleteMaterial(_parentID, _parentMaterialName); }
 
 private:
     virtual bool needsRenderUpdate() const override;
@@ -57,10 +57,11 @@ private:
 
     void applyTextureTransform(std::shared_ptr<NetworkMaterial>& material);
     void applyMaterial();
-    void deleteMaterial(const QUuid& oldParentID);
+    void deleteMaterial(const QUuid& oldParentID, const QString& oldParentMaterialName);
 
     NetworkMaterialResourcePointer _networkMaterial;
     NetworkMaterialResource::ParsedMaterials _parsedMaterials;
+    std::shared_ptr<NetworkMaterial> _appliedMaterial;
     std::string _currentMaterialName;
 
 };
