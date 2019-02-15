@@ -1189,12 +1189,14 @@ public:
     /**jsdoc
     * Init flow simulation on avatar.
     * @function MyAvatar.useFlow
+    * @param {boolean} - Set to <code>true</code> to activate flow simulation.
+    * @param {boolean} - Set to <code>true</code> to activate collisions.
     * @param {Object} physicsConfig - object with the customized physic parameters
     * i.e. {"hair": {"active": true, "stiffness": 0.0, "radius": 0.04, "gravity": -0.035, "damping": 0.8, "inertia": 0.8, "delta": 0.35}}
     * @param {Object} collisionsConfig - object with the customized collision parameters
     * i.e. {"Spine2": {"type": "sphere", "radius": 0.14, "offset": {"x": 0.0, "y": 0.2, "z": 0.0}}}
     */
-    Q_INVOKABLE void useFlow(const QVariantMap& flowConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
+    Q_INVOKABLE void useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
 
 public slots:
 

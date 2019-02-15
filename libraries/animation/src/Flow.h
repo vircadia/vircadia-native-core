@@ -11,7 +11,6 @@
 #ifndef hifi_Flow_h
 #define hifi_Flow_h
 
-#include <qelapsedtimer.h>
 #include <qstring.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -22,11 +21,7 @@
 class Rig;
 class AnimSkeleton;
 
-const bool SHOW_AVATAR = true;
-const bool SHOW_DEBUG_SHAPES = false;
-const bool SHOW_SOLID_SHAPES = false;
 const bool SHOW_DUMMY_JOINTS = false;
-const bool USE_COLLISIONS = true;
 
 const int LEFT_HAND = 0;
 const int RIGHT_HAND = 1;
@@ -55,7 +50,7 @@ const float DUMMY_JOINT_DISTANCE = 0.05f;
 const float ISOLATED_JOINT_STIFFNESS = 0.0f;
 const float ISOLATED_JOINT_LENGTH = 0.05f;
 
-const float DEFAULT_STIFFNESS = 0.8f;
+const float DEFAULT_STIFFNESS = 0.0f;
 const float DEFAULT_GRAVITY = -0.0096f;
 const float DEFAULT_DAMPING = 0.85f;
 const float DEFAULT_INERTIA = 0.8f;
@@ -76,7 +71,7 @@ struct FlowPhysicsSettings {
         _radius = radius;
     }
     bool _active{ true };
-    float _stiffness{ 0.0f };
+    float _stiffness{ DEFAULT_STIFFNESS };
     float _gravity{ DEFAULT_GRAVITY };
     float _damping{ DEFAULT_DAMPING };
     float _inertia{ DEFAULT_INERTIA };
@@ -158,11 +153,6 @@ public:
 
     std::vector<FlowCollisionResult> checkFlowThreadCollisions(FlowThread* flowThread);
 
-    int findSelfCollisionWithJoint(int jointIndex);
-    void modifySelfCollisionRadius(int jointIndex, float radius);
-    void modifySelfCollisionYOffset(int jointIndex, float offset);
-    void modifySelfCollisionOffset(int jointIndex, const glm::vec3& offset);
-
     std::vector<FlowCollisionSphere>& getSelfCollisions() { return _selfCollisions; };
     void setOthersCollisions(const std::vector<FlowCollisionSphere>& othersCollisions) { _othersCollisions = othersCollisions; }
     void prepareCollisions();
@@ -171,11 +161,14 @@ public:
     void setScale(float scale);
     FlowCollisionSettings getCollisionSettingsByJoint(int jointIndex);
     void setCollisionSettingsByJoint(int jointIndex, const FlowCollisionSettings& settings);
+    void setActive(bool active) { _active = active; }
+    bool getActive() const { return _active; }
 protected:
     std::vector<FlowCollisionSphere> _selfCollisions;
     std::vector<FlowCollisionSphere> _othersCollisions;
     std::vector<FlowCollisionSphere> _allCollisions;
-    float _scale{ 1.0f };
+    float _scale { 1.0f };
+    bool _active { false };
 };
 
 class FlowNode {
@@ -260,7 +253,7 @@ public:
     void computeFlowThread(int rootIndex);
     void computeRecovery();
     void update(float deltaTime);
-    void solve(bool useCollisions, FlowCollisionSystem& collisionSystem);
+    void solve(FlowCollisionSystem& collisionSystem);
     void computeJointRotations();
     void apply();
     bool getActive();
@@ -277,7 +270,7 @@ public:
 class Flow {
 public:
     Flow(Rig* rig) { _rig = rig; };
-    void init();
+    void init(bool isActive, bool isCollidable);
     bool isActive() { return _active; }
     void calculateConstraints();
     void update(float deltaTime);
@@ -286,7 +279,6 @@ public:
     const std::vector<FlowThread>& getThreads() const { return _jointThreads; }
     void setOthersCollision(const QUuid& otherId, int jointIndex, const glm::vec3& position);
     FlowCollisionSystem& getCollisionSystem() { return _collisionSystem; }
-    FlowPhysicsSettings getPhysicsSettingsForGroup(const QString& group);
     void setPhysicsSettingsForGroup(const QString& group, const FlowPhysicsSettings& settings);
 private:
     void setJoints();
@@ -294,6 +286,7 @@ private:
     void updateJoints();
     bool updateRootFramePositions(size_t threadIndex);
     bool worldToJointPoint(const glm::vec3& position, const int jointIndex, glm::vec3& jointSpacePosition) const;
+    void setScale(float scale);
     Rig* _rig;
     float _scale { 1.0f };
     float _lastScale{ 1.0f };
@@ -306,9 +299,6 @@ private:
     bool _initialized { false };
     bool _active { false };
     bool _isScaleSet { false };
-    int _deltaTime { 0 };
-    int _deltaTimeLimit { 4000000 };
-    int _updates { 0 };
     bool _invertThreadLoop { false };
 };
 

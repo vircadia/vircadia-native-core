@@ -93,8 +93,7 @@ FlowCollisionResult FlowCollisionSystem::computeCollision(const std::vector<Flow
         result._normal = glm::normalize(result._normal);
         result._position = result._position / (float)collisions.size();
         result._distance = result._distance / collisions.size();
-    }
-    else if (collisions.size() == 1) {
+    } else if (collisions.size() == 1) {
         result = collisions[0];
     }
     result._count = (int)collisions.size();
@@ -163,39 +162,6 @@ std::vector<FlowCollisionResult> FlowCollisionSystem::checkFlowThreadCollisions(
     return results;
 };
 
-int FlowCollisionSystem::findSelfCollisionWithJoint(int jointIndex) {
-    for (size_t i = 0; i < _selfCollisions.size(); i++) {
-        if (_selfCollisions[i]._jointIndex == jointIndex) {
-            return (int)i;
-        }
-    }
-    return -1;
-};
-
-void FlowCollisionSystem::modifySelfCollisionRadius(int jointIndex, float radius) {
-    int collisionIndex = findSelfCollisionWithJoint(jointIndex);
-    if (collisionIndex > -1) {
-        _selfCollisions[collisionIndex]._initialRadius = radius;
-        //_selfCollisions[collisionIndex]._radius = _scale * radius;
-    }
-};
-
-void FlowCollisionSystem::modifySelfCollisionYOffset(int jointIndex, float offset) {
-    int collisionIndex = findSelfCollisionWithJoint(jointIndex);
-    if (collisionIndex > -1) {
-        auto currentOffset = _selfCollisions[collisionIndex]._offset;
-        _selfCollisions[collisionIndex]._initialOffset = glm::vec3(currentOffset.x, offset, currentOffset.z);
-        //_selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
-    }
-};
-
-void FlowCollisionSystem::modifySelfCollisionOffset(int jointIndex, const glm::vec3& offset) {
-    int collisionIndex = findSelfCollisionWithJoint(jointIndex);
-    if (collisionIndex > -1) {
-        _selfCollisions[collisionIndex]._initialOffset = offset;
-        //_selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
-    }
-};
 FlowCollisionSettings FlowCollisionSystem::getCollisionSettingsByJoint(int jointIndex) {
     for (auto &collision : _selfCollisions) {
         if (collision._jointIndex == jointIndex) {
@@ -243,13 +209,11 @@ void FlowNode::update(float deltaTime, const glm::vec3& accelerationOffset) {
 
         // Add offset
         _acceleration += accelerationOffset;
-        
-        //glm::vec3 deltaAcceleration = timeRatio * _acceleration * glm::pow(_settings._delta * _scale, 2);
-        glm::vec3 deltaAcceleration = timeRatio * _acceleration * glm::pow(_settings._delta, 2);
+        float accelerationFactor = glm::pow(_settings._delta, 2) * timeRatio;
+        glm::vec3 deltaAcceleration = _acceleration * accelerationFactor;
         // Calculate new position        
-        _currentPosition = (_currentPosition + _currentVelocity * _settings._damping) + deltaAcceleration;
-    }
-    else {
+        _currentPosition = _currentPosition + (_currentVelocity * _settings._damping) + deltaAcceleration;
+    } else {
         _acceleration = glm::vec3(0.0f);
         _currentVelocity = glm::vec3(0.0f);
     }
@@ -273,8 +237,7 @@ void FlowNode::solveCollisions(const FlowCollisionResult& collision) {
     if (_colliding) {
         _currentPosition = _currentPosition + collision._normal * collision._offset;
         _previousCollision = collision;
-    }
-    else {
+    } else {
         _previousCollision = FlowCollisionResult();
     }
 };
@@ -317,7 +280,8 @@ void FlowJoint::update(float deltaTime) {
     glm::vec3 accelerationOffset = glm::vec3(0.0f);
     if (_node._settings._stiffness > 0.0f) {
         glm::vec3 recoveryVector = _recoveryPosition - _node._currentPosition;
-        accelerationOffset = recoveryVector * glm::pow(_node._settings._stiffness, 3);
+        float recoveryFactor = glm::pow(_node._settings._stiffness, 3);
+        accelerationOffset = recoveryVector * recoveryFactor;
     }
     _node.update(deltaTime, accelerationOffset);
     if (_node._anchored) {
@@ -386,7 +350,8 @@ void FlowThread::computeRecovery() {
     glm::quat parentRotation = parentJoint._parentWorldRotation * parentJoint._initialRotation;
     for (size_t i = 1; i < _joints.size(); i++) {
         auto joint = _jointsPointer->at(_joints[i]);
-        glm::quat rotation = i == 1 ? parentRotation : rotation * parentJoint._initialRotation;
+        glm::quat rotation;
+        rotation = (i == 1) ? parentRotation : parentJoint._initialRotation;
         _jointsPointer->at(_joints[i])._recoveryPosition = joint._recoveryPosition = parentJoint._recoveryPosition + (rotation * (joint._initialTranslation * 0.01f));
         parentJoint = joint;
     }
@@ -395,8 +360,11 @@ void FlowThread::computeRecovery() {
 void FlowThread::update(float deltaTime) {
     if (getActive()) {
         _positions.clear();
-        _radius = _jointsPointer->at(_joints[0])._node._settings._radius;
-        computeRecovery();
+        auto &firstJoint = _jointsPointer->at(_joints[0]);
+        _radius = firstJoint._node._settings._radius;
+        if (firstJoint._node._settings._stiffness > 0.0f) {
+            computeRecovery();
+        }
         for (size_t i = 0; i < _joints.size(); i++) {
             auto &joint = _jointsPointer->at(_joints[i]);
             joint.update(deltaTime);
@@ -405,11 +373,10 @@ void FlowThread::update(float deltaTime) {
     }
 };
 
-void FlowThread::solve(bool useCollisions, FlowCollisionSystem& collisionSystem) {
+void FlowThread::solve(FlowCollisionSystem& collisionSystem) {
     if (getActive()) {
-        if (useCollisions) {
+        if (collisionSystem.getActive()) {
             auto bodyCollisions = collisionSystem.checkFlowThreadCollisions(this);
-            int handTouchedJoint = -1;
             for (size_t i = 0; i < _joints.size(); i++) {
                 int index = _joints[i];
                 _jointsPointer->at(index).solve(bodyCollisions[i]);
@@ -471,10 +438,15 @@ bool FlowThread::getActive() {
     return _jointsPointer->at(_joints[0])._node._active;
 };
 
-void Flow::init() {
-    if (!_initialized) {
-        calculateConstraints();
+void Flow::init(bool isActive, bool isCollidable) {
+    if (isActive) {
+        if (!_initialized) {
+            calculateConstraints();
+        }
+    } else {
+        cleanUp();
     }
+
 }
 
 void Flow::calculateConstraints() {
@@ -509,18 +481,18 @@ void Flow::calculateConstraints() {
             if (isFlowJoint || isSimJoint) {
                 group = "";
                 if (isSimJoint) {
-                    qDebug() << "FLOW is sim: " << name;
-                    for (size_t j = 1; j < name.size() - 1; j++) {
+                    for (int j = 1; j < name.size() - 1; j++) {
                         bool toFloatSuccess;
-                        auto subname = (QStringRef(&name, (int)(name.size() - j), 1)).toString().toFloat(&toFloatSuccess);
-                        if (!toFloatSuccess && (name.size() - j) > simPrefix.size()) {
-                            group = QStringRef(&name, simPrefix.size(), (int)(name.size() - j + 1)).toString();
+                        QStringRef(&name, (int)(name.size() - j), 1).toString().toFloat(&toFloatSuccess);
+                        if (!toFloatSuccess && (name.size() - j) > (int)simPrefix.size()) {
+                            group = QStringRef(&name, (int)simPrefix.size(), (int)(name.size() - j + 1)).toString();
                             break;
                         }
                     }
                     if (group.isEmpty()) {
-                        group = QStringRef(&name, simPrefix.size(), name.size() - 1).toString();
+                        group = QStringRef(&name, (int)simPrefix.size(), name.size() - 1).toString();
                     }
+                    qCDebug(animation) << "Sim joint added to flow: " << name;
                 } else {
                     group = split[1];
                 }
@@ -559,12 +531,12 @@ void Flow::calculateConstraints() {
 
     std::vector<int> roots;
 
-    for (auto& itr = _flowJointData.begin(); itr != _flowJointData.end(); itr++) {
-        if (_flowJointData.find(itr->second._parentIndex) == _flowJointData.end()) {
-            itr->second._node._anchored = true;
-            roots.push_back(itr->first);
+    for (auto &joint :_flowJointData) {
+        if (_flowJointData.find(joint.second._parentIndex) == _flowJointData.end()) {
+            joint.second._node._anchored = true;
+            roots.push_back(joint.first);
         } else {
-            _flowJointData[itr->second._parentIndex]._childIndex = itr->first;
+            _flowJointData[joint.second._parentIndex]._childIndex = joint.first;
         }
     }
 
@@ -629,6 +601,10 @@ void Flow::cleanUp() {
     _initialized = false;
     _isScaleSet = false;
     _active = false;
+    if (_rig) {
+        _rig->clearJointStates();
+    }
+    
  }
 
 void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat& rotation) {
@@ -638,52 +614,49 @@ void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat&
     _active = _initialized;
 }
 
+void Flow::setScale(float scale) {
+    if (!_isScaleSet) {
+        for (auto &joint : _flowJointData) {
+            joint.second._initialLength = joint.second._length / _scale;
+        }
+        _isScaleSet = true;
+    }
+    _lastScale = _scale;
+    _collisionSystem.setScale(_scale);
+    for (size_t i = 0; i < _jointThreads.size(); i++) {
+        for (size_t j = 0; j < _jointThreads[i]._joints.size(); j++) {
+            auto &joint = _flowJointData[_jointThreads[i]._joints[j]];
+            joint._node._settings._radius = joint._node._initialRadius * _scale;
+            joint._length = joint._initialLength * _scale;
+        }
+        _jointThreads[i].resetLength();
+    }
+}
+
 void Flow::update(float deltaTime) {
     if (_initialized && _active) {
-        QElapsedTimer _timer;
-        _timer.start();
+        uint64_t startTime = usecTimestampNow();
+        uint64_t updateExpiry = startTime + MAX_UPDATE_FLOW_TIME_BUDGET;
         if (_scale != _lastScale) {
-            if (!_isScaleSet) {
-                for (auto &joint: _flowJointData) {
-                    joint.second._initialLength = joint.second._length / _scale;
-                }
-                _isScaleSet = true;
-            }
-            _lastScale = _scale;
-            _collisionSystem.setScale(_scale);
-            for (int i = 0; i < _jointThreads.size(); i++) {
-                for (int j = 0; j < _jointThreads[i]._joints.size(); j++) {
-                    auto &joint = _flowJointData[_jointThreads[i]._joints[j]];
-                    joint._node._settings._radius = joint._node._initialRadius * _scale;
-                    joint._length = joint._initialLength * _scale;
-                }
-                _jointThreads[i].resetLength();
-            }
+            setScale(_scale);
         }
         updateJoints();
         for (size_t i = 0; i < _jointThreads.size(); i++) {
             size_t index = _invertThreadLoop ? _jointThreads.size() - 1 - i : i;
             auto &thread = _jointThreads[index];
             thread.update(deltaTime);
-            thread.solve(USE_COLLISIONS, _collisionSystem);
+            thread.solve(_collisionSystem);
             if (!updateRootFramePositions(index)) {
                 return;
             }
             thread.apply();
-            if (_timer.elapsed() > MAX_UPDATE_FLOW_TIME_BUDGET) {
+            if (usecTimestampNow() > updateExpiry) {
                 break;
                 qWarning(animation) << "Flow Bones ran out of time updating threads";
             }
         }
         setJoints();
         _invertThreadLoop = !_invertThreadLoop;
-        _deltaTime += _timer.nsecsElapsed();
-        _updates++;
-        if (_deltaTime > _deltaTimeLimit) {
-            qDebug() << "Flow C++ update " << _deltaTime / _updates << " nanoSeconds ";
-            _deltaTime = 0;
-            _updates = 0;
-        }
     }    
 }
 
@@ -751,15 +724,6 @@ void Flow::setOthersCollision(const QUuid& otherId, int jointIndex, const glm::v
     settings._entityID = otherId;
     settings._radius = HAND_COLLISION_RADIUS;
     _collisionSystem.addCollisionSphere(jointIndex, settings, position, false, true);
-}
-
-FlowPhysicsSettings Flow::getPhysicsSettingsForGroup(const QString& group) {
-    for (auto &joint : _flowJointData) {
-        if (joint.second._group.toUpper() == group.toUpper()) {
-            return joint.second._node._settings;
-        }
-    }
-    return FlowPhysicsSettings();
 }
 
 void Flow::setPhysicsSettingsForGroup(const QString& group, const FlowPhysicsSettings& settings) {
