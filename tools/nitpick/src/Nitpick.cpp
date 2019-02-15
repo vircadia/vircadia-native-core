@@ -40,7 +40,11 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
  
     _ui.plainTextEdit->setReadOnly(true);
 
-   setWindowTitle("Nitpick - v2.1.2");
+    setWindowTitle("Nitpick - v3.0.0");
+
+    clientProfiles << "VR-High" << "Desktop-High" << "Desktop-Low" << "Mobile-Touch" << "VR-Standalone";
+    _ui.clientProfileComboBox->insertItems(0, clientProfiles);
+
 }
 
 Nitpick::~Nitpick() {
@@ -157,7 +161,7 @@ void Nitpick::on_createAllRecursiveScriptsPushbutton_clicked() {
 }
 
 void Nitpick::on_createTestsPushbutton_clicked() {
-    _test->createTests();
+    _test->createTests(_ui.clientProfileComboBox->currentText());
 }
 
 void Nitpick::on_createMDFilePushbutton_clicked() {
