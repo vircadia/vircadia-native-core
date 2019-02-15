@@ -24,7 +24,8 @@ class QScriptContext;
  * @param {OverlayWindow.Properties} [properties=null]
  *
  * @hifi-interface
- * @hifi-client-en
+ * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Vec2} position
  * @property {Vec2} size

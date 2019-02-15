@@ -35,6 +35,9 @@ EntityItemProperties GridEntityItem::getProperties(const EntityPropertyFlags& de
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(alpha, getAlpha);
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(followCamera, getFollowCamera);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(majorGridEvery, getMajorGridEvery);
@@ -48,6 +51,10 @@ bool GridEntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(alpha, setAlpha);
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(followCamera, setFollowCamera);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(majorGridEvery, setMajorGridEvery);
@@ -76,6 +83,13 @@ int GridEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
     READ_ENTITY_PROPERTY(PROP_COLOR, u8vec3Color, setColor);
     READ_ENTITY_PROPERTY(PROP_ALPHA, float, setAlpha);
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
 
     READ_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, bool, setFollowCamera);
     READ_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, uint32_t, setMajorGridEvery);
@@ -89,6 +103,7 @@ EntityPropertyFlags GridEntityItem::getEntityProperties(EncodeBitstreamParams& p
 
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
+    requestedProperties += _pulseProperties.getEntityProperties(params);
 
     requestedProperties += PROP_GRID_FOLLOW_CAMERA;
     requestedProperties += PROP_MAJOR_GRID_EVERY;
@@ -98,7 +113,7 @@ EntityPropertyFlags GridEntityItem::getEntityProperties(EncodeBitstreamParams& p
 }
 
 void GridEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -109,6 +124,10 @@ void GridEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
 
     APPEND_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, getFollowCamera());
     APPEND_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, getMajorGridEvery());
@@ -174,5 +193,11 @@ void GridEntityItem::setMinorGridEvery(float minorGridEvery) {
 float GridEntityItem::getMinorGridEvery() const {
     return resultWithReadLock<float>([&] {
         return _minorGridEvery;
+    });
+}
+
+PulsePropertyGroup GridEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
     });
 }

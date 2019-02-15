@@ -37,7 +37,13 @@ bool isRenderThread();
 namespace gl {
     void globalLock();
     void globalRelease(bool finish = true);
-    
+
+    bool debugContextEnabled();
+
+    bool khrDebugEnabled();
+
+    bool extDebugMarkerEnabled();
+
     void withSavedContext(const std::function<void()>& f);
 
     bool checkGLError(const char* name);

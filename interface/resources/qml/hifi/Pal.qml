@@ -42,6 +42,8 @@ Rectangle {
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
     property bool punctuationMode: false;
+    property double loudSortTime: 0.0;
+    readonly property double kLOUD_SORT_PERIOD_MS: 1000.0;
 
     HifiConstants { id: hifi; }
     RootHttpRequest { id: http; }
@@ -1215,7 +1217,7 @@ Rectangle {
                 if (userIndex !== -1) {
                     ['userName', 'admin', 'connection', 'profileUrl', 'placeName'].forEach(function (name) {
                         var value = message.params[name];
-                        if (value === undefined) {
+                        if (value === undefined || value == "") {
                             return;
                         }
                         nearbyUserModel.setProperty(userIndex, name, value);
@@ -1246,6 +1248,11 @@ Rectangle {
                         nearbyUserModelData[userIndex].avgAudioLevel = avgAudioLevel;
                     }
                 }
+            }
+            if (nearbyTable.sortIndicatorColumn == 0 && Date.now() - pal.loudSortTime >= pal.kLOUD_SORT_PERIOD_MS) {
+                // Current sort by loudness so re-sort.
+                sortModel();
+                pal.loudSortTime = Date.now();
             }
             break;
         case 'clearLocalQMLData':

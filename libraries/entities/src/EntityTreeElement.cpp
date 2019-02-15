@@ -139,15 +139,21 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
+bool EntityTreeElement::checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
     bool visible = entity->isVisible();
-    bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
+    entity::HostType hostType = entity->getEntityHostType();
     if ((!searchFilter.doesPickVisible() && visible) || (!searchFilter.doesPickInvisible() && !visible) ||
-        (!searchFilter.doesPickCollidable() && collidable) || (!searchFilter.doesPickNonCollidable() && !collidable) ||
-        (!searchFilter.doesPickDomainEntities() && entity->isDomainEntity()) ||
-        (!searchFilter.doesPickAvatarEntities() && entity->isAvatarEntity()) ||
-        (!searchFilter.doesPickLocalEntities() && entity->isLocalEntity())) {
+        (!searchFilter.doesPickDomainEntities() && hostType == entity::HostType::DOMAIN) ||
+        (!searchFilter.doesPickAvatarEntities() && hostType == entity::HostType::AVATAR) ||
+        (!searchFilter.doesPickLocalEntities() && hostType == entity::HostType::LOCAL)) {
         return false;
+    }
+    // We only check the collidable filters for non-local entities, because local entities are always collisionless
+    bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
+    if (hostType != entity::HostType::LOCAL) {
+        if ((collidable && !searchFilter.doesPickCollidable()) || (!collidable && !searchFilter.doesPickNonCollidable())) {
+            return false;
+        }
     }
     return true;
 }

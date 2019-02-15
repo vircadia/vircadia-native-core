@@ -676,7 +676,7 @@ Rectangle {
                 anchors.right: parent.right;
                 text: "Cancel"
                 onClicked: {
-                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                    sendToScript({method: 'checkout_cancelClicked', itemId: itemId});
                 }
             }
         }

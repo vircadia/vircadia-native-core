@@ -124,6 +124,11 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             _rigidBody->setGravity(_currentGravity * _currentUp);
             // set flag to enable custom contactAddedCallback
             _rigidBody->setCollisionFlags(btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
+
+            // enable CCD
+            _rigidBody->setCcdSweptSphereRadius(_radius);
+            _rigidBody->setCcdMotionThreshold(_radius);
+
             btCollisionShape* shape = _rigidBody->getCollisionShape();
             assert(shape && shape->getShapeType() == CONVEX_HULL_SHAPE_PROXYTYPE);
             _ghost.setCharacterShape(static_cast<btConvexHullShape*>(shape));
@@ -138,7 +143,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     if (_dynamicsWorld) {
         if (_pendingFlags & PENDING_FLAG_UPDATE_SHAPE) {
             // shouldn't fall in here, but if we do make sure both ADD and REMOVE bits are still set
-            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION;
+            _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_REMOVE_FROM_SIMULATION | 
+                             PENDING_FLAG_ADD_DETAILED_TO_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
         } else {
             _pendingFlags &= ~PENDING_FLAG_ADD_TO_SIMULATION;
         }
@@ -446,14 +452,20 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
 
         if (_dynamicsWorld) {
             // must REMOVE from world prior to shape update
-            _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
+            _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION | PENDING_FLAG_REMOVE_DETAILED_FROM_SIMULATION;
         }
         _pendingFlags |= PENDING_FLAG_UPDATE_SHAPE;
-        _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION;
+        _pendingFlags |= PENDING_FLAG_ADD_TO_SIMULATION | PENDING_FLAG_ADD_DETAILED_TO_SIMULATION;
     }
 
     // it's ok to change offset immediately -- there are no thread safety issues here
     _shapeLocalOffset = minCorner + 0.5f * scale;
+
+    if (_rigidBody) {
+        // update CCD with new _radius
+        _rigidBody->setCcdSweptSphereRadius(_radius);
+        _rigidBody->setCcdMotionThreshold(_radius);
+    }
 }
 
 void CharacterController::setCollisionless(bool collisionless) {
@@ -671,7 +683,7 @@ void CharacterController::updateState() {
         return;
     }
     if (_pendingFlags & PENDING_FLAG_RECOMPUTE_FLYING) {
-        SET_STATE(CharacterController::State::Hover, "recomputeFlying");
+         SET_STATE(CharacterController::State::Hover, "recomputeFlying");
          _hasSupport = false;
          _stepHeight = _minStepHeight; // clears memory of last step obstacle
          _pendingFlags &= ~PENDING_FLAG_RECOMPUTE_FLYING;
@@ -783,15 +795,13 @@ void CharacterController::updateState() {
                         // Transition to hover if we are above the fall threshold
                         SET_STATE(State::Hover, "above fall threshold");
                     }
-                } else if (!rayHasHit && !_hasSupport) {
-                    SET_STATE(State::Hover, "no ground detected");
                 }
                 break;
             }
             case State::Hover:
                 btScalar horizontalSpeed = (velocity - velocity.dot(_currentUp) * _currentUp).length();
                 bool flyingFast = horizontalSpeed > (MAX_WALKING_SPEED * 0.75f);
-                if (!_flyingAllowed && rayHasHit) {
+                if (!_flyingAllowed) {
                     SET_STATE(State::InAir, "flying not allowed");
                 } else if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
                     SET_STATE(State::InAir, "near ground");

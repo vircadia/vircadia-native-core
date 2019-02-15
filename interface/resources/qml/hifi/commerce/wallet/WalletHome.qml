@@ -335,7 +335,7 @@ Item {
                                 if (link.indexOf("users/") !== -1) {
                                     sendSignalToWallet({method: 'transactionHistory_usernameLinkClicked', usernameLink: link});
                                 } else {
-                                    sendSignalToWallet({method: 'transactionHistory_linkClicked', marketplaceLink: link});
+                                    sendSignalToWallet({method: 'transactionHistory_linkClicked', itemId: model.marketplace_item});
                                 }
                             }
                         }

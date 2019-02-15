@@ -25,7 +25,6 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-
     property int parentAppTitleBarHeight;
     property int parentAppNavBarHeight;
     property string currentActiveView: "sendAssetHome";

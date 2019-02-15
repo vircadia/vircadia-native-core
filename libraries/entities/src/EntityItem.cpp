@@ -49,6 +49,8 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 QString EntityItem::_marketplacePublicKey;
 
+std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> EntityItem::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode) { return rotation; };
+
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
 {
@@ -88,19 +90,17 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_CREATED;
     requestedProperties += PROP_LAST_EDITED_BY;
-    //requestedProperties += PROP_ENTITY_HOST_TYPE;             // not sent over the wire
-    //requestedProperties += PROP_OWNING_AVATAR_ID;             // not sent over the wire
+    requestedProperties += PROP_ENTITY_HOST_TYPE;
+    requestedProperties += PROP_OWNING_AVATAR_ID;
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
     requestedProperties += PROP_CAN_CAST_SHADOW;
-    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
+    requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA;
     requestedProperties += PROP_RENDER_LAYER;
     requestedProperties += PROP_PRIMITIVE_MODE;
     requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
-    withReadLock([&] {
-        requestedProperties += _grabProperties.getEntityProperties(params);
-    });
+    requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
     requestedProperties += PROP_DENSITY;
@@ -181,6 +181,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
+
+    // these properties are not sent over the wire
+    requestedProperties -= PROP_ENTITY_HOST_TYPE;
+    requestedProperties -= PROP_OWNING_AVATAR_ID;
+    requestedProperties -= PROP_VISIBLE_IN_SECONDARY_CAMERA;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
@@ -2167,6 +2172,12 @@ void EntityItem::enableNoBootstrap() {
     if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
         _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
+        // because most enableNoBootstrap() cases are already correctly handled outside this scope
+        // and I didn't want to add redundant work.
+        // TODO: cleanup Grabs & dirtySimulationFlags to be more efficient and make more sense.
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
@@ -2181,11 +2192,19 @@ void EntityItem::disableNoBootstrap() {
     if (!stillHasGrabActions()) {
         _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        EntityTreePointer entityTree = getTree();
+        assert(entityTree);
+        EntitySimulationPointer simulation = entityTree->getSimulation();
+        assert(simulation);
+        simulation->changeEntity(getThisPointer());
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
                 entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                simulation->changeEntity(entity);
             }
         });
     }
@@ -2637,15 +2656,8 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
 
-    foreach(const auto& property, jsonFilters.keys()) {
-        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
-            // check if this entity has a non-default value for serverScripts
-            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
-                return true;
-            } else {
-                return false;
-            }
-        }
+    if (jsonFilters[SERVER_SCRIPTS_PROPERTY] == EntityQueryFilterSymbol::NonDefault) {
+        return _serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS;
     }
 
     // the json filter syntax did not match what we expected, return a match
@@ -3427,10 +3439,22 @@ void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();
     SpatiallyNestable::addGrab(grab);
 
-    if (getDynamic() && getParentID().isNull()) {
+    if (!getParentID().isNull()) {
+        return;
+    }
+
+    int jointIndex = grab->getParentJointIndex();
+    bool isFarGrab = jointIndex == FARGRAB_RIGHTHAND_INDEX
+        || jointIndex == FARGRAB_LEFTHAND_INDEX
+        || jointIndex == FARGRAB_MOUSE_INDEX;
+
+    // GRAB HACK: FarGrab doesn't work on non-dynamic things yet, but we really really want NearGrab
+    // (aka Hold) to work for such ojects, hence we filter the useAction case like so:
+    bool useAction = getDynamic() || (_physicsInfo && !isFarGrab);
+    if (useAction) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
-        EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        EntitySimulationPointer simulation = entityTree->getSimulation();
         assert(simulation);
 
         auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
@@ -3438,13 +3462,11 @@ void EntityItem::addGrab(GrabPointer grab) {
 
         EntityDynamicType dynamicType;
         QVariantMap arguments;
-        int grabParentJointIndex =grab->getParentJointIndex();
-        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX ||
-            grabParentJointIndex == FARGRAB_MOUSE_INDEX) {
+        if (isFarGrab) {
             // add a far-grab action
             dynamicType = DYNAMIC_TYPE_FAR_GRAB;
             arguments["otherID"] = grab->getOwnerID();
-            arguments["otherJointIndex"] = grabParentJointIndex;
+            arguments["otherJointIndex"] = jointIndex;
             arguments["targetPosition"] = vec3ToQMap(grab->getPositionalOffset());
             arguments["targetRotation"] = quatToQMap(grab->getRotationalOffset());
             arguments["linearTimeScale"] = 0.05;
@@ -3465,11 +3487,22 @@ void EntityItem::addGrab(GrabPointer grab) {
         grab->setActionID(actionID);
         _grabActions[actionID] = action;
         simulation->addDynamic(action);
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
+        simulation->changeEntity(getThisPointer());
     }
 }
 
 void EntityItem::removeGrab(GrabPointer grab) {
+    int oldNumGrabs = _grabs.size();
     SpatiallyNestable::removeGrab(grab);
+    if (!getDynamic() && _grabs.size() != oldNumGrabs) {
+        // GRAB HACK: the expected behavior is for non-dynamic grabbed things to NOT be throwable
+        // so we slam the velocities to zero here whenever the number of grabs change.
+        // NOTE: if there is still another grab in effect this shouldn't interfere with the object's motion
+        // because that grab will slam the position+velocities next frame.
+        setLocalVelocity(glm::vec3(0.0f));
+        setAngularVelocity(glm::vec3(0.0f));
+    }
 
     QUuid actionID = grab->getActionID();
     if (!actionID.isNull()) {
@@ -3485,4 +3518,14 @@ void EntityItem::removeGrab(GrabPointer grab) {
         }
     }
     disableNoBootstrap();
+}
+
+void EntityItem::disableGrab(GrabPointer grab) {
+    QUuid actionID = grab->getActionID();
+    if (!actionID.isNull()) {
+        EntityDynamicPointer action = _grabActions.value(actionID);
+        if (action) {
+            action->deactivate();
+        }
+    }
 }

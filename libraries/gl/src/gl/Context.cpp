@@ -34,21 +34,8 @@ bool Context::USE_CUSTOM_CONTEXT { true };
 #endif
 
 bool Context::enableDebugLogger() {
-#if defined(Q_OS_MAC)
-    // OSX does not support GL_KHR_debug or GL_ARB_debug_output
-    return false;
-#else
-#if defined(DEBUG) || defined(USE_GLES)
-    static bool enableDebugLogger = true;
-#else
-    static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
-    static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
-#endif
-    return enableDebugLogger;
-#endif
+    return gl::debugContextEnabled();
 }
-
-
 
 std::atomic<size_t> Context::_totalSwapchainMemoryUsage { 0 };
 
@@ -208,6 +195,21 @@ GLAPI PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
 
 Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 
+#if defined(GL_CUSTOM_CONTEXT)
+bool Context::makeCurrent() {	
+    BOOL result = wglMakeCurrent(_hdc, _hglrc);	
+    assert(result);	
+    updateSwapchainMemoryCounter();	
+     return result;	
+}	
+ void Context::swapBuffers() {	
+    SwapBuffers(_hdc);	
+}	
+ void Context::doneCurrent() {	
+    wglMakeCurrent(0, 0);	
+}
+#endif
+
 void Context::create(QOpenGLContext* shareContext) {
     if (!shareContext) {
         shareContext = qt_gl_global_share_context();
@@ -310,7 +312,11 @@ void Context::create(QOpenGLContext* shareContext) {
                 contextAttribs.push_back(0);
             }
             contextAttribs.push_back(0);
-            HGLRC shareHglrc = (HGLRC)QOpenGLContextWrapper::nativeContext(shareContext);
+            HGLRC shareHglrc = nullptr;
+            if (shareContext) {
+                auto nativeContextPointer = QOpenGLContextWrapper(shareContext).getNativeContext();
+                shareHglrc = (HGLRC)nativeContextPointer->context();
+            }
             _hglrc = wglCreateContextAttribsARB(_hdc, shareHglrc, &contextAttribs[0]);
         }
 

@@ -134,6 +134,7 @@ public:
     virtual bool isRendered() const override { return getShouldRender(); }
     virtual bool deleteApproved() const override { return !hasEntities(); }
 
+    static bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter);
     virtual bool canPickIntersect() const override { return hasEntities(); }
     virtual EntityItemID evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         OctreeElementPointer& element, float& distance, BoxFace& face, glm::vec3& surfaceNormal,

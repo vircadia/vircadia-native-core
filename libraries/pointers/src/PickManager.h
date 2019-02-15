@@ -61,14 +61,14 @@ public:
 
     bool getForceCoarsePicking() { return _forceCoarsePicking; }
 
-    const std::vector<QVector4D>& getUpdatedPickCounts() { return _updatedPickCounts; }
+    const std::vector<QVector3D>& getUpdatedPickCounts() { return _updatedPickCounts; }
     const std::vector<int>& getTotalPickCounts() { return _totalPickCounts; }
 
 public slots:
     void setForceCoarsePicking(bool forceCoarsePicking) { _forceCoarsePicking = forceCoarsePicking; }
 
 protected:
-    std::vector<QVector4D> _updatedPickCounts { PickQuery::NUM_PICK_TYPES };
+    std::vector<QVector3D> _updatedPickCounts { PickQuery::NUM_PICK_TYPES };
     std::vector<int> _totalPickCounts { 0, 0, 0, 0 };
 
     bool _forceCoarsePicking { false };

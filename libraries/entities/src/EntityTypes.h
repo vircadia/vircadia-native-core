@@ -78,12 +78,13 @@ public:
      *       <td>{@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}</td></tr>
      *     <tr><td><code>"Grid"</code></td><td>A grid of lines in a plane.</td>
      *       <td>{@link Entities.EntityProperties-Grid|EntityProperties-Grid}</td></tr>
+     *     <tr><td><code>"Gizmo"</code></td><td>An entity with various UI-related properties.</td>
+     *       <td>{@link Entities.EntityProperties-Gizmo|EntityProperties-Gizmo}</td></tr>
      *     <tr><td><code>"Light"</code></td><td>A local lighting effect.</td>
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>
      *     <tr><td><code>"Zone"</code></td><td>A volume of lighting effects and avatar permissions.</td>
      *       <td>{@link Entities.EntityProperties-Zone|EntityProperties-Zone}</td></tr>
-     *     <tr><td><code>"Material"</code></td><td>Modifies the existing materials on Model entities, Shape entities,
-     *       {@link Overlays.OverlayType|model overlays}, and avatars.</td>
+     *     <tr><td><code>"Material"</code></td><td>Modifies the existing materials on entities and avatars.</td>
      *       <td>{@link Entities.EntityProperties-Material|EntityProperties-Material}</td></tr>
      *   </tbody>
      * </table>
@@ -103,6 +104,7 @@ public:
         PolyLine,
         PolyVox,
         Grid,
+        Gizmo,
         Light,
         Zone,
         Material,

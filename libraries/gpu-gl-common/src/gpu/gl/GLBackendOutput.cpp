@@ -73,7 +73,7 @@ void GLBackend::do_advance(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
-    if (_stereo.isStereo() && !_pipeline._stateCache.scissorEnable) {
+    if (_stereo.isStereo() && !_pipeline._stateCache.flags.scissorEnable) {
         qWarning("Clear without scissor in stereo mode");
     }
 
@@ -140,7 +140,7 @@ void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
     }
 
     // Apply scissor if needed and if not already on
-    bool doEnableScissor = (useScissor && (!_pipeline._stateCache.scissorEnable));
+    bool doEnableScissor = (useScissor && (!_pipeline._stateCache.flags.scissorEnable));
     if (doEnableScissor) {
         glEnable(GL_SCISSOR_TEST);
     }

@@ -11,6 +11,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class WebEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -30,7 +32,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -42,6 +44,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    glm::vec3 getRaycastDimensions() const override;
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
@@ -57,6 +60,9 @@ public:
 
     float getAlpha() const;
     void setAlpha(float alpha);
+
+    void setBillboardMode(BillboardMode value);
+    BillboardMode getBillboardMode() const;
 
     static const QString DEFAULT_SOURCE_URL;
     void setSourceUrl(const QString& value);
@@ -75,15 +81,23 @@ public:
     void setInputMode(const WebInputMode& value);
     WebInputMode getInputMode() const;
 
+    bool getShowKeyboardFocusHighlight() const;
+    void setShowKeyboardFocusHighlight(bool value);
+
+    PulsePropertyGroup getPulseProperties() const;
+
 protected:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
+    PulsePropertyGroup _pulseProperties;
+    BillboardMode _billboardMode;
 
     QString _sourceUrl;
     uint16_t _dpi;
     QString _scriptURL;
     uint8_t _maxFPS;
     WebInputMode _inputMode;
+    bool _showKeyboardFocusHighlight;
 };
 
 #endif // hifi_WebEntityItem_h

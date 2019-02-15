@@ -2957,8 +2957,8 @@ std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> E
 std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromEntityOperator = nullptr;
 std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
 std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToOverlayOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
+std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
+std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
 
 bool EntityTree::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
     if (_addMaterialToEntityOperator) {
@@ -2988,18 +2988,18 @@ bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::Mater
     return false;
 }
 
-bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToOverlayOperator) {
-        return _addMaterialToOverlayOperator(overlayID, material, parentMaterialName);
+QObject* EntityTree::getEntityObject(const QUuid& id) {
+    if (_getEntityObjectOperator) {
+        return _getEntityObjectOperator(id);
     }
-    return false;
+    return nullptr;
 }
 
-bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromOverlayOperator) {
-        return _removeMaterialFromOverlayOperator(overlayID, material, parentMaterialName);
+QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
+    if (_textSizeOperator) {
+        return _textSizeOperator(id, text);
     }
-    return false;
+    return QSizeF(0.0f, 0.0f);
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

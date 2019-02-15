@@ -49,6 +49,7 @@
 #include <shared/ReadWriteLockable.h>
 
 #include "SecurityImageProvider.h"
+#include "shared/FileUtils.h"
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
 #include "types/SoundEffect.h"
@@ -237,7 +238,12 @@ void OffscreenQmlSurface::clearFocusItem() {
 
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
-    new QQmlFileSelector(engine);
+    auto fileSelector = QQmlFileSelector::get(engine);
+    if (!fileSelector) {
+        fileSelector = new QQmlFileSelector(engine);
+    }
+    fileSelector->setExtraSelectors(FileUtils::getFileSelectors());
+
     static std::once_flag once;
     std::call_once(once, [] { 
         qRegisterMetaType<TabletProxy*>();
@@ -713,11 +719,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        emit scriptEventReceived(message);
-    }
+    emit scriptEventReceived(message);
 }
 
 void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {

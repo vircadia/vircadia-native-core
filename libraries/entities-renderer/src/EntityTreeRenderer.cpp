@@ -42,7 +42,6 @@
 #include <PointerManager.h>
 
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction = []() { return true; };
-std::function<glm::vec3()> EntityTreeRenderer::_getAvatarUpOperator = []() { return Vectors::UP; };
 
 QString resolveScriptURL(const QString& scriptUrl) {
     auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
@@ -84,38 +83,38 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     connect(pointerManager.data(), &PointerManager::triggerEndEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity);
 
     // Forward mouse events to web entities
-    auto handlePointerEvent = [&](const EntityItemID& entityID, const PointerEvent& event) {
+    auto handlePointerEvent = [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
         if (entity && entity->getType() == EntityTypes::Web) {
             thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
         }
         if (thisEntity) {
-            QMetaObject::invokeMethod(thisEntity.get(), "handlePointerEvent", Q_ARG(PointerEvent, event));
+            QMetaObject::invokeMethod(thisEntity.get(), "handlePointerEvent", Q_ARG(const PointerEvent&, event));
         }
     };
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, handlePointerEvent);
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, this, [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, handlePointerEvent);
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
         if (entity && entity->getType() == EntityTypes::Web) {
             thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
         }
         if (thisEntity) {
-            QMetaObject::invokeMethod(thisEntity.get(), "hoverEnterEntity", Q_ARG(PointerEvent, event));
+            QMetaObject::invokeMethod(thisEntity.get(), "hoverEnterEntity", Q_ARG(const PointerEvent&, event));
         }
     });
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this, [&](const EntityItemID& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
         if (entity && entity->getType() == EntityTypes::Web) {
             thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
         }
         if (thisEntity) {
-            QMetaObject::invokeMethod(thisEntity.get(), "hoverLeaveEntity", Q_ARG(PointerEvent, event));
+            QMetaObject::invokeMethod(thisEntity.get(), "hoverLeaveEntity", Q_ARG(const PointerEvent&, event));
         }
     });
 }
@@ -798,11 +797,11 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
+std::pair<float, QUuid> EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
-        return;
+        return { FLT_MAX, UNKNOWN_ENTITY_ID };
     }
 
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
@@ -833,9 +832,10 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
         _lastPointerEvent = pointerEvent;
         _lastPointerEventValid = true;
 
-    } else {
-        emit entityScriptingInterface->mousePressOffEntity();
+        return { rayPickResult.distance, rayPickResult.entityID };
     }
+    emit entityScriptingInterface->mousePressOffEntity();
+    return { FLT_MAX, UNKNOWN_ENTITY_ID };
 }
 
 void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
@@ -1048,7 +1048,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
         QString scriptUrl = entity->getScript();
         if ((shouldLoad && unloadFirst) || scriptUrl.isEmpty()) {
             if (_entitiesScriptEngine) {
-            _entitiesScriptEngine->unloadEntityScript(entityID);
+                _entitiesScriptEngine->unloadEntityScript(entityID);
             }
             entity->scriptHasUnloaded();
         }
@@ -1288,6 +1288,17 @@ bool EntityTreeRenderer::LayeredZones::contains(const LayeredZones& other) {
 CalculateEntityLoadingPriority EntityTreeRenderer::_calculateEntityLoadingPriorityFunc = [](const EntityItem& item) -> float {
     return 0.0f;
 };
+
+std::pair<bool, bool> EntityTreeRenderer::getZoneInteractionProperties() {
+    for (auto& zone : _layeredZones) {
+        // Only domain entities control flying allowed and ghosting allowed
+        if (zone.zone && zone.zone->isDomainEntity()) {
+            return { zone.zone->getFlyingAllowed(), zone.zone->getGhostingAllowed() };
+        }
+    }
+
+    return { true, true };
+}
 
 bool EntityTreeRenderer::wantsKeyboardFocus(const EntityItemID& id) const {
     auto renderable = renderableForEntityId(id);

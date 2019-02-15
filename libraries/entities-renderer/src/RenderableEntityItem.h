@@ -62,6 +62,8 @@ public:
 
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
+    static glm::vec4 calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start);
+
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
     virtual void onAddToScene(const EntityItemPointer& entity);
@@ -150,6 +152,8 @@ protected:
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
+
+    quint64 _created;
 
 private:
     // The base class relies on comparing the model transform to the entity transform in order 

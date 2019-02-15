@@ -122,7 +122,7 @@ void CauterizedModel::updateClusterMatrices() {
 
             if (_useDualQuaternionSkinning) {
                 auto jointPose = _rig.getJointPose(cluster.jointIndex);
-                Transform jointTransform(jointPose.rot(), jointPose.scale(), jointPose.trans());
+                Transform jointTransform(jointPose.rot(), glm::vec3(jointPose.scale()), jointPose.trans());
                 Transform clusterTransform;
                 Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
                 state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);
@@ -138,7 +138,7 @@ void CauterizedModel::updateClusterMatrices() {
     if (!_cauterizeBoneSet.empty()) {
 
         AnimPose cauterizePose = _rig.getJointPose(_rig.indexOfJoint("Neck"));
-        cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
+        cauterizePose.scale() = 0.0001f;
 
         static const glm::mat4 zeroScale(
             glm::vec4(0.0001f, 0.0f, 0.0f, 0.0f),
@@ -161,7 +161,7 @@ void CauterizedModel::updateClusterMatrices() {
                         // not cauterized so just copy the value from the non-cauterized version.
                         state.clusterDualQuaternions[j] = _meshStates[i].clusterDualQuaternions[j];
                     } else {
-                        Transform jointTransform(cauterizePose.rot(), cauterizePose.scale(), cauterizePose.trans());
+                        Transform jointTransform(cauterizePose.rot(), glm::vec3(cauterizePose.scale()), cauterizePose.trans());
                         Transform clusterTransform;
                         Transform::mult(clusterTransform, jointTransform, _rig.getAnimSkeleton()->getClusterBindMatricesOriginalValues(meshIndex, clusterIndex).inverseBindTransform);
                         state.clusterDualQuaternions[j] = Model::TransformDualQuaternion(clusterTransform);

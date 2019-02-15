@@ -29,6 +29,7 @@
 #include <EntitySimulation.h> // for SetOfEntities
 
 #include "AvatarMotionState.h"
+#include "DetailedMotionState.h"
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
 
@@ -45,6 +46,7 @@ using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @borrows AvatarList.getAvatarIdentifiers as getAvatarIdentifiers
  * @borrows AvatarList.getAvatarsInRange as getAvatarsInRange
@@ -136,21 +138,25 @@ public:
      * @param {PickRay} ray
      * @param {Uuid[]} [avatarsToInclude=[]]
      * @param {Uuid[]} [avatarsToDiscard=[]]
+     * @param {boolean} pickAgainstMesh
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
-                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue());
+                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue(),
+                                                                  bool pickAgainstMesh = true);
     /**jsdoc
      * @function AvatarManager.findRayIntersectionVector
      * @param {PickRay} ray
      * @param {Uuid[]} avatarsToInclude
      * @param {Uuid[]} avatarsToDiscard
+     * @param {boolean} pickAgainstMesh
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
-                                                                        const QVector<EntityItemID>& avatarsToDiscard);
+                                                                        const QVector<EntityItemID>& avatarsToDiscard,
+                                                                        bool pickAgainstMesh);
 
     /**jsdoc
      * @function AvatarManager.findParabolaIntersectionVector

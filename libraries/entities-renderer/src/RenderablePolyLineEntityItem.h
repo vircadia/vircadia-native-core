@@ -59,6 +59,7 @@ protected:
     gpu::BufferPointer _polylineDataBuffer;
     gpu::BufferPointer _polylineGeometryBuffer;
     static gpu::PipelinePointer _pipeline;
+    static gpu::PipelinePointer _glowPipeline;
 };
 
 } } // namespace 

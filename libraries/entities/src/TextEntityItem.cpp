@@ -49,13 +49,17 @@ void TextEntityItem::setUnscaledDimensions(const glm::vec3& value) {
 EntityItemProperties TextEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
+    withReadLock([&] {
+        _pulseProperties.getProperties(properties);
+    });
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
+
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(text, getText);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineHeight, getLineHeight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textColor, getTextColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textAlpha, getTextAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundColor, getBackgroundColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundAlpha, getBackgroundAlpha);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(leftMargin, getLeftMargin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rightMargin, getRightMargin);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(topMargin, getTopMargin);
@@ -67,13 +71,18 @@ bool TextEntityItem::setProperties(const EntityItemProperties& properties) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties); // set the properties in our base class
 
+    withWriteLock([&] {
+        bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
+        somethingChanged |= pulsePropertiesChanged;
+    });
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
+
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(text, setText);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lineHeight, setLineHeight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textColor, setTextColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textAlpha, setTextAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundColor, setBackgroundColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundAlpha, setBackgroundAlpha);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(leftMargin, setLeftMargin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rightMargin, setRightMargin);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(topMargin, setTopMargin);
@@ -101,13 +110,21 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
+    withWriteLock([&] {
+        int bytesFromPulse = _pulseProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
+            propertyFlags, overwriteLocalData,
+            somethingChanged);
+        bytesRead += bytesFromPulse;
+        dataAt += bytesFromPulse;
+    });
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
+
     READ_ENTITY_PROPERTY(PROP_TEXT, QString, setText);
     READ_ENTITY_PROPERTY(PROP_LINE_HEIGHT, float, setLineHeight);
     READ_ENTITY_PROPERTY(PROP_TEXT_COLOR, glm::u8vec3, setTextColor);
     READ_ENTITY_PROPERTY(PROP_TEXT_ALPHA, float, setTextAlpha);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, glm::u8vec3, setBackgroundColor);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_ALPHA, float, setBackgroundAlpha);
-    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
     READ_ENTITY_PROPERTY(PROP_LEFT_MARGIN, float, setLeftMargin);
     READ_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, float, setRightMargin);
     READ_ENTITY_PROPERTY(PROP_TOP_MARGIN, float, setTopMargin);
@@ -118,22 +135,26 @@ int TextEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
 
 EntityPropertyFlags TextEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
+
+    requestedProperties += _pulseProperties.getEntityProperties(params);
+    requestedProperties += PROP_BILLBOARD_MODE;
+
     requestedProperties += PROP_TEXT;
     requestedProperties += PROP_LINE_HEIGHT;
     requestedProperties += PROP_TEXT_COLOR;
     requestedProperties += PROP_TEXT_ALPHA;
     requestedProperties += PROP_BACKGROUND_COLOR;
     requestedProperties += PROP_BACKGROUND_ALPHA;
-    requestedProperties += PROP_BILLBOARD_MODE;
     requestedProperties += PROP_LEFT_MARGIN;
     requestedProperties += PROP_RIGHT_MARGIN;
     requestedProperties += PROP_TOP_MARGIN;
     requestedProperties += PROP_BOTTOM_MARGIN;
+
     return requestedProperties;
 }
 
 void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -142,18 +163,32 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
     bool successPropertyFits = true;
 
+    withReadLock([&] {
+        _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
+            propertyFlags, propertiesDidntFit, propertyCount, appendState);
+    });
+    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
+
     APPEND_ENTITY_PROPERTY(PROP_TEXT, getText());
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, getLineHeight());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, getTextColor());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_ALPHA, getTextAlpha());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, getBackgroundColor());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_ALPHA, getBackgroundAlpha());
-    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
     APPEND_ENTITY_PROPERTY(PROP_LEFT_MARGIN, getLeftMargin());
     APPEND_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, getRightMargin());
     APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, getTopMargin());
     APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, getBottomMargin());
-    
+}
+
+glm::vec3 TextEntityItem::getRaycastDimensions() const {
+    glm::vec3 dimensions = getScaledDimensions();
+    if (getBillboardMode() != BillboardMode::NONE) {
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        return glm::vec3(SQRT_2 * max);
+    }
+    return dimensions;
 }
 
 bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -164,6 +199,7 @@ bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const 
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 forward = rotation * Vectors::FRONT;
@@ -343,5 +379,11 @@ void TextEntityItem::setBottomMargin(float value) {
 float TextEntityItem::getBottomMargin() const {
     return resultWithReadLock<float>([&] {
         return _bottomMargin;
+    });
+}
+
+PulsePropertyGroup TextEntityItem::getPulseProperties() const {
+    return resultWithReadLock<PulsePropertyGroup>([&] {
+        return _pulseProperties;
     });
 }

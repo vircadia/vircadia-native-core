@@ -173,6 +173,8 @@ protected:
     void updateSize(const TexturePointer& texture);
     bool assignDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource);
 
+    friend class Serializer;
+    friend class Deserializer;
     // Non exposed
     Framebuffer(const Framebuffer& framebuffer) = delete;
     Framebuffer() {}

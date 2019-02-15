@@ -288,39 +288,37 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
             glm::vec3 oneFrameVelocity = (_positionalTarget - _previousPositionalTarget) / deltaTimeStep;
 
             _measuredLinearVelocities[_measuredLinearVelocitiesIndex++] = oneFrameVelocity;
-            if (_measuredLinearVelocitiesIndex >= AvatarActionHold::velocitySmoothFrames) {
-                _measuredLinearVelocitiesIndex = 0;
+            _measuredLinearVelocitiesIndex %= AvatarActionHold::velocitySmoothFrames;
+        }
+
+        if (_kinematicSetVelocity) {
+            glm::vec3 measuredLinearVelocity = _measuredLinearVelocities[0];
+            for (int i = 1; i < AvatarActionHold::velocitySmoothFrames; i++) {
+                // there is a bit of lag between when someone releases the trigger and when the software reacts to
+                // the release.  we calculate the velocity from previous frames but we don't include several
+                // of the most recent.
+                //
+                // if _measuredLinearVelocitiesIndex is
+                //     0 -- ignore i of 3 4 5
+                //     1 -- ignore i of 4 5 0
+                //     2 -- ignore i of 5 0 1
+                //     3 -- ignore i of 0 1 2
+                //     4 -- ignore i of 1 2 3
+                //     5 -- ignore i of 2 3 4
+
+                // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
+                // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+                //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
+                //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
+                //     continue;
+                // }
+
+                measuredLinearVelocity += _measuredLinearVelocities[i];
             }
-        }
-
-        glm::vec3 measuredLinearVelocity;
-        for (int i = 0; i < AvatarActionHold::velocitySmoothFrames; i++) {
-            // there is a bit of lag between when someone releases the trigger and when the software reacts to
-            // the release.  we calculate the velocity from previous frames but we don't include several
-            // of the most recent.
-            //
-            // if _measuredLinearVelocitiesIndex is
-            //     0 -- ignore i of 3 4 5
-            //     1 -- ignore i of 4 5 0
-            //     2 -- ignore i of 5 0 1
-            //     3 -- ignore i of 0 1 2
-            //     4 -- ignore i of 1 2 3
-            //     5 -- ignore i of 2 3 4
-
-            // This code is now disabled, but I'm leaving it commented-out because I suspect it will come back.
-            // if ((i + 1) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-            //     (i + 2) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex ||
-            //     (i + 3) % AvatarActionHold::velocitySmoothFrames == _measuredLinearVelocitiesIndex) {
-            //     continue;
-            // }
-
-            measuredLinearVelocity += _measuredLinearVelocities[i];
-        }
-        measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
+            measuredLinearVelocity /= (float)(AvatarActionHold::velocitySmoothFrames
                                           // - 3  // 3 because of the 3 we skipped, above
                                           );
 
-        if (_kinematicSetVelocity) {
             rigidBody->setLinearVelocity(glmToBullet(measuredLinearVelocity));
             rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
         }
@@ -571,7 +569,7 @@ void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, cons
     }
 
     btTransform worldTrans = rigidBody->getWorldTransform();
-    AnimPose worldBodyPose(glm::vec3(1), bulletToGLM(worldTrans.getRotation()), bulletToGLM(worldTrans.getOrigin()));
+    AnimPose worldBodyPose(1.0f, bulletToGLM(worldTrans.getRotation()), bulletToGLM(worldTrans.getOrigin()));
 
     // transform the body transform into sensor space with the prePhysics sensor-to-world matrix.
     // then transform it back into world uisng the postAvatarUpdate sensor-to-world matrix.

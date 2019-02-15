@@ -15,6 +15,7 @@
 
 #include "Application.h"
 #include "AvatarMotionState.h"
+#include "DetailedMotionState.h"
 
 const float DISPLAYNAME_FADE_TIME = 0.5f;
 const float DISPLAYNAME_FADE_FACTOR = pow(0.01f, 1.0f / DISPLAYNAME_FADE_TIME);
@@ -54,44 +55,47 @@ OtherAvatar::~OtherAvatar() {
 
 void OtherAvatar::removeOrb() {
     if (!_otherAvatarOrbMeshPlaceholderID.isNull()) {
-        qApp->getOverlays().deleteOverlay(_otherAvatarOrbMeshPlaceholderID);
-        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_OVERLAY_ID;
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_otherAvatarOrbMeshPlaceholderID);
+        _otherAvatarOrbMeshPlaceholderID = UNKNOWN_ENTITY_ID;
     }
 }
 
 void OtherAvatar::updateOrbPosition() {
-    if (_otherAvatarOrbMeshPlaceholder != nullptr) {
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-        if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
-            _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
-        }
+    if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
+        EntityItemProperties properties;
+        properties.setPosition(getHead()->getPosition());
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }
 
 void OtherAvatar::createOrb() {
     if (_otherAvatarOrbMeshPlaceholderID.isNull()) {
-        _otherAvatarOrbMeshPlaceholder = std::make_shared<Sphere3DOverlay>();
-        _otherAvatarOrbMeshPlaceholder->setAlpha(1.0f);
-        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
-        _otherAvatarOrbMeshPlaceholder->setIsSolid(false);
-        _otherAvatarOrbMeshPlaceholder->setPulseMin(0.5);
-        _otherAvatarOrbMeshPlaceholder->setPulseMax(1.0);
-        _otherAvatarOrbMeshPlaceholder->setColorPulse(1.0);
-        _otherAvatarOrbMeshPlaceholder->setIgnorePickIntersection(true);
-        _otherAvatarOrbMeshPlaceholder->setDrawInFront(false);
-        _otherAvatarOrbMeshPlaceholderID = qApp->getOverlays().addOverlay(_otherAvatarOrbMeshPlaceholder);
-        // Position focus
-        _otherAvatarOrbMeshPlaceholder->setWorldOrientation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
-        _otherAvatarOrbMeshPlaceholder->setWorldPosition(getHead()->getPosition());
-        _otherAvatarOrbMeshPlaceholder->setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
-        _otherAvatarOrbMeshPlaceholder->setVisible(true);
+        EntityItemProperties properties;
+        properties.setType(EntityTypes::Sphere);
+        properties.setAlpha(1.0f);
+        properties.setColor(getLoadingOrbColor(_loadingStatus));
+        properties.setPrimitiveMode(PrimitiveMode::LINES);
+        properties.getPulse().setMin(0.5f);
+        properties.getPulse().setMax(1.0f);
+        properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+        properties.setIgnorePickIntersection(true);
+
+        properties.setPosition(getHead()->getPosition());
+        properties.setRotation(glm::quat(0.0f, 0.0f, 0.0f, 1.0));
+        properties.setDimensions(glm::vec3(0.5f, 0.5f, 0.5f));
+        properties.setVisible(true);
+
+        _otherAvatarOrbMeshPlaceholderID = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(properties, entity::HostType::LOCAL);
     }
 }
 
 void OtherAvatar::indicateLoadingStatus(LoadingStatus loadingStatus) {
     Avatar::indicateLoadingStatus(loadingStatus);
-    if (_otherAvatarOrbMeshPlaceholder) {
-        _otherAvatarOrbMeshPlaceholder->setColor(getLoadingOrbColor(_loadingStatus));
+
+    if (_otherAvatarOrbMeshPlaceholderID != UNKNOWN_ENTITY_ID) {
+        EntityItemProperties properties;
+        properties.setColor(getLoadingOrbColor(_loadingStatus));
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_otherAvatarOrbMeshPlaceholderID, properties);
     }
 }
 
@@ -110,28 +114,154 @@ void OtherAvatar::updateSpaceProxy(workload::Transaction& transaction) const {
 
 int OtherAvatar::parseDataFromBuffer(const QByteArray& buffer) {
     int32_t bytesRead = Avatar::parseDataFromBuffer(buffer);
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        _detailedMotionStates[i]->forceActive();
+    }
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
     }
     return bytesRead;
 }
 
+btCollisionShape* OtherAvatar::createCollisionShape(int jointIndex, bool& isBound, std::vector<int>& boundJoints) {
+    ShapeInfo shapeInfo;
+    isBound = false;
+    QString jointName = ""; 
+    if (jointIndex > -1 && jointIndex < (int)_multiSphereShapes.size()) {
+        jointName = _multiSphereShapes[jointIndex].getJointName();
+    }
+    switch (_bodyLOD) {
+    case BodyLOD::Sphere:
+        shapeInfo.setSphere(0.5f * getFitBounds().getDimensions().y);
+        boundJoints.clear();
+        for (auto &spheres : _multiSphereShapes) {
+            if (spheres.isValid()) {
+                boundJoints.push_back(spheres.getJointIndex());
+            }
+        }
+        isBound = true;
+        break;
+    case BodyLOD::MultiSphereLow:
+        if (jointName.contains("RightHand", Qt::CaseInsensitive) || jointName.contains("LeftHand", Qt::CaseInsensitive))  {
+            if (jointName.size() <= QString("RightHand").size()) {
+                AABox handBound;
+                for (auto &spheres : _multiSphereShapes) {
+                    if (spheres.isValid() && spheres.getJointName().contains(jointName, Qt::CaseInsensitive)) {
+                        boundJoints.push_back(spheres.getJointIndex());
+                        handBound += spheres.getBoundingBox();
+                    }
+                }
+                shapeInfo.setSphere(0.5f * handBound.getLargestDimension());
+                glm::vec3 jointPosition;
+                glm::quat jointRotation;
+                _skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPosition);
+                _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRotation);
+                glm::vec3 positionOffset = glm::inverse(jointRotation) * (handBound.calcCenter() - jointPosition);
+                shapeInfo.setOffset(positionOffset);
+                isBound = true;
+            }
+            break;
+        }
+    case BodyLOD::MultiSphereHigh:
+        computeDetailedShapeInfo(shapeInfo, jointIndex);
+        break;
+    default:
+        break;
+    }
+    if (shapeInfo.getType() != SHAPE_TYPE_NONE) {
+        auto shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+        if (shape) {
+            shape->setMargin(0.001f);
+        }
+        return shape;
+    }
+    return nullptr;
+}
+
+DetailedMotionState* OtherAvatar::createMotionState(std::shared_ptr<OtherAvatar> avatar, int jointIndex) {
+    bool isBound = false;
+    std::vector<int> boundJoints;
+    btCollisionShape* shape = createCollisionShape(jointIndex, isBound, boundJoints);
+    if (shape) {
+        DetailedMotionState* motionState = new DetailedMotionState(avatar, shape, jointIndex);
+        motionState->setMass(computeMass());
+        motionState->setIsBound(isBound, boundJoints);
+        return motionState;
+    }
+    return nullptr;
+}
+
+void OtherAvatar::resetDetailedMotionStates() {
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        _detailedMotionStates[i] = nullptr;
+    }
+    _detailedMotionStates.clear();
+}
+
 void OtherAvatar::setWorkloadRegion(uint8_t region) {
     _workloadRegion = region;
+    QString printRegion = "";
+    if (region == workload::Region::R1) {
+        printRegion = "R1";
+    } else if (region == workload::Region::R2) {
+        printRegion = "R2";
+    } else if (region == workload::Region::R3) {
+        printRegion = "R3";
+    } else {
+        printRegion = "invalid";
+    }
+    qCDebug(avatars) << "Setting workload region to " << printRegion;
+    computeShapeLOD();
+}
+
+void OtherAvatar::computeShapeLOD() {
+    // auto newBodyLOD = _workloadRegion < workload::Region::R3 ? BodyLOD::MultiSphereShapes : BodyLOD::CapsuleShape;
+    // auto newBodyLOD = BodyLOD::CapsuleShape;
+    BodyLOD newLOD;
+    switch (_workloadRegion) {
+    case workload::Region::R1:
+        newLOD = BodyLOD::MultiSphereHigh;
+        break;
+    case workload::Region::R2:
+        newLOD = BodyLOD::MultiSphereLow;
+        break;
+    case workload::Region::UNKNOWN:
+    case workload::Region::INVALID:
+    case workload::Region::R3:
+    default:
+        newLOD = BodyLOD::Sphere;
+        break;
+    }
+    if (newLOD != _bodyLOD) {
+        _bodyLOD = newLOD;
+        if (isInPhysicsSimulation()) {
+            qCDebug(avatars) << "Changing to body LOD " << newLOD;
+            _needsReinsertion = true;
+        }
+    }
+}
+
+bool OtherAvatar::isInPhysicsSimulation() const {
+    return _motionState != nullptr && _detailedMotionStates.size() > 0;
 }
 
 bool OtherAvatar::shouldBeInPhysicsSimulation() const {
-    return (_workloadRegion < workload::Region::R3 && !isDead());
+    return !isDead() && !(isInPhysicsSimulation() && _needsReinsertion);
 }
 
 bool OtherAvatar::needsPhysicsUpdate() const {
     constexpr uint32_t FLAGS_OF_INTEREST = Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS | Simulation::DIRTY_POSITION | Simulation::DIRTY_COLLISION_GROUP;
-    return (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST));
+    return (_needsReinsertion || (_motionState && (bool)(_motionState->getIncomingDirtyFlags() & FLAGS_OF_INTEREST)));
 }
 
 void OtherAvatar::rebuildCollisionShape() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+    }
+    for (size_t i = 0; i < _detailedMotionStates.size(); i++) {
+        if (_detailedMotionStates[i]) {
+            _detailedMotionStates[i]->addDirtyFlags(Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS);
+        }
     }
 }
 
@@ -139,6 +269,25 @@ void OtherAvatar::setCollisionWithOtherAvatarsFlags() {
     if (_motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
     }
+}
+
+void OtherAvatar::createDetailedMotionStates(const std::shared_ptr<OtherAvatar>& avatar) {
+    auto& detailedMotionStates = getDetailedMotionStates();
+    assert(detailedMotionStates.empty());
+    if (_bodyLOD == BodyLOD::Sphere) {
+        auto dMotionState = createMotionState(avatar, -1);
+        if (dMotionState) {
+            detailedMotionStates.push_back(dMotionState);
+        }
+    } else {
+        for (int i = 0; i < getJointCount(); i++) {
+            auto dMotionState = createMotionState(avatar, i);
+            if (dMotionState) {
+                detailedMotionStates.push_back(dMotionState);
+            }
+        }
+    }
+    _needsReinsertion = false;
 }
 
 void OtherAvatar::simulate(float deltaTime, bool inView) {
@@ -217,7 +366,7 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
 
     {
         PROFILE_RANGE(simulation, "grabs");
-        updateGrabs();
+        applyGrabChanges();
     }
 
     updateFadingStatus();
@@ -301,6 +450,10 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             EntityItemProperties properties;
             int32_t bytesLeftToRead = data.size();
             unsigned char* dataAt = (unsigned char*)(data.data());
+            // FIXME: This function will cause unintented changes in SpaillyNestable
+            // E.g overriding the ID index of an exisiting entity to temporary entity
+            // in the following map QHash<QUuid, SpatiallyNestableWeakPointer> _children;
+            // Andrew Meadows will address this issue
             if (!properties.constructFromBuffer(dataAt, bytesLeftToRead)) {
                 // properties are corrupt
                 continue;
@@ -343,6 +496,17 @@ void OtherAvatar::handleChangedAvatarEntityData() {
             bool success = true;
             if (entity) {
                 QUuid oldParentID = entity->getParentID();
+
+                // Since  has overwrtiiten the back pointer
+                // from the parent children map (see comment for function call above),
+                // we need to for reset the back pointer in the map correctly by setting the parentID, but
+                // since the parentID of the entity has not changed we first need to set it some ither ID,
+                // then set the the original ID for the changes to take effect
+                // TODO: This is a horrible hack and once properties.constructFromBuffer no longer causes
+                // side effects...remove the following three lines
+                const QUuid NULL_ID = QUuid("{00000000-0000-0000-0000-000000000005}");
+                entity->setParentID(NULL_ID);
+                entity->setParentID(oldParentID);
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
                 } else {
@@ -364,6 +528,11 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 }
             }
             stateItr.value().success = success;
+            if (success) {
+                stateItr.value().hash = newHash;
+            } else {
+                stateItr.value().hash = 0;
+            }
         }
 
         AvatarEntityIDs recentlyRemovedAvatarEntities = getAndClearRecentlyRemovedIDs();

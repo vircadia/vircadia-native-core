@@ -68,8 +68,7 @@ public:
                                  const JSONCallbackParameters& callbackParams = JSONCallbackParameters(),
                                  const QByteArray& dataByteArray = QByteArray(),
                                  QHttpMultiPart* dataMultiPart = NULL,
-                                 const QVariantMap& propertyMap = QVariantMap(),
-                                 QUrlQuery query = QUrlQuery());
+                                 const QVariantMap& propertyMap = QVariantMap());
 
     void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 
@@ -106,6 +105,7 @@ public:
 public slots:
     void requestAccessToken(const QString& login, const QString& password);
     void requestAccessTokenWithSteam(QByteArray authSessionTicket);
+    void requestAccessTokenWithOculus(const QString& nonce, const QString& oculusID);
     void requestAccessTokenWithAuthCode(const QString& authCode,
                                         const QString& clientId,
                                         const QString& clientSecret,

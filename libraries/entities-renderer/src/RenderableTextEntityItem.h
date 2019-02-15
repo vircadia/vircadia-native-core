@@ -26,7 +26,11 @@ public:
     TextEntityRenderer(const EntityItemPointer& entity);
     ~TextEntityRenderer();
 
+    QSizeF textSize(const QString& text) const;
+
+protected:
     bool isTransparent() const override;
+    Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
 
 private:
@@ -37,6 +41,8 @@ private:
 
     int _geometryID{ 0 };
     std::shared_ptr<TextRenderer3D> _textRenderer;
+
+    PulsePropertyGroup _pulseProperties;
 
     QString _text;
     float _lineHeight;

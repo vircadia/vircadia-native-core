@@ -14,6 +14,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class TextEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -33,7 +35,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -45,6 +47,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    glm::vec3 getRaycastDimensions() const override;
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
@@ -94,14 +97,18 @@ public:
     float getBottomMargin() const;
     void setBottomMargin(float value);
 
+    PulsePropertyGroup getPulseProperties() const;
+
 private:
+    BillboardMode _billboardMode;
+
     QString _text;
     float _lineHeight;
     glm::u8vec3 _textColor;
     float _textAlpha;
     glm::u8vec3 _backgroundColor;
     float _backgroundAlpha;
-    BillboardMode _billboardMode;
+    PulsePropertyGroup _pulseProperties;
     float _leftMargin;
     float _rightMargin;
     float _topMargin;

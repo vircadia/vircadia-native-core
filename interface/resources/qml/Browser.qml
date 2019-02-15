@@ -1,16 +1,13 @@
 import QtQuick 2.5
-import QtWebChannel 1.0
-import QtWebEngine 1.5
-
 import controlsUit 1.0
-import "styles" as HifiStyles
 import stylesUit 1.0
 import "windows"
+import "."
 
 ScrollingWindow {
     id: root
     HifiConstants { id: hifi }
-    HifiStyles.HifiConstants { id: hifistyles }
+
     title: "Browser"
     resizable: true
     destroyOnHidden: true
@@ -68,7 +65,7 @@ ScrollingWindow {
                 id: back;
                 enabled: webview.canGoBack;
                 text: hifi.glyphs.backward
-                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
+                color: enabled ? hifi.colors.text : hifi.colors.disabledText
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goBack() }
             }
@@ -77,7 +74,7 @@ ScrollingWindow {
                 id: forward;
                 enabled: webview.canGoForward;
                 text: hifi.glyphs.forward
-                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
+                color: enabled ? hifi.colors.text : hifi.colors.disabledText
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
@@ -86,7 +83,7 @@ ScrollingWindow {
                 id: reload;
                 enabled: webview.canGoForward;
                 text: webview.loading ? hifi.glyphs.close : hifi.glyphs.reload
-                color: enabled ? hifistyles.colors.text : hifistyles.colors.disabledText
+                color: enabled ? hifi.colors.text : hifi.colors.disabledText
                 size: 48
                 MouseArea { anchors.fill: parent;  onClicked: webview.goForward() }
             }
@@ -202,61 +199,15 @@ ScrollingWindow {
             }
         }
 
-        WebView {
+        BrowserWebView {
             id: webview
-            url: "https://highfidelity.com/"
-            profile: FileTypeProfile;
-
-            // Create a global EventBridge object for raiseAndLowerKeyboard.
-            WebEngineScript {
-                id: createGlobalEventBridge
-                sourceCode: eventBridgeJavaScriptToInject
-                injectionPoint: WebEngineScript.Deferred
-                worldId: WebEngineScript.MainWorld
-            }
-
-            // Detect when may want to raise and lower keyboard.
-            WebEngineScript {
-                id: raiseAndLowerKeyboard
-                injectionPoint: WebEngineScript.Deferred
-                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-                worldId: WebEngineScript.MainWorld
-            }
-
-            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+            parentRoot: root
 
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-
-            onFeaturePermissionRequested: {
-                if (feature == 2) { // QWebEnginePage::MediaAudioCapture
-                    grantFeaturePermission(securityOrigin, feature, true);
-                } else {
-                    permissionsBar.securityOrigin = securityOrigin;
-                    permissionsBar.feature = feature;
-                    root.showPermissionsBar();
-                }
-            }
-
-            onLoadingChanged: {
-                if (loadRequest.status === WebEngineView.LoadSucceededStatus) {
-                    addressBar.text = loadRequest.url
-                }
-                root.loadingChanged(loadRequest.status);
-            }
-
-            onWindowCloseRequested: {
-                root.destroy();
-            }
-
-            Component.onCompleted: {
-                webChannel.registerObject("eventBridge", eventBridge);
-                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                desktop.initWebviewProfileHandlers(webview.profile);
-            }
         }
 
     } // item
