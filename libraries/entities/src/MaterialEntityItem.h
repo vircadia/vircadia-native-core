@@ -13,7 +13,7 @@
 
 #include "MaterialMappingMode.h"
 #include <model-networking/ModelCache.h>
-#include <model-networking/MaterialCache.h>
+#include <material-networking/MaterialCache.h>
 
 class MaterialEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<MaterialEntityItem>;
