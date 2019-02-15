@@ -257,8 +257,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Upscale to finale resolution
     const auto primaryFramebuffer = task.addJob<render::Upsample>("PrimaryBufferUpscale", scaledPrimaryFramebuffer);
 
-    // Composite the HUD and HUD layered objects
-    task.addJob<CompositeHUD>("HUD");
+    // Composite the HUD and HUD overlays
+    task.addJob<CompositeHUD>("HUD", primaryFramebuffer);
 
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
     const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();

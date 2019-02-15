@@ -101,7 +101,7 @@ void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs&
     }
 }
 
-void CompositeHUD::run(const RenderContextPointer& renderContext) {
+void CompositeHUD::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
@@ -119,6 +119,9 @@ void CompositeHUD::run(const RenderContextPointer& renderContext) {
         renderContext->args->getViewFrustum().evalViewTransform(viewMat);
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat, true);
+        if (inputs) {
+            batch.setFramebuffer(inputs);
+        }
         if (renderContext->args->_hudOperator) {
             renderContext->args->_hudOperator(batch, renderContext->args->_hudTexture, renderContext->args->_renderMode == RenderArgs::RenderMode::MIRROR_RENDER_MODE);
         }
@@ -197,7 +200,73 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
     });
 }
 
-void ExtractFrustums::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
+
+void ResolveFramebuffer::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+    RenderArgs* args = renderContext->args;
+    auto srcFbo = inputs.get0();
+    auto destFbo = inputs.get1();
+
+    if (!destFbo) {
+        destFbo = args->_blitFramebuffer;
+    }
+    outputs = destFbo;
+
+    // Check valid src and dest
+    if (!srcFbo || !destFbo) {
+        return;
+    }
+    
+    // Check valid size for sr and dest
+    auto frameSize(srcFbo->getSize());
+    if (destFbo->getSize() != frameSize) {
+        return;
+    }
+
+    gpu::Vec4i rectSrc;
+    rectSrc.z = frameSize.x;
+    rectSrc.w = frameSize.y;
+    gpu::doInBatch("Resolve", args->_context, [&](gpu::Batch& batch) { 
+        batch.blit(srcFbo, rectSrc, destFbo, rectSrc);
+    });
+}
+
+void ResolveNewFramebuffer::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& outputs) {
+    RenderArgs* args = renderContext->args;
+    auto srcFbo = inputs;
+    outputs.reset();
+
+    // Check valid src
+    if (!srcFbo) {
+        return;
+    }
+
+    // Check valid size for sr and dest
+    auto frameSize(srcFbo->getSize());
+
+    // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
+    if (_outputFramebuffer && _outputFramebuffer->getSize() != frameSize) {
+        _outputFramebuffer.reset();
+    }
+
+    if (!_outputFramebuffer) {
+        _outputFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("resolvedNew.out"));
+        auto colorFormat = gpu::Element::COLOR_SRGBA_32;
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+        auto colorTexture = gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _outputFramebuffer->setRenderBuffer(0, colorTexture);
+    }
+
+    gpu::Vec4i rectSrc;
+    rectSrc.z = frameSize.x;
+    rectSrc.w = frameSize.y;
+    gpu::doInBatch("ResolveNew", args->_context, [&](gpu::Batch& batch) { batch.blit(srcFbo, rectSrc, _outputFramebuffer, rectSrc); });
+
+    outputs = _outputFramebuffer;
+}
+
+
+
+ void ExtractFrustums::run(const render::RenderContextPointer& renderContext, const Inputs& inputs, Outputs& output) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
 
