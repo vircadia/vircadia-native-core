@@ -36,7 +36,6 @@ public class QuestQtActivity extends QtActivity {
     public void launchOculusActivity() {
         Log.w("QQQ_Qt", "QuestQtActivity::launchOculusActivity");
         runOnUiThread(()->{
-            keepInterfaceRunning = true;
             launchedQuestMode = true;
             moveTaskToBack(true);
             startActivity(new Intent(this, QuestRenderActivity.class));
