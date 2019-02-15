@@ -13,8 +13,7 @@
 
 #include <MaterialEntityItem.h>
 
-#include <model-networking/ModelCache.h>
-#include <model-networking/MaterialCache.h>
+#include <material-networking/MaterialCache.h>
 
 class NetworkMaterial;
 
@@ -25,7 +24,7 @@ class MaterialEntityRenderer : public TypedEntityRenderer<MaterialEntityItem> {
     using Pointer = std::shared_ptr<MaterialEntityRenderer>;
 public:
     MaterialEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {}
-    ~MaterialEntityRenderer() { deleteMaterial(); }
+    ~MaterialEntityRenderer() { deleteMaterial(_parentID); }
 
 private:
     virtual bool needsRenderUpdate() const override;

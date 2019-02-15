@@ -54,5 +54,5 @@ QSharedPointer<Resource> ClipCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ClipCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkClipLoader(*resource.staticCast<NetworkClipLoader>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new NetworkClipLoader(*resource.staticCast<NetworkClipLoader>()), &Resource::deleter);
 }
