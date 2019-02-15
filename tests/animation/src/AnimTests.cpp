@@ -526,60 +526,6 @@ void AnimTests::testAnimPoseMultiply() {
     }
 }
 
-void AnimTests::testAnimPoseInverse() {
-    const float PI = (float)M_PI;
-    const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-    const glm::quat ROT_Y_180 = glm::angleAxis(PI, glm::vec3(0.0f, 1.0, 0.0f));
-    const glm::quat ROT_Z_30 = glm::angleAxis(PI / 6.0f, glm::vec3(1.0f, 0.0f, 0.0f));
-
-    std::vector<float> scaleVec = {
-        1.0f,
-        2.0f,
-        0.5f
-    };
-
-    std::vector<glm::quat> rotVec = {
-        glm::quat(),
-        ROT_X_90,
-        ROT_Y_180,
-        ROT_Z_30,
-        ROT_X_90 * ROT_Y_180 * ROT_Z_30,
-        -ROT_Y_180
-    };
-
-    std::vector<glm::vec3> transVec = {
-        glm::vec3(),
-        glm::vec3(10.0f, 0.0f, 0.0f),
-        glm::vec3(0.0f, 5.0f, 0.0f),
-        glm::vec3(0.0f, 0.0f, 7.5f),
-        glm::vec3(10.0f, 5.0f, 7.5f),
-        glm::vec3(-10.0f, 5.0f, 7.5f),
-        glm::vec3(10.0f, -5.0f, 7.5f),
-        glm::vec3(10.0f, 5.0f, -7.5f)
-    };
-
-    const float TEST_EPSILON = 0.001f;
-
-    for (auto& scale : scaleVec) {
-        for (auto& rot : rotVec) {
-            for (auto& trans : transVec) {
-
-                // build a matrix the old fashioned way.
-                glm::mat4 scaleMat = glm::scale(glm::mat4(), glm::vec3(scale));
-                glm::mat4 rotTransMat = createMatFromQuatAndPos(rot, trans);
-                glm::mat4 rawMat = glm::inverse(rotTransMat * scaleMat);
-
-                // use an anim pose to build a matrix by parts.
-                AnimPose pose(scale, rot, trans);
-                glm::mat4 poseMat = pose.inverse();
-
-                QCOMPARE_WITH_ABS_ERROR(rawMat, poseMat, TEST_EPSILON);
-            }
-        }
-    }
-}
-
-
 void AnimTests::testExpressionTokenizer() {
     QString str = "(10 +  x) >= 20.1 && (y != !z)";
     AnimExpression e("x");
