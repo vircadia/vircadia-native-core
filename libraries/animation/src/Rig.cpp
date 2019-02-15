@@ -1516,8 +1516,13 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
 
         if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
             glm::vec3 poleVector;
-            //bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
-            bool usePoleVector = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, false, poleVector);
+            bool usePoleVector = false;
+        #ifdef Q_OS_ANDROID
+            usePoleVector = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, false, poleVector);
+        #else
+            usePoleVector = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, false, poleVector);
+            // bool usePoleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, oppositeArmJointIndex, poleVector);
+        #endif
             if (usePoleVector) {
                 glm::vec3 sensorPoleVector = transformVectorFast(rigToSensorMatrix, poleVector);
                 _animVars.set("rightHandPoleVectorEnabled", true);
@@ -1708,7 +1713,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
 
     // calculate the reference axis and the side axis.
     // Look up refVector from animVars, make sure to convert into geom space.
-    glm::vec3 refVector = (AnimPose(_rigToGeometryTransform) * elbowPose).xformVectorFast(Vectors::UNIT_X);
+    glm::vec3 refVector = (AnimPose(_rigToGeometryTransform) * elbowPose).xformVector(Vectors::UNIT_X);
     float refVectorLength = glm::length(refVector);
 
     if (left) {
