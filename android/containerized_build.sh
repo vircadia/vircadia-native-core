@@ -16,6 +16,7 @@ docker run \
    -e RELEASE_NUMBER \
    -e RELEASE_TYPE \
    -e ANDROID_APP \
+   -e ANDROID_BUILT_APK_NAME \
    -e ANDROID_APK_NAME \
    -e ANDROID_BUILD_TARGET \
    -e ANDROID_BUILD_DIR \
