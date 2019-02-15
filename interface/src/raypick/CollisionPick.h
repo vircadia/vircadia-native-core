@@ -54,7 +54,6 @@ public:
         return std::make_shared<CollisionPickResult>(pickVariant, std::vector<ContactTestResult>(), std::vector<ContactTestResult>());
     }
     PickResultPointer getEntityIntersection(const CollisionRegion& pick) override;
-    PickResultPointer getOverlayIntersection(const CollisionRegion& pick) override;
     PickResultPointer getAvatarIntersection(const CollisionRegion& pick) override;
     PickResultPointer getHUDIntersection(const CollisionRegion& pick) override;
     Transform getResultTransform() const override;

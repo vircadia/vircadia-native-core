@@ -13,6 +13,7 @@
 
 #include <math.h>
 
+#include "HashKey.h"
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
 /**jsdoc
@@ -96,7 +97,7 @@ void ShapeInfo::clear() {
     _sphereCollection.clear();
     _halfExtents = glm::vec3(0.0f);
     _offset = glm::vec3(0.0f);
-    _hashKey.clear();
+    _hash64 = 0;
     _type = SHAPE_TYPE_NONE;
 }
 
@@ -131,14 +132,14 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
         default:
             break;
     }
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _url = "";
     _type = SHAPE_TYPE_BOX;
     setHalfExtents(halfExtents);
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 void ShapeInfo::setSphere(float radius) {
@@ -146,23 +147,24 @@ void ShapeInfo::setSphere(float radius) {
     _type = SHAPE_TYPE_SPHERE;
     radius = glm::max(radius, MIN_HALF_EXTENT);
     _halfExtents = glm::vec3(radius);
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 void ShapeInfo::setMultiSphere(const std::vector<glm::vec3>& centers, const std::vector<float>& radiuses) {
     _url = "";
     _type = SHAPE_TYPE_MULTISPHERE;
-    assert(centers.size() == radiuses.size() && centers.size() > 0);
+    assert(centers.size() == radiuses.size());
+    assert(centers.size() > 0);
     for (size_t i = 0; i < centers.size(); i++) {
         SphereData sphere = SphereData(centers[i], radiuses[i]);
         _sphereCollection.push_back(sphere);
     }
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollection) {
     _pointCollection = pointCollection;
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 void ShapeInfo::setCapsuleY(float radius, float cylinderHalfHeight) {
@@ -171,12 +173,12 @@ void ShapeInfo::setCapsuleY(float radius, float cylinderHalfHeight) {
     radius = glm::max(radius, MIN_HALF_EXTENT);
     cylinderHalfHeight = glm::max(cylinderHalfHeight, 0.0f);
     _halfExtents = glm::vec3(radius, cylinderHalfHeight + radius, radius);
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 void ShapeInfo::setOffset(const glm::vec3& offset) {
     _offset = offset;
-    _hashKey.clear();
+    _hash64 = 0;
 }
 
 uint32_t ShapeInfo::getNumSubShapes() const {
@@ -268,20 +270,21 @@ float ShapeInfo::computeVolume() const {
     return volume;
 }
 
-const HashKey& ShapeInfo::getHash() const {
+uint64_t ShapeInfo::getHash() const {
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
-    if (_hashKey.isNull() && _type != SHAPE_TYPE_NONE) {
+    if (_hash64 == 0 && _type != SHAPE_TYPE_NONE) {
+        HashKey hashKey;
         // The key is not yet cached therefore we must compute it.
 
-        _hashKey.hashUint64((uint64_t)_type);
+        hashKey.hashUint64((uint64_t)_type);
         if (_type == SHAPE_TYPE_MULTISPHERE) {
             for (auto &sphereData : _sphereCollection) {
-                _hashKey.hashVec3(glm::vec3(sphereData));
-                _hashKey.hashFloat(sphereData.w);
+                hashKey.hashVec3(glm::vec3(sphereData));
+                hashKey.hashFloat(sphereData.w);
             }
         } else if (_type != SHAPE_TYPE_SIMPLE_HULL) {
-            _hashKey.hashVec3(_halfExtents);
-            _hashKey.hashVec3(_offset);
+            hashKey.hashVec3(_halfExtents);
+            hashKey.hashVec3(_offset);
         } else {
             // TODO: we could avoid hashing all of these points if we were to supply the ShapeInfo with a unique
             // descriptive string.  Shapes that are uniquely described by their type and URL could just put their
@@ -291,7 +294,7 @@ const HashKey& ShapeInfo::getHash() const {
             const int numPoints = (int)points.size();
 
             for (int i = 0; i < numPoints; ++i) {
-                _hashKey.hashVec3(points[i]);
+                hashKey.hashVec3(points[i]);
             }
         }
 
@@ -299,23 +302,24 @@ const HashKey& ShapeInfo::getHash() const {
         if (!url.isEmpty()) {
             QByteArray baUrl = url.toLocal8Bit();
             uint32_t urlHash = qChecksum(baUrl.data(), baUrl.size());
-            _hashKey.hashUint64((uint64_t)urlHash);
+            hashKey.hashUint64((uint64_t)urlHash);
         }
 
         if (_type == SHAPE_TYPE_COMPOUND || _type == SHAPE_TYPE_SIMPLE_COMPOUND) {
             uint64_t numHulls = (uint64_t)_pointCollection.size();
-            _hashKey.hashUint64(numHulls);
+            hashKey.hashUint64(numHulls);
         } else if (_type == SHAPE_TYPE_MULTISPHERE) {
             uint64_t numSpheres = (uint64_t)_sphereCollection.size();
-            _hashKey.hashUint64(numSpheres);
+            hashKey.hashUint64(numSpheres);
         } else if (_type == SHAPE_TYPE_SIMPLE_HULL) {
-            _hashKey.hashUint64(1);
-        } 
+            hashKey.hashUint64(1);
+        }
+        _hash64 = hashKey.getHash64();
     }
-    return _hashKey;
+    return _hash64;
 }
 
 void ShapeInfo::setHalfExtents(const glm::vec3& halfExtents) {
     _halfExtents = glm::max(halfExtents, glm::vec3(MIN_HALF_EXTENT));
-    _hashKey.clear();
+    _hash64 = 0;
 }

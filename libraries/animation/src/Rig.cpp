@@ -39,14 +39,13 @@ static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
 
+static bool isEqual(const float p, float q) {
+    const float EPSILON = 0.00001f;
+    return fabsf(p - q) <= EPSILON;
+}
+
 static bool isEqual(const glm::vec3& u, const glm::vec3& v) {
-    const float EPSILON = 0.0001f;
-    float uLen = glm::length(u);
-    if (uLen == 0.0f) {
-        return glm::length(v) <= EPSILON;
-    } else {
-        return (glm::length(u - v) / uLen) <= EPSILON;
-    }
+    return isEqual(u.x, v.x) && isEqual(u.y, v.y) && isEqual(u.z, v.z);
 }
 
 static bool isEqual(const glm::quat& p, const glm::quat& q) {
@@ -508,10 +507,8 @@ std::shared_ptr<AnimInverseKinematics> Rig::getAnimInverseKinematicsNode() const
     std::shared_ptr<AnimInverseKinematics> result;
     if (_animNode) {
         _animNode->traverse([&](AnimNode::Pointer node) {
-            // only report clip nodes as valid roles.
-            auto ikNode = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
-            if (ikNode) {
-                result = ikNode;
+            if (node->getType() == AnimNodeType::InverseKinematics) {
+                result = std::dynamic_pointer_cast<AnimInverseKinematics>(node);
                 return false;
             } else {
                 return true;
@@ -1234,9 +1231,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
             _networkPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
         }
         _lastAnimVars = _animVars;
-        _animVars.clearTriggers();
         _animVars = triggersOut;
-        _networkVars.clearTriggers();
         _networkVars = networkTriggersOut;
         _lastContext = context;
     }
@@ -1360,7 +1355,7 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
         }
         if (slabCount == (DOP14_COUNT / 2) && minDisplacementLen != FLT_MAX) {
             // we are within the k-dop so push the point along the minimum displacement found
-            displacementOut = shapePose.xformVectorFast(minDisplacement);
+            displacementOut = shapePose.xformVector(minDisplacement);
             return true;
         } else {
             // point is outside of kdop
@@ -1369,7 +1364,7 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     } else {
         // point is directly on top of shapeInfo.avgPoint.
         // push the point out along the x axis.
-        displacementOut = shapePose.xformVectorFast(shapeInfo.points[0]);
+        displacementOut = shapePose.xformVector(shapeInfo.points[0]);
         return true;
     }
 }

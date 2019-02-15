@@ -16,6 +16,7 @@
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
+#include <shared/FileUtils.h>
 
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
@@ -475,6 +476,8 @@ ScriptEnginePointer ScriptEngines::loadScript(const QUrl& scriptFilename, bool i
     } else {
         scriptUrl = normalizeScriptURL(scriptFilename);
     }
+
+    scriptUrl = QUrl(FileUtils::selectFile(scriptUrl.toString()));
 
     auto scriptEngine = getScriptEngine(scriptUrl);
     if (scriptEngine && !scriptEngine->isStopping()) {

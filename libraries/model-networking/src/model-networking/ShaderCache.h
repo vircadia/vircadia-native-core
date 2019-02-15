@@ -14,6 +14,7 @@
 class NetworkShader : public Resource {
 public:
     NetworkShader(const QUrl& url);
+    NetworkShader(const NetworkShader& other) : Resource(other), _source(other._source) {}
 
     QString getType() const override { return "NetworkShader"; }
 
@@ -31,8 +32,8 @@ public:
     NetworkShaderPointer getShader(const QUrl& url);
 
 protected:
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) override;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
+    QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
 };
 
 #endif

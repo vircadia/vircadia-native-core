@@ -36,24 +36,23 @@ void main(void) {
     TransformObject obj = getTransformObject();
     _distanceFromCenter = -1.0 + 2.0 * evenVertex;
     vec4 position = vec4(vertex.positionAndUCoord.xyz, 1.0);
-    vec3 normal = vertex.normal.xyz;
     vec3 binormal = vertex.binormalAndHalfWidth.xyz;
     if (_polylineData.faceCameraGlow.x != 0.0) {
         vec4 posEye;
-        vec3 normalEye;
-        vec3 binormalEye;
+        vec3 tangentEye;
         <$transformModelToEyePos(cam, obj, position, posEye)$>
-        <$transformModelToEyeDir(cam, obj, normal, normalEye)$>
-        <$transformModelToEyeDir(cam, obj, binormal, binormalEye)$>
+        // See comment in RenderablePolyLineEntityItem.cpp: we actually pass in the tangent in faceCamera mode
+        <$transformModelToEyeDir(cam, obj, binormal, tangentEye)$>
 
-        vec3 tangentEye = cross(binormalEye, normalEye);
         // new normal faces the camera
-        normalEye = normalize(posEye.xyz);
-        binormalEye = normalize(cross(normalEye, tangentEye));
+        vec3 normalEye = normalize(posEye.xyz);
+
+        vec3 binormalEye = normalize(cross(normalEye, tangentEye));
         posEye.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormalEye;
         <$transformEyeToClipPos(cam, posEye, gl_Position)$>
         <$transformEyeToWorldDir(cam, normalEye, _normalWS)$>
     } else {
+        vec3 normal = vertex.normal.xyz;
         position.xyz += _distanceFromCenter * vertex.binormalAndHalfWidth.w * binormal;
         <$transformModelToClipPos(cam, obj, position, gl_Position)$>
         <$transformModelToWorldDir(cam, obj, normal, _normalWS)$>

@@ -32,7 +32,7 @@
 
 // Different versions for the stereo drawcall
 // Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
-#if defined(USE_GLES)
+#if defined(USE_GLES) && !defined(HAVE_EXT_clip_cull_distance)
 #define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 #else
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
@@ -95,7 +95,7 @@ public:
     // Shutdown rendering and persist any required resources
     void shutdown() override;
 
-    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false);
+    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false) override;
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState

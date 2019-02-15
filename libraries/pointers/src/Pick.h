@@ -23,7 +23,7 @@
 enum IntersectionType {
     NONE = 0,
     ENTITY,
-    OVERLAY,
+    LOCAL_ENTITY,
     AVATAR,
     HUD
 };
@@ -68,6 +68,7 @@ public:
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {number} Ray Ray picks intersect a ray with the nearest object in front of them, along a given direction.
      * @property {number} Stylus Stylus picks provide "tapping" functionality on/into flat surfaces.
@@ -176,7 +177,6 @@ public:
     virtual T getMathematicalPick() const = 0;
     virtual PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const = 0;
     virtual PickResultPointer getEntityIntersection(const T& pick) = 0;
-    virtual PickResultPointer getOverlayIntersection(const T& pick) = 0;
     virtual PickResultPointer getAvatarIntersection(const T& pick) = 0;
     virtual PickResultPointer getHUDIntersection(const T& pick) = 0;
 

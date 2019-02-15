@@ -16,6 +16,8 @@
 
 #include <gpu/Texture.h>
 
+#include "ColorChannel.h"
+
 class QByteArray;
 class QImage;
 
@@ -81,7 +83,7 @@ gpu::TexturePointer processCubeTextureColorFromImage(QImage&& srcImage, const st
 
 const QStringList getSupportedFormats();
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url,
+gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url, ColorChannel sourceChannel,
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
 

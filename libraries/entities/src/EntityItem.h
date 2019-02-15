@@ -561,6 +561,10 @@ public:
 
     virtual void addGrab(GrabPointer grab) override;
     virtual void removeGrab(GrabPointer grab) override;
+    virtual void disableGrab(GrabPointer grab) override;
+
+    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
+    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode) { return _getBillboardRotationOperator(position, rotation, billboardMode); }
 
 signals:
     void requestRenderUpdate();
@@ -752,6 +756,8 @@ protected:
 private:
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
+
+    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> _getBillboardRotationOperator;
 
 };
 

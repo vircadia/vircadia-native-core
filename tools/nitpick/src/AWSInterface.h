@@ -16,7 +16,7 @@
 #include <QObject>
 #include <QTextStream>
 
-#include "ui/BusyWindow.h"
+#include "BusyWindow.h"
 
 #include "PythonInterface.h"
 
@@ -30,7 +30,7 @@ public:
                                   QCheckBox* updateAWSCheckBox,
                                   QLineEdit* urlLineEdit);
 
-    void extractTestFailuresFromZippedFolder();
+    void extractTestFailuresFromZippedFolder(const QString& folderName);
     void createHTMLFile();
 
     void startHTMLpage(QTextStream& stream);

@@ -65,6 +65,12 @@ public slots:
     * @function Window.hasRift
     * @returns {boolean} <code>true</code> if running on Windows, otherwise <code>false</code>.*/
     bool hasViveControllers();
+
+    /**jsdoc
+    * Returns true if device supports 3d HTML
+    * @function Window.hasRift
+    * @returns {boolean} <code>true</code> if device supports 3d HTML, otherwise <code>false</code>.*/
+    bool has3DHTML();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h

@@ -26,6 +26,7 @@
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
 #include <CubicHermiteSpline.h>
+#include <EntityItem.h>
 
 #include <Grab.h>
 #include <ThreadSafeValueCache.h>
@@ -483,8 +484,6 @@ public:
     virtual void setModelScale(float scale) { _modelScale = scale; }
     virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getModelScale()); }
 
-    virtual void setAvatarEntityDataChanged(bool value) override;
-
     // Show hide the model representation of the avatar
     virtual void setEnableMeshVisible(bool isEnabled);
     virtual bool getEnableMeshVisible() const;
@@ -608,6 +607,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+    virtual void sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const { }
     bool applyGrabChanges();
     void relayJointDataToChildren();
 
@@ -651,9 +651,6 @@ protected:
         uint32_t hash { 0 };
         bool success { false };
     };
-
-    using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
-    MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
 
     uint64_t _lastRenderUpdateTime { 0 };
     int _leftPointerGeometryID { 0 };
