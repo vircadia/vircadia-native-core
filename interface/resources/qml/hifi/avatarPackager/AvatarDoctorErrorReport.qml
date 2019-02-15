@@ -21,7 +21,6 @@ Item {
             height: 40
             width: 134
             text: qsTr("Try Again")
-            // colorScheme: root.colorScheme
             onClicked: {
                 avatarPackager.state = AvatarPackagerState.avatarDoctorDiagnose;
             }
@@ -49,7 +48,7 @@ Item {
         color: "#EA4C5F"
         anchors {
             top: parent.top
-            //topMargin: 73
+            topMargin: -20
             horizontalCenter: parent.horizontalCenter
         }
     }
@@ -60,7 +59,7 @@ Item {
             right: parent.right
             bottom: parent.bottom
             top: errorReportIcon.bottom
-            topMargin: 27
+            topMargin: -40
             leftMargin: 13
             rightMargin: 13
         }
@@ -68,15 +67,6 @@ Item {
 
         Repeater {
             id: errorRepeater
-            /*model: [
-                {message: "Rig is not Hifi compatible", url: "http://www.highfidelity.com/"},
-                {message: "Bone limit exceeds 256", url: "http://www.highfidelity.com/2"},
-                {message: "Unsupported Texture", url: "http://www.highfidelity.com/texture"},
-                {message: "Rig is not Hifi compatible", url: "http://www.highfidelity.com/"},
-                {message: "Bone limit exceeds 256", url: "http://www.highfidelity.com/2"},
-                {message: "Unsupported Texture", url: "http://www.highfidelity.com/texture"}
-            ]*/
-
             Item {
                 height: 37
                 width: parent.width
@@ -89,6 +79,7 @@ Item {
                     anchors {
                         top: parent.top
                         left: parent.left
+                        leftMargin: -5
                     }
                 }
 
@@ -96,17 +87,18 @@ Item {
                     id: errorLink
                     anchors {
                         top: parent.top
+                        topMargin: 5
                         left: errorIcon.right
                         right: parent.right
                     }
-                    linkColor: "#00B4EF"// style.colors.blueHighlight
+                    color: "#00B4EF"
+                    linkColor: "#00B4EF"
                     size: 28
                     text: "<a href='javascript:void'>" + modelData.message + "</a>"
                     onLinkActivated: Qt.openUrlExternally(modelData.url)
+                    elide: Text.ElideRight
                 }
             }
         }
     }
-
-
 }

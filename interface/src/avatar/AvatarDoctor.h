@@ -13,17 +13,11 @@
 #ifndef hifi_AvatarDoctor_h
 #define hifi_AvatarDoctor_h
 
-#include <QtCore/QObject>
 #include <QUrl>
 #include <QVector>
 #include <QVariantMap>
 
 struct AvatarDiagnosticResult {
-    
-//public:
-   // AvatarDiagnosticResult() {}
- //   AvatarDiagnosticResult(QString message, QUrl url) : _message(std::move(message)), _url(std::move(url)) { }
-//private:
     QString message;
     QUrl url;
 };
@@ -50,6 +44,8 @@ private:
     int _checkedTextureCount = 0;
     int _missingTextureCount = 0;
     int _unsupportedTextureCount = 0;
+
+    bool _isDiagnosing = false;
 };
 
 #endif  // hifi_AvatarDoctor_h

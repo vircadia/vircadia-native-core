@@ -32,8 +32,6 @@ AvatarPackager::AvatarPackager() {
         qRegisterMetaType<AvatarPackager*>();
         qRegisterMetaType<AvatarProject*>();
         qRegisterMetaType<AvatarDoctor*>();
-        qRegisterMetaType<AvatarDiagnosticResult>();
-        qRegisterMetaType<QVector<AvatarDiagnosticResult>>();
         qRegisterMetaType<AvatarProjectStatus::AvatarProjectStatus>();
         qmlRegisterUncreatableMetaObject(
             AvatarProjectStatus::staticMetaObject,

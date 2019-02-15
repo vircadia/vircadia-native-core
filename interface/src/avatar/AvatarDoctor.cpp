@@ -14,11 +14,22 @@
 #include <AvatarConstants.h>
 #include <ResourceManager.h>
 
+
 AvatarDoctor::AvatarDoctor(QUrl avatarFSTFileUrl) :
-    _avatarFSTFileUrl(std::move(avatarFSTFileUrl)) {
+    _avatarFSTFileUrl(avatarFSTFileUrl) {
+
+    connect(this, &AvatarDoctor::complete, this, [this](QVariantList errors) {
+        _isDiagnosing = false;
+    });
 }
 
 void AvatarDoctor::startDiagnosing() {
+    if (_isDiagnosing) {
+        // One diagnose at a time for now
+        return;
+    }
+    _isDiagnosing = true;
+    
     _errors.clear();
 
     _externalTextureCount = 0;
@@ -47,8 +58,7 @@ void AvatarDoctor::startDiagnosing() {
         // RIG
         if (avatarModel.joints.isEmpty()) {
             _errors.push_back({ "Avatar has no rig", DEFAULT_URL });
-        }
-        else {
+        } else {
             if (avatarModel.joints.length() > 256) {
                 _errors.push_back({ "Avatar has over 256 bones", DEFAULT_URL });
             }
@@ -69,13 +79,10 @@ void AvatarDoctor::startDiagnosing() {
         const float RECOMMENDED_MAX_HEIGHT = DEFAULT_AVATAR_HEIGHT * 1.5f;
         
         const float avatarHeight = avatarModel.bindExtents.largestDimension();
-
-        qDebug() << "avatarHeight" << avatarHeight;
-        qDebug() << "defined Scale =" << model->getMapping()["scale"].toFloat();
         if (avatarHeight < RECOMMENDED_MIN_HEIGHT) {
-            _errors.push_back({ "Avatar is possibly smaller then expected.", DEFAULT_URL });
+            _errors.push_back({ "Avatar is possibly too small.", DEFAULT_URL });
         } else if (avatarHeight > RECOMMENDED_MAX_HEIGHT) {
-            _errors.push_back({ "Avatar is possibly larger then expected.", DEFAULT_URL });
+            _errors.push_back({ "Avatar is possibly too large.", DEFAULT_URL });
         }
 
         // TEXTURES
@@ -119,7 +126,7 @@ void AvatarDoctor::startDiagnosing() {
                     qDebug() << "checkTextureLoadingComplete" << _checkedTextureCount << "/" << _externalTextureCount;
 
                     if (_checkedTextureCount == _externalTextureCount) {
-                        if (_missingTextureCount == 1) {
+                        if (_missingTextureCount > 0) {
                             _errors.push_back({ tr("Missing %n texture(s).","", _missingTextureCount), DEFAULT_URL });
                         }
                         if (_unsupportedTextureCount > 0) {
