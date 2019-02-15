@@ -53,9 +53,9 @@ ANDROID_PACKAGES = {
         'includeLibs': ['libvrapi.so']
     },
     'oculusPlatform': {
-        'file': 'OVRPlatformSDK_v1.32.0.zip',
-        'versionId': 'jG9DB16zOGxSrmtZy4jcQnwO0TJUuaeL',
-        'checksum': 'ab5b203b3a39a56ab148d68fff769e05',
+        'file': 'OVRPlatformSDK_v1.34.0.zip',
+        'versionId': 'vbRUkkyzUAXfTGSEtuiUr_7.Fm5h5BZk',
+        'checksum': '16e4c5f39520f122bc49cb6d5bb88289',
         'sharedLibFolder': 'Android/libs/arm64-v8a',
         'includeLibs': ['libovrplatformloader.so']
     },
