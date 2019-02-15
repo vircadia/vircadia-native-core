@@ -19,10 +19,7 @@ import android.view.SurfaceView;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
 
-
-import org.qtproject.qt5.android.QtNative;
 import org.qtproject.qt5.android.bindings.QtActivity;
-
 import io.highfidelity.utils.HifiUtils;
 
 /**
