@@ -1355,7 +1355,7 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
         }
         if (slabCount == (DOP14_COUNT / 2) && minDisplacementLen != FLT_MAX) {
             // we are within the k-dop so push the point along the minimum displacement found
-            displacementOut = shapePose.xformVector(minDisplacement);
+            displacementOut = shapePose.xformVectorFast(minDisplacement);
             return true;
         } else {
             // point is outside of kdop
@@ -1364,7 +1364,7 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     } else {
         // point is directly on top of shapeInfo.avgPoint.
         // push the point out along the x axis.
-        displacementOut = shapePose.xformVector(shapeInfo.points[0]);
+        displacementOut = shapePose.xformVectorFast(shapeInfo.points[0]);
         return true;
     }
 }

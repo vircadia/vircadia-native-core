@@ -569,7 +569,7 @@ void AvatarActionHold::lateAvatarUpdate(const AnimPose& prePhysicsRoomPose, cons
     }
 
     btTransform worldTrans = rigidBody->getWorldTransform();
-    AnimPose worldBodyPose(1.0f, bulletToGLM(worldTrans.getRotation()), bulletToGLM(worldTrans.getOrigin()));
+    AnimPose worldBodyPose(glm::vec3(1), bulletToGLM(worldTrans.getRotation()), bulletToGLM(worldTrans.getOrigin()));
 
     // transform the body transform into sensor space with the prePhysics sensor-to-world matrix.
     // then transform it back into world uisng the postAvatarUpdate sensor-to-world matrix.
