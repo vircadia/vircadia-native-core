@@ -391,7 +391,7 @@ void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
     textStream << "Script.include(testsRootPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
-void Test::createTests() {
+void Test::createTests(const QString& clientProfile) {
     // Rename files sequentially, as ExpectedResult_00000.png, ExpectedResult_00001.png and so on
     // Any existing expected result images will be deleted
     QString previousSelection = _snapshotDirectory;
