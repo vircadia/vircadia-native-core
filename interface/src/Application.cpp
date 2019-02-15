@@ -6988,17 +6988,19 @@ void Application::nodeActivated(SharedNodePointer node) {
 
 #if !defined(DISABLE_QML)
         auto offscreenUi = getOffscreenUI();
-        auto assetDialog = offscreenUi ? offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer") : nullptr;
 
-        if (assetDialog) {
+        if (offscreenUi) {
             auto nodeList = DependencyManager::get<NodeList>();
 
             if (nodeList->getThisNodeCanWriteAssets()) {
                 // call reload on the shown asset browser dialog to get the mappings (if permissions allow)
-                QMetaObject::invokeMethod(assetDialog, "reload");
+                auto assetDialog = offscreenUi ? offscreenUi->getRootItem()->findChild<QQuickItem*>("AssetServer") : nullptr;
+                if (assetDialog) {
+                    QMetaObject::invokeMethod(assetDialog, "reload");
+                }
             } else {
                 // we switched to an Asset Server that we can't modify, hide the Asset Browser
-                assetDialog->setVisible(false);
+                offscreenUi->hide("AssetServer");
             }
         }
 #endif
