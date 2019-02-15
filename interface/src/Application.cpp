@@ -2308,8 +2308,30 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
-    EntityTreeRenderer::setGetAvatarUpOperator([] {
-        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
+    EntityItem::setBillboardRotationOperator([this](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode) {
+        if (billboardMode == BillboardMode::YAW) {
+            //rotate about vertical to face the camera
+            ViewFrustum frustum;
+            copyViewFrustum(frustum);
+            glm::vec3 dPosition = frustum.getPosition() - position;
+            // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+            float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+            return glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
+        } else if (billboardMode == BillboardMode::FULL) {
+            ViewFrustum frustum;
+            copyViewFrustum(frustum);
+            glm::vec3 cameraPos = frustum.getPosition();
+            // use the referencial from the avatar, y isn't always up
+            glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
+            // check to see if glm::lookAt will work / using glm::lookAt variable name
+            glm::highp_vec3 s(glm::cross(position - cameraPos, avatarUP));
+
+            // make sure s is not NaN for any component
+            if (glm::length2(s) > 0.0f) {
+                return glm::conjugate(glm::toQuat(glm::lookAt(cameraPos, position, avatarUP)));
+            }
+        }
+        return rotation;
     });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {

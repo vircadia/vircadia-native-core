@@ -26,10 +26,12 @@ public:
     TextEntityRenderer(const EntityItemPointer& entity);
     ~TextEntityRenderer();
 
-    bool isTransparent() const override;
-    ShapeKey getShapeKey() override;
-
     QSizeF textSize(const QString& text) const;
+
+protected:
+    bool isTransparent() const override;
+    Item::Bound getBound() override;
+    ShapeKey getShapeKey() override;
 
 private:
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;

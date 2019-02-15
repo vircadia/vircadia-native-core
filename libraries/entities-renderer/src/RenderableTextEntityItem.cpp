@@ -47,6 +47,17 @@ bool TextEntityRenderer::isTransparent() const {
     return Parent::isTransparent() || _textAlpha < 1.0f || _backgroundAlpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
+Item::Bound TextEntityRenderer::getBound() {
+    auto bound = Parent::getBound();
+    if (_billboardMode != BillboardMode::NONE) {
+        glm::vec3 dimensions = bound.getScale();
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        bound.setScaleStayCentered(glm::vec3(SQRT_2 * max));
+    }
+    return bound;
+}
+
 ShapeKey TextEntityRenderer::getShapeKey() {
     auto builder = render::ShapeKey::Builder().withOwnPipeline();
     if (isTransparent()) {
@@ -170,27 +181,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
 
     auto transformToTopLeft = modelTransform;
-    if (_billboardMode == BillboardMode::YAW) {
-        //rotate about vertical to face the camera
-        glm::vec3 dPosition = args->getViewFrustum().getPosition() - modelTransform.getTranslation();
-        // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
-        float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
-        glm::quat orientation = glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
-        transformToTopLeft.setRotation(orientation);
-    } else if (_billboardMode == BillboardMode::FULL) {
-        glm::vec3 billboardPos = transformToTopLeft.getTranslation();
-        glm::vec3 cameraPos = args->getViewFrustum().getPosition();
-        // use the referencial from the avatar, y isn't always up
-        glm::vec3 avatarUP = EntityTreeRenderer::getAvatarUp();
-        // check to see if glm::lookAt will work / using glm::lookAt variable name
-        glm::highp_vec3 s(glm::cross(billboardPos - cameraPos, avatarUP));
-
-        // make sure s is not NaN for any component
-        if (glm::length2(s) > 0.0f) {
-            glm::quat rotation(conjugate(toQuat(glm::lookAt(cameraPos, billboardPos, avatarUP))));
-            transformToTopLeft.setRotation(rotation);
-        }
-    }
+    transformToTopLeft.setRotation(EntityItem::getBillboardRotation(transformToTopLeft.getTranslation(), transformToTopLeft.getRotation(), _billboardMode));
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
 

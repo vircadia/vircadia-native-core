@@ -42,7 +42,6 @@
 #include <PointerManager.h>
 
 std::function<bool()> EntityTreeRenderer::_entitiesShouldFadeFunction = []() { return true; };
-std::function<glm::vec3()> EntityTreeRenderer::_getAvatarUpOperator = []() { return Vectors::UP; };
 
 QString resolveScriptURL(const QString& scriptUrl) {
     auto normalizedScriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);

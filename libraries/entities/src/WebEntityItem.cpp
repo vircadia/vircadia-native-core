@@ -48,6 +48,7 @@ EntityItemProperties WebEntityItem::getProperties(const EntityPropertyFlags& des
     withReadLock([&] {
         _pulseProperties.getProperties(properties);
     });
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(billboardMode, getBillboardMode);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(sourceUrl, getSourceUrl);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dpi, getDPI);
@@ -68,6 +69,7 @@ bool WebEntityItem::setProperties(const EntityItemProperties& properties) {
         bool pulsePropertiesChanged = _pulseProperties.setProperties(properties);
         somethingChanged |= pulsePropertiesChanged;
     });
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(billboardMode, setBillboardMode);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(sourceUrl, setSourceUrl);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dpi, setDPI);
@@ -107,6 +109,7 @@ int WebEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, i
         bytesRead += bytesFromPulse;
         dataAt += bytesFromPulse;
     });
+    READ_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
     READ_ENTITY_PROPERTY(PROP_SOURCE_URL, QString, setSourceUrl);
     READ_ENTITY_PROPERTY(PROP_DPI, uint16_t, setDPI);
@@ -123,6 +126,7 @@ EntityPropertyFlags WebEntityItem::getEntityProperties(EncodeBitstreamParams& pa
     requestedProperties += PROP_COLOR;
     requestedProperties += PROP_ALPHA;
     requestedProperties += _pulseProperties.getEntityProperties(params);
+    requestedProperties += PROP_BILLBOARD_MODE;
 
     requestedProperties += PROP_SOURCE_URL;
     requestedProperties += PROP_DPI;
@@ -148,6 +152,7 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
         _pulseProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
             propertyFlags, propertiesDidntFit, propertyCount, appendState);
     });
+    APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)getBillboardMode());
 
     APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, getSourceUrl());
     APPEND_ENTITY_PROPERTY(PROP_DPI, getDPI());
@@ -155,6 +160,16 @@ void WebEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, getMaxFPS());
     APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)getInputMode());
     APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, getShowKeyboardFocusHighlight());
+}
+
+glm::vec3 WebEntityItem::getRaycastDimensions() const {
+    glm::vec3 dimensions = getScaledDimensions();
+    if (getBillboardMode() != BillboardMode::NONE) {
+        float max = glm::max(dimensions.x, glm::max(dimensions.y, dimensions.z));
+        const float SQRT_2 = 1.41421356237f;
+        return glm::vec3(SQRT_2 * max);
+    }
+    return dimensions;
 }
 
 bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -165,6 +180,7 @@ bool WebEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const g
     glm::vec2 xyDimensions(dimensions.x, dimensions.y);
     glm::quat rotation = getWorldOrientation();
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
+    rotation = EntityItem::getBillboardRotation(position, rotation, _billboardMode);
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
         glm::vec3 forward = rotation * Vectors::FRONT;
@@ -232,6 +248,18 @@ void WebEntityItem::setAlpha(float alpha) {
 float WebEntityItem::getAlpha() const {
     return resultWithReadLock<float>([&] {
         return _alpha;
+    });
+}
+
+BillboardMode WebEntityItem::getBillboardMode() const {
+    return resultWithReadLock<BillboardMode>([&] {
+        return _billboardMode;
+    });
+}
+
+void WebEntityItem::setBillboardMode(BillboardMode value) {
+    withWriteLock([&] {
+        _billboardMode = value;
     });
 }
 
