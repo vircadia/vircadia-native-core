@@ -114,7 +114,7 @@
             uiHand = LEFT_HAND,
             miniUIOverlay = null,
             MINI_UI_HTML = Script.resolvePath("./html/miniTablet.html"),
-            MINI_UI_DIMENSIONS = { x: 0.059, y: 0.0865 },
+            MINI_UI_DIMENSIONS = { x: 0.059, y: 0.0865, z: 0.001 },
             MINI_UI_WIDTH_PIXELS = 150,
             METERS_TO_INCHES = 39.3701,
             MINI_UI_DPI = MINI_UI_WIDTH_PIXELS / (MINI_UI_DIMENSIONS.x * METERS_TO_INCHES),
@@ -171,19 +171,23 @@
 
 
         function updateMutedStatus() {
-            var isMuted = Audio.muted;
-            miniOverlayObject.emitScriptEvent(JSON.stringify({
-                type: MUTE_MESSAGE,
-                on: isMuted,
-                icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
-            }));
+            if (miniOverlayObject) {
+                var isMuted = Audio.muted;
+                miniOverlayObject.emitScriptEvent(JSON.stringify({
+                    type: MUTE_MESSAGE,
+                    on: isMuted,
+                    icon: isMuted ? MUTE_ON_ICON : MUTE_OFF_ICON
+                }));
+            }
         }
 
         function setGotoIcon() {
-            miniOverlayObject.emitScriptEvent(JSON.stringify({
-                type: GOTO_MESSAGE,
-                icon: GOTO_ICON
-            }));
+            if (miniOverlayObject) {
+                miniOverlayObject.emitScriptEvent(JSON.stringify({
+                    type: GOTO_MESSAGE,
+                    icon: GOTO_ICON
+                }));
+            }
         }
 
         function onWebEventReceived(data) {
@@ -445,6 +449,19 @@
             });
         }
 
+        function checkEventBridge() {
+            // The miniUIOverlay overlay's overlay object is not available immediately the overlay is created so we have to 
+            // provide a means to check for and connect it when it does become available.
+            if (miniOverlayObject) {
+                return;
+            }
+
+            miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
+            if (miniOverlayObject) {
+                miniOverlayObject.webEventReceived.connect(onWebEventReceived);
+            }
+        }
+
         function create() {
             miniOverlay = Overlays.addOverlay("model", {
                 url: MINI_MODEL,
@@ -452,7 +469,7 @@
                 solid: true,
                 grabbable: true,
                 showKeyboardFocusHighlight: false,
-                displayInFront: true,
+                drawInFront: true,
                 visible: false
             });
             miniUIOverlay = Overlays.addOverlay("web3d", {
@@ -465,14 +482,13 @@
                 alpha: 0, // Hide overlay while its content is being created.
                 grabbable: false,
                 showKeyboardFocusHighlight: false,
-                displayInFront: true,
+                drawInFront: true,
                 visible: false
             });
 
             miniUIOverlayEnabled = false; // This and alpha = 0 hides overlay while its content is being created.
 
-            miniOverlayObject = Overlays.getOverlayObject(miniUIOverlay);
-            miniOverlayObject.webEventReceived.connect(onWebEventReceived);
+            checkEventBridge();
         }
 
         function destroy() {
@@ -502,6 +518,7 @@
             updateRotation: updateRotation,
             release: release,
             hide: hide,
+            checkEventBridge: checkEventBridge,
             destroy: destroy
         };
 
@@ -978,6 +995,8 @@
         }
 
         function updateState() {
+            ui.checkEventBridge();
+
             if (STATE_MACHINE[STATE_STRINGS[miniState]].update) {
                 STATE_MACHINE[STATE_STRINGS[miniState]].update();
             }

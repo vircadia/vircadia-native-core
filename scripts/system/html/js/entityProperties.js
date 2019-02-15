@@ -3015,6 +3015,13 @@ function toggleDropdown(event) {
     element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
 }
 
+function closeAllDropdowns() {
+    elDropdowns = document.querySelectorAll("div.dropdown > dl");
+    for (let i = 0; i < elDropdowns.length; ++i) {
+        elDropdowns[i].setAttribute('dropped', 'false');
+    }
+}
+
 function setDropdownValue(event) {
     let dt = event.target.parentNode.parentNode.previousSibling;
     dt.value = event.target.getAttribute("value");
@@ -3777,6 +3784,8 @@ function loaded() {
             property.elInput = dt;
             dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
         }
+
+        document.addEventListener('click', function(ev) { closeAllDropdowns() }, true);
         
         elDropdowns = document.getElementsByTagName("select");
         while (elDropdowns.length > 0) {

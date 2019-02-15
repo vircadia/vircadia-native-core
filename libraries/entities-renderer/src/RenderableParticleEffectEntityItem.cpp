@@ -104,8 +104,8 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     });
     _emitting = entity->getIsEmitting();
 
-    bool hasTexture = resultWithReadLock<bool>([&]{ return _particleProperties.textures.isEmpty(); });
-    if (hasTexture) {
+    bool textureEmpty = resultWithReadLock<bool>([&]{ return _particleProperties.textures.isEmpty(); });
+    if (textureEmpty) {
         if (_networkTexture) {
             withWriteLock([&] { 
                 _networkTexture.reset();

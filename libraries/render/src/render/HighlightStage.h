@@ -107,7 +107,7 @@ namespace render {
         float getOccludedFillOpacity() const { return getStyle()._fillOccluded.alpha; }
         void setOccludedFillOpacity(float value);
 
-        std::string _selectionName{ "contextOverlayHighlightList" };
+        std::string _selectionName { "contextOverlayHighlightList" };
         mutable SelectionStyles _styles;
 
         const HighlightStyle& getStyle() const;

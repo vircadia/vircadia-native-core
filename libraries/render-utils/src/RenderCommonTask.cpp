@@ -45,13 +45,13 @@ void EndGPURangeTimer::run(const render::RenderContextPointer& renderContext, co
     config->setGPUBatchRunTime(timer->getGPUAverage(), timer->getBatchAverage());
 }
 
-DrawOverlay3D::DrawOverlay3D(bool opaque) :
+DrawLayered3D::DrawLayered3D(bool opaque) :
     _shapePlumber(std::make_shared<ShapePlumber>()),
     _opaquePass(opaque) {
     initForwardPipelines(*_shapePlumber);
 }
 
-void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
+void DrawLayered3D::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
@@ -70,7 +70,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     // Needs to be distinct from the other batch because using the clear call 
     // while stereo is enabled triggers a warning
     if (_opaquePass) {
-        gpu::doInBatch("DrawOverlay3D::run::clear", args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawLayered3D::run::clear", args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
             batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, false);
         });
@@ -78,7 +78,7 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
 
     if (!inItems.empty()) {
         // Render the items
-        gpu::doInBatch("DrawOverlay3D::main", args->_context, [&](gpu::Batch& batch) {
+        gpu::doInBatch("DrawLayered3D::main", args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
