@@ -58,10 +58,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
     // Look up poleVector from animVars, make sure to convert into geom space.
     glm::vec3 poleVector = animVars.lookupRigToGeometryVector(_poleVectorVar, Vectors::UNIT_Z);
-    if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-        //float thetaFromRig = animVars.lookup("thetaRight", 0.0f);
-        //qCDebug(animation) << " anim pole vector theta from rig " << thetaFromRig;
-    }
 
     // determine if we should interpolate
     bool enabled = animVars.lookup(_enabledVar, _enabled);
@@ -116,24 +112,19 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     // project poleVector on plane formed by axis.
     glm::vec3 poleVectorProj = poleVector - glm::dot(poleVector, unitAxis) * unitAxis;
     float poleVectorProjLength = glm::length(poleVectorProj);
+    
+#ifdef Q_OS_ANDROID
 
-    // double check for zero length vectors or vectors parallel to rotaiton axis.
-    if (axisLength > MIN_LENGTH && refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH &&
-        refVectorProjLength > MIN_LENGTH && poleVectorProjLength > MIN_LENGTH) {
+    // get theta set by optimized ik for Quest
+    if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
 
-        float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), 0.0f, 1.0f);
-        float sideDot = glm::dot(poleVector, sideVector);
-        float theta = copysignf(1.0f, sideDot) * acosf(dot);
-
-        // overwrite theta if we are using optimized code
-        if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
-
-            if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-                theta = animVars.lookup("thetaLeftElbow", 0.0f);
-            } else if (_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) {
-                theta = animVars.lookup("thetaRightElbow", 0.0f);
-            }
+        float theta;
+        if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
+            theta = animVars.lookup("thetaLeftElbow", 0.0f);
+        } else if (_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) {
+            theta = animVars.lookup("thetaRightElbow", 0.0f);
         }
+
 
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
@@ -144,6 +135,29 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         glm::quat relTipRot = glm::inverse(midPose.rot()) * glm::inverse(deltaRot) * tipPose.rot();
         ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
     }
+
+#else
+            // double check for zero length vectors or vectors parallel to rotaiton axis.
+        if (axisLength > MIN_LENGTH && refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH &&
+            refVectorProjLength > MIN_LENGTH && poleVectorProjLength > MIN_LENGTH) {
+
+            float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), 0.0f, 1.0f);
+            float sideDot = glm::dot(poleVector, sideVector);
+            float theta = copysignf(1.0f, sideDot) * acosf(dot);
+
+
+
+            glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
+
+            // transform result back into parent relative frame.
+            glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * deltaRot * basePose.rot();
+            ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(relBaseRot, underPoses[_baseJointIndex].trans()));
+
+            glm::quat relTipRot = glm::inverse(midPose.rot()) * glm::inverse(deltaRot) * tipPose.rot();
+            ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
+        }
+    
+#endif
 
     // start off by initializing output poses with the underPoses
     _poses = underPoses;
