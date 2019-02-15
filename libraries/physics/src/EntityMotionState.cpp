@@ -205,6 +205,16 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
 
     if (_entity->getShapeType() == SHAPE_TYPE_STATIC_MESH
         || (_body && _body->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)) {
+        if (_entity->isMoving()) {
+            // DANGER: Bullet doesn't support non-zero velocity for these shapes --> collision details may be wrong
+            // in ways that allow other DYNAMIC objects to tunnel/penetrate/snag.
+            // However, in practice low-velocity collisions work OK most of the time, and if we enforce these objects
+            // to be MOTION_TYPE_STATIC then some other bugs can be worse (e.g. when Grabbing --> Grab Action fails)
+            // so we're making a tradeoff here.
+            // TODO: The Correct Solution is to NOT use btBvhTriangleMesh shape for moving objects and instead compute the convex
+            // decomposition and build a btCompoundShape with convex sub-shapes.
+            return MOTION_TYPE_KINEMATIC;
+        }
         return MOTION_TYPE_STATIC;
     }
 
