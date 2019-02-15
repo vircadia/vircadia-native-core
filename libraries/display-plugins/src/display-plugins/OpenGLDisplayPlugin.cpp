@@ -256,7 +256,6 @@ bool OpenGLDisplayPlugin::activate() {
         return false;
     }
 
-
     // Start the present thread if necessary
     QSharedPointer<PresentThread> presentThread;
     if (DependencyManager::isSet<PresentThread>()) {
@@ -719,11 +718,11 @@ void OpenGLDisplayPlugin::present() {
             PROFILE_RANGE_EX(render, "internalPresent", 0xff00ffff, frameId)
             internalPresent();
         }
+
         gpu::Backend::freeGPUMemSize.set(gpu::gl::getFreeDedicatedMemory());
     } else {
         internalPresent();
     }
-
     _movingAveragePresent.addSample((float)(usecTimestampNow() - startPresent));
 }
 

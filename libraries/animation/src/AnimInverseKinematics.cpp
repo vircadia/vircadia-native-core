@@ -552,7 +552,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 AnimPose accum = absolutePoses[_hipsIndex];
                 AnimPose baseParentPose = absolutePoses[_hipsIndex];
                 for (int i = (int)chainDepth - 1; i >= 0; i--) {
-                    accum = accum * AnimPose(glm::vec3(1.0f), jointChainInfoOut.jointInfoVec[i].rot, jointChainInfoOut.jointInfoVec[i].trans);
+                    accum = accum * AnimPose(1.0f, jointChainInfoOut.jointInfoVec[i].rot, jointChainInfoOut.jointInfoVec[i].trans);
                     postAbsPoses[i] = accum;
                     if (jointChainInfoOut.jointInfoVec[i].jointIndex == topJointIndex) {
                         topChainIndex = i;
@@ -734,7 +734,7 @@ void AnimInverseKinematics::computeAndCacheSplineJointInfosForIKTarget(const Ani
         glm::mat3 m(u, v, glm::cross(u, v));
         glm::quat rot = glm::normalize(glm::quat_cast(m));
 
-        AnimPose pose(glm::vec3(1.0f), rot, spline(t));
+        AnimPose pose(1.0f, rot, spline(t));
         AnimPose offsetPose = pose.inverse() * defaultPose;
 
         SplineJointInfo splineJointInfo = { index, ratio, offsetPose };
@@ -767,7 +767,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
     const int baseIndex = _hipsIndex;
 
     // build spline from tip to base
-    AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
+    AnimPose tipPose = AnimPose(1.0f, target.getRotation(), target.getTranslation());
     AnimPose basePose = absolutePoses[baseIndex];
     CubicHermiteSplineFunctorWithArcLength spline;
     if (target.getIndex() == _headIndex) {
@@ -815,7 +815,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
             glm::mat3 m(u, v, glm::cross(u, v));
             glm::quat rot = glm::normalize(glm::quat_cast(m));
 
-            AnimPose desiredAbsPose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
+            AnimPose desiredAbsPose = AnimPose(1.0f, rot, trans) * splineJointInfo.offsetPose;
 
             // apply flex coefficent
             AnimPose flexedAbsPose;
@@ -960,7 +960,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     }
 
                     _relativePoses[_hipsIndex] = parentAbsPose.inverse() * absPose;
-                    _relativePoses[_hipsIndex].scale() = glm::vec3(1.0f);
+                    _relativePoses[_hipsIndex].scale() = 1.0f;
                 }
 
                 // if there is an active jointChainInfo for the hips store the post shifted hips into it.
@@ -1748,7 +1748,7 @@ void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
     AnimPose rigToGeometryPose = AnimPose(glm::inverse(context.getGeometryToRigMatrix()));
     for (auto& iter : _secondaryTargetsInRigFrame) {
         AnimPose absPose = rigToGeometryPose * iter.second;
-        absPose.scale() = glm::vec3(1.0f);
+        absPose.scale() = 1.0f;
 
         AnimPose parentAbsPose;
         int parentIndex = _skeleton->getParentIndex(iter.first);
@@ -1820,7 +1820,7 @@ void AnimInverseKinematics::debugDrawSpineSplines(const AnimContext& context, co
         const int baseIndex = _hipsIndex;
 
         // build spline
-        AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
+        AnimPose tipPose = AnimPose(1.0f, target.getRotation(), target.getTranslation());
         AnimPose basePose = _skeleton->getAbsolutePose(baseIndex, _relativePoses);
 
         CubicHermiteSplineFunctorWithArcLength spline;

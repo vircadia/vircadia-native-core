@@ -208,7 +208,7 @@ void AccountManager::setSessionID(const QUuid& sessionID) {
     }
 }
 
-QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::Type authType, const QUrlQuery & query) {
+QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::Type authType) {
     QNetworkRequest networkRequest;
     networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
     networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
@@ -217,17 +217,22 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
                                 uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
-    
+
     if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
         requestURL = getMetaverseServerURL();
     }
 
+    int queryStringLocation = path.indexOf("?");
     if (path.startsWith("/")) {
-        requestURL.setPath(path);
+        requestURL.setPath(path.left(queryStringLocation));
     } else {
-        requestURL.setPath("/" + path);
+        requestURL.setPath("/" + path.left(queryStringLocation));
     }
-    requestURL.setQuery(query);
+
+    if (queryStringLocation >= 0) {
+        QUrlQuery query(path.mid(queryStringLocation+1));
+        requestURL.setQuery(query);
+    }
 
     if (authType != AccountManagerAuth::None ) {
         if (hasValidAccessToken()) {
@@ -253,8 +258,7 @@ void AccountManager::sendRequest(const QString& path,
                                  const JSONCallbackParameters& callbackParams,
                                  const QByteArray& dataByteArray,
                                  QHttpMultiPart* dataMultiPart,
-                                 const QVariantMap& propertyMap,
-                                 QUrlQuery query) {
+                                 const QVariantMap& propertyMap) {
 
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendRequest",
@@ -264,14 +268,13 @@ void AccountManager::sendRequest(const QString& path,
                                   Q_ARG(const JSONCallbackParameters&, callbackParams),
                                   Q_ARG(const QByteArray&, dataByteArray),
                                   Q_ARG(QHttpMultiPart*, dataMultiPart),
-                                  Q_ARG(QVariantMap, propertyMap),
-                                  Q_ARG(QUrlQuery, query));
+                                  Q_ARG(QVariantMap, propertyMap));
         return;
     }
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QNetworkRequest networkRequest = createRequest(path, authType, query);
+    QNetworkRequest networkRequest = createRequest(path, authType);
 
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
         qCDebug(networking) << "Making a request to" << qPrintable(networkRequest.url().toString());

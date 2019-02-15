@@ -294,13 +294,6 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
     }
 
     mapping.insert(JOINT_FIELD, joints);
-
-    if (!mapping.contains(FREE_JOINT_FIELD)) {
-        mapping.insertMulti(FREE_JOINT_FIELD, "LeftArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
-        mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
-    }
     
     // If there are no blendshape mappings, and we detect that this is likely a mixamo file,
     // then we can add the default mixamo to "faceshift" mappings

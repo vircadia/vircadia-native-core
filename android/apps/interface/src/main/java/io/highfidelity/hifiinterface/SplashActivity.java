@@ -7,6 +7,9 @@ import android.view.View;
 
 public class SplashActivity extends Activity {
 
+    public static final String EXTRA_START_IN_DOMAIN = "start-in-domain";
+    private boolean mStartInDomain;
+
     private native void registerLoadCompleteListener();
 
     @Override
@@ -36,13 +39,27 @@ public class SplashActivity extends Activity {
     }
 
     public void onAppLoadedComplete() {
-        if (HifiUtils.getInstance().isUserLoggedIn()) {
-            startActivity(new Intent(this, MainActivity.class));
-        } else {
-            Intent menuIntent =  new Intent(this, LoginMenuActivity.class);
-            menuIntent.putExtra(LoginMenuActivity.EXTRA_FINISH_ON_BACK, true);
-            startActivity(menuIntent);
+        if (!mStartInDomain) {
+            if (HifiUtils.getInstance().isUserLoggedIn()) {
+                startActivity(new Intent(this, MainActivity.class));
+            } else {
+                Intent menuIntent = new Intent(this, LoginMenuActivity.class);
+                menuIntent.putExtra(LoginMenuActivity.EXTRA_FINISH_ON_BACK, true);
+                startActivity(menuIntent);
+            }
         }
         SplashActivity.this.finish();
+    }
+   
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(EXTRA_START_IN_DOMAIN, mStartInDomain);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        mStartInDomain = savedInstanceState.getBoolean(EXTRA_START_IN_DOMAIN, false);
     }
 }

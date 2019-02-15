@@ -39,6 +39,7 @@ class ScriptingInterface;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 // TODO migrate functionality to a RouteBuilder class and make the proxy defer to that 

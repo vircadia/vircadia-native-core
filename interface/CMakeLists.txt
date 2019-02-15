@@ -202,10 +202,6 @@ if (WIN32)
   set_property(TARGET ${TARGET_NAME} APPEND_STRING PROPERTY LINK_FLAGS_DEBUG "/OPT:NOREF /OPT:NOICF")
 endif()
 
-if (ANDROID)
-    set(PLATFORM_DISPLAY_PLUGINS oculusMobile oculusMobilePlugin)
-endif()
-
 # link required hifi libraries
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
@@ -217,8 +213,8 @@ link_hifi_libraries(
   ui-plugins display-plugins input-plugins
   # Platform specific GL libraries
   ${PLATFORM_GL_BACKEND}
-  # Plaform specific display plugins libraries 
-  ${PLATFORM_DISPLAY_PLUGINS}
+  # Plaform specific input & display plugin libraries
+  ${PLATFORM_PLUGIN_LIBRARIES}
   shaders
 )
 
@@ -283,7 +279,7 @@ target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::Widgets
   Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
-  Qt5::WebChannel 
+  Qt5::WebChannel
   ${PLATFORM_QT_LIBRARIES}
 )
 
@@ -337,7 +333,11 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
-    # add redirect json to macOS builds.
+     #copy serverless for android
+     COMMAND "${CMAKE_COMMAND}" -E copy_directory
+     "${PROJECT_SOURCE_DIR}/resources/serverless"
+     "${RESOURCES_DEV_DIR}/serverless"
+      # add redirect json to macOS builds.
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"

@@ -152,10 +152,8 @@ void ShapeInfo::setSphere(float radius) {
 void ShapeInfo::setMultiSphere(const std::vector<glm::vec3>& centers, const std::vector<float>& radiuses) {
     _url = "";
     _type = SHAPE_TYPE_MULTISPHERE;
-    if(centers.size() == radiuses.size())
-        return;
-
-  //  assert(centers.size() == radiuses.size() && centers.size() > 0);
+    assert(centers.size() == radiuses.size());
+    assert(centers.size() > 0);
     for (size_t i = 0; i < centers.size(); i++) {
         SphereData sphere = SphereData(centers[i], radiuses[i]);
         _sphereCollection.push_back(sphere);

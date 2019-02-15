@@ -238,7 +238,10 @@ void OffscreenQmlSurface::clearFocusItem() {
 
 void OffscreenQmlSurface::initializeEngine(QQmlEngine* engine) {
     Parent::initializeEngine(engine);
-    QQmlFileSelector* fileSelector = new QQmlFileSelector(engine);
+    auto fileSelector = QQmlFileSelector::get(engine);
+    if (!fileSelector) {
+        fileSelector = new QQmlFileSelector(engine);
+    }
     fileSelector->setExtraSelectors(FileUtils::getFileSelectors());
 
     static std::once_flag once;

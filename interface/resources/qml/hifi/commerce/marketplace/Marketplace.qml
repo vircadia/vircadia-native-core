@@ -38,8 +38,8 @@ Rectangle {
     property bool keyboardEnabled: HMD.active
     property bool keyboardRaised: false
     property string searchScopeString: "Featured"
-    property bool isLoggedIn: false;
-    property bool supports3DHTML: true;
+    property bool isLoggedIn: false
+    property bool supports3DHTML: true
 
     anchors.fill: (typeof parent === undefined) ? undefined : parent
 
@@ -49,7 +49,7 @@ Rectangle {
         licenseInfo.visible = false;
         marketBrowseModel.getFirstPage();
         {
-        if(root.searchString !== undefined && root.searchString !== "") {
+            if(root.searchString !== undefined && root.searchString !== "") {
                 root.searchScopeString = "Search Results: \"" + root.searchString + "\"";
             } else if (root.categoryString !== "") {
                 root.searchScopeString = root.categoryString;
@@ -498,7 +498,7 @@ Rectangle {
                     "",
                     "",
                     root.sortString,
-                    false,
+                    WalletScriptingInterface.limitedCommerce,
                     marketBrowseModel.currentPageToRetrieve,
                     marketBrowseModel.itemsPerPage
                 );

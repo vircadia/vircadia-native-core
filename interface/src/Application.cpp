@@ -2428,7 +2428,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
-    AndroidHelper::instance().notifyLoadComplete();
     pauseUntilLoginDetermined();
 }
 
@@ -3641,14 +3640,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     }
 
     // Get controller availability
-    #ifdef Q_OS_ANDROID
+#ifdef Q_OS_ANDROID
     bool hasHandControllers = true;
-    #else
+#else
     bool hasHandControllers = false;
     if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
     }
-    #endif
+#endif
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
@@ -4981,10 +4980,10 @@ void Application::idle() {
     // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing
     // details if we're in ExtraDebugging mode. However, the ::update() and its subcomponents will show their timing
     // details normally.
-#ifndef Q_OS_ANDROID
-    bool showWarnings = getLogger()->extraDebugging();
-#else
+#ifdef Q_OS_ANDROID
     bool showWarnings = false;
+#else
+    bool showWarnings = getLogger()->extraDebugging();
 #endif
     PerformanceWarning warn(showWarnings, "idle()");
 
@@ -8329,7 +8328,7 @@ void Application::toggleLogDialog() {
         bool keepOnTop =_keepLogWindowOnTop.get();
 #ifdef Q_OS_WIN
         _logDialog = new LogDialog(keepOnTop ? qApp->getWindow() : nullptr, getLogger());
-#else
+#elif !defined(Q_OS_ANDROID)
         _logDialog = new LogDialog(nullptr, getLogger());
 
         if (keepOnTop) {

@@ -9,10 +9,9 @@
 //
 
 import QtQuick 2.5
-import QtWebView 1.1
-import QtWebChannel 1.0
 
 import "windows" as Windows
+import "."
 import controlsUit 1.0 as Controls
 import stylesUit 1.0
 
@@ -57,25 +56,8 @@ Windows.ScrollingWindow {
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
 
-        Controls.WebView {
+        QmlWebWindowView {
             id: webview
-            url: "about:blank"
-            anchors.fill: parent
-            focus: true
-
-            property string userScriptUrl: ""
-
-            function onWebEventReceived(event) {
-                if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-                    ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
-                }
-            }
-
-            Component.onCompleted: {
-                webChannel.registerObject("eventBridge", eventBridge);
-                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-                eventBridge.webEventReceived.connect(onWebEventReceived);
-            }
         }
     }
 }

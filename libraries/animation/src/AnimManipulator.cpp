@@ -172,5 +172,5 @@ AnimPose AnimManipulator::computeRelativePoseFromJointVar(const AnimVariantMap& 
             break;
     }
 
-    return AnimPose(glm::vec3(1), relRot, relTrans);
+    return AnimPose(1.0f, relRot, relTrans);
 }

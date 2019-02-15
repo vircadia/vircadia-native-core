@@ -34,6 +34,7 @@ public:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} walletStatus
  * @property {bool} limitedCommerce

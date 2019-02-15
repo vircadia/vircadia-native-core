@@ -32,6 +32,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      * @hifi-server-entity
      * @hifi-assignment-client
      *
@@ -41,6 +42,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      *     above the noise floor.
      * @property {number} inputLevel - The loudness of the audio input, range <code>0.0</code> (no sound) &ndash; 
      *     <code>1.0</code> (the onset of clipping). <em>Read-only.</em>
+     * @property {boolean} clipping - <code>true</code> if the audio input is clipping, otherwise <code>false</code>.
      * @property {number} inputVolume - Adjusts the volume of the input audio; range <code>0.0</code> &ndash; <code>1.0</code>. 
      *     If set to a value, the resulting value depends on the input device: for example, the volume can't be changed on some 
      *     devices, and others might only support values of <code>0.0</code> and <code>1.0</code>.
@@ -58,6 +60,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
     Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY inputVolumeChanged)
     Q_PROPERTY(float inputLevel READ getInputLevel NOTIFY inputLevelChanged)
+    Q_PROPERTY(bool clipping READ isClipping NOTIFY clippingChanged)
     Q_PROPERTY(QString context READ getContext NOTIFY contextChanged)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
@@ -74,6 +77,7 @@ public:
     bool noiseReductionEnabled() const;
     float getInputVolume() const;
     float getInputLevel() const;
+    bool isClipping() const;
     QString getContext() const;
 
     void showMicMeter(bool show);
@@ -218,6 +222,14 @@ signals:
     void inputLevelChanged(float level);
 
     /**jsdoc
+     * Triggered when the clipping state of the input audio changes.
+     * @function Audio.clippingChanged
+     * @param {boolean} isClipping - <code>true</code> if the audio input is clipping, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    void clippingChanged(bool isClipping);
+
+    /**jsdoc
      * Triggered when the current context of the audio changes.
      * @function Audio.contextChanged
      * @param {string} context - The current context of the audio: either <code>"Desktop"</code> or <code>"HMD"</code>.
@@ -237,7 +249,7 @@ private slots:
     void setMuted(bool muted);
     void enableNoiseReduction(bool enable);
     void setInputVolume(float volume);
-    void onInputLoudnessChanged(float loudness);
+    void onInputLoudnessChanged(float loudness, bool isClipping);
 
 protected:
     // Audio must live on a separate thread from AudioClient to avoid deadlocks
@@ -247,6 +259,7 @@ private:
 
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
+    bool _isClipping { false };
     bool _isMuted { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _contextIsHMD { false };

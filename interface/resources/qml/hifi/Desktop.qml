@@ -1,5 +1,4 @@
 import QtQuick 2.7
-import QtWebView 1.1
 import Qt.labs.settings 1.0 as QtSettings
 
 import QtQuick.Controls 2.3
@@ -87,15 +86,21 @@ OriginalDesktop.Desktop {
         return map;
     })({});
 
+    Component.onCompleted: {
+        webEngineConfig.setupWebEngineSettings();
+    }
+
     // Accept a download through the webview
-    property bool webViewProfileSetup: false
-    property string currentUrl: ""
-    property string downloadUrl: ""
-    property string adaptedPath: ""
-    property string tempDir: ""
+    property alias webViewProfileSetup: webEngineConfig.webViewProfileSetup
+    property alias currentUrl: webEngineConfig.currentUrl
+    property alias downloadUrl: webEngineConfig.downloadUrl
+    property alias adaptedPath: webEngineConfig.adaptedPath
+    property alias tempDir: webEngineConfig.tempDir
+    property var initWebviewProfileHandlers: webEngineConfig.initWebviewProfileHandlers
     property bool autoAdd: false
 
-    function initWebviewProfileHandlers(profile) {
+    DesktopWebEngine {
+        id: webEngineConfig
     }
 
     function setAutoAdd(auto) {

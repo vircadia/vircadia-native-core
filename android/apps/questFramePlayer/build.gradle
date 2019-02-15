@@ -15,6 +15,7 @@ android {
                     '-DHIFI_ANDROID_APP=questFramePlayer',
                     '-DANDROID_TOOLCHAIN=clang',
                     '-DANDROID_STL=c++_shared',
+
                     '-DCMAKE_VERBOSE_MAKEFILE=ON'
                 targets = ['questFramePlayer']
             }

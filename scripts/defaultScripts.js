@@ -14,21 +14,20 @@
 var DEFAULT_SCRIPTS_COMBINED = [
     "system/request-service.js",
     "system/progress.js",
-    // "system/away.js",
-    // "system/audio.js",
+    "system/away.js",
+    "system/audio.js",
     "system/hmd.js",
     "system/menu.js",
     "system/bubble.js",
-    // "system/snapshot.js",
-    //"system/pal.js", // "system/mod.js", // older UX, if you prefer
+    "system/snapshot.js",
+    "system/pal.js", // "system/mod.js", // older UX, if you prefer
     "system/avatarapp.js",
     "system/makeUserConnection.js",
-    "system/goto.js",
-    // "system/tablet-goto.js",
-    // "system/marketplaces/marketplaces.js",
+    "system/tablet-goto.js",
+    "system/marketplaces/marketplaces.js",
     "system/notifications.js",
-    // "system/commerce/wallet.js",
-    // "system/edit.js",
+    "system/commerce/wallet.js",
+    "system/edit.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
@@ -41,12 +40,12 @@ var DEFAULT_SCRIPTS_SEPARATE = [
 ];
 
 if (Window.interstitialModeEnabled) {
-    //  Insert interstitial scripts at front so that they're started first.
+    // Insert interstitial scripts at front so that they're started first.
     DEFAULT_SCRIPTS_COMBINED.splice(0, 0, "system/interstitialPage.js", "system/redirectOverlays.js");
 }
 
 // add a menu item for debugging
-var MENU_CATEGORY = "Developer";
+var MENU_CATEGORY = "Developer > Scripting";
 var MENU_ITEM = "Debug defaultScripts.js";
 
 var SETTINGS_KEY = '_debugDefaultScriptsIsChecked';
@@ -117,7 +116,7 @@ function removeMenuItem() {
     }
 }
 
-Script.scriptEnding.connect(function () {
+Script.scriptEnding.connect(function() {
     removeMenuItem();
 });
 

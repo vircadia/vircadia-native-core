@@ -61,7 +61,8 @@ class Sound : public Resource {
 
 public:
     Sound(const QUrl& url, bool isStereo = false, bool isAmbisonic = false);
-    
+    Sound(const Sound& other) : Resource(other), _audioData(other._audioData), _numChannels(other._numChannels) {}
+
     bool isReady() const { return (bool)_audioData; }
 
     bool isStereo() const { return _audioData ? _audioData->isStereo() : false; }
@@ -132,6 +133,7 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * 
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  *

@@ -27,6 +27,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class GraphicsScriptingInterface : public QObject, public QScriptable, public Dependency {

@@ -32,6 +32,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class DdeFaceTracker : public FaceTracker, public Dependency {

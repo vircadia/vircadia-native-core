@@ -28,7 +28,7 @@ struct HazeParams {
     vec3 colorModulationFactor;
     int hazeMode;
 
-    mat4 transform;
+    vec3 spare;
     float backgroundBlend;
 
     float hazeRangeFactor;

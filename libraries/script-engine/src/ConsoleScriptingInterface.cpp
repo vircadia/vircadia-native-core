@@ -30,7 +30,6 @@ QList<QString> ConsoleScriptingInterface::_groupDetails = QList<QString>();
 QScriptValue ConsoleScriptingInterface::info(QScriptContext* context, QScriptEngine* engine) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->scriptInfoMessage(appendArguments(context));
-        qDebug()<<"SCRIPTING INFO: %s"<<appendArguments(context);
     }
     return QScriptValue::NullValue;
 }
@@ -40,7 +39,6 @@ QScriptValue ConsoleScriptingInterface::log(QScriptContext* context, QScriptEngi
     if (_groupDetails.count() == 0) {
         if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
             scriptEngine->scriptPrintedMessage(message);
-            qDebug()<<"SCRIPTING LOG: %s"<<message;
         }
     } else {
         logGroupMessage(message, engine);
@@ -51,8 +49,6 @@ QScriptValue ConsoleScriptingInterface::log(QScriptContext* context, QScriptEngi
 QScriptValue ConsoleScriptingInterface::debug(QScriptContext* context, QScriptEngine* engine) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->scriptPrintedMessage(appendArguments(context));
-        qDebug()<<"SCRIPTING DEBUG: %s"<<appendArguments(context);
-
     }
     return QScriptValue::NullValue;
 }
@@ -60,8 +56,6 @@ QScriptValue ConsoleScriptingInterface::debug(QScriptContext* context, QScriptEn
 QScriptValue ConsoleScriptingInterface::warn(QScriptContext* context, QScriptEngine* engine) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->scriptWarningMessage(appendArguments(context));
-        qDebug()<<"SCRIPTING WARN: %s"<<appendArguments(context);
-
     }
     return QScriptValue::NullValue;
 }
@@ -69,8 +63,6 @@ QScriptValue ConsoleScriptingInterface::warn(QScriptContext* context, QScriptEng
 QScriptValue ConsoleScriptingInterface::error(QScriptContext* context, QScriptEngine* engine) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->scriptErrorMessage(appendArguments(context));
-        qDebug()<<"SCRIPTING ERROR: %s"<<appendArguments(context);
-
     }
     return QScriptValue::NullValue;
 }
@@ -78,8 +70,6 @@ QScriptValue ConsoleScriptingInterface::error(QScriptContext* context, QScriptEn
 QScriptValue ConsoleScriptingInterface::exception(QScriptContext* context, QScriptEngine* engine) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
         scriptEngine->scriptErrorMessage(appendArguments(context));
-        qDebug()<<"SCRIPTING EXCEPTION: %s"<<appendArguments(context);
-
     }
     return QScriptValue::NullValue;
 }
@@ -135,8 +125,6 @@ QScriptValue ConsoleScriptingInterface::assertion(QScriptContext* context, QScri
         }
         if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
             scriptEngine->scriptErrorMessage(assertionResult);
-            qDebug()<<"SCRIPTING ASSERT: %s"<<assertionResult;
-
         }
     }
     return QScriptValue::NullValue;

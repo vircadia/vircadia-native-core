@@ -53,8 +53,9 @@ QScriptValue QmlFragmentClass::internal_constructor(QScriptContext* context, QSc
     QScriptValue scriptObject = engine->newQObject(retVal);
     _fragments[qml.toString()] = scriptObject;
     return scriptObject;
-#endif
+#else
     return QScriptValue();
+#endif
 }
 
 void QmlFragmentClass::close() {

@@ -17,7 +17,7 @@ HIFI_QML_DEF(AnimStats)
 static AnimStats* INSTANCE{ nullptr };
 
 AnimStats* AnimStats::getInstance() {
-    //Q_ASSERT(INSTANCE);
+    Q_ASSERT(INSTANCE);
     return INSTANCE;
 }
 

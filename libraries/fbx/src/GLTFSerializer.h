@@ -709,6 +709,7 @@ public:
 private:
     GLTFFile _file;
     QUrl _url;
+    QByteArray _glbBinary;
 
     glm::mat4 getModelTransform(const GLTFNode& node);
 
@@ -731,6 +732,8 @@ private:
                            QVector<double>& values, QMap<QString, bool>&  defined);
     bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
                            QJsonArray& objects, QMap<QString, bool>& defined);
+
+    QByteArray setGLBChunks(const QByteArray& data);
     
     int getMaterialAlphaMode(const QString& type);
     int getAccessorType(const QString& type);
@@ -772,6 +775,8 @@ private:
                        QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
     std::tuple<bool, QByteArray> requestData(QUrl& url);
+    QByteArray requestEmbeddedData(const QString& url);
+
     QNetworkReply* request(QUrl& url, bool isTest);
     bool doesResourceExist(const QString& url);
 

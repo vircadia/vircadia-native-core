@@ -178,6 +178,7 @@ private:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {boolean} allowMouseCapture
  * @property {number} depth

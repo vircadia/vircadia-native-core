@@ -2,7 +2,7 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import QtQml 2.2
-import QtWebChannel 1.0
+
 
 import "."
 import stylesUit 1.0
