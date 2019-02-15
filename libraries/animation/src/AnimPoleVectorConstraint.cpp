@@ -285,7 +285,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 qCDebug(animation) << " anim pole vector theta from rig right" << thetaFromRig;
                 fred = thetaFromRig;
             }
-
+            /*
             glm::quat relativeHandRotation = (midPose.inverse() * tipPose).rot();
 
             relativeHandRotation = glm::normalize(relativeHandRotation);
@@ -466,7 +466,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             } else {
                 fred += twistCorrection;
             }
-
+            */
             _lastTheta = 0.5f * _lastTheta + 0.5f * fred;
 
             //qCDebug(animation) << "twist correction: " << twistCorrection << "   flex correction: " << flexCorrection << " ulnar correction " << ulnarCorrection;

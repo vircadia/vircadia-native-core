@@ -2028,9 +2028,9 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     //qCDebug(animation) << "theta in rig " << left << " isLeft " << theta;
     //return theta;
     if (left) {
-        _animVars.set("thetaLeft", halfTheta);
+        _animVars.set("thetaLeft", theta);
     } else {
-        _animVars.set("thetaRight", halfTheta);
+        _animVars.set("thetaRight", theta);
     }
     // convert theta back to pole vector
     float lastDot = cosf(((180.0f - theta) / 180.0f)*PI);
