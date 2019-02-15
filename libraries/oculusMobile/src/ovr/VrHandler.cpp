@@ -51,12 +51,6 @@ struct VrSurface : public TaskQueue {
     }
 
     void setResumed(bool newResumed) {
-
-        if(oculusActivity)
-            __android_log_write(ANDROID_LOG_WARN, "QQQ", "Set Resumed VRHANDLER ::: OCULUS ACTIVITY IN NOT NULL");
-        else
-            __android_log_write(ANDROID_LOG_WARN, "QQQ", "Set Resumed VRHANDLER ::: OCULUS ACTIVITY is null");
-
         this->resumed = newResumed;
         submitRenderThreadTask([this](VrHandler* handler){ updateVrMode(); });
     }

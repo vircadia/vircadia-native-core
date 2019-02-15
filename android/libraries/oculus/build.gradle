@@ -18,6 +18,4 @@ android {
 
 dependencies {
     compile project(path: ':qt')
-        implementation fileTree(include: ['*.jar'], dir: '../../libraries/qt/libs')
-        implementation project(':qt')
 }

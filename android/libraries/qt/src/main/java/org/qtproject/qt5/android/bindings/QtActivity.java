@@ -509,8 +509,6 @@ public class QtActivity extends Activity {
         super.onPause();
         // GC: this trick allow us to show a splash activity until Qt app finishes
         // loading
-
-
 //        QtApplication.invokeDelegate();
     }
     //---------------------------------------------------------------------------
