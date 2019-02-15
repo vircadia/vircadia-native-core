@@ -54,11 +54,11 @@ private:
     bool _retryApply { false };
 
     std::shared_ptr<NetworkMaterial> getMaterial() const;
-    void setMaterialURL(const QString& materialURLString, bool materialDataChanged = false);
     void setCurrentMaterialName(const std::string& currentMaterialName);
 
+    void applyTextureTransform(std::shared_ptr<NetworkMaterial>& material);
     void applyMaterial();
-    void deleteMaterial();
+    void deleteMaterial(const QUuid& oldParentID);
 
     NetworkMaterialResourcePointer _networkMaterial;
     NetworkMaterialResource::ParsedMaterials _parsedMaterials;

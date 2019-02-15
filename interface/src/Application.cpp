@@ -1970,14 +1970,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 return renderable->textSize(text);
             }
         }
-    });
-
-    // Keyboard focus handling for Web overlays.
-    auto overlays = &(qApp->getOverlays());
-    connect(overlays, &Overlays::overlayDeleted, [this](const OverlayID& overlayID) {
-        if (overlayID == _keyboardFocusedOverlay.get()) {
-            setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
-        }
         return QSizeF(0.0f, 0.0f);
     });
 
