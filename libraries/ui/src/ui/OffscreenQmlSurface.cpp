@@ -719,11 +719,7 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
 }
 
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        emit scriptEventReceived(message);
-    }
+    emit scriptEventReceived(message);
 }
 
 void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {

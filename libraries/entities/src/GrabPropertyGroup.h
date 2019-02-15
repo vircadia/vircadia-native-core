@@ -64,9 +64,9 @@ static const glm::vec3 INITIAL_EQUIPPABLE_INDICATOR_OFFSET { glm::vec3(0.0f) };
  * @property {string} equippableIndicatorURL="" - If non-empty, this model will be used to indicate that an
  *     entity is equippable, rather than the default.
  * @property {Vec3} equippableIndicatorScale=1,1,1 - If equippableIndicatorURL is non-empty, this controls the
-       scale of the displayed overlay.
+       scale of the displayed indicator.
  * @property {Vec3} equippableIndicatorOffset=0,0,0 - If equippableIndicatorURL is non-empty, this controls the
-       relative offset of the displayed overlay from the equippable entity.
+       relative offset of the displayed object from the equippable entity.
  */
 
 

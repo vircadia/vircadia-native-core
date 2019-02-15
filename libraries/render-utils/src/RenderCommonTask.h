@@ -40,7 +40,7 @@ public:
 protected:
 };
 
-class DrawOverlay3DConfig : public render::Job::Config {
+class DrawLayered3DConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
         Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
@@ -58,13 +58,13 @@ protected:
     int numDrawn{ 0 };
 };
 
-class DrawOverlay3D {
+class DrawLayered3D {
 public:
     using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
-    using Config = DrawOverlay3DConfig;
-    using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
+    using Config = DrawLayered3DConfig;
+    using JobModel = render::Job::ModelI<DrawLayered3D, Inputs, Config>;
 
-    DrawOverlay3D(bool opaque);
+    DrawLayered3D(bool opaque);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);

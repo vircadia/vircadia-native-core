@@ -26,8 +26,8 @@ QmlOverlay::QmlOverlay(const QUrl& url) {
     buildQmlElement(url);
 }
 
-QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* textOverlay)
-    : Overlay2D(textOverlay) {
+QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* overlay)
+    : Overlay2D(overlay) {
     buildQmlElement(url);
 }
 

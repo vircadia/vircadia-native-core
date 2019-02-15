@@ -32,17 +32,19 @@ class HashKey {
 public:
     static float getNumQuantizedValuesPerMeter();
 
+    HashKey() {}
+    HashKey(uint64_t hash) : _hash(hash) {}
+
     // These two methods are required by btHashMap.
     bool equals(const HashKey& other) const { return _hash == other._hash; }
     int32_t getHash() const { return (int32_t)((uint32_t)_hash); }
 
-    void clear() { _hash = _hashCount = 0; }
-    bool isNull() const { return _hash == 0 && _hashCount == 0; }
+    // These methods for accumulating a hash.
     void hashUint64(uint64_t data);
     void hashFloat(float data);
     void hashVec3(const glm::vec3& data);
 
-    uint64_t getHash64() const { return _hash; } // for debug/test purposes
+    uint64_t getHash64() const { return _hash; }
 
 private:
     uint64_t _hash { 0 };

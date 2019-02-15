@@ -8,27 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <limits>
-#include <typeinfo>
-
-#include <avatar/AvatarManager.h>
-#include <avatar/MyAvatar.h>
-#include <LODManager.h>
-#include <render/Scene.h>
-
-#include "Image3DOverlay.h"
-#include "Circle3DOverlay.h"
-#include "Cube3DOverlay.h"
-#include "ImageOverlay.h"
-#include "Line3DOverlay.h"
-#include "ModelOverlay.h"
-#include "Overlays.h"
-#include "Rectangle3DOverlay.h"
-#include "Sphere3DOverlay.h"
-#include "Grid3DOverlay.h"
-#include "TextOverlay.h"
-#include "Text3DOverlay.h"
-
+#include "Overlay.h"
 
 namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {

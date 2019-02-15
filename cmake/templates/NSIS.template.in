@@ -300,6 +300,8 @@ Var substringResult
   SectionGetFlags ${${SecName}} $AR_SecFlags  ;Reading section flags
   ;Checking lowest bit:
   IntOp $AR_SecFlags $AR_SecFlags & ${SF_SELECTED}
+  !insertmacro LoadVar ${SecName}_was_installed
+  IntOp $AR_SecFlags $AR_SecFlags | $R0
   IntCmp $AR_SecFlags 1 "leave_${SecName}"
     ;Section is not selected:
 
@@ -478,18 +480,6 @@ Var GAClientID
 ;--------------------------------
 ; Installation types
 
-Section "-Previous Install Cleanup"
-  ; Remove the resources folder so we don't end up including removed QML files
-  RMDir /r "$INSTDIR\resources"
-
-  ; delete old assignment-client and domain-server so they're no longer present
-  ; in client only installs.
-  Delete "$INSTDIR\@DS_EXEC_NAME@" 
-  Delete "$INSTDIR\@AC_EXEC_NAME@" 
-  
-  ; delete interface so it's not there for server-only installs
-  Delete "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@" 
-SectionEnd
 
 @CPACK_NSIS_INSTALLATION_TYPES@
 
