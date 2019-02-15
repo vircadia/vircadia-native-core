@@ -34,7 +34,7 @@ Rectangle {
     property string creator: ""
     property string category: ""
     property int price: 0
-    property bool available: false
+    property string availability: "unknown"
     property bool isLoggedIn: false;
 
     signal buy()
@@ -299,8 +299,16 @@ Rectangle {
                     bottomMargin: 10
                 }
 
-                text: root.price ? root.price : "FREE"
-                buttonGlyph: root.price ? hifi.glyphs.hfc : ""
+                property bool isNFS: availability === "not for sale" // Note: server will say "sold out" or "invalidated" before it says NFS
+                property bool isMine: creator === Account.username
+                property bool isUpgrade: root.edition >= 0
+                property int costToMe: ((isMine && isNFS) || isUpgrade) ? 0 : price
+                property bool isAvailable: costToMe >= 0
+
+                text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : ("UNAVAILABLE (" + availibility + ")"))
+                enabled: isAvailable
+                buttonGlyph: isAvailable ? (costToMe ? hifi.glyphs.hfc : "") : ""
+
                 color: hifi.buttons.blue;
 
                 onClicked: root.buy();
