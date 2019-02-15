@@ -5331,7 +5331,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
         auto physicsGroups = physicsConfig.keys();
         if (physicsGroups.size() > 0) {
             for (auto &groupName : physicsGroups) {
-                auto &settings = physicsConfig[groupName].toMap();
+                auto settings = physicsConfig[groupName].toMap();
                 FlowPhysicsSettings physicsSettings;
                 if (settings.contains("active")) {
                     physicsSettings._active = settings["active"].toBool();
@@ -5363,7 +5363,7 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
             for (auto &jointName : collisionJoints) {
                 int jointIndex = getJointIndex(jointName);
                 FlowCollisionSettings collisionsSettings;
-                auto &settings = collisionsConfig[jointName].toMap();
+                auto settings = collisionsConfig[jointName].toMap();
                 collisionsSettings._entityID = getID();
                 if (settings.contains("radius")) {
                     collisionsSettings._radius = settings["radius"].toFloat();
