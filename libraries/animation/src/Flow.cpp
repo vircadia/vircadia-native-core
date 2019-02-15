@@ -176,7 +176,7 @@ void FlowCollisionSystem::modifySelfCollisionRadius(int jointIndex, float radius
     int collisionIndex = findSelfCollisionWithJoint(jointIndex);
     if (collisionIndex > -1) {
         _selfCollisions[collisionIndex]._initialRadius = radius;
-        _selfCollisions[collisionIndex]._radius = _scale * radius;
+        //_selfCollisions[collisionIndex]._radius = _scale * radius;
     }
 };
 
@@ -185,7 +185,7 @@ void FlowCollisionSystem::modifySelfCollisionYOffset(int jointIndex, float offse
     if (collisionIndex > -1) {
         auto currentOffset = _selfCollisions[collisionIndex]._offset;
         _selfCollisions[collisionIndex]._initialOffset = glm::vec3(currentOffset.x, offset, currentOffset.z);
-        _selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
+        //_selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
     }
 };
 
@@ -193,17 +193,38 @@ void FlowCollisionSystem::modifySelfCollisionOffset(int jointIndex, const glm::v
     int collisionIndex = findSelfCollisionWithJoint(jointIndex);
     if (collisionIndex > -1) {
         _selfCollisions[collisionIndex]._initialOffset = offset;
-        _selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
+        //_selfCollisions[collisionIndex]._offset = _selfCollisions[collisionIndex]._initialOffset * _scale;
     }
 };
-
-
+FlowCollisionSettings FlowCollisionSystem::getCollisionSettingsByJoint(int jointIndex) {
+    for (auto &collision : _selfCollisions) {
+        if (collision._jointIndex == jointIndex) {
+            return FlowCollisionSettings(collision._entityID, FlowCollisionType::CollisionSphere, collision._initialOffset, collision._initialRadius);
+        }
+    }
+    return FlowCollisionSettings();
+}
+void FlowCollisionSystem::setCollisionSettingsByJoint(int jointIndex, const FlowCollisionSettings& settings) {
+    for (auto &collision : _selfCollisions) {
+        if (collision._jointIndex == jointIndex) {
+            collision._initialRadius = settings._radius;
+            collision._initialOffset = settings._offset;
+            collision._radius = _scale * settings._radius;
+            collision._offset = _scale * settings._offset;
+        }
+    }
+}
 void FlowCollisionSystem::prepareCollisions() {
     _allCollisions.clear();
     _allCollisions.resize(_selfCollisions.size() + _othersCollisions.size());
     std::copy(_selfCollisions.begin(), _selfCollisions.begin() + _selfCollisions.size(), _allCollisions.begin());
     std::copy(_othersCollisions.begin(), _othersCollisions.begin() + _othersCollisions.size(), _allCollisions.begin() + _selfCollisions.size());
     _othersCollisions.clear();
+}
+
+FlowNode::FlowNode(const glm::vec3& initialPosition, FlowPhysicsSettings settings) {
+    _initialPosition = _previousPosition = _currentPosition = initialPosition;
+    _initialRadius = settings._radius;
 }
 
 void FlowNode::update(float deltaTime, const glm::vec3& accelerationOffset) {
@@ -215,15 +236,16 @@ void FlowNode::update(float deltaTime, const glm::vec3& accelerationOffset) {
         // Add inertia
         const float FPS = 60.0f;
         float timeRatio = (FPS * deltaTime);
-
+        float invertedTimeRatio = timeRatio > 0.0f ? 1.0f / timeRatio : 1.0f;
         auto deltaVelocity = _previousVelocity - _currentVelocity;
         auto centrifugeVector = glm::length(deltaVelocity) != 0.0f ? glm::normalize(deltaVelocity) : glm::vec3();
-        _acceleration = _acceleration + centrifugeVector * _settings._inertia * glm::length(_currentVelocity) * (1 / timeRatio);
+        _acceleration = _acceleration + centrifugeVector * _settings._inertia * glm::length(_currentVelocity) * invertedTimeRatio;
 
         // Add offset
         _acceleration += accelerationOffset;
         
-        glm::vec3 deltaAcceleration = timeRatio * _acceleration * glm::pow(_settings._delta * _scale, 2);
+        //glm::vec3 deltaAcceleration = timeRatio * _acceleration * glm::pow(_settings._delta * _scale, 2);
+        glm::vec3 deltaAcceleration = timeRatio * _acceleration * glm::pow(_settings._delta, 2);
         // Calculate new position        
         _currentPosition = (_currentPosition + _currentVelocity * _settings._damping) + deltaAcceleration;
     }
@@ -257,11 +279,10 @@ void FlowNode::solveCollisions(const FlowCollisionResult& collision) {
     }
 };
 
-FlowJoint::FlowJoint(int jointIndex, int parentIndex, int childIndex, const QString& name, const QString& group, float scale, const FlowPhysicsSettings& settings) {
+FlowJoint::FlowJoint(int jointIndex, int parentIndex, int childIndex, const QString& name, const QString& group, const FlowPhysicsSettings& settings) {
     _index = jointIndex;
     _name = name;
     _group = group;
-    _scale = scale;
     _childIndex = childIndex;
     _parentIndex = parentIndex;
     _node = FlowNode(glm::vec3(), settings);
@@ -276,8 +297,7 @@ void FlowJoint::setInitialData(const glm::vec3& initialPosition, const glm::vec3
     _initialRotation = initialRotation;
     _translationDirection = glm::normalize(_initialTranslation);
     _parentPosition = parentPosition;
-    _length = glm::length(_initialPosition - parentPosition);
-    _originalLength = _length / _scale;
+    _initialLength = _length = glm::length(_initialPosition - parentPosition);
 }
 
 void FlowJoint::setUpdatedData(const glm::vec3& updatedPosition, const glm::vec3& updatedTranslation, const glm::quat& updatedRotation, const glm::vec3& parentPosition, const glm::quat& parentWorldRotation) {
@@ -313,8 +333,8 @@ void FlowJoint::solve(const FlowCollisionResult& collision) {
     _node.solve(_parentPosition, _length, collision);
 };
 
-FlowDummyJoint::FlowDummyJoint(const glm::vec3& initialPosition, int index, int parentIndex, int childIndex, float scale, FlowPhysicsSettings settings) :
-    FlowJoint(index, parentIndex, childIndex, DUMMY_KEYWORD + "_" + index, DUMMY_KEYWORD, scale, settings) {
+FlowDummyJoint::FlowDummyJoint(const glm::vec3& initialPosition, int index, int parentIndex, int childIndex, FlowPhysicsSettings settings) :
+    FlowJoint(index, parentIndex, childIndex, DUMMY_KEYWORD + "_" + index, DUMMY_KEYWORD, settings) {
     _isDummy = true;
     _initialPosition = initialPosition;
     _node = FlowNode(_initialPosition, settings);
@@ -451,6 +471,12 @@ bool FlowThread::getActive() {
     return _jointsPointer->at(_joints[0])._node._active;
 };
 
+void Flow::init() {
+    if (!_initialized) {
+        calculateConstraints();
+    }
+}
+
 void Flow::calculateConstraints() {
     cleanUp();
     if (!_rig) {
@@ -507,7 +533,7 @@ void Flow::calculateConstraints() {
                         jointSettings = DEFAULT_JOINT_SETTINGS;
                     }
                     if (_flowJointData.find(i) ==  _flowJointData.end()) {
-                        auto flowJoint = FlowJoint(i, parentIndex, -1, name, group, _scale, jointSettings);
+                        auto flowJoint = FlowJoint(i, parentIndex, -1, name, group, jointSettings);
                         _flowJointData.insert(std::pair<int, FlowJoint>(i, flowJoint));
                     }
                 }
@@ -553,7 +579,7 @@ void Flow::calculateConstraints() {
                 auto newSettings = FlowPhysicsSettings(joint._node._settings);
                 newSettings._stiffness = ISOLATED_JOINT_STIFFNESS;
                 int extraIndex = (int)_flowJointData.size();
-                auto newJoint = FlowDummyJoint(jointPosition, extraIndex, jointIndex, -1, _scale, newSettings);
+                auto newJoint = FlowDummyJoint(jointPosition, extraIndex, jointIndex, -1, newSettings);
                 newJoint._isDummy = false;
                 newJoint._length = ISOLATED_JOINT_LENGTH;
                 newJoint._childIndex = extraIndex;
@@ -575,7 +601,7 @@ void Flow::calculateConstraints() {
         int parentIndex = rightHandIndex;
         for (int i = 0; i < DUMMY_JOINT_COUNT; i++) {
             int childIndex = (i == (DUMMY_JOINT_COUNT - 1)) ? -1 : extraIndex + 1;
-            auto newJoint = FlowDummyJoint(rightHandPosition, extraIndex, parentIndex, childIndex, _scale, DEFAULT_JOINT_SETTINGS);
+            auto newJoint = FlowDummyJoint(rightHandPosition, extraIndex, parentIndex, childIndex, DEFAULT_JOINT_SETTINGS);
             _flowJointData.insert(std::pair<int, FlowJoint>(extraIndex, newJoint));
             parentIndex = extraIndex;
             extraIndex++;
@@ -601,24 +627,39 @@ void Flow::cleanUp() {
     _flowJointKeywords.clear();
     _collisionSystem.resetCollisions();
     _initialized = false;
+    _isScaleSet = false;
     _active = false;
  }
 
 void Flow::setTransform(float scale, const glm::vec3& position, const glm::quat& rotation) {
     _scale = scale;
-    for (auto &joint : _flowJointData) {
-        joint.second._scale = scale;
-        joint.second._node._scale = scale;
-    }
     _entityPosition = position;
     _entityRotation = rotation;
-    _active = true;
+    _active = _initialized;
 }
 
 void Flow::update(float deltaTime) {
     if (_initialized && _active) {
         QElapsedTimer _timer;
         _timer.start();
+        if (_scale != _lastScale) {
+            if (!_isScaleSet) {
+                for (auto &joint: _flowJointData) {
+                    joint.second._initialLength = joint.second._length / _scale;
+                }
+                _isScaleSet = true;
+            }
+            _lastScale = _scale;
+            _collisionSystem.setScale(_scale);
+            for (int i = 0; i < _jointThreads.size(); i++) {
+                for (int j = 0; j < _jointThreads[i]._joints.size(); j++) {
+                    auto &joint = _flowJointData[_jointThreads[i]._joints[j]];
+                    joint._node._settings._radius = joint._node._initialRadius * _scale;
+                    joint._length = joint._initialLength * _scale;
+                }
+                _jointThreads[i].resetLength();
+            }
+        }
         updateJoints();
         for (size_t i = 0; i < _jointThreads.size(); i++) {
             size_t index = _invertThreadLoop ? _jointThreads.size() - 1 - i : i;
@@ -710,4 +751,21 @@ void Flow::setOthersCollision(const QUuid& otherId, int jointIndex, const glm::v
     settings._entityID = otherId;
     settings._radius = HAND_COLLISION_RADIUS;
     _collisionSystem.addCollisionSphere(jointIndex, settings, position, false, true);
+}
+
+FlowPhysicsSettings Flow::getPhysicsSettingsForGroup(const QString& group) {
+    for (auto &joint : _flowJointData) {
+        if (joint.second._group.toUpper() == group.toUpper()) {
+            return joint.second._node._settings;
+        }
+    }
+    return FlowPhysicsSettings();
+}
+
+void Flow::setPhysicsSettingsForGroup(const QString& group, const FlowPhysicsSettings& settings) {
+    for (auto &joint : _flowJointData) {
+        if (joint.second._group.toUpper() == group.toUpper()) {
+            joint.second._node._settings = settings;
+        }
+    }
 }

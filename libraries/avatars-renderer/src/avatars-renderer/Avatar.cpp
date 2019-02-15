@@ -736,7 +736,6 @@ void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
                 // glm::vec3 pos2 = joints.find(joint.second._parentIndex) != joints.end() ? joints[joint.second._parentIndex]._node._currentPosition : getJointPosition(joint.second._parentIndex);
                 // DebugDraw::getInstance().drawRay(pos1, pos2, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
                 DebugDraw::getInstance().drawRay(joints[index1]._node._currentPosition, joints[index2]._node._currentPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-
             }
         }
     }

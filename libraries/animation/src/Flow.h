@@ -155,7 +155,6 @@ public:
     FlowCollisionSystem() {};
     void addCollisionSphere(int jointIndex, const FlowCollisionSettings& settings, const glm::vec3& position = { 0.0f, 0.0f, 0.0f }, bool isSelfCollision = true, bool isTouch = false);
     FlowCollisionResult computeCollision(const std::vector<FlowCollisionResult> collisions);
-    void setScale(float scale);
 
     std::vector<FlowCollisionResult> checkFlowThreadCollisions(FlowThread* flowThread);
 
@@ -169,6 +168,9 @@ public:
     void prepareCollisions();
     void resetCollisions();
     void resetOthersCollisions() { _othersCollisions.clear(); }
+    void setScale(float scale);
+    FlowCollisionSettings getCollisionSettingsByJoint(int jointIndex);
+    void setCollisionSettingsByJoint(int jointIndex, const FlowCollisionSettings& settings);
 protected:
     std::vector<FlowCollisionSphere> _selfCollisions;
     std::vector<FlowCollisionSphere> _othersCollisions;
@@ -179,8 +181,7 @@ protected:
 class FlowNode {
 public:
     FlowNode() {};
-    FlowNode(const glm::vec3& initialPosition, FlowPhysicsSettings settings) :
-        _initialPosition(initialPosition), _previousPosition(initialPosition), _currentPosition(initialPosition){};
+    FlowNode(const glm::vec3& initialPosition, FlowPhysicsSettings settings);
 
     FlowPhysicsSettings _settings;
     glm::vec3 _initialPosition;
@@ -195,7 +196,6 @@ public:
     FlowCollisionResult _previousCollision;
 
     float _initialRadius { 0.0f };
-    float _scale{ 1.0f };
 
     bool _anchored { false };
     bool _colliding { false };
@@ -210,7 +210,7 @@ public:
 class FlowJoint {
 public:
     FlowJoint() {};
-    FlowJoint(int jointIndex, int parentIndex, int childIndex, const QString& name, const QString& group, float scale, const FlowPhysicsSettings& settings);
+    FlowJoint(int jointIndex, int parentIndex, int childIndex, const QString& name, const QString& group, const FlowPhysicsSettings& settings);
     void setInitialData(const glm::vec3& initialPosition, const glm::vec3& initialTranslation, const glm::quat& initialRotation, const glm::vec3& parentPosition);
     void setUpdatedData(const glm::vec3& updatedPosition, const glm::vec3& updatedTranslation, const glm::quat& updatedRotation, const glm::vec3& parentPosition, const glm::quat& parentWorldRotation);
     void setRecoveryPosition(const glm::vec3& recoveryPosition);
@@ -241,13 +241,13 @@ public:
     glm::vec3 _translationDirection;
     float _scale { 1.0f };
     float _length { 0.0f };
-    float _originalLength { 0.0f };
+    float _initialLength { 0.0f };
     bool _applyRecovery { false };
 };
 
 class FlowDummyJoint : public FlowJoint {
 public:
-    FlowDummyJoint(const glm::vec3& initialPosition, int index, int parentIndex, int childIndex, float scale, FlowPhysicsSettings settings);
+    FlowDummyJoint(const glm::vec3& initialPosition, int index, int parentIndex, int childIndex, FlowPhysicsSettings settings);
 };
 
 
@@ -277,6 +277,8 @@ public:
 class Flow {
 public:
     Flow(Rig* rig) { _rig = rig; };
+    void init();
+    bool isActive() { return _active; }
     void calculateConstraints();
     void update(float deltaTime);
     void setTransform(float scale, const glm::vec3& position, const glm::quat& rotation);
@@ -284,6 +286,8 @@ public:
     const std::vector<FlowThread>& getThreads() const { return _jointThreads; }
     void setOthersCollision(const QUuid& otherId, int jointIndex, const glm::vec3& position);
     FlowCollisionSystem& getCollisionSystem() { return _collisionSystem; }
+    FlowPhysicsSettings getPhysicsSettingsForGroup(const QString& group);
+    void setPhysicsSettingsForGroup(const QString& group, const FlowPhysicsSettings& settings);
 private:
     void setJoints();
     void cleanUp();
@@ -292,6 +296,7 @@ private:
     bool worldToJointPoint(const glm::vec3& position, const int jointIndex, glm::vec3& jointSpacePosition) const;
     Rig* _rig;
     float _scale { 1.0f };
+    float _lastScale{ 1.0f };
     glm::vec3 _entityPosition;
     glm::quat _entityRotation;
     std::map<int, FlowJoint> _flowJointData;
@@ -300,6 +305,7 @@ private:
     FlowCollisionSystem _collisionSystem;
     bool _initialized { false };
     bool _active { false };
+    bool _isScaleSet { false };
     int _deltaTime { 0 };
     int _deltaTimeLimit { 4000000 };
     int _updates { 0 };

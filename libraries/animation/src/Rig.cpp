@@ -1905,7 +1905,9 @@ void Rig::initAnimGraph(const QUrl& url) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
         connect(this, &Rig::onLoadComplete, [&]() {
-            _flow.calculateConstraints();
+            if (_flow.isActive()) {
+                _flow.calculateConstraints();
+            }
         });
     }
 }
