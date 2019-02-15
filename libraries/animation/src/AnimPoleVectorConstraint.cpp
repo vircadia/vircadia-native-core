@@ -34,64 +34,6 @@ AnimPoleVectorConstraint::~AnimPoleVectorConstraint() {
 
 }
 
-float AnimPoleVectorConstraint::findThetaNewWay(const glm::vec3& hand, const glm::vec3& shoulder, bool left) const {
-    // get the default poses for the upper and lower arm
-    // then use this length to judge how far the hand is away from the shoulder.
-    // then create weights that make the elbow angle less when the x value is large in either direction.
-    // make the angle less when z is small.  
-    // lower y with x center lower angle
-    // lower y with x out higher angle
-    AnimPose shoulderPose = _skeleton->getAbsoluteDefaultPose(_skeleton->nameToJointIndex("RightShoulder"));
-    AnimPose handPose = _skeleton->getAbsoluteDefaultPose(_skeleton->nameToJointIndex("RightHand"));
-    // subtract 10 centimeters from the arm length for some reason actual arm position is clamped to length - 10cm.
-    float defaultArmLength = glm::length( handPose.trans() - shoulderPose.trans() ) - 10.0f;
-    // qCDebug(animation) << "default arm length " << defaultArmLength;
-
-    // phi_0 is the lowest angle we can have
-    const float phi_0 = 15.0f;
-    const float zStart = 0.6f;
-    const float xStart = 0.1f;
-    // biases
-    //const glm::vec3 biases(30.0f, 120.0f, -30.0f);
-    const glm::vec3 biases(0.0f, 135.0f, 0.0f);
-    // weights
-    const float zWeightBottom = -100.0f;
-    //const glm::vec3 weights(-30.0f, 30.0f, 210.0f);
-    const glm::vec3 weights(-50.0f, 60.0f, 260.0f);
-    glm::vec3 armToHand = hand - shoulder;
-    // qCDebug(animation) << "current arm length " << glm::length(armToHand);
-    float initial_valuesY = (fabsf(armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
-    float initial_valuesZ;
-    if (armToHand[1] > 0.0f) {
-        initial_valuesZ = weights[2] * glm::max(zStart - (armToHand[2] / defaultArmLength), 0.0f) * fabs(armToHand[1] / defaultArmLength);
-    } else {
-        initial_valuesZ = zWeightBottom * glm::max(zStart - (armToHand[2] / defaultArmLength), 0.0f) * fabs(armToHand[1] / defaultArmLength);
-    }
-
-    //1.0f + armToHand[1]/defaultArmLength
-
-    float initial_valuesX;
-    if (left) {
-        initial_valuesX = weights[0] * glm::max(-1.0f * (armToHand[0] / defaultArmLength) + xStart, 0.0f);
-    } else {
-        initial_valuesX = weights[0] * (((armToHand[0] / defaultArmLength) + xStart) - (0.3f) * ((1.0f + (armToHand[1] / defaultArmLength))/2.0f));
-    }
-
-    float theta = initial_valuesX + initial_valuesY + initial_valuesZ;
-
-    if (theta < 13.0f) {
-        theta = 13.0f;
-    }
-    if (theta > 175.0f) {
-        theta = 175.0f;
-    }
-
-    if (!left) {
-        //qCDebug(animation) << "relative hand x " << initial_valuesX << " y " << initial_valuesY << " z " << initial_valuesZ << "theta value for pole vector is " << theta;
-    }
-    return theta;
-}
-
 const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut) {
 
     assert(_children.size() == 1);
@@ -114,13 +56,9 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         _poses = underPoses;
     }
 
-    
-
-
     // Look up poleVector from animVars, make sure to convert into geom space.
     glm::vec3 poleVector = animVars.lookupRigToGeometryVector(_poleVectorVar, Vectors::UNIT_Z);
     if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-        
         //float thetaFromRig = animVars.lookup("thetaRight", 0.0f);
         //qCDebug(animation) << " anim pole vector theta from rig " << thetaFromRig;
     }
@@ -164,11 +102,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     glm::vec3 refVector = midPose.xformVectorFast(_referenceVector);
     float refVectorLength = glm::length(refVector);
 
-    if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-        //qCDebug(animation) << "mid pose anim " << midPose;
-        //qCDebug(animation) << "ref vector anim " << refVector;
-    }
-
     glm::vec3 axis = basePose.trans() - tipPose.trans();
     float axisLength = glm::length(axis);
     glm::vec3 unitAxis = axis / axisLength;
@@ -180,22 +113,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     glm::vec3 refVectorProj = refVector - glm::dot(refVector, unitAxis) * unitAxis;
     float refVectorProjLength = glm::length(refVectorProj);
 
-    float lastDot;
-    if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
-        //fake pole vector computation.
-        lastDot = cosf(((180.0f - _lastTheta) / 180.0f)*PI);
-        float lastSideDot = sqrt(1.0f - (lastDot*lastDot));
-        glm::vec3 pretendPoleVector;
-        if (refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH) {
-            poleVector = lastDot * (refVectorProj / refVectorProjLength) + glm::sign(_lastTheta) * lastSideDot * (sideVector / sideVectorLength);
-            if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-                //qCDebug(animation) << "pole vector anim: " << poleVector;
-            }
-        } else {
-            poleVector = glm::vec3(1.0f, 0.0f, 0.0f);
-        }
-    }
-    
     // project poleVector on plane formed by axis.
     glm::vec3 poleVectorProj = poleVector - glm::dot(poleVector, unitAxis) * unitAxis;
     float poleVectorProjLength = glm::length(poleVectorProj);
@@ -208,45 +125,16 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         float sideDot = glm::dot(poleVector, sideVector);
         float theta = copysignf(1.0f, sideDot) * acosf(dot);
 
-        float fred;
+        // overwrite theta if we are using optimized code
         if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
-            //qCDebug(animation) << "theta from the old code " << theta;
-            bool isLeft = false;
+
             if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-                isLeft = true;
+                theta = animVars.lookup("thetaLeftElbow", 0.0f);
+            } else if (_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) {
+                theta = animVars.lookup("thetaRightElbow", 0.0f);
             }
-            //qCDebug(animation) << "hand pose anim pole vector: " << isLeft << " isLeft " << tipPose;
-            //fred = findThetaNewWay(tipPose.trans(), basePose.trans(), isLeft);
-            if (isLeft) {
-                float thetaFromRig = animVars.lookup("thetaLeft", 0.0f);
-                //qCDebug(animation) << " anim pole vector theta from rig left" << thetaFromRig;
-                fred = thetaFromRig;
-
-            } else {
-                float thetaFromRig = animVars.lookup("thetaRight", 0.0f);
-                //qCDebug(animation) << " anim pole vector theta from rig right" << thetaFromRig;
-                fred = thetaFromRig;
-            }
-            
-            _lastTheta = 0.5f * _lastTheta + 0.5f * fred;
-
-            //qCDebug(animation) << "twist correction: " << twistCorrection << "   flex correction: " << flexCorrection << " ulnar correction " << ulnarCorrection;
-            
-            if (fabsf(_lastTheta) < 50.0f) {
-                if (fabsf(_lastTheta) < 50.0f) {
-                    _lastTheta = glm::sign(_lastTheta) * 50.0f;
-                }
-            }
-            if (fabsf(_lastTheta) > 175.0f) {
-                _lastTheta = glm::sign(_lastTheta) * 175.0f;
-            }
-            
-            float poleVectorTheta = theta;
-            theta = ((180.0f - _lastTheta) / 180.0f)*PI;
-
         }
 
-        //glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
         // transform result back into parent relative frame.
@@ -333,8 +221,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
     return _poses;
 }
-
-
 
 // for AnimDebugDraw rendering
 const AnimPoseVec& AnimPoleVectorConstraint::getPosesInternal() const {

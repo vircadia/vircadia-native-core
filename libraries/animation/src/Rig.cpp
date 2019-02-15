@@ -1692,7 +1692,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     // get the default poses for the upper and lower arm
     // then use this length to judge how far the hand is away from the shoulder.
     // then create weights that make the elbow angle less when the x value is large in either direction.
-    // make the angle less when z is small.  
+    // make the angle less when z is small.
     // lower y with x center lower angle
     // lower y with x out higher angle
 
@@ -1744,14 +1744,13 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     const float zStart = 0.6f;
     const float xStart = 0.1f;
     // biases
-    //const glm::vec3 biases(30.0f, 120.0f, -30.0f);
     const glm::vec3 biases(0.0f, 135.0f, 0.0f);
     // weights
     const float zWeightBottom = -100.0f;
     const glm::vec3 weights(-50.0f, 60.0f, 260.0f);
     glm::vec3 armToHand = handPose.trans() - shoulderPose.trans();
     float yFactor = (fabsf(armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
-    
+
     float zFactor;
     if (armToHand[1] > 0.0f) {
         zFactor = weights[2] * glm::max(zStart - (armToHand[2] / defaultArmLength), 0.0f) * fabs(armToHand[1] / defaultArmLength);
@@ -1888,7 +1887,6 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         }
         theta -= flexCorrection;
     }
-    qCDebug(animation) << "flexCorrection rig" << flexCorrection;
 
     const float TWIST_ULNAR_DEADZONE = 0.0f;
     const float ULNAR_BOUNDARY_MINUS = -PI / 12.0f;
@@ -1960,7 +1958,6 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
             }
         }
     }
-    qCDebug(animation) << "ulnarCorrection rig" << ulnarCorrection;
 
     // remember direction of travel.
     const float TWIST_DEADZONE = (4 * PI) / 9.0f;
@@ -1969,26 +1966,55 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     if (left) {
         if (fabsf(_twistThetaRunningAverageLeft) > TWIST_DEADZONE) {
             twistCorrection = glm::sign(_twistThetaRunningAverageLeft) * ((fabsf(_twistThetaRunningAverageLeft) - TWIST_DEADZONE) / PI) * 80.0f;
-        } 
+        }
     } else {
         if (fabsf(_twistThetaRunningAverageRight) > TWIST_DEADZONE) {
             twistCorrection = glm::sign(_twistThetaRunningAverageRight) * ((fabsf(_twistThetaRunningAverageRight) - TWIST_DEADZONE) / PI) * 80.0f;
-        } 
+        }
     }
     if (fabsf(twistCorrection) > 30.0f) {
         theta += glm::sign(twistCorrection) * 30.0f;
     } else {
         theta += twistCorrection;
     }
-    qCDebug(animation) << "twistCorrection rig" << twistCorrection;
 
-    // put final global limiter here.......
+    //qCDebug(animation) << "twist correction: " << twistCorrection << "   flex correction: " << flexCorrection << " ulnar correction " << ulnarCorrection;
 
+    // global limiting
     if (left) {
-        _animVars.set("thetaLeft", theta);
+        // final global smoothing
+        _lastThetaLeft = 0.5f * _lastThetaLeft + 0.5f * theta;
+
+        if (fabsf(_lastThetaLeft) < 50.0f) {
+            if (fabsf(_lastThetaLeft) < 50.0f) {
+                _lastThetaLeft = glm::sign(_lastThetaLeft) * 50.0f;
+            }
+        }
+        if (fabsf(_lastThetaLeft) > 175.0f) {
+            _lastThetaLeft = glm::sign(_lastThetaLeft) * 175.0f;
+        }
+        // convert to radians and make 180 0 to match pole vector theta
+        float thetaRadians = ((180.0f - _lastThetaLeft) / 180.0f)*PI;
+        _animVars.set("thetaLeftElbow", thetaRadians);
+
     } else {
-        _animVars.set("thetaRight", theta);
+        // final global smoothing
+        _lastThetaRight = 0.5f * _lastThetaRight + 0.5f * theta;
+
+        if (fabsf(_lastThetaRight) < 50.0f) {
+            if (fabsf(_lastThetaRight) < 50.0f) {
+                _lastThetaRight = glm::sign(_lastThetaRight) * 50.0f;
+            }
+        }
+        if (fabsf(_lastThetaRight) > 175.0f) {
+            _lastThetaRight = glm::sign(_lastThetaRight) * 175.0f;
+        }
+        // convert to radians and make 180 0 to match pole vector theta
+        float thetaRadians = ((180.0f - _lastThetaRight) / 180.0f)*PI;
+        _animVars.set("thetaRightElbow", thetaRadians);
     }
+
+    // remove this if inaccurate
     // convert theta back to pole vector
     float lastDot = cosf(((180.0f - theta) / 180.0f)*PI);
     float lastSideDot = sqrt(1.0f - (lastDot*lastDot));
