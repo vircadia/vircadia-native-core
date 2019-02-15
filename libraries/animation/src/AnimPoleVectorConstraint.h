@@ -66,9 +66,6 @@ protected:
     float _interpAlphaVel { 0.0f };
     float _interpAlpha { 0.0f };
 
-    float _twistThetaRunningAverage { 0.0f };
-    float _flexThetaRunningAverage { 0.0f };
-    float _ulnarRadialThetaRunningAverage { 0.0f };
     float _lastTheta { 0.0f };
 
     AnimChain _snapshotChain;
