@@ -1215,13 +1215,13 @@ div#grid-section, body#entity-list-body {
     width: 224px;
     z-index: 2;
     background-color: #afafaf;
+    padding-bottom: 2px;
 }
 #filter-type-options input[type=button] {
     position: relative;
-    top: 5px;
-    left: 15px;
+    left: 16px;
     z-index: 3;
-    height: 14px;
+    height: 19px;
     min-width: 60px;
     font-size: 10px;
     color: #000;

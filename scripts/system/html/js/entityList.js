@@ -202,6 +202,7 @@ let elEntityTable,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
+    elFilterTypeOptionsButtons,
     elFilterTypeSelectAll,
     elFilterTypeClearAll,
     elFilterSearch,
@@ -246,6 +247,7 @@ function loaded() {
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
+        elFilterTypeOptionsButtons = document.getElementById("filter-type-options-buttons");
         elFilterTypeSelectAll = document.getElementById('filter-type-select-all');
         elFilterTypeClearAll = document.getElementById('filter-type-clear-all');
         elFilterSearch = document.getElementById("filter-search");
@@ -297,7 +299,7 @@ function loaded() {
             
             let elDiv = document.createElement('div');
             elDiv.onclick = onToggleTypeFilter;
-            elFilterTypeOptions.appendChild(elDiv);
+            elFilterTypeOptions.insertBefore(elDiv, elFilterTypeOptionsButtons);
             
             let elInput = document.createElement('input');
             elInput.setAttribute("type", "checkbox");
