@@ -50,9 +50,10 @@ void QmlMarketplace::getMarketplaceItems(
     const QString& adminFilter,
     const QString& adminFilterCost,
     const QString& sort,
-    const bool isFree,
-    const int& page,
-    const int& perPage) {
+    bool isAscending,
+    bool isFree,
+    int page,
+    int perPage) {
 
     QString endpoint = "items";
     QUrlQuery request;
@@ -62,6 +63,7 @@ void QmlMarketplace::getMarketplaceItems(
     request.addQueryItem("adminFilter", adminFilter);
     request.addQueryItem("adminFilterCost", adminFilterCost);
     request.addQueryItem("sort", sort);
+    request.addQueryItem("sort_dir", isAscending ? "asc" : "desc");
     if (isFree) {
         request.addQueryItem("isFree", "true");
     }
