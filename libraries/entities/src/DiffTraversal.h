@@ -61,7 +61,7 @@ public:
 
     DiffTraversal();
 
-    Type prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root);
+    Type prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root, bool forceFirstPass = false);
 
     const View& getCurrentView() const { return _currentView; }
 

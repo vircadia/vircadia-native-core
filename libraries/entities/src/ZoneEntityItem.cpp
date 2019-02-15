@@ -119,7 +119,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(bloomMode, setBloomMode);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
-        _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
+        _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
 
     return somethingChanged;
 }
@@ -394,7 +394,6 @@ void ZoneEntityItem::resetRenderingPropertiesChanged() {
         _skyboxPropertiesChanged = false;
         _hazePropertiesChanged = false;
         _bloomPropertiesChanged = false;
-        _stagePropertiesChanged = false;
     });
 }
 

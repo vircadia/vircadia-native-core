@@ -66,6 +66,7 @@ class MyAvatar : public Avatar {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
@@ -137,7 +138,7 @@ class MyAvatar : public Avatar {
      *     your avatar when rolling your HMD in degrees per second.
      * @property {number} userHeight=1.75 - The height of the user in sensor space.
      * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>
-     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities and overlays in situations 
+     * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities in situations 
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
      * @property {number} walkSpeed
@@ -1744,6 +1745,7 @@ private:
     void updateOrientation(float deltaTime);
     void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);
+    void updateViewBoom();
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
     void initAnimGraph();
@@ -1894,6 +1896,7 @@ private:
     bool didTeleport();
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
+    void sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const override;
 
     std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;

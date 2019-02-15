@@ -46,6 +46,7 @@ using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @borrows AvatarList.getAvatarIdentifiers as getAvatarIdentifiers
  * @borrows AvatarList.getAvatarsInRange as getAvatarsInRange

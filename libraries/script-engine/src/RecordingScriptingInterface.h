@@ -28,6 +28,7 @@ class QScriptValue;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-assignment-client
  */
 class RecordingScriptingInterface : public QObject, public Dependency {

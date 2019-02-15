@@ -59,6 +59,7 @@ public:
     virtual bool isReadyForAdd() const { return true; }
 
     bool isActive() { return _active; }
+    void deactivate() { _active = false; }
 
     virtual void removeFromSimulation(EntitySimulationPointer simulation) const = 0;
     virtual EntityItemWeakPointer getOwnerEntity() const = 0;

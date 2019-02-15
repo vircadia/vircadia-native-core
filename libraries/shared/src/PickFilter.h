@@ -68,20 +68,11 @@ public:
     // Helpers for RayPickManager
     Flags getEntityFlags() const {
         unsigned int toReturn = 0;
-        for (int i = DOMAIN_ENTITIES; i < LOCAL_ENTITIES; i++) {
+        for (int i = DOMAIN_ENTITIES; i <= LOCAL_ENTITIES; i++) {
             if (_flags[i]) {
                 toReturn |= getBitMask(FlagBit(i));
             }
         }
-        for (int i = HUD + 1; i < NUM_FLAGS; i++) {
-            if (_flags[i]) {
-                toReturn |= getBitMask(FlagBit(i));
-            }
-        }
-        return Flags(toReturn);
-    }
-    Flags getOverlayFlags() const {
-        unsigned int toReturn = getBitMask(LOCAL_ENTITIES);
         for (int i = HUD + 1; i < NUM_FLAGS; i++) {
             if (_flags[i]) {
                 toReturn |= getBitMask(FlagBit(i));

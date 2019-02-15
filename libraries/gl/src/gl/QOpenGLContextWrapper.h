@@ -12,19 +12,31 @@
 #ifndef hifi_QOpenGLContextWrapper_h
 #define hifi_QOpenGLContextWrapper_h
 
-#include <stdint.h>
 #include <QtGlobal>
+#include <memory>
 
 class QOpenGLContext;
 class QSurface;
 class QSurfaceFormat;
 class QThread;
 
+#if defined(Q_OS_ANDROID)
+#include <EGL/egl.h>
+#include <QtPlatformHeaders/QEGLNativeContext>
+using QGLNativeContext = QEGLNativeContext;
+#elif defined(Q_OS_WIN)
+class QWGLNativeContext;
+using QGLNativeContext = QWGLNativeContext;
+#else
+using QGLNativeContext = void*;
+#endif
+
 class QOpenGLContextWrapper {
 public:
-#ifdef Q_OS_WIN
-    static void* nativeContext(QOpenGLContext* context);
-#endif
+    using Pointer = std::shared_ptr<QOpenGLContextWrapper>;
+    using NativeContextPointer = std::shared_ptr<QGLNativeContext>;
+    static Pointer currentContextWrapper();
+
 
     QOpenGLContextWrapper();
     QOpenGLContextWrapper(QOpenGLContext* context);
@@ -36,6 +48,8 @@ public:
     void doneCurrent();
     void setShareContext(QOpenGLContext* otherContext);
     void moveToThread(QThread* thread);
+
+    NativeContextPointer getNativeContext() const;
 
     static QOpenGLContext* currentContext();
     static uint32_t currentContextVersion();

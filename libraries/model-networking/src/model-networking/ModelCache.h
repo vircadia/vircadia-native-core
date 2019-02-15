@@ -82,8 +82,12 @@ class GeometryResource : public Resource, public Geometry {
 public:
     using Pointer = QSharedPointer<GeometryResource>;
 
-    GeometryResource(const QUrl& url, const QUrl& textureBaseUrl = QUrl()) :
-        Resource(url), _textureBaseUrl(textureBaseUrl) {}
+    GeometryResource(const QUrl& url) : Resource(url) {}
+    GeometryResource(const GeometryResource& other) :
+        Resource(other),
+        Geometry(other),
+        _textureBaseUrl(other._textureBaseUrl),
+        _isCacheable(other._isCacheable) {}
 
     virtual bool areTexturesLoaded() const override { return isLoaded() && Geometry::areTexturesLoaded(); }
 
@@ -153,8 +157,8 @@ public:
 protected:
     friend class GeometryMappingResource;
 
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    const void* extra) override;
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
+    QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
 
 private:
     ModelCache();

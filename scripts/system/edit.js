@@ -1608,30 +1608,42 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList, deletedIDs) {
+function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
+    var wantDebug = false;
     var entitiesLength = entities.length;
-    for (var i = 0; i < entitiesLength; i++) {
+    var initialPropertySets = Entities.getMultipleEntityProperties(entities);
+    var entityHostTypes = Entities.getMultipleEntityProperties(entities, 'entityHostType');
+    for (var i = 0; i < entitiesLength; ++i) {
         var entityID = entities[i];
+
+        if (entityHostTypes[i].entityHostType !== entityHostType) {
+            if (wantDebug) {
+                console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
+                    entityHostTypes[i].entityHostType);
+            }
+            continue;
+        }
+
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList, deletedIDs);
-        var initialProperties = Entities.getEntityProperties(entityID);
+        recursiveDelete(children, grandchildrenList, deletedIDs, entityHostType);
         childrenList.push({
             entityID: entityID,
-            properties: initialProperties,
+            properties: initialPropertySets[i],
             children: grandchildrenList
         });
         deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
+
 function unparentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var selectedEntities = selectionManager.selections;
         var parentCheck = false;
 
         if (selectedEntities.length < 1) {
-            Window.notifyEditError("You must have an entity selected inorder to unparent it.");
+            Window.notifyEditError("You must have an entity selected in order to unparent it.");
             return;
         }
         selectedEntities.forEach(function (id, index) {
@@ -1694,21 +1706,24 @@ function deleteSelectedEntities() {
         SelectionManager.saveProperties();
         var savedProperties = [];
         var newSortedSelection = sortSelectedEntities(selectionManager.selections);
-        for (var i = 0; i < newSortedSelection.length; i++) {
+        var entityHostTypes = Entities.getMultipleEntityProperties(newSortedSelection, 'entityHostType');
+        for (var i = 0; i < newSortedSelection.length; ++i) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            if (!initialProperties.locked) {
-                var children = Entities.getChildrenIDs(entityID);
-                var childList = [];
-                recursiveDelete(children, childList, deletedIDs);
-                savedProperties.push({
-                    entityID: entityID,
-                    properties: initialProperties,
-                    children: childList
-                });
-                deletedIDs.push(entityID);
-                Entities.deleteEntity(entityID);
+            if (initialProperties.locked ||
+                (initialProperties.avatarEntity && initialProperties.owningAvatarID !== MyAvatar.sessionUUID)) {
+                continue;
             }
+            var children = Entities.getChildrenIDs(entityID);
+            var childList = [];
+            recursiveDelete(children, childList, deletedIDs, entityHostTypes[i].entityHostType);
+            savedProperties.push({
+                entityID: entityID,
+                properties: initialProperties,
+                children: childList
+            });
+            deletedIDs.push(entityID);
+            Entities.deleteEntity(entityID);
         }
 
         if (savedProperties.length > 0) {

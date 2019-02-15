@@ -73,12 +73,9 @@ RUN mkdir "$HIFI_BASE" && \
 
 RUN git clone https://github.com/jherico/hifi.git && \
     cd ~/hifi && \
-    git checkout feature/quest_move_interface
+    git checkout feature/quest_frame_player
 
 WORKDIR /home/jenkins/hifi
-
-RUN touch .test6 && \ 
-    git fetch && git reset origin/feature/quest_move_interface --hard
 
 RUN mkdir build
 

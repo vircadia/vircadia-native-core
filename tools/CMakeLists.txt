@@ -19,20 +19,36 @@ function(check_test name)
 endfunction()
 
 if (BUILD_TOOLS)
-    set(ALL_TOOLS 
-        udt-test 
-        vhacd-util
-        frame-optimizer
-        gpu-frame-player
-        ice-client
-        ktx-tool
-        ac-client
-        skeleton-dump
-        atp-client
-        oven
-        nitpick
-    )
-
+    # Allow different tools for stable builds
+    if (STABLE_BUILD)
+        set(ALL_TOOLS 
+            udt-test 
+            vhacd-util
+            frame-optimizer
+            gpu-frame-player
+            ice-client
+            ktx-tool
+            ac-client
+            skeleton-dump
+            atp-client
+            oven
+        )
+    else()
+        set(ALL_TOOLS 
+            udt-test 
+            vhacd-util
+            frame-optimizer
+            gpu-frame-player
+            ice-client
+            ktx-tool
+            ac-client
+            skeleton-dump
+            atp-client
+            oven
+            nitpick
+        )
+    endif()
+    
     foreach(TOOL ${ALL_TOOLS})
         check_test(${TOOL})
         if (${BUILD_TOOL_RESULT})

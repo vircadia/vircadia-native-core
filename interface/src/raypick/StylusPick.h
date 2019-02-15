@@ -63,7 +63,6 @@ public:
     StylusTip getMathematicalPick() const override;
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override;
     PickResultPointer getEntityIntersection(const StylusTip& pick) override;
-    PickResultPointer getOverlayIntersection(const StylusTip& pick) override;
     PickResultPointer getAvatarIntersection(const StylusTip& pick) override;
     PickResultPointer getHUDIntersection(const StylusTip& pick) override;
     Transform getResultTransform() const override;

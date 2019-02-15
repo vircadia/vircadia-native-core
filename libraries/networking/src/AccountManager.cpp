@@ -217,15 +217,21 @@ QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::
                                 uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
 
     QUrl requestURL = _authURL;
-    
+
     if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
         requestURL = getMetaverseServerURL();
     }
 
+    int queryStringLocation = path.indexOf("?");
     if (path.startsWith("/")) {
-        requestURL.setPath(path);
+        requestURL.setPath(path.left(queryStringLocation));
     } else {
-        requestURL.setPath("/" + path);
+        requestURL.setPath("/" + path.left(queryStringLocation));
+    }
+
+    if (queryStringLocation >= 0) {
+        QUrlQuery query(path.mid(queryStringLocation+1));
+        requestURL.setQuery(query);
     }
 
     if (authType != AccountManagerAuth::None ) {
@@ -252,8 +258,7 @@ void AccountManager::sendRequest(const QString& path,
                                  const JSONCallbackParameters& callbackParams,
                                  const QByteArray& dataByteArray,
                                  QHttpMultiPart* dataMultiPart,
-                                 const QVariantMap& propertyMap,
-                                 QUrlQuery query) {
+                                 const QVariantMap& propertyMap) {
 
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendRequest",

@@ -16,7 +16,6 @@
 #include <QtCore/QUuid>
 
 #include "DependencyManager.h"
-#include "ui/overlays/Overlay.h"
 
 /**jsdoc
  * The Keyboard API provides facilities to use 3D Physical keyboard.
@@ -24,6 +23,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {bool} raised - <code>true</code> If the keyboard is visible <code>false</code> otherwise
  * @property {bool} password - <code>true</code> Will show * instead of characters in the text display <code>false</code> otherwise
@@ -46,7 +46,7 @@ public:
     Q_INVOKABLE void disableRightMallet();
     Q_INVOKABLE void setLeftHandLaser(unsigned int leftHandLaser);
     Q_INVOKABLE void setRightHandLaser(unsigned int rightHandLaser);
-    Q_INVOKABLE bool containsID(OverlayID overlayID) const;
+    Q_INVOKABLE bool containsID(const QUuid& overlayID) const;
 private:
     bool getPreferMalletsOverLasers() const;
     bool isRaised() const;

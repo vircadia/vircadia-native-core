@@ -167,10 +167,8 @@ public:
     // Access the spatialized items
     const ItemSpatialTree& getSpatialTree() const { return _masterSpatialTree; }
 
-    // Access non-spatialized items (overlays, backgrounds)
+    // Access non-spatialized items (layered objects, backgrounds)
     const ItemIDSet& getNonspatialSet() const { return _masterNonspatialSet; }
-
-
 
     // Access a particular Stage (empty if doesn't exist)
     // Thread safe

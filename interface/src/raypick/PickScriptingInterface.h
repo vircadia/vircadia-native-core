@@ -23,6 +23,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} PICK_ENTITIES A filter flag. Include domain and avatar entities when intersecting. <em>Read-only.</em>.  Deprecated.
  * @property {number} PICK_OVERLAYS A filter flag. Include local entities when intersecting. <em>Read-only.</em>. Deprecated.
@@ -46,7 +47,8 @@
  *
  * @property {number} INTERSECTED_NONE An intersection type. Intersected nothing with the given filter flags. <em>Read-only.</em>
  * @property {number} INTERSECTED_ENTITY An intersection type. Intersected an entity. <em>Read-only.</em>
- * @property {number} INTERSECTED_OVERLAY An intersection type. Intersected an overlay. <em>Read-only.</em>
+ * @property {number} INTERSECTED_LOCAL_ENTITY An intersection type. Intersected a local entity.</em>
+ * @property {number} INTERSECTED_OVERLAY An intersection type. Intersected an entity (3D Overlays no longer exist). <em>Read-only.</em>
  * @property {number} INTERSECTED_AVATAR An intersection type. Intersected an avatar. <em>Read-only.</em>
  * @property {number} INTERSECTED_HUD An intersection type. Intersected the HUD sphere. <em>Read-only.</em>
  * @property {number} perFrameTimeBudget - The max number of usec to spend per frame updating Pick results.
@@ -76,6 +78,7 @@ class PickScriptingInterface : public QObject, public Dependency {
 
     Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_LOCAL_ENTITY READ INTERSECTED_LOCAL_ENTITY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_OVERLAY READ INTERSECTED_OVERLAY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_AVATAR READ INTERSECTED_AVATAR CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
@@ -211,7 +214,7 @@ public:
     Q_INVOKABLE void setPrecisionPicking(unsigned int uid, bool precisionPicking);
 
     /**jsdoc
-     * Sets a list of Entity IDs, Overlay IDs, and/or Avatar IDs to ignore during intersection.  Not used by Stylus Picks.
+     * Sets a list of Entity IDs and/or Avatar IDs to ignore during intersection.  Not used by Stylus Picks.
      * @function Picks.setIgnoreItems
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
      * @param {Uuid[]} ignoreItems A list of IDs to ignore.
@@ -219,7 +222,7 @@ public:
     Q_INVOKABLE void setIgnoreItems(unsigned int uid, const QScriptValue& ignoreItems);
 
     /**jsdoc
-     * Sets a list of Entity IDs, Overlay IDs, and/or Avatar IDs to include during intersection, instead of intersecting with everything.  Stylus
+     * Sets a list of Entity IDs and/or Avatar IDs to include during intersection, instead of intersecting with everything.  Stylus
      *   Picks <b>only</b> intersect with objects in their include list.
      * @function Picks.setIncludeItems
      * @param {number} uid The ID of the Pick, as returned by {@link Picks.createPick}.
@@ -348,7 +351,13 @@ public slots:
      * @function Picks.INTERSECTED_OVERLAY
      * @returns {number}
      */
-    static constexpr unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
+    static constexpr unsigned int INTERSECTED_LOCAL_ENTITY() { return IntersectionType::LOCAL_ENTITY; }
+
+    /**jsdoc
+     * @function Picks.INTERSECTED_OVERLAY
+     * @returns {number}
+     */
+    static constexpr unsigned int INTERSECTED_OVERLAY() { return INTERSECTED_LOCAL_ENTITY(); }
 
     /**jsdoc
      * @function Picks.INTERSECTED_AVATAR
