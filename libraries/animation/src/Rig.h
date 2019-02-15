@@ -258,6 +258,7 @@ protected:
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     bool calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int oppositeArmIndex, glm::vec3& poleVector) const;
+    bool calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int shoulderIndex, bool left, glm::vec3& poleVector);
     glm::vec3 calculateKneePoleVector(int footJointIndex, int kneeJoint, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const;
     glm::vec3 deflectHandFromTorso(const glm::vec3& handPosition, const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
                                    const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo) const;
@@ -424,6 +425,14 @@ protected:
     bool _headEnabled { false };
     bool _computeNetworkAnimation { false };
     bool _sendNetworkNode { false };
+
+    float _twistThetaRunningAverageLeft { 0.0f };
+    float _flexThetaRunningAverageLeft { 0.0f };
+    float _ulnarRadialThetaRunningAverageLeft { 0.0f };
+    float _twistThetaRunningAverageRight{ 0.0f };
+    float _flexThetaRunningAverageRight { 0.0f };
+    float _ulnarRadialThetaRunningAverageRight { 0.0f };
+    float _lastTheta { 0.0f };
 
     AnimContext _lastContext;
     AnimVariantMap _lastAnimVars;

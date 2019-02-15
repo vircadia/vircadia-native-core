@@ -177,8 +177,16 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         _poses = underPoses;
     }
 
+    
+
+
     // Look up poleVector from animVars, make sure to convert into geom space.
     glm::vec3 poleVector = animVars.lookupRigToGeometryVector(_poleVectorVar, Vectors::UNIT_Z);
+    if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
+        
+        float thetaFromRig = animVars.lookup("thetaRight", 0.0f);
+        qCDebug(animation) << " anim pole vector theta from rig " << thetaFromRig;
+    }
 
     // determine if we should interpolate
     bool enabled = animVars.lookup(_enabledVar, _enabled);
@@ -238,11 +246,14 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         glm::vec3 pretendPoleVector;
         if (refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH) {
             poleVector = lastDot * (refVectorProj / refVectorProjLength) + glm::sign(_lastTheta) * lastSideDot * (sideVector / sideVectorLength);
+            if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
+                qCDebug(animation) << " anim pole vector computed: " << poleVector;
+            }
         } else {
             poleVector = glm::vec3(1.0f, 0.0f, 0.0f);
         }
     }
-
+    
     // project poleVector on plane formed by axis.
     glm::vec3 poleVectorProj = poleVector - glm::dot(poleVector, unitAxis) * unitAxis;
     float poleVectorProjLength = glm::length(poleVectorProj);
@@ -262,7 +273,18 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
                 isLeft = true;
             }
-            fred = findThetaNewWay(tipPose.trans(), basePose.trans(), isLeft);
+            //qCDebug(animation) << "hand pose anim pole vector: " << isLeft << " isLeft " << tipPose;
+            //fred = findThetaNewWay(tipPose.trans(), basePose.trans(), isLeft);
+            if (isLeft) {
+                float thetaFromRig = animVars.lookup("thetaLeft", 0.0f);
+                qCDebug(animation) << " anim pole vector theta from rig left" << thetaFromRig;
+                fred = thetaFromRig;
+
+            } else {
+                float thetaFromRig = animVars.lookup("thetaRight", 0.0f);
+                qCDebug(animation) << " anim pole vector theta from rig right" << thetaFromRig;
+                fred = thetaFromRig;
+            }
 
             glm::quat relativeHandRotation = (midPose.inverse() * tipPose).rot();
 
@@ -354,11 +376,11 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             if (!isLeft) {
                 deltaThetaUlnar = correctElbowForHandUlnarRadialDeviation(tipPose, midPose);
             }
-
+            
             if (isLeft) {
-                fred *= -1.0f;
+               // fred *= -1.0f;
             }
-
+           
             // make the dead zone PI/6.0
             
             const float POWER = 2.0f;
@@ -386,6 +408,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                 }
                 fred -= flexCorrection;
             }
+            //qCDebug(animation) << "flexCorrection anim" << flexCorrection;
 
             const float TWIST_ULNAR_DEADZONE = 0.0f;
             const float ULNAR_BOUNDARY_MINUS = -PI / 12.0f;
@@ -425,6 +448,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
                     fred += ulnarCorrection;
                 }
             }
+            //qCDebug(animation) << "ulnarCorrection anim" << ulnarCorrection;
 
             // remember direction of travel.
             const float TWIST_DEADZONE = PI / 2.0f;
@@ -458,7 +482,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
             
             float poleVectorTheta = theta;
             theta = ((180.0f - _lastTheta) / 180.0f)*PI;
-            qCDebug(animation) << "fake theta " << poleVectorTheta << " newly computed theta " << theta << " dot " << dot << " last dot "<< lastDot; 
+             
 
         }
 
