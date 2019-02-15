@@ -76,9 +76,9 @@ namespace std {
 
     template <>
     struct hash<GeometryExtra> {
-        size_t operator()(const GeometryExtra& a) const {
+        size_t operator()(const GeometryExtra& geometryExtra) const {
             size_t result = 0;
-            hash_combine(result, a.mapping, a.textureBaseUrl, a.combineParts);
+            hash_combine(result, geometryExtra.mapping, geometryExtra.textureBaseUrl, geometryExtra.combineParts);
             return result;
         }
     };
@@ -174,6 +174,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
 void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
     if (success && _geometryResource) {
         _hfmModel = _geometryResource->_hfmModel;
+        _materialMapping = _geometryResource->_materialMapping;
         _meshParts = _geometryResource->_meshParts;
         _meshes = _geometryResource->_meshes;
         _materials = _geometryResource->_materials;
@@ -341,6 +342,7 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmMode
 
     // Assume ownership of the processed HFMModel
     _hfmModel = modelBaker.hfmModel;
+    _materialMapping = modelBaker.materialMapping;
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
@@ -392,7 +394,7 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
 }
 
 GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
@@ -437,6 +439,7 @@ const QVariantMap Geometry::getTextures() const {
 // FIXME: The materials should only be copied when modified, but the Model currently caches the original
 Geometry::Geometry(const Geometry& geometry) {
     _hfmModel = geometry._hfmModel;
+    _materialMapping = geometry._materialMapping;
     _meshes = geometry._meshes;
     _meshParts = geometry._meshParts;
 
@@ -554,312 +557,6 @@ void GeometryResourceWatcher::resourceFinished(bool success) {
 void GeometryResourceWatcher::resourceRefreshed() {
     // FIXME: Model is not set up to handle a refresh
     // _instance.reset();
-}
-
-NetworkMaterial::NetworkMaterial(const NetworkMaterial& m) :
-    Material(m),
-    _textures(m._textures),
-    _albedoTransform(m._albedoTransform),
-    _lightmapTransform(m._lightmapTransform),
-    _lightmapParams(m._lightmapParams),
-    _isOriginal(m._isOriginal)
-{}
-
-const QString NetworkMaterial::NO_TEXTURE = QString();
-
-const QString& NetworkMaterial::getTextureName(MapChannel channel) {
-    if (_textures[channel].texture) {
-        return _textures[channel].name;
-    }
-    return NO_TEXTURE;
-}
-
-QUrl NetworkMaterial::getTextureUrl(const QUrl& baseUrl, const HFMTexture& texture) {
-    if (texture.content.isEmpty()) {
-        // External file: search relative to the baseUrl, in case filename is relative
-        return baseUrl.resolved(QUrl(texture.filename));
-    } else {
-        // Inlined file: cache under the fbx file to avoid namespace clashes
-        // NOTE: We cannot resolve the path because filename may be an absolute path
-        assert(texture.filename.size() > 0);
-        auto baseUrlStripped = baseUrl.toDisplayString(QUrl::RemoveFragment | QUrl::RemoveQuery | QUrl::RemoveUserInfo);
-        if (texture.filename.at(0) == '/') {
-            return baseUrlStripped + texture.filename;
-        } else {
-            return baseUrlStripped + '/' + texture.filename;
-        }
-    }
-}
-
-graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& baseUrl, const HFMTexture& hfmTexture,
-                                                          image::TextureUsage::Type type, MapChannel channel) {
-
-    if (baseUrl.isEmpty()) {
-        return nullptr;
-    }
-
-    const auto url = getTextureUrl(baseUrl, hfmTexture);
-    const auto texture = DependencyManager::get<TextureCache>()->getTexture(url, type, hfmTexture.content, hfmTexture.maxNumPixels, hfmTexture.sourceChannel);
-    _textures[channel] = Texture { hfmTexture.name, texture };
-
-    auto map = std::make_shared<graphics::TextureMap>();
-    if (texture) {
-        map->setTextureSource(texture->_textureSource);
-    }
-    map->setTextureTransform(hfmTexture.transform);
-
-    return map;
-}
-
-graphics::TextureMapPointer NetworkMaterial::fetchTextureMap(const QUrl& url, image::TextureUsage::Type type, MapChannel channel) {
-    auto textureCache = DependencyManager::get<TextureCache>();
-    if (textureCache && !url.isEmpty()) {
-        auto texture = textureCache->getTexture(url, type);
-        _textures[channel].texture = texture;
-
-        auto map = std::make_shared<graphics::TextureMap>();
-        if (texture) {
-            map->setTextureSource(texture->_textureSource);
-        }
-
-        return map;
-    }
-    return nullptr;
-}
-
-void NetworkMaterial::setAlbedoMap(const QUrl& url, bool useAlphaChannel) {
-    auto map = fetchTextureMap(url, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
-    if (map) {
-        map->setUseAlphaChannel(useAlphaChannel);
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
-    }
-}
-
-void NetworkMaterial::setNormalMap(const QUrl& url, bool isBumpmap) {
-    auto map = fetchTextureMap(url, isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
-    if (map) {
-        setTextureMap(MapChannel::NORMAL_MAP, map);
-    }
-}
-
-void NetworkMaterial::setRoughnessMap(const QUrl& url, bool isGloss) {
-    auto map = fetchTextureMap(url, isGloss ? image::TextureUsage::GLOSS_TEXTURE : image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-    if (map) {
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    }
-}
-
-void NetworkMaterial::setMetallicMap(const QUrl& url, bool isSpecular) {
-    auto map = fetchTextureMap(url, isSpecular ? image::TextureUsage::SPECULAR_TEXTURE : image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
-    if (map) {
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    }
-}
-
-void NetworkMaterial::setOcclusionMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
-    if (map) {
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
-    }
-}
-
-void NetworkMaterial::setEmissiveMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
-    if (map) {
-        setTextureMap(MapChannel::EMISSIVE_MAP, map);
-    }
-}
-
-void NetworkMaterial::setScatteringMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
-    if (map) {
-        setTextureMap(MapChannel::SCATTERING_MAP, map);
-    }
-}
-
-void NetworkMaterial::setLightmapMap(const QUrl& url) {
-    auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-    if (map) {
-        //map->setTextureTransform(_lightmapTransform);
-        //map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
-    }
-}
-
-NetworkMaterial::NetworkMaterial(const HFMMaterial& material, const QUrl& textureBaseUrl) :
-    graphics::Material(*material._material),
-    _textures(MapChannel::NUM_MAP_CHANNELS)
-{
-    _name = material.name.toStdString();
-    if (!material.albedoTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.albedoTexture, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
-        if (map) {
-            _albedoTransform = material.albedoTexture.transform;
-            map->setTextureTransform(_albedoTransform);
-
-            if (!material.opacityTexture.filename.isEmpty()) {
-                if (material.albedoTexture.filename == material.opacityTexture.filename) {
-                    // Best case scenario, just indicating that the albedo map contains transparency
-                    // TODO: Different albedo/opacity maps are not currently supported
-                    map->setUseAlphaChannel(true);
-                }
-            }
-        }
-
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
-    }
-
-
-    if (!material.normalTexture.filename.isEmpty()) {
-        auto type = (material.normalTexture.isBumpmap ? image::TextureUsage::BUMP_TEXTURE : image::TextureUsage::NORMAL_TEXTURE);
-        auto map = fetchTextureMap(textureBaseUrl, material.normalTexture, type, MapChannel::NORMAL_MAP);
-        setTextureMap(MapChannel::NORMAL_MAP, map);
-    }
-
-    if (!material.roughnessTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.roughnessTexture, image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    } else if (!material.glossTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.glossTexture, image::TextureUsage::GLOSS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    }
-
-    if (!material.metallicTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.metallicTexture, image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    } else if (!material.specularTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.specularTexture, image::TextureUsage::SPECULAR_TEXTURE, MapChannel::METALLIC_MAP);
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    }
-
-    if (!material.occlusionTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.occlusionTexture, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
-        if (map) {
-            map->setTextureTransform(material.occlusionTexture.transform);
-        }
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
-    }
-
-    if (!material.emissiveTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.emissiveTexture, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
-        setTextureMap(MapChannel::EMISSIVE_MAP, map);
-    }
-
-    if (!material.scatteringTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.scatteringTexture, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
-        setTextureMap(MapChannel::SCATTERING_MAP, map);
-    }
-
-    if (!material.lightmapTexture.filename.isEmpty()) {
-        auto map = fetchTextureMap(textureBaseUrl, material.lightmapTexture, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-        if (map) {
-            _lightmapTransform = material.lightmapTexture.transform;
-            _lightmapParams = material.lightmapParams;
-            map->setTextureTransform(_lightmapTransform);
-            map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
-    }
-}
-
-void NetworkMaterial::setTextures(const QVariantMap& textureMap) {
-    _isOriginal = false;
-
-    const auto& albedoName = getTextureName(MapChannel::ALBEDO_MAP);
-    const auto& normalName = getTextureName(MapChannel::NORMAL_MAP);
-    const auto& roughnessName = getTextureName(MapChannel::ROUGHNESS_MAP);
-    const auto& metallicName = getTextureName(MapChannel::METALLIC_MAP);
-    const auto& occlusionName = getTextureName(MapChannel::OCCLUSION_MAP);
-    const auto& emissiveName = getTextureName(MapChannel::EMISSIVE_MAP);
-    const auto& lightmapName = getTextureName(MapChannel::LIGHTMAP_MAP);
-    const auto& scatteringName = getTextureName(MapChannel::SCATTERING_MAP);
-
-    if (!albedoName.isEmpty()) {
-        auto url = textureMap.contains(albedoName) ? textureMap[albedoName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::ALBEDO_TEXTURE, MapChannel::ALBEDO_MAP);
-        if (map) {
-            map->setTextureTransform(_albedoTransform);
-            // when reassigning the albedo texture we also check for the alpha channel used as opacity
-            map->setUseAlphaChannel(true);
-        }
-        setTextureMap(MapChannel::ALBEDO_MAP, map);
-    }
-
-    if (!normalName.isEmpty()) {
-        auto url = textureMap.contains(normalName) ? textureMap[normalName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::NORMAL_TEXTURE, MapChannel::NORMAL_MAP);
-        setTextureMap(MapChannel::NORMAL_MAP, map);
-    }
-
-    if (!roughnessName.isEmpty()) {
-        auto url = textureMap.contains(roughnessName) ? textureMap[roughnessName].toUrl() : QUrl();
-        // FIXME: If passing a gloss map instead of a roughmap how do we know?
-        auto map = fetchTextureMap(url, image::TextureUsage::ROUGHNESS_TEXTURE, MapChannel::ROUGHNESS_MAP);
-        setTextureMap(MapChannel::ROUGHNESS_MAP, map);
-    }
-
-    if (!metallicName.isEmpty()) {
-        auto url = textureMap.contains(metallicName) ? textureMap[metallicName].toUrl() : QUrl();
-        // FIXME: If passing a specular map instead of a metallic how do we know?
-        auto map = fetchTextureMap(url, image::TextureUsage::METALLIC_TEXTURE, MapChannel::METALLIC_MAP);
-        setTextureMap(MapChannel::METALLIC_MAP, map);
-    }
-
-    if (!occlusionName.isEmpty()) {
-        auto url = textureMap.contains(occlusionName) ? textureMap[occlusionName].toUrl() : QUrl();
-        // FIXME: we need to handle the occlusion map transform here
-        auto map = fetchTextureMap(url, image::TextureUsage::OCCLUSION_TEXTURE, MapChannel::OCCLUSION_MAP);
-        setTextureMap(MapChannel::OCCLUSION_MAP, map);
-    }
-
-    if (!emissiveName.isEmpty()) {
-        auto url = textureMap.contains(emissiveName) ? textureMap[emissiveName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::EMISSIVE_TEXTURE, MapChannel::EMISSIVE_MAP);
-        setTextureMap(MapChannel::EMISSIVE_MAP, map);
-    }
-
-    if (!scatteringName.isEmpty()) {
-        auto url = textureMap.contains(scatteringName) ? textureMap[scatteringName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::SCATTERING_TEXTURE, MapChannel::SCATTERING_MAP);
-        setTextureMap(MapChannel::SCATTERING_MAP, map);
-    }
-
-    if (!lightmapName.isEmpty()) {
-        auto url = textureMap.contains(lightmapName) ? textureMap[lightmapName].toUrl() : QUrl();
-        auto map = fetchTextureMap(url, image::TextureUsage::LIGHTMAP_TEXTURE, MapChannel::LIGHTMAP_MAP);
-        if (map) {
-            map->setTextureTransform(_lightmapTransform);
-            map->setLightmapOffsetScale(_lightmapParams.x, _lightmapParams.y);
-        }
-        setTextureMap(MapChannel::LIGHTMAP_MAP, map);
-    }
-}
-
-bool NetworkMaterial::isMissingTexture() {
-    for (auto& networkTexture : _textures) {
-        auto& texture = networkTexture.texture;
-        if (!texture) {
-            continue;
-        }
-        // Failed texture downloads need to be considered as 'loaded'
-        // or the object will never fade in
-        bool finished = texture->isFailed() || (texture->isLoaded() && texture->getGPUTexture() && texture->getGPUTexture()->isDefined());
-        if (!finished) {
-            return true;
-        }
-    }
-    return false;
-}
-
-void NetworkMaterial::checkResetOpacityMap() {
-    // If material textures are loaded, check the material translucency
-    // FIXME: This should not be done here.  The opacity map should already be reset in Material::setTextureMap.
-    // However, currently that code can be called before the albedo map is defined, so resetOpacityMap will fail.
-    // Geometry::areTexturesLoaded() is called repeatedly until it returns true, so we do the check here for now
-    const auto& albedoTexture = _textures[NetworkMaterial::MapChannel::ALBEDO_MAP];
-    if (albedoTexture.texture) {
-        resetOpacityMap();
-    }
 }
 
 #include "ModelCache.moc"

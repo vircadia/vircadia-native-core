@@ -15,7 +15,7 @@
 #include <functional>
 
 #include <gpu/Context.h>
-#include <model-networking/TextureCache.h>
+#include <material-networking/TextureCache.h>
 #include <render/DrawTask.h>
 #include <shaders/Shaders.h>
 #include <graphics/ShaderConstants.h>

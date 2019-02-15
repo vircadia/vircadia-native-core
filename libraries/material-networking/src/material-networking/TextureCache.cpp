@@ -44,7 +44,7 @@
 #include <Profile.h>
 
 #include "NetworkLogging.h"
-#include "ModelNetworkingLogging.h"
+#include "MaterialNetworkingLogging.h"
 #include "NetworkingConstants.h"
 #include <Trace.h>
 #include <StatTracker.h>
@@ -198,16 +198,16 @@ public:
 namespace std {
     template <>
     struct hash<QByteArray> {
-        size_t operator()(const QByteArray& a) const {
-            return qHash(a);
+        size_t operator()(const QByteArray& byteArray) const {
+            return qHash(byteArray);
         }
     };
 
     template <>
     struct hash<TextureExtra> {
-        size_t operator()(const TextureExtra& a) const {
+        size_t operator()(const TextureExtra& textureExtra) const {
             size_t result = 0;
-            hash_combine(result, (int)a.type, a.content, a.maxNumPixels, (int)a.sourceChannel);
+            hash_combine(result, (int)textureExtra.type, textureExtra.content, textureExtra.maxNumPixels, (int)textureExtra.sourceChannel);
             return result;
         }
     };
@@ -329,15 +329,14 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> TextureCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>().data()), &Resource::deleter);
+    return QSharedPointer<Resource>(new NetworkTexture(*resource.staticCast<NetworkTexture>()), &Resource::deleter);
 }
 
 int networkTexturePointerMetaTypeId = qRegisterMetaType<QWeakPointer<NetworkTexture>>();
 
 NetworkTexture::NetworkTexture(const QUrl& url, bool resourceTexture) :
     Resource(url),
-    Texture(),
-    _maxNumPixels(100)
+    Texture()
 {
     if (resourceTexture) {
         _textureSource = std::make_shared<gpu::TextureSource>(url);
@@ -955,7 +954,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
             cache::FilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
             if (!memKtx || !(file = ktxCache->writeFile(data, KTXCache::Metadata(filename, length)))) {
-                qCWarning(modelnetworking) << url << " failed to write cache file";
+                qCWarning(materialnetworking) << url << " failed to write cache file";
                 QMetaObject::invokeMethod(resource.data(), "setImage",
                     Q_ARG(gpu::TexturePointer, nullptr),
                     Q_ARG(int, 0),
@@ -1145,7 +1144,7 @@ void ImageReader::listSupportedImageFormats() {
     static std::once_flag once;
     std::call_once(once, []{
         auto supportedFormats = QImageReader::supportedImageFormats();
-        qCDebug(modelnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
+        qCDebug(materialnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
     });
 }
 
@@ -1194,7 +1193,7 @@ void ImageReader::read() {
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 } else {
-                    qCWarning(modelnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
+                    qCWarning(materialnetworking) << "Invalid cached KTX " << _url << " under hash " << hash.c_str() << ", recreating...";
                 }
             }
         }
