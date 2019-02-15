@@ -244,9 +244,7 @@ MarketplaceItemUploader* AvatarProject::upload(bool updateExisting) {
 }
 
 AvatarDoctor* AvatarProject::diagnose() {
-    auto avatarDoctor = new AvatarDoctor(QUrl(getFSTPath()));
-
-    return avatarDoctor;
+    return new AvatarDoctor(QUrl(getFSTPath()));
 }
 
 void AvatarProject::openInInventory() const {

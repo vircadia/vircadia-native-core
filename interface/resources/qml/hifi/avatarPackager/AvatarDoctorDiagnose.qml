@@ -4,63 +4,65 @@ import "../../controlsUit" 1.0 as HifiControls
 import "../../stylesUit" 1.0
 
 Item {
-    id: diagnosingScreen
+    id: root
 
     visible: false
 
     property var avatarDoctor: null
     property var errors: []
 
+    property int minimumDiagnoseTimeMS: 1000
+
     signal doneDiagnosing
 
     onVisibleChanged: {
-        if (!diagnosingScreen.visible) {
-            //if (debugDelay.running) {
-            //    debugDelay.stop();
-            //}
+        if (root.avatarDoctor !== null) {
+            root.avatarDoctor.complete.disconnect(_private.avatarDoctorComplete);
+            root.avatarDoctor = null;
+        }
+        if (doneTimer.running) {
+            doneTimer.stop();
+        }
+
+        if (!root.visible) {
             return;
         }
-        //debugDelay.start();
-        avatarDoctor = AvatarPackagerCore.currentAvatarProject.diagnose();
-        avatarDoctor.complete.connect(function(errors) {
+
+        root.avatarDoctor = AvatarPackagerCore.currentAvatarProject.diagnose();
+        root.avatarDoctor.complete.connect(this, _private.avatarDoctorComplete);
+        _private.startTime = Date.now();
+        root.avatarDoctor.startDiagnosing();
+    }
+
+    QtObject {
+        id: _private
+        property real startTime: 0
+
+        function avatarDoctorComplete(errors) {
+            if (!root.visible) {
+                return;
+            }
+
             console.warn("avatarDoctor.complete " + JSON.stringify(errors));
-            diagnosingScreen.errors = errors;
+            root.errors = errors;
             AvatarPackagerCore.currentAvatarProject.hasErrors = errors.length > 0;
             AvatarPackagerCore.addCurrentProjectToRecentProjects();
 
-            // FIXME: can't seem to change state here so do it with a timer instead
+            let timeSpendDiagnosingMS = Date.now() - _private.startTime;
+            let timeLeftMS = root.minimumDiagnoseTimeMS - timeSpendDiagnosingMS;
+            doneTimer.interval = timeLeftMS < 0 ? 0 : timeLeftMS;
             doneTimer.start();
-        });
-        avatarDoctor.startDiagnosing();
+        }
     }
 
     Timer {
         id: doneTimer
-        interval: 1
         repeat: false
         running: false
         onTriggered: {
             doneDiagnosing();
         }
     }
-
-/*
-    Timer {
-        id: debugDelay
-        interval: 5000
-        repeat: false
-        running: false
-        onTriggered: {
-            if (Math.random() > 0.5) {
-                // ERROR
-                avatarPackager.state = AvatarPackagerState.avatarDoctorErrorReport;
-            } else {
-                // SUCCESS
-                avatarPackager.state = AvatarPackagerState.project;
-            }
-        }
-    }
-*/
 
     property var footer: Item {
         anchors.fill: parent

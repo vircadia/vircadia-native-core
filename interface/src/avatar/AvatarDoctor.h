@@ -45,6 +45,11 @@ signals:
 private:
     QUrl _avatarFSTFileUrl;
     QVector<AvatarDiagnosticResult> _errors;
+
+    int _externalTextureCount = 0;
+    int _checkedTextureCount = 0;
+    int _missingTextureCount = 0;
+    int _unsupportedTextureCount = 0;
 };
 
 #endif  // hifi_AvatarDoctor_h
