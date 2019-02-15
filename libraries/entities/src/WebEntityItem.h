@@ -44,6 +44,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    glm::vec3 getRaycastDimensions() const override;
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
@@ -59,6 +60,9 @@ public:
 
     float getAlpha() const;
     void setAlpha(float alpha);
+
+    void setBillboardMode(BillboardMode value);
+    BillboardMode getBillboardMode() const;
 
     static const QString DEFAULT_SOURCE_URL;
     void setSourceUrl(const QString& value);
@@ -86,6 +90,7 @@ protected:
     glm::u8vec3 _color;
     float _alpha { 1.0f };
     PulsePropertyGroup _pulseProperties;
+    BillboardMode _billboardMode;
 
     QString _sourceUrl;
     uint16_t _dpi;

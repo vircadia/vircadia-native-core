@@ -2308,8 +2308,30 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
-    EntityTreeRenderer::setGetAvatarUpOperator([] {
-        return DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
+    EntityItem::setBillboardRotationOperator([this](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode) {
+        if (billboardMode == BillboardMode::YAW) {
+            //rotate about vertical to face the camera
+            ViewFrustum frustum;
+            copyViewFrustum(frustum);
+            glm::vec3 dPosition = frustum.getPosition() - position;
+            // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
+            float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
+            return glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
+        } else if (billboardMode == BillboardMode::FULL) {
+            ViewFrustum frustum;
+            copyViewFrustum(frustum);
+            glm::vec3 cameraPos = frustum.getPosition();
+            // use the referencial from the avatar, y isn't always up
+            glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
+            // check to see if glm::lookAt will work / using glm::lookAt variable name
+            glm::highp_vec3 s(glm::cross(position - cameraPos, avatarUP));
+
+            // make sure s is not NaN for any component
+            if (glm::length2(s) > 0.0f) {
+                return glm::conjugate(glm::toQuat(glm::lookAt(cameraPos, position, avatarUP)));
+            }
+        }
+        return rotation;
     });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
@@ -6228,40 +6250,57 @@ void Application::update(float deltaTime) {
                 PROFILE_RANGE(simulation_physics, "PrePhysics");
                 PerformanceTimer perfTimer("prePhysics)");
                 {
+                    PROFILE_RANGE(simulation_physics, "RemoveEntities");
                     const VectorOfMotionStates& motionStates = _entitySimulation->getObjectsToRemoveFromPhysics();
-                    _physicsEngine->removeObjects(motionStates);
+                    {
+                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
+                        _physicsEngine->removeObjects(motionStates);
+                    }
                     _entitySimulation->deleteObjectsRemovedFromPhysics();
                 }
 
-                VectorOfMotionStates motionStates;
-                getEntities()->getTree()->withReadLock([&] {
-                    _entitySimulation->getObjectsToAddToPhysics(motionStates);
-                    _physicsEngine->addObjects(motionStates);
-
-                });
-                getEntities()->getTree()->withReadLock([&] {
-                    _entitySimulation->getObjectsToChange(motionStates);
-                    VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-                    _entitySimulation->setObjectsToChange(stillNeedChange);
-                });
+                {
+                    PROFILE_RANGE(simulation_physics, "AddEntities");
+                    VectorOfMotionStates motionStates;
+                    getEntities()->getTree()->withReadLock([&] {
+                        _entitySimulation->getObjectsToAddToPhysics(motionStates);
+                        PROFILE_RANGE_EX(simulation_physics, "NumObjs", 0xffff0000, (uint64_t)motionStates.size());
+                        _physicsEngine->addObjects(motionStates);
+                    });
+                }
+                {
+                    VectorOfMotionStates motionStates;
+                    PROFILE_RANGE(simulation_physics, "ChangeEntities");
+                    getEntities()->getTree()->withReadLock([&] {
+                        _entitySimulation->getObjectsToChange(motionStates);
+                        VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
+                        _entitySimulation->setObjectsToChange(stillNeedChange);
+                    });
+                }
 
                 _entitySimulation->applyDynamicChanges();
 
                 t1 = std::chrono::high_resolution_clock::now();
 
-                PhysicsEngine::Transaction transaction;
-                avatarManager->buildPhysicsTransaction(transaction);
-                _physicsEngine->processTransaction(transaction);
-                avatarManager->handleProcessedPhysicsTransaction(transaction);
-                myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
-                _physicsEngine->processTransaction(transaction);
-                myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
-                myAvatar->prepareForPhysicsSimulation();
-                _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+                {
+                    PROFILE_RANGE(simulation_physics, "Avatars");
+                    PhysicsEngine::Transaction transaction;
+                    avatarManager->buildPhysicsTransaction(transaction);
+                    _physicsEngine->processTransaction(transaction);
+                    avatarManager->handleProcessedPhysicsTransaction(transaction);
+                    myAvatar->getCharacterController()->buildPhysicsTransaction(transaction);
+                    _physicsEngine->processTransaction(transaction);
+                    myAvatar->getCharacterController()->handleProcessedPhysicsTransaction(transaction);
+                    myAvatar->prepareForPhysicsSimulation();
+                    _physicsEngine->enableGlobalContactAddedCallback(myAvatar->isFlying());
+                }
 
-                _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
-                    dynamic->prepareForPhysicsSimulation();
-                });
+                {
+                    PROFILE_RANGE(simulation_physics, "PrepareActions");
+                    _physicsEngine->forEachDynamic([&](EntityDynamicPointer dynamic) {
+                        dynamic->prepareForPhysicsSimulation();
+                    });
+                }
             }
             auto t2 = std::chrono::high_resolution_clock::now();
             {

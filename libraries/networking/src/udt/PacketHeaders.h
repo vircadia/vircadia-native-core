@@ -261,6 +261,7 @@ enum class EntityVersion : PacketVersion {
     PulseProperties,
     RingGizmoEntities,
     ShowKeyboardFocusHighlight,
+    WebBillboardMode,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

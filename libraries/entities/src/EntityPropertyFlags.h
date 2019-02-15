@@ -118,6 +118,7 @@ enum EntityPropertyList {
     PROP_PULSE_COLOR_MODE,
     PROP_PULSE_ALPHA_MODE,
     PROP_TEXTURES,
+    PROP_BILLBOARD_MODE,
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new shared EntityItem properties to the list ABOVE this line
@@ -232,11 +233,10 @@ enum EntityPropertyList {
     PROP_TEXT_ALPHA = PROP_DERIVED_3,
     PROP_BACKGROUND_COLOR = PROP_DERIVED_4,
     PROP_BACKGROUND_ALPHA = PROP_DERIVED_5,
-    PROP_BILLBOARD_MODE = PROP_DERIVED_6,
-    PROP_LEFT_MARGIN = PROP_DERIVED_7,
-    PROP_RIGHT_MARGIN = PROP_DERIVED_8,
-    PROP_TOP_MARGIN = PROP_DERIVED_9,
-    PROP_BOTTOM_MARGIN = PROP_DERIVED_10,
+    PROP_LEFT_MARGIN = PROP_DERIVED_6,
+    PROP_RIGHT_MARGIN = PROP_DERIVED_7,
+    PROP_TOP_MARGIN = PROP_DERIVED_8,
+    PROP_BOTTOM_MARGIN = PROP_DERIVED_9,
 
     // Zone
     // Keylight
