@@ -46,7 +46,7 @@ FlowCollisionResult FlowCollisionSphere::checkSegmentCollision(const glm::vec3& 
     FlowCollisionResult result;
     auto segment = point2 - point1;
     auto segmentLength = glm::length(segment);
-    auto maxDistance = glm::sqrt(glm::pow(collisionResult1._radius, 2) + glm::pow(segmentLength, 2));
+    auto maxDistance = glm::sqrt(powf(collisionResult1._radius, 2.0f) + powf(segmentLength, 2.0f));
     if (collisionResult1._distance < maxDistance && collisionResult2._distance < maxDistance) {
         float segmentPercentage = collisionResult1._distance / (collisionResult1._distance + collisionResult2._distance);
         glm::vec3 collisionPoint = point1 + segment * segmentPercentage;
@@ -123,21 +123,17 @@ std::vector<FlowCollisionResult> FlowCollisionSystem::checkFlowThreadCollisions(
                     auto prevCollision = collisionData[i - 1];
                     nextCollision = _allCollisions[j].computeSphereCollision(flowThread->_positions[i], flowThread->_radius);
                     collisionData.push_back(nextCollision);
-                    bool isTouching = false;
                     if (prevCollision._offset > 0.0f) {
                         if (i == 1) {
                             FlowThreadResults[i - 1].push_back(prevCollision);
-                            isTouching = true;
                         }
                     } else if (nextCollision._offset > 0.0f) {
                         FlowThreadResults[i].push_back(nextCollision);
-                        isTouching = true;
                     } else {
                         FlowCollisionResult segmentCollision = _allCollisions[j].checkSegmentCollision(flowThread->_positions[i - 1], flowThread->_positions[i], prevCollision, nextCollision);
                         if (segmentCollision._offset > 0) {
                             FlowThreadResults[i - 1].push_back(segmentCollision);
                             FlowThreadResults[i].push_back(segmentCollision);
-                            isTouching = true;
                         }
                     }
                 }
@@ -209,7 +205,7 @@ void FlowNode::update(float deltaTime, const glm::vec3& accelerationOffset) {
 
         // Add offset
         _acceleration += accelerationOffset;
-        float accelerationFactor = glm::pow(_settings._delta, 2) * timeRatio;
+        float accelerationFactor = powf(_settings._delta, 2.0f) * timeRatio;
         glm::vec3 deltaAcceleration = _acceleration * accelerationFactor;
         // Calculate new position        
         _currentPosition = _currentPosition + (_currentVelocity * _settings._damping) + deltaAcceleration;
@@ -280,7 +276,7 @@ void FlowJoint::update(float deltaTime) {
     glm::vec3 accelerationOffset = glm::vec3(0.0f);
     if (_node._settings._stiffness > 0.0f) {
         glm::vec3 recoveryVector = _recoveryPosition - _node._currentPosition;
-        float recoveryFactor = glm::pow(_node._settings._stiffness, 3);
+        float recoveryFactor = powf(_node._settings._stiffness, 3.0f);
         accelerationOffset = recoveryVector * recoveryFactor;
     }
     _node.update(deltaTime, accelerationOffset);
