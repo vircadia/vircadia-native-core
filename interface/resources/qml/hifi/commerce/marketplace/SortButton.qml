@@ -28,58 +28,60 @@ Item {
     
     id: root;
     
+    property string ascGlyph: "\u2193"
+    property string descGlyph: "\u2191"
+    property string text: ""
+    property bool ascending: false
+    property bool checked: false
+    signal clicked()
     
-    property string glyph: "";
-    property string text: "";
-    property bool checked: false;
-    signal clicked();
-    
-    width: childrenRect.width;
-    height: parent.height;
+    width: childrenRect.width
+    height: parent.height
 
     Rectangle {
-        anchors.top: parent.top;
-        anchors.left: parent.left;
-        height: parent.height;
-        width: 2;
-        color: hifi.colors.faintGray;
-        visible: index > 0;
+        anchors.top: parent.top
+        anchors.left: parent.left
+        height: parent.height
+        width: 2
+        color: hifi.colors.faintGray
+        visible: index > 0
     }
     
-    HiFiGlyphs {
-        id: buttonGlyph;
-        text: root.glyph;
+    RalewayRegular {
+        id: buttonGlyph
+        text: root.ascending ? root.ascGlyph : root.descGlyph
         // Size
-        size: 14;
+        size: 14
         // Anchors
-        anchors.left: parent.left;
-        anchors.leftMargin: 0;
-        anchors.top: parent.top;
-        anchors.verticalCenter: parent.verticalCenter;
-        height: parent.height;
-        horizontalAlignment: Text.AlignHCenter;
+        anchors.left: parent.left
+        anchors.leftMargin: 10
+        anchors.top: parent.top
+        anchors.topMargin: 6
+        anchors.bottom: parent.bottom
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignTop
         // Style
-        color: hifi.colors.lightGray;
+        color: hifi.colors.lightGray
     }
     RalewayRegular {
-        id: buttonText;
-        text: root.text;
+        id: buttonText
+        text: root.text
         // Text size
-        size: 14;
+        size: 14
         // Style
-        color: hifi.colors.lightGray;
-        elide: Text.ElideRight;
-        horizontalAlignment: Text.AlignHCenter;
-        verticalAlignment: Text.AlignVCenter;
+        color: hifi.colors.lightGray
+        elide: Text.ElideRight
+        horizontalAlignment: Text.AlignHCenter
+        verticalAlignment: Text.AlignVCenter
         // Anchors
-        anchors.left: parent.left;
-        anchors.leftMargin: 20;
-        anchors.top: parent.top;
-        height: parent.height;
+        anchors.left: buttonGlyph.right
+        anchors.leftMargin: 5
+        anchors.top: parent.top
+        height: parent.height
     }
     MouseArea {
-        anchors.fill: parent;
-        hoverEnabled: enabled;
+        anchors.fill: parent
+        hoverEnabled: enabled
         onClicked: {
             root.clicked();
         }
