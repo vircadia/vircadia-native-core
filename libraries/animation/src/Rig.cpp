@@ -34,6 +34,7 @@
 #include "IKTarget.h"
 #include "PathUtils.h"
 
+#define FAKE_Q_OS_ANDROID true;
 
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
@@ -1459,14 +1460,15 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
         int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+        //#ifdef FAKE_Q_OS_ANDROID        
         #ifdef Q_OS_ANDROID
             float poleTheta;
             bool usePoleTheta = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, true, poleTheta);
             if (usePoleTheta) {
                 _animVars.set("leftHandPoleVectorEnabled", true);
                 _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
-                _animVars.set("thetaLeftElbow", transformVectorFast(sensorToRigMatrix, sensorPoleVector));
-        } else {
+                _animVars.set("thetaLeftElbow", poleTheta);
+            } else {
                 _animVars.set("leftHandPoleVectorEnabled", false);
             }
         #else
@@ -1527,12 +1529,14 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
 
         if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
+        
+        //#ifdef FAKE_Q_OS_ANDROID
         #ifdef Q_OS_ANDROID
             float poleTheta;
-            bool usePoleTheta = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, true, poleTheta);
+            bool usePoleTheta = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, false, poleTheta);
             if (usePoleTheta) {
                 _animVars.set("rightHandPoleVectorEnabled", true);
-                _animVars.set("rightHandPoleReferenceVector", Vectors::UNIT_X);
+                _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
                 _animVars.set("thetaRightElbow", poleTheta);
             } else {
                 _animVars.set("rightHandPoleVectorEnabled", false);
@@ -1951,7 +1955,6 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
 
     // remember direction of travel.
     const float TWIST_DEADZONE = (4 * PI) / 9.0f;
-    //if (!isLeft) {
     float twistCorrection = 0.0f;
     if (left) {
         if (fabsf(_twistThetaRunningAverageLeft) > TWIST_DEADZONE) {
@@ -1985,7 +1988,8 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         }
         // convert to radians and make 180 0 to match pole vector theta
         float thetaRadians = ((180.0f - _lastThetaLeft) / 180.0f)*PI;
-        _animVars.set("thetaLeftElbow", thetaRadians);
+        //_animVars.set("thetaLeftElbow", thetaRadians);
+        poleTheta = thetaRadians;
 
     } else {
         // final global smoothing
@@ -2001,7 +2005,8 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         }
         // convert to radians and make 180 0 to match pole vector theta
         float thetaRadians = ((180.0f - _lastThetaRight) / 180.0f)*PI;
-        _animVars.set("thetaRightElbow", thetaRadians);
+        //_animVars.set("thetaRightElbow", thetaRadians);
+        poleTheta = thetaRadians;
     }
 
     return true;
