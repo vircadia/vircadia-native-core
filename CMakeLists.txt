@@ -135,7 +135,7 @@ set(PLATFORM_QT_GL OpenGL)
 
 if (USE_GLES)
   add_definitions(-DUSE_GLES)
-  add_definitions(-DGPU_POINTER_STORAGE_sRED)
+  add_definitions(-DGPU_POINTER_STORAGE_SHARED)
   set(PLATFORM_GL_BACKEND gpu-gl-common gpu-gles)
 else()
   add_definitions(-DGPU_POINTER_STORAGE_RAW)
