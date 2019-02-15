@@ -84,8 +84,7 @@ public:
      *       <td>{@link Entities.EntityProperties-Light|EntityProperties-Light}</td></tr>
      *     <tr><td><code>"Zone"</code></td><td>A volume of lighting effects and avatar permissions.</td>
      *       <td>{@link Entities.EntityProperties-Zone|EntityProperties-Zone}</td></tr>
-     *     <tr><td><code>"Material"</code></td><td>Modifies the existing materials on Model entities, Shape entities,
-     *       {@link Overlays.OverlayType|model overlays}, and avatars.</td>
+     *     <tr><td><code>"Material"</code></td><td>Modifies the existing materials on entities and avatars.</td>
      *       <td>{@link Entities.EntityProperties-Material|EntityProperties-Material}</td></tr>
      *   </tbody>
      * </table>

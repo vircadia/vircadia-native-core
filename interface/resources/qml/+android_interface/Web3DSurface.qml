@@ -1,5 +1,5 @@
 //
-//  Web3DOverlay.qml
+//  Web3DSurface.qml
 //
 //  Created by Gabriel Calero & Cristian Duarte on Jun 22, 2018
 //  Copyright 2016 High Fidelity, Inc.

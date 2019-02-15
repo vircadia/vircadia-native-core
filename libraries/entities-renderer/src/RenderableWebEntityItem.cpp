@@ -115,35 +115,41 @@ bool WebEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointe
         }
     }
 
-    if (_color != entity->getColor()) {
-        return true;
-    }
+    if(resultWithReadLock<bool>([&] {
+        if (_color != entity->getColor()) {
+            return true;
+        }
 
-    if (_alpha != entity->getAlpha()) {
-        return true;
-    }
+        if (_alpha != entity->getAlpha()) {
+            return true;
+        }
 
-    if (_sourceURL != entity->getSourceUrl()) {
-        return true;
-    }
+        if (_sourceURL != entity->getSourceUrl()) {
+            return true;
+        }
 
-    if (_dpi != entity->getDPI()) {
-        return true;
-    }
+        if (_dpi != entity->getDPI()) {
+            return true;
+        }
 
-    if (_scriptURL != entity->getScriptURL()) {
-        return true;
-    }
+        if (_scriptURL != entity->getScriptURL()) {
+            return true;
+        }
 
-    if (_maxFPS != entity->getMaxFPS()) {
-        return true;
-    }
+        if (_maxFPS != entity->getMaxFPS()) {
+            return true;
+        }
 
-    if (_inputMode != entity->getInputMode()) {
-        return true;
-    }
+        if (_inputMode != entity->getInputMode()) {
+            return true;
+        }
 
-    if (_pulseProperties != entity->getPulseProperties()) {
+        if (_pulseProperties != entity->getPulseProperties()) {
+            return true;
+        }
+
+        return false;
+    })) {
         return true;
     }
 
@@ -185,17 +191,14 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
         ContentType currentContentType;
         withReadLock([&] {
             urlChanged = _sourceURL != newSourceURL;
-            currentContentType = _contentType;
         });
+        currentContentType = _contentType;
 
         if (urlChanged) {
-            withWriteLock([&] {
-                _contentType = newContentType;
-            });
-
             if (newContentType != ContentType::HtmlContent || currentContentType != ContentType::HtmlContent) {
                 destroyWebSurface();
             }
+            _contentType = newContentType;
         }
     }
 
@@ -216,12 +219,12 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
             buildWebSurface(entity, newSourceURL);
         }
 
-        if (_webSurface && _webSurface->getRootItem()) {
+        if (_webSurface) {
             if (_webSurface->getRootItem()) {
                 if (_contentType == ContentType::HtmlContent && urlChanged) {
                     _webSurface->getRootItem()->setProperty(URL_PROPERTY, newSourceURL);
-                    _sourceURL = newSourceURL;
                 }
+                _sourceURL = newSourceURL;
 
                 {
                     auto scriptURL = entity->getScriptURL();
@@ -361,7 +364,6 @@ void WebEntityRenderer::hoverEnterEntity(const PointerEvent& event) {
     if (_inputMode == WebInputMode::MOUSE) {
         handlePointerEvent(event);
     } else if (_webSurface) {
-        qDebug() << "boop5" << this << _webSurface << _webSurface->getRootItem();
         PointerEvent webEvent = event;
         webEvent.setPos2D(event.getPos2D() * (METERS_TO_INCHES * _dpi));
         _webSurface->hoverBeginEvent(webEvent, _touchDevice);
@@ -450,5 +452,5 @@ QObject* WebEntityRenderer::getEventHandler() {
 }
 
 void WebEntityRenderer::emitScriptEvent(const QVariant& message) {
-    QMetaObject::invokeMethod(this, "scriptEventReceived", Q_ARG(QVariant, message));
+    emit scriptEventReceived(message);
 }

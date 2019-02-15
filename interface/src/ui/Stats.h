@@ -172,10 +172,10 @@ private: \
  * @property {number} rayPicksCount - <em>Read-only.</em>
  * @property {number} parabolaPicksCount - <em>Read-only.</em>
  * @property {number} collisionPicksCount - <em>Read-only.</em>
- * @property {Vec4} stylusPicksUpdated - <em>Read-only.</em>
- * @property {Vec4} rayPicksUpdated - <em>Read-only.</em>
- * @property {Vec4} parabolaPicksUpdated - <em>Read-only.</em>
- * @property {Vec4} collisionPicksUpdated - <em>Read-only.</em>
+ * @property {Vec3} stylusPicksUpdated - <em>Read-only.</em>
+ * @property {Vec3} rayPicksUpdated - <em>Read-only.</em>
+ * @property {Vec3} parabolaPicksUpdated - <em>Read-only.</em>
+ * @property {Vec3} collisionPicksUpdated - <em>Read-only.</em>
  */
 // Properties from x onwards are QQuickItem properties.
 
@@ -297,10 +297,10 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, rayPicksCount, 0)
     STATS_PROPERTY(int, parabolaPicksCount, 0)
     STATS_PROPERTY(int, collisionPicksCount, 0)
-    STATS_PROPERTY(QVector4D, stylusPicksUpdated, QVector4D(0, 0, 0, 0))
-    STATS_PROPERTY(QVector4D, rayPicksUpdated, QVector4D(0, 0, 0, 0))
-    STATS_PROPERTY(QVector4D, parabolaPicksUpdated, QVector4D(0, 0, 0, 0))
-    STATS_PROPERTY(QVector4D, collisionPicksUpdated, QVector4D(0, 0, 0, 0))
+    STATS_PROPERTY(QVector3D, stylusPicksUpdated, QVector3D(0, 0, 0))
+    STATS_PROPERTY(QVector3D, rayPicksUpdated, QVector3D(0, 0, 0))
+    STATS_PROPERTY(QVector3D, parabolaPicksUpdated, QVector3D(0, 0, 0))
+    STATS_PROPERTY(QVector3D, collisionPicksUpdated, QVector3D(0, 0, 0))
 
 public:
     static Stats* getInstance();

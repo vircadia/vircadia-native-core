@@ -158,7 +158,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(rayPicksCount, totalPicks[PickQuery::Ray]);
         STAT_UPDATE(parabolaPicksCount, totalPicks[PickQuery::Parabola]);
         STAT_UPDATE(collisionPicksCount, totalPicks[PickQuery::Collision]);
-        std::vector<QVector4D> updatedPicks = pickManager->getUpdatedPickCounts();
+        std::vector<QVector3D> updatedPicks = pickManager->getUpdatedPickCounts();
         STAT_UPDATE(stylusPicksUpdated, updatedPicks[PickQuery::Stylus]);
         STAT_UPDATE(rayPicksUpdated, updatedPicks[PickQuery::Ray]);
         STAT_UPDATE(parabolaPicksUpdated, updatedPicks[PickQuery::Parabola]);

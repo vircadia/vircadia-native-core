@@ -27,13 +27,30 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
                                             const QString& workingDirectory,
                                             QCheckBox* updateAWSCheckBox,
                                             QLineEdit* urlLineEdit) {
-    _testResults = testResults;
     _workingDirectory = workingDirectory;
+
+    // Verify filename is in correct format 
+    // For example `D:/tt/TestResults--2019-02-10_17-30-57(local)[DESKTOP-6BO62Q9].zip`
+    QStringList parts = testResults.split('/');
+    QString zipFilename = parts[parts.length() - 1];
+
+    QStringList zipFolderNameParts = zipFilename.split(QRegExp("[\\(\\)\\[\\]]"), QString::SkipEmptyParts);
+
+    if (!QRegularExpression("TestResults--\\d{4}(-\\d\\d){2}_\\d\\d(-\\d\\d){2}").match(zipFolderNameParts[0]).hasMatch() ||
+        !QRegularExpression("\\w").match(zipFolderNameParts[1]).hasMatch() ||                                                 // build (local, build number or PR number)
+        !QRegularExpression("\\w").match(zipFolderNameParts[2]).hasMatch()                                                  // machine name
+    ) {
+        QMessageBox::critical(0, "Filename is in wrong format", "'" + zipFilename + "' is not in nitpick format");
+        return;
+    }
+
+    _testResults = testResults;
 
     _urlLineEdit = urlLineEdit;
     _urlLineEdit->setEnabled(false);
 
-    extractTestFailuresFromZippedFolder();
+    QString zipFilenameWithoutExtension = zipFilename.split('.')[0];
+    extractTestFailuresFromZippedFolder(_workingDirectory + "/" + zipFilenameWithoutExtension);
     createHTMLFile();
 
     if (updateAWSCheckBox->isChecked()) {
@@ -44,14 +61,12 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
     }
 }
 
-void AWSInterface::extractTestFailuresFromZippedFolder() {
+void AWSInterface::extractTestFailuresFromZippedFolder(const QString& folderName) {
     // For a test results zip file called `D:/tt/TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ].zip`
     //   the folder will be called `TestResults--2018-10-02_16-54-11(9426)[DESKTOP-PMKNLSQ]`
     //   and, this folder will be in the working directory
-    QStringList parts = _testResults.split('/');
-    QString zipFolderName = _workingDirectory + "/" + parts[parts.length() - 1].split('.')[0];
-    if (QDir(zipFolderName).exists()) {
-        QDir dir = zipFolderName;
+    if (QDir(folderName).exists()) {
+        QDir dir = folderName;
         dir.removeRecursively();
     }
 

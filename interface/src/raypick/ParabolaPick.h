@@ -12,7 +12,6 @@
 #include <Pick.h>
 
 class EntityItemID;
-class OverlayID;
 
 class ParabolaPickResult : public PickResult {
 public:
@@ -80,7 +79,6 @@ public:
 
     PickResultPointer getDefaultResult(const QVariantMap& pickVariant) const override { return std::make_shared<ParabolaPickResult>(pickVariant); }
     PickResultPointer getEntityIntersection(const PickParabola& pick) override;
-    PickResultPointer getOverlayIntersection(const PickParabola& pick) override;
     PickResultPointer getAvatarIntersection(const PickParabola& pick) override;
     PickResultPointer getHUDIntersection(const PickParabola& pick) override;
     Transform getResultTransform() const override;

@@ -93,8 +93,8 @@ public:
     void reloadEntityScripts();
 
     // event handles which may generate entity related events
+    std::pair<float, QUuid> mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
-    void mousePressEvent(QMouseEvent* event);
     void mouseDoublePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
 

@@ -5313,3 +5313,15 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     }
 }
 
+void MyAvatar::sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const {
+    auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+    EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        entityTree->withWriteLock([&] {
+            // force an update packet
+            EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
+            packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entityID, properties);
+        });
+    }
+}
+

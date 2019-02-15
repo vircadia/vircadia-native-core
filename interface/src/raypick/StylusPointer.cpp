@@ -27,10 +27,10 @@ static const float TOUCH_HYSTERESIS = 0.001f;
 
 static const QString DEFAULT_STYLUS_MODEL_URL = PathUtils::resourcesUrl() + "/meshes/tablet-stylus-fat.fbx";
 
-StylusPointer::StylusPointer(const QVariant& props, const OverlayID& stylusOverlay, bool hover, bool enabled,
+StylusPointer::StylusPointer(const QVariant& props, const QUuid& stylus, bool hover, bool enabled,
                              const glm::vec3& modelPositionOffset, const glm::quat& modelRotationOffset, const glm::vec3& modelDimensions) :
     Pointer(DependencyManager::get<PickScriptingInterface>()->createStylusPick(props), enabled, hover),
-    _stylusOverlay(stylusOverlay),
+    _stylus(stylus),
     _modelPositionOffset(modelPositionOffset),
     _modelDimensions(modelDimensions),
     _modelRotationOffset(modelRotationOffset)
@@ -38,13 +38,14 @@ StylusPointer::StylusPointer(const QVariant& props, const OverlayID& stylusOverl
 }
 
 StylusPointer::~StylusPointer() {
-    if (!_stylusOverlay.isNull()) {
-        qApp->getOverlays().deleteOverlay(_stylusOverlay);
+    if (!_stylus.isNull()) {
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_stylus);
     }
 }
 
-OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
-    QVariantMap overlayProperties;
+QUuid StylusPointer::buildStylus(const QVariantMap& properties) {
+    // FIXME: we have to keep using the Overlays interface here, because existing scripts use overlay properties to define pointers
+    QVariantMap propertiesMap;
 
     QString modelUrl = DEFAULT_STYLUS_MODEL_URL;
 
@@ -56,15 +57,15 @@ OverlayID StylusPointer::buildStylusOverlay(const QVariantMap& properties) {
         }
     }
     // TODO: make these configurable per pointer
-    overlayProperties["name"] = "stylus";
-    overlayProperties["url"] = modelUrl;
-    overlayProperties["loadPriority"] = 10.0f;
-    overlayProperties["solid"] = true;
-    overlayProperties["visible"] = false;
-    overlayProperties["ignorePickIntersection"] = true;
-    overlayProperties["drawInFront"] = false;
+    propertiesMap["name"] = "stylus";
+    propertiesMap["url"] = modelUrl;
+    propertiesMap["loadPriority"] = 10.0f;
+    propertiesMap["solid"] = true;
+    propertiesMap["visible"] = false;
+    propertiesMap["ignorePickIntersection"] = true;
+    propertiesMap["drawInFront"] = false;
 
-    return qApp->getOverlays().addOverlay("model", overlayProperties);
+    return qApp->getOverlays().addOverlay("model", propertiesMap);
 }
 
 void StylusPointer::updateVisuals(const PickResultPointer& pickResult) {
@@ -83,25 +84,25 @@ void StylusPointer::updateVisuals(const PickResultPointer& pickResult) {
 }
 
 void StylusPointer::show(const StylusTip& tip) {
-    if (!_stylusOverlay.isNull()) {
-        QVariantMap props;
+    if (!_stylus.isNull()) {
         auto modelOrientation = tip.orientation * _modelRotationOffset;
         auto sensorToWorldScale = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSensorToWorldScale();
         auto modelPositionOffset = modelOrientation * (_modelPositionOffset * sensorToWorldScale);
-        props["position"] = vec3toVariant(tip.position + modelPositionOffset);
-        props["rotation"] = quatToVariant(modelOrientation);
-        props["dimensions"] = vec3toVariant(sensorToWorldScale * _modelDimensions);
-        props["visible"] = true;
-        qApp->getOverlays().editOverlay(_stylusOverlay, props);
+        EntityItemProperties properties;
+        properties.setPosition(tip.position + modelPositionOffset);
+        properties.setRotation(modelOrientation);
+        properties.setDimensions(sensorToWorldScale * _modelDimensions);
+        properties.setVisible(true);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_stylus, properties);
     }
     _showing = true;
 }
 
 void StylusPointer::hide() {
-    if (!_stylusOverlay.isNull()) {
-        QVariantMap props;
-        props.insert("visible", false);
-        qApp->getOverlays().editOverlay(_stylusOverlay, props);
+    if (!_stylus.isNull()) {
+        EntityItemProperties properties;
+        properties.setVisible(false);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_stylus, properties);
     }
     _showing = false;
 }
@@ -234,9 +235,8 @@ QVariantMap StylusPointer::toVariantMap() const {
 glm::vec3 StylusPointer::findIntersection(const PickedObject& pickedObject, const glm::vec3& origin, const glm::vec3& direction) {
     switch (pickedObject.type) {
         case ENTITY:
+        case LOCAL_ENTITY:
             return RayPick::intersectRayWithEntityXYPlane(pickedObject.objectID, origin, direction);
-        case OVERLAY:
-            return RayPick::intersectRayWithOverlayXYPlane(pickedObject.objectID, origin, direction);
         default:
             return glm::vec3(NAN);
     }
@@ -245,9 +245,8 @@ glm::vec3 StylusPointer::findIntersection(const PickedObject& pickedObject, cons
 glm::vec2 StylusPointer::findPos2D(const PickedObject& pickedObject, const glm::vec3& origin) {
     switch (pickedObject.type) {
         case ENTITY:
+        case LOCAL_ENTITY:
             return RayPick::projectOntoEntityXYPlane(pickedObject.objectID, origin);
-        case OVERLAY:
-            return RayPick::projectOntoOverlayXYPlane(pickedObject.objectID, origin);
         case HUD:
             return DependencyManager::get<PickManager>()->calculatePos2DFromHUD(origin);
         default:

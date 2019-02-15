@@ -47,6 +47,9 @@ public:
         }
     }
 
+    virtual void setProxyWindow(QWindow* proxyWindow) override;
+    virtual QObject* getEventHandler() override;
+
 protected:
     virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
@@ -56,9 +59,6 @@ protected:
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
     virtual bool wantsKeyboardFocus() const override { return true; }
-
-    virtual void setProxyWindow(QWindow* proxyWindow) override;
-    virtual QObject* getEventHandler() override;
 
     void handlePointerEventAsTouch(const PointerEvent& event);
     void handlePointerEventAsMouse(const PointerEvent& event);

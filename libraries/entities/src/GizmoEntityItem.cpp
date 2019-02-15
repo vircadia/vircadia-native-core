@@ -10,6 +10,8 @@
 
 #include "EntityItemProperties.h"
 
+#include <qmath.h>
+
 EntityItemPointer GizmoEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     Pointer entity(new GizmoEntityItem(entityID), [](EntityItem* ptr) { ptr->deleteLater(); });
     entity->setProperties(properties);
@@ -109,15 +111,14 @@ bool GizmoEntityItem::supportsDetailedIntersection() const {
     return _gizmoType == GizmoType::RING;
 }
 
-#include <qmath.h>
-
 bool GizmoEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                   OctreeElementPointer& element,
                                                   float& distance, BoxFace& face, glm::vec3& surfaceNormal,
                                                   QVariantMap& extraInfo, bool precisionPicking) const {
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.z);
-    glm::quat rotation = glm::angleAxis((float)M_PI_2, Vectors::RIGHT) * getWorldOrientation();
+    glm::quat rotation = getWorldOrientation();
+    rotation = glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation;
     glm::vec3 position = getWorldPosition() + rotation * (dimensions * (ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint()));
 
     if (findRayRectangleIntersection(origin, direction, rotation, position, xyDimensions, distance)) {
@@ -150,7 +151,8 @@ bool GizmoEntityItem::findDetailedParabolaIntersection(const glm::vec3& origin, 
     //// Scale the dimensions by the diameter
     glm::vec3 dimensions = getScaledDimensions();
     glm::vec2 xyDimensions(dimensions.x, dimensions.z);
-    glm::quat rotation = glm::angleAxis((float)M_PI_2, Vectors::RIGHT) * getWorldOrientation();
+    glm::quat rotation = getWorldOrientation();
+    rotation = glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation;
     glm::vec3 position = getWorldPosition();
 
     glm::quat inverseRot = glm::inverse(rotation);
