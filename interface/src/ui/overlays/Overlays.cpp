@@ -358,6 +358,17 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         return "none";
     });
 
+    RENAME_PROP_CONVERT(textures, textures, [](const QVariant& v) {
+        auto map = v.toMap();
+        if (!map.isEmpty()) {
+            auto json = QJsonDocument::fromVariant(map);
+            if (!json.isNull()) {
+                return QVariant(QString(json.toJson()));
+            }
+        }
+        return v;
+    });
+
     if (type == "Shape" || type == "Box" || type == "Sphere" || type == "Gizmo") {
         RENAME_PROP(solid, isSolid);
         RENAME_PROP(isFilled, isSolid);
