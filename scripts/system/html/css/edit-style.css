@@ -1211,17 +1211,17 @@ div#grid-section, body#entity-list-body {
     padding-top: 1px;
 }
 #filter-type-options-buttons {
-    top: -20px;
+    top: -22px;
     width: 224px;
     z-index: 2;
     background-color: #afafaf;
-    padding-bottom: 2px;
+    padding-bottom: 6px;
 }
 #filter-type-options input[type=button] {
     position: relative;
     left: 16px;
     z-index: 3;
-    height: 19px;
+    height: 23px;
     min-width: 60px;
     font-size: 10px;
     color: #000;
