@@ -55,20 +55,20 @@ void ShapeInfoTests::testHashFunctions() {
         // test sphere
         info.setSphere(radiusX);
         ++testCount;
-        HashKey key = info.getHash();
-        hashPtr = hashes.find(key);
+        HashKey hashKey(info.getHash());
+        hashPtr = hashes.find(hashKey);
         if (hashPtr) {
             std::cout << testCount << "  hash collision sphere radius = " << radiusX
-                << "  h = 0x" << std::hex << key.getHash() << " : 0x" << *hashPtr
+                << "  h = 0x" << std::hex << hashKey.getHash() << " : 0x" << *hashPtr
                 << std::dec << std::endl;
             ++numCollisions;
             assert(false);
         } else {
-            hashes.insert(key, key.getHash());
+            hashes.insert(hashKey, hashKey.getHash());
         }
         // track bit distribution counts to evaluate hash function randomness
         for (int j = 0; j < NUM_HASH_BITS; ++j) {
-            if (masks[j] & key.getHash()) {
+            if (masks[j] & hashKey.getHash()) {
                 ++bits[j];
             }
         }
@@ -80,21 +80,21 @@ void ShapeInfoTests::testHashFunctions() {
                 // test box
                 info.setBox(glm::vec3(radiusX, radiusY, radiusZ));
                 ++testCount;
-                HashKey key = info.getHash();
-                hashPtr = hashes.find(key);
+                HashKey hashKey(info.getHash());
+                hashPtr = hashes.find(hashKey);
                 if (hashPtr) {
                     std::cout << testCount << "  hash collision box dimensions = < " << radiusX
                         << ", " << radiusY << ", " << radiusZ << " >"
-                        << "  h = 0x" << std::hex << key.getHash() << " : 0x" << *hashPtr << " : 0x" << key.getHash64()
+                        << "  h = 0x" << std::hex << hashKey.getHash() << " : 0x" << *hashPtr << " : 0x" << hashKey.getHash64()
                         << std::dec << std::endl;
                     ++numCollisions;
                     assert(false);
                 } else {
-                    hashes.insert(key, key.getHash());
+                    hashes.insert(hashKey, hashKey.getHash());
                 }
                 // track bit distribution counts to evaluate hash function randomness
                 for (int k = 0; k < NUM_HASH_BITS; ++k) {
-                    if (masks[k] & key.getHash()) {
+                    if (masks[k] & hashKey.getHash()) {
                         ++bits[k];
                     }
                 }
@@ -117,14 +117,14 @@ void ShapeInfoTests::testBoxShape() {
     ShapeInfo info;
     glm::vec3 halfExtents(1.23f, 4.56f, 7.89f);
     info.setBox(halfExtents);
-    HashKey key = info.getHash();
+    HashKey hashKey(info.getHash());
 
     const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     HashKey otherKey = otherInfo.getHash();
-    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(hashKey.getHash(), otherKey.getHash());
 
     delete shape;
 }
@@ -133,14 +133,14 @@ void ShapeInfoTests::testSphereShape() {
     ShapeInfo info;
     float radius = 1.23f;
     info.setSphere(radius);
-    HashKey key = info.getHash();
+    HashKey hashKey = info.getHash();
 
     const btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     HashKey otherKey = otherInfo.getHash();
-    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(hashKey.getHash(), otherKey.getHash());
 
     delete shape;
 }
@@ -151,14 +151,14 @@ void ShapeInfoTests::testCylinderShape() {
     float radius = 1.23f;
     float height = 4.56f;
     info.setCylinder(radius, height);
-    HashKey key = info.getHash();
+    HashKey hashKey(info.getHash());
 
     btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     HashKey otherKey = otherInfo.getHash();
-    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(hashKey.getHash(), otherKey.getHash());
 
     delete shape;
     */
@@ -170,14 +170,14 @@ void ShapeInfoTests::testCapsuleShape() {
     float radius = 1.23f;
     float height = 4.56f;
     info.setCapsule(radius, height);
-    HashKey key = info.getHash();
+    HashKey hashKey(info.getHash());
 
     btCollisionShape* shape = ShapeFactory::createShapeFromInfo(info);
     QCOMPARE(shape != nullptr, true);
 
     ShapeInfo otherInfo = info;
     HashKey otherKey = otherInfo.getHash();
-    QCOMPARE(key.getHash(), otherKey.getHash());
+    QCOMPARE(hashKey.getHash(), otherKey.getHash());
 
     delete shape;
     */
