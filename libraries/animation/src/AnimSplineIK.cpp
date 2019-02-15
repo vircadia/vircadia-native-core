@@ -131,7 +131,7 @@ const AnimPoseVec& AnimSplineIK::evaluate(const AnimVariantMap& animVars, const 
         baseParentAbsPose = _skeleton->getAbsolutePose(baseParentIndex, _poses);
     }
     _poses[_baseJointIndex] = baseParentAbsPose.inverse() * baseTargetAbsolutePose;
-    _poses[_baseJointIndex].scale() = 1.0f;
+    _poses[_baseJointIndex].scale() = glm::vec3(1.0f);
 
     // initialize the middle joint target
     IKTarget midTarget;
@@ -290,7 +290,7 @@ void AnimSplineIK::setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) {
 void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug, AnimChain& chainInfoOut) const {
 
     // build spline from tip to base
-    AnimPose tipPose = AnimPose(1.0f, target.getRotation(), target.getTranslation());
+    AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
     AnimPose basePose = absolutePoses[base];
 
     CubicHermiteSplineFunctorWithArcLength spline;
@@ -338,7 +338,7 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
             glm::mat3 m(u, v, glm::cross(u, v));
             glm::quat rot = glm::normalize(glm::quat_cast(m));
 
-            AnimPose desiredAbsPose = AnimPose(1.0f, rot, trans) * splineJointInfo.offsetPose;
+            AnimPose desiredAbsPose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
 
             // apply flex coefficent
             AnimPose flexedAbsPose;
@@ -457,7 +457,7 @@ void AnimSplineIK::computeAndCacheSplineJointInfosForIKTarget(const AnimContext&
         glm::mat3 m(u, v, glm::cross(u, v));
         glm::quat rot = glm::normalize(glm::quat_cast(m));
 
-        AnimPose pose(1.0f, rot, spline(t));
+        AnimPose pose(glm::vec3(1.0f), rot, spline(t));
         AnimPose offsetPose = pose.inverse() * defaultPose;
 
         SplineJointInfo splineJointInfo = { index, ratio, offsetPose };
