@@ -74,6 +74,16 @@ protected:
     void onAddAttachedAvatarEntity(const QUuid& id);
     void onRemoveAttachedAvatarEntity(const QUuid& id);
 
+    class AvatarEntityDataHash {
+    public:
+        AvatarEntityDataHash(uint32_t h) : hash(h) {};
+        uint32_t hash { 0 };
+        bool success { false };
+    };
+
+    using MapOfAvatarEntityDataHashes = QMap<QUuid, AvatarEntityDataHash>;
+    MapOfAvatarEntityDataHashes _avatarEntityDataHashes;
+
     std::vector<QUuid> _attachedAvatarEntities;
     QUuid _otherAvatarOrbMeshPlaceholderID;
     AvatarMotionState* _motionState { nullptr };
