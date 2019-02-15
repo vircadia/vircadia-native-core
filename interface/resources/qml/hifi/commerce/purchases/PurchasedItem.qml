@@ -405,7 +405,9 @@ Item {
                     id: permissionExplanationText;
                     anchors.fill: parent;
                     text: {
-                        if (root.itemType === "contentSet") {
+                        if (root.standaloneIncompatible) {
+                            "This item is incompatible with stand-alone devices. <a href='#standaloneIncompatible'>Learn more</a>";
+                        } else if (root.itemType === "contentSet") {
                             "You do not have 'Replace Content' permissions in this domain. <a href='#replaceContentPermission'>Learn more</a>";
                         } else if (root.itemType === "entity") {
                             "You do not have 'Rez Certified' permissions in this domain. <a href='#rezCertifiedPermission'>Learn more</a>";
@@ -419,7 +421,11 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
 
                     onLinkActivated: {
-                        sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});
+                        if(link == "#standaloneIncompatible") {
+                            sendToPurchases({method: 'showStandaloneIncompatibleExplanation'});                            
+                        } else {
+                            sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});
+                        }
                     }
                 }
             }
@@ -701,7 +707,8 @@ Item {
             anchors.bottomMargin: 8;
             width: 160;
             height: 40;
-            enabled: root.hasPermissionToRezThis &&
+            enabled: !root.standaloneIncompatible && 
+                root.hasPermissionToRezThis &&
                 MyAvatar.skeletonModelURL !== root.itemHref &&
                 !root.wornEntityID &&
                 root.valid;
