@@ -307,9 +307,6 @@ class AvatarExporter : MonoBehaviour {
         SetUserBoneInformation();
         string textureWarnings = SetTextureDependencies();
         
-        // generate the list of bone rule failure strings for any bone rules that are not satisfied by this avatar
-        SetFailedBoneRules();
-        
         // check if we should be substituting a bone for a missing UpperChest mapping
         AdjustUpperChestMapping();
 
@@ -454,7 +451,7 @@ class AvatarExporter : MonoBehaviour {
             }
             
             // copy any external texture files to the project's texture directory that are considered dependencies of the model
-            string texturesDirectory = Path.GetDirectoryName(exportFstPath) + "\\textures";
+            string texturesDirectory = GetTextureDirectory(exportFstPath);
             if (!CopyExternalTextures(texturesDirectory)) {
                 return;
             }
@@ -487,7 +484,7 @@ class AvatarExporter : MonoBehaviour {
         File.Copy(assetPath, exportModelPath);
         
         // create empty Textures and Scripts folders in the project directory
-        string texturesDirectory = projectDirectory + "\\textures";
+        string texturesDirectory = GetTextureDirectory(projectDirectory);
         string scriptsDirectory = projectDirectory + "\\scripts";
         Directory.CreateDirectory(texturesDirectory);
         Directory.CreateDirectory(scriptsDirectory);
@@ -499,7 +496,6 @@ class AvatarExporter : MonoBehaviour {
         }
         
         // copy any external texture files to the project's texture directory that are considered dependencies of the model
-        texturesDirectory = texturesDirectory.Replace("\\\\", "\\");
         if (!CopyExternalTextures(texturesDirectory)) {
             return;
         }
@@ -613,6 +609,9 @@ class AvatarExporter : MonoBehaviour {
                 }
             }
         }
+        
+        // generate the list of bone rule failure strings for any bone rules that are not satisfied by this avatar
+        SetFailedBoneRules();
     }
 
     static void TraverseUserBoneTree(Transform modelBone) {
@@ -897,6 +896,12 @@ class AvatarExporter : MonoBehaviour {
         }
     }
     
+    static string GetTextureDirectory(string basePath) {
+        string textureDirectory = Path.GetDirectoryName(basePath) + "\\textures";
+        textureDirectory = textureDirectory.Replace("\\\\", "\\");
+        return textureDirectory;
+    }
+    
     static string SetTextureDependencies() {
         string textureWarnings = "";
         dependencyTextures.Clear();
@@ -910,7 +915,7 @@ class AvatarExporter : MonoBehaviour {
                 string textureName = Path.GetFileName(dependencyPath);
                 if (dependencyTextures.ContainsKey(textureName)) {
                     textureWarnings += "There is more than one texture with the name " + textureName + 
-									   " referenced in the selected avatar.\n\n";
+                                       " referenced in the selected avatar.\n\n";
                 } else {
                     dependencyTextures.Add(textureName, dependencyPath);
                 }
