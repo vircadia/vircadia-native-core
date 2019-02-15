@@ -453,10 +453,9 @@ class AvatarExporter : MonoBehaviour {
                 return;
             }
             
-            // copy any external texture files to the project's texture directory that are 
-            // considered dependencies of the model, and overwrite any existing ones
+            // copy any external texture files to the project's texture directory that are considered dependencies of the model
             string texturesDirectory = Path.GetDirectoryName(exportFstPath) + "\\textures";
-            if (!CopyExternalTextures(texturesDirectory, true)) {
+            if (!CopyExternalTextures(texturesDirectory)) {
                 return;
             }
             
@@ -501,7 +500,7 @@ class AvatarExporter : MonoBehaviour {
         
         // copy any external texture files to the project's texture directory that are considered dependencies of the model
         texturesDirectory = texturesDirectory.Replace("\\\\", "\\");
-        if (!CopyExternalTextures(texturesDirectory, false)) {
+        if (!CopyExternalTextures(texturesDirectory)) {
             return;
         }
         
@@ -910,7 +909,8 @@ class AvatarExporter : MonoBehaviour {
             if (textureObject != null) {
                 string textureName = Path.GetFileName(dependencyPath);
                 if (dependencyTextures.ContainsKey(textureName)) {
-                    textureWarnings += "There is more than one texture with the name " + textureName + ".\n\n";
+                    textureWarnings += "There is more than one texture with the name " + textureName + 
+									   " referenced in the selected avatar.\n\n";
                 } else {
                     dependencyTextures.Add(textureName, dependencyPath);
                 }
@@ -920,12 +920,12 @@ class AvatarExporter : MonoBehaviour {
         return textureWarnings;
     }
     
-    static bool CopyExternalTextures(string texturesDirectory, bool overwriteExisting) {
+    static bool CopyExternalTextures(string texturesDirectory) {
         // copy the found dependency textures from the local asset folder to the textures folder in the target export project
         foreach (var texture in dependencyTextures) {
             string targetPath = texturesDirectory + "\\" + texture.Key;
             try {
-                File.Copy(texture.Value, targetPath, overwriteExisting);
+                File.Copy(texture.Value, targetPath, true);
             } catch {
                 EditorUtility.DisplayDialog("Error", "Failed to copy texture file " + texture.Value + " to " + targetPath +
                                             ". Please check the location and try again.", "Ok");
