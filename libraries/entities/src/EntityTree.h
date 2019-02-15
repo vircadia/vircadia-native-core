@@ -240,7 +240,6 @@ public:
     // these are used to call through to EntityItems
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
-    Q_INVOKABLE void callFlowSkeleton(const QUuid& entityID);
 
     void knowAvatarID(QUuid avatarID) { _avatarIDs += avatarID; }
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
