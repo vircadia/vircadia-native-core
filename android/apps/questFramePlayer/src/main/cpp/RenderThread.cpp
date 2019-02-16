@@ -16,6 +16,7 @@
 #include <QtCore/QFileInfo>
 #include <QtGui/QWindow>
 #include <QtGui/QImageReader>
+#include <QtAndroidExtras/QAndroidJniObject>
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gpu/FrameIO.h>
@@ -29,9 +30,9 @@
 #include <VrApi.h>
 #include <VrApi_Input.h>
 
-static JNIEnv* _env { nullptr };
-static JavaVM* _vm { nullptr };
-static jobject _activity { nullptr };
+#include "AndroidHelper.h"
+
+//static jobject _activity { nullptr };
 
 struct HandController{
     ovrInputTrackedRemoteCapabilities caps {};
@@ -48,20 +49,42 @@ struct HandController{
 };
 
 std::vector<HandController> devices;
+QAndroidJniObject __interfaceActivity;
 
 extern "C" {
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *, void *) {
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void *) {
     __android_log_write(ANDROID_LOG_WARN, "QQQ", __FUNCTION__);
     return JNI_VERSION_1_6;
 }
 
+JNIEXPORT void JNICALL
+Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnCreate(JNIEnv *env, jobject obj) {
+    __android_log_print(ANDROID_LOG_INFO, "QQQ", __FUNCTION__);
+    __interfaceActivity = QAndroidJniObject(obj);
+    QObject::connect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, []() {
+        __interfaceActivity.callMethod<void>("onAppLoadedComplete", "()V");
+        QObject::disconnect(&AndroidHelper::instance(), &AndroidHelper::qtAppLoadComplete, nullptr, nullptr);
+    });
+}
 
-JNIEXPORT void JNICALL Java_io_highfidelity_frameplayer_QuestQtActivity_nativeOnCreate(JNIEnv* env, jobject obj) {
-    env->GetJavaVM(&_vm);
-    _activity = env->NewGlobalRef(obj);
+JNIEXPORT void
+Java_io_highfidelity_oculus_OculusMobileActivity_questOnAppAfterLoad(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().moveToThread(qApp->thread());
 }
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnPause(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().notifyEnterBackground();
 }
+
+JNIEXPORT void JNICALL
+Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnResume(JNIEnv *env, jobject obj) {
+    AndroidHelper::instance().notifyEnterForeground();
+}
+
+}
+
 
 static const char* FRAME_FILE = "assets:/frames/20190121_1220.json";
 
@@ -96,14 +119,7 @@ void RenderThread::setup() {
     // Wait until the context has been moved to this thread
     { std::unique_lock<std::mutex> lock(_frameLock); }
 
-
     ovr::VrHandler::initVr();
-    __android_log_write(ANDROID_LOG_WARN, "QQQ", "Launching oculus activity");
-    _vm->AttachCurrentThread(&_env, nullptr);
-    jclass cls = _env->GetObjectClass(_activity);
-    jmethodID mid = _env->GetMethodID(cls, "launchOculusActivity", "()V");
-    _env->CallVoidMethod(_activity, mid);
-    __android_log_write(ANDROID_LOG_WARN, "QQQ", "Launching oculus activity done");
     ovr::VrHandler::setHandler(this);
 
     makeCurrent();
