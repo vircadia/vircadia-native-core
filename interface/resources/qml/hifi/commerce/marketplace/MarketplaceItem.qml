@@ -270,7 +270,7 @@ Rectangle {
             property int costToMe: ((isMine && isNFS) || isUpgrade) ? 0 : price
             property bool isAvailable: costToMe >= 0
 
-            text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : ("UNAVAILABLE (" + availibility + ")"))
+            text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : availability)
             enabled: isAvailable
             buttonGlyph: isAvailable ? (costToMe ? hifi.glyphs.hfc : "") : ""
             color: hifi.buttons.blue

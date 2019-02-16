@@ -469,8 +469,8 @@ Rectangle {
                     // Size
                     size: 30;
                     // Anchors
-                    anchors.right: itemPriceText.left;
-                    anchors.rightMargin: 4;
+                    anchors.right: parent.right;
+                    //anchors.rightMargin: 4;
                     anchors.top: parent.top;
                     anchors.topMargin: 0;
                     width: paintedWidth;
@@ -487,8 +487,8 @@ Rectangle {
                     size: isTradingIn ? 20 : 26;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 16;
+                    anchors.left: itemPriceTextLabel.visible ? itemPriceTextLabel.right : parent.left;
+                    anchors.leftMargin: 4;
                     width: paintedWidth;
                     height: paintedHeight;
                     // Style
