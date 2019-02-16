@@ -106,7 +106,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         }
 
         {
-            auto& material = getMaterial();
+            auto material = getMaterial();
             // Update the old material regardless of if it's going to change
             if (transformChanged && material && !_parentID.isNull()) {
                 applyTextureTransform(material);
@@ -207,7 +207,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
         }
 
         {
-            auto& material = getMaterial();
+            auto material = getMaterial();
             bool newTexturesLoaded = material ? !material->isMissingTexture() : false;
             if (!_texturesLoaded && newTexturesLoaded) {
                 material->checkResetOpacityMap();
@@ -230,7 +230,7 @@ ItemKey MaterialEntityRenderer::getKey() {
         builder.withInvisible();
     }
 
-    const auto& drawMaterial = getMaterial();
+    const auto drawMaterial = getMaterial();
     if (drawMaterial) {
         auto matKey = drawMaterial->getKey();
         if (matKey.isTranslucent()) {
@@ -243,7 +243,7 @@ ItemKey MaterialEntityRenderer::getKey() {
 
 ShapeKey MaterialEntityRenderer::getShapeKey() {
     graphics::MaterialKey drawMaterialKey;
-    const auto& drawMaterial = getMaterial();
+    const auto drawMaterial = getMaterial();
     if (drawMaterial) {
         drawMaterialKey = drawMaterial->getKey();
     }
@@ -376,7 +376,7 @@ void MaterialEntityRenderer::applyTextureTransform(std::shared_ptr<NetworkMateri
 void MaterialEntityRenderer::applyMaterial() {
     _retryApply = false;
 
-    std::shared_ptr<NetworkMaterial>& material = getMaterial();
+    std::shared_ptr<NetworkMaterial> material = getMaterial();
     QUuid parentID = _parentID;
     if (!material || parentID.isNull()) {
         _appliedMaterial = nullptr;
