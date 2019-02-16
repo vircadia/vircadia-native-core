@@ -34,8 +34,7 @@
 #include "IKTarget.h"
 #include "PathUtils.h"
 
-#define FAKE_Q_OS_ANDROID true;
-
+#define USE_Q_OS_ANDROID
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -1460,8 +1459,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
         int oppositeArmJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
-        //#ifdef FAKE_Q_OS_ANDROID        
-        #ifdef Q_OS_ANDROID
+        #if defined(Q_OS_ANDROID) || defined(USE_Q_OS_ANDROID)
             bool isLeft = true;
             float poleTheta;
             bool usePoleTheta = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, isLeft, poleTheta);
@@ -1531,9 +1529,8 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
 
         if (ENABLE_POLE_VECTORS && handJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0 && oppositeArmJointIndex >= 0) {
         
-        //#ifdef FAKE_Q_OS_ANDROID
-        #ifdef Q_OS_ANDROID
-            isLeft = false;
+        #if defined(Q_OS_ANDROID) || defined(USE_Q_OS_ANDROID)
+            bool isLeft = false;
             float poleTheta;
             bool usePoleTheta = calculateElbowPoleVectorOptimized(handJointIndex, elbowJointIndex, armJointIndex, isLeft, poleTheta);
             if (usePoleTheta) {
@@ -1848,7 +1845,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     }
 
     if (!left) {
-        qCDebug(animation) << "flex ave: " << (_flexThetaRunningAverageRight / PI) * 180.0f << "    twist ave: " << (_twistThetaRunningAverageRight / PI) * 180.0f << "   ulnar deviation ave: " << (_ulnarRadialThetaRunningAverageRight / PI) * 180.0f;
+        //qCDebug(animation) << "flex ave: " << (_flexThetaRunningAverageRight / PI) * 180.0f << "    twist ave: " << (_twistThetaRunningAverageRight / PI) * 180.0f << "   ulnar deviation ave: " << (_ulnarRadialThetaRunningAverageRight / PI) * 180.0f;
     }
 
     const float POWER = 2.0f;
@@ -1994,6 +1991,23 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         float thetaRadians = ((180.0f - _lastThetaRight) / 180.0f)*PI;
         poleTheta = thetaRadians;
     }
+
+    float xValue = sin(poleTheta);
+    float yValue = cos(poleTheta);
+    float zValue = 0.0f;
+    glm::vec3 thetaVector(xValue, yValue, zValue);
+    glm::vec3 xAxis = glm::cross(Vectors::UNIT_Y, armToHand);
+    glm::vec3 up = glm::cross(armToHand, xAxis);
+    glm::quat armAxisRotation;
+    glm::vec3 u, v, w;
+    glm::vec3 fwd = armToHand/glm::length(armToHand);
+
+    generateBasisVectors(Vectors::UNIT_Y, fwd, u, v, w);
+    AnimPose armAxisPose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
+    glm::vec3 pole = armAxisPose * thetaVector;
+
+    qCDebug(animation) << "the pole from theta is " << pole;
+
 
     return true;
 }

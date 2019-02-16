@@ -2943,8 +2943,7 @@ void MyAvatar::setAnimGraphUrl(const QUrl& url) {
     connect(&(_skeletonModel->getRig()), SIGNAL(onLoadComplete()), this, SLOT(animGraphLoaded()));
 }
 
-#define FAKE_Q_OS_ANDROID
-
+#define USE_Q_OS_ANDROID
 void MyAvatar::initAnimGraph() {
     QUrl graphUrl;
     if (!_prefOverrideAnimGraphUrl.get().isEmpty()) {
@@ -2953,8 +2952,8 @@ void MyAvatar::initAnimGraph() {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
-    //#ifdef FAKE_Q_OS_ANDROID    
-    #ifdef Q_OS_ANDROID
+
+    #if defined(Q_OS_ANDROID) || defined(USE_Q_OS_ANDROID)
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation_withSplineIKNode.json");
     #endif
     }

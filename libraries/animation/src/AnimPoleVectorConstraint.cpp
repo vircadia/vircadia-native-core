@@ -13,7 +13,7 @@
 #include "AnimUtil.h"
 #include "GLMHelpers.h"
 
-#define FAKE_Q_OS_ANDROID true;
+#define USE_Q_OS_ANDROID
 const float FRAMES_PER_SECOND = 30.0f;
 const float INTERP_DURATION = 6.0f;
 
@@ -114,8 +114,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     glm::vec3 poleVectorProj = poleVector - glm::dot(poleVector, unitAxis) * unitAxis;
     float poleVectorProjLength = glm::length(poleVectorProj);
 
-//#ifdef FAKE_Q_OS_ANDROID
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID) || defined(USE_Q_OS_ANDROID)
 
     // get theta set by optimized ik for Quest
     if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
