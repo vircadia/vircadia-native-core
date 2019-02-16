@@ -1912,25 +1912,19 @@ void EntityItem::setRotation(glm::quat rotation) {
 void EntityItem::setVelocity(const glm::vec3& value) {
     glm::vec3 velocity = getLocalVelocity();
     if (velocity != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            if (velocity != Vectors::ZERO) {
-                setLocalVelocity(Vectors::ZERO);
+        float speed = glm::length(value);
+        if (!glm::isnan(speed)) {
+            const float MIN_LINEAR_SPEED = 0.001f;
+            const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
+            if (speed < MIN_LINEAR_SPEED) {
+                velocity = ENTITY_ITEM_ZERO_VEC3;
+            } else if (speed > MAX_LINEAR_SPEED) {
+                velocity = (MAX_LINEAR_SPEED / speed) * value;
+            } else {
+                velocity = value;
             }
-        } else {
-            float speed = glm::length(value);
-            if (!glm::isnan(speed)) {
-                const float MIN_LINEAR_SPEED = 0.001f;
-                const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
-                if (speed < MIN_LINEAR_SPEED) {
-                    velocity = ENTITY_ITEM_ZERO_VEC3;
-                } else if (speed > MAX_LINEAR_SPEED) {
-                    velocity = (MAX_LINEAR_SPEED / speed) * value;
-                } else {
-                    velocity = value;
-                }
-                setLocalVelocity(velocity);
-                _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
-            }
+            setLocalVelocity(velocity);
+            _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
     }
 }
@@ -1948,19 +1942,15 @@ void EntityItem::setDamping(float value) {
 void EntityItem::setGravity(const glm::vec3& value) {
     withWriteLock([&] {
         if (_gravity != value) {
-            if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-                _gravity = Vectors::ZERO;
-            } else {
-                float magnitude = glm::length(value);
-                if (!glm::isnan(magnitude)) {
-                    const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
-                    if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
-                        _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
-                    } else {
-                        _gravity = value;
-                    }
-                    _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            float magnitude = glm::length(value);
+            if (!glm::isnan(magnitude)) {
+                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                } else {
+                    _gravity = value;
                 }
+                _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
         }
     });
@@ -1969,23 +1959,19 @@ void EntityItem::setGravity(const glm::vec3& value) {
 void EntityItem::setAngularVelocity(const glm::vec3& value) {
     glm::vec3 angularVelocity = getLocalAngularVelocity();
     if (angularVelocity != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            setLocalAngularVelocity(Vectors::ZERO);
-        } else {
-            float speed = glm::length(value);
-            if (!glm::isnan(speed)) {
-                const float MIN_ANGULAR_SPEED = 0.0002f;
-                const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
-                if (speed < MIN_ANGULAR_SPEED) {
-                    angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-                } else if (speed > MAX_ANGULAR_SPEED) {
-                    angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
-                } else {
-                    angularVelocity = value;
-                }
-                setLocalAngularVelocity(angularVelocity);
-                _flags |= Simulation::DIRTY_ANGULAR_VELOCITY;
+        float speed = glm::length(value);
+        if (!glm::isnan(speed)) {
+            const float MIN_ANGULAR_SPEED = 0.0002f;
+            const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
+            if (speed < MIN_ANGULAR_SPEED) {
+                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            } else if (speed > MAX_ANGULAR_SPEED) {
+                angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
+            } else {
+                angularVelocity = value;
             }
+            setLocalAngularVelocity(angularVelocity);
+            _flags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
     }
 }
