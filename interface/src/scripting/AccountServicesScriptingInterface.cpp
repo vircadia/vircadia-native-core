@@ -112,6 +112,12 @@ DownloadInfoResult::DownloadInfoResult() :
 {
 }
 
+/**jsdoc
+ * Information on the assets currently being downloaded and pending download.
+ * @typedef {object} AccountServices.DownloadInfoResult
+ * @property {number[]} downloading - The percentage complete for each asset currently being downloaded.
+ * @property {number} pending - The number of assets waiting to be download.
+ */
 QScriptValue DownloadInfoResultToScriptValue(QScriptEngine* engine, const DownloadInfoResult& result) {
     QScriptValue object = engine->newObject();
 

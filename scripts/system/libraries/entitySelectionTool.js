@@ -285,6 +285,10 @@ SelectionManager = (function() {
                     properties.localPosition = properties.position;
                     properties.localRotation = properties.rotation;
                 }
+
+                properties.localVelocity = Vec3.ZERO;
+                properties.localAngularVelocity = Vec3.ZERO;
+
                 delete properties.actionData;
                 var newEntityID = Entities.addEntity(properties);
 

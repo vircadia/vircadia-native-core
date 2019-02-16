@@ -52,7 +52,7 @@ public:
 
     void finishTestsEvaluation();
 
-    void createTests();
+    void createTests(const QString& clientProfile);
 
     void createTestsOutline();
 
