@@ -26,7 +26,6 @@ bool MaterialEntityRenderer::needsRenderUpdate() const {
 
 bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const {
     if (resultWithReadLock<bool>([&] {
-        // Won't cause material re-apply
         if (entity->getMaterialMappingMode() != _materialMappingMode) {
             return true;
         }
@@ -43,7 +42,6 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
             return true;
         }
 
-        // Could require material re-apply
         if (entity->getMaterialURL() != _materialURL) {
             return true;
         }
@@ -69,6 +67,8 @@ bool MaterialEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityP
 
 void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     withWriteLock([&] {
+        bool deleteNeeded = false;
+        bool addNeeded = _retryApply;
         bool transformChanged = false;
         {
             MaterialMappingMode mode = entity->getMaterialMappingMode();
@@ -109,14 +109,13 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
             auto material = getMaterial();
             // Update the old material regardless of if it's going to change
             if (transformChanged && material && !_parentID.isNull()) {
+                deleteNeeded = true;
+                addNeeded = true;
                 applyTextureTransform(material);
             }
         }
 
-        bool deleteNeeded = false;
-        bool addNeeded = _retryApply;
         bool urlChanged = false;
-
         std::string newCurrentMaterialName = _currentMaterialName;
         {
             QString materialURL = entity->getMaterialURL();
