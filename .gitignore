@@ -98,12 +98,9 @@ tools/jsdoc/package-lock.json
 # Python compile artifacts
 **/__pycache__
 
-# ignore unneeded unity project files for avatar exporter
-tools/unity-avatar-exporter/Library
-tools/unity-avatar-exporter/Logs
-tools/unity-avatar-exporter/Packages
-tools/unity-avatar-exporter/ProjectSettings
-tools/unity-avatar-exporter/Temp
+# ignore local unity project files for avatar exporter
+tools/unity-avatar-exporter
+
 server-console/package-lock.json
 vcpkg/
 /tools/nitpick/compiledResources
