@@ -258,7 +258,7 @@ protected:
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
     bool calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int oppositeArmIndex, glm::vec3& poleVector) const;
-    bool calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int shoulderIndex, bool left, float& poleTheta);
+    bool calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int shoulderIndex, bool left, glm::vec3& poleVector);
     glm::vec3 calculateKneePoleVector(int footJointIndex, int kneeJoint, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const;
     glm::vec3 deflectHandFromTorso(const glm::vec3& handPosition, const HFMJointShapeInfo& hipsShapeInfo, const HFMJointShapeInfo& spineShapeInfo,
                                    const HFMJointShapeInfo& spine1ShapeInfo, const HFMJointShapeInfo& spine2ShapeInfo) const;

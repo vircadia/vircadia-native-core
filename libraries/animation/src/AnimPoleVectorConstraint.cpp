@@ -114,17 +114,14 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     glm::vec3 poleVectorProj = poleVector - glm::dot(poleVector, unitAxis) * unitAxis;
     float poleVectorProjLength = glm::length(poleVectorProj);
 
-#if defined(Q_OS_ANDROID) || defined(USE_Q_OS_ANDROID)
+    // double check for zero length vectors or vectors parallel to rotaiton axis.
+    if (axisLength > MIN_LENGTH && refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH &&
+        refVectorProjLength > MIN_LENGTH && poleVectorProjLength > MIN_LENGTH) {
 
-    // get theta set by optimized ik for Quest
-    if ((_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) || (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex)) {
+        float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), 0.0f, 1.0f);
+        float sideDot = glm::dot(poleVector, sideVector);
+        float theta = copysignf(1.0f, sideDot) * acosf(dot);
 
-        float theta;
-        if (_skeleton->nameToJointIndex("LeftHand") == _tipJointIndex) {
-            theta = animVars.lookup("thetaLeftElbow", 0.0f);
-        } else if (_skeleton->nameToJointIndex("RightHand") == _tipJointIndex) {
-            theta = animVars.lookup("thetaRightElbow", 0.0f);
-        }
 
 
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
@@ -136,30 +133,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         glm::quat relTipRot = glm::inverse(midPose.rot()) * glm::inverse(deltaRot) * tipPose.rot();
         ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
     }
-
-#else
-            // double check for zero length vectors or vectors parallel to rotaiton axis.
-        if (axisLength > MIN_LENGTH && refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH &&
-            refVectorProjLength > MIN_LENGTH && poleVectorProjLength > MIN_LENGTH) {
-
-            float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), 0.0f, 1.0f);
-            float sideDot = glm::dot(poleVector, sideVector);
-            float theta = copysignf(1.0f, sideDot) * acosf(dot);
-
-
-
-            glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
-
-            // transform result back into parent relative frame.
-            glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * deltaRot * basePose.rot();
-            ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(relBaseRot, underPoses[_baseJointIndex].trans()));
-
-            glm::quat relTipRot = glm::inverse(midPose.rot()) * glm::inverse(deltaRot) * tipPose.rot();
-            ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
-        }
-    
-#endif
-
+ 
     // start off by initializing output poses with the underPoses
     _poses = underPoses;
 
