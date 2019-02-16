@@ -276,7 +276,7 @@ macro(AUTOSCRIBE_SHADER_LIBS)
             (${HIFI_ANDROID_APP} STREQUAL "questFramePlayer") OR
             (${HIFI_ANDROID_APP} STREQUAL "framePlayer") 
         )
-            set(EXTRA_SHADERGEN_ARGS "--extensions EXT_clip_cull_distance")
+            set(EXTRA_SHADERGEN_ARGS --extensions EXT_clip_cull_distance)
         endif()
     endif()
 

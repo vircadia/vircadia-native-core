@@ -40,7 +40,6 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
 
         Log.w(TAG, "QQQ onCreate");
         // Create a native surface for VR rendering (Qt GL surfaces are not suitable
