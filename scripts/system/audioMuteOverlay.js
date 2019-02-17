@@ -1,104 +1,84 @@
-"use strict";
-/* jslint vars: true, plusplus: true, forin: true*/
-/* globals Tablet, Script, AvatarList, Users, Entities, MyAvatar, Camera, Overlays, Vec3, Quat, Controller, print, getControllerWorldLocation */
-/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // audioMuteOverlay.js
 //
 // client script that creates an overlay to provide mute feedback
 //
 // Created by Triplelexx on 17/03/09
+// Reworked by Seth Alves on 2019-2-17
 // Copyright 2017 High Fidelity, Inc.
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+"use strict";
+
+/* global Audio, Script, Overlays, Quat, MyAvatar */
+
 (function() { // BEGIN LOCAL_SCOPE
-    var utilsPath = Script.resolvePath('../developer/libraries/utils.js');
-    Script.include(utilsPath);
 
-    var TWEEN_SPEED = 0.025;
-    var MIX_AMOUNT = 0.25;
+   var lastInputLoudness = 0.0;
+   var sampleRate = 8.0; // Hz
+   var attackTC =  Math.exp(-1.0 / (sampleRate * 0.500)) // 500 milliseconds attack
+   var releaseTC =  Math.exp(-1.0 / (sampleRate * 1.000)) // 1000 milliseconds release
+   var holdReset = 2.0 * sampleRate; // 2 seconds hold
+   var holdCount = 0;
+   var warningOverlayID = null;
 
-    var overlayPosition = Vec3.ZERO;
-    var tweenPosition = 0;
-    var startColor = {
-        red: 170,
-        green: 170,
-        blue: 170
-    };
-    var endColor = {
-        red: 255,
-        green: 0,
-        blue: 0
-    };
-    var overlayID;
+   function showWarning() {
+       if (warningOverlayID) {
+           return;
+       }
+       warningOverlayID = Overlays.addOverlay("text3d", {
+           name: "Muted-Warning",
+           localPosition: { x: 0.2, y: -0.35, z: -1.0 },
+           localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 0.0, z: 0.0, w: 1.0 }),
+           text: "Warning: you are muted",
+           textAlpha: 1,
+           color: { red: 226, green: 51, blue: 77 },
+           backgroundAlpha: 0,
+           lineHeight: 0.042,
+           visible: true,
+           ignoreRayIntersection: true,
+           drawInFront: true,
+           grabbable: false,
+           parentID: MyAvatar.SELF_ID,
+           parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX")
+       });
+   };
 
-    Script.update.connect(update);
-    Script.scriptEnding.connect(cleanup);
+   function hideWarning() {
+       if (!warningOverlayID) {
+           return;
+       }
+       Overlays.deleteOverlay(warningOverlayID);
+       warningOverlayID = null;
+   }
 
-    function update(dt) {
-        if (!Audio.muted) {
-            if (hasOverlay()) {
-                deleteOverlay();
-            }
-        } else if (!hasOverlay()) {
-            createOverlay();
-        } else {
-            updateOverlay();
-        }
-    }
+   function cleanup() {
+       Overlays.deleteOverlay(warningOverlayID);
+   }
 
-    function getOffsetPosition() {
-        return Vec3.sum(Camera.position, Quat.getFront(Camera.orientation));
-    }
+   Script.scriptEnding.connect(cleanup);
 
-    function createOverlay() {
-        overlayPosition = getOffsetPosition();
-        overlayID = Overlays.addOverlay("sphere", {
-            position: overlayPosition,
-            rotation: Camera.orientation,
-            alpha: 0.9,
-            dimensions: 0.1,
-            solid: true,
-            ignoreRayIntersection: true
-        });
-    }
+   Script.setInterval(function() {
 
-    function hasOverlay() {
-       return Overlays.getProperty(overlayID, "position") !== undefined;
-    }
+       var inputLoudness = Audio.inputLevel;
+       var tc = (inputLoudness > lastInputLoudness) ? attackTC : releaseTC;
+       inputLoudness += tc * (lastInputLoudness - inputLoudness);
+       lastInputLoudness = inputLoudness;
 
-    function updateOverlay() {
-        // increase by TWEEN_SPEED until completion
-        if (tweenPosition < 1) {
-            tweenPosition += TWEEN_SPEED;
-        } else {
-            // after tween completion reset to zero and flip values to ping pong 
-            tweenPosition = 0;
-            for (var component in startColor) {
-                var storedColor = startColor[component];
-                startColor[component] = endColor[component];
-                endColor[component] = storedColor;
-            }
-        }
-        // mix previous position with new and mix colors
-        overlayPosition = Vec3.mix(overlayPosition, getOffsetPosition(), MIX_AMOUNT);
-        Overlays.editOverlay(overlayID, {
-            color: colorMix(startColor, endColor, easeIn(tweenPosition)),
-            position: overlayPosition,
-            rotation: Camera.orientation
-        });
-    }
+       if (Audio.muted && inputLoudness > 0.3) {
+           holdCount = holdReset;
+       } else {
+           holdCount = Math.max(holdCount - 1, 0);
+       }
 
-    function deleteOverlay() {
-        Overlays.deleteOverlay(overlayID);
-    }
+       if (holdCount > 0) {
+           showWarning();
+       } else {
+           hideWarning();
+       }
+   }, 1000.0 / sampleRate);
 
-    function cleanup() {
-        deleteOverlay();
-        Audio.muted.disconnect(onMuteToggled);
-        Script.update.disconnect(update);
-    }
 }()); // END LOCAL_SCOPE
