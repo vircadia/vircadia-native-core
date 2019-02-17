@@ -578,7 +578,7 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 }
                 _this.teleportedFadeTimer = null;
-                Selection.disableListHighlight(this.teleporterSelectionName);
+                Selection.disableListHighlight(_this.teleporterSelectionName);
             }
         };
 

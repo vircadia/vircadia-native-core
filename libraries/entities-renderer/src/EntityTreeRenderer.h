@@ -73,6 +73,7 @@ public:
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
     void setMouseRayPickID(unsigned int rayPickID) { _mouseRayPickID = rayPickID; }
+    unsigned int getMouseRayPickID() { return _mouseRayPickID; }
     void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(unsigned int)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
     void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 

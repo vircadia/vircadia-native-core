@@ -70,7 +70,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
         }
     });
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
-    connect(&qApp->getOverlays(), &Overlays::mousePressOnOverlay, this, &ContextOverlayInterface::contextOverlays_mousePressOnOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
@@ -103,10 +102,14 @@ void ContextOverlayInterface::setEnabled(bool enabled) {
     }
 }
 
-void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(entityItemID)) {
-        _mouseDownEntity = entityItemID;
+void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& id, const PointerEvent& event) {
+    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(id)) {
+        _mouseDownEntity = id;
         _mouseDownEntityTimestamp = usecTimestampNow();
+    } else if (id == _contextOverlayID && event.getButton() == PointerEvent::PrimaryButton) {
+        qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "ID:" << id;
+        emit contextOverlayClicked(_currentEntityWithContextOverlay);
+        _contextOverlayJustClicked = true;
     } else {
         if (!_currentEntityWithContextOverlay.isNull()) {
             disableEntityHighlight(_currentEntityWithContextOverlay);
@@ -247,14 +250,6 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID) {
     return ContextOverlayInterface::destroyContextOverlay(entityItemID, PointerEvent());
-}
-
-void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const QUuid& id, const PointerEvent& event) {
-    if (id == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
-        qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "ID:" << id;
-        emit contextOverlayClicked(_currentEntityWithContextOverlay);
-        _contextOverlayJustClicked = true;
-    }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverEnterOverlay(const QUuid& id, const PointerEvent& event) {
