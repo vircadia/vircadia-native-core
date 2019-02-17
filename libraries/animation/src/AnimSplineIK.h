@@ -57,8 +57,8 @@ protected:
     bool _enabled;
     float _interpDuration;
     QString _baseJointName;
-    QString _tipJointName;
     QString _midJointName;
+    QString _tipJointName;
     QString _basePositionVar;
     QString _baseRotationVar;
     QString _midPositionVar;

@@ -13,7 +13,6 @@
 #include "AnimUtil.h"
 #include "GLMHelpers.h"
 
-#define USE_Q_OS_ANDROID
 const float FRAMES_PER_SECOND = 30.0f;
 const float INTERP_DURATION = 6.0f;
 
@@ -122,8 +121,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         float sideDot = glm::dot(poleVector, sideVector);
         float theta = copysignf(1.0f, sideDot) * acosf(dot);
 
-
-
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
         // transform result back into parent relative frame.
@@ -133,7 +130,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         glm::quat relTipRot = glm::inverse(midPose.rot()) * glm::inverse(deltaRot) * tipPose.rot();
         ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
     }
- 
+
     // start off by initializing output poses with the underPoses
     _poses = underPoses;
 

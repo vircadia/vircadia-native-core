@@ -14,7 +14,6 @@
 #include <DebugDraw.h>
 #include "AnimUtil.h"
 
-static const float JOINT_CHAIN_INTERP_TIME = 0.5f;
 static const float FRAMES_PER_SECOND = 30.0f;
 
 AnimSplineIK::AnimSplineIK(const QString& id, float alpha, bool enabled, float interpDuration,

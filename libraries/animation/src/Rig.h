@@ -415,12 +415,6 @@ protected:
     glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z }; // sensor space
     bool _prevLeftFootPoleVectorValid { false };
 
-    glm::vec3 _prevRightHandPoleVector { Vectors::UNIT_Z }; // sensor space
-    bool _prevRightHandPoleVectorValid { false };
-
-    glm::vec3 _prevLeftHandPoleVector { Vectors::UNIT_Z }; // sensor space
-    bool _prevLeftHandPoleVectorValid { false };
-
     int _rigId;
     bool _headEnabled { false };
     bool _computeNetworkAnimation { false };
@@ -429,7 +423,7 @@ protected:
     float _twistThetaRunningAverageLeft { 0.0f };
     float _flexThetaRunningAverageLeft { 0.0f };
     float _ulnarRadialThetaRunningAverageLeft { 0.0f };
-    float _twistThetaRunningAverageRight{ 0.0f };
+    float _twistThetaRunningAverageRight { 0.0f };
     float _flexThetaRunningAverageRight { 0.0f };
     float _ulnarRadialThetaRunningAverageRight { 0.0f };
     float _lastThetaLeft { 0.0f };
