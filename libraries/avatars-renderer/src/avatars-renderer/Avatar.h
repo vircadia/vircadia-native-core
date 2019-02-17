@@ -149,6 +149,7 @@ public:
     void removeAvatarEntitiesFromTree();
     virtual void simulate(float deltaTime, bool inView) = 0;
     virtual void simulateAttachments(float deltaTime);
+    const std::vector<std::shared_ptr<Model>>& getAttachmentModels() const { return _attachmentModels; }
 
     virtual void render(RenderArgs* renderArgs);
 

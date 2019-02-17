@@ -75,10 +75,22 @@ namespace render {
     }
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
-        if (avatarPtr->getSkeletonModel()) {
-            auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
-            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
-            return (uint32_t) metaSubItems.size();
+        if (avatarPtr) {
+            uint32_t total = 0;
+            if (avatarPtr->getSkeletonModel()) {
+                auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+                subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+                total += (uint32_t)metaSubItems.size();
+            }
+            auto& attachmentModels = avatarPtr->getAttachmentModels();
+            for (auto& attachmentModel : attachmentModels) {
+                if (attachmentModel && attachmentModel->isRenderable()) {
+                    auto& metaSubItems = attachmentModel->fetchRenderItemIDs();
+                    subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+                    total += (uint32_t)metaSubItems.size();
+                }
+            }
+            return total;
         }
         return 0;
     }
@@ -629,7 +641,7 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
         attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
-        attachmentModel->setGroupCulled(false);
+        attachmentModel->setGroupCulled(true);
         attachmentModel->setCanCastShadow(true);
         attachmentModel->setVisibleInScene(_isMeshVisible, scene);
     }
@@ -861,7 +873,7 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
             attachmentModel->addToScene(scene, transaction);
 
             attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
-            attachmentModel->setGroupCulled(false);
+            attachmentModel->setGroupCulled(true);
             attachmentModel->setCanCastShadow(true);
             attachmentModel->setVisibleInScene(_isMeshVisible, scene);
         }
