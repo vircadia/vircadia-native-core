@@ -76,6 +76,7 @@ void Audio::setMuted(bool isMuted) {
     withWriteLock([&] {
         if (_isMuted != isMuted) {
             _isMuted = isMuted;
+            mutedSetting.set(_isMuted);
             auto client = DependencyManager::get<AudioClient>().data();
             QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
             changed = true;
@@ -90,15 +91,6 @@ bool Audio::noiseReductionEnabled() const {
     return resultWithReadLock<bool>([&] {
         return _enableNoiseReduction;
     });
-}
-
-void Audio::onMutedChanged() {
-    bool isMuted = DependencyManager::get<AudioClient>()->isMuted();
-    if (_isMuted != isMuted) {
-        _isMuted = isMuted;
-        mutedSetting.set(_isMuted);
-        emit mutedChanged(_isMuted);
-    }
 }
 
 void Audio::enableNoiseReduction(bool enable) {
