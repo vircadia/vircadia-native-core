@@ -265,8 +265,6 @@ private:
     workload::SpacePointer _space{ new workload::Space() };
     workload::Transaction::Updates _spaceUpdates;
 
-    static std::function<glm::vec3()> _getAvatarUpOperator;
-
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
     static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
     static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
