@@ -79,15 +79,7 @@ void Overlays::cleanupAllOverlays() {
     cleanupOverlaysToDelete();
 }
 
-void Overlays::init() {
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(this, &Overlays::hoverEnterOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity);
-    connect(this, &Overlays::hoverOverOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity);
-    connect(this, &Overlays::hoverLeaveOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity);
-    connect(this, &Overlays::mousePressOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity);
-    connect(this, &Overlays::mouseMoveOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(this, &Overlays::mouseReleaseOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity);
-}
+void Overlays::init() {}
 
 void Overlays::update(float deltatime) {
     cleanupOverlaysToDelete();
