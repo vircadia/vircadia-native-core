@@ -30,8 +30,7 @@ static const uint16_t INVALID_JOINT_INDEX = -1;
 
 enum class NestableType {
     Entity,
-    Avatar,
-    Overlay
+    Avatar
 };
 
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {

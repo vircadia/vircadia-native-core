@@ -1337,8 +1337,6 @@ QString SpatiallyNestable::nestableTypeToString(NestableType nestableType) {
             return "entity";
         case NestableType::Avatar:
             return "avatar";
-        case NestableType::Overlay:
-            return "overlay";
         default:
             return "unknown";
     }

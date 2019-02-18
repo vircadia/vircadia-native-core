@@ -64,7 +64,36 @@ namespace render {
         return keyBuilder.build();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_pointer_cast<Avatar>(avatar)->getRenderBounds();
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (avatarPtr) {
+            auto bound = avatarPtr->getRenderBounds();
+            auto& attachmentModels = avatarPtr->getAttachmentModels();
+            for (auto& attachmentModel : attachmentModels) {
+                if (attachmentModel && attachmentModel->isRenderable()) {
+                    bound += attachmentModel->getRenderableMeshBound();
+                }
+            }
+            // Children
+            auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+            EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+            if (entityTree) {
+                entityTree->withReadLock([&] {
+                    avatarPtr->forEachDescendant([&](SpatiallyNestablePointer object) {
+                        if (object && object->getNestableType() == NestableType::Entity) {
+                            EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                            if (entity->isVisible()) {
+                                auto renderer = entityTreeRenderer->renderableForEntityId(object->getID());
+                                if (renderer) {
+                                    bound += renderer->getBound();
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+            return bound;
+        }
+        return Item::Bound();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
@@ -82,6 +111,7 @@ namespace render {
                 subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
                 total += (uint32_t)metaSubItems.size();
             }
+            // Attachments
             auto& attachmentModels = avatarPtr->getAttachmentModels();
             for (auto& attachmentModel : attachmentModels) {
                 if (attachmentModel && attachmentModel->isRenderable()) {
@@ -89,6 +119,29 @@ namespace render {
                     subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
                     total += (uint32_t)metaSubItems.size();
                 }
+            }
+            // Children
+            auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+            EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+            if (entityTree) {
+                entityTree->withReadLock([&] {
+                    avatarPtr->forEachDescendant([&](SpatiallyNestablePointer object) {
+                        if (object && object->getNestableType() == NestableType::Entity) {
+                            EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                            if (entity->isVisible()) {
+                                auto renderer = entityTreeRenderer->renderableForEntityId(object->getID());
+                                if (renderer) {
+                                    render::ItemIDs renderableSubItems;
+                                    uint32_t numRenderableSubItems = renderer->metaFetchMetaSubItems(renderableSubItems);
+                                    if (numRenderableSubItems > 0) {
+                                        subItems.insert(subItems.end(), renderableSubItems.begin(), renderableSubItems.end());
+                                        total += numRenderableSubItems;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                });
             }
             return total;
         }
