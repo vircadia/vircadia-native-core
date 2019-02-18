@@ -69,6 +69,7 @@ class MyAvatar : public Avatar {
      * @hifi-avatar
      *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
+     *
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
      *     otherwise it is not rendered for you (but it is still rendered for other users).
      * @property {Vec3} motorVelocity=Vec3.ZERO - The target velocity of your avatar to be achieved by a scripted motor.
@@ -90,29 +91,38 @@ class MyAvatar : public Avatar {
      * @property {number} audioListenerModeCamera=1 - The audio listening position is at the camera. <em>Read-only.</em>
      * @property {number} audioListenerModeCustom=2 - The audio listening position is at a the position specified by set by the 
      *     <code>customListenPosition</code> and <code>customListenOrientation</code> property values. <em>Read-only.</em>
+     * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
+     *     property value is <code>audioListenerModeCustom</code>.
+     * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the
+     *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
      * @property {boolean} hasScriptedBlendshapes=false - Blendshapes will be transmitted over the network if set to true.
      * @property {boolean} hasProceduralBlinkFaceMovement=true - procedural blinking will be turned on if set to true.
      * @property {boolean} hasProceduralEyeFaceMovement=true - procedural eye movement will be turned on if set to true.
      * @property {boolean} hasAudioEnabledFaceMovement=true - If set to true, voice audio will move the mouth Blendshapes while MyAvatar.hasScriptedBlendshapes is enabled.
-     * @property {Vec3} customListenPosition=Vec3.ZERO - The listening position used when the <code>audioListenerMode</code>
-     *     property value is <code>audioListenerModeCustom</code>.
-     * @property {Quat} customListenOrientation=Quat.IDENTITY - The listening orientation used when the 
-     *     <code>audioListenerMode</code> property value is <code>audioListenerModeCustom</code>.
+     * @property {number} rotationRecenterFilterLength
+     * @property {number} rotationThreshold
+     * @property {boolean} enableStepResetRotation
+     * @property {boolean} enableDrawAverageFacing
+     *
      * @property {Vec3} leftHandPosition - The position of the left hand in avatar coordinates if it's being positioned by 
      *     controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
      * @property {Vec3} rightHandPosition - The position of the right hand in avatar coordinates if it's being positioned by
      *     controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
-
      * @property {Vec3} leftHandTipPosition - The position 30cm offset from the left hand in avatar coordinates if it's being 
      *     positioned by controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
      * @property {Vec3} rightHandTipPosition - The position 30cm offset from the right hand in avatar coordinates if it's being
      *     positioned by controllers, otherwise {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
+     *
      * @property {Pose} leftHandPose - The pose of the left hand as determined by the hand controllers. <em>Read-only.</em>
      * @property {Pose} rightHandPose - The pose right hand position as determined by the hand controllers. <em>Read-only.</em>
      * @property {Pose} leftHandTipPose - The pose of the left hand as determined by the hand controllers, with the position 
      *     by 30cm. <em>Read-only.</em>
      * @property {Pose} rightHandTipPose - The pose of the right hand as determined by the hand controllers, with the position
      *     by 30cm. <em>Read-only.</em>
+     *
+     * @property {number} energy
+     * @property {boolean} isAway
+     *
      * @property {boolean} centerOfGravityModelEnabled=true - If <code>true</code> then the avatar hips are placed according to the center of
      *     gravity model that balance the center of gravity over the base of support of the feet.  Setting the value <code>false</code> 
      *     will result in the default behaviour where the hips are placed under the head.
@@ -122,30 +132,38 @@ class MyAvatar : public Avatar {
      * @property {boolean} collisionsEnabled - Set to <code>true</code> to enable collisions for the avatar, <code>false</code> 
      *     to disable collisions. May return <code>true</code> even though the value was set <code>false</code> because the 
      *     zone may disallow collisionless avatars.
+     * @property {boolean} otherAvatarsCollisionsEnabled
      * @property {boolean} characterControllerEnabled - Synonym of <code>collisionsEnabled</code>. 
      *     <strong>Deprecated:</strong> Use <code>collisionsEnabled</code> instead.
      * @property {boolean} useAdvancedMovementControls - Returns and sets the value of the Interface setting, Settings > 
      *     Walking and teleporting. Note: Setting the value has no effect unless Interface is restarted.
      * @property {boolean} showPlayArea - Returns and sets the value of the Interface setting, Settings > Show room boundaries 
      *     while teleporting. Note: Setting the value has no effect unless Interface is restarted.
+     *
      * @property {number} yawSpeed=75
      * @property {number} pitchSpeed=50
+     *
      * @property {boolean} hmdRollControlEnabled=true - If <code>true</code>, the roll angle of your HMD turns your avatar 
      *     while flying.
      * @property {number} hmdRollControlDeadZone=8 - The amount of HMD roll, in degrees, required before your avatar turns if 
      *    <code>hmdRollControlEnabled</code> is enabled.
      * @property {number} hmdRollControlRate If hmdRollControlEnabled is true, this value determines the maximum turn rate of
      *     your avatar when rolling your HMD in degrees per second.
+     *
      * @property {number} userHeight=1.75 - The height of the user in sensor space.
      * @property {number} userEyeHeight=1.65 - The estimated height of the user's eyes in sensor space. <em>Read-only.</em>
+     *
      * @property {Uuid} SELF_ID - UUID representing "my avatar". Only use for local-only entities in situations 
      *     where MyAvatar.sessionUUID is not available (e.g., if not connected to a domain). Note: Likely to be deprecated. 
      *     <em>Read-only.</em>
+     *
      * @property {number} walkSpeed
      * @property {number} walkBackwardSpeed
      * @property {number} sprintSpeed
      * @property {number} isInSittingState
-     * @property {number} userRecenterModel
+     * @property {MyAvatar.SitStandModelType} userRecenterModel
+     * @property {boolean} isSitStandStateLocked
+     * @property {boolean} allowTeleporting
      *
      * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
      *     registration point of the 3D model.
@@ -160,6 +178,7 @@ class MyAvatar : public Avatar {
      *     sometimes called "elevation".
      * @property {number} bodyRoll - The rotation about an axis running from the chest to the back of the avatar. Roll is 
      *     sometimes called "bank".
+     *
      * @property {Quat} orientation 
      * @property {Quat} headOrientation - The orientation of the avatar's head.
      * @property {number} headPitch - The rotation about an axis running from ear to ear of the avatar's head. Pitch is 
@@ -168,18 +187,24 @@ class MyAvatar : public Avatar {
      *     head. Yaw is sometimes called "heading".
      * @property {number} headRoll - The rotation about an axis running from the nose to the back of the avatar's head. Roll is 
      *     sometimes called "bank".
+     *
      * @property {Vec3} velocity 
      * @property {Vec3} angularVelocity 
+     *
      * @property {number} audioLoudness 
      * @property {number} audioAverageLoudness 
+     *
      * @property {string} displayName 
      * @property {string} sessionDisplayName - Sanitized, defaulted version displayName that is defined by the AvatarMixer 
      *     rather than by Interface clients. The result is unique among all avatars present at the time.
      * @property {boolean} lookAtSnappingEnabled
      * @property {string} skeletonModelURL 
      * @property {AttachmentData[]} attachmentData
+     *
      * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
+     *
      * @property {Uuid} sessionUUID <em>Read-only.</em>
+     *
      * @property {Mat4} sensorToWorldMatrix <em>Read-only.</em>
      * @property {Mat4} controllerLeftHandMatrix <em>Read-only.</em>
      * @property {Mat4} controllerRightHandMatrix <em>Read-only.</em>
@@ -196,11 +221,11 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(QString motorMode READ getScriptedMotorMode WRITE setScriptedMotorMode)
     Q_PROPERTY(QString collisionSoundURL READ getCollisionSoundURL WRITE setCollisionSoundURL)
     Q_PROPERTY(AudioListenerMode audioListenerMode READ getAudioListenerMode WRITE setAudioListenerMode)
-    Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
-    Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
     Q_PROPERTY(AudioListenerMode audioListenerModeHead READ getAudioListenerModeHead)
     Q_PROPERTY(AudioListenerMode audioListenerModeCamera READ getAudioListenerModeCamera)
     Q_PROPERTY(AudioListenerMode audioListenerModeCustom READ getAudioListenerModeCustom)
+    Q_PROPERTY(glm::vec3 customListenPosition READ getCustomListenPosition WRITE setCustomListenPosition)
+    Q_PROPERTY(glm::quat customListenOrientation READ getCustomListenOrientation WRITE setCustomListenOrientation)
     Q_PROPERTY(bool hasScriptedBlendshapes READ getHasScriptedBlendshapes WRITE setHasScriptedBlendshapes)
     Q_PROPERTY(bool hasProceduralBlinkFaceMovement READ getHasProceduralBlinkFaceMovement WRITE setHasProceduralBlinkFaceMovement)
     Q_PROPERTY(bool hasProceduralEyeFaceMovement READ getHasProceduralEyeFaceMovement WRITE setHasProceduralEyeFaceMovement)
@@ -277,6 +302,9 @@ public:
     };
     Q_ENUM(DriveKeys)
 
+    /**jsdoc
+     * @typedef {number} MyAvatar.SitStandModelType
+     */
     enum SitStandModelType {
         ForceSit = 0,
         ForceStand,
@@ -491,6 +519,9 @@ public:
     // adding one of the other handlers. While any handler may change a value in animStateDictionaryIn (or supply different values in animStateDictionaryOut)
     // a handler must not remove properties from animStateDictionaryIn, nor change property values that it does not intend to change.
     // It is not specified in what order multiple handlers are called.
+    /**jsdoc
+     * @function MyAvatar.addAnimationStateHandler
+     */
     Q_INVOKABLE QScriptValue addAnimationStateHandler(QScriptValue handler, QScriptValue propertiesList) { return _skeletonModel->getRig().addAnimationStateHandler(handler, propertiesList); }
 
     /**jsdoc
@@ -530,7 +561,7 @@ public:
      */
     Q_INVOKABLE void setHmdAvatarAlignmentType(const QString& hand);
     /**jsdoc
-     * @function MyAvatar.setHmdAvatarAlignmentType
+     * @function MyAvatar.getHmdAvatarAlignmentType
      * @returns {string}
      */
     Q_INVOKABLE QString getHmdAvatarAlignmentType() const;
@@ -649,7 +680,7 @@ public:
     /**jsdoc
      * Recenter the avatar in the horizontal direction, if <code>{@link MyAvatar|MyAvatar.hmdLeanRecenterEnabled}</code> is 
      * <code>false</code>.
-     * @ function MyAvatar.triggerHorizontalRecenter
+     * @function MyAvatar.triggerHorizontalRecenter
      */
     Q_INVOKABLE void triggerHorizontalRecenter();
 
@@ -935,7 +966,7 @@ public:
 
     /**jsdoc
     * Function returns list of avatar entities
-    * @function MyAvatar.getAvatarEntitiesVariant()
+    * @function MyAvatar.getAvatarEntitiesVariant
     * @returns {object[]}
     */
     Q_INVOKABLE QVariantList getAvatarEntitiesVariant();
@@ -1244,7 +1275,6 @@ public slots:
      * @param {boolean} [shouldFaceLocation=false] - Set to <code>true</code> to position the avatar a short distance away from
      *      the new position and orientate the avatar to face the position.
      */
-
     void goToFeetLocation(const glm::vec3& newPosition,
         bool hasOrientation, const glm::quat& newOrientation,
         bool shouldFaceLocation);
@@ -1382,8 +1412,20 @@ public slots:
      */
     bool getEnableMeshVisible() const override;
 
+    /**jsdoc
+     * @function MyAvatar.storeAvatarEntityDataPayload
+     */
     void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
+    
+    /**jsdoc
+     * @function MyAvatar.clearAvatarEntity
+     * @param {Uuid} entityID
+     * @param {boolean} requiresRemovalFromTree
+     */
     void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true) override;
+    /**jsdoc
+     * @function MyAvatar.sanitizeAvatarEntityProperties
+     */
     void sanitizeAvatarEntityProperties(EntityItemProperties& properties) const;
 
     /**jsdoc
@@ -1489,11 +1531,11 @@ signals:
     void collisionsEnabledChanged(bool enabled);
 
     /**jsdoc
-    * Triggered when collisions with other avatars enabled or disabled
-    * @function MyAvatar.otherAvatarsCollisionsEnabledChanged
-    * @param {boolean} enabled
-    * @returns {Signal}
-    */
+     * Triggered when collisions with other avatars enabled or disabled
+     * @function MyAvatar.otherAvatarsCollisionsEnabledChanged
+     * @param {boolean} enabled
+     * @returns {Signal}
+     */
     void otherAvatarsCollisionsEnabledChanged(bool enabled);
 
     /**jsdoc

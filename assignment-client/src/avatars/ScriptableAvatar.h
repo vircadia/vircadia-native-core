@@ -213,6 +213,9 @@ public:
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
 
 public slots:
+    /**jsdoc
+     * @function MyAvatar.update
+     */
     void update(float deltatime);
 
     /**jsdoc

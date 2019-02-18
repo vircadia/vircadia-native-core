@@ -499,6 +499,9 @@ public:
     void tearDownGrabs();
 
 signals:
+    /**jsdoc
+     * @function MyAvatar.targetScaleChanged
+     */
     void targetScaleChanged(float targetScale);
 
 public slots:
@@ -541,6 +544,9 @@ public slots:
      */
     glm::quat getRightPalmRotation() const;
 
+    /**jsdoc
+     * @function MyAvatar.setModelURLFinished
+     */
     // hooked up to Model::setURLFinished signal
     void setModelURLFinished(bool success);
 
