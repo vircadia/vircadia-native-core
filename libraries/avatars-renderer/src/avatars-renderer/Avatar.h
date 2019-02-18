@@ -127,7 +127,12 @@ private:
 class Avatar : public AvatarData, public scriptable::ModelProvider, public MetaModelPayload {
     Q_OBJECT
 
-    // This property has JSDoc in MyAvatar.h.
+    /*jsdoc
+     * @comment IMPORTANT: The JSDoc for the following properties should be copied to MyAvatar.h.
+     *
+     * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
+     *     registration point of the 3D model.
+     */
     Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:

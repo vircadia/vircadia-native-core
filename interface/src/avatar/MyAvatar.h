@@ -68,6 +68,46 @@ class MyAvatar : public Avatar {
      * @hifi-client-entity
      * @hifi-avatar
      *
+     * @comment IMPORTANT: This group of properties is copied from AvatarData.h; they should NOT be edited here.
+     * @property {Vec3} position
+     * @property {number} scale - Returns the clamped scale of the avatar.
+     * @property {number} density <em>Read-only.</em>
+     * @property {Vec3} handPosition
+     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar.
+     *     Yaw is sometimes called "heading".
+     * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is
+     *     sometimes called "elevation".
+     * @property {number} bodyRoll - The rotation about an axis running from the chest to the back of the avatar. Roll is
+     *     sometimes called "bank".
+     * @property {Quat} orientation
+     * @property {Quat} headOrientation - The orientation of the avatar's head.
+     * @property {number} headPitch - The rotation about an axis running from ear to ear of the avatar's head. Pitch is
+     *     sometimes called "elevation".
+     * @property {number} headYaw - The rotation left or right about an axis running from the base to the crown of the avatar's
+     *     head. Yaw is sometimes called "heading".
+     * @property {number} headRoll - The rotation about an axis running from the nose to the back of the avatar's head. Roll is
+     *     sometimes called "bank".
+     * @property {Vec3} velocity
+     * @property {Vec3} angularVelocity
+     * @property {number} audioLoudness
+     * @property {number} audioAverageLoudness
+     * @property {string} displayName
+     * @property {string} sessionDisplayName - Sanitized, defaulted version displayName that is defined by the AvatarMixer
+     *     rather than by Interface clients. The result is unique among all avatars present at the time.
+     * @property {boolean} lookAtSnappingEnabled
+     * @property {string} skeletonModelURL
+     * @property {AttachmentData[]} attachmentData
+     * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
+     * @property {Uuid} sessionUUID <em>Read-only.</em>
+     * @property {Mat4} sensorToWorldMatrix <em>Read-only.</em>
+     * @property {Mat4} controllerLeftHandMatrix <em>Read-only.</em>
+     * @property {Mat4} controllerRightHandMatrix <em>Read-only.</em>
+     * @property {number} sensorToWorldScale <em>Read-only.</em>
+     *
+     * @comment IMPORTANT: This group of properties is copied from Avatar.h; they should NOT be edited here.
+     * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
+     *     registration point of the 3D model.
+     *
      * @property {Vec3} qmlPosition - A synonym for <code>position</code> for use by QML.
      *
      * @property {boolean} shouldRenderLocally=true - If <code>true</code> then your avatar is rendered for you in Interface,
@@ -165,50 +205,60 @@ class MyAvatar : public Avatar {
      * @property {boolean} isSitStandStateLocked
      * @property {boolean} allowTeleporting
      *
-     * @property {Vec3} skeletonOffset - Can be used to apply a translation offset between the avatar's position and the
-     *     registration point of the 3D model.
-     *
-     * @property {Vec3} position 
-     * @property {number} scale - Returns the clamped scale of the avatar.
-     * @property {number} density <em>Read-only.</em>
-     * @property {Vec3} handPosition 
-     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar. 
-     *     Yaw is sometimes called "heading".
-     * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is 
-     *     sometimes called "elevation".
-     * @property {number} bodyRoll - The rotation about an axis running from the chest to the back of the avatar. Roll is 
-     *     sometimes called "bank".
-     *
-     * @property {Quat} orientation 
-     * @property {Quat} headOrientation - The orientation of the avatar's head.
-     * @property {number} headPitch - The rotation about an axis running from ear to ear of the avatar's head. Pitch is 
-     *     sometimes called "elevation".
-     * @property {number} headYaw - The rotation left or right about an axis running from the base to the crown of the avatar's 
-     *     head. Yaw is sometimes called "heading".
-     * @property {number} headRoll - The rotation about an axis running from the nose to the back of the avatar's head. Roll is 
-     *     sometimes called "bank".
-     *
-     * @property {Vec3} velocity 
-     * @property {Vec3} angularVelocity 
-     *
-     * @property {number} audioLoudness 
-     * @property {number} audioAverageLoudness 
-     *
-     * @property {string} displayName 
-     * @property {string} sessionDisplayName - Sanitized, defaulted version displayName that is defined by the AvatarMixer 
-     *     rather than by Interface clients. The result is unique among all avatars present at the time.
-     * @property {boolean} lookAtSnappingEnabled
-     * @property {string} skeletonModelURL 
-     * @property {AttachmentData[]} attachmentData
-     *
-     * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
-     *
-     * @property {Uuid} sessionUUID <em>Read-only.</em>
-     *
-     * @property {Mat4} sensorToWorldMatrix <em>Read-only.</em>
-     * @property {Mat4} controllerLeftHandMatrix <em>Read-only.</em>
-     * @property {Mat4} controllerRightHandMatrix <em>Read-only.</em>
-     * @property {number} sensorToWorldScale <em>Read-only.</em>
+     * @borrows Avatar.getDomainMinScale as getDomainMinScale
+     * @borrows Avatar.getDomainMaxScale as getDomainMaxScale
+     * @borrows Avatar.getEyeHeight as getEyeHeight
+     * @borrows Avatar.getHeight as getHeight
+     * @borrows Avatar.setHandState as setHandState
+     * @borrows Avatar.getHandState as getHandState
+     * @borrows Avatar.setRawJointData as setRawJointData
+     * @borrows Avatar.setJointData as setJointData
+     * @borrows Avatar.setJointRotation as setJointRotation
+     * @borrows Avatar.setJointTranslation as setJointTranslation
+     * @borrows Avatar.clearJointData as clearJointData
+     * @borrows Avatar.isJointDataValid as isJointDataValid
+     * @borrows Avatar.getJointRotation as getJointRotation
+     * @borrows Avatar.getJointTranslation as getJointTranslation
+     * @borrows Avatar.getJointRotations as getJointRotations
+     * @borrows Avatar.getJointTranslations as getJointTranslations
+     * @borrows Avatar.setJointRotations as setJointRotations
+     * @borrows Avatar.setJointTranslations as setJointTranslations
+     * @borrows Avatar.clearJointsData as clearJointsData
+     * @borrows Avatar.getJointIndex as getJointIndex
+     * @borrows Avatar.getJointNames as getJointNames
+     * @borrows Avatar.setBlendshape as setBlendshape
+     * @borrows Avatar.getAttachmentsVariant as getAttachmentsVariant
+     * @borrows Avatar.setAttachmentsVariant as setAttachmentsVariant
+     * @borrows Avatar.updateAvatarEntity as updateAvatarEntity
+     * @borrows Avatar.clearAvatarEntity as clearAvatarEntity
+     * @borrows Avatar.setForceFaceTrackerConnected as setForceFaceTrackerConnected
+     * @borrows Avatar.getAttachmentData as getAttachmentData
+     * @borrows Avatar.setAttachmentData as setAttachmentData
+     * @borrows Avatar.attach as attach
+     * @borrows Avatar.detachOne as detachOne
+     * @borrows Avatar.detachAll as detachAll
+     * @borrows Avatar.getAvatarEntityData as getAvatarEntityData
+     * @borrows Avatar.setAvatarEntityData as setAvatarEntityData
+     * @borrows Avatar.getSensorToWorldMatrix as getSensorToWorldMatrix
+     * @borrows Avatar.getSensorToWorldScale as getSensorToWorldScale
+     * @borrows Avatar.getControllerLeftHandMatrix as getControllerLeftHandMatrix
+     * @borrows Avatar.getControllerRightHandMatrix as getControllerRightHandMatrix
+     * @borrows Avatar.getDataRate as getDataRate
+     * @borrows Avatar.getUpdateRate as getUpdateRate
+     * @borrows Avatar.displayNameChanged as displayNameChanged
+     * @borrows Avatar.sessionDisplayNameChanged as sessionDisplayNameChanged
+     * @borrows Avatar.skeletonModelURLChanged as skeletonModelURLChanged
+     * @borrows Avatar.lookAtSnappingChanged as lookAtSnappingChanged
+     * @borrows Avatar.sessionUUIDChanged as sessionUUIDChanged
+     * @borrows Avatar.sendAvatarDataPacket as sendAvatarDataPacket
+     * @borrows Avatar.sendIdentityPacket as sendIdentityPacket
+     * @borrows Avatar.setSessionUUID as setSessionUUID
+     * @borrows Avatar.getAbsoluteJointRotationInObjectFrame as getAbsoluteJointRotationInObjectFrame
+     * @borrows Avatar.getAbsoluteJointTranslationInObjectFrame as getAbsoluteJointTranslationInObjectFrame
+     * @borrows Avatar.setAbsoluteJointRotationInObjectFrame as setAbsoluteJointRotationInObjectFrame
+     * @borrows Avatar.setAbsoluteJointTranslationInObjectFrame as setAbsoluteJointTranslationInObjectFrame
+     * @borrows Avatar.getTargetScale as getTargetScale
+     * @borrows Avatar.resetLastSent as resetLastSent
      */
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
@@ -1314,7 +1364,7 @@ public slots:
 
     /**jsdoc
      * @function MyAvatar.restrictScaleFromDomainSettings
-     * @param {objecct} domainSettingsObject
+     * @param {object} domainSettingsObject
      */
     void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
 
@@ -1345,6 +1395,7 @@ public slots:
 
 
     /**jsdoc
+     * ####### Why Q_INVOKABLE?
      * @function MyAvatar.updateMotionBehaviorFromMenu
      */
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
@@ -1413,16 +1464,19 @@ public slots:
     bool getEnableMeshVisible() const override;
 
     /**jsdoc
+     * ####### TODO; Should this really be exposed in the API?
      * @function MyAvatar.storeAvatarEntityDataPayload
      */
     void storeAvatarEntityDataPayload(const QUuid& entityID, const QByteArray& payload) override;
     
     /**jsdoc
+     * ####### Does override change functionality? If so, document here and don't borrow; if not, borrow and don't document here.
      * @function MyAvatar.clearAvatarEntity
      * @param {Uuid} entityID
-     * @param {boolean} requiresRemovalFromTree
+     * @param {boolean} [requiresRemovalFromTree]
      */
     void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true) override;
+
     /**jsdoc
      * @function MyAvatar.sanitizeAvatarEntityProperties
      */

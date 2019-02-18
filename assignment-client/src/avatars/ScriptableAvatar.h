@@ -22,17 +22,16 @@
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
  * {@link MyAvatar} API.
  *
- * <p><strong>Note:</strong> In the examples, use "<code>Avatar</code>" instead of "<code>MyAvatar</code>".</p>
- * 
  * @namespace Avatar
  *
  * @hifi-assignment-client
  *
+ * @comment IMPORTANT: This group of properties is copied from AvatarData.h; they should NOT be edited here.
  * @property {Vec3} position
- * @property {number} scale
+ * @property {number} scale - Returns the clamped scale of the avatar.
  * @property {number} density <em>Read-only.</em>
  * @property {Vec3} handPosition
- * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar. 
+ * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar.
  *     Yaw is sometimes called "heading".
  * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is
  *     sometimes called "elevation".
@@ -63,62 +62,6 @@
  * @property {Mat4} controllerRightHandMatrix <em>Read-only.</em>
  * @property {number} sensorToWorldScale <em>Read-only.</em>
  *
- * @borrows MyAvatar.getDomainMinScale as getDomainMinScale
- * @borrows MyAvatar.getDomainMaxScale as getDomainMaxScale
- * @borrows MyAvatar.canMeasureEyeHeight as canMeasureEyeHeight
- * @borrows MyAvatar.getEyeHeight as getEyeHeight
- * @borrows MyAvatar.getHeight as getHeight
- * @borrows MyAvatar.setHandState as setHandState
- * @borrows MyAvatar.getHandState as getHandState
- * @borrows MyAvatar.setRawJointData as setRawJointData
- * @borrows MyAvatar.setJointData as setJointData
- * @borrows MyAvatar.setJointRotation as setJointRotation
- * @borrows MyAvatar.setJointTranslation as setJointTranslation
- * @borrows MyAvatar.clearJointData as clearJointData
- * @borrows MyAvatar.isJointDataValid as isJointDataValid
- * @borrows MyAvatar.getJointRotation as getJointRotation
- * @borrows MyAvatar.getJointTranslation as getJointTranslation
- * @borrows MyAvatar.getJointRotations as getJointRotations
- * @borrows MyAvatar.getJointTranslations as getJointTranslations
- * @borrows MyAvatar.setJointRotations as setJointRotations
- * @borrows MyAvatar.setJointTranslations as setJointTranslations
- * @borrows MyAvatar.clearJointsData as clearJointsData
- * @borrows MyAvatar.getJointIndex as getJointIndex
- * @borrows MyAvatar.getJointNames as getJointNames
- * @borrows MyAvatar.setBlendshape as setBlendshape
- * @borrows MyAvatar.getAttachmentsVariant as getAttachmentsVariant
- * @borrows MyAvatar.setAttachmentsVariant as setAttachmentsVariant
- * @borrows MyAvatar.updateAvatarEntity as updateAvatarEntity
- * @borrows MyAvatar.clearAvatarEntity as clearAvatarEntity
- * @borrows MyAvatar.setForceFaceTrackerConnected as setForceFaceTrackerConnected
- * @borrows MyAvatar.getAttachmentData as getAttachmentData
- * @borrows MyAvatar.setAttachmentData as setAttachmentData
- * @borrows MyAvatar.attach as attach
- * @borrows MyAvatar.detachOne as detachOne
- * @borrows MyAvatar.detachAll as detachAll
- * @borrows MyAvatar.getAvatarEntityData as getAvatarEntityData
- * @borrows MyAvatar.setAvatarEntityData as setAvatarEntityData
- * @borrows MyAvatar.getSensorToWorldMatrix as getSensorToWorldMatrix
- * @borrows MyAvatar.getSensorToWorldScale as getSensorToWorldScale
- * @borrows MyAvatar.getControllerLeftHandMatrix as getControllerLeftHandMatrix
- * @borrows MyAvatar.getControllerRightHandMatrix as getControllerRightHandMatrix
- * @borrows MyAvatar.getDataRate as getDataRate
- * @borrows MyAvatar.getUpdateRate as getUpdateRate
- * @borrows MyAvatar.displayNameChanged as displayNameChanged
- * @borrows MyAvatar.sessionDisplayNameChanged as sessionDisplayNameChanged
- * @borrows MyAvatar.skeletonModelURLChanged as skeletonModelURLChanged
- * @borrows MyAvatar.lookAtSnappingChanged as lookAtSnappingChanged
- * @borrows MyAvatar.sessionUUIDChanged as sessionUUIDChanged
- * @borrows MyAvatar.sendAvatarDataPacket as sendAvatarDataPacket
- * @borrows MyAvatar.sendIdentityPacket as sendIdentityPacket
- * @borrows MyAvatar.setJointMappingsFromNetworkReply as setJointMappingsFromNetworkReply
- * @borrows MyAvatar.setSessionUUID as setSessionUUID
- * @borrows MyAvatar.getAbsoluteJointRotationInObjectFrame as getAbsoluteJointRotationInObjectFrame
- * @borrows MyAvatar.getAbsoluteJointTranslationInObjectFrame as getAbsoluteJointTranslationInObjectFrame
- * @borrows MyAvatar.setAbsoluteJointRotationInObjectFrame as setAbsoluteJointRotationInObjectFrame
- * @borrows MyAvatar.setAbsoluteJointTranslationInObjectFrame as setAbsoluteJointTranslationInObjectFrame
- * @borrows MyAvatar.getTargetScale as getTargetScale
- * @borrows MyAvatar.resetLastSent as resetLastSent
  */
 
 class ScriptableAvatar : public AvatarData, public Dependency {
@@ -159,23 +102,25 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails();
 
     /**jsdoc
-    * Get the names of all the joints in the current avatar.
-    * @function MyAvatar.getJointNames
-    * @returns {string[]} The joint names.
-    * @example <caption>Report the names of all the joints in your current avatar.</caption>
-    * print(JSON.stringify(MyAvatar.getJointNames()));
-    */
+     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.<br />
+     * Get the names of all the joints in the current avatar.
+     * @function Avatar.getJointNames
+     * @returns {string[]} The joint names.
+     * @example <caption>Report the names of all the joints in your current avatar.</caption>
+     * print(JSON.stringify(Avatar.getJointNames()));
+     */
     Q_INVOKABLE virtual QStringList getJointNames() const override;
 
     /**jsdoc
-    * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by
-    * {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
-    * @function MyAvatar.getJointIndex
-    * @param {string} name - The name of the joint.
-    * @returns {number} The index of the joint.
-    * @example <caption>Report the index of your avatar's left arm joint.</caption>
-    * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm"));
-    */
+     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.<br />
+     * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by
+     * {@link Avatar.getJointNames}.
+     * @function Avatar.getJointIndex
+     * @param {string} name - The name of the joint.
+     * @returns {number} The index of the joint.
+     * @example <caption>Report the index of your avatar's left arm joint.</caption>
+     * print(JSON.stringify(Avatar.getJointIndex("LeftArm"));
+     */
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
 
@@ -193,6 +138,8 @@ public:
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
 
      /**jsdoc
+     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.<br />
+     * ####### Also need to resolve with MyAvatar.<br />
      * Potentially Very Expensive.  Do not use.
      * @function Avatar.getAvatarEntityData
      * @returns {object}
@@ -200,13 +147,15 @@ public:
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
 
     /**jsdoc
-    * @function MyAvatar.setAvatarEntityData
-    * @param {object} avatarEntityData
-    */
+     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.
+     * @function Avatar.setAvatarEntityData
+     * @param {object} avatarEntityData
+     */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
 
     /**jsdoc
-     * @function MyAvatar.updateAvatarEntity
+     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.
+     * @function Avatar.updateAvatarEntity
      * @param {Uuid} entityID
      * @param {string} entityData
      */
@@ -214,12 +163,12 @@ public:
 
 public slots:
     /**jsdoc
-     * @function MyAvatar.update
+     * @function Avatar.update
      */
     void update(float deltatime);
 
     /**jsdoc
-    * @function MyAvatar.setJointMappingsFromNetworkReply
+    * @function Avatar.setJointMappingsFromNetworkReply
     */
     void setJointMappingsFromNetworkReply();
 
