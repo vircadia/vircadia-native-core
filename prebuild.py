@@ -35,22 +35,63 @@ import re
 import tempfile
 import time
 import functools
+import subprocess
+import logging
+
+from uuid import uuid4
+from contextlib import contextmanager
 
 print = functools.partial(print, flush=True)
+
+class TrackableLogger(logging.Logger):
+    guid = str(uuid4())
+
+    def _log(self, msg, *args, **kwargs):
+        x = {'guid': self.guid}
+        if 'extra' in kwargs:
+            kwargs['extra'].update(x)
+        else:
+            kwargs['extra'] = x
+        super()._log(msg, *args, **kwargs)
+
+logging.setLoggerClass(TrackableLogger)
+logger = logging.getLogger('prebuild')
+
+def headSha():
+    repo_dir = os.path.dirname(os.path.abspath(__file__))
+    git = subprocess.Popen(
+        'git rev-parse --short HEAD',
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        shell=True, cwd=repo_dir, universal_newlines=True,
+    )
+    stdout, _ = git.communicate()
+    sha = stdout.split('\n')[0]
+    if not sha:
+        raise RuntimeError("couldn't find git sha")
+    return sha
+
+@contextmanager
+def timer(name):
+    ''' Print the elapsed time a context's execution takes to execute '''
+    start = time.time()
+    yield
+    # Please take care when modifiying this print statement.
+    # Log parsing logic may depend on it.
+    logger.info('%s took %.3f secs' % (name, time.time() - start))
 
 def parse_args():
     # our custom ports, relative to the script location
     defaultPortsPath = hifi_utils.scriptRelative('cmake', 'ports')
     from argparse import ArgumentParser
     parser = ArgumentParser(description='Prepare build dependencies.')
-    parser.add_argument('--android', action='store_true')
-    #parser.add_argument('--android', type=str)
+    parser.add_argument('--android', type=str)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--force-bootstrap', action='store_true')
     parser.add_argument('--force-build', action='store_true')
     parser.add_argument('--vcpkg-root', type=str, help='The location of the vcpkg distribution')
     parser.add_argument('--build-root', required=True, type=str, help='The location of the cmake build')
     parser.add_argument('--ports-path', type=str, default=defaultPortsPath)
+    parser.add_argument('--ci-build', action='store_true')
     if True:
         args = parser.parse_args()
     else:
@@ -67,11 +108,19 @@ def main():
             del os.environ[var]
 
     args = parse_args()
+
+    if args.ci_build:
+        logging.basicConfig(datefmt='%s', format='%(asctime)s %(guid)s %(message)s', level=logging.INFO)
+
+    logger.info('sha=%s' % headSha())
+    logger.info('start')
+
     # Only allow one instance of the program to run at a time
     pm = hifi_vcpkg.VcpkgRepo(args)
     with hifi_singleton.Singleton(pm.lockFile) as lock:
-        if not pm.upToDate():
-            pm.bootstrap()
+        with timer('Bootstraping'):
+            if not pm.upToDate():
+                pm.bootstrap()
 
         # Always write the tag, even if we changed nothing.  This 
         # allows vcpkg to reclaim disk space by identifying directories with
@@ -81,14 +130,30 @@ def main():
         # Grab our required dependencies:
         #  * build host tools, like spirv-cross and scribe
         #  * build client dependencies like openssl and nvtt
-        pm.setupDependencies()
+        with timer('Setting up dependencies'):
+            pm.setupDependencies()
 
         # wipe out the build directories (after writing the tag, since failure 
         # here shouldn't invalidte the vcpkg install)
-        pm.cleanBuilds()
+        with timer('Cleaning builds'):
+            pm.cleanBuilds()
+
+        # If we're running in android mode, we also need to grab a bunch of additional binaries
+        # (this logic is all migrated from the old setupDependencies tasks in gradle)
+        if args.android:
+            # Find the target location
+            appPath = hifi_utils.scriptRelative('android/apps/' + args.android)
+            # Copy the non-Qt libraries specified in the config in hifi_android.py
+            hifi_android.copyAndroidLibs(pm.androidPackagePath, appPath)
+            # Determine the Qt package path
+            qtPath = os.path.join(pm.androidPackagePath, 'qt')
+            hifi_android.QtPackager(appPath, qtPath).bundle()
 
         # Write the vcpkg config to the build directory last
-        pm.writeConfig()
+        with timer('Writing configuration'):
+            pm.writeConfig()
+
+    logger.info('end')
 
 print(sys.argv)
 main()

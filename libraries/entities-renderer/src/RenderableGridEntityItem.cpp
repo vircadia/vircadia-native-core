@@ -26,7 +26,7 @@ GridEntityRenderer::~GridEntityRenderer() {
 }
 
 bool GridEntityRenderer::isTransparent() const {
-    return Parent::isTransparent() || _alpha < 1.0f;
+    return Parent::isTransparent() || _alpha < 1.0f || _pulseProperties.getAlphaMode() != PulseMode::NONE;
 }
 
 bool GridEntityRenderer::needsRenderUpdate() const {
@@ -55,6 +55,10 @@ bool GridEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedEntityPoint
             return true;
         }
 
+        if (_pulseProperties != entity->getPulseProperties()) {
+            return true;
+        }
+
         return false;
     });
 
@@ -65,6 +69,7 @@ void GridEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scen
     withWriteLock([&] {
         _color = entity->getColor();
         _alpha = entity->getAlpha();
+        _pulseProperties = entity->getPulseProperties();
 
         _followCamera = entity->getFollowCamera();
         _majorGridEvery = entity->getMajorGridEvery();
@@ -97,15 +102,20 @@ ShapeKey GridEntityRenderer::getShapeKey() {
         builder.withTranslucent();
     }
 
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        builder.withWireframe();
+    }
+
     return builder.build();
 }
 
 void GridEntityRenderer::doRender(RenderArgs* args) {
-    glm::u8vec3 color;
+    glm::vec4 color;
     glm::vec3 dimensions;
     Transform renderTransform;
     withReadLock([&] {
-        color = _color;
+        color = glm::vec4(toGlm(_color), _alpha);
+        color = EntityRenderer::calculatePulseColor(color, _pulseProperties, _created);
         dimensions = _dimensions;
         renderTransform = _renderTransform;
     });
@@ -137,12 +147,11 @@ void GridEntityRenderer::doRender(RenderArgs* args) {
     float majorGridColDivisions = dimensions.y / _majorGridEvery;
     float minorGridRowDivisions = dimensions.x / _minorGridEvery;
     float minorGridColDivisions = dimensions.y / _minorGridEvery;
-    glm::vec4 gridColor(toGlm(color), _alpha);
 
     const float MINOR_GRID_EDGE = 0.0025f;
     const float MAJOR_GRID_EDGE = 0.005f;
     DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
         minorGridRowDivisions, minorGridColDivisions, MINOR_GRID_EDGE,
         majorGridRowDivisions, majorGridColDivisions, MAJOR_GRID_EDGE,
-        gridColor, _geometryId);
+        color, _geometryId);
 }

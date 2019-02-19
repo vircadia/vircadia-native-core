@@ -21,6 +21,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-assignment-client
  *
  * @property {boolean} canKick - <code>true</code> if the domain server allows the node or avatar to kick (ban) avatars,

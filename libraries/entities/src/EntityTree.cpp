@@ -2707,7 +2707,6 @@ void convertGrabUserDataToProperties(EntityItemProperties& properties) {
 bool EntityTree::readFromMap(QVariantMap& map) {
     // These are needed to deal with older content (before adding inheritance modes)
     int contentVersion = map["Version"].toInt();
-    bool needsConversion = (contentVersion < (int)EntityVersion::ZoneLightInheritModes);
 
     if (map.contains("Id")) {
         _persistID = map["Id"].toUuid();
@@ -2782,7 +2781,7 @@ bool EntityTree::readFromMap(QVariantMap& map) {
         }
 
         // Fix for older content not containing mode fields in the zones
-        if (needsConversion && (properties.getType() == EntityTypes::EntityType::Zone)) {
+        if (contentVersion < (int)EntityVersion::ZoneLightInheritModes && (properties.getType() == EntityTypes::EntityType::Zone)) {
             // The legacy version had no keylight mode - this is set to on
             properties.setKeyLightMode(COMPONENT_MODE_ENABLED);
 
@@ -2954,53 +2953,21 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToEntityOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromEntityOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToOverlayOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
+std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
+std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
 
-bool EntityTree::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToEntityOperator) {
-        return _addMaterialToEntityOperator(entityID, material, parentMaterialName);
+QObject* EntityTree::getEntityObject(const QUuid& id) {
+    if (_getEntityObjectOperator) {
+        return _getEntityObjectOperator(id);
     }
-    return false;
+    return nullptr;
 }
 
-bool EntityTree::removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromEntityOperator) {
-        return _removeMaterialFromEntityOperator(entityID, material, parentMaterialName);
+QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
+    if (_textSizeOperator) {
+        return _textSizeOperator(id, text);
     }
-    return false;
-}
-
-bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToAvatarOperator) {
-        return _addMaterialToAvatarOperator(avatarID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromAvatarOperator) {
-        return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToOverlayOperator) {
-        return _addMaterialToOverlayOperator(overlayID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromOverlayOperator) {
-        return _removeMaterialFromOverlayOperator(overlayID, material, parentMaterialName);
-    }
-    return false;
+    return QSizeF(0.0f, 0.0f);
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
@@ -3008,8 +2975,8 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
-        bool tellServerThis = tellServer && (entity->getEntityHostType() != entity::HostType::AVATAR);
-        if ((entity->updateQueryAACube() || force)) {
+        // NOTE: we rely on side-effects of the entity->updateQueryAACube() call in the following if() conditional:
+        if (entity->updateQueryAACube() || force) {
             bool success;
             AACube newCube = entity->getQueryAACube(success);
             if (success) {
@@ -3017,7 +2984,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             }
             // send an edit packet to update the entity-server about the queryAABox.  We do this for domain-hosted
             // entities as well as for avatar-entities; the packet-sender will route the update accordingly
-            if (tellServerThis && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
+            if (tellServer && packetSender && (entity->isDomainEntity() || entity->isAvatarEntity())) {
                 quint64 now = usecTimestampNow();
                 EntityItemProperties properties = entity->getProperties();
                 properties.setQueryAACubeDirty();
@@ -3025,6 +2992,7 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
                 properties.setLastEdited(now);
 
                 packetSender->queueEditEntityMessage(PacketType::EntityEdit, getThisPointer(), entity->getID(), properties);
+                entity->setLastEdited(now); // so we ignore the echo from the server
                 entity->setLastBroadcast(now); // for debug/physics status icons
             }
 

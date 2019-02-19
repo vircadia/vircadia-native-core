@@ -24,7 +24,7 @@ class ClientTraitsHandler : public QObject {
 public:
     ClientTraitsHandler(AvatarData* owningAvatar);
 
-    void sendChangedTraitsToMixer();
+    int sendChangedTraitsToMixer();
 
     bool hasChangedTraits() const { return _hasChangedTraits; }
 

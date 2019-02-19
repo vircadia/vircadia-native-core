@@ -1,34 +1,36 @@
 # nitpick
 
-Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple: 
-* Each test folder has a script that produces a set of snapshots.
-* The snapshots are compared to a 'canonical' set of images that have been produced beforehand.
+Nitpick is a stand alone application that provides a mechanism for regression testing.  The general idea is simple:  
+* Each test folder has a script that produces a set of snapshots.  
+* The snapshots are compared to a 'canonical' set of images that have been produced beforehand.  
 * The result, if any test failed, is a zipped folder describing the failure.
 
-Nitpick has 5 functions, separated into separate tabs:
+Nitpick has 6 functions, separated into separate tabs:
+
 1. Creating tests, MD files and recursive scripts
 1. Windows task bar utility (Windows only)
-1. Running tests
+1. Running tests on desktop (i.e. locally)
+1. Running tests on an attached device
 1. Evaluating the results of running tests
 1. Web interface
-
-## Build (for developers)
+## Creating Installers (for developers)
 Nitpick is built as part of the High Fidelity build.
 ### Creating installers
 #### Windows
+Note that X.X.X is the latest version.
 1.  Verify that 7Zip is installed.
 1.  cd to the `build\tools\nitpick\Release` directory
-1.  Delete any existing installers (named nitpick-installer-###.exe)
+1.  Delete any existing installers (named nitpick-installer-vX.X.X.exe)
 1.  Select all, right-click and select 7-Zip->Add to archive...
 1.  Set Archive format to 7z
 1.  Check "Create SFX archive
-1.  Enter installer name (i.e. `nitpick-installer-v1.2.exe`)
+1.  Enter installer name (i.e. `nitpick-installer-vX.X.X.exe`)
 1.  Click "OK"
-1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe: aws s3 cp nitpick-installer-v1.2.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.2.exe
+1.  Copy created installer to https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.exe: aws s3 cp nitpick-installer-v1.2.exe s3://hifi-qa/nitpick/Mac/nitpick-installer-vX.X.X.exe
 #### Mac
 These steps assume the hifi repository has been cloned to `~/hifi`.
-1.  (first time) Install brew
-    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+1.  (first time) Install brew  
+    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
 1.  (First time) install create-dmg:
     In a terminal: `brew install create-dmg`
 1.  In a terminal: cd to the `build/tools/nitpick/Release` folder
@@ -37,56 +39,66 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 1.  Change the loader instruction to find the dynamic library locally
     In a terminal: `install_name_tool -change ~/hifi/build/ext/Xcode/quazip/project/lib/libquazip5.1.dylib libquazip5.1.dylib nitpick`
 1.  Delete any existing disk images. In a terminal: `rm *.dmg`
-1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-v1.2 nitpick-installer-v1.2.dmg .`  
+1.  Create installer (note final period).In a terminal: `create-dmg --volname nitpick-installer-vX.X.X nitpick-installer-vX.X.X.dmg .`  
     Make sure to wait for completion.
-1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-v1.2.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-v1.2.dmg`
-### Installation
-#### Windows
-1.  (First time) download and install vc_redist.x64.exe (available at https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe)
+1.  Copy created installer to AWS: `~/Library/Python/3.7/bin/aws s3 cp nitpick-installer-vX.X.X.dmg s3://hifi-qa/nitpick/Mac/nitpick-installer-vX.X.X.dmg`
+## Installation
+`nitpick` is packaged with High Fidelity PR and Development builds.
+### Windows
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
-    1. After installation - create an environment variable called PYTHON_PATH and set it to the folder containing the Python executable.
+    1. Click the "add python to path" checkbox on the python installer  
+    1. After installation - add the path to python.exe to the Windows PATH environment variable.
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
-    1.  Open a new command prompt and run `aws configure`
+    1.  Open a new command prompt and run  
+        `aws configure`
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
-    1.  Install the latest release of Boto3 via pip:  `pip install boto3`
+    1.  Install the latest release of Boto3 via pip:  
+        `pip install boto3`
 
-1. Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-v1.2.exe>)
-1. Double click on the installer and install to a convenient location  
-![](./setup_7z.PNG)
-
-1. __To run nitpick, double click **nitpick.exe**__
-#### Mac
+1.  (First time) Download adb (Android Debug Bridge) from *https://dl.google.com/android/repository/platform-tools-latest-windows.zip*
+    1.  Copy the downloaded file to (for example) **C:\adb** and extract in place.  
+        Verify you see *adb.exe* in **C:\adb\platform-tools\\**.
+    1.  After installation - add the path to adb.exe to the Windows PATH environment variable (note that it is in *adb\platform-tools*).
+1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
+[here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.dmg>).* 
+### Mac
 1.  (first time) Install brew
-    In a terminal: `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)`
+    In a terminal:  
+  `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`  
+    Note that you will need to press RETURN again, and will then be asked for your password.
 1.  (First time) install Qt:
-    In a terminal: `brew install qt`
-1.  (First time) install Python from https://www.python.org/downloads/release/python-370/ (**macOS 64-bit installer** or **macOS 64-bit/32-bit installer**)
-    1. After installation - In a terminal: run `open "/Applications/Python 3.6/Install Certificates.command"`.  This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
+    In a terminal:  
+`brew install qt`
+1.  (First time) install Python from https://www.python.org/downloads/release/python-370/ (*macOS 64-bit installer* or *macOS 64-bit/32-bit installer*)
+    1. After installation - In a terminal: run  
+      `open "/Applications/Python 3.7/Install Certificates.command"`.  
+This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
 1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
-In a terminal: `curl -O https://bootstrap.pypa.io/get-pip.py`
-In a terminal: `python3 get-pip.py --user`  
+    In a terminal:  
+    `curl -O https://bootstrap.pypa.io/get-pip.py`  
+    In a terminal:  
+    `python3 get-pip.py --user`  
     1.  Use pip to install the AWS CLI.  
-        `pip3 install awscli --upgrade --user` 
+        `pip3 install awscli --upgrade --user`  
         This will install aws in your user.  For user XXX, aws will be located in ~/Library/Python/3.7/bin  
-    1.  Open a new command prompt and run `~/Library/Python/3.7/bin/aws configure`  
+    1.  Open a new command prompt and run  
+        `~/Library/Python/3.7/bin/aws configure`  
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
-    1.  Install the latest release of Boto3 via pip:  pip3 install boto3
-1.  Download the installer by browsing to [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-v1.2.dmg>).
-1.  Double-click on the downloaded image to mount it
-1. Create a folder for the nitpick files (e.g. ~/nitpick)
-   If this folder exists then delete all it's contents.
-1. Copy the downloaded files to the folder  
-   In a terminal:  
-     `cd ~/nitpick`  
-     `cp -r /Volumes/nitpick-installer-v1.2/* .`
-
-1. __To run nitpick, cd to the folder that you copied to and run `./nitpick`__  
+    1.  Install the latest release of Boto3 via pip:  pip3 install boto3  
+1.  (First time)Install adb (the Android Debug Bridge) - in a terminal:  
+    `brew cask install android-platform-tools`
+1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
+[here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-vX.X.X.dmg>).* 
 # Usage
+## Menu
+File->Close: Closes `nitpick`  
+Help->About: Provides the build date  
+Help->Online readme: Links to this file on GitHub
 ## Create
 ![](./Create.PNG)
 
@@ -164,15 +176,15 @@ nitpick.runRecursive();
 In this case all recursive scripts, from the selected folder down, are created.
 
 Running this function in the tests root folder will create (or update) all the recursive scripts.
-## Windows
+## Windows (only on Windows)
 ![](./Windows.PNG)
 
 This tab is Windows-specific.  It provides buttons to hide and show the task bar.
 
 The task bar should be hidden for all tests that use the primary camera.  This is required to ensure that the snapshots are the right size.
-## Run
-![](./Run.PNG)
-The run tab is used to run tests in automatic mode.  The tests require the location of a folder to store files in; this folder can safely be re-used for any number of runs (the "Working Folder"). 
+## Test on Desktop
+![](./TestOnDesktop.PNG)
+The TestOnDesktop tab is used to run tests on desktop in automatic mode.  The tests require the location of a folder to store files in; this folder can safely be re-used for any number of runs (the "Working Folder").  
 The test script that is run is `https://github.com/highfidelity/hifi_tests/blob/master/tests/testRecursive.js`.  The user can use a different branch' or even repository, if required.  
 Tests can be run server-less, or with the local host.  In the second case, the domain-server and assignment-clients are run before starting Interface.  
 The default is to run the latest build.  The user can select a specific build or PR if desired.
@@ -192,6 +204,28 @@ The working folder will ultimately contain the following:
 1.  The `dev-builds.xml` file, if it was downloaded.  
 1.  The HighFidelity installer.  Note that this is always named `HighFidelity-Beta-latest-dev` so as not to store too many installers over time.  
 1.  A log file describing the runs.  This file is appended to after each run.
+## Test on Mobile
+![](./TestOnMobile.PNG)
+The TestOnMobile tab is used to run tests on a mobile device connected to the desktop running `nitpick`.  
+The test script that is run is `https://github.com/highfidelity/hifi_tests/blob/master/tests/testRecursive.js`.  The user can use a different branch' or even repository, if required.  
+Tests can be run server-less, or with the local host.  In the second case, the domain-server and assignment-clients are run before starting Interface.  
+The default is to run the latest build.  The user can select a specific build or PR if desired.  
+### Set Working Folder  
+This mode needs a working folder to store downloads and temporary files.  All other commands are disabled until this folder has been selected.
+### Connect Device
+Clicking this button will initiate and attempt to connect to a connected device.  If successful, the following will appear (as appropriate for the device):
+![](./ConnectedDevice.PNG)
+
+### Download APK
+Leaving the Run Latest checkbox checked will download the latest APK.  Unchecking will enable entering a URL to a desired APK (such as a PR build).  
+Clicking the Download APK button will set the status to *Downloading installer*; this status will change to *Installer Download complete" when the download has completed.  The APK will be located in the working folder.
+### Installing APK
+After download it is possible to install the APK on the selected device.  
+When installation completes, the status will be *Installation complete*
+### Run Interface
+Pressing this button will run the full test suite on the device.  Snapshots will be stored on the device in */sdcard/DCIM/TEST.
+### Pull Folder
+This button is used to copy the snapshots from a test to the local device for evaluation.  The default is the default snapshot folder on the device.
 ## Evaluate
 ![](./Evaluate.PNG)
 

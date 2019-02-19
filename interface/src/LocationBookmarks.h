@@ -21,6 +21,7 @@
  *
  * @hifi-client-entity
  * @hifi-interface
+ * @hifi-avatar
  */
 
 class LocationBookmarks : public Bookmarks, public  Dependency  {

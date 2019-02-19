@@ -22,10 +22,9 @@ class QmlOverlay : public Overlay2D {
 
 public:
     QmlOverlay(const QUrl& url);
-    QmlOverlay(const QUrl& url, const QmlOverlay* textOverlay);
+    QmlOverlay(const QUrl& url, const QmlOverlay* overlay);
     ~QmlOverlay();
 
-    // Cannot fetch properties from QML based overlays due to race conditions
     bool supportsGetProperty() const override { return false; }
 
     void setProperties(const QVariantMap& properties) override;

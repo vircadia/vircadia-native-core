@@ -68,12 +68,21 @@ var window = new OverlayWindow({
 
 if (hasPosition) {
     window.setPosition(windowX, windowY);
+};
+
+function recenterWindow() {
+    window.setPosition(100, 100);
 }
 
 window.visibleChanged.connect(function() {
     if (!window.visible) {
         window.setVisible(true);
+        recenterWindow();
     }
+});
+
+HMD.displayModeChanged.connect(function(isHMDMode) {
+    recenterWindow();
 });
 
 window.closed.connect(function () { Script.stop(); });

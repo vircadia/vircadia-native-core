@@ -148,7 +148,7 @@ Rectangle {
     }
 
     function canAddToWorld(path) {
-        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i];
+        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i, /\.gltf\b/i];
 
         if (selectedItemCount > 1) {
             return false;

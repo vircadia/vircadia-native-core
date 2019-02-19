@@ -11,7 +11,7 @@
    Entities, enableDispatcherModule, disableDispatcherModule, entityIsGrabbable, makeDispatcherModuleParameters, MSECS_PER_SEC,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE, ZERO_VEC,
    projectOntoEntityXYPlane, ContextOverlay, HMD, Picks, makeLaserLockInfo, makeLaserParams, AddressManager,
-   getEntityParents, Selection, DISPATCHER_HOVERING_LIST, unhighlightTargetEntity, Messages, findGroupParent,
+   getEntityParents, Selection, DISPATCHER_HOVERING_LIST, unhighlightTargetEntity, Messages, findGrabbableGroupParent,
    worldPositionToRegistrationFrameMatrix, DISPATCHER_PROPERTIES
 */
 
@@ -311,7 +311,7 @@ Script.include("/~/system/libraries/controllers.js");
                 var gtProps = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
                 if (entityIsGrabbable(gtProps)) {
                     // if we've attempted to grab a child, roll up to the root of the tree
-                    var groupRootProps = findGroupParent(controllerData, gtProps);
+                    var groupRootProps = findGrabbableGroupParent(controllerData, gtProps);
                     if (entityIsGrabbable(groupRootProps)) {
                         return groupRootProps;
                     }

@@ -49,6 +49,8 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 QString EntityItem::_marketplacePublicKey;
 
+std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> EntityItem::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode) { return rotation; };
+
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
 {
@@ -88,16 +90,17 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_CREATED;
     requestedProperties += PROP_LAST_EDITED_BY;
-    //requestedProperties += PROP_ENTITY_HOST_TYPE;             // not sent over the wire
-    //requestedProperties += PROP_OWNING_AVATAR_ID;             // not sent over the wire
+    requestedProperties += PROP_ENTITY_HOST_TYPE;
+    requestedProperties += PROP_OWNING_AVATAR_ID;
     requestedProperties += PROP_PARENT_ID;
     requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
     requestedProperties += PROP_CAN_CAST_SHADOW;
-    // requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA; // not sent over the wire
-    withReadLock([&] {
-        requestedProperties += _grabProperties.getEntityProperties(params);
-    });
+    requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA;
+    requestedProperties += PROP_RENDER_LAYER;
+    requestedProperties += PROP_PRIMITIVE_MODE;
+    requestedProperties += PROP_IGNORE_PICK_INTERSECTION;
+    requestedProperties += _grabProperties.getEntityProperties(params);
 
     // Physics
     requestedProperties += PROP_DENSITY;
@@ -178,6 +181,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
+
+    // these properties are not sent over the wire
+    requestedProperties -= PROP_ENTITY_HOST_TYPE;
+    requestedProperties -= PROP_OWNING_AVATAR_ID;
+    requestedProperties -= PROP_VISIBLE_IN_SECONDARY_CAMERA;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
@@ -263,8 +271,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_CREATED, getCreated());
         APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, getLastEditedBy());
-        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, getEntityHostType());  // not sent over the wire
-        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());  // not sent over the wire
+        // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, (uint32_t)getEntityHostType());  // not sent over the wire
+        // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, getOwningAvatarID());            // not sent over the wire
         // convert AVATAR_SELF_ID to actual sessionUUID.
         QUuid actualParentID = getParentID();
         if (actualParentID == AVATAR_SELF_ID) {
@@ -276,6 +284,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, getQueryAACube());
         APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, getCanCastShadow());
         // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, getIsVisibleInSecondaryCamera()); // not sent over the wire
+        APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)getRenderLayer());
+        APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)getPrimitiveMode());
+        APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, getIgnorePickIntersection());
         withReadLock([&] {
             _grabProperties.appendSubclassData(packetData, params, entityTreeElementExtraEncodeData, requestedProperties,
                 propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -770,7 +781,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto lastEdited = lastEditedFromBufferAdjusted;
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
-    auto shouldUpdate = [lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
+        if (stillHasGrabActions()) {
+            return false;
+        }
         bool simulationChanged = lastEdited > updatedTimestamp;
         return otherOverwrites && simulationChanged && (valueChanged || filterRejection);
     };
@@ -839,6 +853,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
     READ_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
     // READ_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera);  // not sent over the wire
+    READ_ENTITY_PROPERTY(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
+    READ_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
     withWriteLock([&] {
         int bytesFromGrab = _grabProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
             propertyFlags, overwriteLocalData,
@@ -1310,6 +1327,9 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(canCastShadow, getCanCastShadow);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isVisibleInSecondaryCamera, isVisibleInSecondaryCamera);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(renderLayer, getRenderLayer);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(primitiveMode, getPrimitiveMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignorePickIntersection, getIgnorePickIntersection);
     withReadLock([&] {
         _grabProperties.getProperties(properties);
     });
@@ -1454,6 +1474,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(queryAACube, setQueryAACube);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(canCastShadow, setCanCastShadow);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isVisibleInSecondaryCamera, setIsVisibleInSecondaryCamera);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(renderLayer, setRenderLayer);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(primitiveMode, setPrimitiveMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignorePickIntersection, setIgnorePickIntersection);
     withWriteLock([&] {
         bool grabPropertiesChanged = _grabProperties.setProperties(properties);
         somethingChanged |= grabPropertiesChanged;
@@ -2149,6 +2172,12 @@ void EntityItem::enableNoBootstrap() {
     if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
         _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
+        // because most enableNoBootstrap() cases are already correctly handled outside this scope
+        // and I didn't want to add redundant work.
+        // TODO: cleanup Grabs & dirtySimulationFlags to be more efficient and make more sense.
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
@@ -2163,11 +2192,19 @@ void EntityItem::disableNoBootstrap() {
     if (!stillHasGrabActions()) {
         _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        EntityTreePointer entityTree = getTree();
+        assert(entityTree);
+        EntitySimulationPointer simulation = entityTree->getSimulation();
+        assert(simulation);
+        simulation->changeEntity(getThisPointer());
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
                 entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                simulation->changeEntity(entity);
             }
         });
     }
@@ -2619,15 +2656,8 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
 
-    foreach(const auto& property, jsonFilters.keys()) {
-        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
-            // check if this entity has a non-default value for serverScripts
-            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
-                return true;
-            } else {
-                return false;
-            }
-        }
+    if (jsonFilters[SERVER_SCRIPTS_PROPERTY] == EntityQueryFilterSymbol::NonDefault) {
+        return _serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS;
     }
 
     // the json filter syntax did not match what we expected, return a match
@@ -2931,6 +2961,58 @@ void EntityItem::setIsVisibleInSecondaryCamera(bool value) {
     }
 }
 
+RenderLayer EntityItem::getRenderLayer() const {
+    return resultWithReadLock<RenderLayer>([&] {
+        return _renderLayer;
+    });
+}
+
+void EntityItem::setRenderLayer(RenderLayer value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_renderLayer != value) {
+            changed = true;
+            _renderLayer = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+PrimitiveMode EntityItem::getPrimitiveMode() const {
+    return resultWithReadLock<PrimitiveMode>([&] {
+        return _primitiveMode;
+    });
+}
+
+void EntityItem::setPrimitiveMode(PrimitiveMode value) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_primitiveMode != value) {
+            changed = true;
+            _primitiveMode = value;
+        }
+    });
+
+    if (changed) {
+        emit requestRenderUpdate();
+    }
+}
+
+bool EntityItem::getIgnorePickIntersection() const {
+    return resultWithReadLock<bool>([&] {
+        return _ignorePickIntersection;
+    });
+}
+
+void EntityItem::setIgnorePickIntersection(bool value) {
+    withWriteLock([&] {
+        _ignorePickIntersection = value;
+    });
+}
+
 bool EntityItem::getCanCastShadow() const {
     bool result;
     withReadLock([&] {
@@ -3168,25 +3250,6 @@ void EntityItem::setSpaceIndex(int32_t index) {
 void EntityItem::preDelete() {
 }
 
-void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].push(material);
-}
-
-void EntityItem::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].remove(material);
-}
-
-std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterials() {
-    std::unordered_map<std::string, graphics::MultiMaterial> toReturn;
-    {
-        std::lock_guard<std::mutex> lock(_materialsLock);
-        toReturn = _materials;
-    }
-    return toReturn;
-}
-
 bool EntityItem::getCloneable() const {
     bool result;
     withReadLock([&] {
@@ -3349,17 +3412,30 @@ void EntityItem::prepareForSimulationOwnershipBid(EntityItemProperties& properti
 }
 
 bool EntityItem::isWearable() const {
-    return isVisible() && (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
+    return isVisible() &&
+        (getParentID() == DependencyManager::get<NodeList>()->getSessionUUID() || getParentID() == AVATAR_SELF_ID);
 }
 
 void EntityItem::addGrab(GrabPointer grab) {
     enableNoBootstrap();
     SpatiallyNestable::addGrab(grab);
 
-    if (getDynamic() && getParentID().isNull()) {
+    if (!getParentID().isNull()) {
+        return;
+    }
+
+    int jointIndex = grab->getParentJointIndex();
+    bool isFarGrab = jointIndex == FARGRAB_RIGHTHAND_INDEX
+        || jointIndex == FARGRAB_LEFTHAND_INDEX
+        || jointIndex == FARGRAB_MOUSE_INDEX;
+
+    // GRAB HACK: FarGrab doesn't work on non-dynamic things yet, but we really really want NearGrab
+    // (aka Hold) to work for such ojects, hence we filter the useAction case like so:
+    bool useAction = getDynamic() || (_physicsInfo && !isFarGrab);
+    if (useAction) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
-        EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        EntitySimulationPointer simulation = entityTree->getSimulation();
         assert(simulation);
 
         auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
@@ -3367,12 +3443,11 @@ void EntityItem::addGrab(GrabPointer grab) {
 
         EntityDynamicType dynamicType;
         QVariantMap arguments;
-        int grabParentJointIndex =grab->getParentJointIndex();
-        if (grabParentJointIndex == FARGRAB_RIGHTHAND_INDEX || grabParentJointIndex == FARGRAB_LEFTHAND_INDEX) {
+        if (isFarGrab) {
             // add a far-grab action
             dynamicType = DYNAMIC_TYPE_FAR_GRAB;
             arguments["otherID"] = grab->getOwnerID();
-            arguments["otherJointIndex"] = grabParentJointIndex;
+            arguments["otherJointIndex"] = jointIndex;
             arguments["targetPosition"] = vec3ToQMap(grab->getPositionalOffset());
             arguments["targetRotation"] = quatToQMap(grab->getRotationalOffset());
             arguments["linearTimeScale"] = 0.05;
@@ -3393,11 +3468,22 @@ void EntityItem::addGrab(GrabPointer grab) {
         grab->setActionID(actionID);
         _grabActions[actionID] = action;
         simulation->addDynamic(action);
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
+        simulation->changeEntity(getThisPointer());
     }
 }
 
 void EntityItem::removeGrab(GrabPointer grab) {
+    int oldNumGrabs = _grabs.size();
     SpatiallyNestable::removeGrab(grab);
+    if (!getDynamic() && _grabs.size() != oldNumGrabs) {
+        // GRAB HACK: the expected behavior is for non-dynamic grabbed things to NOT be throwable
+        // so we slam the velocities to zero here whenever the number of grabs change.
+        // NOTE: if there is still another grab in effect this shouldn't interfere with the object's motion
+        // because that grab will slam the position+velocities next frame.
+        setLocalVelocity(glm::vec3(0.0f));
+        setAngularVelocity(glm::vec3(0.0f));
+    }
 
     QUuid actionID = grab->getActionID();
     if (!actionID.isNull()) {
@@ -3413,4 +3499,14 @@ void EntityItem::removeGrab(GrabPointer grab) {
         }
     }
     disableNoBootstrap();
+}
+
+void EntityItem::disableGrab(GrabPointer grab) {
+    QUuid actionID = grab->getActionID();
+    if (!actionID.isNull()) {
+        EntityDynamicPointer action = _grabActions.value(actionID);
+        if (action) {
+            action->deactivate();
+        }
+    }
 }

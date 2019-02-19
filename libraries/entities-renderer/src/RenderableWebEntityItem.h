@@ -24,31 +24,51 @@ class WebEntityRenderer : public TypedEntityRenderer<WebEntityItem> {
 
 public:
     WebEntityRenderer(const EntityItemPointer& entity);
+    ~WebEntityRenderer();
 
     Q_INVOKABLE void hoverEnterEntity(const PointerEvent& event);
     Q_INVOKABLE void hoverLeaveEntity(const PointerEvent& event);
     Q_INVOKABLE void handlePointerEvent(const PointerEvent& event);
 
+    static const QString QML;
+    static const char* URL_PROPERTY;
+
+    static void setAcquireWebSurfaceOperator(std::function<void(const QString&, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> acquireWebSurfaceOperator) { _acquireWebSurfaceOperator = acquireWebSurfaceOperator; }
+    static void acquireWebSurface(const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
+        if (_acquireWebSurfaceOperator) {
+            _acquireWebSurfaceOperator(url, htmlContent, webSurface, cachedWebSurface);
+        }
+    }
+
+    static void setReleaseWebSurfaceOperator(std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> releaseWebSurfaceOperator) { _releaseWebSurfaceOperator = releaseWebSurfaceOperator; }
+    static void releaseWebSurface(QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface, std::vector<QMetaObject::Connection>& connections) {
+        if (_releaseWebSurfaceOperator) {
+            _releaseWebSurfaceOperator(webSurface, cachedWebSurface, connections);
+        }
+    }
+
+    virtual void setProxyWindow(QWindow* proxyWindow) override;
+    virtual QObject* getEventHandler() override;
+
 protected:
-    virtual void onRemoveFromSceneTyped(const TypedEntityPointer& entity) override;
     virtual bool needsRenderUpdate() const override;
     virtual bool needsRenderUpdateFromTypedEntity(const TypedEntityPointer& entity) const override;
     virtual void doRenderUpdateSynchronousTyped(const ScenePointer& scene, Transaction& transaction, const TypedEntityPointer& entity) override;
     virtual void doRender(RenderArgs* args) override;
     virtual bool isTransparent() const override;
+    Item::Bound getBound() override;
 
     virtual bool wantsHandControllerPointerEvents() const override { return true; }
     virtual bool wantsKeyboardFocus() const override { return true; }
-    virtual void setProxyWindow(QWindow* proxyWindow) override;
-    virtual QObject* getEventHandler() override;
+
+    void handlePointerEventAsTouch(const PointerEvent& event);
+    void handlePointerEventAsMouse(const PointerEvent& event);
 
 private:
     void onTimeout();
-    bool buildWebSurface(const TypedEntityPointer& entity);
+    void buildWebSurface(const EntityItemPointer& entity, const QString& newSourceURL);
     void destroyWebSurface();
-    bool hasWebSurface();
     glm::vec2 getWindowSize(const TypedEntityPointer& entity) const;
-
 
     int _geometryId{ 0 };
     enum class ContentType {
@@ -56,23 +76,42 @@ private:
         HtmlContent,
         QmlContent
     };
-
     static ContentType getContentType(const QString& urlString);
+    ContentType _contentType { ContentType::NoContent };
 
-    ContentType _contentType{ ContentType::NoContent };
-    QSharedPointer<OffscreenQmlSurface> _webSurface;
-    glm::vec3 _contextPosition;
+    QSharedPointer<OffscreenQmlSurface> _webSurface { nullptr };
+    bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
-    QString _lastSourceUrl;
-    uint16_t _lastDPI;
+
+    glm::u8vec3 _color;
+    float _alpha { 1.0f };
+    PulsePropertyGroup _pulseProperties;
+    BillboardMode _billboardMode;
+
+    QString _sourceURL;
+    uint16_t _dpi;
+    QString _scriptURL;
+    uint8_t _maxFPS;
+    WebInputMode _inputMode;
+
+    glm::vec3 _contextPosition;
+
     QTimer _timer;
     uint64_t _lastRenderTime { 0 };
+
+    std::vector<QMetaObject::Connection> _connections;
+
+    static std::function<void(QString, bool, QSharedPointer<OffscreenQmlSurface>&, bool&)> _acquireWebSurfaceOperator;
+    static std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> _releaseWebSurfaceOperator;
+
+public slots:
+    void emitScriptEvent(const QVariant& scriptMessage);
+
+signals:
+    void scriptEventReceived(const QVariant& message);
+    void webEventReceived(const QVariant& message);
 };
 
-} } // namespace 
-
-#if 0
-    virtual void emitScriptEvent(const QVariant& message) override;
-#endif
+} }
 
 #endif // hifi_RenderableWebEntityItem_h

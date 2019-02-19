@@ -1210,6 +1210,26 @@ div#grid-section, body#entity-list-body {
     width: 200px;
     padding-top: 1px;
 }
+#filter-type-options-buttons {
+    top: -22px;
+    width: 224px;
+    z-index: 2;
+    background-color: #afafaf;
+    padding-bottom: 6px;
+}
+#filter-type-options input[type=button] {
+    position: relative;
+    left: 16px;
+    z-index: 3;
+    height: 23px;
+    min-width: 60px;
+    font-size: 10px;
+    color: #000;
+    background: linear-gradient(#afafaf 20%, #808080 100%);
+}
+#filter-type-options input[type=button]:enabled:hover {
+    background: linear-gradient(#afafaf 20%, #575757 100%);
+}
 
 #filter-search-and-icon {
     position: relative;

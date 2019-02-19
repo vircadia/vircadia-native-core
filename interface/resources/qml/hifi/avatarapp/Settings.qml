@@ -21,7 +21,7 @@ Rectangle {
     HifiControlsUit.Keyboard {
         id: keyboard
         z: 1000
-        raised: parent.keyboardEnabled && parent.keyboardRaised
+        raised: parent.keyboardEnabled && parent.keyboardRaised && HMD.active
         numeric: parent.punctuationMode
         anchors {
             left: parent.left
@@ -35,8 +35,9 @@ Rectangle {
 
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
-    property alias otherAvatarsCollisionsOn: otherAvatarsCollisionsEnabledCheckBox.checked
-    property alias environmentCollisionsOn: environmentCollisionsEnabledCheckBox.checked
+    property alias otherAvatarsCollisionsOn: otherAvatarsCollisionsEnabledRadiobutton.checked
+    property alias environmentCollisionsOn: environmentCollisionsEnabledRadiobutton.checked
+    property alias hmdAvatarAlignmentTypeIsEyes: eyesRadioButton.checked
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -56,10 +57,19 @@ Rectangle {
             rightHandRadioButton.checked = true;
         }
         if (settings.otherAvatarsCollisionsEnabled) {
-            otherAvatarsCollisionsEnabledCheckBox.checked = true;
+            otherAvatarsCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            otherAvatarsCollisionsDisabledRadiobutton.checked = true;
         }
         if (settings.collisionsEnabled) {
-            environmentCollisionsEnabledCheckBox.checked = true;
+            environmentCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            environmentCollisionsDisabledRadiobutton.checked = true;
+        }
+        if (settings.hmdAvatarAlignmentType === 'eyes') {
+            eyesRadioButton.checked = true;
+        } else {
+            headRadioButton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -206,7 +216,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
 
-            rows: 2
+            rows: 4
             rowSpacing: 25
 
             columns: 3
@@ -229,7 +239,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 1
-                Layout.leftMargin: -40
+                Layout.leftMargin: -15
 
                 ButtonGroup.group: leftRight
                 checked: true
@@ -246,7 +256,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 2
-                Layout.rightMargin: 20
+                Layout.rightMargin: -15
 
                 ButtonGroup.group: leftRight
 
@@ -256,7 +266,7 @@ Rectangle {
                 text: "Right"
                 boxSize: 20
             }
-            
+
             HifiConstants {
                 id: hifi
             }
@@ -266,16 +276,43 @@ Rectangle {
                 size: 17;
                 Layout.row: 1
                 Layout.column: 0
-                text: "Avatar collides with other avatars"
+                text: "Avatar to avatar collision"
             }
 
-            HifiControlsUit.CheckBox {
-                id: otherAvatarsCollisionsEnabledCheckBox;
-                boxSize: 20;
+            ButtonGroup {
+                id: otherAvatarsOnOff
+            }
+
+            HifiControlsUit.RadioButton {
+                id: otherAvatarsCollisionsEnabledRadiobutton
+
+                Layout.row: 1
+                Layout.column: 1
+                Layout.leftMargin: -15
+
+                ButtonGroup.group: otherAvatarsOnOff
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "On"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: otherAvatarsCollisionsDisabledRadiobutton
+
                 Layout.row: 1
                 Layout.column: 2
-                Layout.leftMargin: 60
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: otherAvatarsOnOff
+
                 colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Off"
+                boxSize: 20
             }
 
             // TextStyle9
@@ -283,17 +320,90 @@ Rectangle {
                 size: 17;
                 Layout.row: 2
                 Layout.column: 0
-                text: "Avatar collides with environment"
+                text: "Avatar to environment collision"
             }
 
-            HifiControlsUit.CheckBox {
-                id: environmentCollisionsEnabledCheckBox;
-                boxSize: 20;
+            ButtonGroup {
+                id: worldOnOff
+            }
+
+            HifiControlsUit.RadioButton {
+                id: environmentCollisionsEnabledRadiobutton
+
+                Layout.row: 2
+                Layout.column: 1
+                Layout.leftMargin: -15
+
+                ButtonGroup.group: worldOnOff
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "On"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: environmentCollisionsDisabledRadiobutton
+
                 Layout.row: 2
                 Layout.column: 2
-                Layout.leftMargin: 60
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: worldOnOff
+
                 colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Off"
+                boxSize: 20
             }
+
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
+                Layout.row: 3
+                Layout.column: 0
+                text: "HMD Alignment"
+            }
+
+            ButtonGroup {
+                id: headEyes
+            }
+
+            HifiControlsUit.RadioButton {
+                id: headRadioButton
+
+                Layout.row: 3
+                Layout.column: 1
+                Layout.leftMargin: -15
+
+                ButtonGroup.group: headEyes
+                checked: true
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Head"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: eyesRadioButton
+
+                Layout.row: 3
+                Layout.column: 2
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: headEyes
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Eyes"
+                boxSize: 20
+            }
+
         }
 
         ColumnLayout {

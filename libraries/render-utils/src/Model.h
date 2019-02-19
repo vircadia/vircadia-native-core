@@ -37,6 +37,7 @@
 #include "GeometryCache.h"
 #include "TextureCache.h"
 #include "Rig.h"
+#include "PrimitiveMode.h"
 
 // Use dual quaternion skinning!
 // Must match define in Skinning.slh
@@ -123,11 +124,7 @@ public:
     bool canCastShadow() const;
     void setCanCastShadow(bool canCastShadow, const render::ScenePointer& scene = nullptr);
 
-    void setLayeredInFront(bool isLayeredInFront, const render::ScenePointer& scene = nullptr);
-    void setLayeredInHUD(bool isLayeredInHUD, const render::ScenePointer& scene = nullptr);
-
-    bool isLayeredInFront() const;
-    bool isLayeredInHUD() const;
+    void setHifiRenderLayer(render::hifi::Layer layer, const render::ScenePointer& scene = nullptr);
 
     // Access the current RenderItemKey Global Flags used by the model and applied to the render items  representing the parts of the model.
     const render::ItemKey getRenderItemKeyGlobalFlags() const;
@@ -166,8 +163,8 @@ public:
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isHFMModelLoaded(); }
     bool isAddedToScene() const { return _addedToScene; }
 
-    void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
-    bool isWireframe() const { return _isWireframe; }
+    void setPrimitiveMode(PrimitiveMode primitiveMode);
+    PrimitiveMode getPrimitiveMode() const { return _primitiveMode; }
 
     void reset();
 
@@ -186,6 +183,7 @@ public:
     /// Provided as a convenience, will crash if !isLoaded()
     // And so that getHFMModel() isn't chained everywhere
     const HFMModel& getHFMModel() const { assert(isLoaded()); return _renderGeometry->getHFMModel(); }
+    const MaterialMapping& getMaterialMapping() const { assert(isLoaded()); return _renderGeometry->getMaterialMapping(); }
 
     bool isActive() const { return isLoaded(); }
 
@@ -376,14 +374,15 @@ signals:
 
 protected:
 
+    std::unordered_map<unsigned int, quint16> _priorityMap; // only used for materialMapping
+    std::unordered_map<unsigned int, std::vector<graphics::MaterialLayer>> _materialMapping; // generated during applyMaterialMapping
+    void applyMaterialMapping();
+
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
     /// Clear the joint states
     void clearJointState(int index);
-
-    /// Returns the index of the last free ancestor of the indexed joint, or -1 if not found.
-    int getLastFreeJointIndex(int jointIndex) const;
 
     /// \param jointIndex index of joint in model structure
     /// \param position[out] position of joint in model-frame
@@ -455,7 +454,7 @@ protected:
 
     virtual void createRenderItemSet();
 
-    bool _isWireframe;
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _useDualQuaternionSkinning { false };
 
     // debug rendering support
@@ -513,7 +512,7 @@ private:
 
     void calculateTextureInfo();
 
-    std::vector<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialName);
+    std::set<unsigned int> getMeshIDsFromMaterialID(QString parentMaterialName);
 };
 
 Q_DECLARE_METATYPE(ModelPointer)

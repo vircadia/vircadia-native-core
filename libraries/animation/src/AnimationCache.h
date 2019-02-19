@@ -34,9 +34,9 @@ public:
     Q_INVOKABLE AnimationPointer getAnimation(const QUrl& url);
 
 protected:
+    virtual QSharedPointer<Resource> createResource(const QUrl& url) override;
+    QSharedPointer<Resource> createResourceCopy(const QSharedPointer<Resource>& resource) override;
 
-    virtual QSharedPointer<Resource> createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-        const void* extra) override;
 private:
     explicit AnimationCache(QObject* parent = NULL);
     virtual ~AnimationCache() { }
@@ -50,6 +50,7 @@ Q_DECLARE_METATYPE(AnimationPointer)
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  *
@@ -62,7 +63,8 @@ class Animation : public Resource {
 
 public:
 
-    explicit Animation(const QUrl& url);
+    Animation(const Animation& other) : Resource(other), _hfmModel(other._hfmModel) {}
+    Animation(const QUrl& url) : Resource(url) {}
 
     QString getType() const override { return "Animation"; }
 

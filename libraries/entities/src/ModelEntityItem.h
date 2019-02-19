@@ -100,6 +100,9 @@ public:
     void setRelayParentJoints(bool relayJoints);
     bool getRelayParentJoints() const;
 
+    void setGroupCulled(bool value);
+    bool getGroupCulled() const;
+
     bool getAnimationIsPlaying() const;
     float getAnimationCurrentFrame() const;
     float getAnimationFPS() const;
@@ -154,12 +157,12 @@ protected:
     glm::u8vec3 _color;
     QString _modelURL;
     bool _relayParentJoints;
+    bool _groupCulled { false };
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 
     AnimationPropertyGroup _animationProperties;
 
-    mutable QReadWriteLock _texturesLock;
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;

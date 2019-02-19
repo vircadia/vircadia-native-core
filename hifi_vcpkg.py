@@ -15,8 +15,8 @@ print = functools.partial(print, flush=True)
 # Encapsulates the vcpkg system 
 class VcpkgRepo:
     CMAKE_TEMPLATE = """
-set(CMAKE_TOOLCHAIN_FILE "{}" CACHE FILEPATH "Toolchain file")
-set(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}")
+get_filename_component(CMAKE_TOOLCHAIN_FILE "{}" ABSOLUTE CACHE)
+get_filename_component(CMAKE_TOOLCHAIN_FILE_UNCACHED "{}" ABSOLUTE)
 set(VCPKG_INSTALL_ROOT "{}")
 set(VCPKG_TOOLS_DIR "{}")
 """
@@ -85,7 +85,7 @@ endif()
 
         if self.args.android:
             self.triplet = 'arm64-android'
-            self.androidPackagePath = os.path.join(self.path, 'android')
+            self.androidPackagePath = os.getenv('HIFI_ANDROID_PRECOMPILED', os.path.join(self.path, 'android'))
         else:
             self.triplet = self.hostTriplet
 
@@ -189,6 +189,18 @@ endif()
             #hifi_utils.downloadAndExtract(url, dest, hash)
             hifi_utils.downloadAndExtract(url, dest)
 
+        print("Installing additional android archives")
+        androidPackages = hifi_android.getPlatformPackages()
+        for packageName in androidPackages:
+            package = androidPackages[packageName]
+            dest = os.path.join(self.androidPackagePath, packageName)
+            if os.path.isdir(dest):
+                continue
+            url = hifi_android.getPackageUrl(package)
+            zipFile = package['file'].endswith('.zip')
+            print("Android archive {}".format(package['file']))
+            hifi_utils.downloadAndExtract(url, dest, isZip=zipFile, hash=package['checksum'], hasher=hashlib.md5())
+
     def writeTag(self):
         print("Writing tag {} to {}".format(self.tagContents, self.tagFile))
         with open(self.tagFile, 'w') as f:
@@ -203,6 +215,12 @@ endif()
         cmakeTemplate = VcpkgRepo.CMAKE_TEMPLATE
         if not self.args.android:
             cmakeTemplate += VcpkgRepo.CMAKE_TEMPLATE_NON_ANDROID
+        else:
+            precompiled = os.path.realpath(self.androidPackagePath)
+            qtCmakePrefix = os.path.realpath(os.path.join(precompiled, 'qt/lib/cmake'))
+            cmakeTemplate += 'set(HIFI_ANDROID_PRECOMPILED "{}")\n'.format(precompiled)
+            cmakeTemplate += 'set(QT_CMAKE_PREFIX_PATH "{}")\n'.format(qtCmakePrefix)
+
         cmakeConfig = cmakeTemplate.format(cmakeScript, cmakeScript, installPath, toolsPath).replace('\\', '/')
         with open(self.configFilePath, 'w') as f:
             f.write(cmakeConfig)

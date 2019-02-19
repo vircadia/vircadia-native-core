@@ -139,15 +139,21 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     return false;
 }
 
-bool checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
+bool EntityTreeElement::checkFilterSettings(const EntityItemPointer& entity, PickFilter searchFilter) {
     bool visible = entity->isVisible();
-    bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
+    entity::HostType hostType = entity->getEntityHostType();
     if ((!searchFilter.doesPickVisible() && visible) || (!searchFilter.doesPickInvisible() && !visible) ||
-        (!searchFilter.doesPickCollidable() && collidable) || (!searchFilter.doesPickNonCollidable() && !collidable) ||
-        (!searchFilter.doesPickDomainEntities() && entity->isDomainEntity()) ||
-        (!searchFilter.doesPickAvatarEntities() && entity->isAvatarEntity()) ||
-        (!searchFilter.doesPickLocalEntities() && entity->isLocalEntity())) {
+        (!searchFilter.doesPickDomainEntities() && hostType == entity::HostType::DOMAIN) ||
+        (!searchFilter.doesPickAvatarEntities() && hostType == entity::HostType::AVATAR) ||
+        (!searchFilter.doesPickLocalEntities() && hostType == entity::HostType::LOCAL)) {
         return false;
+    }
+    // We only check the collidable filters for non-local entities, because local entities are always collisionless
+    bool collidable = !entity->getCollisionless() && (entity->getShapeType() != SHAPE_TYPE_NONE);
+    if (hostType != entity::HostType::LOCAL) {
+        if ((collidable && !searchFilter.doesPickCollidable()) || (!collidable && !searchFilter.doesPickNonCollidable())) {
+            return false;
+        }
     }
     return true;
 }
@@ -187,6 +193,10 @@ EntityItemID EntityTreeElement::evalDetailedRayIntersection(const glm::vec3& ori
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
+        if (entity->getIgnorePickIntersection()) {
+            return;
+        }
+
         // use simple line-sphere for broadphase check
         // (this is faster and more likely to cull results than the filter check below so we do it first)
         bool success;
@@ -327,6 +337,10 @@ EntityItemID EntityTreeElement::evalDetailedParabolaIntersection(const glm::vec3
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
     EntityItemID entityID;
     forEachEntity([&](EntityItemPointer entity) {
+        if (entity->getIgnorePickIntersection()) {
+            return;
+        }
+
         // use simple line-sphere for broadphase check
         // (this is faster and more likely to cull results than the filter check below so we do it first)
         bool success;

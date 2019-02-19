@@ -62,7 +62,6 @@ Model::Model(QObject* parent, SpatiallyNestable* spatiallyNestableOverride) :
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
     _url(HTTP_INVALID_COM),
-    _isWireframe(false),
     _renderItemKeyGlobalFlags(render::ItemKey::Builder().withVisible().withTagBits(render::hifi::TAG_ALL_VIEWS).build())
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -223,7 +222,7 @@ void Model::updateRenderItems() {
         Transform modelTransform = self->getTransform();
         modelTransform.setScale(glm::vec3(1.0f));
 
-        bool isWireframe = self->isWireframe();
+        PrimitiveMode primitiveMode = self->getPrimitiveMode();
         auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
 
         render::Transaction transaction;
@@ -238,7 +237,7 @@ void Model::updateRenderItems() {
             bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
             transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning,
-                                                                  invalidatePayloadShapeKey, isWireframe, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
+                                                                  invalidatePayloadShapeKey, primitiveMode, renderItemKeyGlobalFlags](ModelMeshPartPayload& data) {
                 if (useDualQuaternionSkinning) {
                     data.updateClusterBuffer(meshState.clusterDualQuaternions);
                 } else {
@@ -263,7 +262,7 @@ void Model::updateRenderItems() {
                 data.updateTransformForSkinnedMesh(renderTransform, modelTransform);
 
                 data.updateKey(renderItemKeyGlobalFlags);
-                data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
+                data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
         }
 
@@ -274,6 +273,11 @@ void Model::updateRenderItems() {
 void Model::setRenderItemsNeedUpdate() {
     _renderItemsNeedUpdate = true;
     emit requestRenderUpdate();
+}
+
+void Model::setPrimitiveMode(PrimitiveMode primitiveMode) {
+    _primitiveMode = primitiveMode;
+    setRenderItemsNeedUpdate();
 }
 
 void Model::reset() {
@@ -752,7 +756,16 @@ scriptable::ScriptableModelBase Model::getScriptableModel() {
 
             int numParts = (int)mesh->getNumParts();
             for (int partIndex = 0; partIndex < numParts; partIndex++) {
-                result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, _modelMeshMaterialNames[shapeID]);
+                auto& materialName = _modelMeshMaterialNames[shapeID];
+                result.appendMaterial(graphics::MaterialLayer(getGeometry()->getShapeMaterial(shapeID), 0), shapeID, materialName);
+
+                auto mappedMaterialIter = _materialMapping.find(shapeID);
+                if (mappedMaterialIter != _materialMapping.end()) {
+                    auto mappedMaterials = mappedMaterialIter->second;
+                    for (auto& mappedMaterial : mappedMaterials) {
+                        result.appendMaterial(mappedMaterial, shapeID, materialName);
+                    }
+                }
                 shapeID++;
             }
         }
@@ -878,28 +891,12 @@ bool Model::canCastShadow() const {
     return _renderItemKeyGlobalFlags.isShadowCaster();
 }
 
-void Model::setLayeredInFront(bool layeredInFront, const render::ScenePointer& scene) {
-    if (Model::isLayeredInFront() != layeredInFront) {
+void Model::setHifiRenderLayer(render::hifi::Layer renderLayer, const render::ScenePointer& scene) {
+    if (_renderItemKeyGlobalFlags.getLayer() != renderLayer) {
         auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (layeredInFront ? keyBuilder.withLayer(render::hifi::LAYER_3D_FRONT) : keyBuilder.withoutLayer());
+        _renderItemKeyGlobalFlags = keyBuilder.withLayer(renderLayer);
         updateRenderItemsKey(scene);
     }
-}
-
-bool Model::isLayeredInFront() const {
-    return _renderItemKeyGlobalFlags.isLayer(render::hifi::LAYER_3D_FRONT);
-}
-
-void Model::setLayeredInHUD(bool layeredInHUD, const render::ScenePointer& scene) {
-    if (Model::isLayeredInHUD() != layeredInHUD) {
-        auto keyBuilder = render::ItemKey::Builder(_renderItemKeyGlobalFlags);
-        _renderItemKeyGlobalFlags = (layeredInHUD ? keyBuilder.withLayer(render::hifi::LAYER_3D_HUD) : keyBuilder.withoutLayer());
-        updateRenderItemsKey(scene);
-    }
-}
-
-bool Model::isLayeredInHUD() const {
-    return _renderItemKeyGlobalFlags.isLayer(render::hifi::LAYER_3D_HUD);
 }
 
 void Model::setTagMask(uint8_t mask, const render::ScenePointer& scene) {
@@ -920,6 +917,7 @@ void Model::setGroupCulled(bool groupCulled, const render::ScenePointer& scene) 
         updateRenderItemsKey(scene);
     }
 }
+
 bool Model::isGroupCulled() const {
     return _renderItemKeyGlobalFlags.isSubMetaCulled();
 }
@@ -967,6 +965,7 @@ bool Model::addToScene(const render::ScenePointer& scene,
     }
 
     if (somethingAdded) {
+        applyMaterialMapping();
         _addedToScene = true;
         updateRenderItems();
         _needsFixupInScene = false;
@@ -984,6 +983,7 @@ void Model::removeFromScene(const render::ScenePointer& scene, render::Transacti
     _modelMeshRenderItems.clear();
     _modelMeshMaterialNames.clear();
     _modelMeshRenderItemShapes.clear();
+    _priorityMap.clear();
 
     _blendshapeOffsets.clear();
     _blendshapeOffsetsInitialized = false;
@@ -1125,10 +1125,6 @@ void Model::setJointTranslation(int index, bool valid, const glm::vec3& translat
 
 int Model::getParentJointIndex(int jointIndex) const {
     return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).parentIndex : -1;
-}
-
-int Model::getLastFreeJointIndex(int jointIndex) const {
-    return (isActive() && jointIndex != -1) ? getHFMModel().joints.at(jointIndex).freeLineage.last() : -1;
 }
 
 void Model::setTextures(const QVariantMap& textures) {
@@ -1486,44 +1482,119 @@ bool Model::isRenderable() const {
     return !_meshStates.empty() || (isLoaded() && _renderGeometry->getMeshes().empty());
 }
 
-std::vector<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {
-    // try to find all meshes with materials that match parentMaterialName as a string
-    // if none, return parentMaterialName as a uint
-    std::vector<unsigned int> toReturn;
-    const QString MATERIAL_NAME_PREFIX = "mat::";
-    if (parentMaterialName.startsWith(MATERIAL_NAME_PREFIX)) {
-        parentMaterialName.replace(0, MATERIAL_NAME_PREFIX.size(), QString(""));
-        for (unsigned int i = 0; i < (unsigned int)_modelMeshMaterialNames.size(); i++) {
-            if (_modelMeshMaterialNames[i] == parentMaterialName.toStdString()) {
-                toReturn.push_back(i);
-            }
-        }
-    }
+std::set<unsigned int> Model::getMeshIDsFromMaterialID(QString parentMaterialName) {
+    std::set<unsigned int> toReturn;
 
-    if (toReturn.empty()) {
-        toReturn.push_back(parentMaterialName.toUInt());
+    const QString all("all");
+    if (parentMaterialName == all) {
+        for (unsigned int i = 0; i < (unsigned int)_modelMeshRenderItemIDs.size(); i++) {
+            toReturn.insert(i);
+        }
+    } else if (!parentMaterialName.isEmpty()) {
+        auto parseFunc = [this, &toReturn] (QString& target) {
+            if (target.isEmpty()) {
+                return;
+            }
+            // if target starts with "mat::", try to find all meshes with materials that match target as a string
+            // otherwise, return target as a uint
+            const QString MATERIAL_NAME_PREFIX("mat::");
+            if (target.startsWith(MATERIAL_NAME_PREFIX)) {
+                std::string targetStdString = target.replace(0, MATERIAL_NAME_PREFIX.size(), "").toStdString();
+                for (unsigned int i = 0; i < (unsigned int)_modelMeshMaterialNames.size(); i++) {
+                    if (_modelMeshMaterialNames[i] == targetStdString) {
+                        toReturn.insert(i);
+                    }
+                }
+                return;
+            }
+            toReturn.insert(target.toUInt());
+        };
+
+        if (parentMaterialName.length() > 2 && parentMaterialName.startsWith("[") && parentMaterialName.endsWith("]")) {
+            QStringList list = parentMaterialName.split(",", QString::SkipEmptyParts);
+            for (int i = 0; i < list.length(); i++) {
+                auto& target = list[i];
+                if (i == 0) {
+                    target = target.replace(0, 1, "");
+                }
+                if (i == list.length() - 1) {
+                    target = target.replace(target.length() - 1, 1, "");
+                }
+                parseFunc(target);
+            }
+        } else {
+            parseFunc(parentMaterialName);
+        }
     }
 
     return toReturn;
 }
 
+void Model::applyMaterialMapping() {
+    auto renderItemsKey = _renderItemKeyGlobalFlags;
+    PrimitiveMode primitiveMode = getPrimitiveMode();
+    bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+
+    auto& materialMapping = getMaterialMapping();
+    for (auto& mapping : materialMapping) {
+        std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(mapping.first.c_str()));
+        auto networkMaterialResource = mapping.second;
+        if (!networkMaterialResource || shapeIDs.size() == 0) {
+            continue;
+        }
+
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+            if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
+                return;
+            }
+            render::Transaction transaction;
+            auto networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+            for (auto shapeID : shapeIDs) {
+                if (shapeID < _modelMeshRenderItemIDs.size()) {
+                    auto itemID = _modelMeshRenderItemIDs[shapeID];
+                    auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
+                    bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
+                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, ++_priorityMap[shapeID]);
+                    _materialMapping[shapeID].push_back(material);
+                    transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
+                            invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
+                        data.addMaterial(material);
+                        // if the material changed, we might need to update our item key or shape key
+                        data.updateKey(renderItemsKey);
+                        data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
+                    });
+                }
+            }
+            AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
+        };
+
+        if (networkMaterialResource->isLoaded()) {
+            materialLoaded();
+        } else {
+            connect(networkMaterialResource.data(), &Resource::finished, materialLoaded);
+        }
+    }
+}
+
 void Model::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+    std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+
+    auto renderItemsKey = _renderItemKeyGlobalFlags;
+    PrimitiveMode primitiveMode = getPrimitiveMode();
+    bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
+
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
             auto itemID = _modelMeshRenderItemIDs[shapeID];
-            auto renderItemsKey = _renderItemKeyGlobalFlags;
-            bool wireframe = isWireframe();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-            bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
-                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
+                invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.addMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(renderItemsKey);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
+                data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
         }
     }
@@ -1531,22 +1602,22 @@ void Model::addMaterial(graphics::MaterialLayer material, const std::string& par
 }
 
 void Model::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    std::vector<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
+    std::set<unsigned int> shapeIDs = getMeshIDsFromMaterialID(QString(parentMaterialName.c_str()));
     render::Transaction transaction;
     for (auto shapeID : shapeIDs) {
         if (shapeID < _modelMeshRenderItemIDs.size()) {
             auto itemID = _modelMeshRenderItemIDs[shapeID];
             auto renderItemsKey = _renderItemKeyGlobalFlags;
-            bool wireframe = isWireframe();
+            PrimitiveMode primitiveMode = getPrimitiveMode();
             auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
             bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
             bool useDualQuaternionSkinning = _useDualQuaternionSkinning;
             transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
-                invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
+                invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {
                 data.removeMaterial(material);
                 // if the material changed, we might need to update our item key or shape key
                 data.updateKey(renderItemsKey);
-                data.setShapeKey(invalidatePayloadShapeKey, wireframe, useDualQuaternionSkinning);
+                data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
             });
         }
     }

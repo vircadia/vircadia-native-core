@@ -88,7 +88,6 @@ public:
     virtual void computeCollisionGroupAndMask(int32_t& group, int32_t& mask) const override;
 
     bool shouldSendBid() const;
-    uint8_t computeFinalBidPriority() const;
 
     bool isLocallyOwned() const override;
     bool isLocallyOwnedOrShouldBe() const override; // aka shouldEmitCollisionEvents()
@@ -100,6 +99,7 @@ public:
     void saveKinematicState(btScalar timeStep) override;
 
 protected:
+    uint8_t computeFinalBidPriority() const;
     void updateSendVelocities();
     uint64_t getNextBidExpiry() const { return _nextBidExpiry; }
     void initForBid();

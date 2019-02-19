@@ -198,14 +198,14 @@ Script.include("/~/system/libraries/controllers.js");
 
             var playAreaOverlayProperties = {
                 dimensions:
-                    Vec3.multiply(this.teleportScaleFactor * avatarScale, {
-                        x: this.playArea.width,
-                        y: this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y,
-                        z: this.playArea.height
+                    Vec3.multiply(_this.teleportScaleFactor * avatarScale, {
+                        x: _this.playArea.width,
+                        y: _this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y,
+                        z: _this.playArea.height
                     })
             };
 
-            if (this.teleportScaleFactor < 1) {
+            if (_this.teleportScaleFactor < 1) {
                 // Adjust position of playAreOverlay so that its base is at correct height.
                 // Always parenting to teleport target is good enough for this.
                 var sensorToWorldMatrix = MyAvatar.sensorToWorldMatrix;
@@ -214,37 +214,37 @@ Script.include("/~/system/libraries/controllers.js");
                 var avatarSensorPosition = Mat4.transformPoint(worldToSensorMatrix, MyAvatar.position);
                 avatarSensorPosition.y = 0;
 
-                var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
+                var targetRotation = Overlays.getProperty(_this.targetOverlayID, "rotation");
                 var relativePlayAreaCenterOffset =
-                    Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
+                    Vec3.sum(_this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
                 var localPosition = Vec3.multiplyQbyV(Quat.inverse(targetRotation),
                     Vec3.multiplyQbyV(sensorToWorldRotation,
                         Vec3.multiply(avatarScale, Vec3.subtract(relativePlayAreaCenterOffset, avatarSensorPosition))));
-                localPosition.y = this.teleportScaleFactor * localPosition.y;
+                localPosition.y = _this.teleportScaleFactor * localPosition.y;
 
-                playAreaOverlayProperties.parentID = this.targetOverlayID;
+                playAreaOverlayProperties.parentID = _this.targetOverlayID;
                 playAreaOverlayProperties.localPosition = localPosition;
             }
 
-            Overlays.editOverlay(this.playAreaOverlay, playAreaOverlayProperties);
+            Overlays.editOverlay(_this.playAreaOverlay, playAreaOverlayProperties);
 
-            for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
-                localPosition = this.playAreaSensorPositions[i];
+            for (var i = 0; i < _this.playAreaSensorPositionOverlays.length; i++) {
+                localPosition = _this.playAreaSensorPositions[i];
                 localPosition = Vec3.multiply(avatarScale, localPosition);
                 // Position relative to the play area.
-                localPosition.y = avatarScale * (this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
-                    - this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2);
-                Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
-                    dimensions: Vec3.multiply(this.teleportScaleFactor * avatarScale, this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
-                    parentID: this.playAreaOverlay,
+                localPosition.y = avatarScale * (_this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS.y / 2
+                    - _this.PLAY_AREA_OVERLAY_MODEL_DIMENSIONS.y / 2);
+                Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], {
+                    dimensions: Vec3.multiply(_this.teleportScaleFactor * avatarScale, _this.PLAY_AREA_SENSOR_OVERLAY_DIMENSIONS),
+                    parentID: _this.playAreaOverlay,
                     localPosition: localPosition
                 });
             }
         };
 
         this.updatePlayAreaScale = function () {
-            if (this.isPlayAreaAvailable) {
-                this.setPlayAreaDimensions();
+            if (_this.isPlayAreaAvailable) {
+                _this.setPlayAreaDimensions();
             }
         };
 
@@ -267,7 +267,7 @@ Script.include("/~/system/libraries/controllers.js");
             for (var i = 0, length = teleportRenderStates.length; i < length; i++) {
                 var state = properties.renderStates[teleportRenderStates[i].name];
                 if (state && state.end) {
-                    Selection.addToSelectedItemsList(this.teleporterSelectionName, "overlay", state.end);
+                    Selection.addToSelectedItemsList(_this.teleporterSelectionName, "overlay", state.end);
                 }
             }
         };
@@ -450,34 +450,34 @@ Script.include("/~/system/libraries/controllers.js");
         this.translateZAction = Controller.findAction("TranslateZ");
 
         this.setPlayAreaVisible = function (visible, targetOverlayID, fade) {
-            if (!this.isPlayAreaAvailable || this.isPlayAreaVisible === visible) {
+            if (!_this.isPlayAreaAvailable || _this.isPlayAreaVisible === visible) {
                 return;
             }
 
-            this.wasPlayAreaVisible = this.isPlayAreaVisible;
-            this.isPlayAreaVisible = visible;
-            this.targetOverlayID = targetOverlayID;
+            _this.wasPlayAreaVisible = _this.isPlayAreaVisible;
+            _this.isPlayAreaVisible = visible;
+            _this.targetOverlayID = targetOverlayID;
 
-            if (this.teleportedFadeTimer !== null) {
-                Script.clearTimeout(this.teleportedFadeTimer);
-                this.teleportedFadeTimer = null;
+            if (_this.teleportedFadeTimer !== null) {
+                Script.clearTimeout(_this.teleportedFadeTimer);
+                _this.teleportedFadeTimer = null;
             }
             if (visible || !fade) {
                 // Immediately make visible or invisible.
-                this.isPlayAreaVisible = visible;
-                Overlays.editOverlay(this.playAreaOverlay, {
+                _this.isPlayAreaVisible = visible;
+                Overlays.editOverlay(_this.playAreaOverlay, {
                     dimensions: Vec3.ZERO,
-                    alpha: this.PLAY_AREA_BOX_ALPHA,
+                    alpha: _this.PLAY_AREA_BOX_ALPHA,
                     visible: visible
                 });
-                for (var i = 0; i < this.playAreaSensorPositionOverlays.length; i++) {
-                    Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], {
+                for (var i = 0; i < _this.playAreaSensorPositionOverlays.length; i++) {
+                    Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], {
                         dimensions: Vec3.ZERO,
-                        alpha: this.PLAY_AREA_SENSOR_ALPHA,
+                        alpha: _this.PLAY_AREA_SENSOR_ALPHA,
                         visible: visible
                     });
                 }
-                Overlays.editOverlay(this.teleportedTargetOverlay, { visible: false });
+                Overlays.editOverlay(_this.teleportedTargetOverlay, { visible: false });
             } else {
                 // Fading out of overlays is initiated in setTeleportVisible().
             }
@@ -496,22 +496,22 @@ Script.include("/~/system/libraries/controllers.js");
             var MIN_PARENTING_DISTANCE = 0.2; // Parenting under this distance results in the play area's rotation jittering.
             if (Vec3.distance(targetXZPosition, avatarXZPosition) < MIN_PARENTING_DISTANCE) {
                 // Set play area position and rotation in world coordinates with no parenting.
-                Overlays.editOverlay(this.playAreaOverlay, {
+                Overlays.editOverlay(_this.playAreaOverlay, {
                     parentID: Uuid.NULL,
                     position: Vec3.sum(position,
                         Vec3.multiplyQbyV(sensorToWorldRotation,
                             Vec3.multiply(MyAvatar.sensorToWorldScale,
-                                Vec3.subtract(this.playAreaCenterOffset, avatarSensorPosition)))),
+                                Vec3.subtract(_this.playAreaCenterOffset, avatarSensorPosition)))),
                     rotation: sensorToWorldRotation
                 });
             } else {
                 // Set play area position and rotation in local coordinates with parenting.
-                var targetRotation = Overlays.getProperty(this.targetOverlayID, "rotation");
+                var targetRotation = Overlays.getProperty(_this.targetOverlayID, "rotation");
                 var sensorToTargetRotation = Quat.multiply(Quat.inverse(targetRotation), sensorToWorldRotation);
                 var relativePlayAreaCenterOffset =
-                    Vec3.sum(this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
-                Overlays.editOverlay(this.playAreaOverlay, {
-                    parentID: this.targetOverlayID,
+                    Vec3.sum(_this.playAreaCenterOffset, { x: 0, y: -TARGET_MODEL_DIMENSIONS.y / 2, z: 0 });
+                Overlays.editOverlay(_this.playAreaOverlay, {
+                    parentID: _this.targetOverlayID,
                     localPosition: Vec3.multiplyQbyV(Quat.inverse(targetRotation),
                         Vec3.multiplyQbyV(sensorToWorldRotation,
                             Vec3.multiply(MyAvatar.sensorToWorldScale,
@@ -580,33 +580,33 @@ Script.include("/~/system/libraries/controllers.js");
                     }
                 }
                 _this.teleportedFadeTimer = null;
-                Selection.disableListHighlight(this.teleporterSelectionName);
+                Selection.disableListHighlight(_this.teleporterSelectionName);
             }
         };
 
         this.cancelFade = function () {
             // Other hand may call this to immediately hide fading overlays.
             var i, length;
-            if (this.teleportedFadeTimer) {
-                Overlays.editOverlay(this.teleportedTargetOverlay, { visible: false });
-                if (this.wasPlayAreaVisible) {
-                    Overlays.editOverlay(this.playAreaOverlay, { visible: false });
-                    for (i = 0, length = this.playAreaSensorPositionOverlays.length; i < length; i++) {
-                        Overlays.editOverlay(this.playAreaSensorPositionOverlays[i], { visible: false });
+            if (_this.teleportedFadeTimer) {
+                Overlays.editOverlay(_this.teleportedTargetOverlay, { visible: false });
+                if (_this.wasPlayAreaVisible) {
+                    Overlays.editOverlay(_this.playAreaOverlay, { visible: false });
+                    for (i = 0, length = _this.playAreaSensorPositionOverlays.length; i < length; i++) {
+                        Overlays.editOverlay(_this.playAreaSensorPositionOverlays[i], { visible: false });
                     }
                 }
-                this.teleportedFadeTimer = null;
+                _this.teleportedFadeTimer = null;
             }
         };
 
         this.setTeleportVisible = function (visible, mode, fade) {
             // Scales in teleport target and play area when start displaying them.
-            if (visible === this.isTeleportVisible) {
+            if (visible === _this.isTeleportVisible) {
                 return;
             }
 
             if (visible) {
-                this.teleportScaleMode = mode;
+                _this.teleportScaleMode = mode;
                 Pointers.editRenderState(
                     mode === "head" ? _this.teleportParabolaHeadVisuals : _this.teleportParabolaHandVisuals,
                     "teleport",
@@ -615,42 +615,42 @@ Script.include("/~/system/libraries/controllers.js");
                         end: { dimensions: Vec3.ZERO }
                     }
                 );
-                this.getOtherModule().cancelFade();
-                this.teleportScaleStart = Date.now();
-                this.teleportScaleFactor = 0;
-                this.scaleInTeleport();
-                Selection.enableListHighlight(this.teleporterSelectionName, this.TELEPORTER_SELECTION_STYLE);
+                _this.getOtherModule().cancelFade();
+                _this.teleportScaleStart = Date.now();
+                _this.teleportScaleFactor = 0;
+                _this.scaleInTeleport();
+                Selection.enableListHighlight(_this.teleporterSelectionName, _this.TELEPORTER_SELECTION_STYLE);
             } else {
-                if (this.teleportScaleTimer !== null) {
-                    Script.clearTimeout(this.teleportScaleTimer);
-                    this.teleportScaleTimer = null;
+                if (_this.teleportScaleTimer !== null) {
+                    Script.clearTimeout(_this.teleportScaleTimer);
+                    _this.teleportScaleTimer = null;
                 }
 
                 if (fade) {
                     // Copy of target at teleported position for fading.
                     var avatarScale = MyAvatar.sensorToWorldScale;
-                    Overlays.editOverlay(this.teleportedTargetOverlay, {
-                        position: Vec3.sum(this.teleportedPosition, {
+                    Overlays.editOverlay(_this.teleportedTargetOverlay, {
+                        position: Vec3.sum(_this.teleportedPosition, {
                             x: 0,
                             y: -getAvatarFootOffset() + avatarScale * TARGET_MODEL_DIMENSIONS.y / 2,
                             z: 0
                         }),
-                        rotation: Quat.multiply(this.TELEPORTED_TARGET_ROTATION, MyAvatar.orientation),
+                        rotation: Quat.multiply(_this.TELEPORTED_TARGET_ROTATION, MyAvatar.orientation),
                         dimensions: Vec3.multiply(avatarScale, TARGET_MODEL_DIMENSIONS),
-                        alpha: this.TELEPORTED_TARGET_ALPHA,
+                        alpha: _this.TELEPORTED_TARGET_ALPHA,
                         visible: true
                     });
 
                     // Fade out over time.
-                    this.teleportedFadeDelayFactor = 1.0;
-                    this.teleportedFadeFactor = 1.0;
-                    this.teleportedFadeTimer = Script.setTimeout(this.fadeOutTeleport, this.TELEPORTED_FADE_DELAY);
+                    _this.teleportedFadeDelayFactor = 1.0;
+                    _this.teleportedFadeFactor = 1.0;
+                    _this.teleportedFadeTimer = Script.setTimeout(_this.fadeOutTeleport, _this.TELEPORTED_FADE_DELAY);
                 } else {
-                    Selection.disableListHighlight(this.teleporterSelectionName);
+                    Selection.disableListHighlight(_this.teleporterSelectionName);
                 }
             }
 
-            this.isTeleportVisible = visible;
+            _this.isTeleportVisible = visible;
         };
 
 
@@ -737,7 +737,7 @@ Script.include("/~/system/libraries/controllers.js");
             100);
 
         this.enterTeleport = function() {
-            this.state = TELEPORTER_STATES.TARGETTING;
+            _this.state = TELEPORTER_STATES.TARGETTING;
         };
 
         this.isReady = function(controllerData, deltaTime) {
@@ -807,23 +807,23 @@ Script.include("/~/system/libraries/controllers.js");
 
             if (teleportLocationType === TARGET.NONE) {
                 // Use the cancel default state
-                this.setTeleportState(mode, "cancel", "");
+                _this.setTeleportState(mode, "cancel", "");
             } else if (teleportLocationType === TARGET.INVALID) {
-                this.setTeleportState(mode, "", "cancel");
+                _this.setTeleportState(mode, "", "cancel");
             } else if (teleportLocationType === TARGET.COLLIDES) {
-                this.setTeleportState(mode, "cancel", "collision");
+                _this.setTeleportState(mode, "cancel", "collision");
             } else if (teleportLocationType === TARGET.SURFACE || teleportLocationType === TARGET.DISCREPANCY) {
-                this.setTeleportState(mode, "teleport", "collision");
-                this.updatePlayArea(result.intersection);
+                _this.setTeleportState(mode, "teleport", "collision");
+                _this.updatePlayArea(result.intersection);
             } else if (teleportLocationType === TARGET.SEAT) {
-                this.setTeleportState(mode, "collision", "seat");
+                _this.setTeleportState(mode, "collision", "seat");
             }
-            return this.teleport(result, teleportLocationType);
+            return _this.teleport(result, teleportLocationType);
         };
 
         this.teleport = function(newResult, target) {
             var result = newResult;
-            this.teleportedPosition = newResult.intersection;
+            _this.teleportedPosition = newResult.intersection;
             if (!_this.shouldTeleport()) {
                 return makeRunningValues(true, [], []);
             }
@@ -841,14 +841,14 @@ Script.include("/~/system/libraries/controllers.js");
                 MyAvatar.centerBody();
             }
 
-            this.disableLasers();
-            this.active = false;
+            _this.disableLasers();
+            _this.active = false;
             return makeRunningValues(false, [], []);
         };
 
         this.disableLasers = function() {
-            this.setPlayAreaVisible(false, null, true);
-            this.setTeleportVisible(false, null, true);
+            _this.setPlayAreaVisible(false, null, true);
+            _this.setTeleportVisible(false, null, true);
             Pointers.disablePointer(_this.teleportParabolaHandVisuals);
             Pointers.disablePointer(_this.teleportParabolaHandCollisions);
             Pointers.disablePointer(_this.teleportParabolaHeadVisuals);
@@ -861,10 +861,10 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.setTeleportState = function (mode, visibleState, invisibleState) {
             var teleportState = mode + visibleState + invisibleState;
-            if (teleportState === this.teleportState) {
+            if (teleportState === _this.teleportState) {
                 return;
             }
-            this.teleportState = teleportState;
+            _this.teleportState = teleportState;
 
             var pointerID;
             if (mode === 'head') {
@@ -877,16 +877,16 @@ Script.include("/~/system/libraries/controllers.js");
                 pointerID = _this.teleportParabolaHandVisuals;
             }
             var visible = visibleState === "teleport";
-            this.setPlayAreaVisible(visible && MyAvatar.showPlayArea,
+            _this.setPlayAreaVisible(visible && MyAvatar.showPlayArea,
                 Pointers.getPointerProperties(pointerID).renderStates.teleport.end, false);
-            this.setTeleportVisible(visible, mode, false);
+            _this.setTeleportVisible(visible, mode, false);
         };
 
         this.setIgnoreEntities = function(entitiesToIgnore) {
-            Pointers.setIgnoreItems(this.teleportParabolaHandVisuals, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportParabolaHandCollisions, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportParabolaHeadVisuals, entitiesToIgnore);
-            Pointers.setIgnoreItems(this.teleportParabolaHeadCollisions, entitiesToIgnore);
+            Pointers.setIgnoreItems(_this.teleportParabolaHandVisuals, entitiesToIgnore);
+            Pointers.setIgnoreItems(_this.teleportParabolaHandCollisions, entitiesToIgnore);
+            Pointers.setIgnoreItems(_this.teleportParabolaHeadVisuals, entitiesToIgnore);
+            Pointers.setIgnoreItems(_this.teleportParabolaHeadCollisions, entitiesToIgnore);
             Picks.setIgnoreItems(_this.teleportHeadCollisionPick, entitiesToIgnore);
             Picks.setIgnoreItems(_this.teleportHandCollisionPick, entitiesToIgnore);
         };

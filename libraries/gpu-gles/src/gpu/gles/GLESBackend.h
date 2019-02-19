@@ -48,6 +48,7 @@ public:
     class GLESTexture : public GLTexture {
         using Parent = GLTexture;
         friend class GLESBackend;
+        friend class GLESFramebuffer;
         GLuint allocate(const Texture& texture);
     protected:
         GLESTexture(const std::weak_ptr<GLBackend>& backend, const Texture& buffer);

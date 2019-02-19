@@ -19,13 +19,12 @@ Windows.ScrollingWindow {
     width: 800
     height: 800
     resizable: true
-    
     Hifi.InfoView {
         id: infoView
         width: pane.contentWidth
         implicitHeight: pane.scrollHeight
 
-        WebView {
+        BaseWebView {
             id: webview
             objectName: "WebView"
             anchors.fill: parent

@@ -40,7 +40,7 @@ public:
 protected:
 };
 
-class DrawOverlay3DConfig : public render::Job::Config {
+class DrawLayered3DConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
         Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
@@ -58,13 +58,13 @@ protected:
     int numDrawn{ 0 };
 };
 
-class DrawOverlay3D {
+class DrawLayered3D {
 public:
     using Inputs = render::VaryingSet3<render::ItemBounds, LightingModelPointer, glm::vec2>;
-    using Config = DrawOverlay3DConfig;
-    using JobModel = render::Job::ModelI<DrawOverlay3D, Inputs, Config>;
+    using Config = DrawLayered3DConfig;
+    using JobModel = render::Job::ModelI<DrawLayered3D, Inputs, Config>;
 
-    DrawOverlay3D(bool opaque);
+    DrawLayered3D(bool opaque);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
@@ -77,10 +77,12 @@ protected:
 
 class CompositeHUD {
 public:
-    using JobModel = render::Job::Model<CompositeHUD>;
+    // IF specified the input Framebuffer is actively set by the batch of this job before calling the HUDOperator.
+    // If not, the current Framebuffer is left unchanged.
+    //using Inputs = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelI<CompositeHUD, gpu::FramebufferPointer>;
 
-    CompositeHUD() {}
-    void run(const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& inputs);
 };
 
 class Blit {
@@ -89,6 +91,28 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
+
+
+class ResolveFramebuffer {
+public:
+    using Inputs = render::VaryingSet2<gpu::FramebufferPointer, gpu::FramebufferPointer>;
+    using Outputs = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelIO<ResolveFramebuffer, Inputs, Outputs>;
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
+};
+
+class ResolveNewFramebuffer {
+public:
+    using Inputs = gpu::FramebufferPointer;
+    using Outputs = gpu::FramebufferPointer;
+    using JobModel = render::Job::ModelIO<ResolveNewFramebuffer, Inputs, Outputs>;
+
+    void run(const render::RenderContextPointer& renderContext, const Inputs& source, Outputs& dest);
+private:
+    gpu::FramebufferPointer _outputFramebuffer;
+};
+
 
 class ExtractFrustums {
 public:

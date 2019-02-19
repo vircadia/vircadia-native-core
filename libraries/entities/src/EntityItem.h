@@ -37,8 +37,6 @@
 #include "EntityDynamicInterface.h"
 #include "GrabPropertyGroup.h"
 
-#include "graphics/Material.h"
-
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -293,6 +291,15 @@ public:
     bool isVisibleInSecondaryCamera() const;
     void setIsVisibleInSecondaryCamera(bool value);
 
+    RenderLayer getRenderLayer() const;
+    void setRenderLayer(RenderLayer value);
+
+    PrimitiveMode getPrimitiveMode() const;
+    void setPrimitiveMode(PrimitiveMode value);
+
+    bool getIgnorePickIntersection() const;
+    void setIgnorePickIntersection(bool value);
+
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
@@ -533,10 +540,6 @@ public:
     virtual void preDelete();
     virtual void postParentFixup() {}
 
-    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
-    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
-    std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
-
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
@@ -552,6 +555,10 @@ public:
 
     virtual void addGrab(GrabPointer grab) override;
     virtual void removeGrab(GrabPointer grab) override;
+    virtual void disableGrab(GrabPointer grab) override;
+
+    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
+    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode) { return _getBillboardRotationOperator(position, rotation, billboardMode); }
 
 signals:
     void requestRenderUpdate();
@@ -621,7 +628,10 @@ protected:
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
     bool _isVisibleInSecondaryCamera { ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA };
+    RenderLayer _renderLayer { RenderLayer::WORLD };
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
+    bool _ignorePickIntersection { false };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
@@ -738,9 +748,7 @@ protected:
     QHash<QUuid, EntityDynamicPointer> _grabActions;
 
 private:
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
-
+    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> _getBillboardRotationOperator;
 };
 
 #endif // hifi_EntityItem_h

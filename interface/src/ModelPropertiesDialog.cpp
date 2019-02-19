@@ -58,11 +58,6 @@ _hfmModel(hfmModel)
     form->addRow("Left Hand Joint:", _leftHandJoint = createJointBox());
     form->addRow("Right Hand Joint:", _rightHandJoint = createJointBox());
 
-    form->addRow("Free Joints:", _freeJoints = new QVBoxLayout());
-    QPushButton* newFreeJoint = new QPushButton("New Free Joint");
-    _freeJoints->addWidget(newFreeJoint);
-    connect(newFreeJoint, SIGNAL(clicked(bool)), SLOT(createNewFreeJoint()));
-
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
                                                      QDialogButtonBox::Cancel | QDialogButtonBox::Reset);
     connect(buttons, SIGNAL(accepted()), SLOT(accept()));
@@ -102,11 +97,6 @@ QVariantHash ModelPropertiesDialog::getMapping() const {
     insertJointMapping(joints, "jointLeftHand", _leftHandJoint->currentText());
     insertJointMapping(joints, "jointRightHand", _rightHandJoint->currentText());
 
-    mapping.remove(FREE_JOINT_FIELD);
-    for (int i = 0; i < _freeJoints->count() - 1; i++) {
-        QComboBox* box = static_cast<QComboBox*>(_freeJoints->itemAt(i)->widget()->layout()->itemAt(0)->widget());
-        mapping.insertMulti(FREE_JOINT_FIELD, box->currentText());
-    }
     mapping.insert(JOINT_FIELD, joints);
 
     return mapping;
@@ -133,16 +123,6 @@ void ModelPropertiesDialog::reset() {
     setJointText(_headJoint, jointHash.value("jointHead").toString());
     setJointText(_leftHandJoint, jointHash.value("jointLeftHand").toString());
     setJointText(_rightHandJoint, jointHash.value("jointRightHand").toString());
-
-    while (_freeJoints->count() > 1) {
-        delete _freeJoints->itemAt(0)->widget();
-    }
-    foreach (const QVariant& joint, _originalMapping.values(FREE_JOINT_FIELD)) {
-        QString jointName = joint.toString();
-        if (_hfmModel.jointIndices.contains(jointName)) {
-            createNewFreeJoint(jointName);
-        }
-    }
 }
 
 void ModelPropertiesDialog::chooseTextureDirectory() {
@@ -174,20 +154,6 @@ void ModelPropertiesDialog::chooseScriptDirectory() {
 
 void ModelPropertiesDialog::updatePivotJoint() {
     _pivotJoint->setEnabled(!_pivotAboutCenter->isChecked());
-}
-
-void ModelPropertiesDialog::createNewFreeJoint(const QString& joint) {
-    QWidget* freeJoint = new QWidget();
-    QHBoxLayout* freeJointLayout = new QHBoxLayout();
-    freeJointLayout->setContentsMargins(QMargins());
-    freeJoint->setLayout(freeJointLayout);
-    QComboBox* jointBox = createJointBox(false);
-    jointBox->setCurrentText(joint);
-    freeJointLayout->addWidget(jointBox, 1);
-    QPushButton* deleteJoint = new QPushButton("Delete");
-    freeJointLayout->addWidget(deleteJoint);
-    freeJoint->connect(deleteJoint, SIGNAL(clicked(bool)), SLOT(deleteLater()));
-    _freeJoints->insertWidget(_freeJoints->count() - 1, freeJoint);
 }
 
 QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
