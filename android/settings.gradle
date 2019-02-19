@@ -12,18 +12,26 @@ project(':qt').projectDir = new File(settingsDir, 'libraries/qt')
 // Applications
 //
 
-include ':interface'
-project(':interface').projectDir = new File(settingsDir, 'apps/interface')
+if (!getSettings().hasProperty("SUPPRESS_INTERFACE")) {
+    include ':interface'
+    project(':interface').projectDir = new File(settingsDir, 'apps/interface')
+}
 
-include ':questInterface'
-project(':questInterface').projectDir = new File(settingsDir, 'apps/questInterface')
+if (!getSettings().hasProperty("SUPPRESS_QUEST_INTERFACE")) {
+    include ':questInterface'
+    project(':questInterface').projectDir = new File(settingsDir, 'apps/questInterface')
+}
 
 //
 // Test projects
 //
 
-include ':framePlayer'
-project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
+if (!getSettings().hasProperty("SUPPRESS_FRAME_PLAYER")) {
+    include ':framePlayer'
+    project(':framePlayer').projectDir = new File(settingsDir, 'apps/framePlayer')
+}
 
-include ':questFramePlayer'
-project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')
+if (!getSettings().hasProperty("SUPPRESS_QUEST_FRAME_PLAYER")) {
+    include ':questFramePlayer'
+    project(':questFramePlayer').projectDir = new File(settingsDir, 'apps/questFramePlayer')
+}
