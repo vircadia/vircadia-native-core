@@ -63,13 +63,6 @@ Overlays::Overlays() {
     ADD_TYPE_MAP(PolyLine, line3d);
     ADD_TYPE_MAP(Grid, grid);
     ADD_TYPE_MAP(Gizmo, circle3d);
-
-    auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP,
-                                                  PickFilter(PickFilter::getBitMask(PickFilter::FlagBit::LOCAL_ENTITIES) |
-                                                             PickFilter::getBitMask(PickFilter::FlagBit::VISIBLE)), 0.0f, true);
-    mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
-    mouseRayPick->setJointState(PickQuery::JOINT_STATE_MOUSE);
-    _mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
 }
 
 void Overlays::cleanupAllOverlays() {
@@ -86,15 +79,7 @@ void Overlays::cleanupAllOverlays() {
     cleanupOverlaysToDelete();
 }
 
-void Overlays::init() {
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-    connect(this, &Overlays::hoverEnterOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity);
-    connect(this, &Overlays::hoverOverOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity);
-    connect(this, &Overlays::hoverLeaveOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity);
-    connect(this, &Overlays::mousePressOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity);
-    connect(this, &Overlays::mouseMoveOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(this, &Overlays::mouseReleaseOnOverlay, entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity);
-}
+void Overlays::init() {}
 
 void Overlays::update(float deltatime) {
     cleanupOverlaysToDelete();
@@ -1232,12 +1217,12 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-RayToOverlayIntersectionResult getPrevPickResult(unsigned int mouseRayPickID) {
+RayToOverlayIntersectionResult getPrevPickResult() {
     RayToOverlayIntersectionResult overlayResult;
     overlayResult.intersects = false;
-    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(mouseRayPickID);
+    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(DependencyManager::get<EntityTreeRenderer>()->getMouseRayPickID());
     if (pickResult) {
-        overlayResult.intersects = pickResult->type != IntersectionType::NONE;
+        overlayResult.intersects = pickResult->type == IntersectionType::LOCAL_ENTITY;
         if (overlayResult.intersects) {
             overlayResult.intersection = pickResult->intersection;
             overlayResult.distance = pickResult->distance;
@@ -1285,7 +1270,7 @@ std::pair<float, QUuid> Overlays::mousePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mousePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -1309,7 +1294,7 @@ bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
     if (rayPickResult.intersects) {
         _currentClickingOnOverlayID = rayPickResult.overlayID;
 
@@ -1325,7 +1310,7 @@ bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
         mouseReleasePointerEvent(rayPickResult.overlayID, pointerEvent);
@@ -1347,7 +1332,7 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
 
     PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult(_mouseRayPickID);
+    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
     if (rayPickResult.intersects) {
         auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
         mouseMovePointerEvent(rayPickResult.overlayID, pointerEvent);
