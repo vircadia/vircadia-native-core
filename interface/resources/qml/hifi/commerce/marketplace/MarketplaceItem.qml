@@ -33,11 +33,11 @@ Rectangle {
     property string creator: ""
     property var categories: []
     property int price: 0
+    property string availability: "unknown"
     property var attributions: []
     property string description: ""
     property string license: ""
     property string posted: ""
-    property bool available: false
     property string created_at: ""
     property bool isLoggedIn: false;
     property int edition: -1;
@@ -264,9 +264,15 @@ Rectangle {
             }
             height: 50 
 
-            text: root.edition >= 0 ? "UPGRADE FOR FREE" : (root.available ?  (root.price ? root.price : "FREE") : "UNAVAILABLE (not for sale)")
-            enabled: root.edition >= 0 || root.available
-            buttonGlyph: root.available ? (root.price ? hifi.glyphs.hfc : "") : ""
+            property bool isNFS: availability === "not for sale" // Note: server will say "sold out" or "invalidated" before it says NFS
+            property bool isMine: creator === Account.username
+            property bool isUpgrade: root.edition >= 0
+            property int costToMe: ((isMine && isNFS) || isUpgrade) ? 0 : price
+            property bool isAvailable: costToMe >= 0
+
+            text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : availability)
+            enabled: isAvailable
+            buttonGlyph: isAvailable ? (costToMe ? hifi.glyphs.hfc : "") : ""
             color: hifi.buttons.blue
             
             onClicked: root.buy();
