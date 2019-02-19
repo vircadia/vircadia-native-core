@@ -417,7 +417,7 @@ public:
     unsigned int getDownloadAttempts() { return _attempts; }
     unsigned int getDownloadAttemptsRemaining() { return _attemptsRemaining; }
 
-    virtual void setExtra(void* extra, bool isNewExtra) {};
+    virtual void setExtra(void* extra) {};
     void setExtraHash(size_t extraHash) { _extraHash = extraHash; }
     size_t getExtraHash() const { return _extraHash; }
 

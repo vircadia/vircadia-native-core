@@ -64,7 +64,7 @@ public:
 
     Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
 
-    void setExtra(void* extra, bool isNewExtra) override;
+    void setExtra(void* extra) override;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
@@ -136,12 +136,12 @@ private:
     // mip offsets to change.
     ktx::KTXDescriptorPointer _originalKtxDescriptor;
 
-
     int _originalWidth { 0 };
     int _originalHeight { 0 };
     int _width { 0 };
     int _height { 0 };
     int _maxNumPixels { ABSOLUTE_MAX_TEXTURE_NUM_PIXELS };
+    QByteArray _content;
 
     friend class TextureCache;
 };
