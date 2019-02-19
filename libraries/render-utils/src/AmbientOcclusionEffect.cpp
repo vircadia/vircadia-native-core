@@ -205,7 +205,7 @@ gpu::TexturePointer AmbientOcclusionFramebuffer::getNormalTexture() {
 }
 
 AmbientOcclusionEffectConfig::AmbientOcclusionEffectConfig() :
-    render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion", false),
+    render::GPUJobConfig::Persistent(QStringList() << "Render" << "Engine" << "Ambient Occlusion"),
     perspectiveScale{ 1.0f },
     edgeSharpness{ 1.0f },
     blurRadius{ 4 },

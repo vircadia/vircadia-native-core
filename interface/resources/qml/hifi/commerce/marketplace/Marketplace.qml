@@ -31,8 +31,9 @@ Rectangle {
     id: root
 
     property string activeView: "initialize"
-    property int currentSortIndex: 0
+    property int currentSortIndex: 1
     property string sortString: "recent"
+    property bool isAscending: false
     property string categoryString: ""
     property string searchString: ""
     property bool keyboardEnabled: HMD.active
@@ -120,7 +121,7 @@ Rectangle {
                 marketplaceItem.description = result.data.description;
                 marketplaceItem.attributions = result.data.attributions;
                 marketplaceItem.license = result.data.license;
-                marketplaceItem.available = result.data.availability === "available";
+                marketplaceItem.availability = result.data.availability;
                 marketplaceItem.created_at = result.data.created_at;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
@@ -316,23 +317,28 @@ Rectangle {
                 font.pixelSize: hifi.fontSizes.textFieldInput
                 placeholderText: "Search Marketplace"
 
+                Timer {
+                    id: keypressTimer
+                    running: false
+                    repeat: false
+                    interval: 300
+                    onTriggered: searchField.accepted()
+
+                }
+
                 // workaround for https://bugreports.qt.io/browse/QTBUG-49297
                 Keys.onPressed: {
                     switch (event.key) {
                         case Qt.Key_Return: 
                         case Qt.Key_Enter: 
                             event.accepted = true;
+                            searchField.text = "";
 
-                            // emit accepted signal manually
-                            if (acceptableInput) {
-                                searchField.accepted();
-                                searchField.forceActiveFocus();
-                            }
+                            getMarketplaceItems();
+                            searchField.forceActiveFocus();
                         break;
-                        case Qt.Key_Backspace:
-                            if (searchField.text === "") {
-                                primaryFilter_index = -1;
-                            }
+                        default:
+                            keypressTimer.restart();
                         break;
                     }
                 }
@@ -498,6 +504,7 @@ Rectangle {
                     "",
                     "",
                     root.sortString,
+                    root.isAscending,
                     WalletScriptingInterface.limitedCommerce,
                     marketBrowseModel.currentPageToRetrieve,
                     marketBrowseModel.itemsPerPage
@@ -532,7 +539,7 @@ Rectangle {
                 creator: model.creator
                 category: model.primary_category
                 price: model.cost
-                available: model.availability === "available"
+                availability: model.availability
                 isLoggedIn: root.isLoggedIn;
 
                 onShowItem: {
@@ -704,7 +711,7 @@ Rectangle {
                         topMargin: 10;
                         leftMargin: 15;
                     }
-                    height: visible ? childrenRect.height : 0
+                    height: visible ? 36 : 0
 
                     RalewayRegular {
                         id: sortText
@@ -726,8 +733,9 @@ Rectangle {
                             top: parent.top
                             leftMargin: 20
                         }
-                        width: root.isLoggedIn ? 322 : 242
-                        height: 36
+
+                        width: root.isLoggedIn ? 342 : 262
+                        height: parent.height
 
                         radius: 4
                         border.width: 1
@@ -737,27 +745,27 @@ Rectangle {
                             id: sortModel
 
                             ListElement {
-                                name: "Name";
-                                glyph: ";"
+                                name: "Name"
                                 sortString: "alpha"
+                                ascending: true
                             }
 
                             ListElement {
-                                name: "Date";
-                                glyph: ";";
-                                sortString: "recent";
+                                name: "Date"
+                                sortString: "recent"
+                                ascending: false
                             }
 
                             ListElement {
-                                name: "Popular";
-                                glyph: ";";
-                                sortString: "likes";
+                                name: "Popular"
+                                sortString: "likes"
+                                ascending: false
                             }
 
                             ListElement {
-                                name: "My Likes";
-                                glyph: ";";
-                                sortString: "my_likes";
+                                name: "My Likes"
+                                sortString: "my_likes"
+                                ascending: false
                             }
                         }
                     
@@ -783,10 +791,10 @@ Rectangle {
                             currentIndex: 1;
                             
                             delegate: SortButton {
-                                width: 80
+                                width: 85
                                 height: parent.height
 
-                                glyph: model.glyph
+                                ascending: model.ascending
                                 text: model.name
                                 
                                 visible: root.isLoggedIn || model.sortString != "my_likes"
@@ -794,6 +802,12 @@ Rectangle {
                                 checked: ListView.isCurrentItem
 
                                 onClicked: {
+                                    if(root.currentSortIndex == index) {
+                                        ascending = !ascending;
+                                    } else {
+                                        ascending = model.ascending;
+                                    }
+                                    root.isAscending = ascending;
                                     root.currentSortIndex = index;
                                     sortListView.positionViewAtIndex(index, ListView.Beginning);
                                     sortListView.currentIndex = index;
@@ -802,7 +816,7 @@ Rectangle {
                                 }                            
                             }
                             highlight: Rectangle {
-                                width: 80
+                                width: 85
                                 height: parent.height
 
                                 color: hifi.colors.faintGray
@@ -1124,6 +1138,8 @@ Rectangle {
                 leftMargin: 15
                 fill: parent
             }
+
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
             RalewayRegular {
                 id: licenseText

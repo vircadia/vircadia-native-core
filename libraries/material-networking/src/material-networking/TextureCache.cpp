@@ -368,16 +368,17 @@ static bool isLocalUrl(const QUrl& url) {
     return (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
 }
 
-void NetworkTexture::setExtra(void* extra) {
+void NetworkTexture::setExtra(void* extra, bool isNewExtra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
     _type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
     _maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
     _sourceChannel = textureExtra ? textureExtra->sourceChannel : image::ColorChannel::NONE;
 
-    if (_textureSource) {
-        _textureSource->setUrl(_url);
-        _textureSource->setType((int)_type);
-    } else {
+    if (isNewExtra && !_loaded) {
+        _startedLoading = false;
+    }
+
+    if (!_textureSource || isNewExtra) {
         _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
     }
     _lowestRequestedMipLevel = 0;

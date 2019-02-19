@@ -65,7 +65,6 @@ public slots:
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID);
-    void contextOverlays_mousePressOnOverlay(const QUuid& id, const PointerEvent& event);
     void contextOverlays_hoverEnterOverlay(const QUuid& id, const PointerEvent& event);
     void contextOverlays_hoverLeaveOverlay(const QUuid& id, const PointerEvent& event);
     void contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event);

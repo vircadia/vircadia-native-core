@@ -88,6 +88,11 @@ protected:
 
     glm::uvec2 getSurfaceSize() const;
     glm::uvec2 getSurfacePixels() const;
+    // Some display plugins require us to always execute some present logic,
+    // whether we have a frame or not (Oculus Mobile plugin)
+    // Such plugins must be prepared to do the right thing if the `_currentFrame`
+    // is not populated
+    virtual bool alwaysPresent() const { return false; }
 
     void updateCompositeFramebuffer();
 

@@ -73,6 +73,7 @@ public:
     static void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { _calculateEntityLoadingPriorityFunc = fn; }
 
     void setMouseRayPickID(unsigned int rayPickID) { _mouseRayPickID = rayPickID; }
+    unsigned int getMouseRayPickID() { return _mouseRayPickID; }
     void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(unsigned int)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
     void setSetPrecisionPickingOperator(std::function<void(unsigned int, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
 
@@ -119,6 +120,16 @@ public:
     workload::SpacePointer getWorkloadSpace() const { return _space; }
 
     EntityEditPacketSender* getPacketSender();
+
+    static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
+    static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
+    static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+
+    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
+    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
+    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
+    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
 
 signals:
     void enterEntity(const EntityItemID& entityItemID);
@@ -254,6 +265,11 @@ private:
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space{ new workload::Space() };
     workload::Transaction::Updates _spaceUpdates;
+
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
+    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
 
 };
 

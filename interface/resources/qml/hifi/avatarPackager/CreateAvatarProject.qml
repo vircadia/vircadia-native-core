@@ -32,7 +32,7 @@ Item {
                     return;
                 }
                 avatarProject.reset();
-                avatarPackager.state = AvatarPackagerState.project;
+                avatarPackager.state = AvatarPackagerState.avatarDoctorDiagnose;
             }
         }
     }

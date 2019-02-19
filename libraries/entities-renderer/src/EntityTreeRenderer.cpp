@@ -86,7 +86,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     auto handlePointerEvent = [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
-        if (entity && entity->getType() == EntityTypes::Web) {
+        if (entity && entity->isVisible() && entity->getType() == EntityTypes::Web) {
             thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
         }
         if (thisEntity) {
@@ -99,7 +99,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
-        if (entity && entity->getType() == EntityTypes::Web) {
+        if (entity && entity->isVisible() && entity->getType() == EntityTypes::Web) {
             thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
         }
         if (thisEntity) {
@@ -110,7 +110,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
-        if (entity && entity->getType() == EntityTypes::Web) {
+        if (entity && entity->isVisible() && entity->getType() == EntityTypes::Web) {
             thisEntity = std::static_pointer_cast<render::entities::WebEntityRenderer>(renderableForEntityId(entityID));
         }
         if (thisEntity) {
@@ -1359,4 +1359,37 @@ EntityEditPacketSender* EntityTreeRenderer::getPacketSender() {
     PhysicalEntitySimulationPointer peSimulation = std::static_pointer_cast<PhysicalEntitySimulation>(simulation);
     EntityEditPacketSender* packetSender = peSimulation ? peSimulation->getPacketSender() : nullptr;
     return packetSender;
+}
+
+std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTreeRenderer::_addMaterialToEntityOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTreeRenderer::_removeMaterialFromEntityOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTreeRenderer::_addMaterialToAvatarOperator = nullptr;
+std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTreeRenderer::_removeMaterialFromAvatarOperator = nullptr;
+
+bool EntityTreeRenderer::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    if (_addMaterialToEntityOperator) {
+        return _addMaterialToEntityOperator(entityID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTreeRenderer::removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    if (_removeMaterialFromEntityOperator) {
+        return _removeMaterialFromEntityOperator(entityID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTreeRenderer::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    if (_addMaterialToAvatarOperator) {
+        return _addMaterialToAvatarOperator(avatarID, material, parentMaterialName);
+    }
+    return false;
+}
+
+bool EntityTreeRenderer::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    if (_removeMaterialFromAvatarOperator) {
+        return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialName);
+    }
+    return false;
 }

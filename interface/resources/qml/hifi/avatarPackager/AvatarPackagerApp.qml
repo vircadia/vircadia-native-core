@@ -144,6 +144,18 @@ Item {
                 PropertyChanges { target: avatarPackagerFooter; content: createAvatarProject.footer }
             },
             State {
+                name: AvatarPackagerState.avatarDoctorDiagnose
+                PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                PropertyChanges { target: avatarDoctorDiagnose; visible: true }
+                PropertyChanges { target: avatarPackagerFooter; content: avatarDoctorDiagnose.footer }
+            },
+            State {
+                name: AvatarPackagerState.avatarDoctorErrorReport
+                PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name }
+                PropertyChanges { target: avatarDoctorErrorReport; visible: true }
+                PropertyChanges { target: avatarPackagerFooter; content: avatarDoctorErrorReport.footer }
+            },
+            State {
                 name: AvatarPackagerState.project
                 PropertyChanges { target: avatarPackagerHeader; title: AvatarPackagerCore.currentAvatarProject.name; canRename: true }
                 PropertyChanges { target: avatarProject; visible: true }
@@ -168,7 +180,7 @@ Item {
                 return status;
             }
             avatarProject.reset();
-            avatarPackager.state = AvatarPackagerState.project;
+            avatarPackager.state = AvatarPackagerState.avatarDoctorDiagnose;
             return status;
         }
 
@@ -240,6 +252,23 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 color: "#404040"
+            }
+
+            AvatarDoctorDiagnose {
+                id: avatarDoctorDiagnose
+                anchors.fill: parent
+                onErrorsChanged: {
+                    avatarDoctorErrorReport.errors = avatarDoctorDiagnose.errors;
+                }
+                onDoneDiagnosing: {
+                    avatarPackager.state = avatarDoctorDiagnose.errors.length > 0 ? AvatarPackagerState.avatarDoctorErrorReport
+                                                                                  : AvatarPackagerState.project;
+                }
+            }
+
+            AvatarDoctorErrorReport {
+                id: avatarDoctorErrorReport
+                anchors.fill: parent
             }
 
             AvatarProject {
@@ -383,6 +412,7 @@ Item {
                                 title: modelData.name
                                 path: modelData.projectPath
                                 onOpen: avatarPackager.openProject(modelData.path)
+                                hasError: modelData.hadErrors
                             }
                         }
                     }

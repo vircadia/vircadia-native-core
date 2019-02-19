@@ -12,8 +12,6 @@
 #include "EntityItem.h"
 
 #include "MaterialMappingMode.h"
-#include <model-networking/ModelCache.h>
-#include <material-networking/MaterialCache.h>
 
 class MaterialEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<MaterialEntityItem>;
@@ -21,12 +19,8 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     MaterialEntityItem(const EntityItemID& entityItemID);
-    ~MaterialEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
-
-    void update(const quint64& now) override;
-    bool needsToCallUpdate() const override { return true; }
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
@@ -52,44 +46,30 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    QString getMaterialURL() const { return _materialURL; }
-    void setMaterialURL(const QString& materialURLString, bool materialDataChanged = false);
+    QString getMaterialURL() const;
+    void setMaterialURL(const QString& materialURL);
 
-    void setCurrentMaterialName(const std::string& currentMaterialName);
+    QString getMaterialData() const;
+    void setMaterialData(const QString& materialData);
 
-    MaterialMappingMode getMaterialMappingMode() const { return _materialMappingMode; }
+    MaterialMappingMode getMaterialMappingMode() const;
     void setMaterialMappingMode(MaterialMappingMode mode);
 
     bool getMaterialRepeat() const { return _materialRepeat; }
-    void setMaterialRepeat(bool repeat);
+    void setMaterialRepeat(bool repeat) { _materialRepeat = repeat; }
 
-    quint16 getPriority() const { return _priority; }
+    quint16 getPriority() const;
     void setPriority(quint16 priority);
 
-    QString getParentMaterialName() const { return _parentMaterialName; }
+    QString getParentMaterialName() const;
     void setParentMaterialName(const QString& parentMaterialName);
 
-    glm::vec2 getMaterialMappingPos() const { return _materialMappingPos; }
+    glm::vec2 getMaterialMappingPos() const;
     void setMaterialMappingPos(const glm::vec2& materialMappingPos);
-    glm::vec2 getMaterialMappingScale() const { return _materialMappingScale; }
+    glm::vec2 getMaterialMappingScale() const;
     void setMaterialMappingScale(const glm::vec2& materialMappingScale);
-    float getMaterialMappingRot() const { return _materialMappingRot; }
-    void setMaterialMappingRot(const float& materialMappingRot);
-
-    QString getMaterialData() const { return _materialData; }
-    void setMaterialData(const QString& materialData);
-
-    std::shared_ptr<NetworkMaterial> getMaterial() const;
-
-    void setParentID(const QUuid& parentID) override;
-
-    void locationChanged(bool tellPhysics) override;
-    void dimensionsChanged() override;
-
-    void applyMaterial();
-    void removeMaterial();
-
-    void postParentFixup() override;
+    float getMaterialMappingRot() const;
+    void setMaterialMappingRot(float materialMappingRot);
 
     AACube calculateInitialQueryAACube(bool& success) override;
 
@@ -127,12 +107,6 @@ private:
     // How much to rotate this material within its parent's UV-space (degrees)
     float _materialMappingRot { 0 };
     QString _materialData;
-
-    NetworkMaterialResourcePointer _networkMaterial;
-    NetworkMaterialResource::ParsedMaterials _parsedMaterials;
-    std::string _currentMaterialName;
-
-    bool _retryApply { false };
 
 };
 

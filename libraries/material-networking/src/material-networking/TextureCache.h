@@ -64,7 +64,7 @@ public:
 
     Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
 
-    void setExtra(void* extra) override;
+    void setExtra(void* extra, bool isNewExtra) override;
 
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
