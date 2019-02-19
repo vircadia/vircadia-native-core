@@ -375,6 +375,8 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP(animationSettings, animation);
     } else if (type == "Image") {
         RENAME_PROP(url, imageURL);
+    } else if (type == "Text") {
+        RENAME_PROP(color, textColor);
     } else if (type == "Web") {
         RENAME_PROP(url, sourceUrl);
         RENAME_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "Mouse" ? "mouse" : "touch"; });
@@ -675,6 +677,8 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
         RENAME_PROP(animation, animationSettings);
     } else if (type == "Image") {
         RENAME_PROP(imageURL, url);
+    } else if (type == "Text") {
+        RENAME_PROP(textColor, color);
     } else if (type == "Web") {
         RENAME_PROP(sourceUrl, url);
         RENAME_PROP_CONVERT(inputMode, inputMode, [](const QVariant& v) { return v.toString() == "mouse" ? "Mouse" : "Touch"; });
