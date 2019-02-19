@@ -47,7 +47,7 @@ public class PermissionsChecker extends Activity {
     }
 
     private void launchActivityWithPermissions() {
-        startActivity(new Intent(this, OculusMobileActivity.class));
+        startActivity(new Intent(this, InterfaceActivity.class));
         finish();
     }
 
