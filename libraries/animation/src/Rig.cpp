@@ -1723,8 +1723,9 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     } else {
         unitAxis = Vectors::UNIT_Y;
     }
+
     float yFactor = (fabsf(armToHand[1] / defaultArmLength) * weights[1]) + biases[1];
-    
+
     float zFactor;
     if (armToHand[1] > 0.0f) {
         zFactor = weights[2] * glm::max(zStart - (armToHand[2] / defaultArmLength), 0.0f) * glm::max(fabsf((armToHand[1] - 0.1f) / defaultArmLength), 0.0f);
@@ -1739,7 +1740,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     } else {
         xFactor = weights[0] * (((armToHand[0] / defaultArmLength) + xStart) - (0.2f) * ((1.0f + (armToHand[1] / defaultArmLength)) / 2.0f));
     }
-    
+
     float theta = xFactor + yFactor + zFactor;
     //float theta = yFactor;
 
@@ -1766,7 +1767,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     AnimPose updatedBase = shoulderPose * deltaRot;
     AnimPose newAbsMid = updatedBase * relMid;
 
-    /*
+
     // now we calculate the contribution of the hand rotation relative to the arm
     // we are adding in the delta rotation so that we have the hand correction relative to the
     // latest theta for hand position
@@ -1799,7 +1800,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         // put some smoothing on the theta
         _ulnarRadialThetaRunningAverageRight = 0.75f * _ulnarRadialThetaRunningAverageRight + 0.25f * ulnarDeviationTheta;
     }
-    
+
     //get the flex/extension of the wrist rotation
     glm::quat flex;
     glm::quat nonFlex;
@@ -1825,7 +1826,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         // put some smoothing on the theta
         _flexThetaRunningAverageRight = 0.5f * _flexThetaRunningAverageRight + 0.5f * flexTheta;
     }
-    
+
     glm::quat twist;
     glm::quat nonTwist;
     swingTwistDecomposition(relativeHandRotation, Vectors::UNIT_Y, nonTwist, twist);
@@ -1849,13 +1850,11 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         // put some smoothing on the theta
         _twistThetaRunningAverageRight = 0.5f * _twistThetaRunningAverageRight + 0.5f * trueTwistTheta;
     }
-    
-    if (!left) {
-        qCDebug(animation) << "flex ave: " << (_flexThetaRunningAverageRight / PI) * 180.0f << "    twist ave: " << (_twistThetaRunningAverageRight / PI) * 180.0f << "   ulnar deviation ave: " << (_ulnarRadialThetaRunningAverageRight / PI) * 180.0f;
-    }
-    
-    const float FLEX_BOUNDARY = PI / 6.0f;
-    const float EXTEND_BOUNDARY = -PI / 4.0f;
+
+
+    float currentWristCoefficient = 0.0f;
+    const float FLEX_BOUNDARY = 0.0f; // PI / 6.0f;
+    const float EXTEND_BOUNDARY = 0.0f; //-PI / 4.0f;
     float flexCorrection = 0.0f;
     if (left) {
         if (_flexThetaRunningAverageLeft > FLEX_BOUNDARY) {
@@ -1863,22 +1862,21 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         } else if (_flexThetaRunningAverageLeft < EXTEND_BOUNDARY) {
             flexCorrection = ((_flexThetaRunningAverageLeft - EXTEND_BOUNDARY) / PI) * 180.0f;
         }
-        if (fabsf(flexCorrection) > 30.0f) {
-            flexCorrection = glm::sign(flexCorrection) * 30.0f;
+        if (fabsf(flexCorrection) > 175.0f) {
+            flexCorrection = glm::sign(flexCorrection) * 175.0f;
         }
-        theta += flexCorrection;
+        currentWristCoefficient += flexCorrection;
     } else {
         if (_flexThetaRunningAverageRight > FLEX_BOUNDARY) {
             flexCorrection = ((_flexThetaRunningAverageRight - FLEX_BOUNDARY) / PI) * 180.0f;
         } else if (_flexThetaRunningAverageRight < EXTEND_BOUNDARY) {
             flexCorrection = ((_flexThetaRunningAverageRight - EXTEND_BOUNDARY) / PI) * 180.0f;
         }
-        if (fabsf(flexCorrection) > 30.0f) {
-            flexCorrection = glm::sign(flexCorrection) * 30.0f;
+        if (fabsf(flexCorrection) > 175.0f) {
+            flexCorrection = glm::sign(flexCorrection) * 175.0f;
         }
-        theta -= flexCorrection;
+        currentWristCoefficient -= flexCorrection;
     }
-    
 
     const float ULNAR_BOUNDARY_MINUS = -PI / 6.0f;
     const float ULNAR_BOUNDARY_PLUS = PI / 4.0f;
@@ -1901,18 +1899,11 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
                 } else {
                     ulnarCorrection += glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 80.0f * twistCoefficient;
                 }
-            } else {
-                // right hand
-                if (_twistThetaRunningAverageLeft > 0.0f) {
-                    ulnarCorrection -= glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 80.0f * twistCoefficient;
-                } else {
-                    ulnarCorrection += glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 80.0f * twistCoefficient;
-                }
             }
             if (fabsf(ulnarCorrection) > 20.0f) {
                 ulnarCorrection = glm::sign(ulnarCorrection) * 20.0f;
             }
-            theta += ulnarCorrection;
+            currentWristCoefficient += ulnarCorrection;
         }
     } else {
         if (_ulnarRadialThetaRunningAverageRight > ULNAR_BOUNDARY_PLUS) {
@@ -1931,22 +1922,14 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
                 } else {
                     ulnarCorrection += glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 80.0f * twistCoefficient;
                 }
-            } else {
-                // right hand
-                if (_twistThetaRunningAverageRight > 0.0f) {
-                    ulnarCorrection -= glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 80.0f * twistCoefficient;
-                } else {
-                    ulnarCorrection += glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 80.0f * twistCoefficient;
-                }
             }
             if (fabsf(ulnarCorrection) > 20.0f) {
                 ulnarCorrection = glm::sign(ulnarCorrection) * 20.0f;
             }
-            theta += ulnarCorrection;
+            currentWristCoefficient += ulnarCorrection;
         }
     }
 
-    
     const float TWIST_DEADZONE = (4 * PI) / 9.0f;
     float twistCorrection = 0.0f;
     if (left) {
@@ -1960,11 +1943,24 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     }
     // limit the twist correction
     if (fabsf(twistCorrection) > 30.0f) {
-        theta += glm::sign(twistCorrection) * 30.0f;
+        currentWristCoefficient += glm::sign(twistCorrection) * 30.0f;
     } else {
-        theta += twistCorrection;
+        currentWristCoefficient += twistCorrection;
     }
-    */
+
+    if (left) {
+        _lastWristCoefficientLeft = _lastThetaLeft - theta;
+        _lastWristCoefficientLeft += currentWristCoefficient;
+        theta += _lastWristCoefficientLeft;
+    } else {
+        _lastWristCoefficientRight = _lastThetaRight - theta;
+        _lastWristCoefficientRight += currentWristCoefficient;
+        theta += _lastWristCoefficientRight;
+    }
+
+    if (left) {
+        qCDebug(animation) << "theta " << theta << "Last wrist" << _lastWristCoefficientLeft << " flex ave: " << (_flexThetaRunningAverageLeft / PI) * 180.0f << " twist ave: " << (_twistThetaRunningAverageLeft / PI) * 180.0f << " ulnar deviation ave: " << (_ulnarRadialThetaRunningAverageLeft / PI) * 180.0f;
+    }
 
     // global limiting
     float thetaRadians = 0.0f;
@@ -1973,9 +1969,7 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         _lastThetaLeft = 0.5f * _lastThetaLeft + 0.5f * theta;
 
         if (fabsf(_lastThetaLeft) < 50.0f) {
-            if (fabsf(_lastThetaLeft) < 50.0f) {
-                _lastThetaLeft = glm::sign(_lastThetaLeft) * 50.0f;
-            }
+            _lastThetaLeft = glm::sign(_lastThetaLeft) * 50.0f;
         }
         if (fabsf(_lastThetaLeft) > 175.0f) {
             _lastThetaLeft = glm::sign(_lastThetaLeft) * 175.0f;
@@ -1986,10 +1980,9 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         // final global smoothing
         _lastThetaRight = 0.5f * _lastThetaRight + 0.5f * theta;
 
-        if (fabsf(_lastThetaRight) < 50.0f) {
-            if (fabsf(_lastThetaRight) < 50.0f) {
-                _lastThetaRight = glm::sign(_lastThetaRight) * 50.0f;
-            }
+
+        if (fabsf(_lastThetaRight) < 10.0f) {
+            _lastThetaRight = glm::sign(_lastThetaRight) * 10.0f;
         }
         if (fabsf(_lastThetaRight) > 175.0f) {
             _lastThetaRight = glm::sign(_lastThetaRight) * 175.0f;
@@ -2010,14 +2003,6 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     generateBasisVectors(fwd, up, u, v, w);
     AnimPose armAxisPose(glm::mat4(glm::vec4(-w, 0.0f), glm::vec4(v, 0.0f), glm::vec4(u, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
     poleVector = armAxisPose * thetaVector;
-
-    if (left) {
-        //qCDebug(animation) << "theta vector  " << thetaVector;
-        //qCDebug(animation) << "fwd  " << fwd;
-        //qCDebug(animation) << "the x is  " << w;
-        //qCDebug(animation) << "the y is  " << v;
-        //qCDebug(animation) << "the z is  " << u;
-    }
 
     return true;
 }

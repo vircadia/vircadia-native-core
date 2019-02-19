@@ -117,13 +117,15 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     if (axisLength > MIN_LENGTH && refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH &&
         refVectorProjLength > MIN_LENGTH && poleVectorProjLength > MIN_LENGTH) {
 
-        float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), 0.0f, 1.0f);
+        float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), -1.0f, 1.0f);
         float sideDot = glm::dot(poleVector, sideVector);
         float theta = copysignf(1.0f, sideDot) * acosf(dot);
 
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
-        //qCDebug(animation) << "anim ik theta " << (theta/PI)*180.0f;
+        if (_tipJointName == "RightHand") {
+            qCDebug(animation) << "anim ik theta " << (theta / PI)*180.0f;
+        }
 
         // transform result back into parent relative frame.
         glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * deltaRot * basePose.rot();

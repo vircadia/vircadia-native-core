@@ -428,6 +428,8 @@ protected:
     float _ulnarRadialThetaRunningAverageRight { 0.0f };
     float _lastThetaLeft { 0.0f };
     float _lastThetaRight { 0.0f };
+    float _lastWristCoefficientRight { 0.0f };
+    float _lastWristCoefficientLeft { 0.0f };
 
     AnimContext _lastContext;
     AnimVariantMap _lastAnimVars;
