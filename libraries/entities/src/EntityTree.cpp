@@ -2953,53 +2953,21 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToEntityOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromEntityOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToOverlayOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromOverlayOperator = nullptr;
+std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
+std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
 
-bool EntityTree::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToEntityOperator) {
-        return _addMaterialToEntityOperator(entityID, material, parentMaterialName);
+QObject* EntityTree::getEntityObject(const QUuid& id) {
+    if (_getEntityObjectOperator) {
+        return _getEntityObjectOperator(id);
     }
-    return false;
+    return nullptr;
 }
 
-bool EntityTree::removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromEntityOperator) {
-        return _removeMaterialFromEntityOperator(entityID, material, parentMaterialName);
+QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
+    if (_textSizeOperator) {
+        return _textSizeOperator(id, text);
     }
-    return false;
-}
-
-bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToAvatarOperator) {
-        return _addMaterialToAvatarOperator(avatarID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromAvatarOperator) {
-        return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToOverlayOperator) {
-        return _addMaterialToOverlayOperator(overlayID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromOverlayOperator) {
-        return _removeMaterialFromOverlayOperator(overlayID, material, parentMaterialName);
-    }
-    return false;
+    return QSizeF(0.0f, 0.0f);
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

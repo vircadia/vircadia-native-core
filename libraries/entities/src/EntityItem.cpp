@@ -49,6 +49,8 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 QString EntityItem::_marketplacePublicKey;
 
+std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> EntityItem::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode) { return rotation; };
+
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
 {
@@ -2170,6 +2172,12 @@ void EntityItem::enableNoBootstrap() {
     if (!(bool)(_flags & Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING)) {
         _flags |= Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        // NOTE: unlike disableNoBootstrap() below, we do not call simulation->changeEntity() here
+        // because most enableNoBootstrap() cases are already correctly handled outside this scope
+        // and I didn't want to add redundant work.
+        // TODO: cleanup Grabs & dirtySimulationFlags to be more efficient and make more sense.
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
@@ -2184,11 +2192,19 @@ void EntityItem::disableNoBootstrap() {
     if (!stillHasGrabActions()) {
         _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
+
+        EntityTreePointer entityTree = getTree();
+        assert(entityTree);
+        EntitySimulationPointer simulation = entityTree->getSimulation();
+        assert(simulation);
+        simulation->changeEntity(getThisPointer());
+
         forEachDescendant([&](SpatiallyNestablePointer child) {
             if (child->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(child);
                 entity->markDirtyFlags(Simulation::DIRTY_COLLISION_GROUP);
                 entity->clearSpecialFlags(Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING);
+                simulation->changeEntity(entity);
             }
         });
     }
@@ -3234,25 +3250,6 @@ void EntityItem::setSpaceIndex(int32_t index) {
 void EntityItem::preDelete() {
 }
 
-void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].push(material);
-}
-
-void EntityItem::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].remove(material);
-}
-
-std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterials() {
-    std::unordered_map<std::string, graphics::MultiMaterial> toReturn;
-    {
-        std::lock_guard<std::mutex> lock(_materialsLock);
-        toReturn = _materials;
-    }
-    return toReturn;
-}
-
 bool EntityItem::getCloneable() const {
     bool result;
     withReadLock([&] {
@@ -3438,7 +3435,7 @@ void EntityItem::addGrab(GrabPointer grab) {
     if (useAction) {
         EntityTreePointer entityTree = getTree();
         assert(entityTree);
-        EntitySimulationPointer simulation = entityTree ? entityTree->getSimulation() : nullptr;
+        EntitySimulationPointer simulation = entityTree->getSimulation();
         assert(simulation);
 
         auto actionFactory = DependencyManager::get<EntityDynamicFactoryInterface>();
@@ -3487,7 +3484,6 @@ void EntityItem::removeGrab(GrabPointer grab) {
         setLocalVelocity(glm::vec3(0.0f));
         setAngularVelocity(glm::vec3(0.0f));
     }
-    markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
 
     QUuid actionID = grab->getActionID();
     if (!actionID.isNull()) {

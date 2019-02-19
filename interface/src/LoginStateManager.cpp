@@ -170,7 +170,7 @@ void LoginStateManager::setUp() {
     const unsigned int leftHand = 0;
     QVariantMap leftPointerProperties {
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND" },
-        { "filter", PickScriptingInterface::PICK_OVERLAYS() },
+        { "filter", PickScriptingInterface::PICK_LOCAL_ENTITIES() },
         { "triggers", leftPointerTriggerProperties },
         { "posOffset", vec3toVariant(grabPointSphereOffsetLeft + malletOffset) },
         { "hover", true },
@@ -197,7 +197,7 @@ void LoginStateManager::setUp() {
     rightPointerTriggerProperties = QList<QVariant>({rtClick1, rtClick2});
     QVariantMap rightPointerProperties{
         { "joint", "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" },
-        { "filter", PickScriptingInterface::PICK_OVERLAYS() },
+        { "filter", PickScriptingInterface::PICK_LOCAL_ENTITIES() },
         { "triggers", rightPointerTriggerProperties },
         { "posOffset", vec3toVariant(grabPointSphereOffsetRight + malletOffset) },
         { "hover", true },
@@ -212,7 +212,7 @@ void LoginStateManager::setUp() {
     pointers->enablePointer(_rightLoginPointerID);
 }
 
-void LoginStateManager::update(const QString dominantHand, const QUuid loginOverlayID) {
+void LoginStateManager::update(const QString& dominantHand, const QUuid& loginEntityID) {
     if (!isSetUp()) {
         return;
     }
@@ -224,8 +224,8 @@ void LoginStateManager::update(const QString dominantHand, const QUuid loginOver
     if (pointers && raypicks) {
         const auto rightObjectID = raypicks->getPrevRayPickResult(_rightLoginPointerID)["objectID"].toUuid();
         const auto leftObjectID = raypicks->getPrevRayPickResult(_leftLoginPointerID)["objectID"].toUuid();
-        const QString leftMode = (leftObjectID.isNull() || leftObjectID != loginOverlayID) ? "" : "full";
-        const QString rightMode = (rightObjectID.isNull() || rightObjectID != loginOverlayID) ? "" : "full";
+        const QString leftMode = (leftObjectID.isNull() || leftObjectID != loginEntityID) ? "" : "full";
+        const QString rightMode = (rightObjectID.isNull() || rightObjectID != loginEntityID) ? "" : "full";
         pointers->setRenderState(_leftLoginPointerID, leftMode);
         pointers->setRenderState(_rightLoginPointerID, rightMode);
         if (_dominantHand == "left" && !leftObjectID.isNull()) {

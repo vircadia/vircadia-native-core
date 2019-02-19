@@ -157,7 +157,7 @@ namespace scriptable {
         // QVariantMap armature;
     };
 
-    // mixin class for Avatar/Entity/Overlay Rendering that expose their in-memory graphics::Meshes
+    // mixin class for Avatar + Entity Rendering that expose their in-memory graphics::Meshes
     class ModelProvider {
     public:
         NestableType modelProviderType;

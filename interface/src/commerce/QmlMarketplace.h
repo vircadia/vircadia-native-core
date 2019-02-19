@@ -46,9 +46,10 @@ protected:
         const QString& adminFilter = QString("published"),
         const QString& adminFilterCost = QString(),
         const QString& sort = QString(),
-        const bool isFree = false,
-        const int& page = 1,
-        const int& perPage = 20);
+        bool isAscending = false,
+        bool isFree = false,
+        int page = 1,
+        int perPage = 20);
     Q_INVOKABLE void getMarketplaceItem(const QString& marketplaceItemId);
     Q_INVOKABLE void marketplaceItemLike(const QString& marketplaceItemId, const bool like = true);
     Q_INVOKABLE void getMarketplaceCategories();

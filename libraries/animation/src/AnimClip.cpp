@@ -140,10 +140,10 @@ void AnimClip::copyFromNetworkAnim() {
                 postRot = animSkeleton.getPostRotationPose(animJoint);
 
                 // cancel out scale
-                preRot.scale() = 1.0f;
-                postRot.scale() = 1.0f;
+                preRot.scale() = glm::vec3(1.0f);
+                postRot.scale() = glm::vec3(1.0f);
 
-                AnimPose rot(1.0f, hfmAnimRot, glm::vec3());
+                AnimPose rot(glm::vec3(1.0f), hfmAnimRot, glm::vec3());
 
                 // adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
@@ -155,7 +155,7 @@ void AnimClip::copyFromNetworkAnim() {
                     boneLengthScale = glm::length(relDefaultPose.trans()) / glm::length(hfmZeroTrans);
                 }
 
-                AnimPose trans = AnimPose(1.0f, glm::quat(), relDefaultPose.trans() + boneLengthScale * (hfmAnimTrans - hfmZeroTrans));
+                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans() + boneLengthScale * (hfmAnimTrans - hfmZeroTrans));
 
                 _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
             }

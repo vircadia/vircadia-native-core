@@ -19,7 +19,7 @@ function(check_test name)
 endfunction()
 
 if (BUILD_TOOLS)
-    # Allow different tools for production builds
+    # Allow different tools for stable builds
     if (RELEASE_TYPE STREQUAL "PRODUCTION")
         set(ALL_TOOLS 
             udt-test 

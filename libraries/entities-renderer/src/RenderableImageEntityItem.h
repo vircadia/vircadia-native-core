@@ -23,6 +23,7 @@ public:
     ~ImageEntityRenderer();
 
 protected:
+    Item::Bound getBound() override;
     ShapeKey getShapeKey() override;
 
     bool isTransparent() const override;
@@ -39,12 +40,12 @@ private:
 
     bool _emissive;
     bool _keepAspectRatio;
-    BillboardMode _billboardMode;
     QRect _subImage;
 
     glm::u8vec3 _color;
     float _alpha;
     PulsePropertyGroup _pulseProperties;
+    BillboardMode _billboardMode;
 
     glm::vec3 _dimensions;
 

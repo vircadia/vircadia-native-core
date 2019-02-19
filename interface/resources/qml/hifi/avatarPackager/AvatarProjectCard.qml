@@ -12,6 +12,7 @@ Item {
 
     property alias title: title.text
     property alias path: path.text
+    property alias hasError: errorIcon.visible
 
     property color textColor: "#E3E3E3"
     property color hoverTextColor: "#121212"
@@ -54,7 +55,7 @@ Item {
 
         RalewayBold {
             id: title
-            elide: "ElideRight"
+            elide: Text.ElideRight
             anchors {
                 top: parent.top
                 topMargin: 13
@@ -76,10 +77,22 @@ Item {
                 right: background.right
                 rightMargin: 16
             }
-            elide: "ElideLeft"
+            elide: Text.ElideLeft
             horizontalAlignment: Text.AlignRight
             text: "<path missing>"
             size: 20
+        }
+
+        HiFiGlyphs {
+            id: errorIcon
+            visible: false
+            text: hifi.glyphs.alert
+            size: 56
+            color: "#EA4C5F"
+            anchors {
+                top: parent.top
+                right: parent.right
+            }
         }
 
         MouseArea {

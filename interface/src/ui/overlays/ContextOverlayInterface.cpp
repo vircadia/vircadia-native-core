@@ -60,16 +60,16 @@ ContextOverlayInterface::ContextOverlayInterface() {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             glm::quat cameraOrientation = qApp->getCamera().getOrientation();
-            QVariantMap props;
+
+            EntityItemProperties properties;
             float sensorToWorldScale = myAvatar->getSensorToWorldScale();
-            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT))));
-            props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
-            qApp->getOverlays().editOverlay(tabletFrameID, props);
+            properties.setPosition(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * ((CONTEXT_OVERLAY_TABLET_DISTANCE * sensorToWorldScale) * (cameraOrientation * Vectors::FRONT)));
+            properties.setRotation(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f))));
+            DependencyManager::get<EntityScriptingInterface>()->editEntity(tabletFrameID, properties);
             _contextOverlayJustClicked = false;
         }
     });
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
-    connect(&qApp->getOverlays(), &Overlays::mousePressOnOverlay, this, &ContextOverlayInterface::contextOverlays_mousePressOnOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverEnterOverlay, this, &ContextOverlayInterface::contextOverlays_hoverEnterOverlay);
     connect(&qApp->getOverlays(), &Overlays::hoverLeaveOverlay, this, &ContextOverlayInterface::contextOverlays_hoverLeaveOverlay);
 
@@ -93,7 +93,6 @@ static const float CONTEXT_OVERLAY_HOVERED_ALPHA = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMAX = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD = 1.0f;
-static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 
 void ContextOverlayInterface::setEnabled(bool enabled) {
     _enabled = enabled;
@@ -103,10 +102,14 @@ void ContextOverlayInterface::setEnabled(bool enabled) {
     }
 }
 
-void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(entityItemID)) {
-        _mouseDownEntity = entityItemID;
+void ContextOverlayInterface::clickDownOnEntity(const EntityItemID& id, const PointerEvent& event) {
+    if (_enabled && event.getButton() == PointerEvent::SecondaryButton && contextOverlayFilterPassed(id)) {
+        _mouseDownEntity = id;
         _mouseDownEntityTimestamp = usecTimestampNow();
+    } else if (id == _contextOverlayID && event.getButton() == PointerEvent::PrimaryButton) {
+        qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "ID:" << id;
+        emit contextOverlayClicked(_currentEntityWithContextOverlay);
+        _contextOverlayJustClicked = true;
     } else {
         if (!_currentEntityWithContextOverlay.isNull()) {
             disableEntityHighlight(_currentEntityWithContextOverlay);
@@ -192,22 +195,28 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             }
 
             // Finally, setup and draw the Context Overlay
-            if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
-                _contextOverlay = std::make_shared<Image3DOverlay>();
-                _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
-                _contextOverlay->setPulseMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
-                _contextOverlay->setPulseMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
-                _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-                _contextOverlay->setIgnorePickIntersection(false);
-                _contextOverlay->setDrawInFront(true);
-                _contextOverlay->setURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
-                _contextOverlay->setIsFacingAvatar(true);
-                _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
+            auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+            if (_contextOverlayID == UNKNOWN_ENTITY_ID || !entityScriptingInterface->isAddedEntity(_contextOverlayID)) {
+                EntityItemProperties properties;
+                properties.setType(EntityTypes::Image);
+                properties.setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
+                properties.getPulse().setMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
+                properties.getPulse().setMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
+                properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+                properties.setIgnorePickIntersection(false);
+                properties.setRenderLayer(RenderLayer::FRONT);
+                properties.setImageURL(PathUtils::resourcesUrl() + "images/inspect-icon.png");
+                properties.setBillboardMode(BillboardMode::FULL);
+
+                _contextOverlayID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
             }
-            _contextOverlay->setWorldPosition(contextOverlayPosition);
-            _contextOverlay->setDimensions(contextOverlayDimensions);
-            _contextOverlay->setWorldOrientation(entityProperties.getRotation());
-            _contextOverlay->setVisible(true);
+
+            EntityItemProperties properties;
+            properties.setPosition(contextOverlayPosition);
+            properties.setDimensions(glm::vec3(contextOverlayDimensions, 0.01f));
+            properties.setRotation(entityProperties.getRotation());
+            properties.setVisible(true);
+            entityScriptingInterface->editEntity(_contextOverlayID, properties);
 
             return true;
         }
@@ -227,15 +236,13 @@ bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& ent
 }
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
+    if (_contextOverlayID != UNKNOWN_ENTITY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
         disableEntityHighlight(entityItemID);
         setCurrentEntityWithContextOverlay(QUuid());
         _entityMarketplaceID.clear();
-        // Destroy the Context Overlay
-        qApp->getOverlays().deleteOverlay(_contextOverlayID);
-        _contextOverlay = NULL;
-        _contextOverlayID = UNKNOWN_OVERLAY_ID;
+        DependencyManager::get<EntityScriptingInterface>()->deleteEntity(_contextOverlayID);
+        _contextOverlayID = UNKNOWN_ENTITY_ID;
         return true;
     }
     return false;
@@ -245,45 +252,41 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     return ContextOverlayInterface::destroyContextOverlay(entityItemID, PointerEvent());
 }
 
-void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
-        qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
-        emit contextOverlayClicked(_currentEntityWithContextOverlay);
-        _contextOverlayJustClicked = true;
+void ContextOverlayInterface::contextOverlays_hoverEnterOverlay(const QUuid& id, const PointerEvent& event) {
+    if (_contextOverlayID != UNKNOWN_ENTITY_ID) {
+        qCDebug(context_overlay) << "Started hovering over Context Overlay. ID:" << id;
+        EntityItemProperties properties;
+        properties.setColor(CONTEXT_OVERLAY_COLOR);
+        properties.getPulse().setColorMode(PulseMode::NONE);
+        properties.getPulse().setPeriod(0.0f);
+        properties.setAlpha(CONTEXT_OVERLAY_HOVERED_ALPHA);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_contextOverlayID, properties);
     }
 }
 
-void ContextOverlayInterface::contextOverlays_hoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
-        qCDebug(context_overlay) << "Started hovering over Context Overlay. Overlay ID:" << overlayID;
-        _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
-        _contextOverlay->setColorPulse(0.0f); // pulse off
-        _contextOverlay->setPulsePeriod(0.0f); // pulse off
-        _contextOverlay->setAlpha(CONTEXT_OVERLAY_HOVERED_ALPHA);
+void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const QUuid& id, const PointerEvent& event) {
+    if (_contextOverlayID != UNKNOWN_ENTITY_ID) {
+        qCDebug(context_overlay) << "Stopped hovering over Context Overlay. ID:" << id;
+        EntityItemProperties properties;
+        properties.setColor(CONTEXT_OVERLAY_COLOR);
+        properties.getPulse().setColorMode(PulseMode::IN_PHASE);
+        properties.getPulse().setPeriod(CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD);
+        properties.setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
+        DependencyManager::get<EntityScriptingInterface>()->editEntity(_contextOverlayID, properties);
     }
 }
 
-void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
-        qCDebug(context_overlay) << "Stopped hovering over Context Overlay. Overlay ID:" << overlayID;
-        _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
-        _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
-        _contextOverlay->setPulsePeriod(CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD);
-        _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
-    }
-}
-
-void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& id, const PointerEvent& event) {
     bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
-    if (contextOverlayFilterPassed(entityID) && _enabled && !isMouse) {
-        enableEntityHighlight(entityID);
+    if (contextOverlayFilterPassed(id) && _enabled && !isMouse) {
+        enableEntityHighlight(id);
     }
 }
 
-void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& id, const PointerEvent& event) {
     bool isMouse = event.getID() == PointerManager::MOUSE_POINTER_ID || DependencyManager::get<PointerManager>()->isMouse(event.getID());
-    if (_currentEntityWithContextOverlay != entityID && _enabled && !isMouse) {
-        disableEntityHighlight(entityID);
+    if (_currentEntityWithContextOverlay != id && _enabled && !isMouse) {
+        disableEntityHighlight(id);
     }
 }
 
@@ -380,12 +383,12 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
     }
 }
 
-void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
+void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityID) {
+    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
 }
 
-void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
+void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityID) {
+    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityID);
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {

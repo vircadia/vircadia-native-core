@@ -11,14 +11,14 @@
 
 #include <glm/glm.hpp>
 
-#include "ui/overlays/Base3DOverlay.h"
-
 #include "Application.h"
 #include <DependencyManager.h>
 #include "avatar/AvatarManager.h"
 
 #include <controllers/StandardControls.h>
 #include <controllers/UserInputMapper.h>
+
+#include <EntityTreeElement.h>
 
 using namespace bilateral;
 float StylusPick::WEB_STYLUS_LENGTH = 0.2f;
@@ -137,7 +137,7 @@ PickResultPointer StylusPick::getDefaultResult(const QVariantMap& pickVariant) c
 }
 
 PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
-    std::vector<StylusPickResult> results;
+    StylusPickResult nearestTarget(pick.toVariantMap());
     for (const auto& target : getIncludeItems()) {
         if (target.isNull()) {
             continue;
@@ -148,7 +148,7 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
             continue;
         }
 
-        if (!entity->getVisible() && !getFilter().doesPickInvisible()) {
+        if (!EntityTreeElement::checkFilterSettings(entity, getFilter())) {
             continue;
         }
 
@@ -157,60 +157,21 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
 
         glm::vec3 normal = entityRotation * Vectors::UNIT_Z;
         float distance = glm::dot(pick.position - entityPosition, normal);
-        glm::vec3 intersection = pick.position - (normal * distance);
-
-        glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(target, intersection, false);
-        if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            results.push_back(StylusPickResult(IntersectionType::ENTITY, target, distance, intersection, pick, normal));
+        if (distance < nearestTarget.distance) {
+            glm::vec3 intersection = pick.position - (normal * distance);
+            glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(target, intersection, false);
+            if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
+                IntersectionType type = IntersectionType::ENTITY;
+                if (getFilter().doesPickLocalEntities()) {
+                    if (entity->getEntityHostType() == entity::HostType::LOCAL) {
+                        type = IntersectionType::LOCAL_ENTITY;
+                    }
+                }
+                nearestTarget = StylusPickResult(type, target, distance, intersection, pick, normal);
+            }
         }
     }
 
-    StylusPickResult nearestTarget(pick.toVariantMap());
-    for (const auto& result : results) {
-        if (result.distance < nearestTarget.distance) {
-            nearestTarget = result;
-        }
-    }
-    return std::make_shared<StylusPickResult>(nearestTarget);
-}
-
-PickResultPointer StylusPick::getOverlayIntersection(const StylusTip& pick) {
-    std::vector<StylusPickResult> results;
-    for (const auto& target : getIncludeItems()) {
-        if (target.isNull()) {
-            continue;
-        }
-
-        auto overlay = qApp->getOverlays().getOverlay(target);
-        // Don't interact with non-3D or invalid overlays
-        if (!overlay || !overlay->is3D()) {
-            continue;
-        }
-
-        if (!overlay->getVisible() && !getFilter().doesPickInvisible()) {
-            continue;
-        }
-
-        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-        const auto overlayRotation = overlay3D->getWorldOrientation();
-        const auto overlayPosition = overlay3D->getWorldPosition();
-
-        glm::vec3 normal = overlayRotation * Vectors::UNIT_Z;
-        float distance = glm::dot(pick.position - overlayPosition, normal);
-        glm::vec3 intersection = pick.position - (normal * distance);
-
-        glm::vec2 pos2D = RayPick::projectOntoOverlayXYPlane(target, intersection, false);
-        if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            results.push_back(StylusPickResult(IntersectionType::OVERLAY, target, distance, intersection, pick, normal));
-        }
-    }
-
-    StylusPickResult nearestTarget(pick.toVariantMap());
-    for (const auto& result : results) {
-        if (result.distance < nearestTarget.distance) {
-            nearestTarget = result;
-        }
-    }
     return std::make_shared<StylusPickResult>(nearestTarget);
 }
 

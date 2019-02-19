@@ -208,16 +208,16 @@ AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWe
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
-    // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
-    _avatarHash.insert(sessionUUID, avatar);
+    {
+        QWriteLocker locker(&_hashLock);
+        _avatarHash.insert(sessionUUID, avatar);
+    }
     emit avatarAddedEvent(sessionUUID);
     return avatar;
 }
 
-AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
-    bool& isNew) {
-    QWriteLocker locker(&_hashLock);
-    auto avatar = _avatarHash.value(sessionUUID);
+AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer, bool& isNew) {
+    auto avatar = findAvatar(sessionUUID);
     if (!avatar) {
         avatar = addAvatar(sessionUUID, mixerWeakPointer);
         isNew = true;

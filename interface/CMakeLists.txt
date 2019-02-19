@@ -205,8 +205,8 @@ endif()
 # link required hifi libraries
 link_hifi_libraries(
   shared workload task octree ktx gpu gl procedural graphics graphics-scripting render
-  pointers
-  recording hfm fbx networking model-networking model-baker entities avatars trackers
+  pointers recording hfm fbx networking material-networking
+  model-networking model-baker entities avatars trackers
   audio audio-client animation script-engine physics
   render-utils entities-renderer avatars-renderer ui qml auto-updater midi
   controllers plugins image trackers
@@ -333,7 +333,11 @@ if (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
       "${PROJECT_SOURCE_DIR}/resources/fonts"
       "${RESOURCES_DEV_DIR}/fonts"
-    # add redirect json to macOS builds.
+     #copy serverless for android
+     COMMAND "${CMAKE_COMMAND}" -E copy_directory
+     "${PROJECT_SOURCE_DIR}/resources/serverless"
+     "${RESOURCES_DEV_DIR}/serverless"
+      # add redirect json to macOS builds.
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
       "${PROJECT_SOURCE_DIR}/resources/serverless/redirect.json"
       "${RESOURCES_DEV_DIR}/serverless/redirect.json"
