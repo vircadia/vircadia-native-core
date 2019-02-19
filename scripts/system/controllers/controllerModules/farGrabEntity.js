@@ -18,7 +18,7 @@
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
-(function() {
+(function () {
     var MARGIN = 25;
 
     function TargetObject(entityID, entityProps) {
@@ -27,12 +27,13 @@ Script.include("/~/system/libraries/controllers.js");
         this.targetEntityID = null;
         this.targetEntityProps = null;
 
-        this.getTargetEntity = function() {
+        this.getTargetEntity = function () {
             var parentPropsLength = this.parentProps.length;
             if (parentPropsLength !== 0) {
                 var targetEntity = {
                     id: this.parentProps[parentPropsLength - 1].id,
-                    props: this.parentProps[parentPropsLength - 1]};
+                    props: this.parentProps[parentPropsLength - 1]
+                };
                 this.targetEntityID = targetEntity.id;
                 this.targetEntityProps = targetEntity.props;
                 return targetEntity;
@@ -41,11 +42,13 @@ Script.include("/~/system/libraries/controllers.js");
             this.targetEntityProps = this.entityProps;
             return {
                 id: this.entityID,
-                props: this.entityProps};
+                props: this.entityProps
+            };
         };
     }
 
     function FarGrabEntity(hand) {
+        var _this = this;
         this.hand = hand;
         this.grabbing = false;
         this.targetEntityID = null;
@@ -76,11 +79,11 @@ Script.include("/~/system/libraries/controllers.js");
             makeLaserParams(this.hand, false));
 
 
-        this.handToController = function() {
+        this.handToController = function () {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
 
-        this.distanceGrabTimescale = function(mass, distance) {
+        this.distanceGrabTimescale = function (mass, distance) {
             var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
                 DISTANCE_HOLDING_UNITY_MASS * distance /
                 DISTANCE_HOLDING_UNITY_DISTANCE;
@@ -90,7 +93,7 @@ Script.include("/~/system/libraries/controllers.js");
             return timeScale;
         };
 
-        this.getMass = function(dimensions, density) {
+        this.getMass = function (dimensions, density) {
             return (dimensions.x * dimensions.y * dimensions.z) * density;
         };
 
@@ -156,8 +159,8 @@ Script.include("/~/system/libraries/controllers.js");
             }
             var farJointIndex = FAR_GRAB_JOINTS[this.hand];
             this.grabID = MyAvatar.grab(targetProps.id, farJointIndex,
-                                        Entities.worldToLocalPosition(targetProps.position, MyAvatar.SELF_ID, farJointIndex),
-                                        Entities.worldToLocalRotation(targetProps.rotation, MyAvatar.SELF_ID, farJointIndex));
+                Entities.worldToLocalPosition(targetProps.position, MyAvatar.SELF_ID, farJointIndex),
+                Entities.worldToLocalRotation(targetProps.rotation, MyAvatar.SELF_ID, farJointIndex));
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
@@ -169,7 +172,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.previousRoomControllerPosition = roomControllerPosition;
         };
 
-        this.continueDistanceHolding = function(controllerData) {
+        this.continueDistanceHolding = function (controllerData) {
             var controllerLocation = controllerData.controllerLocations[this.hand];
             var worldControllerPosition = controllerLocation.position;
             var worldControllerRotation = controllerLocation.orientation;
@@ -215,7 +218,7 @@ Script.include("/~/system/libraries/controllers.js");
             var RADIAL_GRAB_AMPLIFIER = 10.0;
             if (Math.abs(this.grabRadialVelocity) > 0.0) {
                 this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaObjectTime *
-                                                     this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+                    this.grabRadius * RADIAL_GRAB_AMPLIFIER);
             }
 
             // don't let grabRadius go all the way to zero, because it can't come back from that
@@ -259,13 +262,13 @@ Script.include("/~/system/libraries/controllers.js");
             MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);
         };
 
-        this.updateRecommendedArea = function() {
+        this.updateRecommendedArea = function () {
             var dims = Controller.getViewportDimensions();
             this.reticleMaxX = dims.x - MARGIN;
             this.reticleMaxY = dims.y - MARGIN;
         };
 
-        this.calculateNewReticlePosition = function(intersection) {
+        this.calculateNewReticlePosition = function (intersection) {
             this.updateRecommendedArea();
             var point2d = HMD.overlayFromWorldPoint(intersection);
             point2d.x = Math.max(this.reticleMinX, Math.min(point2d.x, this.reticleMaxX));
@@ -273,7 +276,7 @@ Script.include("/~/system/libraries/controllers.js");
             return point2d;
         };
 
-        this.notPointingAtEntity = function(controllerData) {
+        this.notPointingAtEntity = function (controllerData) {
             var intersection = controllerData.rayPicks[this.hand];
             var entityProperty = Entities.getEntityProperties(intersection.objectID, DISPATCHER_PROPERTIES);
             var entityType = entityProperty.type;
@@ -286,7 +289,7 @@ Script.include("/~/system/libraries/controllers.js");
             return false;
         };
 
-        this.destroyContextOverlay = function(controllerData) {
+        this.destroyContextOverlay = function (controllerData) {
             if (this.entityWithContextOverlay) {
                 ContextOverlay.destroyContextOverlay(this.entityWithContextOverlay);
                 this.entityWithContextOverlay = false;
@@ -294,7 +297,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
         };
 
-        this.targetIsNull = function() {
+        this.targetIsNull = function () {
             var properties = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             if (Object.keys(properties).length === 0 && this.distanceHolding) {
                 return true;
@@ -318,15 +321,70 @@ Script.include("/~/system/libraries/controllers.js");
             return null;
         };
 
+        var mappingName = "FarGrab-Mapping-" + Math.random();
+        var grabMapping;
+
+        this.setup = function () {
+            grabMapping = Controller.newMapping(mappingName);
+            grabMapping.from(Controller.Standard.LT).peek().to(_this.getLeftTrigger);
+            grabMapping.from(Controller.Standard.RT).peek().to(_this.getRightTrigger);
+            Controller.enableMapping(mappingName);
+        };
+
+        this.cleanup = function () {
+            grabMapping.disable();
+        };
+
+        this.leftTrigger = 0.0;
+        this.rightTrigger = 0.0;
+
+        this.getDominantHand = function () {
+            return (MyAvatar.getDominantHand() === "left") ? LEFT_HAND : RIGHT_HAND;
+        };
+
+        this.getOffHand = function () {
+            return (MyAvatar.getDominantHand() === "left") ? RIGHT_HAND : LEFT_HAND;
+        };
+
+        this.getLeftTrigger = function (value) {
+            _this.leftTrigger = value;
+        };
+
+        this.getRightTrigger = function (value) {
+            _this.rightTrigger = value;
+        };
+
+        this.getDominantTrigger = function () {
+            return (MyAvatar.getDominantHand() === "left") ? (_this.leftTrigger) : (_this.rightTrigger);
+        };
+
+        this.getOffHandTrigger = function () {
+            return (MyAvatar.getDominantHand() === "left") ? (_this.rightTrigger) : (_this.leftTrigger);
+        };
+
+        this.shouldShowLaser = function () {
+            return (_this.getOffHandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        };
+
+        this.shouldGrab = function () {
+            return (_this.getDominantTrigger() > TRIGGER_ON_VALUE && _this.getOffHandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        };
+
+        this.shouldCancel = function () {
+            // Kill condition : Off hand is <= 15% trigger pull.
+            return (_this.getOffHandTrigger() <= TRIGGER_OFF_VALUE) ? true : false;
+        };
+
         this.isReady = function (controllerData) {
-            if (HMD.active) {
+            if (HMD.active && this.hand === this.getOffHand()) {
                 if (this.notPointingAtEntity(controllerData)) {
                     return makeRunningValues(false, [], []);
                 }
 
                 this.distanceHolding = false;
 
-                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                //if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                if (this.shouldShowLaser()) {
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
@@ -336,7 +394,9 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
+            //if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
+            if (this.shouldCancel() || this.targetIsNull()) {
+                print("Canceling...");
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);
             }
@@ -383,7 +443,8 @@ Script.include("/~/system/libraries/controllers.js");
 
                 var rayPickInfo = controllerData.rayPicks[this.hand];
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
-                    if (controllerData.triggerClicks[this.hand]) {
+                    if (this.shouldGrab()) {
+                        print("Grabbing...");
                         var entityID = rayPickInfo.objectID;
                         var targetProps = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         if (targetProps.href !== "") {
@@ -432,12 +493,12 @@ Script.include("/~/system/libraries/controllers.js");
                                     _this.contextOverlayTimer &&
                                     _this.potentialEntityWithContextOverlay === rayPickInfo.objectID) {
                                     var cotProps = Entities.getEntityProperties(rayPickInfo.objectID,
-                                                                                DISPATCHER_PROPERTIES);
+                                        DISPATCHER_PROPERTIES);
                                     var pointerEvent = {
                                         type: "Move",
                                         id: _this.hand + 1, // 0 is reserved for hardware mouse
                                         pos2D: projectOntoEntityXYPlane(rayPickInfo.objectID,
-                                                                        rayPickInfo.intersection, cotProps),
+                                            rayPickInfo.intersection, cotProps),
                                         pos3D: rayPickInfo.intersection,
                                         normal: rayPickInfo.surfaceNormal,
                                         direction: Vec3.subtract(ZERO_VEC, rayPickInfo.surfaceNormal),
@@ -456,7 +517,7 @@ Script.include("/~/system/libraries/controllers.js");
             return this.exitIfDisabled(controllerData);
         };
 
-        this.exitIfDisabled = function(controllerData) {
+        this.exitIfDisabled = function (controllerData) {
             var moduleName = this.hand === RIGHT_HAND ? "RightDisableModules" : "LeftDisableModules";
             var disableModule = getEnabledModuleByName(moduleName);
             if (disableModule) {
@@ -473,10 +534,10 @@ Script.include("/~/system/libraries/controllers.js");
             return makeRunningValues(true, [], [], laserLockInfo);
         };
 
-        this.calculateOffset = function(controllerData) {
+        this.calculateOffset = function (controllerData) {
             if (this.distanceHolding) {
                 var targetProps = Entities.getEntityProperties(this.targetObject.entityID,
-                                                               [ "position", "rotation", "registrationPoint", "dimensions" ]);
+                    ["position", "rotation", "registrationPoint", "dimensions"]);
                 return worldPositionToRegistrationFrameMatrix(targetProps, controllerData.rayPicks[this.hand].intersection);
             }
             return undefined;
@@ -485,11 +546,15 @@ Script.include("/~/system/libraries/controllers.js");
 
     var leftFarGrabEntity = new FarGrabEntity(LEFT_HAND);
     var rightFarGrabEntity = new FarGrabEntity(RIGHT_HAND);
+    leftFarGrabEntity.setup();
+    rightFarGrabEntity.setup();
 
     enableDispatcherModule("LeftFarGrabEntity", leftFarGrabEntity);
     enableDispatcherModule("RightFarGrabEntity", rightFarGrabEntity);
 
     function cleanup() {
+        leftFarGrabEntity.cleanup();
+        rightFarGrabEntity.cleanup();
         disableDispatcherModule("LeftFarGrabEntity");
         disableDispatcherModule("RightFarGrabEntity");
     }
