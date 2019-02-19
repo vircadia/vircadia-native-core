@@ -159,6 +159,19 @@ Rectangle {
                     onXChanged: rightMostInputLevelPos = x + width
                 }
             }
+
+            RowLayout {
+                spacing: muteMic.spacing*2;
+                AudioControls.CheckBox {
+                    spacing: muteMic.spacing
+                    text: qsTr("Warn when muted");
+                    checked: AudioScriptingInterface.warnWhenMuted;
+                    onClicked: {
+                        AudioScriptingInterface.warnWhenMuted = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.warnWhenMuted; }); // restore binding
+                    }
+                }
+            }
         }
 
         Separator {}
