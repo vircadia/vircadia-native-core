@@ -396,7 +396,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.run = function (controllerData) {
             //if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
             if (this.shouldCancel() || this.targetIsNull()) {
-                print("Canceling...");
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);
             }
@@ -444,7 +443,6 @@ Script.include("/~/system/libraries/controllers.js");
                 var rayPickInfo = controllerData.rayPicks[this.hand];
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
                     if (this.shouldGrab()) {
-                        print("Grabbing...");
                         var entityID = rayPickInfo.objectID;
                         var targetProps = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         if (targetProps.href !== "") {
