@@ -44,10 +44,10 @@ android {
         }
         signingConfigs {
             release {
-                storeFile file(HIFI_ANDROID_KEYSTORE)
-                storePassword HIFI_ANDROID_KEYSTORE_PASSWORD
-                keyAlias HIFI_ANDROID_KEY_ALIAS
-                keyPassword HIFI_ANDROID_KEY_PASSWORD
+                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : null
+                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : ''
+                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : ''
+                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : ''
                 v2SigningEnabled false
             }
         }
