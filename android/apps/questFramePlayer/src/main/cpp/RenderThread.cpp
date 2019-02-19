@@ -32,8 +32,6 @@
 
 #include "AndroidHelper.h"
 
-//static jobject _activity { nullptr };
-
 struct HandController{
     ovrInputTrackedRemoteCapabilities caps {};
     ovrInputStateTrackedRemote state {};
@@ -107,11 +105,10 @@ void RenderThread::move(const glm::vec3& v) {
     _correction = glm::inverse(glm::translate(mat4(), v)) * _correction;
 }
 
-void RenderThread::initialize(QWindow* window) {
+void RenderThread::initialize() {
     std::unique_lock<std::mutex> lock(_frameLock);
     setObjectName("RenderThread");
     Parent::initialize();
-    _window = window;
     _thread->setObjectName("RenderThread");
 }
 
@@ -185,7 +182,6 @@ void RenderThread::handleInput() {
                 const auto &remote = controller.state;
                 if (remote.Joystick.x != 0.0f || remote.Joystick.y != 0.0f) {
                     glm::vec3 translation;
-                    float rotation = 0.0f;
                     if (caps.ControllerCapabilities & ovrControllerCaps_LeftHand) {
                         translation = glm::vec3{0.0f, -remote.Joystick.y, 0.0f};
                     } else {

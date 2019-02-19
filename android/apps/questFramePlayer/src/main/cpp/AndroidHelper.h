@@ -1,9 +1,6 @@
 //
-//  AndroidHelper.h
-//  interface/src
-//
-//  Created by Gabriel Calero & Cristian Duarte on 3/30/18.
-//  Copyright 2018 High Fidelity, Inc.
+//  Created by Bradley Austin Davis on 2019/02/15
+//  Copyright 2013-2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -24,8 +21,8 @@ public:
     void operator=(AndroidHelper const&) = delete;
 
     static AndroidHelper& instance() {
-            static AndroidHelper instance;
-            return instance;
+        static AndroidHelper instance;
+        return instance;
     }
 
     void notifyLoadComplete();
