@@ -76,8 +76,8 @@ unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     QString jointName { "" };
     if (propMap["joint"].isValid()) {
         QString jointName = propMap["joint"].toString();
-        QString mouseJoint { "Mouse" };
-        if (jointName == mouseJoint) {
+        const QString MOUSE_JOINT = "Mouse";
+        if (jointName == MOUSE_JOINT) {
             return PointerEvent::INVALID_POINTER_ID;
         }
     }

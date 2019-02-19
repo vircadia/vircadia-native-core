@@ -11,8 +11,6 @@
 #include <unordered_map>
 
 #include "Pick.h"
-#include "PerfStat.h"
-#include "Profile.h"
 
 typedef struct PickCacheKey {
     PickFilter::Flags mask;

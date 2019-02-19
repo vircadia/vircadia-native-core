@@ -154,8 +154,8 @@ unsigned int PointerScriptingInterface::createLaserPointer(const QVariant& prope
     QString jointName { "" };
     if (propertyMap["joint"].isValid()) {
         QString jointName = propertyMap["joint"].toString();
-        QString mouseJoint { "Mouse" };
-        if (jointName == mouseJoint) {
+        const QString MOUSE_JOINT = "Mouse";
+        if (jointName == MOUSE_JOINT) {
             return PointerEvent::INVALID_POINTER_ID;
         }
     }
