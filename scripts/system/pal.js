@@ -161,7 +161,8 @@ ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId 
 // hit(overlay) on the one overlay intersected by pickRay, if any.
 // noHit() if no ExtendedOverlay was intersected (helps with hover)
 ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
-    var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
+    // TODO: this could just include the necessary overlays for better performance
+    var pickedOverlay = Overlays.findRayIntersection(pickRay, true); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
         if (noHit) {
             return noHit();

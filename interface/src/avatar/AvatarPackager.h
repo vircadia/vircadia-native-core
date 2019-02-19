@@ -26,18 +26,22 @@ public:
     RecentAvatarProject() = default;
     
 
-    RecentAvatarProject(QString projectName, QString projectFSTPath) {
+    RecentAvatarProject(QString projectName, QString projectFSTPath, bool hadErrors) {
         _projectName = projectName;
         _projectFSTPath = projectFSTPath;
+        _hadErrors = hadErrors;
     }
     RecentAvatarProject(const RecentAvatarProject& other) {
         _projectName = other._projectName;
         _projectFSTPath = other._projectFSTPath;
+        _hadErrors = other._hadErrors;
     }
 
     QString getProjectName() const { return _projectName; }
 
     QString getProjectFSTPath() const { return _projectFSTPath; }
+
+    bool getHadErrors() const { return _hadErrors; }
 
     QString getProjectPath() const {
         return QFileInfo(_projectFSTPath).absoluteDir().absolutePath();
@@ -50,6 +54,7 @@ public:
 private:
     QString _projectName;
     QString _projectFSTPath;
+    bool _hadErrors;
 
 };
 
@@ -73,6 +78,8 @@ public:
         return AvatarProject::isValidNewProjectName(projectPath, projectName);
     }
 
+    Q_INVOKABLE void addCurrentProjectToRecentProjects();
+
 signals:
     void avatarProjectChanged();
     void recentProjectsChanged();
@@ -83,8 +90,6 @@ private:
     Q_INVOKABLE QVariantList getRecentProjects() const { return recentProjectsToVariantList(true); }
 
     void setAvatarProject(AvatarProject* avatarProject);
-
-    void addCurrentProjectToRecentProjects();
 
     AvatarProject* _currentAvatarProject { nullptr };
     QVector<RecentAvatarProject> _recentProjects;
