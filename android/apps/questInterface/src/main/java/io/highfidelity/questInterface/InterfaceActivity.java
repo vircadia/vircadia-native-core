@@ -1,6 +1,8 @@
 package io.highfidelity.questInterface;
 
+import android.os.Bundle;
 import io.highfidelity.oculus.OculusMobileActivity;
+import io.highfidelity.utils.HifiUtils;
 
 public class InterfaceActivity extends OculusMobileActivity {
     @Override
