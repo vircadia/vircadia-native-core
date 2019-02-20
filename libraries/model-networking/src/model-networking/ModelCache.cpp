@@ -309,7 +309,7 @@ public:
 
     virtual void downloadFinished(const QByteArray& data) override;
 
-    void setExtra(void* extra, bool isNewExtra) override;
+    void setExtra(void* extra) override;
 
 protected:
     Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping);
@@ -320,7 +320,7 @@ private:
     bool _combineParts;
 };
 
-void GeometryDefinitionResource::setExtra(void* extra, bool isNewExtra) {
+void GeometryDefinitionResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
     _mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
     _textureBaseUrl = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
