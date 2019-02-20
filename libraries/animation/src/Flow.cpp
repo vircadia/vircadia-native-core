@@ -659,8 +659,8 @@ void Flow::updateAbsolutePoses(const AnimPoseVec& relativePoses, AnimPoseVec& ab
     for (auto &joint : _flowJointData) {
         int index = joint.second.getIndex();
         int parentIndex = joint.second.getParentIndex();
-        if (index >= 0 && index < relativePoses.size() &&
-            parentIndex >= 0 && parentIndex < absolutePoses.size()) {
+        if (index >= 0 && index < (int)relativePoses.size() &&
+            parentIndex >= 0 && parentIndex < (int)absolutePoses.size()) {
             absolutePoses[index] = absolutePoses[parentIndex] * relativePoses[index];
         }
     }
