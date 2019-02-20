@@ -74,30 +74,15 @@ void Basic2DWindowOpenGLDisplayPlugin::customizeContext() {
         }
     }
 
-
-    _virtualPadJumpBtnPixelSize = dpi * VirtualPad::Manager::JUMP_BTN_FULL_PIXELS / VirtualPad::Manager::DPI;
-    if (!_virtualPadJumpBtnTexture) {
-        auto iconPath = PathUtils::resourcesPath() + "images/fly.png";
-        auto image = QImage(iconPath);
-        if (image.format() != QImage::Format_ARGB32) {
-            image = image.convertToFormat(QImage::Format_ARGB32);
-        }
-        if ((image.width() > 0) && (image.height() > 0)) {
-            image = image.scaled(_virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize, Qt::KeepAspectRatio);
-            image = image.mirrored();
-
-            _virtualPadJumpBtnTexture = gpu::Texture::createStrict(
-                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
-                    image.width(), image.height(),
-                    gpu::Texture::MAX_NUM_MIPS,
-                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
-            _virtualPadJumpBtnTexture->setSource("virtualPad jump");
-            auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
-            _virtualPadJumpBtnTexture->setUsage(usage.build());
-            _virtualPadJumpBtnTexture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-            _virtualPadJumpBtnTexture->assignStoredMip(0, image.byteCount(), image.constBits());
-            _virtualPadJumpBtnTexture->setAutoGenerateMips(true);
-        }
+    if (_virtualPadButtons.size() == 0) {
+        _virtualPadButtons.append(VirtualPadButton(
+                dpi * VirtualPad::Manager::BTN_FULL_PIXELS / VirtualPad::Manager::DPI,
+                PathUtils::resourcesPath() + "images/fly.png",
+                VirtualPad::Manager::Button::JUMP));
+        _virtualPadButtons.append(VirtualPadButton(
+                dpi * VirtualPad::Manager::BTN_FULL_PIXELS / VirtualPad::Manager::DPI,
+                PathUtils::resourcesPath() + "images/handshake.png",
+                VirtualPad::Manager::Button::HANDSHAKE));
     }
 #endif
     Parent::customizeContext();
@@ -133,8 +118,6 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
                                                                                                     _virtualPadPixelSize, _virtualPadPixelSize);
         auto stickTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getLeftVirtualPad()->getCurrentTouch(),
                                                                                               _virtualPadPixelSize, _virtualPadPixelSize);
-        auto jumpTransform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(virtualPadManager.getJumpButtonPosition(),
-                                                                                             _virtualPadJumpBtnPixelSize, _virtualPadJumpBtnPixelSize);
 
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);
@@ -151,9 +134,9 @@ void Basic2DWindowOpenGLDisplayPlugin::compositeExtra() {
             batch.setModelTransform(stickTransform);
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-            batch.setResourceTexture(0, _virtualPadJumpBtnTexture);
-            batch.setModelTransform(jumpTransform);
-            batch.draw(gpu::TRIANGLE_STRIP, 4);
+            foreach(VirtualPadButton virtualPadButton, _virtualPadButtons) {
+                virtualPadButton.draw(batch, virtualPadManager.getButtonPosition(virtualPadButton._button));
+            }
         });
     }
 #endif
@@ -178,3 +161,47 @@ bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
 QScreen* Basic2DWindowOpenGLDisplayPlugin::getFullscreenTarget() {
     return qApp->primaryScreen();
 }
+
+#if defined(Q_OS_ANDROID)
+
+Basic2DWindowOpenGLDisplayPlugin::VirtualPadButton::VirtualPadButton(qreal pixelSize,
+                                                                     QString iconPath,
+                                                                     VirtualPad::Manager::Button button) :
+    _pixelSize { pixelSize },
+    _button { button }
+{
+    if (!_texture) {
+        auto image = QImage(iconPath);
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+        if ((image.width() > 0) && (image.height() > 0)) {
+            image = image.scaled(_pixelSize, _pixelSize, Qt::KeepAspectRatio);
+            image = image.mirrored();
+
+            _texture = gpu::Texture::createStrict(
+                    gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA),
+                    image.width(), image.height(),
+                    gpu::Texture::MAX_NUM_MIPS,
+                    gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR));
+            _texture->setSource(iconPath.toStdString());
+            auto usage = gpu::Texture::Usage::Builder().withColor().withAlpha();
+            _texture->setUsage(usage.build());
+            _texture->setStoredMipFormat(gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
+            _texture->assignStoredMip(0, image.byteCount(), image.constBits());
+            _texture->setAutoGenerateMips(true);
+        }
+    }
+}
+
+void Basic2DWindowOpenGLDisplayPlugin::VirtualPadButton::draw(gpu::Batch &batch,
+                                                              glm::vec2 buttonPosition) {
+    auto transform = DependencyManager::get<CompositorHelper>()->getPoint2DTransform(
+            buttonPosition,
+            _pixelSize, _pixelSize);
+    batch.setResourceTexture(0, _texture);
+    batch.setModelTransform(transform);
+    batch.draw(gpu::TRIANGLE_STRIP, 4);
+}
+
+#endif

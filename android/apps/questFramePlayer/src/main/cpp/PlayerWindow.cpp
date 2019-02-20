@@ -11,15 +11,11 @@
 #include <QtWidgets/QFileDialog>
 
 PlayerWindow::PlayerWindow() {
-    installEventFilter(this);
-    setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
+    setFlags(Qt::Window);
     setSurfaceType(QSurface::OpenGLSurface);
     create();
     showFullScreen();
     // Ensure the window is visible and the GL context is valid
     QCoreApplication::processEvents();
-    _renderThread.initialize(this);
-}
-
-PlayerWindow::~PlayerWindow() {
+    _renderThread.initialize();
 }

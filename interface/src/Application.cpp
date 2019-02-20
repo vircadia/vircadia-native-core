@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "Application.h"
 
 #include <chrono>
@@ -37,7 +38,6 @@
 
 #include <QtNetwork/QLocalSocket>
 #include <QtNetwork/QLocalServer>
-
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
@@ -50,6 +50,7 @@
 #include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
+
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWindow.h>
@@ -191,6 +192,9 @@
 #include "scripting/WalletScriptingInterface.h"
 #include "scripting/TTSScriptingInterface.h"
 #include "scripting/KeyboardScriptingInterface.h"
+
+
+
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -238,6 +242,7 @@
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
+
 
 #include "AboutUtil.h"
 
@@ -622,8 +627,6 @@ public:
             switch (type) {
             case NestableType::Entity:
                 return getEntityModelProvider(static_cast<EntityItemID>(uuid));
-            case NestableType::Overlay:
-                return nullptr;
             case NestableType::Avatar:
                 return getAvatarModelProvider(uuid);
             }
@@ -1752,7 +1755,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
 #if defined(Q_OS_ANDROID)
-        return 1;
+        return 1 ;
 #else
         return 0;
 #endif
@@ -1854,6 +1857,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     this->installEventFilter(this);
+
+
 
 #ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
@@ -3095,7 +3100,7 @@ void Application::initializeUi() {
         }
         if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
             _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
-#if defined(Q_OS_ANDROID)
+#if defined(ANDROID_APP_INTERFACE)
             auto& virtualPadManager = VirtualPad::Manager::instance();
             connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
                     this, [](int duration) {
@@ -3627,10 +3632,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     }
 
     // Get controller availability
+#ifdef ANDROID_APP_QUEST_INTERFACE
+    bool hasHandControllers = true;
+#else
     bool hasHandControllers = false;
     if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
     }
+#endif
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
@@ -8247,6 +8256,7 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
+#ifndef ANDROID_APP_QUEST_INTERFACE
     if (getLoginDialogPoppedUp()) {
         return;
     }
@@ -8270,6 +8280,7 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
+#endif
 }
 
  void Application::recreateLogWindow(int keepOnTop) {
@@ -9135,17 +9146,23 @@ void Application::beforeEnterBackground() {
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
+// Quest only supports one plugin which can't be deactivated currently
+#if !defined(ANDROID_APP_QUEST_INTERFACE)
     if (getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
     }
+#endif
 }
 
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
+// Quest only supports one plugin which can't be deactivated currently
+#if !defined(ANDROID_APP_QUEST_INTERFACE)
     if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
+#endif
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(true);
 }
