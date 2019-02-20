@@ -428,6 +428,12 @@ const GROUPS = [
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
+            {
+                label: "Avatar Priority",
+                type: "bool",
+                propertyID: "avatarPriority",
+            },
+
         ]
     },
     {

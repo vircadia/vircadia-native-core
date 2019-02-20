@@ -65,6 +65,7 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(avatarPriority, getAvatarPriority);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightMode, getKeyLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientLightMode, getAmbientLightMode);
@@ -111,6 +112,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(flyingAllowed, setFlyingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ghostingAllowed, setGhostingAllowed);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(filterURL, setFilterURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(avatarPriority, setAvatarPriority);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(keyLightMode, setKeyLightMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientLightMode, setAmbientLightMode);
@@ -186,6 +188,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
     READ_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
     READ_ENTITY_PROPERTY(PROP_FILTER_URL, QString, setFilterURL);
+    READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, bool, setAvatarPriority);
 
     READ_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
     READ_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
@@ -211,6 +214,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
+    requestedProperties += PROP_AVATAR_PRIORITY;
 
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
@@ -250,6 +254,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, getFlyingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, getGhostingAllowed());
     APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, getFilterURL());
+    APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, getAvatarPriority());
 
     APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)getKeyLightMode());
     APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)getAmbientLightMode());
