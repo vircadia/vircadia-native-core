@@ -26,36 +26,45 @@
     var warningOverlayID = null;
     var pollInterval = null;
     var warningText = "Muted";
-    var textDimensions = { x: 100, y: 50 };
 
     function showWarning() {
         if (warningOverlayID) {
             return;
         }
 
-        var windowWidth;
-        var windowHeight;
         if (HMD.active) {
-            var viewportDimension = Controller.getViewportDimensions();
-            windowWidth = viewportDimension.x;
-            windowHeight = viewportDimension.y;
+            warningOverlayID = Overlays.addOverlay("text3d", {
+                name: "Muted-Warning",
+                localPosition: { x: 0, y: 0, z: -1.0 },
+                localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 0.0, z: 0.0, w: 1.0 }),
+                text: warningText,
+                textAlpha: 1,
+                textColor: { red: 226, green: 51, blue: 77 },
+                backgroundAlpha: 0,
+                lineHeight: 0.042,
+                dimensions: { x: 0.11, y: 0.05 },
+                visible: true,
+                ignoreRayIntersection: true,
+                drawInFront: true,
+                grabbable: false,
+                parentID: MyAvatar.SELF_ID,
+                parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX")
+            });
         } else {
-            windowWidth = Window.innerWidth;
-            windowHeight = Window.innerHeight;
+            var textDimensions = { x: 100, y: 50 };
+            warningOverlayID = Overlays.addOverlay("text", {
+                name: "Muted-Warning",
+                font: { size: 36 },
+                text: warningText,
+                x: Window.innerWidth / 2 - textDimensions.x / 2,
+                y: Window.innerHeight / 2 - textDimensions.y / 2,
+                width: textDimensions.x,
+                height: textDimensions.y,
+                textColor: { red: 226, green: 51, blue: 77 },
+                backgroundAlpha: 0,
+                visible: true
+            });
         }
-
-        warningOverlayID = Overlays.addOverlay("text", {
-            name: "Muted-Warning",
-            font: { size: 36 },
-            text: warningText,
-            x: windowWidth / 2 - textDimensions.x / 2,
-            y: windowHeight / 2 - textDimensions.y / 2,
-            width: textDimensions.x,
-            height: textDimensions.y,
-            textColor: { red: 226, green: 51, blue: 77 },
-            backgroundAlpha: 0,
-            visible: true
-        });
     }
 
     function hideWarning() {
