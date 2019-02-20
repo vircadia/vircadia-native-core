@@ -58,6 +58,9 @@ logging.setLoggerClass(TrackableLogger)
 logger = logging.getLogger('prebuild')
 
 def headSha():
+    if shutil.which('git') is None:
+        logger.warn("Unable to find git executable, can't caclulate commit ID")
+        return '0xDEADBEEF'
     repo_dir = os.path.dirname(os.path.abspath(__file__))
     git = subprocess.Popen(
         'git rev-parse --short HEAD',
@@ -67,7 +70,7 @@ def headSha():
     stdout, _ = git.communicate()
     sha = stdout.split('\n')[0]
     if not sha:
-        raise RuntimeError("couldn't find git sha")
+        raise RuntimeError("couldn't find git sha for repository {}".format(repo_dir))
     return sha
 
 @contextmanager

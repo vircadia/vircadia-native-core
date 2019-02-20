@@ -388,10 +388,23 @@ ShaderPointer Deserializer::readShader(const json& node) {
         return nullptr;
     }
 
+    static std::map<std::string, uint32_t> shadersIdsByName;
+    if (shadersIdsByName.empty()) {
+        for (const auto id : shader::allShaders()) {
+            const auto& shaderSource = shader::Source::get(id);
+            shadersIdsByName[shaderSource.name] = id;
+        }
+    }
+
     // FIXME support procedural shaders
     Shader::Type type = node[keys::type];
     std::string name = node[keys::name];
-    uint32_t id = node[keys::id];
+    // Using the serialized ID is bad, because it's generated at 
+    // cmake time, and can change across platforms or when 
+    // shaders are added or removed
+    // uint32_t id = node[keys::id];
+    
+    uint32_t id = shadersIdsByName[name];
     ShaderPointer result;
     switch (type) {
         //case Shader::Type::GEOMETRY:

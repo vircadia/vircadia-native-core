@@ -24,7 +24,7 @@ QmlFragmentClass::QmlFragmentClass(bool restricted, QString id) : QmlWindowClass
 
 // Method called by Qt scripts to create a new bottom menu bar in Android
 QScriptValue QmlFragmentClass::internal_constructor(QScriptContext* context, QScriptEngine* engine, bool restricted) {
-
+#ifndef DISABLE_QML
     std::lock_guard<std::mutex> guard(_mutex);
     auto qml = context->argument(0).toVariant().toMap().value("qml");
     if (qml.isValid()) {
@@ -53,6 +53,9 @@ QScriptValue QmlFragmentClass::internal_constructor(QScriptContext* context, QSc
     QScriptValue scriptObject = engine->newQObject(retVal);
     _fragments[qml.toString()] = scriptObject;
     return scriptObject;
+#else
+    return QScriptValue();
+#endif
 }
 
 void QmlFragmentClass::close() {
@@ -61,6 +64,7 @@ void QmlFragmentClass::close() {
 }
 
 QObject* QmlFragmentClass::addButton(const QVariant& properties) {
+#ifndef DISABLE_QML
     QVariant resultVar;
     Qt::ConnectionType connectionType = Qt::AutoConnection;
     
@@ -79,8 +83,10 @@ QObject* QmlFragmentClass::addButton(const QVariant& properties) {
         qWarning() << "QmlFragmentClass addButton result not a QObject";
         return NULL;
     }
-    
     return qmlButton;
+#else
+    return nullptr;
+#endif
 }
 
 void QmlFragmentClass::removeButton(QObject* button) {

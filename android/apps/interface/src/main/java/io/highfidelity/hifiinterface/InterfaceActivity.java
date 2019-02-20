@@ -81,6 +81,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private boolean nativeEnterBackgroundCallEnqueued = false;
     private SlidingDrawer mWebSlidingDrawer;
     private boolean mStartInDomain;
+    private boolean isLoading;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
@@ -94,7 +95,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.isLoading = true;
+        isLoading = true;
         Intent intent = getIntent();
         if (intent.hasExtra(DOMAIN_URL) && !TextUtils.isEmpty(intent.getStringExtra(DOMAIN_URL))) {
             intent.putExtra("applicationArguments", "--url " + intent.getStringExtra(DOMAIN_URL));
@@ -145,7 +146,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     @Override
     protected void onPause() {
         super.onPause();
-        if (super.isLoading) {
+        if (isLoading) {
             nativeEnterBackgroundCallEnqueued = true;
         } else {
             nativeEnterBackground();
@@ -172,7 +173,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
         super.onResume();
         nativeEnterForeground();
         surfacesWorkaround();
-        keepInterfaceRunning = false;
         registerReceiver(headsetStateReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
         //gvrApi.resumeTracking();
     }
@@ -382,7 +382,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     }
 
     public void onAppLoadedComplete() {
-        super.isLoading = false;
+        isLoading = false;
         if (nativeEnterBackgroundCallEnqueued) {
             nativeEnterBackground();
         }
@@ -413,7 +413,6 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
 
     @Override
     public void onExpand() {
-        keepInterfaceRunning = true;
     }
 
     @Override

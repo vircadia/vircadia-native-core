@@ -24,6 +24,7 @@ android/**/bin
 android/**/src/main/res/values/libs.xml
 android/**/src/main/assets
 android/**/gradle*
+*.class
 
 # VSCode
 # List taken from Github Global Ignores master@435c4d92
