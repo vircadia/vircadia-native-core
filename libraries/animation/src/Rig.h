@@ -430,6 +430,8 @@ protected:
     float _lastThetaRight { 0.0f };
     float _lastWristCoefficientRight { 0.0f };
     float _lastWristCoefficientLeft { 0.0f };
+    float _lastPositionThetaLeft { 0.0f };
+    float _lastPositionThetaRight { 0.0f };
 
     AnimContext _lastContext;
     AnimVariantMap _lastAnimVars;
