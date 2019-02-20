@@ -50,37 +50,46 @@ QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
     return jointRotationOffsets;
 }
 
+void PrepareJointsTask::configure(const Config& config) {
+    _passthrough = config.passthrough;
+}
+
 void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
     const auto& jointsIn = input.get0();
-    const auto& mapping = input.get1();
     auto& jointsOut = output.edit0();
-    auto& jointRotationOffsets = output.edit1();
-    auto& jointIndices = output.edit2();
 
-    // Get joint renames
-    auto jointNameMapping = getJointNameMapping(mapping);
-    // Apply joint metadata from FST file mappings
-    for (const auto& jointIn : jointsIn) {
-        jointsOut.push_back(jointIn);
-        auto& jointOut = jointsOut.back();
+    if (_passthrough) {
+        jointsOut = jointsIn;
+    } else {
+        const auto& mapping = input.get1();
+        auto& jointRotationOffsets = output.edit1();
+        auto& jointIndices = output.edit2();
 
-        auto jointNameMapKey = jointNameMapping.key(jointIn.name);
-        if (jointNameMapping.contains(jointNameMapKey)) {
-            jointOut.name = jointNameMapKey;
+        // Get joint renames
+        auto jointNameMapping = getJointNameMapping(mapping);
+        // Apply joint metadata from FST file mappings
+        for (const auto& jointIn : jointsIn) {
+            jointsOut.push_back(jointIn);
+            auto& jointOut = jointsOut.back();
+
+            auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+            if (jointNameMapping.contains(jointNameMapKey)) {
+                jointOut.name = jointNameMapKey;
+            }
+
+            jointIndices.insert(jointOut.name, (int)jointsOut.size());
         }
 
-        jointIndices.insert(jointOut.name, (int)jointsOut.size());
-    }
-
-    // Get joint rotation offsets from FST file mappings
-    auto offsets = getJointRotationOffsets(mapping);
-    for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
-        QString jointName = itr.key();
-        int jointIndex = jointIndices.value(jointName) - 1;
-        if (jointIndex != -1) {
-            glm::quat rotationOffset = itr.value();
-            jointRotationOffsets.insert(jointIndex, rotationOffset);
-            qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+        // Get joint rotation offsets from FST file mappings
+        auto offsets = getJointRotationOffsets(mapping);
+        for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
+            QString jointName = itr.key();
+            int jointIndex = jointIndices.value(jointName) - 1;
+            if (jointIndex != -1) {
+                glm::quat rotationOffset = itr.value();
+                jointRotationOffsets.insert(jointIndex, rotationOffset);
+                qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+            }
         }
     }
 }
