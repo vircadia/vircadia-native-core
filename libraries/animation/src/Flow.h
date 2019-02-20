@@ -11,6 +11,7 @@
 #ifndef hifi_Flow_h
 #define hifi_Flow_h
 
+#include <memory>
 #include <qstring.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
