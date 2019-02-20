@@ -15,11 +15,13 @@
 
 namespace baker {
     template<typename T>
-    T safeGet(const std::vector<T>& data, size_t i) {
+    const T& safeGet(const std::vector<T>& data, size_t i) {
+        static T t;
+
         if (data.size() > i) {
             return data[i];
         } else {
-            return T();
+            return t;
         }
     }
 
