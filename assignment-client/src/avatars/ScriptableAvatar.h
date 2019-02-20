@@ -20,7 +20,7 @@
 
 /**jsdoc
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
- * {@link MyAvatar} API.
+ * {@link MyAvatar} API. To enable this API, set {@link Agent|Agent.isAvatatr} to <code>true</code>.
  *
  * @namespace Avatar
  *

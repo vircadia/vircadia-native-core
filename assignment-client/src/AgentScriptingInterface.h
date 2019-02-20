@@ -18,16 +18,25 @@
 #include "Agent.h"
 
 /**jsdoc
+ * The <code>Agent</code> API enables an assignment client to emulate an avatar. In particular, setting <code>isAvatar = 
+ * true</code> connects the assignment client to the avatar and audio mixers and enables the {@link Avatar} API to be used.
+ *
  * @namespace Agent
  *
  * @hifi-assignment-client
  *
- * @property {boolean} isAvatar
- * @property {boolean} isPlayingAvatarSound <em>Read-only.</em>
- * @property {boolean} isListeningToAudioStream
- * @property {boolean} isNoiseGateEnabled
- * @property {number} lastReceivedAudioLoudness <em>Read-only.</em>
- * @property {Uuid} sessionUUID <em>Read-only.</em>
+ * @property {boolean} isAvatar - <code>true</code> if the assignment client script is emulating an avatar, otherwise 
+ *     <code>false</code>.
+ * @property {boolean} isPlayingAvatarSound - <code>true</code> if the script has a sound to play, otherwise <code>false</code>. 
+ *     Sounds are played when <code>isAvatar</code> is <code>true</code>, from the position and with the orientation of the 
+ *     scripted avatar's head.<em>Read-only.</em>
+ * @property {boolean} isListeningToAudioStream - <code>true</code> if the agent is "listening" to the audio stream from the 
+ *     domain, otherwise <code>false</code>.
+ * @property {boolean} isNoiseGateEnabled - <code>true</code> if the noise gate is enabled, otherwise <code>false</code>. When 
+ * enabled, the input audio stream is blocked (fully attenuated) if it falls below an adaptive threshold.
+ * @property {number} lastReceivedAudioLoudness - The current loudness of the audio input, nominal range <code>0.0</code> (no 
+ *     sound) &ndash; <code>1.0</code> (the onset of clipping). <em>Read-only.</em>
+ * @property {Uuid} sessionUUID - The unique ID associated with the agent's current session in the domain. <em>Read-only.</em>
  */
 class AgentScriptingInterface : public QObject {
     Q_OBJECT
@@ -54,20 +63,24 @@ public:
 
 public slots:
     /**jsdoc
+     * Set whether or not the script should emulate an avatar.
      * @function Agent.setIsAvatar
-     * @param {boolean} isAvatar
+     * @param {boolean} isAvatar - <code>true</code> if the script should act as if an avatar, otherwise <code>false</code>.
      */
     void setIsAvatar(bool isAvatar) const { _agent->setIsAvatar(isAvatar); }
 
     /**jsdoc
+     * Check whether or not the script is emulating an avatar.
      * @function Agent.isAvatar
-     * @returns {boolean}
+     * @returns {boolean} <code>true</code> if the script is acting as if an avatar, otherwise <code>false</code>.
      */
     bool isAvatar() const { return _agent->isAvatar(); }
 
     /**jsdoc
+     * Play a sound from the position and with the orientation of the emulated avatar's head. No sound is played unless 
+     * <code>isAvatar == true</code>.
      * @function Agent.playAvatarSound
-     * @param {object} avatarSound
+     * @param {SoundObject} avatarSound - The sound to play.
      */
     void playAvatarSound(SharedSoundPointer avatarSound) const { _agent->playAvatarSound(avatarSound); }
 
