@@ -157,6 +157,7 @@ private:
     bool shouldProcessEntityAndPointerEvent(const PointerEvent& event) const;
     bool shouldProcessPointerEvent(const PointerEvent& event) const;
     bool shouldProcessEntity() const;
+    void addIncludeItemsToMallets();
 
     void startLayerSwitchTimer();
     bool isLayerSwitchTimerFinished() const;
