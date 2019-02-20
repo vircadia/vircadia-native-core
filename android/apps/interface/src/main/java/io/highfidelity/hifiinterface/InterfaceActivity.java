@@ -81,7 +81,7 @@ public class InterfaceActivity extends QtActivity implements WebViewFragment.OnW
     private boolean nativeEnterBackgroundCallEnqueued = false;
     private SlidingDrawer mWebSlidingDrawer;
     private boolean mStartInDomain;
-    private booelan isLoading;
+    private boolean isLoading;
 //    private GvrApi gvrApi;
     // Opaque native pointer to the Application C++ object.
     // This object is owned by the InterfaceActivity instance and passed to the native methods.
