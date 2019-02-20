@@ -1757,7 +1757,7 @@ static float computeUlnarRadialCompensation(float ulnarRadialTheta, float twistT
     }
     if (fabsf(ulnarDiff) > 0.0f) {
         float twistCoefficient = 0.0f;
-        
+
         if (left) {
             twistCoefficient = twistTheta;
             if (twistCoefficient > (PI / 6.0f)) {
@@ -1774,7 +1774,7 @@ static float computeUlnarRadialCompensation(float ulnarRadialTheta, float twistT
             }
 
         }
-        
+
         if (twistTheta < 0.0f) {
             if (left) {
                 ulnarCorrection -= glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 180.0f * twistCoefficient;
@@ -1803,7 +1803,7 @@ static float computeTwistCompensation(float twistTheta, bool left) {
 
     const float TWIST_DEADZONE = PI / 2.0f;
     float twistCorrection = 0.0f;
-    
+
     if (fabsf(twistTheta) > TWIST_DEADZONE) {
         twistCorrection = glm::sign(twistTheta) * ((fabsf(twistTheta) - TWIST_DEADZONE) / PI) * 90.0f;
     }
@@ -1821,7 +1821,7 @@ static float computeFlexCompensation(float flexTheta, bool left) {
     const float EXTEND_BOUNDARY = -PI / 4.0f;
     float flexCorrection = 0.0f;
     float currentWristCoefficient = 0.0f;
-  
+
     if (flexTheta > FLEX_BOUNDARY) {
         flexCorrection = ((flexTheta - FLEX_BOUNDARY) / PI) * 60.0f;
     } else if (flexTheta < EXTEND_BOUNDARY) {
