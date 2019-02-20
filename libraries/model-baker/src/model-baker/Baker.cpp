@@ -14,6 +14,7 @@
 #include <shared/HifiTypes.h>
 
 #include "BakerTypes.h"
+#include "ModelMath.h"
 #include "BuildGraphicsMeshTask.h"
 #include "CalculateMeshNormalsTask.h"
 #include "CalculateMeshTangentsTask.h"
@@ -59,12 +60,12 @@ namespace baker {
             blendshapesPerMeshOut = blendshapesPerMeshIn;
 
             for (int i = 0; i < (int)blendshapesPerMeshOut.size(); i++) {
-                const auto& normalsPerBlendshape = normalsPerBlendshapePerMesh[i];
-                const auto& tangentsPerBlendshape = tangentsPerBlendshapePerMesh[i];
+                const auto& normalsPerBlendshape = safeGet(normalsPerBlendshapePerMesh, i);
+                const auto& tangentsPerBlendshape = safeGet(tangentsPerBlendshapePerMesh, i);
                 auto& blendshapesOut = blendshapesPerMeshOut[i];
                 for (int j = 0; j < (int)blendshapesOut.size(); j++) {
-                    const auto& normals = normalsPerBlendshape[j];
-                    const auto& tangents = tangentsPerBlendshape[j];
+                    const auto& normals = safeGet(normalsPerBlendshape, j);
+                    const auto& tangents = safeGet(tangentsPerBlendshape, j);
                     auto& blendshape = blendshapesOut[j];
                     blendshape.normals = QVector<glm::vec3>::fromStdVector(normals);
                     blendshape.tangents = QVector<glm::vec3>::fromStdVector(tangents);
@@ -90,10 +91,10 @@ namespace baker {
             auto meshesOut = meshesIn;
             for (int i = 0; i < numMeshes; i++) {
                 auto& meshOut = meshesOut[i];
-                meshOut._mesh = graphicsMeshesIn[i];
-                meshOut.normals = QVector<glm::vec3>::fromStdVector(normalsPerMeshIn[i]);
-                meshOut.tangents = QVector<glm::vec3>::fromStdVector(tangentsPerMeshIn[i]);
-                meshOut.blendshapes = QVector<hfm::Blendshape>::fromStdVector(blendshapesPerMeshIn[i]);
+                meshOut._mesh = safeGet(graphicsMeshesIn, i);
+                meshOut.normals = QVector<glm::vec3>::fromStdVector(safeGet(normalsPerMeshIn, i));
+                meshOut.tangents = QVector<glm::vec3>::fromStdVector(safeGet(tangentsPerMeshIn, i));
+                meshOut.blendshapes = QVector<hfm::Blendshape>::fromStdVector(safeGet(blendshapesPerMeshIn, i));
             }
             output = meshesOut;
         }
