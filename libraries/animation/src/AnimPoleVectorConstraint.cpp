@@ -124,7 +124,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
         if (_tipJointName == "RightHand") {
-            qCDebug(animation) << "anim ik theta " << (theta / PI)*180.0f;
+            //qCDebug(animation) << "anim ik theta " << (theta / PI)*180.0f;
         }
 
         // transform result back into parent relative frame.
