@@ -1743,6 +1743,7 @@ static float computeUlnarRadialCompensation(float ulnarRadialTheta, float twistT
     float ulnarDiff = 0.0f;
     float ulnarCorrection = 0.0f;
     float currentWristCoefficient = 0.0f;
+    /*
     if (left) {
         if (ulnarRadialTheta > ULNAR_BOUNDARY_MINUS) {
             ulnarDiff = ulnarRadialTheta - ULNAR_BOUNDARY_MINUS;
@@ -1787,6 +1788,35 @@ static float computeUlnarRadialCompensation(float ulnarRadialTheta, float twistT
             currentWristCoefficient += ulnarCorrection;
         }
     }
+    */
+    if (ulnarRadialTheta > ULNAR_BOUNDARY_MINUS) {
+        ulnarDiff = ulnarRadialTheta - ULNAR_BOUNDARY_MINUS;
+    } else if (ulnarRadialTheta < ULNAR_BOUNDARY_PLUS) {
+        ulnarDiff = ulnarRadialTheta - ULNAR_BOUNDARY_PLUS;
+    }
+    if (fabsf(ulnarDiff) > 0.0f) {
+        float twistCoefficient = (fabsf(twistTheta) / (PI / 20.0f));
+        if (twistCoefficient > 1.0f) {
+            twistCoefficient = 1.0f;
+        }
+        if (twistTheta < 0.0f) {
+            if (left) {
+                ulnarCorrection -= glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 45.0f * twistCoefficient;
+            } else {
+                ulnarCorrection += glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 45.0f * twistCoefficient;
+            }
+        } else {
+            if (left) {
+                ulnarCorrection += glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 45.0f * twistCoefficient;
+            } else {
+                ulnarCorrection -= glm::sign(ulnarDiff) * (fabsf(ulnarDiff) / PI) * 45.0f * twistCoefficient;
+            }
+        }
+        if (fabsf(ulnarCorrection) > 20.0f) {
+            ulnarCorrection = glm::sign(ulnarCorrection) * 20.0f;
+        }
+        currentWristCoefficient += ulnarCorrection;
+    }
 
     return currentWristCoefficient;
 
@@ -1797,14 +1827,9 @@ static float computeTwistCompensation(float twistTheta, bool left) {
 
     const float TWIST_DEADZONE = PI / 2.0f;
     float twistCorrection = 0.0f;
-    if (left) {
-        if (fabsf(twistTheta) > TWIST_DEADZONE) {
-            twistCorrection = glm::sign(twistTheta) * ((fabsf(twistTheta) - TWIST_DEADZONE) / PI) * 100.0f;
-        }
-    } else {
-        if (fabsf(twistTheta) > TWIST_DEADZONE) {
-            twistCorrection = glm::sign(twistTheta) * ((fabsf(twistTheta) - TWIST_DEADZONE) / PI) * 100.0f;
-        }
+    
+    if (fabsf(twistTheta) > TWIST_DEADZONE) {
+        twistCorrection = glm::sign(twistTheta) * ((fabsf(twistTheta) - TWIST_DEADZONE) / PI) * 100.0f;
     }
     // limit the twist correction
     if (fabsf(twistCorrection) > 30.0f) {
@@ -1820,25 +1845,18 @@ static float computeFlexCompensation(float flexTheta, bool left) {
     const float EXTEND_BOUNDARY = -PI / 4.0f;
     float flexCorrection = 0.0f;
     float currentWristCoefficient = 0.0f;
+  
+    if (flexTheta > FLEX_BOUNDARY) {
+        flexCorrection = ((flexTheta - FLEX_BOUNDARY) / PI) * 60.0f;
+    } else if (flexTheta < EXTEND_BOUNDARY) {
+        flexCorrection = ((flexTheta - EXTEND_BOUNDARY) / PI) * 60.0f;
+    }
+    if (fabsf(flexCorrection) > 175.0f) {
+        flexCorrection = glm::sign(flexCorrection) * 175.0f;
+    }
     if (left) {
-        if (flexTheta > FLEX_BOUNDARY) {
-            flexCorrection = ((flexTheta - FLEX_BOUNDARY) / PI) * 60.0f;
-        } else if (flexTheta < EXTEND_BOUNDARY) {
-            flexCorrection = ((flexTheta - EXTEND_BOUNDARY) / PI) * 60.0f;
-        }
-        if (fabsf(flexCorrection) > 175.0f) {
-            flexCorrection = glm::sign(flexCorrection) * 175.0f;
-        }
         currentWristCoefficient += flexCorrection;
     } else {
-        if (flexTheta > FLEX_BOUNDARY) {
-            flexCorrection = ((flexTheta - FLEX_BOUNDARY) / PI) * 60.0f;
-        } else if (flexTheta < EXTEND_BOUNDARY) {
-            flexCorrection = ((flexTheta - EXTEND_BOUNDARY) / PI) * 60.0f;
-        }
-        if (fabsf(flexCorrection) > 175.0f) {
-            flexCorrection = glm::sign(flexCorrection) * 175.0f;
-        }
         currentWristCoefficient -= flexCorrection;
     }
 
@@ -1870,14 +1888,14 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         unitAxis = Vectors::UNIT_Y;
     }
    
-    float theta = getHandPositionTheta(armToHand, defaultArmLength, left);
-    qCDebug(animation) << "hand position theta " << left << " " << theta;
+    float positionalTheta = getHandPositionTheta(armToHand, defaultArmLength, left);
+    qCDebug(animation) << "hand position theta " << left << " " << positionalTheta;
 
     float deltaTheta = 0.0f;
     if (left) {
-        deltaTheta = theta - _lastThetaLeft;
+        deltaTheta = positionalTheta - _lastThetaLeft;
     } else {
-        deltaTheta = theta - _lastThetaRight;
+        deltaTheta = positionalTheta - _lastThetaRight;
     }
     float deltaThetaRadians = (deltaTheta / 180.0f)*PI;
     AnimPose deltaRot(glm::angleAxis(deltaThetaRadians, unitAxis), glm::vec3());
@@ -1987,12 +2005,12 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     
     // i think limit theta here so we don't subtract more than is possible from last theta.
     // actually theta is limited.  to what though?
-    
+    float theta = 0.0f;
     if (left) {
         _lastWristCoefficientLeft = _lastThetaLeft - _lastPositionThetaLeft;
         _lastWristCoefficientLeft += currentWristCoefficient;
-        _lastPositionThetaLeft = theta;
-        theta += _lastWristCoefficientLeft;
+        _lastPositionThetaLeft = positionalTheta;
+        theta = positionalTheta + _lastWristCoefficientLeft;
         if (theta > 0.0f) {
             theta = 0.0f;
         }
@@ -2000,8 +2018,8 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     } else {
         _lastWristCoefficientRight = _lastThetaRight - _lastPositionThetaRight;
         _lastWristCoefficientRight += currentWristCoefficient;
-        _lastPositionThetaRight = theta;
-        theta += _lastWristCoefficientRight;
+        _lastPositionThetaRight = positionalTheta;
+        theta += positionalTheta + _lastWristCoefficientRight;
         if (theta < 0.0f) {
            theta = 0.0f;
         }
