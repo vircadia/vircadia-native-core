@@ -2935,6 +2935,7 @@ void EntityItem::setVisible(bool value) {
     });
 
     if (changed) {
+        bumpAncestorChainRenderableVersion();
         emit requestRenderUpdate();
     }
 }

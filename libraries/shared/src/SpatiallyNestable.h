@@ -30,8 +30,7 @@ static const uint16_t INVALID_JOINT_INDEX = -1;
 
 enum class NestableType {
     Entity,
-    Avatar,
-    Overlay
+    Avatar
 };
 
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
@@ -222,6 +221,8 @@ public:
     bool hasGrabs();
     virtual QUuid getEditSenderID();
 
+    void bumpAncestorChainRenderableVersion() const;
+
 protected:
     QUuid _id;
     mutable SpatiallyNestableWeakPointer _parent;
@@ -243,6 +244,8 @@ protected:
 
     mutable ReadWriteLockable _grabsLock;
     QSet<GrabPointer> _grabs; // upon this thing
+
+    mutable std::atomic<uint32_t> _ancestorChainRenderableVersion { 0 };
 
 private:
     SpatiallyNestable() = delete;
