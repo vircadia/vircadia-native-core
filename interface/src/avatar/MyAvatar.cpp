@@ -5317,15 +5317,17 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
     auto &flow = _skeletonModel->getRig().getFlow();
     for (auto &handJointName : HAND_COLLISION_JOINTS) {
         int jointIndex = otherAvatar->getJointIndex(handJointName);
-        glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
-        flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+        if (jointIndex != -1) {
+            glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
+            flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+        }
     }
 }
 
 void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
     if (_skeletonModel->isLoaded()) {
+        _skeletonModel->getRig().initFlow(isActive);
         auto &flow = _skeletonModel->getRig().getFlow();
-        flow.init(isActive, isCollidable);
         auto &collisionSystem = flow.getCollisionSystem();
         collisionSystem.setActive(isCollidable);
         auto physicsGroups = physicsConfig.keys();

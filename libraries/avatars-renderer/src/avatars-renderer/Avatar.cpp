@@ -729,18 +729,15 @@ void Avatar::postUpdate(float deltaTime, const render::ScenePointer& scene) {
     }
     const bool DEBUG_FLOW = true;
     if (_skeletonModel->isLoaded() && DEBUG_FLOW) {
-        auto flow = _skeletonModel->getRig().getFlow();
-        auto joints = flow.getJoints();
-        auto threads = flow.getThreads();
+        Flow* flow = _skeletonModel->getRig().getFlow();
+        auto joints = flow->getJoints();
+        auto threads = flow->getThreads();
         for (auto &thread : threads) {
             auto& jointIndexes = thread._joints;
             for (size_t i = 1; i < jointIndexes.size(); i++) {
                 auto index1 = jointIndexes[i - 1];
                 auto index2 = jointIndexes[i];
-                // glm::vec3 pos1 = joint.second._node._currentPosition;
-                // glm::vec3 pos2 = joints.find(joint.second._parentIndex) != joints.end() ? joints[joint.second._parentIndex]._node._currentPosition : getJointPosition(joint.second._parentIndex);
-                // DebugDraw::getInstance().drawRay(pos1, pos2, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-                DebugDraw::getInstance().drawRay(joints[index1]._node._currentPosition, joints[index2]._node._currentPosition, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+                DebugDraw::getInstance().drawRay(joints[index1].getCurrentPosition(), joints[index2].getCurrentPosition(), glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
             }
         }
     }

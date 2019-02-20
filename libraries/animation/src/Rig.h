@@ -234,8 +234,9 @@ public:
     const AnimContext::DebugAlphaMap& getDebugAlphaMap() const { return _lastContext.getDebugAlphaMap(); }
     const AnimVariantMap& getAnimVars() const { return _lastAnimVars; }
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
-    void computeFlowSkeleton() { _flow.calculateConstraints(); }
-    Flow& getFlow() { return _flow; }
+    void initFlow(bool isActive);
+    Flow& getFlow() { return _internalFlow; }
+
 
 signals:
     void onLoadComplete();
@@ -427,7 +428,8 @@ protected:
 
     SnapshotBlendPoseHelper _hipsBlendHelper;
     ControllerParameters _previousControllerParameters;
-    Flow _flow;
+    Flow _internalFlow;
+    Flow _networkFlow;
 };
 
 #endif /* defined(__hifi__Rig__) */
