@@ -1909,46 +1909,34 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     }, Qt::QueuedConnection);
 
-    EntityTree::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    EntityTreeRenderer::setAddMaterialToEntityOperator([this](const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         if (_aboutToQuit) {
             return false;
         }
 
-        // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
             renderable->addMaterial(material, parentMaterialName);
-        }
-
-        // even if we don't find it, try to find the entity
-        auto entity = getEntities()->getEntity(entityID);
-        if (entity) {
-            entity->addMaterial(material, parentMaterialName);
             return true;
         }
+
         return false;
     });
-    EntityTree::setRemoveMaterialFromEntityOperator([this](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    EntityTreeRenderer::setRemoveMaterialFromEntityOperator([this](const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         if (_aboutToQuit) {
             return false;
         }
 
-        // try to find the renderable
         auto renderable = getEntities()->renderableForEntityId(entityID);
         if (renderable) {
             renderable->removeMaterial(material, parentMaterialName);
-        }
-
-        // even if we don't find it, try to find the entity
-        auto entity = getEntities()->getEntity(entityID);
-        if (entity) {
-            entity->removeMaterial(material, parentMaterialName);
             return true;
         }
+
         return false;
     });
 
-    EntityTree::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
+    EntityTreeRenderer::setAddMaterialToAvatarOperator([](const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto avatar = avatarManager->getAvatarBySessionID(avatarID);
         if (avatar) {
@@ -1957,7 +1945,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
         return false;
     });
-    EntityTree::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
+    EntityTreeRenderer::setRemoveMaterialFromAvatarOperator([](const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
         auto avatarManager = DependencyManager::get<AvatarManager>();
         auto avatar = avatarManager->getAvatarBySessionID(avatarID);
         if (avatar) {
@@ -2280,7 +2268,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     // Setup the mouse ray pick and related operators
     {
-        auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP, PickFilter(PickScriptingInterface::PICK_ENTITIES()), 0.0f, true);
+        auto mouseRayPick = std::make_shared<RayPick>(Vectors::ZERO, Vectors::UP, PickFilter(PickScriptingInterface::PICK_ENTITIES() | PickScriptingInterface::PICK_LOCAL_ENTITIES()), 0.0f, true);
         mouseRayPick->parentTransform = std::make_shared<MouseTransformNode>();
         mouseRayPick->setJointState(PickQuery::JOINT_STATE_MOUSE);
         auto mouseRayPickID = DependencyManager::get<PickManager>()->addPick(PickQuery::Ray, mouseRayPick);
