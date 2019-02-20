@@ -90,6 +90,14 @@ Rectangle {
                     id: -1,
                     name: "Everything"
                 });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Standalone Optimized"
+                });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Standalone Compatible"
+                });
                 result.data.items.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,

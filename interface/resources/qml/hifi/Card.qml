@@ -30,6 +30,7 @@ Item {
     property string imageUrl: "";
     property var goFunction: null;
     property string storyId: "";
+    property bool standaloneOptimized: false;
 
     property bool drillDownToPlace: false;
     property bool showPlace: isConcurrency;
@@ -39,7 +40,7 @@ Item {
     property bool isConcurrency: action === 'concurrency';
     property bool isAnnouncement: action === 'announcement';
     property bool isStacked: !isConcurrency && drillDownToPlace;
-    property bool standaloneOptimized: true;
+
 
     property int textPadding: 10;
     property int smallMargin: 4;
@@ -271,6 +272,24 @@ Item {
             goFunction("hifi://" + hifiUrl);
         }
     }
+
+    HiFiGlyphs {
+        id: standaloneOptomizedBadge
+
+        anchors {
+            right: actionIcon.left
+            bottom: parent.bottom;
+        }
+        height: (root.isConcurrency && root.standaloneOptimized) ? 34 : 0
+
+        visible: root.isConcurrency && root.standaloneOptimized
+
+        text: hifi.glyphs.hmd
+        size: 34
+        horizontalAlignment: Text.AlignHCenter
+        color: messageColor
+     }
+
     StateImage {
         id: actionIcon;
         visible: !isAnnouncement;
@@ -282,24 +301,6 @@ Item {
             right: parent.right;
             margins: smallMargin;
         }
-        
-    }
-    HiFiGlyphs {
-        id: standaloneOptomizedBadge
-
-        anchors {
-            right: actionIcon.left
-            verticalCenter: parent.verticalCenter
-            bottom: parent.bottom;
-        }
-        height: root.standaloneOptimized ? 34 : 0
-        
-        visible: standaloneOptimized
-
-        text: hifi.glyphs.hmd
-        size: 34
-        horizontalAlignment: Text.AlignHCenter
-        color: hifi.colors.blueHighlight
     }  
 
     function go() {
