@@ -2409,7 +2409,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 
-#if defined(Q_OS_ANDROID) && 
+#if defined(Q_OS_ANDROID)
     connect(&AndroidHelper::instance(), &AndroidHelper::beforeEnterBackground, this, &Application::beforeEnterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
