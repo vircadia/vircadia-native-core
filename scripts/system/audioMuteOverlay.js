@@ -13,14 +13,22 @@
 
 "use strict";
 
-/* global Audio, Script, Overlays, Quat, MyAvatar */
+/* global Audio, Script, Overlays, Quat, MyAvatar, HMD */
 
 (function() { // BEGIN LOCAL_SCOPE
 
-    var lastInputLoudness = 0.0;
+    var lastShortTermInputLoudness = 0.0;
+    var lastLongTermInputLoudness = 0.0;
     var sampleRate = 8.0; // Hz
-    var attackTC =  Math.exp(-1.0 / (sampleRate * 0.500)); // 500 milliseconds attack
-    var releaseTC =  Math.exp(-1.0 / (sampleRate * 1.000)); // 1000 milliseconds release
+
+    var shortTermAttackTC =  Math.exp(-1.0 / (sampleRate * 0.500)); // 500 milliseconds attack
+    var shortTermReleaseTC =  Math.exp(-1.0 / (sampleRate * 1.000)); // 1000 milliseconds release
+
+    var longTermAttackTC =  Math.exp(-1.0 / (sampleRate * 5.0)); // 5 second attack
+    var longTermReleaseTC =  Math.exp(-1.0 / (sampleRate * 10.0)); // 10 seconds release
+
+    var activationThreshold = 0.05; // how much louder short-term needs to be than long-term to trigger warning
+
     var holdReset = 2.0 * sampleRate; // 2 seconds hold
     var holdCount = 0;
     var warningOverlayID = null;
@@ -80,12 +88,19 @@
             return;
         }
         pollInterval = Script.setInterval(function() {
-            var inputLoudness = Audio.inputLevel;
-            var tc = (inputLoudness > lastInputLoudness) ? attackTC : releaseTC;
-            inputLoudness += tc * (lastInputLoudness - inputLoudness);
-            lastInputLoudness = inputLoudness;
+            var shortTermInputLoudness = Audio.inputLevel;
+            var longTermInputLoudness = shortTermInputLoudness;
 
-            if (inputLoudness > 0.1) {
+            var shortTc = (shortTermInputLoudness > lastShortTermInputLoudness) ? shortTermAttackTC : shortTermReleaseTC;
+            var longTc = (longTermInputLoudness > lastLongTermInputLoudness) ? longTermAttackTC : longTermReleaseTC;
+
+            shortTermInputLoudness += shortTc * (lastShortTermInputLoudness - shortTermInputLoudness);
+            longTermInputLoudness += longTc * (lastLongTermInputLoudness - longTermInputLoudness);
+
+            lastShortTermInputLoudness = shortTermInputLoudness;
+            lastLongTermInputLoudness = longTermInputLoudness;
+
+            if (shortTermInputLoudness > lastLongTermInputLoudness + activationThreshold) {
                 holdCount = holdReset;
             } else {
                 holdCount = Math.max(holdCount - 1, 0);
