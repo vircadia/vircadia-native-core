@@ -116,7 +116,7 @@ void ModelBakeWidget::chooseFileButtonClicked() {
         startDir = QDir::homePath();
     }
 
-    auto selectedFiles = QFileDialog::getOpenFileNames(this, "Choose Model", startDir, "Models (*.fbx *.obj)");
+    auto selectedFiles = QFileDialog::getOpenFileNames(this, "Choose Model", startDir, "Models (*.fbx *.obj *.gltf *.fst)");
 
     if (!selectedFiles.isEmpty()) {
         // set the contents of the model file text box to be the path to the selected file
@@ -165,21 +165,20 @@ void ModelBakeWidget::bakeButtonClicked() {
         return;
     }
 
+    // make sure we have a valid output directory
+    QDir outputDirectory(_outputDirLineEdit->text());
+    if (!outputDirectory.exists()) {
+        QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
+        return;
+    }
+
     // split the list from the model line edit to see how many models we need to bake
     auto fileURLStrings = _modelLineEdit->text().split(',');
     foreach (QString fileURLString, fileURLStrings) {
         // construct a URL from the path in the model file text box
         QUrl modelToBakeURL(fileURLString);
 
-        // make sure we have a valid output directory
-        QDir outputDirectory(_outputDirLineEdit->text());
-        if (!outputDirectory.exists()) {
-            QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
-            return;
-        }
-
-        QUrl bakeableModelURL = getBakeableModelURL(QUrl(modelToBakeURL), false);
-
+        QUrl bakeableModelURL = getBakeableModelURL(QUrl(modelToBakeURL));
         if (!bakeableModelURL.isEmpty()) {
             auto getWorkerThreadCallback = []() -> QThread* {
                 return Oven::instance().getNextWorkerThread();

@@ -18,8 +18,9 @@
 #include <QtCore/QThread>
 
 #include "Baker.h"
-#include "FBXBaker.h"
+#include "ModelBaker.h"
 #include "TextureBaker.h"
+#include "JSBaker.h"
 
 class DomainBaker : public Baker {
     Q_OBJECT
@@ -38,7 +39,8 @@ signals:
 private slots:
     virtual void bake() override;
     void handleFinishedModelBaker();
-    void handleFinishedSkyboxBaker();
+    void handleFinishedTextureBaker();
+    void handleFinishedScriptBaker();
 
 private:
     void setupOutputFolder();
@@ -46,9 +48,6 @@ private:
     void enumerateEntities();
     void checkIfRewritingComplete();
     void writeNewEntitiesFile();
-
-    void bakeSkybox(QUrl skyboxURL, QJsonValueRef entity);
-    bool rewriteSkyboxURL(QJsonValueRef urlValue, TextureBaker* baker);
 
     QUrl _localEntitiesFileURL;
     QString _domainName;
@@ -62,14 +61,17 @@ private:
     QJsonArray _entities;
 
     QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
-    QHash<QUrl, QSharedPointer<TextureBaker>> _skyboxBakers;
+    QHash<QUrl, QSharedPointer<TextureBaker>> _textureBakers;
+    QHash<QUrl, QSharedPointer<JSBaker>> _scriptBakers;
     
-    QMultiHash<QUrl, QJsonValueRef> _entitiesNeedingRewrite;
+    QMultiHash<QUrl, std::pair<QString, QJsonValueRef>> _entitiesNeedingRewrite;
 
     int _totalNumberOfSubBakes { 0 };
     int _completedSubBakes { 0 };
 
-    bool _shouldRebakeOriginals { false };
+    void addModelBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef);
+    void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, QJsonValueRef& jsonRef);
+    void addScriptBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef);
 };
 
 #endif // hifi_DomainBaker_h

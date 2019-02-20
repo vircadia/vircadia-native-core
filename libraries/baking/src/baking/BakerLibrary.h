@@ -19,7 +19,7 @@
 // Returns either the given model URL, or, if the model is baked and shouldRebakeOriginals is true,
 // the guessed location of the original model
 // Returns an empty URL if no bakeable URL found
-QUrl getBakeableModelURL(const QUrl& url, bool shouldRebakeOriginals);
+QUrl getBakeableModelURL(const QUrl& url);
 
 // Assuming the URL is valid, gets the appropriate baker for the given URL, and creates the base directory where the baker's output will later be stored
 // Returns an empty pointer if a baker could not be created

@@ -25,6 +25,9 @@ public:
     JSBaker(const QUrl& jsURL, const QString& bakedOutputDir);
     static bool bakeJS(const QByteArray& inputFile, QByteArray& outputFile);
 
+    QString getJSPath() const { return _jsURL.fileName(); }
+    QString getBakedJSFilePath() const { return _bakedJSFilePath; }
+
 public slots:
     virtual void bake() override;
 

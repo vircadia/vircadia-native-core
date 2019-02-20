@@ -30,16 +30,19 @@
 using TextureBakerThreadGetter = std::function<QThread*()>;
 using GetMaterialIDCallback = std::function <int(int)>;
 
-static const QString BAKED_FBX_EXTENSION = ".baked.fbx";
-static const QString BAKEABLE_MODEL_FBX_EXTENSION { ".fbx" };
-static const QString BAKEABLE_MODEL_OBJ_EXTENSION { ".obj" };
+static const QString FST_EXTENSION { ".fst" };
+static const QString BAKED_FST_EXTENSION { ".baked.fst" };
+static const QString FBX_EXTENSION { ".fbx" };
+static const QString BAKED_FBX_EXTENSION { ".baked.fbx" };
+static const QString OBJ_EXTENSION { ".obj" };
+static const QString GLTF_EXTENSION { ".gltf" };
 
 class ModelBaker : public Baker {
     Q_OBJECT
 
 public:
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
-               const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "");
+               const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
     virtual ~ModelBaker();
 
     void initializeOutputDirs();
@@ -59,7 +62,7 @@ protected:
     void texturesFinished();
     void embedTextureMetaData();
     void exportScene();
-    
+
     FBXNode _rootNode;
     QHash<QByteArray, QByteArray> _textureContentMap;
     QUrl _modelURL;
@@ -79,12 +82,14 @@ private:
     void bakeTexture(const QUrl & textureURL, image::TextureUsage::Type textureType, const QDir & outputDir, 
                      const QString & bakedFilename, const QByteArray & textureContent);
     QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);
-    
+
     TextureBakerThreadGetter _textureThreadGetter;
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
-    bool _pendingErrorEmission{ false };
+    bool _pendingErrorEmission { false };
+
+    bool _hasBeenBaked { false };
 };
 
 #endif // hifi_ModelBaker_h

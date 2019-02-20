@@ -32,11 +32,12 @@
 #endif
 
 ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
-                       const QString& bakedOutputDirectory, const QString& originalOutputDirectory) :
+                       const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
     _modelURL(inputModelURL),
     _bakedOutputDir(bakedOutputDirectory),
     _originalOutputDir(originalOutputDirectory),
-    _textureThreadGetter(inputTextureThreadGetter)
+    _textureThreadGetter(inputTextureThreadGetter),
+    _hasBeenBaked(hasBeenBaked)
 {
     auto tempDir = PathUtils::generateTemporaryDir();
 

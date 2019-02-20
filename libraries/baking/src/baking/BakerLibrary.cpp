@@ -14,33 +14,26 @@
 #include "../FBXBaker.h"
 #include "../OBJBaker.h"
 
-QUrl getBakeableModelURL(const QUrl& url, bool shouldRebakeOriginals) {
-    // Check if the file pointed to by this URL is a bakeable model, by comparing extensions
-    auto modelFileName = url.fileName();
+// Check if the file pointed to by this URL is a bakeable model, by comparing extensions
+QUrl getBakeableModelURL(const QUrl& url) {
+    static const std::vector<QString> extensionsToBake = {
+        FST_EXTENSION,
+        BAKED_FST_EXTENSION,
+        FBX_EXTENSION,
+        BAKED_FBX_EXTENSION,
+        OBJ_EXTENSION,
+        GLTF_EXTENSION
+    };
 
-    bool isBakedModel = modelFileName.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive);
-    bool isBakeableFBX = modelFileName.endsWith(BAKEABLE_MODEL_FBX_EXTENSION, Qt::CaseInsensitive);
-    bool isBakeableOBJ = modelFileName.endsWith(BAKEABLE_MODEL_OBJ_EXTENSION, Qt::CaseInsensitive);
-    bool isBakeable = isBakeableFBX || isBakeableOBJ;
-
-    if (isBakeable || (shouldRebakeOriginals && isBakedModel)) {
-        if (isBakedModel) {
-            // Grab a URL to the original, that we assume is stored a directory up, in the "original" folder
-            // with just the fbx extension
-            qDebug() << "Inferring original URL for baked model URL" << url;
-
-            auto originalFileName = modelFileName;
-            originalFileName.replace(".baked", "");
-            qDebug() << "Original model URL must be present at" << url;
-
-            return url.resolved("../original/" + originalFileName);
-        } else {
-            // Grab a clean version of the URL without a query or fragment
-            return url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+    QUrl cleanURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+    QString cleanURLString = cleanURL.fileName();
+    for (auto& extension : extensionsToBake) {
+        if (cleanURLString.endsWith(extension, Qt::CaseInsensitive)) {
+            return cleanURL;
         }
     }
 
-    qWarning() << "Unknown model type: " << modelFileName;
+    qWarning() << "Unknown model type: " << url.fileName();
     return QUrl();
 }
 
@@ -59,11 +52,14 @@ std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureB
     QString originalOutputDirectory = contentOutputPath + subDirName + "/original";
 
     std::unique_ptr<ModelBaker> baker;
-
-    if (filename.endsWith(BAKEABLE_MODEL_FBX_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<FBXBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
-    } else if (filename.endsWith(BAKEABLE_MODEL_OBJ_EXTENSION, Qt::CaseInsensitive)) {
+    if (filename.endsWith(FST_EXTENSION, Qt::CaseInsensitive)) {
+        //baker = std::make_unique<FSTBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
+    } else if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive)) {
+        baker = std::make_unique<FBXBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive));
+    } else if (filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
         baker = std::make_unique<OBJBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
+    } else if (filename.endsWith(GLTF_EXTENSION, Qt::CaseInsensitive)) {
+        //baker = std::make_unique<GLTFBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
     } else {
         qDebug() << "Could not create ModelBaker for url" << bakeableModelURL;
     }
