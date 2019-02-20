@@ -1321,6 +1321,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (!_hasModel) {
         if (model) {
             model->removeFromScene(scene, transaction);
+            entity->bumpAncestorChainRenderableVersion();
             withWriteLock([&] { _model.reset(); });
             emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                 modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
@@ -1438,6 +1439,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             render::Item::Status::Getters statusGetters;
             makeStatusGetters(entity, statusGetters);
             model->addToScene(scene, transaction, statusGetters);
+            entity->bumpAncestorChainRenderableVersion();
             processMaterials();
         }
     }

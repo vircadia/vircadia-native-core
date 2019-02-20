@@ -67,6 +67,7 @@ const QUuid SpatiallyNestable::getParentID() const {
 }
 
 void SpatiallyNestable::setParentID(const QUuid& parentID) {
+    bumpAncestorChainRenderableVersion();
     _idLock.withWriteLock([&] {
         if (_parentID != parentID) {
             _parentID = parentID;
@@ -78,6 +79,7 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
         bool success = false;
         auto parent = getParentPointer(success);
         if (success && parent) {
+            bumpAncestorChainRenderableVersion();
             parent->updateQueryAACube();
         }
     }
@@ -1416,4 +1418,13 @@ QUuid SpatiallyNestable::getEditSenderID() {
         }
     });
     return editSenderID;
+}
+
+void SpatiallyNestable::bumpAncestorChainRenderableVersion() const {
+    _ancestorChainRenderableVersion++;
+    bool success = false;
+    auto parent = getParentPointer(success);
+    if (success && parent) {
+        parent->bumpAncestorChainRenderableVersion();
+    }
 }
