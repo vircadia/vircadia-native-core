@@ -71,6 +71,18 @@ PickFilter getPickFilter(unsigned int filter) {
 unsigned int PickScriptingInterface::createRayPick(const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 
+
+#if defined (Q_OS_ANDROID)
+    QString jointName { "" };
+    if (propMap["joint"].isValid()) {
+        QString jointName = propMap["joint"].toString();
+        const QString MOUSE_JOINT = "Mouse";
+        if (jointName == MOUSE_JOINT) {
+            return PointerEvent::INVALID_POINTER_ID;
+        }
+    }
+#endif
+
     bool enabled = false;
     if (propMap["enabled"].isValid()) {
         enabled = propMap["enabled"].toBool();

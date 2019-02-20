@@ -355,7 +355,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
         } else if (resourcesWithExtraHash.size() > 0.0f) {
             // We haven't seen this extra info before, but we've already downloaded the resource.  We need a new copy of this object (with any old hash).
             resource = createResourceCopy(resourcesWithExtraHash.begin().value().lock());
-            resource->setExtra(extra, true);
+            resource->setExtra(extra);
             resource->setExtraHash(extraHash);
             resource->setSelf(resource);
             resource->setCache(this);
@@ -375,7 +375,7 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
 
     if (!resource) {
         resource = createResource(url);
-        resource->setExtra(extra, false);
+        resource->setExtra(extra);
         resource->setExtraHash(extraHash);
         resource->setSelf(resource);
         resource->setCache(this);

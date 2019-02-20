@@ -354,7 +354,8 @@ NetworkTexture::NetworkTexture(const NetworkTexture& other) :
     _originalHeight(other._originalHeight),
     _width(other._width),
     _height(other._height),
-    _maxNumPixels(other._maxNumPixels)
+    _maxNumPixels(other._maxNumPixels),
+    _content(other._content)
 {
     if (_width == 0 || _height == 0 ||
         other._currentlyLoadingResourceType == ResourceType::META ||
@@ -368,17 +369,30 @@ static bool isLocalUrl(const QUrl& url) {
     return (scheme == HIFI_URL_SCHEME_FILE || scheme == URL_SCHEME_QRC || scheme == RESOURCE_SCHEME);
 }
 
-void NetworkTexture::setExtra(void* extra, bool isNewExtra) {
+void NetworkTexture::setExtra(void* extra) {
     const TextureExtra* textureExtra = static_cast<const TextureExtra*>(extra);
-    _type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
     _maxNumPixels = textureExtra ? textureExtra->maxNumPixels : ABSOLUTE_MAX_TEXTURE_NUM_PIXELS;
-    _sourceChannel = textureExtra ? textureExtra->sourceChannel : image::ColorChannel::NONE;
 
-    if (isNewExtra && !_loaded) {
+    bool needsNewTextureSource = false;
+    auto type = textureExtra ? textureExtra->type : image::TextureUsage::DEFAULT_TEXTURE;
+    auto sourceChannel = textureExtra ? textureExtra->sourceChannel : image::ColorChannel::NONE;
+    if (type != _type || sourceChannel != _sourceChannel) {
+        needsNewTextureSource = true;
+    }
+    _type = type;
+    _sourceChannel = sourceChannel;
+
+    auto content = textureExtra ? textureExtra->content : QByteArray();
+    if (_content.isEmpty() && !content.isEmpty()) {
+        _content = content;
+        needsNewTextureSource = true;
+    }
+
+    if (needsNewTextureSource) {
         _startedLoading = false;
     }
 
-    if (!_textureSource || isNewExtra) {
+    if (!_textureSource || needsNewTextureSource) {
         _textureSource = std::make_shared<gpu::TextureSource>(_url, (int)_type);
     }
     _lowestRequestedMipLevel = 0;
@@ -405,10 +419,9 @@ void NetworkTexture::setExtra(void* extra, bool isNewExtra) {
     }
 
     // if we have content, load it after we have our self pointer
-    auto content = textureExtra ? textureExtra->content : QByteArray();
-    if (!content.isEmpty()) {
+    if (!_content.isEmpty()) {
         _startedLoading = true;
-        QMetaObject::invokeMethod(this, "downloadFinished", Qt::QueuedConnection, Q_ARG(const QByteArray&, content));
+        QMetaObject::invokeMethod(this, "downloadFinished", Qt::QueuedConnection, Q_ARG(const QByteArray&, _content));
     }
 }
 
