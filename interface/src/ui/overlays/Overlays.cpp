@@ -79,7 +79,16 @@ void Overlays::cleanupAllOverlays() {
     cleanupOverlaysToDelete();
 }
 
-void Overlays::init() {}
+void Overlays::init() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
+    auto pointerManager = DependencyManager::get<PointerManager>();
+    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, entityScriptingInterface , &EntityScriptingInterface::hoverEnterEntity);
+    connect(pointerManager.data(), &PointerManager::hoverContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
+    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerEndOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+}
 
 void Overlays::update(float deltatime) {
     cleanupOverlaysToDelete();
@@ -341,6 +350,17 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             return "out";
         }
         return "none";
+    });
+
+    RENAME_PROP_CONVERT(textures, textures, [](const QVariant& v) {
+        auto map = v.toMap();
+        if (!map.isEmpty()) {
+            auto json = QJsonDocument::fromVariant(map);
+            if (!json.isNull()) {
+                return QVariant(QString(json.toJson()));
+            }
+        }
+        return v;
     });
 
     if (type == "Shape" || type == "Box" || type == "Sphere" || type == "Gizmo") {
