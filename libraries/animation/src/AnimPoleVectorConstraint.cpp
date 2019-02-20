@@ -123,10 +123,6 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
 
         glm::quat deltaRot = glm::angleAxis(theta, unitAxis);
 
-        if (_tipJointName == "RightHand") {
-            //qCDebug(animation) << "anim ik theta " << (theta / PI)*180.0f;
-        }
-
         // transform result back into parent relative frame.
         glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * deltaRot * basePose.rot();
         ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(relBaseRot, underPoses[_baseJointIndex].trans()));
