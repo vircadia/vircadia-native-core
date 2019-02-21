@@ -450,7 +450,7 @@ function updateShareInfo(containerID, storyID) {
     facebookButton.setAttribute("href", 'https://www.facebook.com/dialog/feed?app_id=1585088821786423&link=' + shareURL);
 
     twitterButton.setAttribute("target", "_blank");
-    twitterButton.setAttribute("href", 'https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelityinc&hashtags=VR,HiFi');
+    twitterButton.setAttribute("href", 'https://twitter.com/intent/tweet?text=I%20just%20took%20a%20snapshot!&url=' + shareURL + '&via=highfidelityVR&hashtags=VR,HiFi');
 
     hideUploadingMessageAndMaybeShare(containerID, storyID);
 }
