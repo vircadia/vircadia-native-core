@@ -10,10 +10,12 @@
 
 #include <avatars-renderer/Avatar.h>
 #include <DebugDraw.h>
+#include <CubicHermiteSpline.h>
 
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "AnimUtil.h"
+
 
 
 MySkeletonModel::MySkeletonModel(Avatar* owningAvatar, QObject* parent) : SkeletonModel(owningAvatar, parent) {

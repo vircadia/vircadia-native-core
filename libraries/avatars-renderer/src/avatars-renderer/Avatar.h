@@ -25,7 +25,6 @@
 #include <render/Scene.h>
 #include <graphics-scripting/Forward.h>
 #include <GLMHelpers.h>
-#include <CubicHermiteSpline.h>
 #include <EntityItem.h>
 
 #include <Grab.h>

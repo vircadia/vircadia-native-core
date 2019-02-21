@@ -2952,9 +2952,9 @@ void MyAvatar::initAnimGraph() {
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
 
-    #if defined(Q_OS_ANDROID) || defined(HIFI_USE_Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_Q_OS_ANDROID)
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation_withSplineIKNode.json");
-    #endif
+#endif
     }
 
     emit animGraphUrlChanged(graphUrl);
