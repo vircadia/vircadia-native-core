@@ -719,7 +719,6 @@ private:
     PointerEvent calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray, const RayToOverlayIntersectionResult& rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
-    unsigned int _mouseRayPickID;
     QUuid _currentClickingOnOverlayID;
     QUuid _currentHoverOverOverlayID;
 

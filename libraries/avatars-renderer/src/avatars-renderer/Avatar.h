@@ -500,6 +500,8 @@ public:
     const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
     void tearDownGrabs();
 
+    uint32_t appendSubMetaItems(render::ItemIDs& subItems);
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -642,8 +644,6 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
-
-protected:
     class AvatarEntityDataHash {
     public:
         AvatarEntityDataHash(uint32_t h) : hash(h) {};
@@ -705,6 +705,13 @@ protected:
     MapOfGrabs _avatarGrabs;
     SetOfIDs _grabsToChange; // updated grab IDs -- changes needed to entities or physics
     VectorOfIDs _grabsToDelete; // deleted grab IDs -- changes needed to entities or physics
+
+    ReadWriteLockable _subItemLock;
+    void updateAttachmentRenderIDs();
+    render::ItemIDs _attachmentRenderIDs;
+    void updateDescendantRenderIDs();
+    render::ItemIDs _descendantRenderIDs;
+    uint32_t _lastAncestorChainRenderableVersion { 0 };
 };
 
 #endif // hifi_Avatar_h

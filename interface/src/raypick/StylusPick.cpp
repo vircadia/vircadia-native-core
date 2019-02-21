@@ -137,13 +137,14 @@ PickResultPointer StylusPick::getDefaultResult(const QVariantMap& pickVariant) c
 }
 
 PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
-    std::vector<StylusPickResult> results;
+    auto entityTree = qApp->getEntities()->getTree();
+    StylusPickResult nearestTarget(pick.toVariantMap());
     for (const auto& target : getIncludeItems()) {
         if (target.isNull()) {
             continue;
         }
 
-        auto entity = qApp->getEntities()->getTree()->findEntityByEntityItemID(target);
+        auto entity = entityTree->findEntityByEntityItemID(target);
         if (!entity) {
             continue;
         }
@@ -157,28 +158,24 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
 
         glm::vec3 normal = entityRotation * Vectors::UNIT_Z;
         float distance = glm::dot(pick.position - entityPosition, normal);
-        glm::vec3 intersection = pick.position - (normal * distance);
-
-        glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(target, intersection, false);
-        if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
-            IntersectionType type = IntersectionType::ENTITY;
-            if (getFilter().doesPickLocalEntities()) {
-                EntityPropertyFlags desiredProperties;
-                desiredProperties += PROP_ENTITY_HOST_TYPE;
-                if (DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(target, desiredProperties).getEntityHostType() == entity::HostType::LOCAL) {
-                    type = IntersectionType::LOCAL_ENTITY;
+        if (distance < nearestTarget.distance) {
+            const auto entityDimensions = entity->getScaledDimensions();
+            const auto entityRegistrationPoint = entity->getRegistrationPoint();
+            glm::vec3 intersection = pick.position - (normal * distance);
+            glm::vec2 pos2D = RayPick::projectOntoXYPlane(intersection, entityPosition, entityRotation,
+                                                          entityDimensions, entityRegistrationPoint, false);
+            if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
+                IntersectionType type = IntersectionType::ENTITY;
+                if (getFilter().doesPickLocalEntities()) {
+                    if (entity->getEntityHostType() == entity::HostType::LOCAL) {
+                        type = IntersectionType::LOCAL_ENTITY;
+                    }
                 }
+                nearestTarget = StylusPickResult(type, target, distance, intersection, pick, normal);
             }
-            results.push_back(StylusPickResult(type, target, distance, intersection, pick, normal));
         }
     }
 
-    StylusPickResult nearestTarget(pick.toVariantMap());
-    for (const auto& result : results) {
-        if (result.distance < nearestTarget.distance) {
-            nearestTarget = result;
-        }
-    }
     return std::make_shared<StylusPickResult>(nearestTarget);
 }
 

@@ -47,7 +47,7 @@ Rectangle {
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
                          "Haze:LightingModel:enableHaze",                        
-                         "ssao:LightingModel:enableAmbientOcclusion",
+                         "AO:LightingModel:enableAmbientOcclusion",
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
                     HifiControls.CheckBox {

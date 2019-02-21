@@ -2935,6 +2935,7 @@ void EntityItem::setVisible(bool value) {
     });
 
     if (changed) {
+        bumpAncestorChainRenderableVersion();
         emit requestRenderUpdate();
     }
 }
@@ -3248,25 +3249,6 @@ void EntityItem::setSpaceIndex(int32_t index) {
 }
 
 void EntityItem::preDelete() {
-}
-
-void EntityItem::addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].push(material);
-}
-
-void EntityItem::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    std::lock_guard<std::mutex> lock(_materialsLock);
-    _materials[parentMaterialName].remove(material);
-}
-
-std::unordered_map<std::string, graphics::MultiMaterial> EntityItem::getMaterials() {
-    std::unordered_map<std::string, graphics::MultiMaterial> toReturn;
-    {
-        std::lock_guard<std::mutex> lock(_materialsLock);
-        toReturn = _materials;
-    }
-    return toReturn;
 }
 
 bool EntityItem::getCloneable() const {

@@ -2953,40 +2953,8 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
     return entity->getJointNames();
 }
 
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToEntityOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromEntityOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> EntityTree::_addMaterialToAvatarOperator = nullptr;
-std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> EntityTree::_removeMaterialFromAvatarOperator = nullptr;
 std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
-
-bool EntityTree::addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToEntityOperator) {
-        return _addMaterialToEntityOperator(entityID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromEntityOperator) {
-        return _removeMaterialFromEntityOperator(entityID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName) {
-    if (_addMaterialToAvatarOperator) {
-        return _addMaterialToAvatarOperator(avatarID, material, parentMaterialName);
-    }
-    return false;
-}
-
-bool EntityTree::removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName) {
-    if (_removeMaterialFromAvatarOperator) {
-        return _removeMaterialFromAvatarOperator(avatarID, material, parentMaterialName);
-    }
-    return false;
-}
 
 QObject* EntityTree::getEntityObject(const QUuid& id) {
     if (_getEntityObjectOperator) {
