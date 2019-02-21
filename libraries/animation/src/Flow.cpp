@@ -460,16 +460,12 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
     if (!skeleton) {
         return;
     }
-    int rightHandIndex = -1;
     auto flowPrefix = FLOW_JOINT_PREFIX.toUpper();
     auto simPrefix = SIM_JOINT_PREFIX.toUpper();
     std::vector<int> handsIndices;
 
     for (int i = 0; i < skeleton->getNumJoints(); i++) {
         auto name = skeleton->getJointName(i);
-        if (name == "RightHand") {
-            rightHandIndex = i;
-        }
         if (std::find(HAND_COLLISION_JOINTS.begin(), HAND_COLLISION_JOINTS.end(), name) != HAND_COLLISION_JOINTS.end()) {
             handsIndices.push_back(i);
         }

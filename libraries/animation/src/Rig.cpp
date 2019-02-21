@@ -1910,13 +1910,6 @@ void Rig::initAnimGraph(const QUrl& url) {
         connect(_networkLoader.get(), &AnimNodeLoader::error, [networkUrl](int error, QString str) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
-
-        connect(this, &Rig::onLoadComplete, [&]() {
-            _internalFlow.setActive(false);
-            _internalFlow.cleanUp();
-            _networkFlow.setActive(false);
-            _networkFlow.cleanUp();
-        });
     }
 }
 
