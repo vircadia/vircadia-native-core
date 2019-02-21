@@ -34,7 +34,6 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private native void questNativeOnResume();
     private native void questOnAppAfterLoad();
 
-
     private SurfaceView mView;
     private SurfaceHolder mSurfaceHolder;
 
@@ -57,12 +56,15 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
             setContentView(mView);
             questOnAppAfterLoad();
         });
+
+
     }
 
     @Override
     protected void onDestroy() {
         Log.w(TAG, "QQQ onDestroy");
-
+        isPausing=false;
+        super.onStop();
         nativeOnSurfaceChanged(null);
 
         Log.w(TAG, "QQQ onDestroy -- SUPER onDestroy");
@@ -78,6 +80,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
         questNativeOnResume();
         nativeOnResume();
+        isPausing=false;
     }
 
     @Override
@@ -87,40 +90,41 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
         questNativeOnPause();
         nativeOnPause();
+        isPausing=true;
     }
 
     @Override
     protected void onStop(){
         super.onStop();
-        Log.w(TAG, "QQQ Onstop called");
+        Log.w(TAG, "QQQ_ Onstop called");
     }
 
     @Override
-    protected void onRestart(){
+    protected void onRestart() {
         super.onRestart();
-        Log.w(TAG, "QQQ onRestart called ****");
+        Log.w(TAG, "QQQ_ onRestart called ****");
         questOnAppAfterLoad();
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ surfaceCreated ************************************");
+        Log.w(TAG, "QQQ_ surfaceCreated ************************************");
         nativeOnSurfaceChanged(holder.getSurface());
         mSurfaceHolder = holder;
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.w(TAG, "QQQ surfaceChanged");
+        Log.w(TAG, "QQQ_ surfaceChanged");
         nativeOnSurfaceChanged(holder.getSurface());
         mSurfaceHolder = holder;
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ surfaceDestroyed ***************************************************");
-        nativeOnSurfaceChanged(null);
-        mSurfaceHolder = null;
+        Log.w(TAG, "QQQ_ surfaceDestroyed ***************************************************");
+      //  nativeOnSurfaceChanged(null);
+       // mSurfaceHolder = null;
 
     }
 }
