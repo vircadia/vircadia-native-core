@@ -37,6 +37,7 @@
 #include "RenderableModelEntityItem.h"
 
 #include <graphics-scripting/Forward.h>
+#include <CubicHermiteSpline.h>
 
 #include "Logging.h"
 
