@@ -265,7 +265,9 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             if (spine2Exists && headExists && hipsExists) {
 
                 AnimPose rigSpaceYaw(myAvatar->getSpine2RotationRigSpace());
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
                 rigSpaceYaw.rot() = safeLerp(Quaternions::IDENTITY, rigSpaceYaw.rot(), 0.5f);
+#endif
                 glm::vec3 u, v, w;
                 glm::vec3 fwd = rigSpaceYaw.rot() * glm::vec3(0.0f, 0.0f, 1.0f);
                 glm::vec3 up = currentHeadPose.trans() - currentHipsPose.trans();
