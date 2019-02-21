@@ -6,6 +6,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "PickManager.h"
+#include "PerfStat.h"
+#include "Profile.h"
 
 PickManager::PickManager() {
     setShouldPickHUDOperator([]() { return false; });
@@ -119,10 +121,26 @@ void PickManager::update() {
     bool shouldPickHUD = _shouldPickHUDOperator();
     // FIXME: give each type its own expiry
     // Each type will update at least one pick, regardless of the expiry
-    _updatedPickCounts[PickQuery::Stylus] = _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
-    _updatedPickCounts[PickQuery::Ray] = _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
-    _updatedPickCounts[PickQuery::Parabola] = _parabolaPickCacheOptimizer.update(cachedPicks[PickQuery::Parabola], _nextPickToUpdate[PickQuery::Parabola], expiry, shouldPickHUD);
-    _updatedPickCounts[PickQuery::Collision] = _collisionPickCacheOptimizer.update(cachedPicks[PickQuery::Collision], _nextPickToUpdate[PickQuery::Collision], expiry, false);
+    {
+        PROFILE_RANGE(picks, "StylusPicks");
+        PerformanceTimer perfTimer("StylusPicks");
+        _updatedPickCounts[PickQuery::Stylus] = _stylusPickCacheOptimizer.update(cachedPicks[PickQuery::Stylus], _nextPickToUpdate[PickQuery::Stylus], expiry, false);
+    }
+    {
+        PROFILE_RANGE(picks, "RayPicks");
+        PerformanceTimer perfTimer("RayPicks");
+        _updatedPickCounts[PickQuery::Ray] = _rayPickCacheOptimizer.update(cachedPicks[PickQuery::Ray], _nextPickToUpdate[PickQuery::Ray], expiry, shouldPickHUD);
+    }
+    {
+        PROFILE_RANGE(picks, "ParabolaPick");
+        PerformanceTimer perfTimer("ParabolaPick");
+        _updatedPickCounts[PickQuery::Parabola] = _parabolaPickCacheOptimizer.update(cachedPicks[PickQuery::Parabola], _nextPickToUpdate[PickQuery::Parabola], expiry, shouldPickHUD);
+    }
+    {
+        PROFILE_RANGE(picks, "CollisoinPicks");
+        PerformanceTimer perfTimer("CollisionPicks");
+        _updatedPickCounts[PickQuery::Collision] = _collisionPickCacheOptimizer.update(cachedPicks[PickQuery::Collision], _nextPickToUpdate[PickQuery::Collision], expiry, false);
+    }
 }
 
 bool PickManager::isLeftHand(unsigned int uid) {

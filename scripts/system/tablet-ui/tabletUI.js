@@ -137,11 +137,11 @@
                 UIWebTablet.calculateTabletAttachmentProperties(activeHand, true, tabletProperties);
             }
             tabletProperties.visible = true;
+            tabletProperties.ignorePickIntersection = false;
             Overlays.editOverlay(HMD.tabletID, tabletProperties);
-            Overlays.editOverlay(HMD.homeButtonID, { visible: true });
-            Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: true });
-            Overlays.editOverlay(HMD.tabletScreenID, { visible: true });
-            Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 90 });
+            Overlays.editOverlay(HMD.homeButtonID, { visible: true, ignorePickIntersection: false });
+            Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: true, ignorePickIntersection: false });
+            Overlays.editOverlay(HMD.tabletScreenID, { visible: true, ignorePickIntersection: false, maxFPS: 90 });
             updateTabletWidthFromSettings(true);
         }
         gTablet.tabletShown = true;
@@ -158,11 +158,10 @@
             print("TABLET hide");
         }
 
-        Overlays.editOverlay(HMD.tabletID, { visible: false });
-        Overlays.editOverlay(HMD.homeButtonID, { visible: false });
-        Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: false });
-        Overlays.editOverlay(HMD.tabletScreenID, { visible: false });
-        Overlays.editOverlay(HMD.tabletScreenID, { maxFPS: 1 });
+        Overlays.editOverlay(HMD.tabletID, { visible: false, ignorePickIntersection: true });
+        Overlays.editOverlay(HMD.homeButtonID, { visible: false, ignorePickIntersection: true });
+        Overlays.editOverlay(HMD.homeButtonHighlightID, { visible: false, ignorePickIntersection: true });
+        Overlays.editOverlay(HMD.tabletScreenID, { visible: false, ignorePickIntersection: true, maxFPS: 1 });
     }
 
     function closeTabletUI() {

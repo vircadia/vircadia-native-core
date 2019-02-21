@@ -100,6 +100,13 @@ if (ANDROID)
     add_definitions(-DCUSTOM_DISPLAY_PLUGINS) 
     set(PLATFORM_PLUGIN_LIBRARIES oculusMobile oculusMobilePlugin)
   endif()
+
+  # Allow client code to use preprocessor macros to distinguish between quest and non-quest builds
+  if (${HIFI_ANDROID_APP} STREQUAL "questInterface")
+    add_definitions(-DANDROID_APP_QUEST_INTERFACE) 
+  elseif(${HIFI_ANDROID_APP} STREQUAL "interface")
+    add_definitions(-DANDROID_APP_INTERFACE) 
+  endif()
 else ()
   set(PLATFORM_QT_COMPONENTS WebEngine Xml)
 endif ()

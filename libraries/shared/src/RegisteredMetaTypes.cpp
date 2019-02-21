@@ -1269,7 +1269,14 @@ QVariantMap parseTexturesToMap(QString newTextures, const QVariantMap& defaultTe
     QVariantMap newTexturesMap = newTexturesJson.toVariant().toMap();
     QVariantMap toReturn = defaultTextures;
     for (auto& texture : newTexturesMap.keys()) {
-        toReturn[texture] = newTexturesMap[texture];
+        auto newURL = newTexturesMap[texture];
+        if (newURL.canConvert<QUrl>()) {
+            toReturn[texture] = newURL.toUrl();
+        } else if (newURL.canConvert<QString>()) {
+            toReturn[texture] = QUrl(newURL.toString());
+        } else {
+            toReturn[texture] = newURL;
+        }
     }
 
     return toReturn;

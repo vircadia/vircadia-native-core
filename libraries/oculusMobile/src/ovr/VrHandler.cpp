@@ -315,10 +315,6 @@ JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOn
     SURFACE.onCreate(env, obj);
 }
 
-JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnDestroy(JNIEnv*, jclass) {
-    __android_log_write(ANDROID_LOG_WARN, "QQQ_JNI", __FUNCTION__);
-}
-
 JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnResume(JNIEnv*, jclass) {
     __android_log_write(ANDROID_LOG_WARN, "QQQ_JNI", __FUNCTION__);
     SURFACE.setResumed(true);

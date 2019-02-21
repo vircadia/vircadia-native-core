@@ -20,11 +20,9 @@
 class RenderThread : public GenericThread, ovr::VrHandler {
     using Parent = GenericThread;
 public:
-    QWindow* _window{ nullptr };
     std::mutex _mutex;
     gpu::ContextPointer _gpuContext;  // initialized during window creation
     std::shared_ptr<gpu::Backend> _backend;
-    std::atomic<size_t> _presentCount{ 0 };
     std::mutex _frameLock;
     std::queue<gpu::FramePointer> _pendingFrames;
     gpu::FramePointer _activeFrame;
@@ -39,6 +37,6 @@ public:
     void handleInput();
 
     void submitFrame(const gpu::FramePointer& frame);
-    void initialize(QWindow* window);
+    void initialize();
     void renderFrame();
 };
