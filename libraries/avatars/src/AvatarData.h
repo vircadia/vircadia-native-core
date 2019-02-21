@@ -61,6 +61,10 @@ using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
 
+/**jsdoc
+ * An object with the UUIDs of avatar entities as keys and binary blobs, being the entity properties, as values.
+ * @typedef {Object.<Uuid, Array.<byte>>} AvatarEntityMap
+ */
 using AvatarEntityMap = QMap<QUuid, QByteArray>;
 using PackedAvatarEntityMap = QMap<QUuid, QByteArray>; // similar to AvatarEntityMap, but different internal format
 using AvatarEntityIDs = QSet<QUuid>;
@@ -414,7 +418,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     // IMPORTANT: The JSDoc for the following properties should be copied to MyAvatar.h and ScriptableAvatar.h.
     /*
      * @property {Vec3} position
-     * @property {number} scale - Returns the clamped scale of the avatar.
+     * @property {number} scale=1.0 - The scale of the avatar. When setting, the value is limited to between <code>0.005</code> 
+     *     and <code>1000.0</code>. When getting, the value may temporarily be further limited by the domain's settings.
      * @property {number} density <em>Read-only.</em>
      * @property {Vec3} handPosition
      * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar.
@@ -436,8 +441,9 @@ class AvatarData : public QObject, public SpatiallyNestable {
      * @property {number} audioLoudness
      * @property {number} audioAverageLoudness
      * @property {string} displayName
-     * @property {string} sessionDisplayName - Sanitized, defaulted version displayName that is defined by the AvatarMixer
-     *     rather than by Interface clients. The result is unique among all avatars present at the time.
+     * @property {string} sessionDisplayName - Sanitized, defaulted version of <code>displayName</code> that is defined by the 
+     *     avatar mixer rather than by Interface clients. The result is unique among all avatars present on the domain at the 
+     *     time.
      * @property {boolean} lookAtSnappingEnabled
      * @property {string} skeletonModelURL
      * @property {AttachmentData[]} attachmentData
@@ -601,18 +607,18 @@ public:
     virtual bool getHasAudioEnabledFaceMovement() const { return false; }
 
     /**jsdoc
-     * Returns the minimum scale allowed for this avatar in the current domain.
+     * Get the minimum scale allowed for this avatar in the current domain.
      * This value can change as the user changes avatars or when changing domains.
      * @function Avatar.getDomainMinScale
-     * @returns {number} minimum scale allowed for this avatar in the current domain.
+     * @returns {number} The minimum scale allowed for this avatar in the current domain.
      */
     Q_INVOKABLE float getDomainMinScale() const;
 
     /**jsdoc
-     * Returns the maximum scale allowed for this avatar in the current domain.
+     * Get the maximum scale allowed for this avatar in the current domain.
      * This value can change as the user changes avatars or when changing domains.
      * @function Avatar.getDomainMaxScale
-     * @returns {number} maximum scale allowed for this avatar in the current domain.
+     * @returns {number} The maximum scale allowed for this avatar in the current domain.
      */
     Q_INVOKABLE float getDomainMaxScale() const;
 
@@ -625,18 +631,18 @@ public:
     virtual bool canMeasureEyeHeight() const { return false; }
 
     /**jsdoc
-     * Provides read only access to the current eye height of the avatar.
+     * Get the current eye height of the avatar.
      * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
      * @function Avatar.getEyeHeight
-     * @returns {number} Eye height of avatar in meters.
+     * @returns {number} The eye height of the avatar.
      */
     Q_INVOKABLE virtual float getEyeHeight() const { return _targetScale * getUnscaledEyeHeight(); }
 
     /**jsdoc
-     * Provides read only access to the current height of the avatar.
+     * Get the current height of the avatar.
      * This height is only an estimate and might be incorrect for avatars that are missing standard joints.
      * @function Avatar.getHeight
-     * @returns {number} Height of avatar in meters.
+     * @returns {number} The height of the avatar.
      */
     Q_INVOKABLE virtual float getHeight() const;
 
@@ -739,7 +745,7 @@ public:
 
     /**jsdoc
      * Get the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {number} index - The index of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -748,7 +754,7 @@ public:
 
     /**jsdoc
      * Get the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
      * @function Avatar.getJointTranslation
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent.
@@ -855,7 +861,7 @@ public:
 
     /**jsdoc
      * Get the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {string} name - The name of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -868,7 +874,7 @@ public:
 
     /**jsdoc
      * Get the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create-and-explore/avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
      * @function Avatar.getJointTranslation
      * @param {number} name - The name of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent.
@@ -883,7 +889,7 @@ public:
      * Get the rotations of all joints in the current avatar. Each joint's rotation is relative to its parent joint.
      * @function Avatar.getJointRotations
      * @returns {Quat[]} The rotations of all joints relative to each's parent. The values are in the same order as the array 
-     * returned by {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
+     * returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
      * @example <caption>Report the rotations of all your avatar's joints.</caption>
      * print(JSON.stringify(MyAvatar.getJointRotations()));
      *
@@ -906,7 +912,7 @@ public:
      * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
      * @function Avatar.setJointRotations
      * @param {Quat[]} jointRotations - The rotations for all joints in the avatar. The values are in the same order as the 
-     * array returned by {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
+     * array returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
      * @example <caption>Set your avatar to its default T-pose then rotate its right arm.<br />
      * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/armpose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
@@ -965,10 +971,10 @@ public:
 
     /**jsdoc
      * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by 
-     * {@link MyAvatar.getJointNames} or {@link Avatar.getJointNames}.
+     * {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
      * @function Avatar.getJointIndex
      * @param {string} name - The name of the joint.
-     * @returns {number} The index of the joint.
+     * @returns {number} The index of the joint if valid, otherwise <code>-1</code>.
      * @example <caption>Report the index of your avatar's left arm joint.</caption>
      * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm"));
      *
@@ -1016,14 +1022,14 @@ public:
     /**jsdoc
      * @function Avatar.updateAvatarEntity
      * @param {Uuid} entityID
-     * @param {string} entityData
+     * @param {Array.<byte>} entityData
      */
     Q_INVOKABLE virtual void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
 
     /**jsdoc
      * @function Avatar.clearAvatarEntity
      * @param {Uuid} entityID
-     * @param {boolean} [requiresRemovalFromTree]
+     * @param {boolean} [requiresRemovalFromTree=true]
      */
     Q_INVOKABLE virtual void clearAvatarEntity(const QUuid& entityID, bool requiresRemovalFromTree = true);
 
@@ -1201,14 +1207,12 @@ public:
     AABox getDefaultBubbleBox() const;
 
     /**jsdoc
-     * @function Avatar.getAvatarEntityData
-     * @returns {object} 
+     * @comment Documented in derived classes' JSDoc.
      */
     Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
 
     /**jsdoc
-     * @function Avatar.setAvatarEntityData
-     * @param {object} avatarEntityData
+     * @comment Documented in derived classes' JSDoc.
      */
     Q_INVOKABLE virtual void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 

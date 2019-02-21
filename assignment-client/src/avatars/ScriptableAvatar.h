@@ -28,7 +28,8 @@
  *
  * @comment IMPORTANT: This group of properties is copied from AvatarData.h; they should NOT be edited here.
  * @property {Vec3} position
- * @property {number} scale - Returns the clamped scale of the avatar.
+ * @property {number} scale=1.0 - The scale of the avatar. When setting, the value is limited to between <code>0.005</code>
+ *     and <code>1000.0</code>. When getting, the value may temporarily be further limited by the domain's settings.
  * @property {number} density <em>Read-only.</em>
  * @property {Vec3} handPosition
  * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar.
@@ -50,8 +51,9 @@
  * @property {number} audioLoudness
  * @property {number} audioAverageLoudness
  * @property {string} displayName
- * @property {string} sessionDisplayName - Sanitized, defaulted version displayName that is defined by the AvatarMixer
- *     rather than by Interface clients. The result is unique among all avatars present at the time.
+ * @property {string} sessionDisplayName - Sanitized, defaulted version of <code>displayName</code> that is defined by the
+ *     avatar mixer rather than by Interface clients. The result is unique among all avatars present on the domain at the
+ *     time.
  * @property {boolean} lookAtSnappingEnabled
  * @property {string} skeletonModelURL
  * @property {AttachmentData[]} attachmentData
@@ -102,24 +104,12 @@ public:
     Q_INVOKABLE AnimationDetails getAnimationDetails();
 
     /**jsdoc
-     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.<br />
-     * Get the names of all the joints in the current avatar.
-     * @function Avatar.getJointNames
-     * @returns {string[]} The joint names.
-     * @example <caption>Report the names of all the joints in your current avatar.</caption>
-     * print(JSON.stringify(Avatar.getJointNames()));
+     * @comment Uses the base class's JSDoc.
      */
     Q_INVOKABLE virtual QStringList getJointNames() const override;
 
     /**jsdoc
-     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.<br />
-     * Get the joint index for a named joint. The joint index value is the position of the joint in the array returned by
-     * {@link Avatar.getJointNames}.
-     * @function Avatar.getJointIndex
-     * @param {string} name - The name of the joint.
-     * @returns {number} The index of the joint.
-     * @example <caption>Report the index of your avatar's left arm joint.</caption>
-     * print(JSON.stringify(Avatar.getJointIndex("LeftArm"));
+     * @comment Uses the base class's JSDoc.
      */
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const override;
@@ -137,39 +127,37 @@ public:
     void setHasAudioEnabledFaceMovement(bool hasAudioEnabledFaceMovement);
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
 
-     /**jsdoc
-     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.<br />
-     * ####### Also need to resolve with MyAvatar.<br />
-     * Potentially Very Expensive.  Do not use.
+    /**jsdoc
+     * Get the avatar entities as binary data.
+     * <p><strong>Warning:</strong> Potentially a very expensive call. Do not use if possible.</p>
      * @function Avatar.getAvatarEntityData
-     * @returns {object}
+     * @returns {AvatarEntityMap}
      */
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
 
     /**jsdoc
-     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.
+     * Set the avatar entities from binary data.
+     * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.setAvatarEntityData
-     * @param {object} avatarEntityData
+     * @param {AvatarEntityMap} avatarEntityData
      */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
 
     /**jsdoc
-     * ####### TODO: If this override changes the function use @override and do JSDoc here, otherwise @comment that uses base class's JSDoc.
-     * @function Avatar.updateAvatarEntity
-     * @param {Uuid} entityID
-     * @param {string} entityData
+     * @comment Uses the base class's JSDoc.
      */
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
 
 public slots:
     /**jsdoc
      * @function Avatar.update
+     * @param {number} deltaTime
      */
     void update(float deltatime);
 
     /**jsdoc
-    * @function Avatar.setJointMappingsFromNetworkReply
-    */
+     * @function Avatar.setJointMappingsFromNetworkReply
+     */
     void setJointMappingsFromNetworkReply();
 
 private:
