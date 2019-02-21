@@ -1721,10 +1721,10 @@ static float getHandPositionTheta(glm::vec3 armToHand, float defaultArmLength, b
 
     const float LOWER_ANATOMICAL_ANGLE = 175.0f;
     const float UPPER_ANATOMICAL_ANGLE = 50.0f;
-    if (handPositionTheta < LOWER_ANATOMICAL_ANGLE) {
+    if (handPositionTheta > LOWER_ANATOMICAL_ANGLE) {
         handPositionTheta = LOWER_ANATOMICAL_ANGLE;
     }
-    if (handPositionTheta > UPPER_ANATOMICAL_ANGLE) {
+    if (handPositionTheta < UPPER_ANATOMICAL_ANGLE) {
         handPositionTheta = UPPER_ANATOMICAL_ANGLE;
     }
 
@@ -1876,7 +1876,9 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
 
     // get the pole vector theta based on the hand position relative to the shoulder.
     float positionalTheta = getHandPositionTheta(armToHand, defaultArmLength, left);
-
+    if (left) {
+        qCDebug(animation) << "positional theta left "<< positionalTheta;
+    }
 
     // now we calculate the contribution of the hand rotation relative to the arm
     glm::quat relativeHandRotation = (elbowPose.inverse() * handPose).rot();
