@@ -252,6 +252,7 @@ void FlowJoint::setInitialData(const glm::vec3& initialPosition, const glm::vec3
     _previousPosition = initialPosition;
     _currentPosition = initialPosition;
     _initialTranslation = initialTranslation;
+    _currentRotation = initialRotation;
     _initialRotation = initialRotation;
     _translationDirection = glm::normalize(_initialTranslation);
     _parentPosition = parentPosition;
@@ -280,7 +281,7 @@ void FlowJoint::update(float deltaTime) {
     }
     FlowNode::update(deltaTime, accelerationOffset);
     if (_anchored) {
-        if (!_isDummy) {
+        if (!_isHelper) {
             _currentPosition = _updatedPosition;
         } else {
             _currentPosition = _parentPosition;
@@ -301,19 +302,10 @@ void FlowJoint::solve(const FlowCollisionResult& collision) {
     FlowNode::solve(_parentPosition, _length, collision);
 };
 
-FlowDummyJoint::FlowDummyJoint(const glm::vec3& initialPosition, int index, int parentIndex, int childIndex, FlowPhysicsSettings settings) :
-    FlowJoint(index, parentIndex, childIndex, DUMMY_KEYWORD + "_" + index, DUMMY_KEYWORD, settings) {
-    _isDummy = true;
+void FlowJoint::toHelperJoint(const glm::vec3& initialPosition, float length) {
     _initialPosition = initialPosition;
-    _length = DUMMY_JOINT_DISTANCE;
-}
-
-void FlowDummyJoint::toIsolatedJoint(float length, int childIndex, const QString& group) {
-    _isDummy = false;
+    _isHelper = true;
     _length = length;
-    _childIndex = childIndex;
-    _group = group;
-
 }
 
 FlowThread::FlowThread(int rootIndex, std::map<int, FlowJoint>* joints) {
@@ -344,6 +336,7 @@ void FlowThread::computeFlowThread(int rootIndex) {
             break;
         }
     }
+    _length = 0.0f;
     for (size_t i = 0; i < indexes.size(); i++) {
         int index = indexes[i];
         _joints.push_back(index);
@@ -456,6 +449,7 @@ FlowThread& FlowThread::operator=(const FlowThread& otherFlowThread) {
         myJoint._updatedPosition = joint._updatedPosition;
         myJoint._updatedRotation = joint._updatedRotation;
         myJoint._updatedTranslation = joint._updatedTranslation;
+        myJoint._isHelper = joint._isHelper;
     }
     return *this;
 }
@@ -532,9 +526,9 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
         glm::vec3 jointPosition, parentPosition, jointTranslation;
         glm::quat jointRotation;
         getJointPositionInWorldFrame(absolutePoses, jointIndex, jointPosition, _entityPosition, _entityRotation);
-        getJointPositionInWorldFrame(absolutePoses, jointData.second.getParentIndex(), parentPosition, _entityPosition, _entityRotation);
         getJointTranslation(relativePoses, jointIndex, jointTranslation);
         getJointRotation(relativePoses, jointIndex, jointRotation);
+        getJointPositionInWorldFrame(absolutePoses, jointData.second.getParentIndex(), parentPosition, _entityPosition, _entityRotation);
 
         jointData.second.setInitialData(jointPosition, jointTranslation, jointRotation, parentPosition);
     }
@@ -549,46 +543,35 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
             _flowJointData[joint.second.getParentIndex()].setChildIndex(joint.first);
         }
     }
-
+    int extraIndex = -1;
     for (size_t i = 0; i < roots.size(); i++) {
         FlowThread thread = FlowThread(roots[i], &_flowJointData);
         // add threads with at least 2 joints
         if (thread._joints.size() > 0) {
             if (thread._joints.size() == 1) {
                 int jointIndex = roots[i];
-                auto joint = _flowJointData[jointIndex];
-                auto jointPosition = joint.getUpdatedPosition();
-                auto newSettings = FlowPhysicsSettings(joint.getSettings());
-                newSettings._stiffness = ISOLATED_JOINT_STIFFNESS;
-                int extraIndex = (int)_flowJointData.size();
-                auto newJoint = FlowDummyJoint(jointPosition, extraIndex, jointIndex, -1, newSettings);
-                newJoint.toIsolatedJoint(ISOLATED_JOINT_LENGTH, extraIndex, _flowJointData[jointIndex].getGroup());
-                thread = FlowThread(jointIndex, &_flowJointData);
+                auto &joint = _flowJointData[jointIndex];
+                auto &jointPosition = joint.getUpdatedPosition();
+                auto newSettings = joint.getSettings();
+                extraIndex = extraIndex > -1 ? extraIndex + 1 : skeleton->getNumJoints();
+                joint.setChildIndex(extraIndex);
+                auto newJoint = FlowJoint(extraIndex, jointIndex, -1, joint.getName(), joint.getGroup(), newSettings);
+                newJoint.toHelperJoint(jointPosition, HELPER_JOINT_LENGTH);
+                glm::vec3 translation = glm::vec3(0.0f, HELPER_JOINT_LENGTH, 0.0f);
+                newJoint.setInitialData(jointPosition + translation, 100.0f * translation , Quaternions::IDENTITY, jointPosition);
+                _flowJointData.insert(std::pair<int, FlowJoint>(extraIndex, newJoint));
+                FlowThread newThread = FlowThread(jointIndex, &_flowJointData);
+                if (newThread._joints.size() > 1) {
+                    _jointThreads.push_back(newThread);
+                }
+            } else {
+                _jointThreads.push_back(thread);
             }
-            _jointThreads.push_back(thread);
         }
     }
     
     if (_jointThreads.size() == 0) {
         onCleanup();
-    }
-    if (SHOW_DUMMY_JOINTS && rightHandIndex > -1) {
-        int jointCount = (int)_flowJointData.size();
-        int extraIndex = (int)_flowJointData.size();
-        glm::vec3 rightHandPosition;
-        getJointPositionInWorldFrame(absolutePoses, rightHandIndex, rightHandPosition, _entityPosition, _entityRotation);
-        int parentIndex = rightHandIndex;
-        for (int i = 0; i < DUMMY_JOINT_COUNT; i++) {
-            int childIndex = (i == (DUMMY_JOINT_COUNT - 1)) ? -1 : extraIndex + 1;
-            auto newJoint = FlowDummyJoint(rightHandPosition, extraIndex, parentIndex, childIndex, DEFAULT_JOINT_SETTINGS);
-            _flowJointData.insert(std::pair<int, FlowJoint>(extraIndex, newJoint));
-            parentIndex = extraIndex;
-            extraIndex++;
-        }
-        _flowJointData[jointCount].setAnchored(true);
-
-        auto extraThread = FlowThread(jointCount, &_flowJointData);
-        _jointThreads.push_back(extraThread);
     }
     if (handsIndices.size() > 0) {
         FlowCollisionSettings handSettings;
@@ -699,10 +682,16 @@ void Flow::updateJoints(AnimPoseVec& relativePoses, AnimPoseVec& absolutePoses) 
         int jointIndex = jointData.first;
         glm::vec3 jointPosition, parentPosition, jointTranslation;
         glm::quat jointRotation, parentWorldRotation;
-        getJointPositionInWorldFrame(absolutePoses, jointIndex, jointPosition, _entityPosition, _entityRotation);
+        if (!jointData.second.isHelper()) {
+            getJointPositionInWorldFrame(absolutePoses, jointIndex, jointPosition, _entityPosition, _entityRotation);
+            getJointTranslation(relativePoses, jointIndex, jointTranslation);
+            getJointRotation(relativePoses, jointIndex, jointRotation);
+        } else {
+            jointPosition = jointData.second.getCurrentPosition();
+            jointTranslation = jointData.second.getCurrentTranslation();
+            jointRotation = jointData.second.getCurrentRotation();
+        }
         getJointPositionInWorldFrame(absolutePoses, jointData.second.getParentIndex(), parentPosition, _entityPosition, _entityRotation);
-        getJointTranslation(relativePoses, jointIndex, jointTranslation);
-        getJointRotation(relativePoses, jointIndex, jointRotation);
         getJointRotationInWorldFrame(absolutePoses, jointData.second.getParentIndex(), parentWorldRotation, _entityRotation);
         jointData.second.setUpdatedData(jointPosition, jointTranslation, jointRotation, parentPosition, parentWorldRotation);
     }
@@ -753,7 +742,7 @@ bool Flow::getJointPositionInWorldFrame(const AnimPoseVec& absolutePoses, int jo
         } else {
             position = glm::vec3(0.0f);
         }
-    } 
+    }
     return false;
 }
 

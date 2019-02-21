@@ -1911,14 +1911,12 @@ void Rig::initAnimGraph(const QUrl& url) {
             qCritical(animation) << "Error loading: code = " << error << "str =" << str;
         });
 
-        /*
         connect(this, &Rig::onLoadComplete, [&]() {
-            if (_internalFlow.getActive()) {
-                _internalFlow.calculateConstraints(_animSkeleton, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
-                _networkFlow.calculateConstraints(_animSkeleton, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
-            }
+            _internalFlow.setActive(false);
+            _internalFlow.cleanUp();
+            _networkFlow.setActive(false);
+            _networkFlow.cleanUp();
         });
-        */
     }
 }
 
@@ -2136,5 +2134,6 @@ void Rig::initFlow(bool isActive) {
         }
     } else {
         _internalFlow.cleanUp();
+        _networkFlow.cleanUp();
     }
 }

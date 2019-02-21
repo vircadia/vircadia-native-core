@@ -23,11 +23,6 @@
 class Rig;
 class AnimSkeleton;
 
-const bool SHOW_DUMMY_JOINTS = false;
-
-const int LEFT_HAND = 0;
-const int RIGHT_HAND = 1;
-
 const float HAPTIC_TOUCH_STRENGTH = 0.25f;
 const float HAPTIC_TOUCH_DURATION = 10.0f;
 const float HAPTIC_SLOPE = 0.18f;
@@ -38,19 +33,8 @@ const QString SIM_JOINT_PREFIX = "sim";
 
 const std::vector<QString> HAND_COLLISION_JOINTS = { "RightHandMiddle1", "RightHandThumb3", "LeftHandMiddle1", "LeftHandThumb3", "RightHandMiddle3", "LeftHandMiddle3" };
 
-const QString JOINT_COLLISION_PREFIX = "joint_";
-const QString HAND_COLLISION_PREFIX = "hand_";
 const float HAND_COLLISION_RADIUS = 0.03f;
-const float HAND_TOUCHING_DISTANCE = 2.0f;
-
-const int COLLISION_SHAPES_LIMIT = 4;
-
-const QString DUMMY_KEYWORD = "Extra";
-const int DUMMY_JOINT_COUNT = 8;
-const float DUMMY_JOINT_DISTANCE = 0.05f;
-
-const float ISOLATED_JOINT_STIFFNESS = 0.0f;
-const float ISOLATED_JOINT_LENGTH = 0.05f;
+const float HELPER_JOINT_LENGTH = 0.05f;
 
 const float DEFAULT_STIFFNESS = 0.0f;
 const float DEFAULT_GRAVITY = -0.0096f;
@@ -212,6 +196,7 @@ public:
 
     FlowJoint(): FlowNode() {};
     FlowJoint(int jointIndex, int parentIndex, int childIndex, const QString& name, const QString& group, const FlowPhysicsSettings& settings);
+    void toHelperJoint(const glm::vec3& initialPosition, float length);
     void setInitialData(const glm::vec3& initialPosition, const glm::vec3& initialTranslation, const glm::quat& initialRotation, const glm::vec3& parentPosition);
     void setUpdatedData(const glm::vec3& updatedPosition, const glm::vec3& updatedTranslation, const glm::quat& updatedRotation, const glm::vec3& parentPosition, const glm::quat& parentWorldRotation);
     void setRecoveryPosition(const glm::vec3& recoveryPosition);
@@ -219,19 +204,23 @@ public:
     void solve(const FlowCollisionResult& collision);
 
     void setScale(float scale, bool initScale);
-    bool isAnchored() { return _anchored; }
+    bool isAnchored() const { return _anchored; }
     void setAnchored(bool anchored) { _anchored = anchored; }
+    bool isHelper() const { return _isHelper; }
 
     const FlowPhysicsSettings& getSettings() { return _settings; }
     void setSettings(const FlowPhysicsSettings& settings) { _settings = settings; }
 
-    const glm::vec3& getCurrentPosition() { return _currentPosition; }
-    int getIndex() { return _index; }
-    int getParentIndex() { return _parentIndex; }
+    const glm::vec3& getCurrentPosition() const { return _currentPosition; }
+    int getIndex() const { return _index; }
+    int getParentIndex() const { return _parentIndex; }
     void setChildIndex(int index) { _childIndex = index; }
-    const glm::vec3& getUpdatedPosition() { return _updatedPosition; }
-    const QString& getGroup() { return _group; }
-    const glm::quat& getCurrentRotation() { return _currentRotation; }
+    const glm::vec3& getUpdatedPosition() const { return _updatedPosition; }
+    const QString& getGroup() const { return _group; }
+    const QString& getName() const { return _name; }
+    const glm::quat& getCurrentRotation() const { return _currentRotation; }
+    const glm::vec3& getCurrentTranslation() const { return _initialTranslation; }
+    const glm::vec3& getInitialPosition() const { return _initialPosition; }
 
 protected:
 
@@ -240,7 +229,8 @@ protected:
     int _childIndex{ -1 };
     QString _name;
     QString _group;
-    bool _isDummy{ false };
+
+    bool _isHelper{ false };
 
     glm::vec3 _initialTranslation;
     glm::quat _initialRotation;
@@ -261,13 +251,6 @@ protected:
 
     bool _applyRecovery { false };
 };
-
-class FlowDummyJoint : public FlowJoint {
-public:
-    FlowDummyJoint(const glm::vec3& initialPosition, int index, int parentIndex, int childIndex, FlowPhysicsSettings settings);
-    void toIsolatedJoint(float length, int childIndex, const QString& group);
-};
-
 
 class FlowThread {
 public:
