@@ -273,9 +273,14 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = [myAvatar]()->bool { return myAvatar->getHandRelativeMovement(); };
-        auto setter = [myAvatar](bool value) { myAvatar->setHandRelativeMovement(value);  };
-        auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
+        auto getter = [myAvatar]()->int { return myAvatar->getMovementReference(); };
+        auto setter = [myAvatar](int value) { myAvatar->setMovementReference(value);  };
+        //auto preference = new CheckPreference(VR_MOVEMENT, "Hand-Relative Movement", getter, setter);
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Movement Direction", getter, setter);
+        QStringList items;
+        items << "HMD-Relative" << "Hand-Relative" << "Hand-Relative (Leveled)";
+        preference->setHeading("Movement Direction");
+        preference->setItems(items);
         preferences->addPreference(preference);
     }
     {

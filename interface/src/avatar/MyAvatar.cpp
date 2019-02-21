@@ -169,7 +169,7 @@ MyAvatar::MyAvatar(QThread* thread) :
     _useSnapTurnSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "useSnapTurn", _useSnapTurn),
     _userHeightSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userHeight", DEFAULT_AVATAR_HEIGHT),
     _flyingHMDSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "flyingHMD", _flyingPrefHMD),
-    _handRelativeMovementSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "handRelativeMovement", _handRelativeMovement),
+    _movementReferenceSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "movementReference", _movementReference),
     _avatarEntityCountSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "avatarEntityData" << "size", 0),
         _userRecenterModelSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userRecenterModel", USER_RECENTER_MODEL_AUTO),
     _driveGear1Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear1", _driveGear1),
@@ -1283,7 +1283,7 @@ void MyAvatar::saveData() {
     _useSnapTurnSetting.set(_useSnapTurn);
     _userHeightSetting.set(getUserHeight());
     _flyingHMDSetting.set(getFlyingHMDPref());
-    _handRelativeMovementSetting.set(getHandRelativeMovement());
+    _movementReferenceSetting.set(getMovementReference());
     _driveGear1Setting.set(getDriveGear1());
     _driveGear2Setting.set(getDriveGear2());
     _driveGear3Setting.set(getDriveGear3());
@@ -1867,7 +1867,7 @@ void MyAvatar::loadData() {
     // Flying preferences must be loaded before calling setFlyingEnabled()
     Setting::Handle<bool> firstRunVal { Settings::firstRun, true };
     setFlyingHMDPref(firstRunVal.get() ? false : _flyingHMDSetting.get());
-    setHandRelativeMovement(firstRunVal.get() ? false : _handRelativeMovementSetting.get());
+    setMovementReference(firstRunVal.get() ? false : _movementReferenceSetting.get());
     setDriveGear1(firstRunVal.get() ? DEFAULT_GEAR_1 : _driveGear1Setting.get());
     setDriveGear2(firstRunVal.get() ? DEFAULT_GEAR_2 : _driveGear2Setting.get());
     setDriveGear3(firstRunVal.get() ? DEFAULT_GEAR_3 : _driveGear3Setting.get());
@@ -3354,7 +3354,36 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
     // compute action input
     // Determine if we're head or controller relative...
     glm::vec3 forward, right;
-    if (getHandRelativeMovement() && qApp->isHMDMode()) {
+
+    if (qApp->isHMDMode()) {
+        auto handRotation = getDominantHandRotation();
+        glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
+        glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f));
+        // Do shit here.
+        switch (getMovementReference()) {
+            case MOVEMENT_HAND_RELATIVE:
+                forward = (handRotation * controllerForward);
+                right = (handRotation * controllerRight);
+                break;
+            case MOVEMENT_HAND_RELATIVE_LEVELED:
+                forward = (handRotation * controllerForward);
+                forward.y = 0.0f;
+                forward /= forward.length();
+                right = (handRotation * controllerRight);
+                right.y = 0.0f;
+                right /= right.length();
+                break;
+            case MOVEMENT_HMD_RELATIVE:
+            default:
+                forward = IDENTITY_FORWARD;
+                right = IDENTITY_RIGHT;
+        }
+    } else {
+        forward = IDENTITY_FORWARD;
+        right = IDENTITY_RIGHT;
+    }
+
+    if (getMovementReference() && qApp->isHMDMode()) {
         // Here we have to get the rotation of the dominant hand and apply that to the direction vector.
         // If we're on the right hand, we have to flip the x-axis.
         auto handRotation = getDominantHandRotation();
@@ -3923,16 +3952,16 @@ void MyAvatar::setFlyingHMDPref(bool enabled) {
     _flyingPrefHMD = enabled;
 }
 
-void MyAvatar::setHandRelativeMovement(bool enabled) {
+void MyAvatar::setMovementReference(int enabled) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setHandRelativeMovement", Q_ARG(bool, enabled));
+        QMetaObject::invokeMethod(this, "setMovementReference", Q_ARG(bool, enabled));
         return;
     }
-    _handRelativeMovement = enabled;
+    _movementReference = enabled;
 }
 
-bool MyAvatar::getHandRelativeMovement() {
-    return _handRelativeMovement;
+int MyAvatar::getMovementReference() {
+    return _movementReference;
 }
 
 void MyAvatar::setControlSchemeIndex(int index){

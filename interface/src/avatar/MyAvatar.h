@@ -43,6 +43,10 @@ const int CONTROLS_DEFAULT = 0;
 const int CONTROLS_ANALOG = 1;
 const int CONTROLS_ANALOG_PLUS = 2;
 
+const int MOVEMENT_HMD_RELATIVE = 0;
+const int MOVEMENT_HAND_RELATIVE = 1;
+const int MOVEMENT_HAND_RELATIVE_LEVELED = 2;
+
 enum eyeContactTarget {
     LEFT_EYE,
     RIGHT_EYE,
@@ -1036,18 +1040,18 @@ public:
     /**jsdoc
      * Set your preference for hand-relative movement.
      * @function MyAvatar.setHandRelativeMovement
-     * @param {boolean} enabled - Set <code>true</code> if you want to enable hand-relative movement, otherwise set to <code>false</code>.
+     * @param {number} enabled - Set <code>true</code> if you want to enable hand-relative movement, otherwise set to <code>false</code>.
      *
     */
-    Q_INVOKABLE void setHandRelativeMovement(bool enabled);
+    Q_INVOKABLE void setMovementReference(int enabled);
 
     /**jsdoc
      * Get your preference for hand-relative movement.
      * @function MyAvatar.getHandRelativeMovement
-     * @returns {boolean} <code>true</code> if your preference is for user locomotion to be relative to the direction your
+     * @returns {number} <code>true</code> if your preference is for user locomotion to be relative to the direction your
      * controller is pointing, otherwise <code>false</code>.
     */
-    Q_INVOKABLE bool getHandRelativeMovement();
+    Q_INVOKABLE int getMovementReference();
 
     /**jsdoc
      * Set the first 'shifting point' for acceleration step function.
@@ -1802,7 +1806,6 @@ private:
     bool _enableFlying { false };
     bool _flyingPrefDesktop { true };
     bool _flyingPrefHMD { false };
-    bool _handRelativeMovement{ false };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -1818,6 +1821,7 @@ private:
     float _driveGear4 { DEFAULT_GEAR_4 };
     float _driveGear5 { DEFAULT_GEAR_5 };
     int _controlSchemeIndex { CONTROLS_DEFAULT };
+    int _movementReference{ 0 };
 
     glm::vec3 _thrust { 0.0f };  // impulse accumulator for outside sources
 
@@ -2069,7 +2073,7 @@ private:
     Setting::Handle<bool> _useSnapTurnSetting;
     Setting::Handle<float> _userHeightSetting;
     Setting::Handle<bool> _flyingHMDSetting;
-    Setting::Handle<bool> _handRelativeMovementSetting;
+    Setting::Handle<int> _movementReferenceSetting;
     Setting::Handle<int> _avatarEntityCountSetting;
     Setting::Handle<bool> _allowTeleportingSetting { "allowTeleporting", true };
     Setting::Handle<float> _driveGear1Setting;
