@@ -1874,11 +1874,13 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         unitAxis = Vectors::UNIT_Y;
     }
 
+    if ((armToHand.z < 0.0f) && (armToHand.y < 0.0f)) {
+        // turn off the poleVector when the hand is back and down
+        return false;
+    }
+
     // get the pole vector theta based on the hand position relative to the shoulder.
     float positionalTheta = getHandPositionTheta(armToHand, defaultArmLength, left);
-    if (left) {
-        qCDebug(animation) << "positional theta left "<< positionalTheta;
-    }
 
     // now we calculate the contribution of the hand rotation relative to the arm
     glm::quat relativeHandRotation = (elbowPose.inverse() * handPose).rot();
@@ -1966,14 +1968,20 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     // limit the correction anatomically possible angles and change to radians
     const float LOWER_ANATOMICAL_ANGLE = 175.0f;
     const float UPPER_ANATOMICAL_ANGLE = 50.0f;
+
+    // make the lower boundary vary with the body 
+    float lowerBoundary = LOWER_ANATOMICAL_ANGLE;
+    if (fabsf(positionalTheta) < LOWER_ANATOMICAL_ANGLE) {
+        lowerBoundary = positionalTheta;
+    }
     float thetaRadians = 0.0f;
     if (left) {
 
-        if (_lastThetaLeft > -50.0f) {
-            _lastThetaLeft =  -50.0f;
+        if (_lastThetaLeft > -UPPER_ANATOMICAL_ANGLE) {
+            _lastThetaLeft =  -UPPER_ANATOMICAL_ANGLE;
         }
-        if (_lastThetaLeft < -LOWER_ANATOMICAL_ANGLE) {
-            _lastThetaLeft = -LOWER_ANATOMICAL_ANGLE;
+        if (_lastThetaLeft < lowerBoundary) {
+            _lastThetaLeft = lowerBoundary;
         }
         // convert to radians and make 180 0 to match pole vector theta
         thetaRadians = ((180.0f - _lastThetaLeft) / 180.0f)*PI;
@@ -1982,8 +1990,8 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
         if (_lastThetaRight < UPPER_ANATOMICAL_ANGLE) {
             _lastThetaRight = UPPER_ANATOMICAL_ANGLE;
         }
-        if (_lastThetaRight > LOWER_ANATOMICAL_ANGLE) {
-            _lastThetaRight = LOWER_ANATOMICAL_ANGLE;
+        if (_lastThetaRight > lowerBoundary) {
+            _lastThetaRight = lowerBoundary;
         }
         // convert to radians and make 180 0 to match pole vector theta
         thetaRadians = ((180.0f - _lastThetaRight) / 180.0f)*PI;
