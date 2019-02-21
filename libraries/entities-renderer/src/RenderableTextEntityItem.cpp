@@ -181,7 +181,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     gpu::Batch& batch = *args->_batch;
 
     auto transformToTopLeft = modelTransform;
-    transformToTopLeft.setRotation(EntityItem::getBillboardRotation(transformToTopLeft.getTranslation(), transformToTopLeft.getRotation(), _billboardMode));
+    transformToTopLeft.setRotation(EntityItem::getBillboardRotation(transformToTopLeft.getTranslation(), transformToTopLeft.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
 
