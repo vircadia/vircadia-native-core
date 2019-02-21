@@ -362,7 +362,6 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
 
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
 
-            bool constrained = false;
             if (splineJointInfo.jointIndex != base) {
                 // constrain the amount the spine can stretch or compress
                 float length = glm::length(relPose.trans());
@@ -374,10 +373,8 @@ void AnimSplineIK::solveTargetWithSpline(const AnimContext& context, int base, c
                     const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
                     if (length > MAX_LENGTH) {
                         relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
-                        constrained = true;
                     } else if (length < MIN_LENGTH) {
                         relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
-                        constrained = true;
                     }
                 } else {
                     relPose.trans() = glm::vec3(0.0f);

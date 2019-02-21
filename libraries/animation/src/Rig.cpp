@@ -1988,8 +1988,8 @@ bool Rig::calculateElbowPoleVectorOptimized(int handIndex, int elbowIndex, int s
     }
 
     // convert the final theta to a pole vector value
-    float poleVectorXValue = -1.0f * sin(thetaRadians);
-    float poleVectorYValue = -1.0f * cos(thetaRadians);
+    float poleVectorXValue = -1.0f * sinf(thetaRadians);
+    float poleVectorYValue = -1.0f * cosf(thetaRadians);
     float poleVectorZValue = 0.0f;
     glm::vec3 thetaVector(poleVectorXValue, poleVectorYValue, poleVectorZValue);
 

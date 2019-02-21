@@ -15,8 +15,6 @@
 #include "InterfaceLogging.h"
 #include "AnimUtil.h"
 
-#define USE_Q_OS_ANDROID
-
 
 MySkeletonModel::MySkeletonModel(Avatar* owningAvatar, QObject* parent) : SkeletonModel(owningAvatar, parent) {
 }

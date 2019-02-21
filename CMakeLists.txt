@@ -236,6 +236,11 @@ if (BUILD_TESTS)
   endif()
 endif()
 
+set(HIFI_USE_Q_OS_ANDROID=TRUE)
+if (HIFI_USE_Q_OS_ANDROID)
+  add_definitions(-DHIFI_USE_Q_OS_ANDROID=TRUE)
+endif()
+
 if (BUILD_INSTALLER)
   if (UNIX)
     install(
