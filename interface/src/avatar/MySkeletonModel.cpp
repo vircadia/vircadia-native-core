@@ -252,7 +252,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             AnimPose headAvatarSpace(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
             AnimPose headRigSpace = avatarToRigPose * headAvatarSpace;
             AnimPose hipsRigSpace = sensorToRigPose * sensorHips;
-#if defined(Q_OS_ANDROID) || defined(HIFI_USE_Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
             glm::vec3 spine2TargetTranslation = computeSpine2WithHeadHipsSpline(myAvatar, hipsRigSpace, headRigSpace);
 #endif
             const float SPINE2_ROTATION_FILTER = 0.5f;
@@ -276,7 +276,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
                 }
                 generateBasisVectors(up, fwd, u, v, w);
                 AnimPose newSpinePose(glm::mat4(glm::vec4(w, 0.0f), glm::vec4(u, 0.0f), glm::vec4(v, 0.0f), glm::vec4(glm::vec3(0.0f, 0.0f, 0.0f), 1.0f)));
-#if defined(Q_OS_ANDROID) || defined(HIFI_USE_Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
                 currentSpine2Pose.trans() = spine2TargetTranslation;
 #endif
                 currentSpine2Pose.rot() = safeLerp(currentSpine2Pose.rot(), newSpinePose.rot(), SPINE2_ROTATION_FILTER);
