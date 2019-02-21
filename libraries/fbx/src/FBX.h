@@ -30,6 +30,9 @@ static const quint32 FBX_VERSION_2016 = 7500;
 static const int32_t FBX_PROPERTY_UNCOMPRESSED_FLAG = 0;
 static const int32_t FBX_PROPERTY_COMPRESSED_FLAG = 1;
 
+// The version of the FBX node containing the draco mesh. See also: DRACO_MESH_VERSION in HFM.h
+static const int FBX_DRACO_MESH_VERSION = 2;
+
 class FBXNode;
 using FBXNodeList = QList<FBXNode>;
 

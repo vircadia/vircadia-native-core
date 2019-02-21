@@ -24,11 +24,16 @@ namespace baker {
     public:
         Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping);
 
+        std::shared_ptr<TaskConfig> getConfiguration();
+
         void run();
 
         // Outputs, available after run() is called
         hfm::Model::Pointer getHFMModel() const;
         MaterialMapping getMaterialMapping() const;
+        const std::vector<hifi::ByteArray>& getDracoMeshes() const;
+        // This is a ByteArray and not a std::string because the character sequence can contain the null character (particularly for FBX materials)
+        std::vector<std::vector<hifi::ByteArray>> getDracoMaterialLists() const;
 
     protected:
         EnginePointer _engine;

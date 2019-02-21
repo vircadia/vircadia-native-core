@@ -386,6 +386,8 @@ hifi::ByteArray fileOnUrl(const hifi::ByteArray& filepath, const QString& url) {
 
 HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const QString& url) {
     const FBXNode& node = _rootNode;
+    bool deduplicateIndices = mapping["deduplicateIndices"].toBool();
+
     QMap<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -487,7 +489,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        meshes.insert(getID(object.properties), extractMesh(object, meshIndex));
+                        meshes.insert(getID(object.properties), extractMesh(object, meshIndex, deduplicateIndices));
                     } else { // object.properties.at(2) == "Shape"
                         ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
                         blendshapes.append(extracted);
@@ -631,10 +633,10 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                                     }
                                 }
                             }
-                        } else if (subobject.name == "Vertices") {
+                        } else if (subobject.name == "Vertices" || subobject.name == "DracoMesh") {
                             // it's a mesh as well as a model
                             mesh = &meshes[getID(object.properties)];
-                            *mesh = extractMesh(object, meshIndex);
+                            *mesh = extractMesh(object, meshIndex, deduplicateIndices);
 
                         } else if (subobject.name == "Shape") {
                             ExtractedBlendshape blendshape =  { subobject.properties.at(0).toString(),
@@ -1386,9 +1388,9 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
         // look for textures, material properties
         // allocate the Part material library
+        // NOTE: extracted.partMaterialTextures is empty for FBX_DRACO_MESH_VERSION >= 2. In that case, the mesh part's materialID string is already defined.
         int materialIndex = 0;
         int textureIndex = 0;
-        bool generateTangents = false;
         QList<QString> children = _connectionChildMap.values(modelID);
         for (int i = children.size() - 1; i >= 0; i--) {
 
@@ -1401,12 +1403,10 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                     if (extracted.partMaterialTextures.at(j).first == materialIndex) {
                         HFMMeshPart& part = extracted.mesh.parts[j];
                         part.materialID = material.materialID;
-                        generateTangents |= material.needTangentSpace();
                     }
                 }
 
                 materialIndex++;
-
             } else if (_textureFilenames.contains(childID)) {
                 // NOTE (Sabrina 2019/01/11): getTextures now takes in the materialID as a second parameter, because FBX material nodes can sometimes have uv transform information (ex: "Maya|uv_scale")
                 // I'm leaving the second parameter blank right now as this code may never be used.
@@ -1683,6 +1683,8 @@ HFMModel::Pointer FBXSerializer::read(const hifi::ByteArray& data, const hifi::V
     buffer.open(QIODevice::ReadOnly);
 
     _rootNode = parseFBX(&buffer);
+
+    // FBXSerializer's mapping parameter supports the bool "deduplicateIndices," which is passed into FBXSerializer::extractMesh as "deduplicate"
 
     return HFMModel::Pointer(extractHFMModel(mapping, url.toString()));
 }

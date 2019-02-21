@@ -19,6 +19,7 @@
 #include "CalculateBlendshapeNormalsTask.h"
 #include "CalculateBlendshapeTangentsTask.h"
 #include "PrepareJointsTask.h"
+#include "BuildDracoMeshTask.h"
 
 namespace baker {
 
@@ -117,7 +118,7 @@ namespace baker {
     class BakerEngineBuilder {
     public:
         using Input = VaryingSet2<hfm::Model::Pointer, hifi::VariantHash>;
-        using Output = VaryingSet2<hfm::Model::Pointer, MaterialMapping>;
+        using Output = VaryingSet4<hfm::Model::Pointer, MaterialMapping, std::vector<hifi::ByteArray>, std::vector<std::vector<hifi::ByteArray>>>;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& input, Varying& output) {
             const auto& hfmModelIn = input.getN<Input>(0);
@@ -156,6 +157,14 @@ namespace baker {
             // Parse material mapping
             const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", mapping);
 
+            // Build Draco meshes
+            // NOTE: This task is disabled by default and must be enabled through configuration
+            // TODO: Tangent support (Needs changes to FBXSerializer_Mesh as well)
+            const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(meshesIn, normalsPerMesh, tangentsPerMesh).asVarying();
+            const auto buildDracoMeshOutputs = model.addJob<BuildDracoMeshTask>("BuildDracoMesh", buildDracoMeshInputs);
+            const auto dracoMeshes = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(0);
+            const auto materialList = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(1);
+
             // Combine the outputs into a new hfm::Model
             const auto buildBlendshapesInputs = BuildBlendshapesTask::Input(blendshapesPerMeshIn, normalsPerBlendshapePerMesh, tangentsPerBlendshapePerMesh).asVarying();
             const auto blendshapesPerMeshOut = model.addJob<BuildBlendshapesTask>("BuildBlendshapes", buildBlendshapesInputs);
@@ -164,7 +173,7 @@ namespace baker {
             const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
 
-            output = Output(hfmModelOut, materialMapping);
+            output = Output(hfmModelOut, materialMapping, dracoMeshes, materialList);
         }
     };
 
@@ -172,6 +181,10 @@ namespace baker {
         _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
         _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
         _engine->feedInput<BakerEngineBuilder::Input>(1, mapping);
+    }
+
+    std::shared_ptr<TaskConfig> Baker::getConfiguration() {
+        return _engine->getConfiguration();
     }
 
     void Baker::run() {
@@ -184,5 +197,13 @@ namespace baker {
     
     MaterialMapping Baker::getMaterialMapping() const {
         return _engine->getOutput().get<BakerEngineBuilder::Output>().get1();
+    }
+
+    const std::vector<hifi::ByteArray>& Baker::getDracoMeshes() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get2();
+    }
+
+    std::vector<std::vector<hifi::ByteArray>> Baker::getDracoMaterialLists() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get3();
     }
 };

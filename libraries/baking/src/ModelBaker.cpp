@@ -12,6 +12,13 @@
 #include "ModelBaker.h"
 
 #include <PathUtils.h>
+#include <NetworkAccessManager.h>
+
+#include <DependencyManager.h>
+#include <hfm/ModelFormatRegistry.h>
+
+#include <model-baker/Baker.h>
+#include <model-baker/PrepareJointsTask.h>
 
 #include <FBXWriter.h>
 
@@ -30,6 +37,8 @@
 #ifdef _WIN32
 #pragma warning( pop )
 #endif
+
+#include "baking/BakerLibrary.h"
 
 ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                        const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
@@ -65,6 +74,22 @@ ModelBaker::~ModelBaker() {
     }
 }
 
+void ModelBaker::bake() {
+    qDebug() << "ModelBaker" << _modelURL << "bake starting";
+
+    // Setup the output folders for the results of this bake
+    initializeOutputDirs();
+
+    if (shouldStop()) {
+        return;
+    }
+
+    connect(this, &ModelBaker::modelLoaded, this, &ModelBaker::bakeSourceCopy);
+
+    // make a local copy of the model
+    saveSourceModel();
+}
+
 void ModelBaker::initializeOutputDirs() {
     // Attempt to make the output folders
     // Warn if there is an output directory using the same name
@@ -88,6 +113,166 @@ void ModelBaker::initializeOutputDirs() {
     }
 }
 
+void ModelBaker::saveSourceModel() {
+    // check if the FBX is local or first needs to be downloaded
+    if (_modelURL.isLocalFile()) {
+        // load up the local file
+        QFile localModelURL { _modelURL.toLocalFile() };
+
+        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalModelFilePath;
+
+        if (!localModelURL.exists()) {
+            //QMessageBox::warning(this, "Could not find " + _fbxURL.toString(), "");
+            handleError("Could not find " + _modelURL.toString());
+            return;
+        }
+
+        // make a copy in the output folder
+        if (!_originalOutputDir.isEmpty()) {
+            qDebug() << "Copying to: " << _originalOutputDir << "/" << _modelURL.fileName();
+            localModelURL.copy(_originalOutputDir + "/" + _modelURL.fileName());
+        }
+
+        localModelURL.copy(_originalModelFilePath);
+
+        // emit our signal to start the import of the FBX source copy
+        emit modelLoaded();
+    } else {
+        // remote file, kick off a download
+        auto& networkAccessManager = NetworkAccessManager::getInstance();
+
+        QNetworkRequest networkRequest;
+
+        // setup the request to follow re-directs and always hit the network
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+
+        networkRequest.setUrl(_modelURL);
+
+        qCDebug(model_baking) << "Downloading" << _modelURL;
+        auto networkReply = networkAccessManager.get(networkRequest);
+
+        connect(networkReply, &QNetworkReply::finished, this, &ModelBaker::handleModelNetworkReply);
+    }
+}
+
+void ModelBaker::handleModelNetworkReply() {
+    auto requestReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (requestReply->error() == QNetworkReply::NoError) {
+        qCDebug(model_baking) << "Downloaded" << _modelURL;
+
+        // grab the contents of the reply and make a copy in the output folder
+        QFile copyOfOriginal(_originalModelFilePath);
+
+        qDebug(model_baking) << "Writing copy of original model file to" << _originalModelFilePath << copyOfOriginal.fileName();
+
+        if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
+            // add an error to the error list for this model stating that a duplicate of the original model could not be made
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalModelFilePath + ")");
+            return;
+        }
+        if (copyOfOriginal.write(requestReply->readAll()) == -1) {
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to write)");
+            return;
+        }
+
+        // close that file now that we are done writing to it
+        copyOfOriginal.close();
+
+        if (!_originalOutputDir.isEmpty()) {
+            copyOfOriginal.copy(_originalOutputDir + "/" + _modelURL.fileName());
+        }
+
+        // emit our signal to start the import of the model source copy
+        emit modelLoaded();
+    } else {
+        // add an error to our list stating that the model could not be downloaded
+        handleError("Failed to download " + _modelURL.toString());
+    }
+}
+
+// TODO: Remove after testing
+#include <model-baker/BuildDracoMeshTask.h>
+
+void ModelBaker::bakeSourceCopy() {
+    QFile modelFile(_originalModelFilePath);
+    if (!modelFile.open(QIODevice::ReadOnly)) {
+        handleError("Error opening " + _originalModelFilePath + " for reading");
+        return;
+    }
+    hifi::ByteArray modelData = modelFile.readAll();
+
+    hfm::Model::Pointer bakedModel;
+    std::vector<hifi::ByteArray> dracoMeshes;
+    std::vector<std::vector<hifi::ByteArray>> dracoMaterialLists; // Material order for per-mesh material lookup used by dracoMeshes
+
+    {
+        auto serializer = DependencyManager::get<ModelFormatRegistry>()->getSerializerForMediaType(modelData, _modelURL, "");
+        if (!serializer) {
+            handleError("Could not recognize file type of model file " + _originalModelFilePath);
+            return;
+        }
+        hifi::VariantHash mapping;
+        mapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
+        hfm::Model::Pointer loadedModel = serializer->read(modelData, mapping, _modelURL);
+
+        baker::Baker baker(loadedModel, mapping);
+        auto config = baker.getConfiguration();
+        // Enable compressed draco mesh generation
+        config->getJobConfig("BuildDracoMesh")->setEnabled(true);
+        // Do not permit potentially lossy modification of joint data meant for runtime
+        ((PrepareJointsConfig*)config->getJobConfig("PrepareJoints"))->passthrough = true;
+
+        // TODO: Remove after testing
+        {
+            auto* dracoConfig = ((BuildDracoMeshConfig*)config->getJobConfig("BuildDracoMesh"));
+            dracoConfig->encodeSpeed = 10;
+            dracoConfig->decodeSpeed = -1;
+        }
+    
+        // Begin hfm baking
+        baker.run();
+
+        bakedModel = baker.getHFMModel();
+        dracoMeshes = baker.getDracoMeshes();
+        dracoMaterialLists = baker.getDracoMaterialLists();
+    }
+
+    // Populate _textureContentMap with path to content mappings, for quick lookup by URL
+    for (auto materialIt = bakedModel->materials.cbegin(); materialIt != bakedModel->materials.cend(); materialIt++) {
+        static const auto addTexture = [](QHash<hifi::ByteArray, hifi::ByteArray>& textureContentMap, const hfm::Texture& texture) {
+            if (!textureContentMap.contains(texture.filename)) {
+                // Content may be empty, unless the data is inlined
+                textureContentMap[texture.filename] = texture.content;
+            }
+        };
+        const hfm::Material& material = *materialIt;
+        addTexture(_textureContentMap, material.normalTexture);
+        addTexture(_textureContentMap, material.albedoTexture);
+        addTexture(_textureContentMap, material.opacityTexture);
+        addTexture(_textureContentMap, material.glossTexture);
+        addTexture(_textureContentMap, material.roughnessTexture);
+        addTexture(_textureContentMap, material.specularTexture);
+        addTexture(_textureContentMap, material.metallicTexture);
+        addTexture(_textureContentMap, material.emissiveTexture);
+        addTexture(_textureContentMap, material.occlusionTexture);
+        addTexture(_textureContentMap, material.scatteringTexture);
+        addTexture(_textureContentMap, material.lightmapTexture);
+    }
+
+    // Do format-specific baking
+    bakeProcessedSource(bakedModel, dracoMeshes, dracoMaterialLists);
+
+    if (shouldStop()) {
+        return;
+    }
+
+    // check if we're already done with textures (in case we had none to re-write)
+    checkIfTexturesFinished();
+}
+
 void ModelBaker::abort() {
     Baker::abort();
 
@@ -98,176 +283,36 @@ void ModelBaker::abort() {
     }
 }
 
-bool ModelBaker::compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback) {
-    if (mesh.wasCompressed) {
-        handleError("Cannot re-bake a file that contains compressed mesh");
+bool ModelBaker::buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {
+    if (dracoMeshBytes.isEmpty()) {
+        handleError("Failed to finalize the baking of a draco Geometry node");
         return false;
     }
-
-    Q_ASSERT(mesh.normals.size() == 0 || mesh.normals.size() == mesh.vertices.size());
-    Q_ASSERT(mesh.colors.size() == 0 || mesh.colors.size() == mesh.vertices.size());
-    Q_ASSERT(mesh.texCoords.size() == 0 || mesh.texCoords.size() == mesh.vertices.size());
-
-    int64_t numTriangles{ 0 };
-    for (auto& part : mesh.parts) {
-        if ((part.quadTrianglesIndices.size() % 3) != 0 || (part.triangleIndices.size() % 3) != 0) {
-            handleWarning("Found a mesh part with invalid index data, skipping");
-            continue;
-        }
-        numTriangles += part.quadTrianglesIndices.size() / 3;
-        numTriangles += part.triangleIndices.size() / 3;
-    }
-
-    if (numTriangles == 0) {
-        return false;
-    }
-
-    draco::TriangleSoupMeshBuilder meshBuilder;
-
-    meshBuilder.Start(numTriangles);
-
-    bool hasNormals{ mesh.normals.size() > 0 };
-    bool hasColors{ mesh.colors.size() > 0 };
-    bool hasTexCoords{ mesh.texCoords.size() > 0 };
-    bool hasTexCoords1{ mesh.texCoords1.size() > 0 };
-    bool hasPerFaceMaterials = (materialIDCallback) ? (mesh.parts.size() > 1 || materialIDCallback(0) != 0 ) : true;
-    bool needsOriginalIndices{ hasDeformers };
-
-    int normalsAttributeID { -1 };
-    int colorsAttributeID { -1 };
-    int texCoordsAttributeID { -1 };
-    int texCoords1AttributeID { -1 };
-    int faceMaterialAttributeID { -1 };
-    int originalIndexAttributeID { -1 };
-
-    const int positionAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::POSITION,
-                                                             3, draco::DT_FLOAT32);
-    if (needsOriginalIndices) {
-        originalIndexAttributeID = meshBuilder.AddAttribute(
-            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_ORIGINAL_INDEX,
-            1, draco::DT_INT32);
-    }
-
-    if (hasNormals) {
-        normalsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::NORMAL,
-                                                      3, draco::DT_FLOAT32);
-    }
-    if (hasColors) {
-        colorsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::COLOR,
-                                                     3, draco::DT_FLOAT32);
-    }
-    if (hasTexCoords) {
-        texCoordsAttributeID = meshBuilder.AddAttribute(draco::GeometryAttribute::TEX_COORD,
-                                                        2, draco::DT_FLOAT32);
-    }
-    if (hasTexCoords1) {
-        texCoords1AttributeID = meshBuilder.AddAttribute(
-            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_TEX_COORD_1,
-            2, draco::DT_FLOAT32);
-    }
-    if (hasPerFaceMaterials) {
-        faceMaterialAttributeID = meshBuilder.AddAttribute(
-            (draco::GeometryAttribute::Type)DRACO_ATTRIBUTE_MATERIAL_ID,
-            1, draco::DT_UINT16);
-    }
-
-    auto partIndex = 0;
-    draco::FaceIndex face;
-    uint16_t materialID;
-    
-    for (auto& part : mesh.parts) {
-        materialID = (materialIDCallback) ? materialIDCallback(partIndex) : partIndex;
-        
-        auto addFace = [&](QVector<int>& indices, int index, draco::FaceIndex face) {
-            int32_t idx0 = indices[index];
-            int32_t idx1 = indices[index + 1];
-            int32_t idx2 = indices[index + 2];
-
-            if (hasPerFaceMaterials) {
-                meshBuilder.SetPerFaceAttributeValueForFace(faceMaterialAttributeID, face, &materialID);
-            }
-
-            meshBuilder.SetAttributeValuesForFace(positionAttributeID, face,
-                                                  &mesh.vertices[idx0], &mesh.vertices[idx1],
-                                                  &mesh.vertices[idx2]);
-
-            if (needsOriginalIndices) {
-                meshBuilder.SetAttributeValuesForFace(originalIndexAttributeID, face,
-                                                      &mesh.originalIndices[idx0],
-                                                      &mesh.originalIndices[idx1],
-                                                      &mesh.originalIndices[idx2]);
-            }
-            if (hasNormals) {
-                meshBuilder.SetAttributeValuesForFace(normalsAttributeID, face,
-                                                      &mesh.normals[idx0], &mesh.normals[idx1],
-                                                      &mesh.normals[idx2]);
-            }
-            if (hasColors) {
-                meshBuilder.SetAttributeValuesForFace(colorsAttributeID, face,
-                                                      &mesh.colors[idx0], &mesh.colors[idx1],
-                                                      &mesh.colors[idx2]);
-            }
-            if (hasTexCoords) {
-                meshBuilder.SetAttributeValuesForFace(texCoordsAttributeID, face,
-                                                      &mesh.texCoords[idx0], &mesh.texCoords[idx1],
-                                                      &mesh.texCoords[idx2]);
-            }
-            if (hasTexCoords1) {
-                meshBuilder.SetAttributeValuesForFace(texCoords1AttributeID, face,
-                                                      &mesh.texCoords1[idx0], &mesh.texCoords1[idx1],
-                                                      &mesh.texCoords1[idx2]);
-            }
-        };
-
-        for (int i = 0; (i + 2) < part.quadTrianglesIndices.size(); i += 3) {
-            addFace(part.quadTrianglesIndices, i, face++);
-        }
-
-        for (int i = 0; (i + 2) < part.triangleIndices.size(); i += 3) {
-            addFace(part.triangleIndices, i, face++);
-        }
-
-        partIndex++;
-    }
-
-    auto dracoMesh = meshBuilder.Finalize();
-
-    if (!dracoMesh) {
-        handleWarning("Failed to finalize the baking of a draco Geometry node");
-        return false;
-    }
-
-    // we need to modify unique attribute IDs for custom attributes
-    // so the attributes are easily retrievable on the other side
-    if (hasPerFaceMaterials) {
-        dracoMesh->attribute(faceMaterialAttributeID)->set_unique_id(DRACO_ATTRIBUTE_MATERIAL_ID);
-    }
-
-    if (hasTexCoords1) {
-        dracoMesh->attribute(texCoords1AttributeID)->set_unique_id(DRACO_ATTRIBUTE_TEX_COORD_1);
-    }
-
-    if (needsOriginalIndices) {
-        dracoMesh->attribute(originalIndexAttributeID)->set_unique_id(DRACO_ATTRIBUTE_ORIGINAL_INDEX);
-    }
-
-    draco::Encoder encoder;
-
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION, 14);
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD, 12);
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL, 10);
-    encoder.SetSpeedOptions(0, 5);
-
-    draco::EncoderBuffer buffer;
-    encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
 
     FBXNode dracoNode;
     dracoNode.name = "DracoMesh";
-    auto value = QVariant::fromValue(QByteArray(buffer.data(), (int)buffer.size()));
-    dracoNode.properties.append(value);
+    dracoNode.properties.append(QVariant::fromValue(dracoMeshBytes));
+    // Additional draco mesh node information
+    {
+        FBXNode fbxVersionNode;
+        fbxVersionNode.name = "FBXDracoMeshVersion";
+        fbxVersionNode.properties.append(FBX_DRACO_MESH_VERSION);
+        dracoNode.children.append(fbxVersionNode);
+
+        FBXNode dracoVersionNode;
+        dracoVersionNode.name = "DracoMeshVersion";
+        dracoVersionNode.properties.append(DRACO_MESH_VERSION);
+        dracoNode.children.append(dracoVersionNode);
+
+        FBXNode materialListNode;
+        materialListNode.name = "MaterialList";
+        for (const hifi::ByteArray& materialID : dracoMaterialList) {
+            materialListNode.properties.append(materialID);
+        }
+        dracoNode.children.append(materialListNode);
+    }
     
     dracoMeshNode = dracoNode;
-    // Mesh compression successful return true
     return true;
 }
 

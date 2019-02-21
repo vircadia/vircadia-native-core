@@ -119,7 +119,7 @@ public:
 
     HFMModel* extractHFMModel(const hifi::VariantHash& mapping, const QString& url);
 
-    static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
+    static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate);
     QHash<QString, ExtractedMesh> meshes;
 
     HFMTexture getTexture(const QString& textureID, const QString& materialID);

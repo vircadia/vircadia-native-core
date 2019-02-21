@@ -47,17 +47,23 @@ public:
 
     void initializeOutputDirs();
 
-    bool compressMesh(HFMMesh& mesh, bool hasDeformers, FBXNode& dracoMeshNode, GetMaterialIDCallback materialIDCallback = nullptr);
+    bool buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
     QString compressTexture(QString textureFileName, image::TextureUsage::Type = image::TextureUsage::Type::DEFAULT_TEXTURE);
     virtual void setWasAborted(bool wasAborted) override;
 
     QUrl getModelURL() const { return _modelURL; }
     QString getBakedModelFilePath() const { return _bakedModelFilePath; }
 
+signals:
+    void modelLoaded();
+
 public slots:
+    virtual void bake() override;
     virtual void abort() override;
 
 protected:
+    void saveSourceModel();
+    virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) = 0;
     void checkIfTexturesFinished();
     void texturesFinished();
     void embedTextureMetaData();
@@ -71,6 +77,10 @@ protected:
     QString _bakedModelFilePath;
     QDir _modelTempDir;
     QString _originalModelFilePath;
+
+protected slots:
+    void handleModelNetworkReply();
+    virtual void bakeSourceCopy();
 
 private slots:
     void handleBakedTexture();

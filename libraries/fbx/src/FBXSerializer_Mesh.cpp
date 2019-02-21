@@ -345,6 +345,22 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
             isDracoMesh = true;
             data.extracted.mesh.wasCompressed = true;
 
+            // Check for additional metadata
+            unsigned int dracoMeshNodeVersion = 1;
+            std::vector<QString> dracoMaterialList;
+            for (const auto& dracoChild : child.children) {
+                if (dracoChild.name == "FBXDracoMeshVersion") {
+                    if (!dracoChild.children.isEmpty()) {
+                        dracoMeshNodeVersion = dracoChild.properties[0].toUInt();
+                    }
+                } else if (dracoChild.name == "MaterialList") {
+                    dracoMaterialList.reserve(dracoChild.properties.size());
+                    for (const auto& materialID : dracoChild.properties) {
+                        dracoMaterialList.push_back(materialID.toString());
+                    }
+                }
+            }
+
             // load the draco mesh from the FBX and create a draco::Mesh
             draco::Decoder decoder;
             draco::DecoderBuffer decodedBuffer;
@@ -462,8 +478,20 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 // grab or setup the HFMMeshPart for the part this face belongs to
                 int& partIndexPlusOne = materialTextureParts[materialTexture];
                 if (partIndexPlusOne == 0) {
-                    data.extracted.partMaterialTextures.append(materialTexture);
                     data.extracted.mesh.parts.resize(data.extracted.mesh.parts.size() + 1);
+                    HFMMeshPart& part = data.extracted.mesh.parts.back();
+
+                    // Figure out what material this part is
+                    if (dracoMeshNodeVersion >= 2) {
+                        // Define the materialID now
+                        if (dracoMaterialList.size() - 1 <= materialID) {
+                            part.materialID = dracoMaterialList[materialID];
+                        }
+                    } else {
+                        // Define the materialID later, based on the order of first appearance of the materials in the _connectionChildMap
+                        data.extracted.partMaterialTextures.append(materialTexture);
+                    }
+
                     partIndexPlusOne = data.extracted.mesh.parts.size();
                 }
 

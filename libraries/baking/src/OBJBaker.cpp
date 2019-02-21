@@ -35,150 +35,51 @@ const QByteArray CONNECTIONS_NODE_PROPERTY = "OO";
 const QByteArray CONNECTIONS_NODE_PROPERTY_1 = "OP";
 const QByteArray MESH = "Mesh";
 
-void OBJBaker::bake() {
-    qDebug() << "OBJBaker" << _modelURL << "bake starting";
-
-    // Setup the output folders for the results of this bake
-    initializeOutputDirs();
-
-    // trigger bakeOBJ once OBJ is loaded
-    connect(this, &OBJBaker::OBJLoaded, this, &OBJBaker::bakeOBJ);
-
-    // make a local copy of the OBJ
-    loadOBJ();
-}
-
-void OBJBaker::loadOBJ() {
-    // check if the OBJ is local or it needs to be downloaded
-    if (_modelURL.isLocalFile()) {
-        // loading the local OBJ
-        QFile localOBJ { _modelURL.toLocalFile() };
-
-        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalModelFilePath;
-
-        if (!localOBJ.exists()) {
-            handleError("Could not find " + _modelURL.toString());
-            return;
-        }
-
-        // make a copy in the output folder
-        if (!_originalOutputDir.isEmpty()) {
-            qDebug() << "Copying to: " << _originalOutputDir << "/" << _modelURL.fileName();
-            localOBJ.copy(_originalOutputDir + "/" + _modelURL.fileName());
-        }
-
-        localOBJ.copy(_originalModelFilePath);
-
-        // local OBJ is loaded emit signal to trigger its baking
-        emit OBJLoaded();
-    } else {
-        // OBJ is remote, start download 
-        auto& networkAccessManager = NetworkAccessManager::getInstance();
-
-        QNetworkRequest networkRequest;
-
-        // setup the request to follow re-directs and always hit the network
-        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
-        networkRequest.setUrl(_modelURL);
-
-        qCDebug(model_baking) << "Downloading" << _modelURL;
-        auto networkReply = networkAccessManager.get(networkRequest);
-
-        connect(networkReply, &QNetworkReply::finished, this, &OBJBaker::handleOBJNetworkReply);
-    }
-}
-
-void OBJBaker::handleOBJNetworkReply() {
-    auto requestReply = qobject_cast<QNetworkReply*>(sender());
-
-    if (requestReply->error() == QNetworkReply::NoError) {
-        qCDebug(model_baking) << "Downloaded" << _modelURL;
-
-        // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(_originalModelFilePath);
-
-        qDebug(model_baking) << "Writing copy of original obj to" << _originalModelFilePath << copyOfOriginal.fileName();
-
-        if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
-            // add an error to the error list for this obj stating that a duplicate of the original obj could not be made
-            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalModelFilePath + ")");
-            return;
-        }
-        if (copyOfOriginal.write(requestReply->readAll()) == -1) {
-            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to write)");
-            return;
-        }
-
-        // close that file now that we are done writing to it
-        copyOfOriginal.close();
-
-        if (!_originalOutputDir.isEmpty()) {
-            copyOfOriginal.copy(_originalOutputDir + "/" + _modelURL.fileName());
-        }
-
-        // remote OBJ is loaded emit signal to trigger its baking
-        emit OBJLoaded();
-    } else {
-        // add an error to our list stating that the OBJ could not be downloaded
-        handleError("Failed to download " + _modelURL.toString());
-    }
-}
-
-void OBJBaker::bakeOBJ() {
-    // Read the OBJ file
-    QFile objFile(_originalModelFilePath);
-    if (!objFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalModelFilePath + " for reading");
-        return;
-    }
-
-    QByteArray objData = objFile.readAll();
-
-    OBJSerializer serializer;
-    QVariantHash mapping;
-    mapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
-    auto geometry = serializer.read(objData, mapping, _modelURL);
-
+void OBJBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     // Write OBJ Data as FBX tree nodes
-    createFBXNodeTree(_rootNode, *geometry);
-
-    checkIfTexturesFinished();
+    createFBXNodeTree(_rootNode, hfmModel, dracoMeshes[0]);
 }
 
-void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
+void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh) {
+    // Make all generated nodes children of rootNode
+    rootNode.children = { FBXNode(), FBXNode(), FBXNode() };
+    FBXNode& globalSettingsNode = rootNode.children[0];
+    FBXNode& objectNode = rootNode.children[1];
+    FBXNode& connectionsNode = rootNode.children[2];
+
     // Generating FBX Header Node
     FBXNode headerNode;
     headerNode.name = FBX_HEADER_EXTENSION;
 
     // Generating global settings node
     // Required for Unit Scale Factor
-    FBXNode globalSettingsNode;
     globalSettingsNode.name = GLOBAL_SETTINGS_NODE_NAME;
 
     // Setting the tree hierarchy: GlobalSettings -> Properties70 -> P -> Properties
-    FBXNode properties70Node;
-    properties70Node.name = PROPERTIES70_NODE_NAME;
-
-    FBXNode pNode;
     {
-        pNode.name = P_NODE_NAME;
-        pNode.properties.append({
-            "UnitScaleFactor", "double", "Number", "",
-            UNIT_SCALE_FACTOR
-        });
+        globalSettingsNode.children.push_back(FBXNode());
+        FBXNode& properties70Node = globalSettingsNode.children.back();
+        properties70Node.name = PROPERTIES70_NODE_NAME;
+
+        FBXNode pNode;
+        {
+            pNode.name = P_NODE_NAME;
+            pNode.properties.append({
+                "UnitScaleFactor", "double", "Number", "",
+                UNIT_SCALE_FACTOR
+            });
+        }
+        properties70Node.children = { pNode };
+
     }
 
-    properties70Node.children = { pNode };
-    globalSettingsNode.children = { properties70Node };
-
     // Generating Object node
-    FBXNode objectNode;
     objectNode.name = OBJECTS_NODE_NAME;
+    objectNode.children = { FBXNode(), FBXNode() };
+    FBXNode& geometryNode = objectNode.children[0];
+    FBXNode& modelNode = objectNode.children[1];
 
-    // Generating Object node's child - Geometry node 
-    FBXNode geometryNode;
+    // Generating Object node's child - Geometry node
     geometryNode.name = GEOMETRY_NODE_NAME;
     NodeID geometryID;
     {
@@ -189,15 +90,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
             MESH
         };
     }
-
-    // Compress the mesh information and store in dracoNode
-    bool hasDeformers = false; // No concept of deformers for an OBJ
-    FBXNode dracoNode;
-    compressMesh(hfmModel.meshes[0], hasDeformers, dracoNode);
-    geometryNode.children.append(dracoNode);
-
+    
     // Generating Object node's child - Model node
-    FBXNode modelNode;
     modelNode.name = MODEL_NODE_NAME;
     NodeID modelID;
     {
@@ -205,16 +99,14 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
         modelNode.properties = { modelID, MODEL_NODE_NAME, MESH };
     }
 
-    objectNode.children = { geometryNode, modelNode };
-
     // Generating Objects node's child - Material node
-    auto& meshParts = hfmModel.meshes[0].parts;
+    auto& meshParts = hfmModel->meshes[0].parts;
     for (auto& meshPart : meshParts) {
         FBXNode materialNode;
         materialNode.name = MATERIAL_NODE_NAME;
-        if (hfmModel.materials.size() == 1) {
+        if (hfmModel->materials.size() == 1) {
             // case when no material information is provided, OBJSerializer considers it as a single default material
-            for (auto& materialID : hfmModel.materials.keys()) {
+            for (auto& materialID : hfmModel->materials.keys()) {
                 setMaterialNodeProperties(materialNode, materialID, hfmModel);
             }
         } else {
@@ -224,12 +116,26 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
         objectNode.children.append(materialNode);
     }
 
+    // Store the draco node containing the compressed mesh information, along with the per-meshPart material IDs the draco node references
+    // Because we redefine the material IDs when initializing the material nodes above, we pass that in for the material list
+    // The nth mesh part gets the nth material
+    {
+        std::vector<hifi::ByteArray> newMaterialList;
+        newMaterialList.reserve(_materialIDs.size());
+        for (auto materialID : _materialIDs) {
+            newMaterialList.push_back(hifi::ByteArray(std::to_string((int)materialID).c_str()));
+        }
+        FBXNode dracoNode;
+        buildDracoMeshNode(dracoNode, dracoMesh, newMaterialList);
+        geometryNode.children.append(dracoNode);
+    }
+
     // Generating Texture Node
     // iterate through mesh parts and process the associated textures
     auto size = meshParts.size();
     for (int i = 0; i < size; i++) {
         QString material = meshParts[i].materialID;
-        HFMMaterial currentMaterial = hfmModel.materials[material];
+        HFMMaterial currentMaterial = hfmModel->materials[material];
         if (!currentMaterial.albedoTexture.filename.isEmpty() || !currentMaterial.specularTexture.filename.isEmpty()) {
             auto textureID = nextNodeID();
             _mapTextureMaterial.emplace_back(textureID, i);
@@ -274,14 +180,15 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
     }
 
     // Generating Connections node
-    FBXNode connectionsNode;
     connectionsNode.name = CONNECTIONS_NODE_NAME;
 
-    // connect Geometry to Model 
-    FBXNode cNode;
-    cNode.name = C_NODE_NAME;
-    cNode.properties = { CONNECTIONS_NODE_PROPERTY, geometryID, modelID };
-    connectionsNode.children = { cNode };
+    // connect Geometry to Model
+    {
+        FBXNode cNode;
+        cNode.name = C_NODE_NAME;
+        cNode.properties = { CONNECTIONS_NODE_PROPERTY, geometryID, modelID };
+        connectionsNode.children.push_back(cNode);
+    }
 
     // connect all materials to model
     for (auto& materialID : _materialIDs) {
@@ -313,18 +220,15 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel) {
         };
         connectionsNode.children.append(cDiffuseNode);
     }
-
-    // Make all generated nodes children of rootNode
-    rootNode.children = { globalSettingsNode, objectNode, connectionsNode };
 }
 
 // Set properties for material nodes
-void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMModel& hfmModel) {
+void OBJBaker::setMaterialNodeProperties(FBXNode& materialNode, QString material, const hfm::Model::Pointer& hfmModel) {
     auto materialID = nextNodeID();
     _materialIDs.push_back(materialID);
     materialNode.properties = { materialID, material, MESH };
 
-    HFMMaterial currentMaterial = hfmModel.materials[material];
+    HFMMaterial currentMaterial = hfmModel->materials[material];
 
     // Setting the hierarchy: Material -> Properties70 -> P -> Properties
     FBXNode properties70Node;

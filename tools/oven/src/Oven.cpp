@@ -22,6 +22,9 @@
 #include <ResourceRequestObserver.h>
 #include <ResourceCache.h>
 #include <material-networking/TextureCache.h>
+#include <hfm/ModelFormatRegistry.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
 
 #include "MaterialBaker.h"
 
@@ -43,6 +46,12 @@ Oven::Oven() {
     MaterialBaker::setNextOvenWorkerThreadOperator([] {
         return Oven::instance().getNextWorkerThread();
     });
+
+    {
+        auto modelFormatRegistry = DependencyManager::set<ModelFormatRegistry>();
+        modelFormatRegistry->addFormat(FBXSerializer());
+        modelFormatRegistry->addFormat(OBJSerializer());
+    }
 }
 
 Oven::~Oven() {

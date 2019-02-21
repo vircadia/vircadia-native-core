@@ -33,25 +33,16 @@ class FBXBaker : public ModelBaker {
 public:
     using ModelBaker::ModelBaker;
 
-public slots:
-    virtual void bake() override;
-
-signals:
-    void sourceCopyReadyToLoad();
-
-private slots:
-    void bakeSourceCopy();
-    void handleFBXNetworkReply();
+protected:
+    virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) override;
 
 private:
-    void loadSourceFBX();
-
     void importScene();
-    void embedTextureMetaData();
-    void rewriteAndBakeSceneModels();
+    void rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists);
     void rewriteAndBakeSceneTextures();
+    void replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
 
-    HFMModel* _hfmModel;
+    hfm::Model::Pointer _hfmModel;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;
 

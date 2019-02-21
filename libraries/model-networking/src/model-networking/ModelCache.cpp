@@ -246,6 +246,7 @@ void GeometryReader::run() {
         HFMModel::Pointer hfmModel;
         QVariantHash serializerMapping = _mapping;
         serializerMapping["combineParts"] = _combineParts;
+        serializerMapping["deduplicateIndices"] = true;
 
         if (_url.path().toLower().endsWith(".gz")) {
             QByteArray uncompressedData;

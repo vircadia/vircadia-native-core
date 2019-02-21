@@ -44,10 +44,12 @@ bool vhacd::VHACDUtil::loadFBX(const QString filename, HFMModel& result) {
     try {
         hifi::ByteArray fbxContents = fbx.readAll();
         HFMModel::Pointer hfmModel;
+        hifi::VariantHash mapping;
+        mapping["deduplicateIndices"] = true;
         if (filename.toLower().endsWith(".obj")) {
-            hfmModel = OBJSerializer().read(fbxContents, QVariantHash(), filename);
+            hfmModel = OBJSerializer().read(fbxContents, mapping, filename);
         } else if (filename.toLower().endsWith(".fbx")) {
-            hfmModel = FBXSerializer().read(fbxContents, QVariantHash(), filename);
+            hfmModel = FBXSerializer().read(fbxContents, mapping, filename);
         } else {
             qWarning() << "file has unknown extension" << filename;
             return false;

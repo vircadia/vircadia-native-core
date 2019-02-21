@@ -18,7 +18,7 @@
 #include "Engine.h"
 
 // The property "passthrough", when enabled, will let the input joints flow to the output unmodified, unlike the disabled property, which discards the data
-class PrepareJointsTaskConfig : public baker::JobConfig {
+class PrepareJointsConfig : public baker::JobConfig {
     Q_OBJECT
     Q_PROPERTY(bool passthrough MEMBER passthrough)
 public:
@@ -27,7 +27,7 @@ public:
 
 class PrepareJointsTask {
 public:
-    using Config = PrepareJointsTaskConfig;
+    using Config = PrepareJointsConfig;
     using Input = baker::VaryingSet2<std::vector<hfm::Joint>, hifi::VariantHash /*mapping*/>;
     using Output = baker::VaryingSet3<std::vector<hfm::Joint>, QMap<int, glm::quat> /*jointRotationOffsets*/, QHash<QString, int> /*jointIndices*/>;
     using JobModel = baker::Job::ModelIO<PrepareJointsTask, Input, Output, Config>;
