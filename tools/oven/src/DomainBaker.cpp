@@ -23,8 +23,7 @@
 #include "baking/BakerLibrary.h"
 
 DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
-                         const QString& baseOutputPath, const QUrl& destinationPath,
-                         bool shouldRebakeOriginals) :
+                         const QString& baseOutputPath, const QUrl& destinationPath) :
     _localEntitiesFileURL(localModelFileURL),
     _domainName(domainName),
     _baseOutputPath(baseOutputPath)
@@ -178,7 +177,8 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, QJs
 }
 
 void DomainBaker::addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, QJsonValueRef& jsonRef) {
-    auto idx = url.lastIndexOf('.');
+    QString cleanURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
+    auto idx = cleanURL.lastIndexOf('.');
     auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
 
     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
@@ -211,6 +211,8 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
         // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
         // to the baked version once the baker is complete
         _entitiesNeedingRewrite.insert(textureURL, { property, jsonRef });
+    } else {
+        qDebug() << "Texture extension not supported: " << extension;
     }
 }
 
@@ -551,6 +553,7 @@ void DomainBaker::handleFinishedScriptBaker() {
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
+
         _entitiesNeedingRewrite.remove(baker->getJSPath());
 
         // drop our shared pointer to this baker so that it gets cleaned up
@@ -611,5 +614,5 @@ void DomainBaker::writeNewEntitiesFile() {
         return;
     }
 
-    qDebug() << "Exported entities file with baked model URLs to" << bakedEntitiesFilePath;
+    qDebug() << "Exported baked entities file to" << bakedEntitiesFilePath;
 }

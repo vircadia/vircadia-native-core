@@ -45,7 +45,6 @@ private:
     QLineEdit* _entitiesFileLineEdit;
     QLineEdit* _outputDirLineEdit;
     QLineEdit* _destinationPathLineEdit;
-    QCheckBox* _rebakeOriginalsCheckBox;
 
     Setting::Handle<QString> _domainNameSetting;
     Setting::Handle<QString> _exportDirectory;
