@@ -28,20 +28,20 @@ JSBaker::JSBaker(const QUrl& jsURL, const QString& bakedOutputDir) :
 void JSBaker::bake() {
     qCDebug(js_baking) << "JS Baker " << _jsURL << "bake starting";
 
-    // once our texture is loaded, kick off a the processing
+    // once our script is loaded, kick off a the processing
     connect(this, &JSBaker::originalScriptLoaded, this, &JSBaker::processScript);
 
     if (_jsURL.isEmpty()) {
-        // first load the texture (either locally or remotely)
+        // first load the script (either locally or remotely)
         loadScript();
     } else {
-        // we already have a texture passed to us, use that
+        // we already have a script passed to us, use that
         emit originalScriptLoaded();
     }
 }
 
 void JSBaker::loadScript() {
-    // check if the texture is local or first needs to be downloaded
+    // check if the script is local or first needs to be downloaded
     if (_jsURL.isLocalFile()) {
         // load up the local file
         QFile localScript(_jsURL.toLocalFile());
@@ -78,14 +78,14 @@ void JSBaker::handleScriptNetworkReply() {
     auto requestReply = qobject_cast<QNetworkReply*>(sender());
 
     if (requestReply->error() == QNetworkReply::NoError) {
-        qCDebug(js_baking) << "Downloaded texture" << _jsURL;
+        qCDebug(js_baking) << "Downloaded script" << _jsURL;
 
-        // store the original texture so it can be passed along for the bake
+        // store the original script so it can be passed along for the bake
         _originalScript = requestReply->readAll();
 
         emit originalScriptLoaded();
     } else {
-        // add an error to our list stating that this texture could not be downloaded
+        // add an error to our list stating that this script could not be downloaded
         handleError("Error downloading " + _jsURL.toString() + " - " + requestReply->errorString());
     }
 }
@@ -139,7 +139,10 @@ bool JSBaker::bakeJS(const QByteArray& inputFile, QByteArray& outputFile) {
 
     in >> currentCharacter;
 
+    qDebug() << "boop" << inputFile;
+
     while (!in.atEnd()) {
+        qDebug() << "boop2" << currentCharacter << nextCharacter << previousCharacter;
         in >> nextCharacter;
 
         if (currentCharacter == '\r') {
@@ -227,6 +230,8 @@ bool JSBaker::bakeJS(const QByteArray& inputFile, QByteArray& outputFile) {
     if (currentCharacter != '\n') {
         out << currentCharacter;
     }
+
+    qDebug() << "boop3" << outputFile;
 
     // Successful bake. Return true
     return true;
