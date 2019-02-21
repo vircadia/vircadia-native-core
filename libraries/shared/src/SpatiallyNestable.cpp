@@ -861,7 +861,7 @@ void SpatiallyNestable::setSNScale(const glm::vec3& scale, bool& success) {
         }
     });
     if (success && changed) {
-        locationChanged();
+        dimensionsChanged();
     }
 }
 
