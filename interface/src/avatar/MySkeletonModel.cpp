@@ -35,6 +35,7 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
     };
 }
 
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
 static glm::vec3 computeSpine2WithHeadHipsSpline(MyAvatar* myAvatar, AnimPose hipsIKTargetPose, AnimPose headIKTargetPose) {
 
     // the the ik targets to compute the spline with
@@ -48,6 +49,7 @@ static glm::vec3 computeSpine2WithHeadHipsSpline(MyAvatar* myAvatar, AnimPose hi
     return spine2Translation + myAvatar->getSpine2SplineOffset();
 
 }
+#endif
 
 static AnimPose computeHipsInSensorFrame(MyAvatar* myAvatar, bool isFlying) {
     glm::mat4 worldToSensorMat = glm::inverse(myAvatar->getSensorToWorldMatrix());
@@ -249,10 +251,10 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).isValid() &&
             !(params.primaryControllerFlags[Rig::PrimaryControllerType_Spine2] & (uint8_t)Rig::ControllerFlags::Enabled)) {
 
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
             AnimPose headAvatarSpace(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
             AnimPose headRigSpace = avatarToRigPose * headAvatarSpace;
             AnimPose hipsRigSpace = sensorToRigPose * sensorHips;
-#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
             glm::vec3 spine2TargetTranslation = computeSpine2WithHeadHipsSpline(myAvatar, hipsRigSpace, headRigSpace);
 #endif
             const float SPINE2_ROTATION_FILTER = 0.5f;
