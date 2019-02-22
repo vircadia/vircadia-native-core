@@ -1169,6 +1169,7 @@ void Model::setURL(const QUrl& url) {
         resource->setLoadPriority(this, _loadingPriority);
         _renderWatcher.setResource(resource);
     }
+    _rig.initFlow(false);
     onInvalidate();
 }
 

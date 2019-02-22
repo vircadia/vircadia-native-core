@@ -323,7 +323,7 @@ void WebEntityRenderer::doRender(RenderArgs* args) {
     });
     batch.setResourceTexture(0, _texture);
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode));
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     batch.setModelTransform(transform);
 
     // Turn off jitter for these entities

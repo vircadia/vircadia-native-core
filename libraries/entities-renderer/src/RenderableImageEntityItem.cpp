@@ -170,7 +170,7 @@ void ImageEntityRenderer::doRender(RenderArgs* args) {
     Q_ASSERT(args->_batch);
     gpu::Batch* batch = args->_batch;
 
-    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode));
+    transform.setRotation(EntityItem::getBillboardRotation(transform.getTranslation(), transform.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
     transform.postScale(dimensions);
 
     batch->setModelTransform(transform);
