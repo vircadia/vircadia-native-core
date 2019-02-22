@@ -88,3 +88,15 @@ bool AudioScriptingInterface::isStereoInput() {
     }
     return stereoEnabled;
 }
+
+void AudioScriptingInterface::setServerEcho(bool serverEcho) {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "setServerEcho", Q_ARG(bool, serverEcho));
+    }
+}
+
+void AudioScriptingInterface::setLocalEcho(bool localEcho) {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "setLocalEcho", Q_ARG(bool, localEcho));
+    }
+}

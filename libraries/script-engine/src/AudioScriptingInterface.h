@@ -66,6 +66,18 @@ public:
         _localAudioInterface->getAudioSolo().reset();
     }
 
+    /**jsdoc
+     * @function Audio.setServerEcho
+     * @parm {boolean} serverEcho
+     */
+    Q_INVOKABLE void setServerEcho(bool serverEcho);
+
+    /**jsdoc
+     * @function Audio.setLocalEcho
+     * @parm {boolean} localEcho
+     */
+    Q_INVOKABLE void setLocalEcho(bool localEcho);
+
 protected:
     AudioScriptingInterface() = default;
 
