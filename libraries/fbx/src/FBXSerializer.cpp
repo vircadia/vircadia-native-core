@@ -1288,20 +1288,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = fbxModel.name;
-<<<<<<< HEAD
-=======
-        if (hfmModel.hfmToHifiJointNameMapping.contains(hfmModel.hfmToHifiJointNameMapping.key(joint.name))) {
-            joint.name = hfmModel.hfmToHifiJointNameMapping.key(fbxModel.name);
-        }
-
-        foreach (const QString& childID, _connectionChildMap.values(modelID)) {
-            QString type = typeFlags.value(childID);
-            if (!type.isEmpty()) {
-                hfmModel.hasSkeletonJoints |= (joint.isSkeletonJoint = type.toLower().contains("Skeleton"));
-                break;
-            }
-        }
->>>>>>> implemented the splineIK in animSplineIK.cpp, todo: disable animinversekinematic.cpp
 
         joint.bindTransformFoundInCluster = false;
 

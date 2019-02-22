@@ -236,7 +236,6 @@ public:
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
-<<<<<<< HEAD
     // world-space to avatar-space rigconversion functions
     /**jsdoc
     * @function MyAvatar.worldToJointPoint
@@ -286,10 +285,8 @@ public:
     * @returns {Quat}
     */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
-=======
     virtual glm::vec3 getSpine2SplineOffset() const { return _spine2SplineOffset; }
     virtual float getSpine2SplineRatio() const { return _spine2SplineRatio; }
->>>>>>> cache the spine2 spline default offset and ratio
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
