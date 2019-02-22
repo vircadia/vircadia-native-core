@@ -20,7 +20,7 @@ endfunction()
 
 if (BUILD_TOOLS)
     # Allow different tools for stable builds
-    if (NOT STABLE_BUILD)
+    if (STABLE_BUILD)
         set(ALL_TOOLS 
             udt-test 
             vhacd-util
