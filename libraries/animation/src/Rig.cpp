@@ -34,7 +34,6 @@
 #include "IKTarget.h"
 #include "PathUtils.h"
 
-
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -361,7 +360,6 @@ void Rig::reset(const HFMModel& hfmModel) {
     _invGeometryOffset = _geometryOffset.inverse();
 
     _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
-
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -746,7 +744,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
     glm::vec3 workingVelocity = worldVelocity;
-
+    _internalFlow.setTransform(sensorToWorldScale, worldPosition, worldRotation * Quaternions::Y_180);
+    _networkFlow.setTransform(sensorToWorldScale, worldPosition, worldRotation * Quaternions::Y_180);
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
 
@@ -1208,12 +1207,26 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _networkVars = networkTriggersOut;
         _lastContext = context;
     }
+    
     applyOverridePoses();
-    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
-    buildAbsoluteRigPoses(_networkPoseSet._relativePoses, _networkPoseSet._absolutePoses);
+
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);    
+    _internalFlow.update(deltaTime, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses, _internalPoseSet._overrideFlags);
+
+    if (_sendNetworkNode) {
+        if (_internalFlow.getActive() && !_networkFlow.getActive()) {
+            _networkFlow = _internalFlow;
+        }
+        buildAbsoluteRigPoses(_networkPoseSet._relativePoses, _networkPoseSet._absolutePoses);
+        _networkFlow.update(deltaTime, _networkPoseSet._relativePoses, _networkPoseSet._absolutePoses, _internalPoseSet._overrideFlags);
+    } else if (_networkFlow.getActive()) {
+        _networkFlow.setActive(false);
+    }
+
     // copy internal poses to external poses
     {
         QWriteLocker writeLock(&_externalPoseSetLock);
+        
         _externalPoseSet = _internalPoseSet;
     }
 }
@@ -1866,7 +1879,6 @@ void Rig::initAnimGraph(const QUrl& url) {
                 auto roleState = roleAnimState.second;
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
-
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
@@ -2104,4 +2116,17 @@ void Rig::computeAvatarBoundingCapsule(
 
     glm::vec3 capsuleCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
     localOffsetOut = capsuleCenter - hipsPosition;
+}
+
+void Rig::initFlow(bool isActive) {
+    _internalFlow.setActive(isActive);
+    if (isActive) {
+        if (!_internalFlow.isInitialized()) {
+            _internalFlow.calculateConstraints(_animSkeleton, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
+            _networkFlow.calculateConstraints(_animSkeleton, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
+        }
+    } else {
+        _internalFlow.cleanUp();
+        _networkFlow.cleanUp();
+    }
 }

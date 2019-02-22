@@ -297,6 +297,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 avatar->setIsNewAvatar(false);
             }
             avatar->simulate(deltaTime, inView);
+            if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
+                _myAvatar->addAvatarHandsToFlow(avatar);
+            }
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);
