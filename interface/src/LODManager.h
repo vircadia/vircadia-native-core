@@ -19,7 +19,6 @@
 #include <SimpleMovingAverage.h>
 #include <render/Args.h>
 
-#include <QtCore/QGlobal.h>
 
 #ifdef Q_OS_ANDROID
 const float LOD_DEFAULT_QUALITY_LEVEL = 0.2; // default quality level setting is High (lower framerate)
