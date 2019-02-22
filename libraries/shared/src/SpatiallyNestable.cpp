@@ -1420,11 +1420,16 @@ QUuid SpatiallyNestable::getEditSenderID() {
     return editSenderID;
 }
 
-void SpatiallyNestable::bumpAncestorChainRenderableVersion() const {
+void SpatiallyNestable::bumpAncestorChainRenderableVersion(int depth) const {
+    if (depth > MAX_PARENTING_CHAIN_SIZE) {
+        breakParentingLoop();
+        return;
+    }
+
     _ancestorChainRenderableVersion++;
     bool success = false;
     auto parent = getParentPointer(success);
     if (success && parent) {
-        parent->bumpAncestorChainRenderableVersion();
+        parent->bumpAncestorChainRenderableVersion(depth + 1);
     }
 }
