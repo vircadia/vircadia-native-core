@@ -456,14 +456,11 @@ public:
     graphics::MaterialKey getMaterialKey() const { return graphics::MaterialKey(_schemaBuffer.get<graphics::MultiMaterial::Schema>()._key); }
     const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
 
-    bool needsUpdate() const { return _needsUpdate; }
     void setNeedsUpdate(bool needsUpdate) { _needsUpdate = needsUpdate; }
-
     void setTexturesLoading(bool value) { _texturesLoading = value; }
-    bool areTexturesLoading() const { return _texturesLoading; }
-
-    bool isInitialized() const { return _initialized; }
     void setInitialized() { _initialized = true; }
+
+    bool shouldUpdate() const { return !_initialized || _needsUpdate || _texturesLoading; }
 
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }

@@ -735,7 +735,7 @@ void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu:
         return;
     }
 
-    if (!multiMaterial.isInitialized() || multiMaterial.needsUpdate() || multiMaterial.areTexturesLoading()) {
+    if (multiMaterial.shouldUpdate()) {
         updateMultiMaterial(multiMaterial);
     }
 
