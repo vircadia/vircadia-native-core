@@ -2411,6 +2411,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::beforeEnterBackground, this, &Application::beforeEnterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
+    connect(&AndroidHelper::instance(), &AndroidHelper::toggleAwayMode, this, &Application::toggleAwayMode);
+
     AndroidHelper::instance().notifyLoadComplete();
 #endif
     pauseUntilLoginDetermined();
@@ -9135,6 +9137,8 @@ void Application::beforeEnterBackground() {
     clearDomainOctreeDetails();
 }
 
+
+
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
@@ -9159,5 +9163,11 @@ void Application::enterForeground() {
     nodeList->setSendDomainServerCheckInEnabled(true);
 }
 #endif
+
+void Application::toggleAwayMode(){
+   auto key = QKeyEvent(QEvent::KeyPress,Qt::Key_Escape,Qt::NoModifier);
+    _keyboardMouseDevice->keyPressEvent(&key);
+    qDebug()<<"QQQ_ AWAY MODE ";
+}
 
 #include "Application.moc"

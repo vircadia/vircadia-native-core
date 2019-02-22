@@ -34,6 +34,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private native void questNativeOnResume();
     private native void questOnAppAfterLoad();
 
+    private native void questNativeAwayMode();
     private SurfaceView mView;
     private SurfaceHolder mSurfaceHolder;
 
@@ -55,6 +56,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         runOnUiThread(() -> {
             setContentView(mView);
             questOnAppAfterLoad();
+
         });
 
 
@@ -91,12 +93,14 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         questNativeOnPause();
         nativeOnPause();
         isPausing=true;
+
     }
 
     @Override
     protected void onStop(){
         super.onStop();
         Log.w(TAG, "QQQ_ Onstop called");
+        questNativeAwayMode();
     }
 
     @Override
@@ -104,6 +108,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         super.onRestart();
         Log.w(TAG, "QQQ_ onRestart called ****");
         questOnAppAfterLoad();
+        questNativeAwayMode();
     }
 
     @Override
@@ -123,8 +128,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.w(TAG, "QQQ_ surfaceDestroyed ***************************************************");
-      //  nativeOnSurfaceChanged(null);
-       // mSurfaceHolder = null;
-
+        nativeOnSurfaceChanged(null);
+        mSurfaceHolder = null;
     }
 }

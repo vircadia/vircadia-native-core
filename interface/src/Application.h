@@ -338,7 +338,8 @@ public:
     void beforeEnterBackground();
     void enterBackground();
     void enterForeground();
-#endif
+    void toggleAwayMode();
+    #endif
 
 signals:
     void svoImportRequested(const QString& url);
