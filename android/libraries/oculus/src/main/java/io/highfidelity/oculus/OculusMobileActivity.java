@@ -51,15 +51,13 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         nativeOnCreate();
         questNativeOnCreate();
     }
+
     public void onAppLoadedComplete() {
         Log.w(TAG, "QQQ Load Completed");
         runOnUiThread(() -> {
             setContentView(mView);
             questOnAppAfterLoad();
-
         });
-
-
     }
 
     @Override
@@ -93,7 +91,6 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         questNativeOnPause();
         nativeOnPause();
         isPausing=true;
-
     }
 
     @Override

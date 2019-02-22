@@ -9166,7 +9166,7 @@ void Application::enterForeground() {
 
 
 void Application::toggleAwayMode(){
-   QKeyEvent event = QKeyEvent (QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+    QKeyEvent event = QKeyEvent (QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
     QCoreApplication::sendEvent (this, &event);
 }
 
