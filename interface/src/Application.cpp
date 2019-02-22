@@ -2414,6 +2414,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     AndroidHelper::instance().notifyLoadComplete();
 #endif
     pauseUntilLoginDetermined();
+
+#if defined(Q_OS_ANDROID)
+    const QString QUEST_DEV = "hifi://quest-dev";
+    DependencyManager::get<AddressManager>()->handleLookupString(QUEST_DEV);
+#endif
 }
 
 void Application::updateVerboseLogging() {
