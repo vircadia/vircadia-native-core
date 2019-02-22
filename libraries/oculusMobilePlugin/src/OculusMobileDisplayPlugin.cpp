@@ -168,10 +168,8 @@ bool OculusMobileDisplayPlugin::isHmdMounted() const {
 static void goToDevMobile() {
     auto addressManager = DependencyManager::get<AddressManager>();
     auto currentAddress = addressManager->currentAddress().toString().toStdString();
-    if (std::string::npos == currentAddress.find("dev-mobile")) {
-        addressManager->handleLookupString("hifi://dev-mobile/495.236,501.017,482.434/0,0.97452,0,-0.224301");
-        //addressManager->handleLookupString("hifi://dev-mobile/504,498,491/0,0,0,0");
-        //addressManager->handleLookupString("hifi://dev-mobile/0,-1,1");
+    if (std::string::npos == currentAddress.find("quest-dev")) {
+        addressManager->handleLookupString("hifi://quest-dev");
     }
 }
 
@@ -217,12 +215,12 @@ bool OculusMobileDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
        });
     }
 
-    //  static uint32_t count = 0;
-    //  if ((++count % 1000) == 0) {
-    //      AbstractViewStateInterface::instance()->postLambdaEvent([] {
-    //          goToDevMobile();
-    //      });
-    //  }
+    static uint32_t count = 0;
+    if ((++count % 1000) == 0) {
+        AbstractViewStateInterface::instance()->postLambdaEvent([] {
+            goToDevMobile();
+        });
+    }
 
     return result && Parent::beginFrameRender(frameIndex);
 }
