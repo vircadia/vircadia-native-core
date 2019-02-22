@@ -219,7 +219,6 @@ void EntityTreeRenderer::clearNonLocalEntities() {
 
     std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
     // remove all entities from the scene
-    _space->clear();
     auto scene = _viewState->getMain3DScene();
     if (scene) {
         render::Transaction transaction;
