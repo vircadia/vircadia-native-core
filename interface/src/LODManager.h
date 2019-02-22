@@ -21,7 +21,7 @@
 
 
 #ifdef Q_OS_ANDROID
-const float LOD_DEFAULT_QUALITY_LEVEL = 0.2; // default quality level setting is High (lower framerate)
+const float LOD_DEFAULT_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
 #else
 const float LOD_DEFAULT_QUALITY_LEVEL = 0.5f; // default quality level setting is Mid
 #endif
