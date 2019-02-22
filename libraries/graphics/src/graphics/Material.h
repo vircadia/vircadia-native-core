@@ -462,6 +462,9 @@ public:
     void setTexturesLoading(bool value) { _texturesLoading = value; }
     bool areTexturesLoading() const { return _texturesLoading; }
 
+    bool isInitialized() const { return _initialized; }
+    void setInitialized() { _initialized = true; }
+
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
     bool hasTextureInfo() const { return _hasCalculatedTextureInfo; }
@@ -471,6 +474,7 @@ private:
     gpu::TextureTablePointer _textureTable { std::make_shared<gpu::TextureTable>() };
     bool _needsUpdate { false };
     bool _texturesLoading { false };
+    bool _initialized { false };
 
     mutable size_t _textureSize { 0 };
     mutable int _textureCount { 0 };
