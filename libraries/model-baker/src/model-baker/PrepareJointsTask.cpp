@@ -13,7 +13,7 @@
 
 #include "ModelBakerLogging.h"
 
-QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
+QMap<QString, QString> getJointNameMapping(const hifi::VariantHash& mapping) {
     static const QString JOINT_NAME_MAPPING_FIELD = "jointMap";
     QMap<QString, QString> hfmToHifiJointNameMap;
     if (!mapping.isEmpty() && mapping.contains(JOINT_NAME_MAPPING_FIELD) && mapping[JOINT_NAME_MAPPING_FIELD].type() == QVariant::Hash) {
@@ -26,7 +26,7 @@ QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
     return hfmToHifiJointNameMap;
 }
 
-QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
+QMap<QString, glm::quat> getJointRotationOffsets(const hifi::VariantHash& mapping) {
     QMap<QString, glm::quat> jointRotationOffsets;
     static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
     if (!mapping.isEmpty() && mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) {

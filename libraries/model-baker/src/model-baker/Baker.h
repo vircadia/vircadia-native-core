@@ -12,8 +12,7 @@
 #ifndef hifi_baker_Baker_h
 #define hifi_baker_Baker_h
 
-#include <QMap>
-
+#include <shared/HifiTypes.h>
 #include <hfm/HFM.h>
 
 #include "Engine.h"
@@ -23,7 +22,7 @@
 namespace baker {
     class Baker {
     public:
-        Baker(const hfm::Model::Pointer& hfmModel, const QVariantHash& mapping);
+        Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping);
 
         void run();
 
@@ -34,7 +33,6 @@ namespace baker {
     protected:
         EnginePointer _engine;
     };
-
 };
 
 #endif //hifi_baker_Baker_h

@@ -12,8 +12,7 @@
 #ifndef hifi_PrepareJointsTask_h
 #define hifi_PrepareJointsTask_h
 
-#include <QHash>
-
+#include <shared/HifiTypes.h>
 #include <hfm/HFM.h>
 
 #include "Engine.h"
@@ -29,7 +28,7 @@ public:
 class PrepareJointsTask {
 public:
     using Config = PrepareJointsTaskConfig;
-    using Input = baker::VaryingSet2<std::vector<hfm::Joint>, QVariantHash /*mapping*/>;
+    using Input = baker::VaryingSet2<std::vector<hfm::Joint>, hifi::VariantHash /*mapping*/>;
     using Output = baker::VaryingSet3<std::vector<hfm::Joint>, QMap<int, glm::quat> /*jointRotationOffsets*/, QHash<QString, int> /*jointIndices*/>;
     using JobModel = baker::Job::ModelIO<PrepareJointsTask, Input, Output, Config>;
 
