@@ -178,8 +178,13 @@ namespace baker {
 
     void Baker::run() {
         _engine->run();
-        hfmModel = _engine->getOutput().get<BakerEngineBuilder::Output>().get0();
-        materialMapping = _engine->getOutput().get<BakerEngineBuilder::Output>().get1();
     }
 
+    hfm::Model::Pointer Baker::getHFMModel() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get0();
+    }
+    
+    MaterialMapping Baker::getMaterialMapping() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get1();
+    }
 };

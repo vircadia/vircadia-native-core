@@ -341,8 +341,8 @@ void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmMode
     modelBaker.run();
 
     // Assume ownership of the processed HFMModel
-    _hfmModel = modelBaker.hfmModel;
-    _materialMapping = modelBaker.materialMapping;
+    _hfmModel = modelBaker.getHFMModel();
+    _materialMapping = modelBaker.getMaterialMapping();
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;

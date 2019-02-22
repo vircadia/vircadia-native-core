@@ -28,8 +28,8 @@ namespace baker {
         void run();
 
         // Outputs, available after run() is called
-        hfm::Model::Pointer hfmModel;
-        MaterialMapping materialMapping;
+        hfm::Model::Pointer getHFMModel() const;
+        MaterialMapping getMaterialMapping() const;
 
     protected:
         EnginePointer _engine;
