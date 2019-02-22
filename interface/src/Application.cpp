@@ -1756,6 +1756,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
     });
 
+
     // Setup the _keyboardMouseDevice, _touchscreenDevice, _touchscreenVirtualPadDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
     // if the _touchscreenDevice is not supported it will not be registered
@@ -9162,12 +9163,15 @@ void Application::enterForeground() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(true);
 }
-#endif
+
 
 void Application::toggleAwayMode(){
-   auto key = QKeyEvent(QEvent::KeyPress,Qt::Key_Escape,Qt::NoModifier);
-    _keyboardMouseDevice->keyPressEvent(&key);
-    qDebug()<<"QQQ_ AWAY MODE ";
+   QKeyEvent event = QKeyEvent (QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+    QCoreApplication::sendEvent (this, &event);
 }
+
+
+#endif
+
 
 #include "Application.moc"

@@ -154,7 +154,7 @@ function goAway(fromStartup) {
     if (!isEnabled || isAway) {
         return;
     }
-    console.warn('QQQ_ JS going away);
+ 
     // If we're entering away mode from some other state than startup, then we create our move timer immediately.
     // However if we're just stating up, we need to delay this process so that we don't think the initial teleport
     // is actually a move.
@@ -176,7 +176,6 @@ function goActive() {
         return;
     }
 
-    console.warn('QQQ_ JS going active); 
     UserActivityLogger.toggledAway(false);
     MyAvatar.isAway = false;
 
