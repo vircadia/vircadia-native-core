@@ -101,7 +101,6 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, nullJitter).asVarying();
     const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, nullJitter).asVarying();
     task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
-    task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
     // Draw opaques forward
     const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
@@ -114,6 +113,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
+    task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
     {  // Debug the bounds of the rendered items, still look at the zbuffer
 
