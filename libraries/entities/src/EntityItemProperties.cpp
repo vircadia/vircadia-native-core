@@ -1013,7 +1013,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. When adding an entity, if no <code>dimensions</code> 
  *     value is specified then the model is automatically sized to its 
  *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
- * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.
+ * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.  Deprecated.
  * @property {Color} color=255,255,255 - <em>Currently not used.</em>
  * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
