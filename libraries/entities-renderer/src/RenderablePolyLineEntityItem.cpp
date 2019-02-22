@@ -29,6 +29,13 @@ gpu::PipelinePointer PolyLineEntityRenderer::_glowPipeline = nullptr;
 
 static const QUrl DEFAULT_POLYLINE_TEXTURE = PathUtils::resourcesUrl("images/paintStroke.png");
 
+#if defined(USE_GLES)
+static bool DISABLE_DEFERRED = true;
+#else
+static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
+static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+#endif
+
 PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _texture = DependencyManager::get<TextureCache>()->getTexture(DEFAULT_POLYLINE_TEXTURE);
 
@@ -44,7 +51,13 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
 
 void PolyLineEntityRenderer::buildPipeline() {
     // FIXME: opaque pipeline
-    gpu::ShaderPointer program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+    gpu::ShaderPointer program;
+    if (DISABLE_DEFERRED) {
+        program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_forward);
+    } else {
+        program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+    }
+
     {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
