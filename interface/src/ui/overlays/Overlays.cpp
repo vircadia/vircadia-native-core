@@ -559,6 +559,42 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         SET_OVERLAY_PROP_DEFAULT(textures, PathUtils::resourcesUrl() + "images/whitePixel.png");
     }
 
+    { // Overlays did this conversion for rotation
+        auto iter = overlayProps.find("rotation");
+        if (iter != overlayProps.end() && !overlayProps.contains("localRotation")) {
+            QUuid parentID;
+            {
+                auto iter = overlayProps.find("parentID");
+                if (iter != overlayProps.end()) {
+                    parentID = iter.value().toUuid();
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_PARENT_ID;
+                    parentID = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentID();
+                }
+            }
+
+            int parentJointIndex = -1;
+            {
+                auto iter = overlayProps.find("parentJointIndex");
+                if (iter != overlayProps.end()) {
+                    parentJointIndex = iter.value().toInt();
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_PARENT_JOINT_INDEX;
+                    parentJointIndex = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentJointIndex();
+                }
+            }
+
+            glm::quat rotation = quatFromVariant(iter.value());
+            bool success = false;
+            glm::quat localRotation = SpatiallyNestable::worldToLocal(rotation, parentID, parentJointIndex, false, success);
+            if (success) {
+                overlayProps["rotation"] = quatToVariant(localRotation);
+            }
+        }
+    }
+
     if (type == "Text" || type == "Image" || type == "Grid" || type == "Web") {
         glm::quat originalRotation = ENTITY_ITEM_DEFAULT_ROTATION;
         {
