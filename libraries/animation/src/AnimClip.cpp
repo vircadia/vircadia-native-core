@@ -151,12 +151,49 @@ void AnimClip::copyFromNetworkAnim() {
                 const glm::vec3& animZeroTrans = animModel.animationFrames[0].translations[animJointIndex];
                 float boneLengthScale = 1.0f;
                 const float EPSILON = 0.0001f;
-                if (fabsf(glm::length(animZeroTrans)) > EPSILON) {
-                    boneLengthScale = glm::length(avatarDefaultPose.trans()) / glm::length(animZeroTrans);
+
+                const int avatarHipsParentIndex = avatarSkeleton->getParentIndex(avatarSkeleton->nameToJointIndex("Hips"));
+                if (avatarJointIndex == avatarSkeleton->nameToJointIndex("Hips") && (avatarHipsParentIndex >= 0)) {
+
+                    const AnimPose& animHipsAbsoluteDefaultPose = animSkeleton.getAbsoluteDefaultPose(animSkeleton.nameToJointIndex("Hips"));
+                    const AnimPose& avatarHipsAbsoluteDefaultPose = avatarSkeleton->getAbsoluteDefaultPose(avatarSkeleton->nameToJointIndex("Hips"));
+                    const AnimPose& avatarHipsParentAbsoluteDefaultPose = avatarSkeleton->getAbsoluteDefaultPose(avatarHipsParentIndex);
+
+                    // the get the units and the heights for the animation and the avatar
+                    const float animationUnitScale = extractScale(animModel.offset).y;
+                    const float avatarUnitScale = extractScale(avatarSkeleton->getGeometryOffset()).y;
+                    const float avatarHeightInMeters = avatarUnitScale * avatarHipsAbsoluteDefaultPose.trans().y;
+                    const float animHeightInMeters = animationUnitScale * animHipsAbsoluteDefaultPose.trans().y;
+
+                    // get the parent scales for the avatar and the animation
+                    const float avatarHipsParentScale = avatarHipsParentAbsoluteDefaultPose.scale().y;
+                    float animHipsParentScale = 1.0f;
+                    const int animHipsParentIndex = animSkeleton.getParentIndex(animSkeleton.nameToJointIndex("Hips"));
+                    // also, check to see if the animation hips have a scaled parent.
+                    if (animHipsParentIndex >= 0) {
+                        const AnimPose& animationHipsParentAbsoluteDefaultPose = animSkeleton.getAbsoluteDefaultPose(animHipsParentIndex);
+                        animHipsParentScale = animationHipsParentAbsoluteDefaultPose.scale().y;
+                    }
+
+                    // compute the ratios for the units, the heights in meters, and the parent scales
+                    if ((fabsf(animHeightInMeters) > EPSILON) && (animationUnitScale > EPSILON) && (animHipsParentScale > EPSILON)) {
+                        const float avatarToAnimationHeightRatio = avatarHeightInMeters / animHeightInMeters;
+                        const float unitsRatio = 1.0f / (avatarUnitScale / animationUnitScale);
+                        const float parentScaleRatio = 1.0f / (avatarHipsParentScale / animHipsParentScale);
+
+                        boneLengthScale = avatarToAnimationHeightRatio * unitsRatio * parentScaleRatio;
+                    }
+                } else {
+
+                    if (fabsf(glm::length(animZeroTrans)) > EPSILON) {
+                        boneLengthScale = glm::length(avatarDefaultPose.trans()) / glm::length(animZeroTrans);
+                    }
                 }
+
                 AnimPose animTransPose = AnimPose(glm::vec3(1.0f), glm::quat(), avatarDefaultPose.trans() + boneLengthScale * (animTrans - animZeroTrans));
 
                 _anim[frame][avatarJointIndex] = animTransPose * animPreRotPose * animRotPose * animPostRotPose;
+
             }
         }
     }

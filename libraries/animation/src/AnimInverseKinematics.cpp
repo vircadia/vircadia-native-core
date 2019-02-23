@@ -298,10 +298,8 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         }
 
         // harvest accumulated rotations and apply the average
-        for (int i = 0; i < (int)_relativePoses.size(); ++i) {
-            if (i == _hipsIndex) {
-                continue;  // don't apply accumulators to hips
-            }
+        // don't apply accumulators to hips, or parents of hips
+        for (int i = (_hipsIndex+1); i < (int)_relativePoses.size(); ++i) {
             if (_rotationAccumulators[i].size() > 0) {
                 _relativePoses[i].rot() = _rotationAccumulators[i].getAverage();
                 _rotationAccumulators[i].clear();
