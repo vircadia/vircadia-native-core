@@ -580,6 +580,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     // Model
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
+    CHECK_PROPERTY_CHANGE(PROP_MODEL_SCALE, modelScale);
     CHECK_PROPERTY_CHANGE(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
     CHECK_PROPERTY_CHANGE(PROP_JOINT_ROTATIONS, jointRotations);
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
@@ -1012,6 +1013,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. When adding an entity, if no <code>dimensions</code> 
  *     value is specified then the model is automatically sized to its 
  *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
+ * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.  Deprecated.
  * @property {Color} color=255,255,255 - <em>Currently not used.</em>
  * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
@@ -1683,6 +1685,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_SCALE, modelScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS, jointRotations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
@@ -2078,6 +2081,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     // Model
     COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(modelScale, vec3, setModelScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
@@ -2357,6 +2361,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
 
     // Model
     COPY_PROPERTY_IF_CHANGED(modelURL);
+    COPY_PROPERTY_IF_CHANGED(modelScale);
     COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
     COPY_PROPERTY_IF_CHANGED(jointRotations);
     COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
@@ -2700,6 +2705,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
 
         // Model
         ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MODEL_SCALE, ModelScale, modelScale, vec3);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
@@ -3989,6 +3995,7 @@ void EntityItemProperties::markAllChanged() {
 
     // Model
     _modelURLChanged = true;
+    _modelScaleChanged = true;
     _jointRotationsSetChanged = true;
     _jointRotationsChanged = true;
     _jointTranslationsSetChanged = true;
@@ -4525,6 +4532,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     // Model
     if (modelURLChanged()) {
         out += "modelURL";
+    }
+    if (modelScaleChanged()) {
+        out += "scale";
     }
     if (jointRotationsSetChanged()) {
         out += "jointRotationsSet";
