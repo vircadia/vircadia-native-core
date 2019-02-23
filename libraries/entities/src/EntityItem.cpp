@@ -41,6 +41,7 @@
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
 
+//#define WANT_DEBUG
 
 Q_DECLARE_METATYPE(EntityItemPointer);
 int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
@@ -499,6 +500,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     #ifdef WANT_DEBUG
+    {
         quint64 lastEdited = getLastEdited();
         float editedAgo = getEditedAgo();
         QString agoAsString = formatSecondsElapsed(editedAgo);
@@ -512,6 +514,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "    age=" << getAge() << "seconds - " << ageAsString;
         qCDebug(entities) << "    lastEdited =" << lastEdited;
         qCDebug(entities) << "    ago=" << editedAgo << "seconds - " << agoAsString;
+    }
     #endif
 
     quint64 lastEditedFromBuffer = 0;
@@ -1096,7 +1099,7 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "    hasGravity=" << hasGravity();
         qCDebug(entities) << "    hasAcceleration=" << hasAcceleration();
         qCDebug(entities) << "    hasAngularVelocity=" << hasAngularVelocity();
-        qCDebug(entities) << "    getAngularVelocity=" << getAngularVelocity();
+        qCDebug(entities) << "    getAngularVelocity=" << getLocalAngularVelocity();
         qCDebug(entities) << "    isMortal=" << isMortal();
         qCDebug(entities) << "    getAge()=" << getAge();
         qCDebug(entities) << "    getLifetime()=" << getLifetime();
@@ -1108,12 +1111,12 @@ void EntityItem::simulate(const quint64& now) {
             qCDebug(entities) << "        hasGravity=" << hasGravity();
             qCDebug(entities) << "        hasAcceleration=" << hasAcceleration();
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
-            qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
+            qCDebug(entities) << "        getAngularVelocity=" << getLocalAngularVelocity();
         }
         if (hasAngularVelocity()) {
             qCDebug(entities) << "    CHANGING...=";
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
-            qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
+            qCDebug(entities) << "        getAngularVelocity=" << getLocalAngularVelocity();
         }
         if (isMortal()) {
             qCDebug(entities) << "    MORTAL...=";
@@ -2649,13 +2652,13 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
     // ALL entity properties. Some work will need to be done to the property system so that it can be more flexible
     // (to grab the value and default value of a property given the string representation of that property, for example)
 
-    // currently the only property filter we handle is '+' for serverScripts
+    // currently the only property filter we handle in EntityItem is '+' for serverScripts
     // which means that we only handle a filtered query asking for entities where the serverScripts property is non-default
 
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
 
     foreach(const auto& property, jsonFilters.keys()) {
-        if (property == SERVER_SCRIPTS_PROPERTY  && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
+        if (property == SERVER_SCRIPTS_PROPERTY && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
             // check if this entity has a non-default value for serverScripts
             if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
                 return true;

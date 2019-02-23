@@ -45,7 +45,7 @@ public:
     using HRCTime = p_high_resolution_clock::time_point;
     using PerNodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
 
-    int parseData(ReceivedMessage& message) override;
+    int parseData(ReceivedMessage& message, const SlaveSharedData& SlaveSharedData);
     AvatarData& getAvatar() { return *_avatar; }
     const AvatarData& getAvatar() const { return *_avatar; }
     const AvatarData* getConstAvatarData() const { return _avatar.get(); }

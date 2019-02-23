@@ -66,6 +66,8 @@ public:
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
 
+    virtual bool matchesJSONFilters(const QJsonObject& jsonFilters) const override;
+
     KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
     AmbientLightPropertyGroup getAmbientLightProperties() const { return resultWithReadLock<AmbientLightPropertyGroup>([&] { return _ambientLightProperties; }); }
 

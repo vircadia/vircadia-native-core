@@ -16,6 +16,8 @@
 
 #include <DependencyManager.h>
 #include <NodeList.h>
+#include <EntityTree.h>
+#include <ZoneEntityItem.h>
 
 #include "AvatarMixerSlave.h"
 
@@ -62,7 +64,7 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
 
         switch (packet->getType()) {
             case PacketType::AvatarData:
-                parseData(*packet);
+                parseData(*packet, slaveSharedData);
                 break;
             case PacketType::SetAvatarTraits:
                 processSetTraitsMessage(*packet, slaveSharedData, *node);
@@ -80,7 +82,38 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
     return packetsProcessed;
 }
 
-int AvatarMixerClientData::parseData(ReceivedMessage& message) {
+namespace {
+    using std::static_pointer_cast;
+
+    // Operator to find if a point is within an avatar-priority (hero) Zone Entity.
+    struct FindPriorityZone {
+        glm::vec3 position;
+        bool isInPriorityZone { false };
+        static bool operation(const OctreeElementPointer& element, void* extraData) {
+            auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
+            if (element->getAACube().contains(findPriorityZone->position)) {
+                const EntityTreeElementPointer entityTreeElement = static_pointer_cast<EntityTreeElement>(element);
+                entityTreeElement->forEachEntity([&findPriorityZone](EntityItemPointer item) {
+                    if (item->getType() == EntityTypes::Zone 
+                        && item->contains(findPriorityZone->position)
+                        && static_pointer_cast<ZoneEntityItem>(item)->getAvatarPriority()) {
+                            findPriorityZone->isInPriorityZone = true;
+                    }
+                });
+                if (findPriorityZone->isInPriorityZone) {
+                    return false;  // For now, stop at first hit.
+                } else {
+                    return true;
+                }
+            } else {  // Position isn't within this subspace, so end recursion.
+                return false;
+            }
+        }
+    };
+
+}  // Close anonymous namespace.
+
+int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveSharedData& slaveSharedData) {
     // pull the sequence number from the data first
     uint16_t sequenceNumber;
 
@@ -90,9 +123,24 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
         incrementNumOutOfOrderSends();
     }
     _lastReceivedSequenceNumber = sequenceNumber;
+    glm::vec3 oldPosition = getPosition();
 
     // compute the offset to the data payload
-    return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
+    if (!_avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()))) {
+        return false;
+    }
+
+    auto newPosition = getPosition();
+    if (newPosition != oldPosition) {
+        EntityTree& entityTree = *slaveSharedData.entityTree;
+        FindPriorityZone findPriorityZone { newPosition, false } ;
+        entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
+        if (findPriorityZone.isInPriorityZone) {
+            // Tag avatar as hero ...
+        }
+    }
+
+    return true;
 }
 
 void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,

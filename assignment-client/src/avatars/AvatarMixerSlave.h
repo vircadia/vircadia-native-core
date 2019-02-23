@@ -90,9 +90,13 @@ public:
     }
 };
 
+class EntityTree;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
+
 struct SlaveSharedData {
     QStringList skeletonURLWhitelist;
     QUrl skeletonReplacementURL;
+    EntityTreePointer entityTree;
 };
 
 class AvatarMixerSlave {
