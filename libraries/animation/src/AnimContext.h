@@ -28,6 +28,7 @@ enum class AnimNodeType {
     InverseKinematics,
     DefaultPose,
     TwoBoneIK,
+    SplineIK,
     PoleVectorConstraint,
     NumTypes
 };

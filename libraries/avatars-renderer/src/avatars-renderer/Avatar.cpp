@@ -37,6 +37,7 @@
 #include "RenderableModelEntityItem.h"
 
 #include <graphics-scripting/Forward.h>
+#include <CubicHermiteSpline.h>
 
 #include "Logging.h"
 
@@ -1535,11 +1536,13 @@ void Avatar::setModelURLFinished(bool success) {
 void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
     computeMultiSphereShapes();
+    buildSpine2SplineRatioCache();
 }
 
 // rig has been reset.
 void Avatar::rigReset() {
     clearUnscaledEyeHeightCache();
+    clearSpine2SplineRatioCache();
 }
 
 void Avatar::computeMultiSphereShapes() {
@@ -1994,8 +1997,41 @@ void Avatar::buildUnscaledEyeHeightCache() {
     }
 }
 
+void Avatar::buildSpine2SplineRatioCache() {
+    if (_skeletonModel) {
+        auto& rig = _skeletonModel->getRig();
+        AnimPose hipsRigDefaultPose = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Hips"));
+        AnimPose headRigDefaultPose(rig.getAbsoluteDefaultPose(rig.indexOfJoint("Head")));
+        glm::vec3 basePosition = hipsRigDefaultPose.trans();
+        glm::vec3 tipPosition = headRigDefaultPose.trans();
+        glm::vec3 spine2Position = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Spine2")).trans();
+
+        glm::vec3 baseToTip = tipPosition - basePosition;
+        float baseToTipLength = glm::length(baseToTip);
+        glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
+        glm::vec3 baseToSpine2 = spine2Position - basePosition;
+
+        _spine2SplineRatio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
+
+        CubicHermiteSplineFunctorWithArcLength defaultSpline(headRigDefaultPose.rot(), headRigDefaultPose.trans(), hipsRigDefaultPose.rot(), hipsRigDefaultPose.trans());
+
+        // measure the total arc length along the spline
+        float totalDefaultArcLength = defaultSpline.arcLength(1.0f);
+        float t = defaultSpline.arcLengthInverse(_spine2SplineRatio * totalDefaultArcLength);
+        glm::vec3 defaultSplineSpine2Translation = defaultSpline(t);
+
+        _spine2SplineOffset = spine2Position - defaultSplineSpine2Translation;
+    }
+
+}
+
 void Avatar::clearUnscaledEyeHeightCache() {
     _unscaledEyeHeightCache.set(DEFAULT_AVATAR_EYE_HEIGHT);
+}
+
+void Avatar::clearSpine2SplineRatioCache() {
+    _spine2SplineRatio = DEFAULT_AVATAR_EYE_HEIGHT;
+    _spine2SplineOffset = glm::vec3();
 }
 
 float Avatar::getUnscaledEyeHeightFromSkeleton() const {

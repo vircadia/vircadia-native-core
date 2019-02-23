@@ -2951,6 +2951,10 @@ void MyAvatar::initAnimGraph() {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
+
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
+        graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation_withSplineIKNode.json");
+#endif
     }
 
     emit animGraphUrlChanged(graphUrl);
