@@ -120,8 +120,6 @@ QRectF OculusMobileDisplayPlugin::getPlayAreaRect() {
 }
 
 glm::mat4 OculusMobileDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
-    qDebug()<< "QQQ_ " << __FUNCTION__;
-
     glm::mat4 result = baseProjection;
 
     VrHandler::withOvrMobile([&](ovrMobile* session){
@@ -142,9 +140,8 @@ glm::mat4 OculusMobileDisplayPlugin::getCullingProjection(const glm::mat4& baseP
 
         fovs[0].extend(fovs[1]);
         result= glm::scale( fovs[0].withZ(baseProjection),glm::vec3(1.5f));
+        return result;
     });
-
-
 
     return result;
 }
