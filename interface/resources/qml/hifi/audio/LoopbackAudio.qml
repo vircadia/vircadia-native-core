@@ -17,7 +17,7 @@ import stylesUit 1.0
 import controlsUit 1.0 as HifiControls
 
 RowLayout {
-    property bool audioLoopedBack: false;
+    property bool audioLoopedBack: AudioScriptingInterface.getServerEcho();
     function startAudioLoopback() {
         if (!audioLoopedBack) {
             audioLoopedBack = true;
@@ -28,13 +28,6 @@ RowLayout {
         if (audioLoopedBack) {
             audioLoopedBack = false;
             AudioScriptingInterface.setServerEcho(false);
-        }
-    }
-
-    Component.onDestruction: stopAudioLoopback();
-    onVisibleChanged: {
-        if (!visible) {
-            stopAudioLoopback();
         }
     }
 
