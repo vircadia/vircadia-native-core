@@ -285,6 +285,8 @@ public:
     * @returns {Quat}
     */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+    virtual glm::vec3 getSpine2SplineOffset() const { return _spine2SplineOffset; }
+    virtual float getSpine2SplineRatio() const { return _spine2SplineRatio; }
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
@@ -563,7 +565,9 @@ public slots:
 protected:
     float getUnscaledEyeHeightFromSkeleton() const;
     void buildUnscaledEyeHeightCache();
+    void buildSpine2SplineRatioCache();
     void clearUnscaledEyeHeightCache();
+    void clearSpine2SplineRatioCache();
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -669,6 +673,8 @@ protected:
     float _displayNameAlpha { 1.0f };
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+    float _spine2SplineRatio { DEFAULT_SPINE2_SPLINE_PROPORTION };
+    glm::vec3 _spine2SplineOffset;
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
