@@ -1422,7 +1422,7 @@ QUuid SpatiallyNestable::getEditSenderID() {
 
 void SpatiallyNestable::bumpAncestorChainRenderableVersion(int depth) const {
     if (depth > MAX_PARENTING_CHAIN_SIZE) {
-        breakParentingLoop();
+        // can't break the parent chain here, because it will call setParentID, which calls this
         return;
     }
 
