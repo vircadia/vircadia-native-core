@@ -25,13 +25,13 @@
 
 #include <AccountManager.h>
 #include <Assignment.h>
+#include <AvatarData.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <NLPacketList.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SettingHelpers.h>
-#include <AvatarData.h> //for KillAvatarReason
 #include <FingerprintUtils.h>
 
 #include "DomainServerNodeData.h"
@@ -869,14 +869,6 @@ void DomainServerSettingsManager::processNodeKickRequestPacket(QSharedPointer<Re
                         }
                     }
                 }
-
-                // if we are here, then we kicked them, so send the KillAvatar message
-                auto packet = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason), true);
-                packet->write(nodeUUID.toRfc4122());
-                packet->writePrimitive(KillAvatarReason::NoReason);
-
-                // send to avatar mixer, it sends the kill to everyone else
-                limitedNodeList->broadcastToNodes(std::move(packet), NodeSet() << NodeType::AvatarMixer);
 
                 if (newPermissions) {
                     qDebug() << "Removing connect permission for node" << uuidStringWithoutCurlyBraces(matchingNode->getUUID())
