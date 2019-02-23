@@ -516,6 +516,7 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
 #ifndef USE_GLES
     batch.setPipeline(_presentPipeline);
 #else
+    //batch.setPipeline(_presentPipeline);
     batch.setPipeline(_simplePipeline);
 #endif
     batch.draw(gpu::TRIANGLE_STRIP, 4);
@@ -630,7 +631,8 @@ void OpenGLDisplayPlugin::compositeScene() {
         batch.setStateScissorRect(ivec4(uvec2(), _compositeFramebuffer->getSize()));
         batch.resetViewTransform();
         batch.setProjectionTransform(mat4());
-        batch.setPipeline(_simplePipeline);
+       // batch.setPipeline(_simplePipeline);
+        batch.setPipeline(_presentPipeline);
         batch.setResourceTexture(0, _currentFrame->framebuffer->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
@@ -885,6 +887,7 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+       // _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
     }
 }
 

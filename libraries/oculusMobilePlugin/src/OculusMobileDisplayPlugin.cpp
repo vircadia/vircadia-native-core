@@ -6,6 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusMobileDisplayPlugin.h"
+#include "../../oculusMobile/src/ovr/Helpers.h"
 
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <glm/gtc/matrix_transform.hpp>
@@ -58,7 +59,7 @@ void OculusMobileDisplayPlugin::deinit() {
 
 bool OculusMobileDisplayPlugin::internalActivate() {
     _renderTargetSize = { 1024, 512 };
-    _cullingProjection = ovr::toGlm(ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 0.0f, 0.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _cullingProjection = ovr::toGlm(ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 90.0f, 90.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 
 
     withOvrJava([&](const ovrJava* java){
@@ -130,6 +131,7 @@ glm::mat4 OculusMobileDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& 
 
 glm::mat4 OculusMobileDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
     glm::mat4 result = baseProjection;
+
     VrHandler::withOvrMobile([&](ovrMobile* session){
         auto trackingState = vrapi_GetPredictedTracking2(session, 0.0);
         ovr::Fov fovs[2];
@@ -137,7 +139,14 @@ glm::mat4 OculusMobileDisplayPlugin::getCullingProjection(const glm::mat4& baseP
             fovs[i].extract(trackingState.Eye[i].ProjectionMatrix);
         }
         fovs[0].extend(fovs[1]);
-        return fovs[0].withZ(baseProjection);
+        float horizontalMargin = 1.1f;
+        float verticalMargin = 1.5f;
+        fovs[0].leftRightUpDown[0] *= horizontalMargin;
+        fovs[0].leftRightUpDown[1] *= horizontalMargin;
+        fovs[0].leftRightUpDown[2] *= verticalMargin;
+        fovs[0].leftRightUpDown[3] *= verticalMargin;
+
+         return fovs[0].withZ(baseProjection);
     });
     return result;
 }
