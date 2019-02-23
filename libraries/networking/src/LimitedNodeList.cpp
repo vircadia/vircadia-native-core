@@ -645,103 +645,95 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                                    Node::LocalID localID, bool isReplicated, bool isUpstream,
                                                    const QUuid& connectionSecret, const NodePermissions& permissions) {
-    QReadLocker readLocker(&_nodeMutex);
-    NodeHash::const_iterator it = _nodeHash.find(uuid);
+    {
+        QReadLocker readLocker(&_nodeMutex);
+        NodeHash::const_iterator it = _nodeHash.find(uuid);
 
-    if (it != _nodeHash.end()) {
-        SharedNodePointer& matchingNode = it->second;
+        if (it != _nodeHash.end()) {
+            SharedNodePointer& matchingNode = it->second;
 
-        matchingNode->setPublicSocket(publicSocket);
-        matchingNode->setLocalSocket(localSocket);
-        matchingNode->setPermissions(permissions);
-        matchingNode->setConnectionSecret(connectionSecret);
-        matchingNode->setIsReplicated(isReplicated);
-        matchingNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
-        matchingNode->setLocalID(localID);
+            matchingNode->setPublicSocket(publicSocket);
+            matchingNode->setLocalSocket(localSocket);
+            matchingNode->setPermissions(permissions);
+            matchingNode->setConnectionSecret(connectionSecret);
+            matchingNode->setIsReplicated(isReplicated);
+            matchingNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
+            matchingNode->setLocalID(localID);
 
-        return matchingNode;
-    } else {
-        auto it = _connectionIDs.find(uuid);
-        if (it == _connectionIDs.end()) {
-            _connectionIDs[uuid] = INITIAL_CONNECTION_ID;
+            return matchingNode;
         }
-
-        // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
-        newNode->setIsReplicated(isReplicated);
-        newNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
-        newNode->setConnectionSecret(connectionSecret);
-        newNode->setPermissions(permissions);
-        newNode->setLocalID(localID);
-
-        // move the newly constructed node to the LNL thread
-        newNode->moveToThread(thread());
-
-        if (nodeType == NodeType::AudioMixer) {
-            LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
-        }
-
-        SharedNodePointer newNodePointer(newNode, &QObject::deleteLater);
-
-        // if this is a solo node type, we assume that the DS has replaced its assignment and we should kill the previous node
-        if (SOLO_NODE_TYPES.count(newNode->getType())) {
-            // while we still have the read lock, see if there is a previous solo node we'll need to remove
-            auto previousSoloIt = std::find_if(_nodeHash.cbegin(), _nodeHash.cend(), [newNode](const UUIDNodePair& nodePair){
-                return nodePair.second->getType() == newNode->getType();
-            });
-
-            if (previousSoloIt != _nodeHash.cend()) {
-                // we have a previous solo node, switch to a write lock so we can remove it
-                readLocker.unlock();
-
-                QWriteLocker writeLocker(&_nodeMutex);
-
-                auto oldSoloNode = previousSoloIt->second;
-
-                _localIDMap.unsafe_erase(oldSoloNode->getLocalID());
-                _nodeHash.unsafe_erase(previousSoloIt);
-                handleNodeKill(oldSoloNode);
-
-                // convert the current lock back to a read lock for insertion of new node
-                writeLocker.unlock();
-                readLocker.relock();
-            }
-        }
-
-        // insert the new node and release our read lock
-#if defined(Q_OS_ANDROID) || (defined(__clang__) && defined(Q_OS_LINUX))
-        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
-        _localIDMap.insert(std::pair<Node::LocalID, SharedNodePointer>(localID, newNodePointer));
-#else
-        _nodeHash.emplace(newNode->getUUID(), newNodePointer);
-        _localIDMap.emplace(localID, newNodePointer);
-#endif
-        readLocker.unlock();
-
-        qCDebug(networking) << "Added" << *newNode;
-
-        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambdas to hold a strong ref
-
-        emit nodeAdded(newNodePointer);
-        if (newNodePointer->getActiveSocket()) {
-            emit nodeActivated(newNodePointer);
-        } else {
-            connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [this, weakPtr] {
-                auto sharedPtr = weakPtr.lock();
-                if (sharedPtr) {
-                    emit nodeActivated(sharedPtr);
-                    disconnect(sharedPtr.data(), &NetworkPeer::socketActivated, this, 0);
-                }
-            });
-        }
-
-        // Signal when a socket changes, so we can start the hole punch over.
-        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
-            emit nodeSocketUpdated(weakPtr);
-        });
-
-        return newNodePointer;
     }
+
+    auto removeOldNode = [&](auto node) {
+        if (node) {
+            QWriteLocker writeLocker(&_nodeMutex);
+            _localIDMap.unsafe_erase(node->getLocalID());
+            _nodeHash.unsafe_erase(node->getUUID());
+            handleNodeKill(node);
+        }
+    };
+
+    // if this is a solo node type, we assume that the DS has replaced its assignment and we should kill the previous node
+    if (SOLO_NODE_TYPES.count(nodeType)) {
+        removeOldNode(soloNodeOfType(nodeType));
+    }
+    // If there is a new node with the same socket, this is a reconnection, kill the old node
+    removeOldNode(findNodeWithAddr(publicSocket));
+    removeOldNode(findNodeWithAddr(localSocket));
+
+    auto it = _connectionIDs.find(uuid);
+    if (it == _connectionIDs.end()) {
+        _connectionIDs[uuid] = INITIAL_CONNECTION_ID;
+    }
+
+    // we didn't have this node, so add them
+    Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+    newNode->setIsReplicated(isReplicated);
+    newNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
+    newNode->setConnectionSecret(connectionSecret);
+    newNode->setPermissions(permissions);
+    newNode->setLocalID(localID);
+
+    // move the newly constructed node to the LNL thread
+    newNode->moveToThread(thread());
+
+    if (nodeType == NodeType::AudioMixer) {
+        LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
+    }
+
+    SharedNodePointer newNodePointer(newNode, &QObject::deleteLater);
+
+
+    {
+        QReadLocker readLocker(&_nodeMutex);
+        // insert the new node and release our read lock
+        _nodeHash.insert({ newNode->getUUID(), newNodePointer });
+        _localIDMap.insert({ localID, newNodePointer });
+    }
+
+    qCDebug(networking) << "Added" << *newNode;
+
+    auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambdas to hold a strong ref
+
+    emit nodeAdded(newNodePointer);
+    if (newNodePointer->getActiveSocket()) {
+        emit nodeActivated(newNodePointer);
+    } else {
+        connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [this, weakPtr] {
+            auto sharedPtr = weakPtr.lock();
+            if (sharedPtr) {
+                emit nodeActivated(sharedPtr);
+                disconnect(sharedPtr.data(), &NetworkPeer::socketActivated, this, 0);
+            }
+        });
+    }
+
+    // Signal when a socket changes, so we can start the hole punch over.
+    connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
+        emit nodeSocketUpdated(weakPtr);
+    });
+
+    return newNodePointer;
 }
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(const QUuid& nodeId, PingType_t pingType) {
