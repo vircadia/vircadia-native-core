@@ -122,6 +122,7 @@ QRectF OculusMobileDisplayPlugin::getPlayAreaRect() {
 
 glm::mat4 OculusMobileDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
     glm::mat4 result = baseProjection;
+
     VrHandler::withOvrMobile([&](ovrMobile* session){
         auto trackingState = vrapi_GetPredictedTracking2(session, 0.0);
         result = ovr::Fov{ trackingState.Eye[eye].ProjectionMatrix }.withZ(baseProjection);
@@ -138,16 +139,12 @@ glm::mat4 OculusMobileDisplayPlugin::getCullingProjection(const glm::mat4& baseP
         for (size_t i = 0; i < 2; ++i) {
             fovs[i].extract(trackingState.Eye[i].ProjectionMatrix);
         }
-        fovs[0].extend(fovs[1]);
-        float horizontalMargin = 1.1f;
-        float verticalMargin = 1.5f;
-        fovs[0].leftRightUpDown[0] *= horizontalMargin;
-        fovs[0].leftRightUpDown[1] *= horizontalMargin;
-        fovs[0].leftRightUpDown[2] *= verticalMargin;
-        fovs[0].leftRightUpDown[3] *= verticalMargin;
 
-         return fovs[0].withZ(baseProjection);
+        fovs[0].extend(fovs[1]);
+        result= glm::scale( fovs[0].withZ(baseProjection),glm::vec3(1.5f));
+        return result;
     });
+
     return result;
 }
 
