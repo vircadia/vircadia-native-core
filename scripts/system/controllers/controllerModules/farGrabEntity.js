@@ -146,7 +146,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);
             MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
+            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });          // RKNOTE: This is where the rotation should be updated.
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(targetProps.id, "startDistanceGrab", args);
@@ -235,7 +235,7 @@ Script.include("/~/system/libraries/controllers.js");
             // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
             MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
+            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });          // RKNOTE: This is where the rotation should be updated.
 
             this.previousRoomControllerPosition = roomControllerPosition;
         };
@@ -259,7 +259,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbing = false;
             this.targetEntityID = null;
             this.potentialEntityWithContextOverlay = false;
-            MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);
+            MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);                                    // RKNOTE: Here, we should edit the entity's position and rotation data with the current joint rotation data.
         };
 
         this.updateRecommendedArea = function () {
@@ -394,6 +394,64 @@ Script.include("/~/system/libraries/controllers.js");
             // Kill condition : Off hand is <= 15% trigger pull.
             return (_this.getOffHandTrigger() <= TRIGGER_OFF_VALUE) ? true : false;
         };
+
+        this.getTargetPosition = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["position"]);
+                return props.position;
+            }
+        };
+
+        this.getTargetRotation = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["rotation"]);
+                return props.rotation;
+            }
+        };
+
+        this.getTargetLocalPosition = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["localPosition"]);
+                return props.localPosition;
+            }
+        };
+        
+        this.getTargetLocalRotation = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["localRotation"]);
+                return props.localRotation;
+            }
+        };
+
+        this.setTargetPosition = function (newPos) {
+            if (this.targetIsNull()) {
+                print("Fargrab Error: No target to edit position.");
+                return;
+            } else {
+                var props;
+                props.position = newPos;
+                Entities.editEntity(this.targetEntityID, props);
+            }
+        };
+
+        this.setTargetRotation = function (newRot) {
+            if (this.targetIsNull()) {
+                print("Fargrab Error: No target to edit rotation.");
+                return;
+            } else {
+                var props;
+                props.rotation = newRot;
+                Entitis.editEntity(this.targetEntityID, props);
+            }
+        }
 
         this.isReady = function (controllerData) {
             if (HMD.active && this.hand === this.getOffHand()) {
