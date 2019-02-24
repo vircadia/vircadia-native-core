@@ -169,4 +169,14 @@ exports.defineTags = function (dictionary) {
             doclet.hifiServerEntity = true;
         }
     });
+    
+    // @signal
+    dictionary.defineTag("signal", {
+        mustHaveValue: true,
+        onTagged: function(doclet, tag) {
+            setDocletKindToTitle(doclet, tag);
+            setDocletNameToValue(doclet, tag);
+        }
+    });
+
 };
