@@ -190,8 +190,8 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
 
     bool isMaterialPerPolygon = false;
 
-    static const QVariant BY_VERTICE = QByteArray("ByVertice");
-    static const QVariant INDEX_TO_DIRECT = QByteArray("IndexToDirect");
+    static const QVariant BY_VERTICE = hifi::ByteArray("ByVertice");
+    static const QVariant INDEX_TO_DIRECT = hifi::ByteArray("IndexToDirect");
 
     bool isDracoMesh = false;
 
@@ -321,7 +321,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
-            static const QVariant BY_POLYGON = QByteArray("ByPolygon");
+            static const QVariant BY_POLYGON = hifi::ByteArray("ByPolygon");
             foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata);
@@ -348,7 +348,7 @@ ExtractedMesh FBXSerializer::extractMesh(const FBXNode& object, unsigned int& me
             // load the draco mesh from the FBX and create a draco::Mesh
             draco::Decoder decoder;
             draco::DecoderBuffer decodedBuffer;
-            QByteArray dracoArray = child.properties.at(0).value<QByteArray>();
+            hifi::ByteArray dracoArray = child.properties.at(0).value<hifi::ByteArray>();
             decodedBuffer.Init(dracoArray.data(), dracoArray.size());
 
             std::unique_ptr<draco::Mesh> dracoMesh(new draco::Mesh());

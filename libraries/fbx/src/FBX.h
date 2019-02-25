@@ -13,16 +13,17 @@
 #define hifi_FBX_h_
 
 #include <QMetaType>
-#include <QVarLengthArray>
 #include <QVariant>
 #include <QVector>
 
 #include <glm/glm.hpp>
 
+#include <shared/HifiTypes.h>
+
 // See comment in FBXSerializer::parseFBX().
 static const int FBX_HEADER_BYTES_BEFORE_VERSION = 23;
-static const QByteArray FBX_BINARY_PROLOG("Kaydara FBX Binary  ");
-static const QByteArray FBX_BINARY_PROLOG2("\0\x1a\0", 3);
+static const hifi::ByteArray FBX_BINARY_PROLOG("Kaydara FBX Binary  ");
+static const hifi::ByteArray FBX_BINARY_PROLOG2("\0\x1a\0", 3);
 static const quint32 FBX_VERSION_2015 = 7400;
 static const quint32 FBX_VERSION_2016 = 7500;
 
@@ -36,7 +37,7 @@ using FBXNodeList = QList<FBXNode>;
 /// A node within an FBX document.
 class FBXNode {
 public:
-    QByteArray name;
+    hifi::ByteArray name;
     QVariantList properties;
     FBXNodeList children;
 };
