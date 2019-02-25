@@ -311,7 +311,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP(start, position);
     }
     RENAME_PROP(point, position);
-    RENAME_PROP(scale, dimensions);
+    if (type != "Model") {
+        RENAME_PROP(scale, dimensions);
+    } else {
+        RENAME_PROP(scale, modelScale);
+    }
     RENAME_PROP(size, dimensions);
     RENAME_PROP(orientation, rotation);
     RENAME_PROP(localOrientation, localRotation);
@@ -559,6 +563,42 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         SET_OVERLAY_PROP_DEFAULT(textures, PathUtils::resourcesUrl() + "images/whitePixel.png");
     }
 
+    { // Overlays did this conversion for rotation
+        auto iter = overlayProps.find("rotation");
+        if (iter != overlayProps.end() && !overlayProps.contains("localRotation")) {
+            QUuid parentID;
+            {
+                auto iter = overlayProps.find("parentID");
+                if (iter != overlayProps.end()) {
+                    parentID = iter.value().toUuid();
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_PARENT_ID;
+                    parentID = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentID();
+                }
+            }
+
+            int parentJointIndex = -1;
+            {
+                auto iter = overlayProps.find("parentJointIndex");
+                if (iter != overlayProps.end()) {
+                    parentJointIndex = iter.value().toInt();
+                } else if (!add) {
+                    EntityPropertyFlags desiredProperties;
+                    desiredProperties += PROP_PARENT_JOINT_INDEX;
+                    parentJointIndex = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentJointIndex();
+                }
+            }
+
+            glm::quat rotation = quatFromVariant(iter.value());
+            bool success = false;
+            glm::quat localRotation = SpatiallyNestable::worldToLocal(rotation, parentID, parentJointIndex, false, success);
+            if (success) {
+                overlayProps["rotation"] = quatToVariant(localRotation);
+            }
+        }
+    }
+
     if (type == "Text" || type == "Image" || type == "Grid" || type == "Web") {
         glm::quat originalRotation = ENTITY_ITEM_DEFAULT_ROTATION;
         {
@@ -636,7 +676,11 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
         RENAME_PROP(position, start);
     }
     RENAME_PROP(position, point);
-    RENAME_PROP(dimensions, scale);
+    if (type != "Model") {
+        RENAME_PROP(dimensions, scale);
+    } else {
+        RENAME_PROP(modelScale, scale);
+    }
     RENAME_PROP(dimensions, size);
     RENAME_PROP(ignorePickIntersection, ignoreRayIntersection);
 
@@ -1718,7 +1762,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
  *     <code>start</code>.
- * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>size</code>.
+ * @property {Vec3} scale - The scale factor applied to the model's dimensions.
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.

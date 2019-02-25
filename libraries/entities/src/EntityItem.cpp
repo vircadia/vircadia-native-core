@@ -49,7 +49,8 @@ int EntityItem::_maxActionsDataSize = 800;
 quint64 EntityItem::_rememberDeletedActionTime = 20 * USECS_PER_SECOND;
 QString EntityItem::_marketplacePublicKey;
 
-std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode)> EntityItem::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode) { return rotation; };
+std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> EntityItem::_getBillboardRotationOperator = [](const glm::vec3&, const glm::quat& rotation, BillboardMode, const glm::vec3&) { return rotation; };
+std::function<glm::vec3()> EntityItem::_getPrimaryViewFrustumPositionOperator = []() { return glm::vec3(0.0f); };
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) :
     SpatiallyNestable(NestableType::Entity, entityItemID)
@@ -266,7 +267,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_HREF, getHref());
         APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, getDescription());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
-        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getUnscaledDimensions());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getScaledDimensions());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_CREATED, getCreated());
@@ -818,7 +819,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         };
         READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, customUpdatePositionFromNetwork);
     }
-    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setUnscaledDimensions);
+    READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, setScaledDimensions);
     {   // See comment above
         auto customUpdateRotationFromNetwork = [this, shouldUpdate, lastEdited](glm::quat value) {
             if (shouldUpdate(_lastUpdatedRotationTimestamp, value != _lastUpdatedRotationValue)) {
@@ -1315,7 +1316,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(href, getHref);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(description, getDescription);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getLocalPosition);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getUnscaledDimensions);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getScaledDimensions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(created, getCreated);
@@ -1462,7 +1463,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(href, setHref);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(description, setDescription);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPosition);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setUnscaledDimensions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setScaledDimensions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, setCreated);
@@ -1872,7 +1873,7 @@ glm::vec3 EntityItem::getScaledDimensions() const {
 
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
     glm::vec3 parentScale = getSNScale();
-    setUnscaledDimensions(value * parentScale);
+    setUnscaledDimensions(value / parentScale);
 }
 
 void EntityItem::setUnscaledDimensions(const glm::vec3& value) {
