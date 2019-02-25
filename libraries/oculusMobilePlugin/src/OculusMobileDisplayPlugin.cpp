@@ -58,7 +58,7 @@ void OculusMobileDisplayPlugin::deinit() {
 
 bool OculusMobileDisplayPlugin::internalActivate() {
     _renderTargetSize = { 1024, 512 };
-    _cullingProjection = ovr::toGlm(ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 0.0f, 0.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _cullingProjection = ovr::toGlm(ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 90.0f, 90.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 
 
     withOvrJava([&](const ovrJava* java){
@@ -131,6 +131,7 @@ glm::mat4 OculusMobileDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& 
 
 glm::mat4 OculusMobileDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
     glm::mat4 result = baseProjection;
+
     VrHandler::withOvrMobile([&](ovrMobile* session){
         auto trackingState = vrapi_GetPredictedTracking2(session, 0.0);
         ovr::Fov fovs[2];
