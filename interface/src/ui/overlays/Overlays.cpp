@@ -295,14 +295,14 @@ QString Overlays::overlayToEntityType(const QString& type) {
         }                                                   \
     }
 
-static QHash<QUuid, glm::quat> savedRotations = QHash<QUuid, glm::quat>();
+static QHash<QUuid, std::pair<glm::quat, bool>> savedRotations = QHash<QUuid, std::pair<glm::quat, bool>>();
 
 EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
-    glm::quat rotation;
+    std::pair<glm::quat, bool> rotation;
     return convertOverlayToEntityProperties(overlayProps, rotation, type, add, id);
 }
 
-EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, glm::quat& rotationToSave, const QString& type, bool add, const QUuid& id) {
+EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, std::pair<glm::quat, bool>& rotationToSave, const QString& type, bool add, const QUuid& id) {
     overlayProps["type"] = type;
 
     SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
@@ -559,65 +559,33 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         SET_OVERLAY_PROP_DEFAULT(textures, PathUtils::resourcesUrl() + "images/whitePixel.png");
     }
 
-    { // Overlays did this conversion for rotation
-        auto iter = overlayProps.find("rotation");
-        if (iter != overlayProps.end() && !overlayProps.contains("localRotation")) {
-            QUuid parentID;
-            {
-                auto iter = overlayProps.find("parentID");
-                if (iter != overlayProps.end()) {
-                    parentID = iter.value().toUuid();
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_PARENT_ID;
-                    parentID = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentID();
-                }
-            }
-
-            int parentJointIndex = -1;
-            {
-                auto iter = overlayProps.find("parentJointIndex");
-                if (iter != overlayProps.end()) {
-                    parentJointIndex = iter.value().toInt();
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_PARENT_JOINT_INDEX;
-                    parentJointIndex = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentJointIndex();
-                }
-            }
-
-            glm::quat rotation = quatFromVariant(iter.value());
-            bool success = false;
-            glm::quat localRotation = SpatiallyNestable::worldToLocal(rotation, parentID, parentJointIndex, false, success);
-            if (success) {
-                overlayProps["rotation"] = quatToVariant(localRotation);
-            }
-        }
-    }
-
     if (type == "Text" || type == "Image" || type == "Grid" || type == "Web") {
         glm::quat originalRotation = ENTITY_ITEM_DEFAULT_ROTATION;
+        bool local = false;
         {
             auto iter = overlayProps.find("rotation");
             if (iter != overlayProps.end()) {
                 originalRotation = quatFromVariant(iter.value());
+                local = false;
             } else {
                 iter = overlayProps.find("localRotation");
                 if (iter != overlayProps.end()) {
                     originalRotation = quatFromVariant(iter.value());
+                    local = true;
                 } else if (!add) {
                     auto iter2 = savedRotations.find(id);
                     if (iter2 != savedRotations.end()) {
-                        originalRotation = iter2.value();
+                        originalRotation = iter2.value().first;
+                        local = iter2.value().second;
                     }
                 }
             }
         }
 
         if (!add) {
-            savedRotations[id] = originalRotation;
+            savedRotations[id] = { originalRotation, local };
         } else {
-            rotationToSave = originalRotation;
+            rotationToSave = { originalRotation, local };
         }
 
         glm::vec3 dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
@@ -648,7 +616,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                 rotation = glm::angleAxis((float)M_PI, rotation * Vectors::UP) * rotation;
             }
 
-            overlayProps["localRotation"] = quatToVariant(rotation);
+            if (local) {
+                overlayProps["localRotation"] = quatToVariant(rotation);
+            } else {
+                overlayProps["rotation"] = quatToVariant(rotation);
+            }
             overlayProps["dimensions"] = vec3toVariant(glm::abs(dimensions));
         }
     }
@@ -826,7 +798,7 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (type == "rectangle3d") {
         propertyMap["shape"] = "Quad";
     }
-    glm::quat rotationToSave;
+    std::pair<glm::quat, bool> rotationToSave;
     QUuid id = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(convertOverlayToEntityProperties(propertyMap, rotationToSave, entityType, true), entity::HostType::LOCAL);
     if (entityType == "Text" || entityType == "Image" || entityType == "Grid" || entityType == "Web") {
         savedRotations[id] = rotationToSave;
