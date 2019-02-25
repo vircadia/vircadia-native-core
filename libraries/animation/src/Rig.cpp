@@ -1064,28 +1064,30 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         t += deltaTime;
 
-        if (_enableInverseKinematics) {
-            _animVars.set("ikOverlayAlpha", 1.0f);
-            _animVars.set("splineIKEnabled", true);
-            _animVars.set("leftHandIKEnabled", true);
-            _animVars.set("rightHandIKEnabled", true);
-            _animVars.set("leftFootIKEnabled", true);
-            _animVars.set("rightFootIKEnabled", true);
-            _animVars.set("leftFootPoleVectorEnabled", true);
-            _animVars.set("rightFootPoleVectorEnabled", true);
-        } else {
-            _animVars.set("ikOverlayAlpha", 0.0f);
-            _animVars.set("splineIKEnabled", false);
-            _animVars.set("leftHandIKEnabled", false);
-            _animVars.set("rightHandIKEnabled", false);
-            _animVars.set("leftFootIKEnabled", false);
-            _animVars.set("rightFootIKEnabled", false);
-            _animVars.set("leftHandPoleVectorEnabled", false);
-            _animVars.set("rightHandPoleVectorEnabled", false);
-            _animVars.set("leftFootPoleVectorEnabled", false);
-            _animVars.set("rightFootPoleVectorEnabled", false);
+        if (_enableInverseKinematics != _lastEnableInverseKinematics) {
+            if (_enableInverseKinematics) {
+                _animVars.set("ikOverlayAlpha", 1.0f);
+                _animVars.set("splineIKEnabled", true);
+                _animVars.set("leftHandIKEnabled", true);
+                _animVars.set("rightHandIKEnabled", true);
+                _animVars.set("leftFootIKEnabled", true);
+                _animVars.set("rightFootIKEnabled", true);
+                _animVars.set("leftFootPoleVectorEnabled", true);
+                _animVars.set("rightFootPoleVectorEnabled", true);
+            } else {
+                _animVars.set("ikOverlayAlpha", 0.0f);
+                _animVars.set("splineIKEnabled", false);
+                _animVars.set("leftHandIKEnabled", false);
+                _animVars.set("rightHandIKEnabled", false);
+                _animVars.set("leftFootIKEnabled", false);
+                _animVars.set("rightFootIKEnabled", false);
+                _animVars.set("leftHandPoleVectorEnabled", false);
+                _animVars.set("rightHandPoleVectorEnabled", false);
+                _animVars.set("leftFootPoleVectorEnabled", false);
+                _animVars.set("rightFootPoleVectorEnabled", false);
+            }
+            _lastEnableInverseKinematics = _enableInverseKinematics;
         }
-        _lastEnableInverseKinematics = _enableInverseKinematics;
     }
     _lastForward = forward;
     _lastPosition = worldPosition;
