@@ -1738,7 +1738,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
         // the above cases not yet supported --> fall through to BOX case
         case SHAPE_TYPE_BOX: {
             localPoint = glm::abs(localPoint);
-            return glm::any(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
+            return glm::all(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
         }
         case SHAPE_TYPE_ELLIPSOID: {
             // since we've transformed into the normalized space this is just a sphere-point intersection test

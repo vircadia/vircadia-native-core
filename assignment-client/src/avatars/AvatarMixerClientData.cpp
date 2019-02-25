@@ -135,9 +135,7 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition, false } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
-        if (findPriorityZone.isInPriorityZone) {
-            // Tag avatar as hero ...
-        }
+        _avatar->setPriorityAvatar(findPriorityZone.isInPriorityZone);
     }
 
     return true;

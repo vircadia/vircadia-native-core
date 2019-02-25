@@ -21,7 +21,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QUrl>
 
-#include <AvatarData.h>
+#include "MixerAvatar.h"
 #include <AssociatedTraitValues.h>
 #include <NodeData.h>
 #include <NumericalConstants.h>
@@ -46,10 +46,10 @@ public:
     using PerNodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
 
     int parseData(ReceivedMessage& message, const SlaveSharedData& SlaveSharedData);
-    AvatarData& getAvatar() { return *_avatar; }
-    const AvatarData& getAvatar() const { return *_avatar; }
-    const AvatarData* getConstAvatarData() const { return _avatar.get(); }
-    AvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
+    MixerAvatar& getAvatar() { return *_avatar; }
+    const MixerAvatar& getAvatar() const { return *_avatar; }
+    const MixerAvatar* getConstAvatarData() const { return _avatar.get(); }
+    MixerAvatarSharedPointer getAvatarSharedPointer() const { return _avatar; }
 
     uint16_t getLastBroadcastSequenceNumber(NLPacket::LocalID nodeID) const;
     void setLastBroadcastSequenceNumber(NLPacket::LocalID nodeID, uint16_t sequenceNumber)
@@ -163,7 +163,7 @@ private:
     };
     PacketQueue _packetQueue;
 
-    AvatarSharedPointer _avatar { new AvatarData() };
+    MixerAvatarSharedPointer _avatar { new MixerAvatar() };
 
     uint16_t _lastReceivedSequenceNumber { 0 };
     std::unordered_map<NLPacket::LocalID, uint16_t> _lastBroadcastSequenceNumbers;

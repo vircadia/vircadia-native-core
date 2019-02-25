@@ -281,7 +281,51 @@ AABox computeBubbleBox(const AvatarData& avatar, float bubbleExpansionFactor) {
     return box;
 }
 
+namespace {
+    class SortableAvatar : public PrioritySortUtil::Sortable {
+    public:
+        SortableAvatar() = delete;
+        SortableAvatar(const MixerAvatar* avatar, const Node* avatarNode, uint64_t lastEncodeTime)
+            : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {
+        }
+        glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
+        float getRadius() const override {
+            glm::vec3 nodeBoxScale = _avatar->getGlobalBoundingBox().getScale();
+            return 0.5f * glm::max(nodeBoxScale.x, glm::max(nodeBoxScale.y, nodeBoxScale.z));
+        }
+        uint64_t getTimestamp() const override {
+            return _lastEncodeTime;
+        }
+        const Node* getNode() const { return _node; }
+        const MixerAvatar* getAvatar() const { return _avatar; }
+
+    private:
+        const MixerAvatar* _avatar;
+        const Node* _node;
+        uint64_t _lastEncodeTime;
+    };
+
+}  // Close anonymous namespace.
+
+// Specialize computePriority() for avatars:
+template<> float PrioritySortUtil::PriorityQueue<SortableAvatar>::computePriority(const SortableAvatar& thing) const {
+    static constexpr float AVATAR_HERO_BONUS { 25.0f };  // Higher than any normal priority.
+
+    float priority = std::numeric_limits<float>::min();
+
+    for (const auto& view : _views) {
+        priority = std::max(priority, computePriority(view, thing));
+    }
+
+    if (thing.getAvatar()->getPriorityAvatar()) {
+        priority += AVATAR_HERO_BONUS;
+    }
+
+    return priority;
+}
+
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
+    const float AVATAR_HERO_FRACTION { 0.4f };
     const Node* destinationNode = node.data();
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -314,8 +358,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     int identityBytesSent = 0;
     int traitBytesSent = 0;
 
-    // max number of avatarBytes per frame
-    int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
+    // max number of avatarBytes per frame (13 900, typical)
+    const int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
+    const int maxHeroBytesPerFrame = int(maxAvatarBytesPerFrame * AVATAR_HERO_FRACTION);  // 5555, typical
 
     // keep track of the number of other avatars held back in this frame
     int numAvatarsHeldBack = 0;
@@ -338,27 +383,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // compute node bounding box
     const float MY_AVATAR_BUBBLE_EXPANSION_FACTOR = 4.0f; // magic number determined emperically
     AABox nodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR);
-
-    class SortableAvatar: public PrioritySortUtil::Sortable {
-    public:
-        SortableAvatar() = delete;
-        SortableAvatar(const AvatarData* avatar, const Node* avatarNode, uint64_t lastEncodeTime)
-            : _avatar(avatar), _node(avatarNode), _lastEncodeTime(lastEncodeTime) {}
-        glm::vec3 getPosition() const override { return _avatar->getClientGlobalPosition(); }
-        float getRadius() const override {
-            glm::vec3 nodeBoxScale = _avatar->getGlobalBoundingBox().getScale();
-            return 0.5f * glm::max(nodeBoxScale.x, glm::max(nodeBoxScale.y, nodeBoxScale.z));
-        }
-        uint64_t getTimestamp() const override {
-            return _lastEncodeTime;
-        }
-        const Node* getNode() const { return _node; }
-
-    private:
-        const AvatarData* _avatar;
-        const Node* _node;
-        uint64_t _lastEncodeTime;
-    };
 
     // prepare to sort
     const auto& cameraViews = nodeData->getViewFrustums();
@@ -446,7 +470,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (!shouldIgnore) {
             // sort this one for later
-            const AvatarData* avatarNodeData = avatarClientNodeData->getConstAvatarData();
+            const MixerAvatar* avatarNodeData = avatarClientNodeData->getConstAvatarData();
             auto lastEncodeTime = nodeData->getLastOtherAvatarEncodeTime(avatarNode->getLocalID());
 
             sortedAvatars.push(SortableAvatar(avatarNodeData, avatarNode, lastEncodeTime));
@@ -508,10 +532,16 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             }
         }
 
+        bool overHeroBudget = frameByteEstimate > maxHeroBytesPerFrame;
+
         auto startAvatarDataPacking = chrono::high_resolution_clock::now();
 
         const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
-        const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
+        const MixerAvatar* otherAvatar = otherNodeData->getConstAvatarData();
+
+        if (overHeroBudget && otherAvatar->getPriorityAvatar()) {
+            continue;  // No more heroes (this frame).
+        }
 
         // Typically all out-of-view avatars but such avatars' priorities will rise with time:
         bool isLowerPriority = sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;
