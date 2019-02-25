@@ -126,6 +126,9 @@ public:
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
+    glm::vec3 getModelScale() const;
+    void setModelScale(const glm::vec3& modelScale);
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
@@ -141,6 +144,7 @@ protected:
     // they aren't currently updated from data in the model/rig, and they don't have a direct effect
     // on what's rendered.
     ReadWriteLockable _jointDataLock;
+    ReadWriteLockable _modelScaleLock;
 
     bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
     bool _jointTranslationsExplicitlySet{ false }; // were the joints set as a property or just side effect of animations

@@ -48,6 +48,7 @@ public:
     void rebuildCollisionShape() override;
 
     void setWorkloadRegion(uint8_t region);
+    uint8_t getWorkloadRegion() { return _workloadRegion; }
     bool shouldBeInPhysicsSimulation() const;
     bool needsPhysicsUpdate() const;
 

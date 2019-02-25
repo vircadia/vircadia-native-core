@@ -63,6 +63,7 @@ EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& d
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelScale, getModelScale);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotationsSet, getJointRotationsSet);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotations, getJointRotations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
@@ -85,6 +86,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelScale, setModelScale);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotationsSet, setJointRotationsSet);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
@@ -128,6 +130,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
+    READ_ENTITY_PROPERTY(PROP_MODEL_SCALE, glm::vec3, setModelScale);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
@@ -165,6 +168,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_TEXTURES;
 
     requestedProperties += PROP_MODEL_URL;
+    requestedProperties += PROP_MODEL_SCALE;
     requestedProperties += PROP_JOINT_ROTATIONS_SET;
     requestedProperties += PROP_JOINT_ROTATIONS;
     requestedProperties += PROP_JOINT_TRANSLATIONS_SET;
@@ -192,6 +196,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_MODEL_SCALE, getModelScale());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
@@ -707,4 +712,16 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
         _flags |= Simulation::DIRTY_UPDATEABLE;
     }
     return somethingChanged;
+}
+
+glm::vec3 ModelEntityItem::getModelScale() const {
+    return _modelScaleLock.resultWithReadLock<glm::vec3>([&] {
+        return getSNScale();
+    });
+}
+
+void ModelEntityItem::setModelScale(const glm::vec3& modelScale) {
+    _modelScaleLock.withWriteLock([&] {
+        setSNScale(modelScale);
+    });
 }

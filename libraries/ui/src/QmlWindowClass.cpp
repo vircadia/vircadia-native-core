@@ -98,6 +98,7 @@ QmlWindowClass::QmlWindowClass(bool restricted) : _restricted(restricted) {
  * @property {boolean} visible
  */
 void QmlWindowClass::initQml(QVariantMap properties) {
+#ifndef DISABLE_QML
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     _source = properties[SOURCE_PROPERTY].toString();
 
@@ -150,6 +151,7 @@ void QmlWindowClass::initQml(QVariantMap properties) {
 
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow.data()));
+#endif
 }
 
 void QmlWindowClass::qmlToScript(const QVariant& message) {

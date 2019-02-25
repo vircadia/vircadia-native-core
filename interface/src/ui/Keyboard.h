@@ -157,6 +157,7 @@ private:
     bool shouldProcessEntityAndPointerEvent(const PointerEvent& event) const;
     bool shouldProcessPointerEvent(const PointerEvent& event) const;
     bool shouldProcessEntity() const;
+    void addIncludeItemsToMallets();
 
     void startLayerSwitchTimer();
     bool isLayerSwitchTimerFinished() const;
@@ -178,7 +179,12 @@ private:
     mutable ReadWriteLockable _handLaserLock;
     mutable ReadWriteLockable _preferMalletsOverLasersSettingLock;
     mutable ReadWriteLockable _ignoreItemsLock;
+
+#ifdef Q_OS_ANDROID
+    Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", false };
+#else
     Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", true };
+#endif
 
     QString _typedCharacters;
     TextDisplay _textDisplay;

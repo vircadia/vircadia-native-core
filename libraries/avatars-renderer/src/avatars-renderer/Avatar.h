@@ -235,6 +235,8 @@ public:
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
+    virtual glm::vec3 getSpine2SplineOffset() const { return _spine2SplineOffset; }
+    virtual float getSpine2SplineRatio() const { return _spine2SplineRatio; }
 
     // world-space to avatar-space rigconversion functions
     /**jsdoc
@@ -498,6 +500,8 @@ public:
     const std::vector<MultiSphereShape>& getMultiSphereShapes() const { return _multiSphereShapes; }
     void tearDownGrabs();
 
+    uint32_t appendSubMetaItems(render::ItemIDs& subItems);
+
 signals:
     void targetScaleChanged(float targetScale);
 
@@ -561,7 +565,9 @@ public slots:
 protected:
     float getUnscaledEyeHeightFromSkeleton() const;
     void buildUnscaledEyeHeightCache();
+    void buildSpine2SplineRatioCache();
     void clearUnscaledEyeHeightCache();
+    void clearSpine2SplineRatioCache();
     virtual const QString& getSessionDisplayNameForTransport() const override { return _empty; } // Save a tiny bit of bandwidth. Mixer won't look at what we send.
     QString _empty{};
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
@@ -638,8 +644,6 @@ protected:
     RateCounter<> _skeletonModelSimulationRate;
     RateCounter<> _jointDataSimulationRate;
 
-
-protected:
     class AvatarEntityDataHash {
     public:
         AvatarEntityDataHash(uint32_t h) : hash(h) {};
@@ -669,6 +673,8 @@ protected:
     float _displayNameAlpha { 1.0f };
 
     ThreadSafeValueCache<float> _unscaledEyeHeightCache { DEFAULT_AVATAR_EYE_HEIGHT };
+    float _spine2SplineRatio { DEFAULT_SPINE2_SPLINE_PROPORTION };
+    glm::vec3 _spine2SplineOffset;
 
     std::unordered_map<std::string, graphics::MultiMaterial> _materials;
     std::mutex _materialsLock;
@@ -699,6 +705,13 @@ protected:
     MapOfGrabs _avatarGrabs;
     SetOfIDs _grabsToChange; // updated grab IDs -- changes needed to entities or physics
     VectorOfIDs _grabsToDelete; // deleted grab IDs -- changes needed to entities or physics
+
+    ReadWriteLockable _subItemLock;
+    void updateAttachmentRenderIDs();
+    render::ItemIDs _attachmentRenderIDs;
+    void updateDescendantRenderIDs();
+    render::ItemIDs _descendantRenderIDs;
+    uint32_t _lastAncestorChainRenderableVersion { 0 };
 };
 
 #endif // hifi_Avatar_h

@@ -37,6 +37,7 @@
 #include "RenderableModelEntityItem.h"
 
 #include <graphics-scripting/Forward.h>
+#include <CubicHermiteSpline.h>
 
 #include "Logging.h"
 
@@ -64,7 +65,11 @@ namespace render {
         return keyBuilder.build();
     }
     template <> const Item::Bound payloadGetBound(const AvatarSharedPointer& avatar) {
-        return static_pointer_cast<Avatar>(avatar)->getRenderBounds();
+        auto avatarPtr = static_pointer_cast<Avatar>(avatar);
+        if (avatarPtr) {
+            return avatarPtr->getRenderBounds();
+        }
+        return Item::Bound();
     }
     template <> void payloadRender(const AvatarSharedPointer& avatar, RenderArgs* args) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
@@ -75,10 +80,15 @@ namespace render {
     }
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
-        if (avatarPtr->getSkeletonModel()) {
-            auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
-            subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
-            return (uint32_t) metaSubItems.size();
+        if (avatarPtr) {
+            uint32_t total = 0;
+            if (avatarPtr->getSkeletonModel()) {
+                auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+                subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
+                total += (uint32_t)metaSubItems.size();
+            }
+            total += avatarPtr->appendSubMetaItems(subItems);
+            return total;
         }
         return 0;
     }
@@ -626,12 +636,18 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     _skeletonModel->setVisibleInScene(_isMeshVisible, scene);
 
     processMaterials();
+    bool attachmentRenderingNeedsUpdate = false;
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
         attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
-        attachmentModel->setGroupCulled(false);
+        attachmentModel->setGroupCulled(true);
         attachmentModel->setCanCastShadow(true);
         attachmentModel->setVisibleInScene(_isMeshVisible, scene);
+        attachmentRenderingNeedsUpdate = true;
+    }
+
+    if (attachmentRenderingNeedsUpdate) {
+        updateAttachmentRenderIDs();
     }
 
     _mustFadeIn = true;
@@ -855,15 +871,17 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         canTryFade = true;
         _isAnimatingScale = true;
     }
+    bool attachmentRenderingNeedsUpdate = false;
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
 
             attachmentModel->setTagMask(render::hifi::TAG_ALL_VIEWS);
-            attachmentModel->setGroupCulled(false);
+            attachmentModel->setGroupCulled(true);
             attachmentModel->setCanCastShadow(true);
             attachmentModel->setVisibleInScene(_isMeshVisible, scene);
+            attachmentRenderingNeedsUpdate = true;
         }
     }
 
@@ -886,9 +904,15 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
 
     for (auto attachmentModelToRemove : _attachmentsToRemove) {
         attachmentModelToRemove->removeFromScene(scene, transaction);
+        attachmentRenderingNeedsUpdate = true;
     }
     _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
+
+    if (attachmentRenderingNeedsUpdate) {
+        updateAttachmentRenderIDs();
+    }
+
     scene->enqueueTransaction(transaction);
 }
 
@@ -930,6 +954,11 @@ void Avatar::simulateAttachments(float deltaTime) {
                 model->updateRenderItems();
             }
         }
+    }
+
+    if (_ancestorChainRenderableVersion != _lastAncestorChainRenderableVersion) {
+        _lastAncestorChainRenderableVersion = _ancestorChainRenderableVersion;
+        updateDescendantRenderIDs();
     }
 }
 
@@ -1506,12 +1535,14 @@ void Avatar::setModelURLFinished(bool success) {
 // rig is ready
 void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
+    buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
 }
 
 // rig has been reset.
 void Avatar::rigReset() {
     clearUnscaledEyeHeightCache();
+    clearSpine2SplineRatioCache();
 }
 
 void Avatar::computeMultiSphereShapes() {
@@ -1607,7 +1638,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
 }
-
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     PerformanceTimer perfTimer("unpack");
@@ -1967,8 +1997,41 @@ void Avatar::buildUnscaledEyeHeightCache() {
     }
 }
 
+void Avatar::buildSpine2SplineRatioCache() {
+    if (_skeletonModel) {
+        auto& rig = _skeletonModel->getRig();
+        AnimPose hipsRigDefaultPose = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Hips"));
+        AnimPose headRigDefaultPose(rig.getAbsoluteDefaultPose(rig.indexOfJoint("Head")));
+        glm::vec3 basePosition = hipsRigDefaultPose.trans();
+        glm::vec3 tipPosition = headRigDefaultPose.trans();
+        glm::vec3 spine2Position = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Spine2")).trans();
+
+        glm::vec3 baseToTip = tipPosition - basePosition;
+        float baseToTipLength = glm::length(baseToTip);
+        glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
+        glm::vec3 baseToSpine2 = spine2Position - basePosition;
+
+        _spine2SplineRatio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
+
+        CubicHermiteSplineFunctorWithArcLength defaultSpline(headRigDefaultPose.rot(), headRigDefaultPose.trans(), hipsRigDefaultPose.rot(), hipsRigDefaultPose.trans());
+
+        // measure the total arc length along the spline
+        float totalDefaultArcLength = defaultSpline.arcLength(1.0f);
+        float t = defaultSpline.arcLengthInverse(_spine2SplineRatio * totalDefaultArcLength);
+        glm::vec3 defaultSplineSpine2Translation = defaultSpline(t);
+
+        _spine2SplineOffset = spine2Position - defaultSplineSpine2Translation;
+    }
+
+}
+
 void Avatar::clearUnscaledEyeHeightCache() {
     _unscaledEyeHeightCache.set(DEFAULT_AVATAR_EYE_HEIGHT);
+}
+
+void Avatar::clearSpine2SplineRatioCache() {
+    _spine2SplineRatio = DEFAULT_AVATAR_EYE_HEIGHT;
+    _spine2SplineOffset = glm::vec3();
 }
 
 float Avatar::getUnscaledEyeHeightFromSkeleton() const {
@@ -2081,6 +2144,63 @@ void Avatar::clearAvatarGrabData(const QUuid& id) {
     _avatarGrabsLock.withWriteLock([&] {
         if (_avatarGrabs.find(id) != _avatarGrabs.end()) {
             _grabsToDelete.push_back(id);
+        }
+    });
+}
+
+uint32_t Avatar::appendSubMetaItems(render::ItemIDs& subItems) {
+    return _subItemLock.resultWithReadLock<uint32_t>([&] {
+        uint32_t total = 0;
+
+        if (_attachmentRenderIDs.size() > 0) {
+            subItems.insert(subItems.end(), _attachmentRenderIDs.begin(), _attachmentRenderIDs.end());
+            total += (uint32_t)_attachmentRenderIDs.size();
+        }
+
+        if (_descendantRenderIDs.size() > 0) {
+            subItems.insert(subItems.end(), _descendantRenderIDs.begin(), _descendantRenderIDs.end());
+            total += (uint32_t)_descendantRenderIDs.size();
+        }
+
+        return total;
+    });
+}
+
+void Avatar::updateAttachmentRenderIDs() {
+    _subItemLock.withWriteLock([&] {
+        _attachmentRenderIDs.clear();
+        for (auto& attachmentModel : _attachmentModels) {
+            if (attachmentModel && attachmentModel->isRenderable()) {
+                auto& metaSubItems = attachmentModel->fetchRenderItemIDs();
+                _attachmentRenderIDs.insert(_attachmentRenderIDs.end(), metaSubItems.begin(), metaSubItems.end());
+            }
+        }
+    });
+}
+
+void Avatar::updateDescendantRenderIDs() {
+    _subItemLock.withWriteLock([&] {
+        _descendantRenderIDs.clear();
+        auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>();
+        EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+        if (entityTree) {
+            entityTree->withReadLock([&] {
+                forEachDescendant([&](SpatiallyNestablePointer object) {
+                    if (object && object->getNestableType() == NestableType::Entity) {
+                        EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                        if (entity->isVisible()) {
+                            auto renderer = entityTreeRenderer->renderableForEntityId(object->getID());
+                            if (renderer) {
+                                render::ItemIDs renderableSubItems;
+                                uint32_t numRenderableSubItems = renderer->metaFetchMetaSubItems(renderableSubItems);
+                                if (numRenderableSubItems > 0) {
+                                    _descendantRenderIDs.insert(_descendantRenderIDs.end(), renderableSubItems.begin(), renderableSubItems.end());
+                                }
+                            }
+                        }
+                    }
+                });
+            });
         }
     });
 }

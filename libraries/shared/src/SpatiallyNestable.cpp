@@ -67,6 +67,7 @@ const QUuid SpatiallyNestable::getParentID() const {
 }
 
 void SpatiallyNestable::setParentID(const QUuid& parentID) {
+    bumpAncestorChainRenderableVersion();
     _idLock.withWriteLock([&] {
         if (_parentID != parentID) {
             _parentID = parentID;
@@ -78,6 +79,7 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
         bool success = false;
         auto parent = getParentPointer(success);
         if (success && parent) {
+            bumpAncestorChainRenderableVersion();
             parent->updateQueryAACube();
         }
     }
@@ -859,7 +861,7 @@ void SpatiallyNestable::setSNScale(const glm::vec3& scale, bool& success) {
         }
     });
     if (success && changed) {
-        locationChanged();
+        dimensionsChanged();
     }
 }
 
@@ -1337,8 +1339,6 @@ QString SpatiallyNestable::nestableTypeToString(NestableType nestableType) {
             return "entity";
         case NestableType::Avatar:
             return "avatar";
-        case NestableType::Overlay:
-            return "overlay";
         default:
             return "unknown";
     }
@@ -1418,4 +1418,18 @@ QUuid SpatiallyNestable::getEditSenderID() {
         }
     });
     return editSenderID;
+}
+
+void SpatiallyNestable::bumpAncestorChainRenderableVersion(int depth) const {
+    if (depth > MAX_PARENTING_CHAIN_SIZE) {
+        // can't break the parent chain here, because it will call setParentID, which calls this
+        return;
+    }
+
+    _ancestorChainRenderableVersion++;
+    bool success = false;
+    auto parent = getParentPointer(success);
+    if (success && parent) {
+        parent->bumpAncestorChainRenderableVersion(depth + 1);
+    }
 }

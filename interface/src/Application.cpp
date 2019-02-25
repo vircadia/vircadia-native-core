@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "Application.h"
 
 #include <chrono>
@@ -37,7 +38,6 @@
 
 #include <QtNetwork/QLocalSocket>
 #include <QtNetwork/QLocalServer>
-
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
@@ -50,6 +50,7 @@
 #include <QFontDatabase>
 #include <QProcessEnvironment>
 #include <QTemporaryDir>
+
 
 #include <gl/QOpenGLContextWrapper.h>
 #include <gl/GLWindow.h>
@@ -191,6 +192,9 @@
 #include "scripting/WalletScriptingInterface.h"
 #include "scripting/TTSScriptingInterface.h"
 #include "scripting/KeyboardScriptingInterface.h"
+
+
+
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -238,6 +242,7 @@
 
 #include "webbrowser/WebBrowserSuggestionsEngine.h"
 #include <DesktopPreviewProvider.h>
+
 
 #include "AboutUtil.h"
 
@@ -622,8 +627,6 @@ public:
             switch (type) {
             case NestableType::Entity:
                 return getEntityModelProvider(static_cast<EntityItemID>(uuid));
-            case NestableType::Overlay:
-                return nullptr;
             case NestableType::Avatar:
                 return getAvatarModelProvider(uuid);
             }
@@ -1757,7 +1760,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     _applicationStateDevice->setInputVariant(STATE_PLATFORM_ANDROID, []() -> float {
 #if defined(Q_OS_ANDROID)
-        return 1;
+        return 1 ;
 #else
         return 0;
 #endif
@@ -1859,6 +1862,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
 
     this->installEventFilter(this);
+
+
 
 #ifdef HAVE_DDE
     auto ddeTracker = DependencyManager::get<DdeFaceTracker>();
@@ -2306,30 +2311,30 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         DependencyManager::get<PickManager>()->setPrecisionPicking(rayPickID, value);
     });
 
-    EntityItem::setBillboardRotationOperator([this](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode) {
+    EntityItem::setBillboardRotationOperator([this](const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos) {
         if (billboardMode == BillboardMode::YAW) {
             //rotate about vertical to face the camera
-            ViewFrustum frustum;
-            copyViewFrustum(frustum);
-            glm::vec3 dPosition = frustum.getPosition() - position;
+            glm::vec3 dPosition = frustumPos - position;
             // If x and z are 0, atan(x, z) is undefined, so default to 0 degrees
             float yawRotation = dPosition.x == 0.0f && dPosition.z == 0.0f ? 0.0f : glm::atan(dPosition.x, dPosition.z);
             return glm::quat(glm::vec3(0.0f, yawRotation, 0.0f));
         } else if (billboardMode == BillboardMode::FULL) {
-            ViewFrustum frustum;
-            copyViewFrustum(frustum);
-            glm::vec3 cameraPos = frustum.getPosition();
             // use the referencial from the avatar, y isn't always up
             glm::vec3 avatarUP = DependencyManager::get<AvatarManager>()->getMyAvatar()->getWorldOrientation() * Vectors::UP;
             // check to see if glm::lookAt will work / using glm::lookAt variable name
-            glm::highp_vec3 s(glm::cross(position - cameraPos, avatarUP));
+            glm::highp_vec3 s(glm::cross(position - frustumPos, avatarUP));
 
             // make sure s is not NaN for any component
             if (glm::length2(s) > 0.0f) {
-                return glm::conjugate(glm::toQuat(glm::lookAt(cameraPos, position, avatarUP)));
+                return glm::conjugate(glm::toQuat(glm::lookAt(frustumPos, position, avatarUP)));
             }
         }
         return rotation;
+    });
+    EntityItem::setPrimaryViewFrustumPositionOperator([this]() {
+        ViewFrustum viewFrustum;
+        copyViewFrustum(viewFrustum);
+        return viewFrustum.getPosition();
     });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
@@ -3097,7 +3102,7 @@ void Application::initializeUi() {
         }
         if (TouchscreenVirtualPadDevice::NAME == inputPlugin->getName()) {
             _touchscreenVirtualPadDevice = std::dynamic_pointer_cast<TouchscreenVirtualPadDevice>(inputPlugin);
-#if defined(Q_OS_ANDROID)
+#if defined(ANDROID_APP_INTERFACE)
             auto& virtualPadManager = VirtualPad::Manager::instance();
             connect(&virtualPadManager, &VirtualPad::Manager::hapticFeedbackRequested,
                     this, [](int duration) {
@@ -3629,10 +3634,14 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     }
 
     // Get controller availability
+#ifdef ANDROID_APP_QUEST_INTERFACE
+    bool hasHandControllers = true;
+#else
     bool hasHandControllers = false;
     if (PluginUtils::isViveControllerAvailable() || PluginUtils::isOculusTouchControllerAvailable()) {
         hasHandControllers = true;
     }
+#endif
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
@@ -8249,6 +8258,7 @@ void Application::loadDomainConnectionDialog() {
 }
 
 void Application::toggleLogDialog() {
+#ifndef ANDROID_APP_QUEST_INTERFACE
     if (getLoginDialogPoppedUp()) {
         return;
     }
@@ -8272,6 +8282,7 @@ void Application::toggleLogDialog() {
     } else {
         _logDialog->show();
     }
+#endif
 }
 
  void Application::recreateLogWindow(int keepOnTop) {
@@ -9137,17 +9148,23 @@ void Application::beforeEnterBackground() {
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
+// Quest only supports one plugin which can't be deactivated currently
+#if !defined(ANDROID_APP_QUEST_INTERFACE)
     if (getActiveDisplayPlugin()->isActive()) {
         getActiveDisplayPlugin()->deactivate();
     }
+#endif
 }
 
 void Application::enterForeground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                                   "start", Qt::BlockingQueuedConnection);
+// Quest only supports one plugin which can't be deactivated currently
+#if !defined(ANDROID_APP_QUEST_INTERFACE)
     if (!getActiveDisplayPlugin() || getActiveDisplayPlugin()->isActive() || !getActiveDisplayPlugin()->activate()) {
         qWarning() << "Could not re-activate display plugin";
     }
+#endif
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(true);
 }
