@@ -311,7 +311,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP(start, position);
     }
     RENAME_PROP(point, position);
-    RENAME_PROP(scale, dimensions);
+    if (type != "Model") {
+        RENAME_PROP(scale, dimensions);
+    } else {
+        RENAME_PROP(scale, modelScale);
+    }
     RENAME_PROP(size, dimensions);
     RENAME_PROP(orientation, rotation);
     RENAME_PROP(localOrientation, localRotation);
@@ -644,7 +648,11 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
         RENAME_PROP(position, start);
     }
     RENAME_PROP(position, point);
-    RENAME_PROP(dimensions, scale);
+    if (type != "Model") {
+        RENAME_PROP(dimensions, scale);
+    } else {
+        RENAME_PROP(modelScale, scale);
+    }
     RENAME_PROP(dimensions, size);
     RENAME_PROP(ignorePickIntersection, ignoreRayIntersection);
 
@@ -1726,7 +1734,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
  *     <code>start</code>.
- * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>size</code>.
+ * @property {Vec3} scale - The scale factor applied to the model's dimensions.
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.

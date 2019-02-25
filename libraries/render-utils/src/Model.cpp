@@ -1386,6 +1386,7 @@ void Model::updateClusterMatrices() {
             }
         }
     }
+    computeMeshPartLocalBounds();
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
