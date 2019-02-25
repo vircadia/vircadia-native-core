@@ -23,7 +23,10 @@ float color_scalar_sRGBToLinear(float value) {
 }
 
 vec3 color_sRGBToLinear(vec3 srgb) {
-    return vec3(color_scalar_sRGBToLinear(srgb.r), color_scalar_sRGBToLinear(srgb.g), color_scalar_sRGBToLinear(srgb.b));
+   // return vec3(color_scalar_sRGBToLinear(srgb.r), color_scalar_sRGBToLinear(srgb.g), color_scalar_sRGBToLinear(srgb.b));
+    // Same as pow(value, 2.2)
+    return mix(pow((srgb + vec3(0.055)) / vec3(1.055), vec3(2.4)), srgb / vec3(12.92), vec3(lessThanEqual(srgb, vec3(0.04045))));
+
 }
 
 vec4 color_sRGBAToLinear(vec4 srgba) {
@@ -38,7 +41,8 @@ float color_scalar_LinearTosRGB(float value) {
 
 vec3 color_LinearTosRGB(vec3 lrgb) {
     // Same as return pow(lrgb, 1/2.2)
-    return vec3(color_scalar_LinearTosRGB(lrgb.r), color_scalar_LinearTosRGB(lrgb.g), color_scalar_LinearTosRGB(lrgb.b));
+//    return vec3(color_scalar_LinearTosRGB(lrgb.r), color_scalar_LinearTosRGB(lrgb.g), color_scalar_LinearTosRGB(lrgb.b));
+    return mix(vec3(1.055) * pow(vec3(lrgb), vec3(0.41666)) - vec3(0.055), vec3(lrgb) * vec3(12.92), vec3(lessThan(lrgb, vec3(0.0031308))));
 }
 
 vec4 color_LinearTosRGBA(vec4 lrgba) {
