@@ -221,7 +221,7 @@ public:
     bool hasGrabs();
     virtual QUuid getEditSenderID();
 
-    void bumpAncestorChainRenderableVersion() const;
+    void bumpAncestorChainRenderableVersion(int depth = 0) const;
 
 protected:
     QUuid _id;
