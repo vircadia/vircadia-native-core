@@ -243,7 +243,6 @@ Script.include("/~/system/libraries/controllers.js");
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
             var newTargetRotLocal = this.initialEntityRotation;
             if (this.shouldManipulateTarget()) {
-                print("Test this thing.");
                 var rotBetween = this.calculateEntityRotationManipulation(worldControllerRotation);
                 var newTargetRotLocal = Quat.multiply(rotBetween, newTargetRotLocal);
             }
@@ -272,8 +271,9 @@ Script.include("/~/system/libraries/controllers.js");
             unhighlightTargetEntity(this.targetEntityID);
             this.grabbing = false;
             this.potentialEntityWithContextOverlay = false;
+            var rot = this.getTargetRotation();
             MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);                                    // RKNOTE: Here, we should edit the entity's position and rotation data with the current joint rotation data.
-            this.setTargetRotation(Quat.multiply(this.lastFarGrabJointRotation, this.initialEntityRotation));
+            this.setTargetRotation(Quat.multiply(this.lastFarGrabJointRotation, rot));
             this.initialEntityRotation = Quat.IDENTITY;
             this.targetEntityID = null;
         };
@@ -472,7 +472,9 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.shouldManipulateTarget = function () {
-            return (this.getDominantGrip() > TRIGGER_ON_VALUE);
+            //var test = this.getDominantGrip() > TRIGGER_ON_VALUE;
+            //return test;
+            return true;
         };
 
         this.calculateEntityRotationManipulation = function (controllerRotation) {
