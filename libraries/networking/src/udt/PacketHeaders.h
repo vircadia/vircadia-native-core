@@ -262,6 +262,7 @@ enum class EntityVersion : PacketVersion {
     RingGizmoEntities,
     ShowKeyboardFocusHighlight,
     WebBillboardMode,
+    ModelScale,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
