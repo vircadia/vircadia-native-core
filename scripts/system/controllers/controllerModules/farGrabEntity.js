@@ -111,6 +111,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.currentObjectPosition = targetProps.position;
             this.currentObjectRotation = targetProps.rotation;
             this.currentObjectTime = now;
+            this.initialEntityRotation = targetProps.rotation;
 
             this.grabRadius = this.grabbedDistance;
             this.grabRadialVelocity = 0.0;
@@ -145,8 +146,14 @@ Script.include("/~/system/libraries/controllers.js");
             Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
 
             var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });          // RKNOTE: This is where the rotation should be updated.
+            var newTargetRotLocal = this.targetProps.rotation;
+            if (this.shouldManipulateTarget()) {
+                var rotBetween = this.calculateEntityRotationManipulation(worldControllerRotation);
+                var newTargetRotLocal = Quat.multiply(rotBetween, newTargetRotLocal);
+            }
+            //MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+            this.setJointTranslation(newTargetPosLocal);
+            this.setJointRotation(newTargetRotLocal);
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(targetProps.id, "startDistanceGrab", args);
@@ -234,8 +241,14 @@ Script.include("/~/system/libraries/controllers.js");
 
             // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });          // RKNOTE: This is where the rotation should be updated.
+            var newTargetRotLocal = this.initialEntityRotation;
+            if (this.shouldManipulateTarget()) {
+                var rotBetween = this.calculateEntityRotationManipulation(worldControllerRotation);
+                var newTargetRotLocal = Quat.multiply(rotBetween, newTargetRotLocal);
+            }
+            //MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+            this.setJointTranslation(newTargetPosLocal);
+            this.setJointRotation(newTargetRotLocal);
 
             this.previousRoomControllerPosition = roomControllerPosition;
         };
@@ -257,9 +270,10 @@ Script.include("/~/system/libraries/controllers.js");
             }));
             unhighlightTargetEntity(this.targetEntityID);
             this.grabbing = false;
-            this.targetEntityID = null;
             this.potentialEntityWithContextOverlay = false;
             MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);                                    // RKNOTE: Here, we should edit the entity's position and rotation data with the current joint rotation data.
+            this.setTargetRotation(this.lastFarGrabJointRotation);
+            this.targetEntityID = null;
         };
 
         this.updateRecommendedArea = function () {
@@ -336,6 +350,10 @@ Script.include("/~/system/libraries/controllers.js");
         this.cleanup = function () {
             grabMapping.disable();
         };
+
+        this.initialControllerRotation = Quat.IDENTITY;
+        this.initialEntityRotation = Quat.IDENTITY;
+        this.lastFarGrabJointRotation = Quat.IDENTITY;
 
         this.leftTrigger = 0.0;
         this.rightTrigger = 0.0;
@@ -451,7 +469,24 @@ Script.include("/~/system/libraries/controllers.js");
                 props.rotation = newRot;
                 Entitis.editEntity(this.targetEntityID, props);
             }
+        };
+
+        this.shouldManipulateTarget = function () {
+            return (this.getDominantGrip() > TRIGGER_ON_VALUE);
         }
+
+        this.calculateEntityRotationManipulation = function (controllerRotation) {
+            return Quat.multiply(controllerRotation, Quat.inverse(this.initialControllerRotation));
+        }
+
+        this.setJointTranslation(newTargetPosLocal) {
+            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+        };
+
+        this.setJointRotation(newTargetRotLocal) {
+            this.lastFarGrabJointRotation = newTargetRotLocal;
+            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], newTargetRotLocal);
+        };
 
         this.isReady = function (controllerData) {
             if (HMD.active && this.hand === this.getOffHand()) {
