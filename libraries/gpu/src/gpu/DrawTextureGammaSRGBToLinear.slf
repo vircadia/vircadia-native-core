@@ -2,12 +2,12 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  DrawTexture.frag
+//  DrawTextureGammaSRGBToLinear.frag
 //
-//  Draw texture 0 fetched at texcoord.xy
+//  Draw texture 0 fetched at texcoord.xy, and apply sRGB to Linear color space conversion
 //
-//  Created by Sam Gateau on 6/22/2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Sam Gateau on 2/24/2019
+//  Copyright 2019 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
