@@ -196,16 +196,16 @@ Rectangle {
             visible: true
 
             Image {
-                id: marketplaceHeaderImage;
-                source: "../common/images/marketplaceHeaderImage.png";
-                anchors.top: parent.top;
-                anchors.topMargin: 2;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 0;
-                anchors.left: parent.left;
-                anchors.leftMargin: 8;
-                width: 140;
-                fillMode: Image.PreserveAspectFit;
+                id: marketplaceHeaderImage
+                source: "../common/images/marketplaceHeaderImage.png"
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                width: 140
+                fillMode: Image.PreserveAspectFit
 
                 MouseArea {
                     anchors.fill: parent;

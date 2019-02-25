@@ -240,16 +240,18 @@ Rectangle {
                 id: creatorText
 
                 anchors {
-                    top: creatorLabel.top;
-                    left: creatorLabel.right;
-                    leftMargin: 15;
+                    top: creatorLabel.top
+                    left: creatorLabel.right
+                    leftMargin: 15
+                    right: badges.left
                 }
-                width: paintedWidth;
+                width: paintedWidth
 
-                text: root.creator;
-                size: 14;
-                color: hifi.colors.lightGray;
-                verticalAlignment: Text.AlignVCenter;
+                text: root.creator
+                size: 14
+                elide: Text.ElideRight
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
             }
 
             RalewaySemiBold {
@@ -260,12 +262,12 @@ Rectangle {
                     left: parent.left
                     leftMargin: 15
                 }
-                width: paintedWidth;      
+                width: paintedWidth   
 
-                text: "IN:";
-                size: 14;
-                color: hifi.colors.lightGrayText;
-                verticalAlignment: Text.AlignVCenter;
+                text: "IN:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
             }
 
             RalewaySemiBold {
@@ -275,14 +277,15 @@ Rectangle {
                     top: categoryLabel.top
                     left: categoryLabel.right
                     leftMargin: 15
+                    right: badges.left
                 }
                 width: paintedWidth
 
                 text: root.category
                 size: 14
-                color: hifi.colors.blueHighlight;
-                verticalAlignment: Text.AlignVCenter;
-                
+                color: hifi.colors.blueHighlight
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
                 MouseArea {
                     anchors.fill: parent
 
@@ -293,30 +296,33 @@ Rectangle {
                 id: badges
                 
                 anchors {
-                    left: parent.left
-                    top: categoryLabel.bottom
                     right: buyButton.left
+                    top: parent.top
+                    topMargin: 10
+                    rightMargin: 10
                 }
-                height: childrenRect.height
+                height: 50
                 
-                HiFiGlyphs {
+                Image {
                     id: standaloneOptomizedBadge
 
                     anchors {
-                        left: parent.left
-                        leftMargin: 15
-                        verticalCenter: parent.verticalCenter
-
+                        right: parent.right
+                        top: parent.top
                     }
-                    height: 24
+                    height: root.standaloneOptimized ? 40 : 0
+                    width: 40
                     
                     visible: root.standaloneOptimized
-
-                    text: hifi.glyphs.hmd
-                    size: 24
-                    horizontalAlignment: Text.AlignHCenter
+                    fillMode: Image.PreserveAspectFit
+                    source: "../../../../icons/standalone-optimized.svg"
+                }
+                ColorOverlay {
+                    anchors.fill: standaloneOptomizedBadge
+                    source: standaloneOptomizedBadge
                     color: hifi.colors.blueHighlight
-                }   
+                    visible: root.standaloneOptimized
+                }
             }            
 
             HifiControlsUit.Button {

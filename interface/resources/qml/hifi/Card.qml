@@ -273,22 +273,28 @@ Item {
         }
     }
 
-    HiFiGlyphs {
+    Image {
         id: standaloneOptomizedBadge
 
         anchors {
             right: actionIcon.left
-            bottom: parent.bottom;
+            top: actionIcon.top
+            topMargin: 2
+            rightMargin: 3
         }
-        height: (root.isConcurrency && root.standaloneOptimized) ? 34 : 0
-
-        visible: root.isConcurrency && root.standaloneOptimized
-
-        text: hifi.glyphs.hmd
-        size: 34
-        horizontalAlignment: Text.AlignHCenter
-        color: messageColor
-     }
+        height: root.standaloneOptimized ? 25 : 0
+        width: 25
+        
+        visible: root.standaloneOptimized && isConcurrency
+        fillMode: Image.PreserveAspectFit
+        source: "../../icons/standalone-optimized.svg"
+    }
+    ColorOverlay {
+        anchors.fill: standaloneOptomizedBadge
+        source: standaloneOptomizedBadge
+        color: hifi.colors.blueHighlight
+        visible: root.standaloneOptimized && isConcurrency
+    }
 
     StateImage {
         id: actionIcon;

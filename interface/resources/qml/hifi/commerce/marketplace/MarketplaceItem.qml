@@ -15,6 +15,7 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 import stylesUit 1.0
+import QtGraphicalEffects 1.0
 import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../common" as HifiCommerceCommon
@@ -248,28 +249,33 @@ Rectangle {
             id: badges
             
             anchors {
-                left: parent.left
+                right: buyButton.left
                 top: parent.top
-                right: parent.right
+                rightMargin: 10
             }
             height: childrenRect.height
             
-            HiFiGlyphs {
+            Image {
                 id: standaloneOptomizedBadge
 
                 anchors {
-                    left: parent.left
-                    verticalCenter: parent.verticalCenter
+                    topMargin: 15
+                    right: parent.right
+                    top: parent.top
                 }
-                height: root.standaloneOptimized ? 34 : 0
+                height: root.standaloneOptimized ? 50 : 0
+                width: 50
                 
                 visible: root.standaloneOptimized
-
-                text: hifi.glyphs.hmd
-                size: 34
-                horizontalAlignment: Text.AlignHCenter
+                fillMode: Image.PreserveAspectFit
+                source: "../../../../icons/standalone-optimized.svg"
+            }
+            ColorOverlay {
+                anchors.fill: standaloneOptomizedBadge
+                source: standaloneOptomizedBadge
                 color: hifi.colors.blueHighlight
-            }   
+                visible: root.standaloneOptimized
+            }
         }
         
         HifiControlsUit.Button {
@@ -277,11 +283,11 @@ Rectangle {
 
             anchors {
                 right: parent.right
-                top: badges.bottom
-                left: parent.left
+                top: parent.top
                 topMargin: 15
             }
-            height: 50 
+            height: 50
+            width: 180
 
             property bool isNFS: availability === "not for sale" // Note: server will say "sold out" or "invalidated" before it says NFS
             property bool isMine: creator === Account.username
@@ -301,11 +307,11 @@ Rectangle {
             id: creatorItem
 
             anchors {
-                top: buyButton.bottom
+                top: parent.top
                 leftMargin: 15
                 topMargin: 15
             }
-            width: parent.width
+            width: paintedWidth
             height: childrenRect.height
             
             RalewaySemiBold {

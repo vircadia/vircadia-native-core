@@ -13,6 +13,7 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import stylesUit 1.0
@@ -848,8 +849,7 @@ Item {
                 }
             }
         } 
-
-        HiFiGlyphs {
+        Image {
             id: standaloneOptomizedBadge
 
             anchors {
@@ -858,14 +858,18 @@ Item {
                 rightMargin: 15
                 bottomMargin:12
             }
-            height: root.standaloneOptimized ? 34 : 0
+            height: root.standaloneOptimized ? 36 : 0
+            width: 36
             
             visible: root.standaloneOptimized
-
-            text: hifi.glyphs.hmd
-            size: 34
-            horizontalAlignment: Text.AlignHCenter
+            fillMode: Image.PreserveAspectFit
+            source: "../../../../icons/standalone-optimized.svg"
+        }
+        ColorOverlay {
+            anchors.fill: standaloneOptomizedBadge
+            source: standaloneOptomizedBadge
             color: hifi.colors.blueHighlight
+            visible: root.standaloneOptimized
         }
     }
 
