@@ -6,7 +6,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OculusMobileDisplayPlugin.h"
-#include "../../oculusMobile/src/ovr/Helpers.h"
 
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <glm/gtc/matrix_transform.hpp>
