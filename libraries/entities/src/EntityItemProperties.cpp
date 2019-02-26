@@ -4022,6 +4022,7 @@ void EntityItemProperties::markAllChanged() {
     _bloom.markAllChanged();
     _flyingAllowedChanged = true;
     _ghostingAllowedChanged = true;
+    _avatarPriorityChanged = true;
     _filterURLChanged = true;
     _keyLightModeChanged = true;
     _ambientLightModeChanged = true;
