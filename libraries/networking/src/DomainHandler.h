@@ -35,7 +35,7 @@ const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
 const quint16 DOMAIN_SERVER_HTTP_PORT = 40100;
 const quint16 DOMAIN_SERVER_HTTPS_PORT = 40101;
 
-const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
+const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 10;  // XXX
 
 class DomainHandler : public QObject {
     Q_OBJECT

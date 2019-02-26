@@ -957,7 +957,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 }
 
 void AvatarMixer::setupEntityQuery() {
-    static char queryJsonString[] = R"({"avatarPriority": true})";
+    static char queryJsonString[] = R"({"avatarPriority": true, "serverScripts": "+"})";
 
     _entityViewer.init();
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
