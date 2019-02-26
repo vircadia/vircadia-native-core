@@ -2951,6 +2951,10 @@ void MyAvatar::initAnimGraph() {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
+
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
+        graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation_withSplineIKNode.json");
+#endif
     }
 
     emit animGraphUrlChanged(graphUrl);
@@ -5310,6 +5314,72 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     if (tellHandler && _clientTraitsHandler) {
         // indicate the deletion of the data to the mixer
         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
+    }
+}
+
+void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) {
+    auto &flow = _skeletonModel->getRig().getFlow();
+    for (auto &handJointName : HAND_COLLISION_JOINTS) {
+        int jointIndex = otherAvatar->getJointIndex(handJointName);
+        if (jointIndex != -1) {
+            glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
+            flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+        }
+    }
+}
+
+void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
+    if (_skeletonModel->isLoaded()) {
+        _skeletonModel->getRig().initFlow(isActive);
+        auto &flow = _skeletonModel->getRig().getFlow();
+        auto &collisionSystem = flow.getCollisionSystem();
+        collisionSystem.setActive(isCollidable);
+        auto physicsGroups = physicsConfig.keys();
+        if (physicsGroups.size() > 0) {
+            for (auto &groupName : physicsGroups) {
+                auto settings = physicsConfig[groupName].toMap();
+                FlowPhysicsSettings physicsSettings;
+                if (settings.contains("active")) {
+                    physicsSettings._active = settings["active"].toBool();
+                }
+                if (settings.contains("damping")) {
+                    physicsSettings._damping = settings["damping"].toFloat();
+                }
+                if (settings.contains("delta")) {
+                    physicsSettings._delta = settings["delta"].toFloat();
+                }
+                if (settings.contains("gravity")) {
+                    physicsSettings._gravity = settings["gravity"].toFloat();
+                }
+                if (settings.contains("inertia")) {
+                    physicsSettings._inertia = settings["inertia"].toFloat();
+                }
+                if (settings.contains("radius")) {
+                    physicsSettings._radius = settings["radius"].toFloat();
+                }
+                if (settings.contains("stiffness")) {
+                    physicsSettings._stiffness = settings["stiffness"].toFloat();
+                }
+                flow.setPhysicsSettingsForGroup(groupName, physicsSettings);
+            }
+        }
+        auto collisionJoints = collisionsConfig.keys();
+        if (collisionJoints.size() > 0) {
+            collisionSystem.resetCollisions();
+            for (auto &jointName : collisionJoints) {
+                int jointIndex = getJointIndex(jointName);
+                FlowCollisionSettings collisionsSettings;
+                auto settings = collisionsConfig[jointName].toMap();
+                collisionsSettings._entityID = getID();
+                if (settings.contains("radius")) {
+                    collisionsSettings._radius = settings["radius"].toFloat();
+                }
+                if (settings.contains("offset")) {
+                    collisionsSettings._offset = vec3FromVariant(settings["offset"]);
+                }
+                collisionSystem.addCollisionSphere(jointIndex, collisionsSettings);
+            }
+        }
     }
 }
 

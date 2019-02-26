@@ -34,7 +34,6 @@
 #include "IKTarget.h"
 #include "PathUtils.h"
 
-
 static int nextRigId = 1;
 static std::map<int, Rig*> rigRegistry;
 static std::mutex rigRegistryMutex;
@@ -73,6 +72,20 @@ static const QString RIGHT_FOOT_IK_POSITION_VAR("rightFootIKPositionVar");
 static const QString RIGHT_FOOT_IK_ROTATION_VAR("rightFootIKRotationVar");
 static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_ROTATION("mainStateMachineRightFootRotation");
 static const QString MAIN_STATE_MACHINE_RIGHT_FOOT_POSITION("mainStateMachineRightFootPosition");
+
+static const QString LEFT_HAND_POSITION("leftHandPosition");
+static const QString LEFT_HAND_ROTATION("leftHandRotation");
+static const QString LEFT_HAND_IK_POSITION_VAR("leftHandIKPositionVar");
+static const QString LEFT_HAND_IK_ROTATION_VAR("leftHandIKRotationVar");
+static const QString MAIN_STATE_MACHINE_LEFT_HAND_POSITION("mainStateMachineLeftHandPosition");
+static const QString MAIN_STATE_MACHINE_LEFT_HAND_ROTATION("mainStateMachineLeftHandRotation");
+
+static const QString RIGHT_HAND_POSITION("rightHandPosition");
+static const QString RIGHT_HAND_ROTATION("rightHandRotation");
+static const QString RIGHT_HAND_IK_POSITION_VAR("rightHandIKPositionVar");
+static const QString RIGHT_HAND_IK_ROTATION_VAR("rightHandIKRotationVar");
+static const QString MAIN_STATE_MACHINE_RIGHT_HAND_ROTATION("mainStateMachineRightHandRotation");
+static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRightHandPosition");
 
 
 Rig::Rig() {
@@ -361,7 +374,6 @@ void Rig::reset(const HFMModel& hfmModel) {
     _invGeometryOffset = _geometryOffset.inverse();
 
     _animSkeleton = std::make_shared<AnimSkeleton>(hfmModel);
-
 
     _internalPoseSet._relativePoses.clear();
     _internalPoseSet._relativePoses = _animSkeleton->getRelativeDefaultPoses();
@@ -746,7 +758,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     glm::vec3 forward = worldRotation * IDENTITY_FORWARD;
     glm::vec3 workingVelocity = worldVelocity;
-
+    _internalFlow.setTransform(sensorToWorldScale, worldPosition, worldRotation * Quaternions::Y_180);
+    _networkFlow.setTransform(sensorToWorldScale, worldPosition, worldRotation * Quaternions::Y_180);
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
 
@@ -1051,16 +1064,29 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         t += deltaTime;
 
-        if (_enableInverseKinematics != _lastEnableInverseKinematics) {
-            if (_enableInverseKinematics) {
-                _animVars.set("ikOverlayAlpha", 1.0f);
-            } else {
-                _animVars.set("ikOverlayAlpha", 0.0f);
-            }
+        if (_enableInverseKinematics) {
+            _animVars.set("ikOverlayAlpha", 1.0f);
+            _animVars.set("splineIKEnabled", true);
+            _animVars.set("leftHandIKEnabled", true);
+            _animVars.set("rightHandIKEnabled", true);
+            _animVars.set("leftFootIKEnabled", true);
+            _animVars.set("rightFootIKEnabled", true);
+            _animVars.set("leftFootPoleVectorEnabled", true);
+            _animVars.set("rightFootPoleVectorEnabled", true);
+        } else {
+            _animVars.set("ikOverlayAlpha", 0.0f);
+            _animVars.set("splineIKEnabled", false);
+            _animVars.set("leftHandIKEnabled", false);
+            _animVars.set("rightHandIKEnabled", false);
+            _animVars.set("leftFootIKEnabled", false);
+            _animVars.set("rightFootIKEnabled", false);
+            _animVars.set("leftHandPoleVectorEnabled", false);
+            _animVars.set("rightHandPoleVectorEnabled", false);
+            _animVars.set("leftFootPoleVectorEnabled", false);
+            _animVars.set("rightFootPoleVectorEnabled", false);
         }
         _lastEnableInverseKinematics = _enableInverseKinematics;
     }
-
     _lastForward = forward;
     _lastPosition = worldPosition;
     _lastVelocity = workingVelocity;
@@ -1208,12 +1234,26 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
         _networkVars = networkTriggersOut;
         _lastContext = context;
     }
+    
     applyOverridePoses();
-    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
-    buildAbsoluteRigPoses(_networkPoseSet._relativePoses, _networkPoseSet._absolutePoses);
+
+    buildAbsoluteRigPoses(_internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);    
+    _internalFlow.update(deltaTime, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses, _internalPoseSet._overrideFlags);
+
+    if (_sendNetworkNode) {
+        if (_internalFlow.getActive() && !_networkFlow.getActive()) {
+            _networkFlow = _internalFlow;
+        }
+        buildAbsoluteRigPoses(_networkPoseSet._relativePoses, _networkPoseSet._absolutePoses);
+        _networkFlow.update(deltaTime, _networkPoseSet._relativePoses, _networkPoseSet._absolutePoses, _internalPoseSet._overrideFlags);
+    } else if (_networkFlow.getActive()) {
+        _networkFlow.setActive(false);
+    }
+
     // copy internal poses to external poses
     {
         QWriteLocker writeLock(&_externalPoseSetLock);
+        
         _externalPoseSet = _internalPoseSet;
     }
 }
@@ -1251,6 +1291,7 @@ void Rig::computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut
 void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPose) {
     if (_animSkeleton) {
         if (headEnabled) {
+            _animVars.set("splineIKEnabled", true);
             _animVars.set("headPosition", headPose.trans());
             _animVars.set("headRotation", headPose.rot());
             if (hipsEnabled) {
@@ -1265,6 +1306,7 @@ void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPos
                 _animVars.set("headWeight", 8.0f);
             }
         } else {
+            _animVars.set("splineIKEnabled", false);
             _animVars.unset("headPosition");
             _animVars.set("headRotation", headPose.rot());
             _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
@@ -1396,7 +1438,21 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
 
     const bool ENABLE_POLE_VECTORS = true;
 
+    if (headEnabled) {
+        // always do IK if head is enabled
+        _animVars.set("leftHandIKEnabled", true);
+        _animVars.set("rightHandIKEnabled", true);
+    } else {
+        // only do IK if we have a valid foot.
+        _animVars.set("leftHandIKEnabled", leftHandEnabled);
+        _animVars.set("rightHandIKEnabled", rightHandEnabled);
+    }
+
     if (leftHandEnabled) {
+
+        // we need this for twoBoneIK version of hands.
+        _animVars.set(LEFT_HAND_IK_POSITION_VAR, LEFT_HAND_POSITION);
+        _animVars.set(LEFT_HAND_IK_ROTATION_VAR, LEFT_HAND_ROTATION);
 
         glm::vec3 handPosition = leftHandPose.trans();
         glm::quat handRotation = leftHandPose.rot();
@@ -1430,8 +1486,11 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
             _animVars.set("leftHandPoleVectorEnabled", false);
         }
     } else {
-        _animVars.set("leftHandPoleVectorEnabled", false);
+        // need this for two bone ik
+        _animVars.set(LEFT_HAND_IK_POSITION_VAR, MAIN_STATE_MACHINE_LEFT_HAND_POSITION);
+        _animVars.set(LEFT_HAND_IK_ROTATION_VAR, MAIN_STATE_MACHINE_LEFT_HAND_ROTATION);
 
+        _animVars.set("leftHandPoleVectorEnabled", false);
         _animVars.unset("leftHandPosition");
         _animVars.unset("leftHandRotation");
 
@@ -1444,6 +1503,10 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     }
 
     if (rightHandEnabled) {
+
+        // need this for two bone IK
+        _animVars.set(RIGHT_HAND_IK_POSITION_VAR, RIGHT_HAND_POSITION);
+        _animVars.set(RIGHT_HAND_IK_ROTATION_VAR, RIGHT_HAND_ROTATION);
 
         glm::vec3 handPosition = rightHandPose.trans();
         glm::quat handRotation = rightHandPose.rot();
@@ -1478,8 +1541,12 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
             _animVars.set("rightHandPoleVectorEnabled", false);
         }
     } else {
-        _animVars.set("rightHandPoleVectorEnabled", false);
 
+        // need this for two bone IK
+        _animVars.set(RIGHT_HAND_IK_POSITION_VAR, MAIN_STATE_MACHINE_RIGHT_HAND_POSITION);
+        _animVars.set(RIGHT_HAND_IK_ROTATION_VAR, MAIN_STATE_MACHINE_RIGHT_HAND_ROTATION);
+
+        _animVars.set("rightHandPoleVectorEnabled", false);
         _animVars.unset("rightHandPosition");
         _animVars.unset("rightHandRotation");
 
@@ -1697,6 +1764,7 @@ bool Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, 
         correctionVector = forwardAmount * frontVector;
     }
     poleVector = glm::normalize(attenuationVector + fullPoleVector + correctionVector);
+
     return true;
 }
 
@@ -1819,7 +1887,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     std::shared_ptr<AnimInverseKinematics> ikNode = getAnimInverseKinematicsNode();
     for (int i = 0; i < (int)NumSecondaryControllerTypes; i++) {
         int index = indexOfJoint(secondaryControllerJointNames[i]);
-        if (index >= 0) {
+        if ((index >= 0) && (ikNode)) {
             if (params.secondaryControllerFlags[i] & (uint8_t)ControllerFlags::Enabled) {
                 ikNode->setSecondaryTargetInRigFrame(index, params.secondaryControllerPoses[i]);
             } else {
@@ -1866,7 +1934,6 @@ void Rig::initAnimGraph(const QUrl& url) {
                 auto roleState = roleAnimState.second;
                 overrideRoleAnimation(roleState.role, roleState.url, roleState.fps, roleState.loop, roleState.firstFrame, roleState.lastFrame);
             }
-
             emit onLoadComplete();
         });
         connect(_animLoader.get(), &AnimNodeLoader::error, [url](int error, QString str) {
@@ -2104,4 +2171,17 @@ void Rig::computeAvatarBoundingCapsule(
 
     glm::vec3 capsuleCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
     localOffsetOut = capsuleCenter - hipsPosition;
+}
+
+void Rig::initFlow(bool isActive) {
+    _internalFlow.setActive(isActive);
+    if (isActive) {
+        if (!_internalFlow.isInitialized()) {
+            _internalFlow.calculateConstraints(_animSkeleton, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
+            _networkFlow.calculateConstraints(_animSkeleton, _internalPoseSet._relativePoses, _internalPoseSet._absolutePoses);
+        }
+    } else {
+        _internalFlow.cleanUp();
+        _networkFlow.cleanUp();
+    }
 }

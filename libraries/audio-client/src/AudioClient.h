@@ -127,7 +127,7 @@ public:
 
     const QAudioFormat& getOutputFormat() const { return _outputFormat; }
 
-    float getLastInputLoudness() const { return _lastInputLoudness; }   // TODO: relative to noise floor?
+    float getLastInputLoudness() const { return _lastInputLoudness; }
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
@@ -355,7 +355,9 @@ private:
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
-    float _lastInputLoudness;
+    float _lastRawInputLoudness;    // before mute/gate
+    float _lastSmoothedRawInputLoudness;
+    float _lastInputLoudness;       // after mute/gate
     float _timeSinceLastClip;
     int _totalInputAudioSamples;
 
