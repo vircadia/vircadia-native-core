@@ -134,8 +134,7 @@ Item {
                 Text {
                     id: loginText
                     anchors.right: parent.right
-                    visible: !Account.loggedIn
-                    text: qsTr("Log in")
+                    text: Account.loggedIn ? tabletRoot.usernameShort : qsTr("Log in")
                     horizontalAlignment: Text.AlignRight
                     Layout.alignment: Qt.AlignRight
                     font.pixelSize: 18
@@ -144,20 +143,8 @@ Item {
                 }
                 TextMetrics {
                     id: loginTextMetrics
-                    text: Account.loggedIn ? tabletRoot.usernameShort : loginText.text
+                    text: loginText.text
                     font: loginText.font
-                }
-
-                HifiStylesUit.ShortcutText {
-                    anchors.right: parent.right
-                    visible: Account.loggedIn
-                    text: "<a href='https://highfidelity.com'>" + tabletRoot.usernameShort + "</a>"
-                    horizontalAlignment: Text.AlignRight
-                    Layout.alignment: Qt.AlignRight
-                    font.pixelSize: 18
-                    font.bold: true
-                    font.family: "Rawline"
-                    linkColor: hifi.colors.blueAccent
                 }
 
                 MouseArea {
@@ -165,8 +152,6 @@ Item {
                     onClicked: {
                         if (!Account.loggedIn) {
                             DialogsManager.showLoginDialog();
-                        } else {
-                            Account.logOut();
                         }
                     }
                 }

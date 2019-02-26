@@ -178,10 +178,10 @@ Rectangle {
 
     function setUsername(newUsername) {
         username = newUsername;
-        usernameShort = newUsername.substring(0, 8);
+        usernameShort = newUsername.substring(0, 14);
 
-        if (newUsername.length > 8) {
-            usernameShort = usernameShort + "..."
+        if (newUsername.length > 14) {
+             usernameShort = usernameShort + "..."
         }
     }
 
