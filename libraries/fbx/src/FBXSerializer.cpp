@@ -484,7 +484,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                                 constexpr int UP_AXIS_Y = 1;
                                 constexpr int UP_AXIS_Z = 2;
                                 int upAxis = subobject.properties.at(index).toInt();
-                                if (upAxis == UP_AXIS_Z) {
+                                if (upAxis == UP_AXIS_Y) {
+                                    // No update necessary, y up is the default
+                                } else if (upAxis == UP_AXIS_Z) {
                                     upAxisZRotation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
                                     applyUpAxisZRotation = true;
                                 }
