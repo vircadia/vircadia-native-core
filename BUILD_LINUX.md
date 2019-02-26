@@ -67,7 +67,7 @@ git tags
 
 Then checkout last tag with:
 ```bash
-git checkout tags/v0.71.0
+git checkout tags/v0.79.0
 ```
 
 ### Compiling
