@@ -209,11 +209,7 @@ void PolyLineEntityRenderer::updateGeometry() {
     for (int i = 0; i < maxNumVertices; i++) {
         // Position
         glm::vec3 point = _points[i];
-
-        float width=PolyLineEntityItem::DEFAULT_LINE_WIDTH;
-        if(_widths.size()>0 && i < _widths.size()) {
-            width = _widths[i];
-        }
+        float width = i < _widths.size() ? _widths[i] : PolyLineEntityItem::DEFAULT_LINE_WIDTH;
 
         if (i > 0) { // First uCoord is 0.0f
             if (!_isUVModeStretch) {
