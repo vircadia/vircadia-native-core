@@ -242,7 +242,9 @@ Script.include("/~/system/libraries/controllers.js");
                 var pose = Controller.getPoseValue((this.getDominantHand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
                 if (pose.valid) {
                     if (!this.manipulating) {
-                        this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
+                        if (!this.wasManipulating) {
+                            this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
+                        }
                         this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);                                // Worldframe.
                         this.manipulating = true;
                     }
@@ -250,10 +252,14 @@ Script.include("/~/system/libraries/controllers.js");
 
                 var rot = Quat.multiply(pose.rotation, MyAvatar.orientation);
                 var rotBetween = this.calculateEntityRotationManipulation(rot);
-                this.setJointRotation(Quat.multiply(rotBetween, this.initialEntityRotation));
+                this.lastJointRotation = Quat.multiply(rotBetween, this.initialEntityRotation);
+                this.setJointRotation(this.lastJointRotation);
             } else {
+                if (this.manipulating) {
+                    this.initialEntityRotation = this.lastJointRotation;
+                    this.wasManipulating = true;
+                }
                 this.manipulating = false;
-                this.initialEntityRotation = Quat.IDENTITY;
                 this.initialControllerRotation = Quat.IDENTITY;
             }
             this.setJointTranslation(newTargetPosLocal);
@@ -284,6 +290,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.initialControllerRotation = Quat.IDENTITY;
             this.targetEntityID = null;
             this.manipulating = false;
+            this.wasManipulating = false;
         };
 
         this.updateRecommendedArea = function () {
@@ -364,6 +371,7 @@ Script.include("/~/system/libraries/controllers.js");
         this.initialControllerRotation = Quat.IDENTITY;
         this.initialEntityRotation = Quat.IDENTITY;
         this.manipulating = false;
+        this.wasManipulating = false;
 
         this.leftTrigger = 0.0;
         this.rightTrigger = 0.0;
