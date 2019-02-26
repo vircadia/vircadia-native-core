@@ -9,6 +9,7 @@ docker build --build-arg BUILD_UID=`id -u` -t "${DOCKER_IMAGE_NAME}" -f docker/D
 # So make sure we use VERSION_CODE consistently
 test -z "$VERSION_CODE" && export VERSION_CODE=$VERSION
 
+# FIXME figure out which of these actually need to be forwarded and which can be eliminated
 docker run \
    --rm \
    --security-opt seccomp:unconfined \
@@ -27,6 +28,7 @@ docker run \
    -e OAUTH_CLIENT_SECRET \
    -e OAUTH_CLIENT_ID \
    -e OAUTH_REDIRECT_URI \
+   -e SHA7 \
    -e VERSION_CODE \
    "${DOCKER_IMAGE_NAME}" \
    sh -c "./build_android.sh"
