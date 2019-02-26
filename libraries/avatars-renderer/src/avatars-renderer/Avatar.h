@@ -219,7 +219,7 @@ public:
      * The default pose of the avatar is defined by the position and orientation of all bones
      * in the avatar's model file. Typically this is a T-pose.
      * @function MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame
-     * @param index {number} index number
+     * @param index {number} -The joint index.
      * @returns {Quat} The rotation of this joint in avatar coordinates.
      */
     Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
@@ -229,7 +229,7 @@ public:
      * The default pose of the avatar is defined by the position and orientation of all bones
      * in the avatar's model file. Typically this is a T-pose.
      * @function MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame
-     * @param index {number} index number
+     * @param index {number} - The joint index.
      * @returns {Vec3} The position of this joint in avatar coordinates.
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
@@ -238,7 +238,25 @@ public:
     virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
+    /**jsdoc
+     * Sets the rotation of a joint relative to the avatar.
+     * <p><strong>Warning:</strong> Not able to be used in the <code>MyAvatar</code> API.</p>
+     * @function MyAvatar.setAbsoluteJointRotationInObjectFrame
+     * @param {number} index - The index of the joint. <em>Not used.</em>
+     * @param {Quat} rotation - The rotation of the joint relative to the avatar. <em>Not used.</em>
+     * @returns {boolean} <code>false</code>.
+     */
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+
+    /**jsdoc
+     * Sets the translation of a joint relative to the avatar.
+     * <p><strong>Warning:</strong> Not able to be used in the <code>MyAvatar</code> API.</p>
+     * @function MyAvatar.setAbsoluteJointTranslationInObjectFrame
+     * @param {number} index - The index of the joint. <em>Not used.</em>
+     * @param {Vec3} translation - The translation of the joint relative to the avatar. <em>Not used.</em>
+     * @returns {boolean} <code>false</code>.
+     */
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
     // world-space to avatar-space rigconversion functions
