@@ -242,15 +242,13 @@ Script.include("/~/system/libraries/controllers.js");
                 var pose = Controller.getPoseValue((this.getDominantHand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
                 if (pose.valid) {
                     if (!this.manipulating) {
-                        //this.initialEntityRotation = Quat.multiply(this.getTargetRotation(), Quat.inverse(MyAvatar.orientation));         // Avatar frame.
                         this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
-                        this.initialControllerRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);                                // Worldframe.
-                        //this.initialEntityRotation = Quat.multiply(this.getTargetRotation(), Quat.inverse(MyAvatar.orientation));
+                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);                                // Worldframe.
                         this.manipulating = true;
                     }
                 }
 
-                var rot = Quat.multiply(MyAvatar.orientation, pose.rotation);
+                var rot = Quat.multiply(pose.rotation, MyAvatar.orientation);
                 var rotBetween = this.calculateEntityRotationManipulation(rot);
                 this.setJointRotation(Quat.multiply(rotBetween, this.initialEntityRotation));
             } else {
