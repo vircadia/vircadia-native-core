@@ -65,10 +65,10 @@ public:
     // overrides from btCharacterControllerInterface
     virtual void setWalkDirection(const btVector3 &walkDirection) override { assert(false); }
     virtual void setVelocityForTimeInterval(const btVector3 &velocity, btScalar timeInterval) override { assert(false); }
-    virtual void reset(btCollisionWorld* collisionWorld) override { }
-    virtual void warp(const btVector3& origin) override { }
-    virtual void debugDraw(btIDebugDraw* debugDrawer) override { }
-    virtual void setUpInterpolate(bool value) override { }
+    virtual void reset(btCollisionWorld* collisionWorld) override {}
+    virtual void warp(const btVector3& origin) override {}
+    virtual void debugDraw(btIDebugDraw* debugDrawer) override {}
+    virtual void setUpInterpolate(bool value) override {}
     virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTime) override;
     virtual void preStep(btCollisionWorld *collisionWorld) override;
     virtual void playerStep(btCollisionWorld *collisionWorld, btScalar dt) override;
@@ -90,7 +90,7 @@ public:
     void preSimulation();
     void postSimulation();
 
-    void setPositionAndOrientation( const glm::vec3& position, const glm::quat& orientation);
+    void setPositionAndOrientation(const glm::vec3& position, const glm::quat& orientation);
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setParentVelocity(const glm::vec3& parentVelocity);
@@ -129,7 +129,8 @@ public:
 
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
-    void setFlyingAllowed(bool value);
+    void setZoneFlyingAllowed(bool value) { _zoneFlyingAllowed = value; }
+    void setComfortFlyingAllowed(bool value) { _comfortFlyingAllowed = value; }
     void setCollisionlessAllowed(bool value);
 
     void setPendingFlagsUpdateCollisionMask(){ _pendingFlags |= PENDING_FLAG_UPDATE_COLLISION_MASK; }
@@ -212,7 +213,8 @@ protected:
     uint32_t _pendingFlags { 0 };
     uint32_t _previousFlags { 0 };
 
-    bool _flyingAllowed { true };
+    bool _zoneFlyingAllowed { true };
+    bool _comfortFlyingAllowed { true };
     bool _collisionlessAllowed { true };
     bool _collisionless { false };
 

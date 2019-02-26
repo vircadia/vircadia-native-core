@@ -82,6 +82,7 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface { nullptr };
     bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
+    QString _tryingToBuildURL;
 
     glm::u8vec3 _color;
     float _alpha { 1.0f };
