@@ -111,7 +111,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.currentObjectPosition = targetProps.position;
             this.currentObjectRotation = targetProps.rotation;
             this.currentObjectTime = now;
-            this.initialEntityRotation = targetProps.rotation;          // World frame.
+            //this.initialEntityRotation = targetProps.rotation;          // World frame.
 
             this.grabRadius = this.grabbedDistance;
             this.grabRadialVelocity = 0.0;
@@ -238,18 +238,27 @@ Script.include("/~/system/libraries/controllers.js");
 
             // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
-            var newTargetRotLocal = this.initialEntityRotation;
             if (this.shouldManipulateTarget()) {
-                var dominantHandControllerLocation = controllerData.controllerLocations[this.getDominantHand()];
-                var worldDominantHandControllerRotation = dominantHandControllerLocation.rotation;
-                if (Quat.equal(Quat.IDENTITY, this.initialControllerRotation)) {
-                    this.initialControllerRotation = worldDominantHandControllerRotation;
+                var pose = Controller.getPoseValue((this.getDominantHand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
+                if (pose.valid) {
+                    if (!this.manipulating) {
+                        //this.initialEntityRotation = Quat.multiply(this.getTargetRotation(), Quat.inverse(MyAvatar.orientation));         // Avatar frame.
+                        this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
+                        this.initialControllerRotation = Quat.multiply(MyAvatar.orientation, pose.rotation);                                // Worldframe.
+                        //this.initialEntityRotation = Quat.multiply(this.getTargetRotation(), Quat.inverse(MyAvatar.orientation));
+                        this.manipulating = true;
+                    }
                 }
-                var rotBetween = this.calculateEntityRotationManipulation(worldDominantHandControllerRotation);
-                var newTargetRotLocal = Quat.multiply(rotBetween, newTargetRotLocal);
+
+                var rot = Quat.multiply(MyAvatar.orientation, pose.rotation);
+                var rotBetween = this.calculateEntityRotationManipulation(rot);
+                this.setJointRotation(Quat.multiply(rotBetween, this.initialEntityRotation));
+            } else {
+                this.manipulating = false;
+                this.initialEntityRotation = Quat.IDENTITY;
+                this.initialControllerRotation = Quat.IDENTITY;
             }
             this.setJointTranslation(newTargetPosLocal);
-            this.setJointRotation(newTargetRotLocal);
 
             this.previousRoomControllerPosition = roomControllerPosition;
         };
@@ -276,6 +285,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.initialEntityRotation = Quat.IDENTITY;
             this.initialControllerRotation = Quat.IDENTITY;
             this.targetEntityID = null;
+            this.manipulating = false;
         };
 
         this.updateRecommendedArea = function () {
@@ -355,6 +365,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.initialControllerRotation = Quat.IDENTITY;
         this.initialEntityRotation = Quat.IDENTITY;
+        this.manipulating = false;
 
         this.leftTrigger = 0.0;
         this.rightTrigger = 0.0;
@@ -414,6 +425,11 @@ Script.include("/~/system/libraries/controllers.js");
             return (_this.getOffHandTrigger() <= TRIGGER_OFF_VALUE) ? true : false;
         };
 
+        this.shouldManipulateTarget = function () {
+            return (_this.getDominantTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        };
+
+
         this.getTargetPosition = function () {
             if (this.targetIsNull()) {
                 return null;
@@ -468,12 +484,6 @@ Script.include("/~/system/libraries/controllers.js");
                 var props = { rotation: newRot };
                 Entities.editEntity(this.targetEntityID, props);
             }
-        };
-
-        this.shouldManipulateTarget = function () {
-            //var test = this.getDominantGrip() > TRIGGER_ON_VALUE;
-            //return test;
-            return true;
         };
 
         this.calculateEntityRotationManipulation = function (controllerRotation) {
