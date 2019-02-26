@@ -21,6 +21,7 @@
 #include "ModelBaker.h"
 #include "TextureBaker.h"
 #include "JSBaker.h"
+#include "MaterialBaker.h"
 
 class DomainBaker : public Baker {
     Q_OBJECT
@@ -40,6 +41,7 @@ private slots:
     void handleFinishedModelBaker();
     void handleFinishedTextureBaker();
     void handleFinishedScriptBaker();
+    void handleFinishedMaterialBaker();
 
 private:
     void setupOutputFolder();
@@ -62,6 +64,7 @@ private:
     QHash<QUrl, QSharedPointer<ModelBaker>> _modelBakers;
     QHash<QUrl, QSharedPointer<TextureBaker>> _textureBakers;
     QHash<QUrl, QSharedPointer<JSBaker>> _scriptBakers;
+    QHash<QUrl, QSharedPointer<MaterialBaker>> _materialBakers;
     
     QMultiHash<QUrl, std::pair<QString, QJsonValueRef>> _entitiesNeedingRewrite;
 
@@ -71,6 +74,7 @@ private:
     void addModelBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef);
     void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, QJsonValueRef& jsonRef);
     void addScriptBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef);
+    void addMaterialBaker(const QString& property, const QString& data, bool isURL, QJsonValueRef& jsonRef);
 };
 
 #endif // hifi_DomainBaker_h

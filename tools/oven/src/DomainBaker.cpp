@@ -187,8 +187,8 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
 
         // setup a texture baker for this URL, as long as we aren't baking a texture already
         if (!_textureBakers.contains(textureURL)) {
-            // setup a baker for this texture
 
+            // setup a baker for this texture
             QSharedPointer<TextureBaker> textureBaker {
                 new TextureBaker(textureURL, type, _contentOutputPath),
                 &TextureBaker::deleteLater
@@ -220,16 +220,16 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, QJ
     // grab a clean version of the URL without a query or fragment
     QUrl scriptURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
 
-    // setup a texture baker for this URL, as long as we aren't baking a texture already
+    // setup a script baker for this URL, as long as we aren't baking a texture already
     if (!_scriptBakers.contains(scriptURL)) {
-        // setup a baker for this texture
 
+        // setup a baker for this script
         QSharedPointer<JSBaker> scriptBaker {
             new JSBaker(scriptURL, _contentOutputPath),
             &JSBaker::deleteLater
         };
 
-        // make sure our handler is called when the texture baker is done
+        // make sure our handler is called when the script baker is done
         connect(scriptBaker.data(), &JSBaker::finished, this, &DomainBaker::handleFinishedScriptBaker);
 
         // insert it into our bakers hash so we hold a strong pointer to it
@@ -243,9 +243,46 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, QJ
         ++_totalNumberOfSubBakes;
     }
 
-    // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
+    // add this QJsonValueRef to our multi hash so that it can re-write the script URL
     // to the baked version once the baker is complete
     _entitiesNeedingRewrite.insert(scriptURL, { property, jsonRef });
+}
+
+void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, QJsonValueRef& jsonRef) {
+    // grab a clean version of the URL without a query or fragment
+    QString materialData;
+    if (isURL) {
+        materialData = QUrl(data).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
+    } else {
+        materialData = data;
+    }    
+
+    // setup a material baker for this URL, as long as we aren't baking a material already
+    if (!_materialBakers.contains(materialData)) {
+
+        // setup a baker for this material
+        QSharedPointer<MaterialBaker> materialBaker {
+            new MaterialBaker(data, isURL, _contentOutputPath),
+            &MaterialBaker::deleteLater
+        };
+
+        // make sure our handler is called when the material baker is done
+        connect(materialBaker.data(), &MaterialBaker::finished, this, &DomainBaker::handleFinishedMaterialBaker);
+
+        // insert it into our bakers hash so we hold a strong pointer to it
+        _materialBakers.insert(materialData, materialBaker);
+
+        // move the baker to a worker thread and kickoff the bake
+        materialBaker->moveToThread(Oven::instance().getNextWorkerThread());
+        QMetaObject::invokeMethod(materialBaker.data(), "bake");
+
+        // keep track of the total number of baking entities
+        ++_totalNumberOfSubBakes;
+    }
+
+    // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
+    // to the baked version once the baker is complete
+    _entitiesNeedingRewrite.insert(materialData, { property, jsonRef });
 }
 
 // All the Entity Properties that can be baked
@@ -348,7 +385,12 @@ void DomainBaker::enumerateEntities() {
             }
 
             // Materials
-            // TODO
+            if (entity.contains(MATERIAL_URL_KEY)) {
+                addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
+            }
+            if (entity.contains(MATERIAL_DATA_KEY)) {
+                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_URL_KEY].toString(), false, *it);
+            }
         }
     }
 
@@ -564,6 +606,91 @@ void DomainBaker::handleFinishedScriptBaker() {
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
 
         // check if this was the last script we needed to re-write and if we are done now
+        checkIfRewritingComplete();
+    }
+}
+
+void DomainBaker::handleFinishedMaterialBaker() {
+    auto baker = qobject_cast<MaterialBaker*>(sender());
+
+    if (baker) {
+        if (!baker->hasErrors()) {
+            // this MaterialBaker is done and everything went according to plan
+            qDebug() << "Re-writing entity references to" << baker->getMaterialData();
+
+            QString newDataOrURL;
+            if (baker->isURL()) {
+                newDataOrURL = _destinationPath.resolved(baker->getBakedMaterialData()).toDisplayString();
+            } else {
+                newDataOrURL = baker->getBakedMaterialData();
+            }
+
+            // enumerate the QJsonRef values for the URL of this material from our multi hash of
+            // entity objects needing a URL re-write
+            for (auto propertyEntityPair : _entitiesNeedingRewrite.values(baker->getMaterialData())) {
+                QString property = propertyEntityPair.first;
+                // convert the entity QJsonValueRef to a QJsonObject so we can modify its URL
+                auto entity = propertyEntityPair.second.toObject();
+
+                if (!property.contains(".")) {
+                    // grab the old URL
+                    QUrl oldURL = entity[property].toString();
+
+                    // copy the fragment and query, and user info from the old material data
+                    if (baker->isURL()) {
+                        QUrl newURL = newDataOrURL;
+                        newURL.setQuery(oldURL.query());
+                        newURL.setFragment(oldURL.fragment());
+                        newURL.setUserInfo(oldURL.userInfo());
+
+                        // set the new URL as the value in our temp QJsonObject
+                        entity[property] = newURL.toString();
+                    } else {
+                        entity[property] = newDataOrURL;
+                    }
+                } else {
+                    // Group property
+                    QStringList propertySplit = property.split(".");
+                    assert(propertySplit.length() == 2);
+                    // grab the old URL
+                    auto oldObject = entity[propertySplit[0]].toObject();
+                    QUrl oldURL = oldObject[propertySplit[1]].toString();
+
+                    // copy the fragment and query, and user info from the old material data
+                    if (baker->isURL()) {
+                        QUrl newURL = newDataOrURL;
+                        newURL.setQuery(oldURL.query());
+                        newURL.setFragment(oldURL.fragment());
+                        newURL.setUserInfo(oldURL.userInfo());
+
+                        // set the new URL as the value in our temp QJsonObject
+                        oldObject[propertySplit[1]] = newURL.toString();
+                        entity[propertySplit[0]] = oldObject;
+                    } else {
+                        oldObject[propertySplit[1]] = newDataOrURL;
+                        entity[propertySplit[0]] = oldObject;
+                    }
+                }
+
+                // replace our temp object with the value referenced by our QJsonValueRef
+                propertyEntityPair.second = entity;
+            }
+        } else {
+            // this material failed to bake - this doesn't fail the entire bake but we need to add
+            // the errors from the material to our warnings
+            _warningList << baker->getErrors();
+        }
+
+        // remove the baked URL from the multi hash of entities needing a re-write
+        _entitiesNeedingRewrite.remove(baker->getMaterialData());
+
+        // drop our shared pointer to this baker so that it gets cleaned up
+        _materialBakers.remove(baker->getMaterialData());
+
+        // emit progress to tell listeners how many materials we have baked
+        emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
+
+        // check if this was the last material we needed to re-write and if we are done now
         checkIfRewritingComplete();
     }
 }
