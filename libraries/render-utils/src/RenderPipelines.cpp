@@ -731,10 +731,6 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
 }
 
 void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
-    if (multiMaterial.size() == 0) {
-        return;
-    }
-
     if (multiMaterial.shouldUpdate()) {
         updateMultiMaterial(multiMaterial);
     }
