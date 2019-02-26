@@ -102,7 +102,6 @@ getEntityUserData = function(id) {
             results = JSON.parse(properties.userData);
         } catch(err) {
             logDebug(err);
-            logDebug(properties.userData);
         }
     }
     return results ? results : {};
@@ -413,8 +412,7 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     });
 
     // update homeButton
-    // FIXME: Circle3D overlays currently at the wrong dimensions, so we need to account for that here
-    var homeButtonDim = 4.0 * tabletScaleFactor / 3.0;
+    var homeButtonDim = 4.0 * tabletScaleFactor / 1.5;
     var HOME_BUTTON_X_OFFSET = 0.00079 * sensorScaleOffsetOverride * sensorScaleFactor;
     var HOME_BUTTON_Y_OFFSET = -1 * ((tabletHeight / 2) - (4.0 * tabletScaleFactor / 2)) * sensorScaleOffsetOverride;
     var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleOffsetOverride;

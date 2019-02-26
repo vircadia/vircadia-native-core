@@ -22,7 +22,7 @@
 
 <$declareLightBuffer(256)$>
 
-layout(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
+LAYOUT(binding=RENDER_UTILS_BUFFER_LIGHT_INDEX) uniform lightIndexBuffer {
     int lightIndex[256];
 };
 
@@ -47,8 +47,6 @@ void main(void) {
     vec4 projected = gl_Position / gl_Position.w;
     projected.xy = (projected.xy + 1.0) * 0.5;
 
-    if (cam_isStereo()) {
-        projected.x = 0.5 * (projected.x + cam_getStereoSide());
-    }
+    projected.x = mix(projected.x, 0.5 * (projected.x + cam_getStereoSide()), float(cam_isStereo()));
     _texCoord0 = vec4(projected.xy, 0.0, 1.0) * gl_Position.w;
 }

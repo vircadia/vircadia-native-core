@@ -12,27 +12,25 @@
 #include <QString>
 #include <glm/glm.hpp>
 
-#include "ui/overlays/Overlay.h"
-
 #include <Pointer.h>
 #include <Pick.h>
 
 struct LockEndObject {
     QUuid id { QUuid() };
-    bool isOverlay { false };
+    bool isAvatar { false };
     glm::mat4 offsetMat { glm::mat4() };
 };
 
 class StartEndRenderState {
 public:
     StartEndRenderState() {}
-    StartEndRenderState(const OverlayID& startID, const OverlayID& endID);
-    virtual ~StartEndRenderState() {}
+    StartEndRenderState(const QUuid& startID, const QUuid& endID);
+    virtual ~StartEndRenderState() = default;
 
-    const OverlayID& getStartID() const { return _startID; }
-    const OverlayID& getEndID() const { return _endID; }
-    const bool& doesStartIgnoreRays() const { return _startIgnoreRays; }
-    const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
+    const QUuid& getStartID() const { return _startID; }
+    const QUuid& getEndID() const { return _endID; }
+    const bool& doesStartIgnorePicks() const { return _startIgnorePicks; }
+    const bool& doesEndIgnorePicks() const { return _endIgnorePicks; }
 
     void setStartDim(const glm::vec3& startDim) { _startDim = startDim; }
     const glm::vec3& getStartDim() const { return _startDim; }
@@ -51,10 +49,10 @@ public:
     bool isEnabled() const { return _enabled; }
 
 protected:
-    OverlayID _startID;
-    OverlayID _endID;
-    bool _startIgnoreRays;
-    bool _endIgnoreRays;
+    QUuid _startID;
+    QUuid _endID;
+    bool _startIgnorePicks;
+    bool _endIgnorePicks;
 
     glm::vec3 _startDim;
     glm::vec3 _endDim;
@@ -78,11 +76,11 @@ public:
     virtual ~PathPointer();
 
     void setRenderState(const std::string& state) override;
-    // You cannot use editRenderState to change the type of any part of the pointer.  You can only edit the properties of the existing overlays.
+    // You cannot use editRenderState to change the type of any part of the pointer.  You can only edit the properties of the existing parts.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) override;
 
     void setLength(float length) override;
-    void setLockEndUUID(const QUuid& objectID, bool isOverlay, const glm::mat4& offsetMat = glm::mat4()) override;
+    void setLockEndUUID(const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat = glm::mat4()) override;
 
     void updateVisuals(const PickResultPointer& prevRayPickResult) override;
 
@@ -119,7 +117,7 @@ protected:
     bool shouldHover(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
     bool shouldTrigger(const PickResultPointer& pickResult) override { return _currentRenderState != ""; }
 
-    void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
+    void updateRenderState(const QUuid& id, const QVariant& props);
     virtual void editRenderStatePath(const std::string& state, const QVariant& pathProps) = 0;
 
     PickedObject getHoveredObject(const PickResultPointer& pickResult) override;

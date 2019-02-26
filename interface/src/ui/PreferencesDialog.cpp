@@ -24,6 +24,7 @@
 #include "Snapshot.h"
 #include "SnapshotAnimated.h"
 #include "UserActivityLogger.h"
+#include "ui/Keyboard.h"
 
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
@@ -107,16 +108,45 @@ void setupPreferences() {
     }
 
     {
-        auto getter = []()->bool { return qApp->getPreferStylusOverLaser(); };
-        auto setter = [](bool value) { qApp->setPreferStylusOverLaser(value); };
-        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Stylus Over Laser", getter, setter));
-    }
-
-    {
         static const QString RETICLE_ICON_NAME = { Cursor::Manager::getIconName(Cursor::Icon::RETICLE) };
         auto getter = []()->bool { return qApp->getPreferredCursor() == RETICLE_ICON_NAME; };
         auto setter = [](bool value) { qApp->setPreferredCursor(value ? RETICLE_ICON_NAME : QString()); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return qApp->getMiniTabletEnabled(); };
+        auto setter = [](bool value) { qApp->setMiniTabletEnabled(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use mini tablet", getter, setter));
+    }
+
+    {
+        auto getter = []()->int { return DependencyManager::get<Keyboard>()->getUse3DKeyboard(); };
+        auto setter = [](int value) { DependencyManager::get<Keyboard>()->setUse3DKeyboard(value); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use Virtual Keyboard", getter, setter));
+    }
+
+    {
+        auto getter = []()->bool { return DependencyManager::get<Keyboard>()->getPreferMalletsOverLasers() ? 1 : 0; };
+        auto setter = [](bool value) { return DependencyManager::get<Keyboard>()->setPreferMalletsOverLasers((bool)value); };
+        auto preference = new RadioButtonsPreference(UI_CATEGORY, "Keyboard laser / mallets", getter, setter);
+        QStringList items;
+        items << "Lasers" << "Mallets";
+        preference->setItems(items);
+        preference->setIndented(true);
+        preferences->addPreference(preference);
+    }
+
+
+    {
+        auto getter = []()->int { return qApp->getPreferStylusOverLaser() ? 1 : 0; };
+        auto setter = [](int value) { qApp->setPreferStylusOverLaser((bool)value); };
+        auto preference = new RadioButtonsPreference(UI_CATEGORY, "Tablet stylys / laser", getter, setter);
+        QStringList items;
+        items << "Lasers" << "Stylus";
+        preference->setHeading("Tablet Input Mechanism");
+        preference->setItems(items);
+        preferences->addPreference(preference);
     }
 
     static const QString VIEW_CATEGORY{ "View" };
@@ -138,15 +168,13 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
-
-    // FIXME: Remove setting completely or make available through JavaScript API?
     /*
+    // FIXME: Remove setting completely or make available through JavaScript API?
     {
         auto getter = []()->bool { return qApp->getPreferAvatarFingerOverStylus(); };
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
-    }
-    */
+        }*/
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
@@ -226,14 +254,15 @@ void setupPreferences() {
 
     static const QString VR_MOVEMENT{ "VR Movement" };
     {
-        auto getter = [myAvatar]()->int { return myAvatar->useAdvancedMovementControls() ? 1 : 0; };
-        auto setter = [myAvatar](int value) { myAvatar->setUseAdvancedMovementControls(value == 1); };
-        auto preference = 
-            new RadioButtonsPreference(VR_MOVEMENT, "Teleporting only / Walking and teleporting", getter, setter);
-        QStringList items;
-        items << "Teleporting only" << "Walking and teleporting";
-        preference->setHeading("Movement mode");
-        preference->setItems(items);
+        auto getter = [myAvatar]()->bool { return myAvatar->getAllowTeleporting(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setAllowTeleporting(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Teleporting", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->bool { return myAvatar->useAdvancedMovementControls(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setUseAdvancedMovementControls(value); };
+        auto preference = new CheckPreference(VR_MOVEMENT, "Walking", getter, setter);
         preferences->addPreference(preference);
     }
     {
@@ -257,6 +286,44 @@ void setupPreferences() {
         auto getter = [myAvatar]()->bool { return myAvatar->getShowPlayArea(); };
         auto setter = [myAvatar](bool value) { myAvatar->setShowPlayArea(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Show room boundaries while teleporting", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [myAvatar]()->int {
+            switch (myAvatar->getUserRecenterModel()) {
+                case MyAvatar::SitStandModelType::Auto:
+                    default:
+                    return 0;
+                case MyAvatar::SitStandModelType::ForceSit:
+                    return 1;
+                case MyAvatar::SitStandModelType::ForceStand:
+                    return 2;
+                case MyAvatar::SitStandModelType::DisableHMDLean:
+                    return 3;
+            }
+        };
+        auto setter = [myAvatar](int value) {
+            switch (value) {
+                case 0:
+                default:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::Auto);
+                    break;
+                case 1:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceSit);
+                    break;
+                case 2:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::ForceStand);
+                    break;
+                case 3:
+                    myAvatar->setUserRecenterModel(MyAvatar::SitStandModelType::DisableHMDLean);
+                    break;
+            }
+        };
+        auto preference = new RadioButtonsPreference(VR_MOVEMENT, "Auto / Force Sit / Force Stand / Disable Recenter", getter, setter);
+        QStringList items;
+        items << "Auto - turns on avatar leaning when standing in real world" << "Seated - disables all avatar leaning while sitting in real world" << "Standing - enables avatar leaning while sitting in real world" << "Disabled - allows avatar sitting on the floor [Experimental]";
+        preference->setHeading("Avatar leaning behavior");
+        preference->setItems(items);
         preferences->addPreference(preference);
     }
     {

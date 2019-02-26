@@ -208,14 +208,57 @@ void AccountManager::setSessionID(const QUuid& sessionID) {
     }
 }
 
+QNetworkRequest AccountManager::createRequest(QString path, AccountManagerAuth::Type authType) {
+    QNetworkRequest networkRequest;
+    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
+                                uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
+
+    QUrl requestURL = _authURL;
+
+    if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
+        requestURL = getMetaverseServerURL();
+    }
+
+    int queryStringLocation = path.indexOf("?");
+    if (path.startsWith("/")) {
+        requestURL.setPath(path.left(queryStringLocation));
+    } else {
+        requestURL.setPath("/" + path.left(queryStringLocation));
+    }
+
+    if (queryStringLocation >= 0) {
+        QUrlQuery query(path.mid(queryStringLocation+1));
+        requestURL.setQuery(query);
+    }
+
+    if (authType != AccountManagerAuth::None ) {
+        if (hasValidAccessToken()) {
+            networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
+                                        _accountInfo.getAccessToken().authorizationHeaderValue());
+        } else {
+            if (authType == AccountManagerAuth::Required) {
+                qCDebug(networking) << "No valid access token present. Bailing on invoked request to"
+                    << path << "that requires authentication";
+                return QNetworkRequest();
+            }
+        }
+    }
+
+    networkRequest.setUrl(requestURL);
+
+    return networkRequest;
+}
+
 void AccountManager::sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
                                  QNetworkAccessManager::Operation operation,
                                  const JSONCallbackParameters& callbackParams,
                                  const QByteArray& dataByteArray,
                                  QHttpMultiPart* dataMultiPart,
-                                 const QVariantMap& propertyMap,
-                                 QUrlQuery query) {
+                                 const QVariantMap& propertyMap) {
 
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "sendRequest",
@@ -231,46 +274,10 @@ void AccountManager::sendRequest(const QString& path,
 
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QNetworkRequest networkRequest;
-    networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
-
-    networkRequest.setRawHeader(METAVERSE_SESSION_ID_HEADER,
-                                uuidStringWithoutCurlyBraces(_sessionID).toLocal8Bit());
-
-    QUrl requestURL = _authURL;
-    
-    if (requestURL.isEmpty()) {  // Assignment client doesn't set _authURL.
-        requestURL = getMetaverseServerURL();
-    }
-
-    if (path.startsWith("/")) {
-        requestURL.setPath(path);
-    } else {
-        requestURL.setPath("/" + path);
-    }
-
-    if (!query.isEmpty()) {
-        requestURL.setQuery(query);
-    }
-
-    if (authType != AccountManagerAuth::None ) {
-        if (hasValidAccessToken()) {
-            networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
-                                        _accountInfo.getAccessToken().authorizationHeaderValue());
-        } else {
-            if (authType == AccountManagerAuth::Required) {
-                qCDebug(networking) << "No valid access token present. Bailing on invoked request to"
-                    << path << "that requires authentication";
-                return;
-            }
-        }
-    }
-
-    networkRequest.setUrl(requestURL);
+    QNetworkRequest networkRequest = createRequest(path, authType);
 
     if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-        qCDebug(networking) << "Making a request to" << qPrintable(requestURL.toString());
+        qCDebug(networking) << "Making a request to" << qPrintable(networkRequest.url().toString());
 
         if (!dataByteArray.isEmpty()) {
             qCDebug(networking) << "The POST/PUT body -" << QString(dataByteArray);
@@ -540,6 +547,30 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
     connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
 }
 
+void AccountManager::requestAccessTokenWithAuthCode(const QString& authCode, const QString& clientId, const QString& clientSecret, const QString& redirectUri) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkRequest request;
+    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    QUrl grantURL = _authURL;
+    grantURL.setPath("/oauth/token");
+
+    QByteArray postData;
+    postData.append("grant_type=authorization_code&");
+    postData.append("client_id=" + clientId + "&");
+    postData.append("client_secret=" + clientSecret + "&");
+    postData.append("code=" + authCode + "&");
+    postData.append("redirect_uri=" + QUrl::toPercentEncoding(redirectUri));
+
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
+}
+
 void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
@@ -552,6 +583,29 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
     QByteArray postData;
     postData.append("grant_type=password&");
     postData.append("steam_auth_ticket=" + QUrl::toPercentEncoding(authSessionTicket) + "&");
+    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+
+    request.setUrl(grantURL);
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::requestAccessTokenFinished);
+    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestAccessTokenError(QNetworkReply::NetworkError)));
+}
+
+void AccountManager::requestAccessTokenWithOculus(const QString& nonce, const QString &oculusID) {
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+
+    QNetworkRequest request;
+    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+
+    QUrl grantURL = _authURL;
+    grantURL.setPath("/oauth/token");
+
+    QByteArray postData;
+    postData.append("grant_type=password&");
+    postData.append("oculus_nonce=" + nonce + "&");
+    postData.append("oculus_id=" + oculusID + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
     request.setUrl(grantURL);
@@ -836,4 +890,8 @@ void AccountManager::handleKeypairGenerationError() {
 
     // reset our waiting state for keypair response
     _isWaitingForKeypairResponse = false;
+}
+
+void AccountManager::setLimitedCommerce(bool isLimited) {
+    _limitedCommerce = isLimited;
 }

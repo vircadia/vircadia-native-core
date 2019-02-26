@@ -6,11 +6,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera, print,
-   getControllerJointIndex, enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther,
-   Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
-   Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic, entityIsCloneable,
-   cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode, getGrabbableData
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera, print, getControllerJointIndex,
+   enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther, Messages, makeDispatcherModuleParameters,
+   makeRunningValues, Settings, entityHasActions, Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic,
+   entityIsCloneable, cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode, getGrabbableData,
+   entityIsEquippable
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -167,16 +167,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 };
 
 
-var alreadyWarned = {};
-function warnAboutUserData(props) {
-    if (alreadyWarned[props.id]) {
-        return;
-    }
-    print("Warning -- overriding grab properties with userData for " + props.id + " / " + props.name);
-    alreadyWarned[props.id] = true;
-}
-
-
 (function() {
 
     var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
@@ -200,7 +190,6 @@ function warnAboutUserData(props) {
 
     function getWearableData(props) {
         if (props.grab.equippable) {
-            // if equippable is true, we know this was already converted from the old userData style to properties
             return {
                 joints: {
                     LeftHand: [ props.grab.equippableLeftPosition, props.grab.equippableLeftRotation ],
@@ -211,67 +200,7 @@ function warnAboutUserData(props) {
                 indicatorOffset: props.grab.equippableIndicatorOffset
             };
         } else {
-            // check for old userData equippability.  The JSON reader will convert userData to properties
-            // in EntityTree.cpp, but this won't catch things created from scripts or some items in
-            // the market.  Eventually we'll remove this section.
-            try {
-                if (!props.userDataParsed) {
-                    props.userDataParsed = JSON.parse(props.userData);
-                }
-                var userDataParsed = props.userDataParsed;
-
-                // userData: { wearable: { joints: { LeftHand: {...}, RightHand: {...} } } }
-                if (userDataParsed.wearable && userDataParsed.wearable.joints) {
-                    warnAboutUserData(props);
-                    userDataParsed.wearable.indicatorURL = "";
-                    userDataParsed.wearable.indicatorScale = { x: 1, y: 1, z: 1 };
-                    userDataParsed.wearable.indicatorOffset = { x: 0, y: 0, z: 0 };
-                    return userDataParsed.wearable;
-                }
-
-                // userData: { equipHotspots: { joints: { LeftHand: {...}, RightHand: {...} } } }
-                // https://highfidelity.atlassian.net/wiki/spaces/HOME/pages/51085337/Authoring+Equippable+Entities
-                if (userDataParsed.equipHotspots &&
-                    userDataParsed.equipHotspots.length > 0 &&
-                    userDataParsed.equipHotspots[0].joints) {
-                    warnAboutUserData(props);
-                    var hotSpot = userDataParsed.equipHotspots[0];
-
-                    var indicatorScale = { x: hotSpot.radius, y: hotSpot.radius, z: hotSpot.radius };
-                    if (hotSpot.modelURL && hotSpot.modelURL !== "") {
-                        indicatorScale = hotSpot.modelScale;
-                    }
-
-                    return {
-                        joints: hotSpot.joints,
-                        indicatorURL: hotSpot.modelURL,
-                        indicatorScale: indicatorScale,
-                        indicatorOffset: hotSpot.position,
-                    };
-                }
-
-                // userData:{grabbableKey:{spatialKey:{leftRelativePosition:{...},rightRelativePosition:{...}}}}
-                if (userDataParsed.grabbableKey &&
-                    userDataParsed.grabbableKey.spatialKey) {
-                    warnAboutUserData(props);
-                    var joints = {};
-                    joints.LeftHand = [ { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0, w: 1 } ];
-                    joints.RightHand = [ { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0, w: 1 } ];
-                    if (userDataParsed.grabbableKey.spatialKey.leftRelativePosition) {
-                        joints.LeftHand = [userDataParsed.grabbableKey.spatialKey.leftRelativePosition,
-                                           userDataParsed.grabbableKey.spatialKey.relativeRotation];
-                    }
-                    if (userDataParsed.grabbableKey.spatialKey.rightRelativePosition) {
-                        joints.RightHand = [userDataParsed.grabbableKey.spatialKey.rightRelativePosition,
-                                            userDataParsed.grabbableKey.spatialKey.relativeRotation];
-                    }
-                    return { joints: joints };
-                }
-
-            } catch (err) {
-                // don't spam logs
-            }
-            return null;
+            return null
         }
     }
 
@@ -530,13 +459,7 @@ function warnAboutUserData(props) {
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-            unhighlightTargetEntity(this.targetEntityID);
-            var message = {
-                hand: this.hand,
-                entityID: this.targetEntityID
-            };
 
-            Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
             var grabbedProperties = Entities.getEntityProperties(this.targetEntityID, DISPATCHER_PROPERTIES);
             var grabData = getGrabbableData(grabbedProperties);
 
@@ -556,7 +479,7 @@ function warnAboutUserData(props) {
             }
 
             var handJointIndex;
-            if (grabData.grabFollowsController) {
+            if (HMD.mounted && HMD.isHandControllerAvailable() && grabData.grabFollowsController) {
                 handJointIndex = this.controllerJointIndex;
             } else {
                 handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
@@ -844,7 +767,7 @@ function warnAboutUserData(props) {
             var entityProperties = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
             entityProperties.id = entityID;
             var hasEquipData = getWearableData(entityProperties);
-            if (hasEquipData && entityProperties.parentID === EMPTY_PARENT_ID && !entityIsFarGrabbedByOther(entityID)) {
+            if (hasEquipData && entityIsEquippable(entityProperties)) {
                 entityProperties.id = entityID;
                 var rightHandPosition = MyAvatar.getJointPosition("RightHand");
                 var leftHandPosition = MyAvatar.getJointPosition("LeftHand");

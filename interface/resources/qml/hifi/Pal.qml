@@ -15,8 +15,8 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
-import "../styles-uit"
-import "../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 
@@ -42,6 +42,8 @@ Rectangle {
     property var activeTab: "nearbyTab";
     property bool currentlyEditingDisplayName: false
     property bool punctuationMode: false;
+    property double loudSortTime: 0.0;
+    readonly property double kLOUD_SORT_PERIOD_MS: 1000.0;
 
     HifiConstants { id: hifi; }
     RootHttpRequest { id: http; }
@@ -61,7 +63,7 @@ Rectangle {
                 'username';
         }
         sortAscending: connectionsTable.sortIndicatorOrder === Qt.AscendingOrder;
-        itemsPerPage: 10;
+        itemsPerPage: 1000;
         listView: connectionsTable;
         processPage: function (data) {
             return data.users.map(function (user) {
@@ -1215,7 +1217,7 @@ Rectangle {
                 if (userIndex !== -1) {
                     ['userName', 'admin', 'connection', 'profileUrl', 'placeName'].forEach(function (name) {
                         var value = message.params[name];
-                        if (value === undefined) {
+                        if (value === undefined || value == "") {
                             return;
                         }
                         nearbyUserModel.setProperty(userIndex, name, value);
@@ -1246,6 +1248,11 @@ Rectangle {
                         nearbyUserModelData[userIndex].avgAudioLevel = avgAudioLevel;
                     }
                 }
+            }
+            if (nearbyTable.sortIndicatorColumn == 0 && Date.now() - pal.loudSortTime >= pal.kLOUD_SORT_PERIOD_MS) {
+                // Current sort by loudness so re-sort.
+                sortModel();
+                pal.loudSortTime = Date.now();
             }
             break;
         case 'clearLocalQMLData':
@@ -1287,7 +1294,7 @@ Rectangle {
             connectionsOnlineDot.visible = message.shouldShowDot;
             break;
         default:
-            console.log('Unrecognized message:', JSON.stringify(message));
+            console.log('Pal.qml: Unrecognized message');
         }
     }
     function sortModel() {

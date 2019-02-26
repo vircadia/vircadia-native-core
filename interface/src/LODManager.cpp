@@ -14,6 +14,7 @@
 #include <SettingHandle.h>
 #include <OctreeUtils.h>
 #include <Util.h>
+#include <shared/GlobalAppProperties.h>
 
 #include "Application.h"
 #include "ui/DialogsManager.h"
@@ -309,7 +310,13 @@ QString LODManager::getLODFeedbackText() {
 
 void LODManager::loadSettings() {
     setDesktopLODTargetFPS(desktopLODDecreaseFPS.get());
-    setHMDLODTargetFPS(hmdLODDecreaseFPS.get());
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    if (qApp->property(hifi::properties::OCULUS_STORE).toBool() && firstRun.get()) {
+        const float LOD_HIGH_QUALITY_LEVEL = 0.75f;
+        setHMDLODTargetFPS(LOD_HIGH_QUALITY_LEVEL * LOD_MAX_LIKELY_HMD_FPS);
+    } else {
+        setHMDLODTargetFPS(hmdLODDecreaseFPS.get());
+    }
 }
 
 void LODManager::saveSettings() {

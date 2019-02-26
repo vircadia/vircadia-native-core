@@ -19,7 +19,7 @@
 #define SHADOW_SCREEN_SPACE_DITHER      1
 
 // the shadow texture
-layout(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SHADOW) uniform sampler2DArrayShadow shadowMaps;
 
 // Sample the shadowMap with PCF (built-in)
 float fetchShadow(int cascadeIndex, vec3 shadowTexcoord) {
@@ -115,18 +115,10 @@ float evalShadowAttenuation(vec3 worldLightDir, vec4 worldPosition, float viewDe
     isPixelOnCascade.z = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[2]);
     isPixelOnCascade.w = isShadowCascadeProjectedOnPixel(cascadeShadowCoords[3]);
 
-    if (isPixelOnCascade.x) {
-        cascadeAttenuations.x = evalShadowCascadeAttenuation(0, offsets, cascadeShadowCoords[0], oneMinusNdotL);
-    }
-    if (isPixelOnCascade.y) {
-        cascadeAttenuations.y = evalShadowCascadeAttenuation(1, offsets, cascadeShadowCoords[1], oneMinusNdotL);
-    }
-    if (isPixelOnCascade.z) {
-        cascadeAttenuations.z = evalShadowCascadeAttenuation(2, offsets, cascadeShadowCoords[2], oneMinusNdotL);
-    }
-    if (isPixelOnCascade.w) {
-        cascadeAttenuations.w = evalShadowCascadeAttenuation(3, offsets, cascadeShadowCoords[3], oneMinusNdotL);
-    }
+    cascadeAttenuations.x = mix(1.0, evalShadowCascadeAttenuation(0, offsets, cascadeShadowCoords[0], oneMinusNdotL), float(isPixelOnCascade.x));
+    cascadeAttenuations.y = mix(1.0, evalShadowCascadeAttenuation(1, offsets, cascadeShadowCoords[1], oneMinusNdotL), float(isPixelOnCascade.y));
+    cascadeAttenuations.z = mix(1.0, evalShadowCascadeAttenuation(2, offsets, cascadeShadowCoords[2], oneMinusNdotL), float(isPixelOnCascade.z));
+    cascadeAttenuations.w = mix(1.0, evalShadowCascadeAttenuation(3, offsets, cascadeShadowCoords[3], oneMinusNdotL), float(isPixelOnCascade.w));
 
     cascadeWeights.x = evalShadowCascadeWeight(cascadeShadowCoords[0]);
     cascadeWeights.y = evalShadowCascadeWeight(cascadeShadowCoords[1]);

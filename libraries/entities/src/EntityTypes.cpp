@@ -20,39 +20,49 @@
 #include "EntityItemProperties.h"
 #include "EntitiesLogging.h"
 
-#include "LightEntityItem.h"
+#include "ShapeEntityItem.h"
 #include "ModelEntityItem.h"
 #include "ParticleEffectEntityItem.h"
 #include "TextEntityItem.h"
+#include "ImageEntityItem.h"
 #include "WebEntityItem.h"
-#include "ZoneEntityItem.h"
 #include "LineEntityItem.h"
-#include "PolyVoxEntityItem.h"
 #include "PolyLineEntityItem.h"
-#include "ShapeEntityItem.h"
+#include "PolyVoxEntityItem.h"
+#include "GridEntityItem.h"
+#include "GizmoEntityItem.h"
+#include "LightEntityItem.h"
+#include "ZoneEntityItem.h"
 #include "MaterialEntityItem.h"
 
 QMap<EntityTypes::EntityType, QString> EntityTypes::_typeToNameMap;
 QMap<QString, EntityTypes::EntityType> EntityTypes::_nameToTypeMap;
-EntityTypeFactory EntityTypes::_factories[EntityTypes::LAST + 1];
+EntityTypeFactory EntityTypes::_factories[EntityTypes::NUM_TYPES];
 bool EntityTypes::_factoriesInitialized = false;
 
 const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 
 // Register Entity the default implementations of entity types here...
-REGISTER_ENTITY_TYPE(Model)
-REGISTER_ENTITY_TYPE(Web)
-REGISTER_ENTITY_TYPE(Light)
-REGISTER_ENTITY_TYPE(Text)
-REGISTER_ENTITY_TYPE(ParticleEffect)
-REGISTER_ENTITY_TYPE(Zone)
-REGISTER_ENTITY_TYPE(Line)
-REGISTER_ENTITY_TYPE(PolyVox)
-REGISTER_ENTITY_TYPE(PolyLine)
-REGISTER_ENTITY_TYPE(Shape)
 REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, ShapeEntityItem::boxFactory)
 REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, ShapeEntityItem::sphereFactory)
+REGISTER_ENTITY_TYPE(Shape)
+REGISTER_ENTITY_TYPE(Model)
+REGISTER_ENTITY_TYPE(Text)
+REGISTER_ENTITY_TYPE(Image)
+REGISTER_ENTITY_TYPE(Web)
+REGISTER_ENTITY_TYPE(ParticleEffect)
+REGISTER_ENTITY_TYPE(Line)
+REGISTER_ENTITY_TYPE(PolyLine)
+REGISTER_ENTITY_TYPE(PolyVox)
+REGISTER_ENTITY_TYPE(Grid)
+REGISTER_ENTITY_TYPE(Gizmo)
+REGISTER_ENTITY_TYPE(Light)
+REGISTER_ENTITY_TYPE(Zone)
 REGISTER_ENTITY_TYPE(Material)
+
+bool EntityTypes::typeIsValid(EntityType type) {
+    return type > EntityType::Unknown && type <= EntityType::NUM_TYPES;
+}
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {
     QMap<EntityType, QString>::iterator matchedTypeName = _typeToNameMap.find(entityType);
@@ -80,7 +90,7 @@ bool EntityTypes::registerEntityType(EntityType entityType, const char* name, En
         memset(&_factories,0,sizeof(_factories));
         _factoriesInitialized = true;
     }
-    if (entityType >= 0 && entityType <= LAST) {
+    if (entityType >= 0 && entityType < NUM_TYPES) {
         _factories[entityType] = factoryMethod;
         return true;
     }
@@ -91,7 +101,7 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
                                                     const EntityItemProperties& properties) {
     EntityItemPointer newEntityItem = NULL;
     EntityTypeFactory factory = NULL;
-    if (entityType >= 0 && entityType <= LAST) {
+    if (entityType >= 0 && entityType < NUM_TYPES) {
         factory = _factories[entityType];
     }
     if (factory) {
@@ -103,8 +113,7 @@ EntityItemPointer EntityTypes::constructEntityItem(EntityType entityType, const 
     return newEntityItem;
 }
 
-EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead,
-            ReadBitstreamToTreeParams& args) {
+void EntityTypes::extractEntityTypeAndID(const unsigned char* data, int dataLength, EntityTypes::EntityType& typeOut, QUuid& idOut) {
 
     // Header bytes
     //    object ID [16 bytes]
@@ -115,28 +124,36 @@ EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, in
     // ~27-35 bytes...
     const int MINIMUM_HEADER_BYTES = 27;
 
-    int bytesRead = 0;
-    if (bytesToRead >= MINIMUM_HEADER_BYTES) {
-        int originalLength = bytesToRead;
-        QByteArray originalDataBuffer((const char*)data, originalLength);
+    if (dataLength >= MINIMUM_HEADER_BYTES) {
+        int bytesRead = 0;
+        QByteArray originalDataBuffer = QByteArray::fromRawData((const char*)data, dataLength);
 
         // id
         QByteArray encodedID = originalDataBuffer.mid(bytesRead, NUM_BYTES_RFC4122_UUID); // maximum possible size
-        QUuid actualID = QUuid::fromRfc4122(encodedID);
+        idOut = QUuid::fromRfc4122(encodedID);
         bytesRead += encodedID.size();
 
         // type
         QByteArray encodedType = originalDataBuffer.mid(bytesRead); // maximum possible size
         ByteCountCoded<quint32> typeCoder = encodedType;
         encodedType = typeCoder; // determine true length
-        bytesRead += encodedType.size();
         quint32 type = typeCoder;
-        EntityTypes::EntityType entityType = (EntityTypes::EntityType)type;
-        
-        EntityItemID tempEntityID(actualID);
-        EntityItemProperties tempProperties;
-        return constructEntityItem(entityType, tempEntityID, tempProperties);
+        typeOut = (EntityTypes::EntityType)type;
     }
-    
-    return NULL;
+}
+
+EntityItemPointer EntityTypes::constructEntityItem(const unsigned char* data, int bytesToRead) {
+    QUuid id;
+    EntityTypes::EntityType type = EntityTypes::Unknown;
+    extractEntityTypeAndID(data, bytesToRead, type, id);
+    if (type > EntityTypes::Unknown && type <= EntityTypes::NUM_TYPES) {
+        EntityItemID tempEntityID(id);
+        EntityItemProperties tempProperties;
+        return constructEntityItem(type, tempEntityID, tempProperties);
+    }
+    return nullptr;
+}
+
+EntityItemPointer EntityTypes::constructEntityItem(const QUuid& id, const EntityItemProperties& properties) {
+    return constructEntityItem(properties.getType(), id, properties);
 }

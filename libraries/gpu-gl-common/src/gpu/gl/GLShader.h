@@ -14,43 +14,45 @@
 namespace gpu { namespace gl {
 
 struct ShaderObject {
-    GLuint glshader { 0 };
-    GLuint glprogram { 0 };
+    enum class BindingType
+    {
+        INPUT,
+        OUTPUT,
+        TEXTURE,
+        SAMPLER,
+        UNIFORM_BUFFER,
+        RESOURCE_BUFFER,
+        UNIFORM,
+    };
 
-    using LocationMap = std::unordered_map <GLuint, GLuint>;
-    LocationMap uniformRemap;
+    using LocationMap = std::unordered_map<std::string, int32_t>;
+    using ReflectionMap = std::map<BindingType, LocationMap>;
+    using UniformMap = std::unordered_map<GLuint, GLuint>;
+
+    GLuint glshader{ 0 };
+    GLuint glprogram{ 0 };
+
+    UniformMap uniformRemap;
 };
 
 class GLShader : public GPUObject {
 public:
     static GLShader* sync(GLBackend& backend, const Shader& shader, const Shader::CompilationHandler& handler = nullptr);
-
-    enum Version {
-        Mono = 0,
-        Stereo,
-
-        NumVersions
-    };
-
     using ShaderObject = gpu::gl::ShaderObject;
-    using ShaderObjects = std::array< ShaderObject, NumVersions >;
-
-    using UniformMapping = std::map<GLint, GLint>;
-    using UniformMappingVersions = std::vector<UniformMapping>;
+    using ShaderObjects = std::array<ShaderObject, shader::NUM_VARIANTS>;
 
     GLShader(const std::weak_ptr<GLBackend>& backend);
     ~GLShader();
 
     ShaderObjects _shaderObjects;
 
-    GLuint getProgram(Version version = Mono) const {
-        return _shaderObjects[version].glprogram;
+    GLuint getProgram(shader::Variant version = shader::Variant::Mono) const {
+        return _shaderObjects[static_cast<uint32_t>(version)].glprogram;
     }
 
     const std::weak_ptr<GLBackend> _backend;
 };
 
-} }
-
+}}  // namespace gpu::gl
 
 #endif

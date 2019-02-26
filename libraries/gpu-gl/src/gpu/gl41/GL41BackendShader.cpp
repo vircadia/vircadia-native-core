@@ -12,22 +12,13 @@ using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl41;
 
-// GLSL version
-std::string GL41Backend::getBackendShaderHeader() const {
-    static const std::string header(
-        R"SHADER(#version 410 core
-        #define GPU_GL410
-        #define BITFIELD int
-        )SHADER");
-    return header;
-}
-
 void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& program) const {
     Parent::postLinkProgram(programObject, program);
     const auto& glprogram = programObject.glprogram;
+    const auto& reflection = program.getReflection();
     // For the UBOs, use glUniformBlockBinding to fixup the locations based on the reflection
     {
-        const auto expectedUbos = program.getUniformBuffers().getLocationsByName();
+        const auto& expectedUbos = reflection.uniformBuffers;
         auto ubos = ::gl::UniformBlock::load(glprogram);
         for (const auto& ubo : ubos) {
             const auto& name = ubo.name;
@@ -41,7 +32,7 @@ void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& pro
 
     // For the Textures, use glUniform1i to fixup the active texture slots based on the reflection
     {
-        const auto expectedTextures = program.getTextures().getLocationsByName();
+        const auto& expectedTextures = reflection.textures;
         for (const auto& expectedTexture : expectedTextures) {
             auto location = glGetUniformLocation(glprogram, expectedTexture.first.c_str());
             if (location < 0) {
@@ -53,11 +44,12 @@ void GL41Backend::postLinkProgram(ShaderObject& programObject, const Shader& pro
 
     // For the resource buffers, do the same as for the textures, since in GL 4.1 that's how they're implemented
     {
-        const auto expectedResourceBuffers = program.getResourceBuffers().getLocationsByName();
-        const auto resourceBufferUniforms = ::gl::Uniform::loadByName(glprogram, program.getResourceBuffers().getNames());
+        const auto& expectedResourceBuffers = reflection.resourceBuffers;
+        const auto names = Shader::Reflection::getNames(expectedResourceBuffers);
+        const auto resourceBufferUniforms = ::gl::Uniform::loadByName(glprogram, names);
         for (const auto& resourceBuffer : resourceBufferUniforms) {
             const auto& targetBinding = expectedResourceBuffers.at(resourceBuffer.name);
-            glProgramUniform1i(glprogram, resourceBuffer.binding, targetBinding + GL41Backend::RESOURCE_BUFFER_SLOT0_TEX_UNIT);
+            glProgramUniform1i(glprogram, resourceBuffer.binding, targetBinding);
         }
     }
 

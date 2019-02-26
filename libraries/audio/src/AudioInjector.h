@@ -52,8 +52,8 @@ AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs)
 class AudioInjector : public QObject, public QEnableSharedFromThis<AudioInjector> {
     Q_OBJECT
 public:
-    AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
-    AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
+    AudioInjector(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions);
+    AudioInjector(AudioDataPointer audioData, const AudioInjectorOptions& injectorOptions);
     ~AudioInjector();
 
     bool isFinished() const { return (stateHas(AudioInjectorState::Finished)); }
@@ -67,6 +67,7 @@ public:
 
     bool isLocalOnly() const { return _options.localOnly; }
     float getVolume() const { return _options.volume; }
+    bool isPositionSet() const { return _options.positionSet; }
     glm::vec3 getPosition() const { return _options.position; }
     glm::quat getOrientation() const { return _options.orientation; }
     bool isStereo() const { return _options.stereo; }
@@ -74,10 +75,11 @@ public:
 
     bool stateHas(AudioInjectorState state) const ;
     static void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
-    static AudioInjectorPointer playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options);
-    static AudioInjectorPointer playSound(const QByteArray& buffer, const AudioInjectorOptions options);
-    static AudioInjectorPointer playSound(SharedSoundPointer sound, const float volume,
-                                          const float stretchFactor, const glm::vec3 position);
+
+    static AudioInjectorPointer playSoundAndDelete(SharedSoundPointer sound, const AudioInjectorOptions& options);
+    static AudioInjectorPointer playSound(SharedSoundPointer sound, const AudioInjectorOptions& options);
+    static AudioInjectorPointer playSoundAndDelete(AudioDataPointer audioData, const AudioInjectorOptions& options);
+    static AudioInjectorPointer playSound(AudioDataPointer audioData, const AudioInjectorOptions& options);
 
 public slots:
     void restart();
@@ -106,7 +108,8 @@ private:
 
     static AbstractAudioInterface* _localAudioInterface;
 
-    QByteArray _audioData;
+    const SharedSoundPointer _sound;
+    AudioDataPointer _audioData;
     AudioInjectorOptions _options;
     AudioInjectorState _state { AudioInjectorState::NotFinished };
     bool _hasSentFirstFrame { false };

@@ -7,22 +7,16 @@
 //
 #include "GL45Backend.h"
 #include <gpu/gl/GLShader.h>
-//#include <gl/GLShaders.h>
 
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
 
-// GLSL version
-std::string GL45Backend::getBackendShaderHeader() const {
-    static const std::string header(
-        R"SHADER(#version 450 core
-        #define GPU_GL450
-        #define BITFIELD int
-        )SHADER"
-#ifdef GPU_SSBO_TRANSFORM_OBJECT
-        R"SHADER(#define GPU_SSBO_TRANSFORM_OBJECT)SHADER"
+shader::Dialect GL45Backend::getShaderDialect() const {
+#if defined(Q_OS_MAC)
+    // We build, but don't actually use GL 4.5 on OSX
+    throw std::runtime_error("GL 4.5 unavailable on OSX");
+#else
+    return shader::Dialect::glsl450;
 #endif
-    );
-    return header;
 }

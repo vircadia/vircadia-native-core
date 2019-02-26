@@ -36,8 +36,9 @@ public:
     void certificateInfo(const QString& certificateId);
     void transferAssetToNode(const QString& hfc_key, const QString& nodeID, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void transferAssetToUsername(const QString& hfc_key, const QString& username, const QString& certificateID, const int& amount, const QString& optionalMessage);
+    void authorizeAssetTransfer(const QString& hfc_key, const QString& couponID, const QString& certificateID, const int& amount, const QString& optionalMessage);
     void alreadyOwned(const QString& marketplaceId);
-    void getAvailableUpdates(const QString& itemId = "");
+    void getAvailableUpdates(const QString& itemId = "", const int& pageNumber = 1, const int& itemsPerPage = 10);
     void updateItem(const QString& hfc_key, const QString& certificate_id);
 
     enum CertificateStatus {
@@ -59,6 +60,7 @@ signals:
     void certificateInfoResult(QJsonObject result);
     void transferAssetToNodeResult(QJsonObject result);
     void transferAssetToUsernameResult(QJsonObject result);
+    void authorizeAssetTransferResult(QJsonObject result);
     void alreadyOwnedResult(QJsonObject result);
     void availableUpdatesResult(QJsonObject result);
     void updateItemResult(QJsonObject result);
@@ -86,6 +88,8 @@ public slots:
     void transferAssetToNodeFailure(QNetworkReply* reply);
     void transferAssetToUsernameSuccess(QNetworkReply* reply);
     void transferAssetToUsernameFailure(QNetworkReply* reply);
+    void authorizeAssetTransferSuccess(QNetworkReply* reply);
+    void authorizeAssetTransferFailure(QNetworkReply* reply);
     void alreadyOwnedSuccess(QNetworkReply* reply);
     void alreadyOwnedFailure(QNetworkReply* reply);
     void availableUpdatesSuccess(QNetworkReply* reply);

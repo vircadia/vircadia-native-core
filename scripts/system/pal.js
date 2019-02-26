@@ -161,7 +161,8 @@ ExtendedOverlay.unHover = function () { // calls hover(false) on lastHoveringId 
 // hit(overlay) on the one overlay intersected by pickRay, if any.
 // noHit() if no ExtendedOverlay was intersected (helps with hover)
 ExtendedOverlay.applyPickRay = function (pickRay, hit, noHit) {
-    var pickedOverlay = Overlays.findRayIntersection(pickRay); // Depends on nearer coverOverlays to extend closer to us than farther ones.
+    // TODO: this could just include the necessary overlays for better performance
+    var pickedOverlay = Overlays.findRayIntersection(pickRay, true); // Depends on nearer coverOverlays to extend closer to us than farther ones.
     if (!pickedOverlay.intersects) {
         if (noHit) {
             return noHit();
@@ -326,7 +327,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         ui.messagesWaiting(shouldShowDot);
         break;
     default:
-        print('Unrecognized message from Pal.qml:', JSON.stringify(message));
+        print('Unrecognized message from Pal.qml');
     }
 }
 
@@ -347,7 +348,7 @@ function requestJSON(url, callback) { // callback(data) if successfull. Logs oth
         uri: url
     }, function (error, response) {
         if (error || (response.status !== 'success')) {
-            print("Error: unable to get", url,  error || response.status);
+            print("Error: unable to get request",  error || response.status);
             return;
         }
         callback(response.data);
@@ -844,7 +845,7 @@ function notificationPollCallback(connectionsArray) {
         newOnlineUsers++;
         storedOnlineUsers[user.username] = user;
 
-        if (!ui.isOpen && ui.notificationInitialCallbackMade) {
+        if (!ui.isOpen && ui.notificationInitialCallbackMade[0]) {
             message = user.username + " is available in " +
                 user.location.root.name + ". Open PEOPLE to join them.";
             ui.notificationDisplayBanner(message);
@@ -868,7 +869,7 @@ function notificationPollCallback(connectionsArray) {
             shouldShowDot: shouldShowDot
         });
 
-        if (newOnlineUsers > 0 && !ui.notificationInitialCallbackMade) {
+        if (newOnlineUsers > 0 && !ui.notificationInitialCallbackMade[0]) {
             message = newOnlineUsers + " of your connections " +
                 (newOnlineUsers === 1 ? "is" : "are") + " available online. Open PEOPLE to join them.";
             ui.notificationDisplayBanner(message);
@@ -889,12 +890,12 @@ function startup() {
         onOpened: palOpened,
         onClosed: off,
         onMessage: fromQml,
-        notificationPollEndpoint: "/api/v1/users?filter=connections&status=online&per_page=10",
-        notificationPollTimeoutMs: 60000,
-        notificationDataProcessPage: notificationDataProcessPage,
-        notificationPollCallback: notificationPollCallback,
-        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
-        notificationPollCaresAboutSince: false
+        notificationPollEndpoint: ["/api/v1/users?filter=connections&status=online&per_page=10"],
+        notificationPollTimeoutMs: [60000],
+        notificationDataProcessPage: [notificationDataProcessPage],
+        notificationPollCallback: [notificationPollCallback],
+        notificationPollStopPaginatingConditionMet: [isReturnedDataEmpty],
+        notificationPollCaresAboutSince: [false]
     });
     Window.domainChanged.connect(clearLocalQMLDataAndClosePAL);
     Window.domainConnectionRefused.connect(clearLocalQMLDataAndClosePAL);

@@ -28,7 +28,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-
 #include <shared/QtHelpers.h>
 #include <AvatarData.h>
 #include <PerfStat.h>
@@ -44,26 +43,17 @@
 #include "InterfaceLogging.h"
 #include "Menu.h"
 #include "MyAvatar.h"
+#include "DebugDraw.h"
 #include "SceneScriptingInterface.h"
 
 // 50 times per second - target is 45hz, but this helps account for any small deviations
 // in the update loop - this also results in ~30hz when in desktop mode which is essentially
 // what we want
-const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
-static const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
 
-namespace {
-    // For an unknown avatar-data packet, wait this long before requesting the identity.
-    constexpr std::chrono::milliseconds REQUEST_UNKNOWN_IDENTITY_DELAY { 5 * 1000 };
-    constexpr int REQUEST_UNKNOWN_IDENTITY_TRANSMITS = 3;
-}
-using std::chrono::steady_clock;
-
 AvatarManager::AvatarManager(QObject* parent) :
-    _avatarsToFade(),
     _myAvatar(new MyAvatar(qApp->thread()), [](MyAvatar* ptr) { ptr->deleteLater(); })
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
@@ -76,17 +66,20 @@ AvatarManager::AvatarManager(QObject* parent) :
     connect(nodeList.data(), &NodeList::ignoredNode, this, [this](const QUuid& nodeID, bool enabled) {
         if (enabled) {
             removeAvatar(nodeID, KillAvatarReason::AvatarIgnored);
+        } else {
+            auto avatar = std::static_pointer_cast<Avatar>(getAvatarBySessionID(nodeID));
+            if (avatar) {
+                avatar->createOrb();
+            }
         }
     });
 
-    const float AVATAR_TRANSIT_TRIGGER_DISTANCE = 1.0f;
-    const int AVATAR_TRANSIT_FRAME_COUNT = 11; // Based on testing
-    const int AVATAR_TRANSIT_FRAMES_PER_METER = 1; // Based on testing
-
     _transitConfig._totalFrames = AVATAR_TRANSIT_FRAME_COUNT;
-    _transitConfig._triggerDistance = AVATAR_TRANSIT_TRIGGER_DISTANCE;
+    _transitConfig._minTriggerDistance = AVATAR_TRANSIT_MIN_TRIGGER_DISTANCE;
+    _transitConfig._maxTriggerDistance = AVATAR_TRANSIT_MAX_TRIGGER_DISTANCE;
     _transitConfig._framesPerMeter = AVATAR_TRANSIT_FRAMES_PER_METER;
-    _transitConfig._isDistanceBased = true;
+    _transitConfig._isDistanceBased = AVATAR_TRANSIT_DISTANCE_BASED;
+    _transitConfig._abortDistance = AVATAR_TRANSIT_ABORT_DISTANCE;
 }
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
@@ -134,13 +127,39 @@ void AvatarManager::setSpace(workload::SpacePointer& space ) {
     _space = space;
 }
 
+void AvatarManager::handleTransitAnimations(AvatarTransit::Status status) {
+    switch (status) {
+        case AvatarTransit::Status::STARTED:
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("preTransitAnim");
+            break;
+        case AvatarTransit::Status::START_TRANSIT:
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("transitAnim");
+            break;
+        case AvatarTransit::Status::END_TRANSIT:
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("postTransitAnim");
+            break;
+        case AvatarTransit::Status::ENDED:
+            _myAvatar->getSkeletonModel()->getRig().triggerNetworkRole("idleAnim");
+            break;
+        case AvatarTransit::Status::PRE_TRANSIT:
+            break;
+        case AvatarTransit::Status::POST_TRANSIT:
+            break;
+        case AvatarTransit::Status::IDLE:
+            break;
+        case AvatarTransit::Status::TRANSITING:
+            break;
+        case AvatarTransit::Status::ABORT_TRANSIT:
+            break;
+    }
+}
+
 void AvatarManager::updateMyAvatar(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "AvatarManager::updateMyAvatar()");
 
-    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _transitConfig);
-    bool sendFirstTransitPackage = (status == AvatarTransit::Status::START_TRANSIT);
-    bool blockTransitData = (status == AvatarTransit::Status::TRANSITING);
+    AvatarTransit::Status status = _myAvatar->updateTransit(deltaTime, _myAvatar->getNextPosition(), _myAvatar->getSensorToWorldScale(), _transitConfig);
+    handleTransitAnimations(status);
 
     _myAvatar->update(deltaTime);
     render::Transaction transaction;
@@ -150,18 +169,13 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
     quint64 now = usecTimestampNow();
     quint64 dt = now - _lastSendAvatarDataTime;
 
-
-    if (sendFirstTransitPackage || (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused && !blockTransitData)) {
+    if (dt > MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS && !_myAvatarDataPacketsPaused) {
         // send head/hand data to the avatar mixer and voxel server
-        PerformanceTimer perfTimer("send");
-        if (sendFirstTransitPackage) {
-            _myAvatar->overrideNextPackagePositionData(_myAvatar->getTransit()->getEndPosition());
-        }       
+        PerformanceTimer perfTimer("send"); 
         _myAvatar->sendAvatarDataPacket();
         _lastSendAvatarDataTime = now;
         _myAvatarSendRate.increment();
     }
-
 }
 
 
@@ -196,7 +210,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     {
         // lock the hash for read to check the size
         QReadLocker lock(&_hashLock);
-        if (_avatarHash.size() < 2 && _avatarsToFade.isEmpty()) {
+        if (_avatarHash.size() < 2 && _avatarsToFadeOut.isEmpty()) {
             return;
         }
     }
@@ -250,7 +264,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     for (auto it = sortedAvatarVector.begin(); it != sortedAvatarVector.end(); ++it) {
         const SortableAvatar& sortData = *it;
         const auto avatar = std::static_pointer_cast<OtherAvatar>(sortData.getAvatar());
-
+        if (!avatar->_isClientAvatar) {
+            avatar->setIsClientAvatar(true);
+        }
         // TODO: to help us scale to more avatars it would be nice to not have to poll this stuff every update
         if (avatar->getSkeletonModel()->isLoaded()) {
             // remove the orb if it is there
@@ -275,12 +291,15 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             if (inView && avatar->hasNewJointData()) {
                 numAvatarsUpdated++;
             }
-            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_globalPosition, _transitConfig);
+            auto transitStatus = avatar->_transit.update(deltaTime, avatar->_serverPosition, _transitConfig);
             if (avatar->getIsNewAvatar() && (transitStatus == AvatarTransit::Status::START_TRANSIT || transitStatus == AvatarTransit::Status::ABORT_TRANSIT)) {
                 avatar->_transit.reset();
                 avatar->setIsNewAvatar(false);
             }
             avatar->simulate(deltaTime, inView);
+            if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
+                _myAvatar->addAvatarHandsToFlow(avatar);
+            }
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);
@@ -322,28 +341,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 
     simulateAvatarFades(deltaTime);
 
-    // Check on avatars with pending identities:
-    steady_clock::time_point now = steady_clock::now();
-    QWriteLocker writeLock(&_hashLock);
-    for (auto pendingAvatar = _pendingAvatars.begin(); pendingAvatar != _pendingAvatars.end(); ++pendingAvatar) {
-        if (now - pendingAvatar->creationTime >= REQUEST_UNKNOWN_IDENTITY_DELAY) {
-            // Too long without an ID
-            sendIdentityRequest(pendingAvatar->avatar->getID());
-            if (++pendingAvatar->transmits >= REQUEST_UNKNOWN_IDENTITY_TRANSMITS) {
-                qCDebug(avatars) << "Requesting identity for unknown avatar (final request)" <<
-                    pendingAvatar->avatar->getID().toString();
-
-                pendingAvatar = _pendingAvatars.erase(pendingAvatar);
-                if (pendingAvatar == _pendingAvatars.end()) {
-                    break;
-                }
-            } else {
-                pendingAvatar->creationTime = now;
-                qCDebug(avatars) << "Requesting identity for unknown avatar" << pendingAvatar->avatar->getID().toString();
-            }
-        }
-    }
-
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }
 
@@ -356,43 +353,24 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
     }
 }
 
-void AvatarManager::sendIdentityRequest(const QUuid& avatarID) const {
-    auto nodeList = DependencyManager::get<NodeList>();
-    QWeakPointer<NodeList> nodeListWeak = nodeList;
-    nodeList->eachMatchingNode(
-        [](const SharedNodePointer& node)->bool {
-            return node->getType() == NodeType::AvatarMixer && node->getActiveSocket();
-        },
-        [this, avatarID, nodeListWeak](const SharedNodePointer& node) {
-            auto nodeList = nodeListWeak.lock();
-            if (nodeList) {
-                auto packet = NLPacket::create(PacketType::AvatarIdentityRequest, NUM_BYTES_RFC4122_UUID, true);
-                packet->write(avatarID.toRfc4122());
-                nodeList->sendPacket(std::move(packet), *node);
-                ++_identityRequestsSent;
-            }
-        }
-    );
-}
-
 void AvatarManager::simulateAvatarFades(float deltaTime) {
-    if (_avatarsToFade.empty()) {
+    if (_avatarsToFadeOut.empty()) {
         return;
     }
 
     QReadLocker locker(&_hashLock);
-    QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
+    QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFadeOut.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
     render::Transaction transaction;
-    while (avatarItr != _avatarsToFade.end()) {
+    while (avatarItr != _avatarsToFadeOut.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        avatar->updateFadingStatus(scene);
+        avatar->updateFadingStatus();
         if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
                 avatar->removeFromScene(*avatarItr, scene, transaction);
             }
-            avatarItr = _avatarsToFade.erase(avatarItr);
+            avatarItr = _avatarsToFadeOut.erase(avatarItr);
         } else {
             ++avatarItr;
         }
@@ -400,8 +378,14 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     scene->enqueueTransaction(transaction);
 }
 
-AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return AvatarSharedPointer(new OtherAvatar(qApp->thread()), [](OtherAvatar* ptr) { ptr->deleteLater(); });
+AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
+    auto otherAvatar = new OtherAvatar(qApp->thread());
+    otherAvatar->setSessionUUID(sessionUUID);
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList || !nodeList->isIgnoringNode(sessionUUID)) {
+        otherAvatar->createOrb();
+    }
+    return AvatarSharedPointer(otherAvatar, [](OtherAvatar* ptr) { ptr->deleteLater(); });
 }
 
 void AvatarManager::queuePhysicsChange(const OtherAvatarPointer& avatar) {
@@ -416,21 +400,45 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
             if (isInPhysics) {
                 transaction.objectsToRemove.push_back(avatar->_motionState);
                 avatar->_motionState = nullptr;
+                auto& detailedMotionStates = avatar->getDetailedMotionStates();
+                for (auto& mState : detailedMotionStates) {
+                    transaction.objectsToRemove.push_back(mState);
+                }
+                avatar->resetDetailedMotionStates();
+                
             } else {
-                ShapeInfo shapeInfo;
-                avatar->computeShapeInfo(shapeInfo);
-                btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
-                if (shape) {
-                    AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
-                    motionState->setMass(avatar->computeMass());
-                    avatar->_motionState = motionState;
-                    transaction.objectsToAdd.push_back(motionState);
+                if (avatar->getDetailedMotionStates().size() == 0) {
+                    avatar->createDetailedMotionStates(avatar);
+                    for (auto dMotionState : avatar->getDetailedMotionStates()) {
+                        transaction.objectsToAdd.push_back(dMotionState);
+                    }
+                }
+                if (avatar->getDetailedMotionStates().size() > 0) {
+                    ShapeInfo shapeInfo;
+                    avatar->computeShapeInfo(shapeInfo);
+                    btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
+                    if (shape) {
+                        AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                        motionState->setMass(avatar->computeMass());
+                        avatar->_motionState = motionState;
+                        transaction.objectsToAdd.push_back(motionState);
+                    } else {
+                        failedShapeBuilds.insert(avatar);
+                    }
                 } else {
                     failedShapeBuilds.insert(avatar);
                 }
             }
         } else if (isInPhysics) {
             transaction.objectsToChange.push_back(avatar->_motionState);
+            
+            auto& detailedMotionStates = avatar->getDetailedMotionStates();
+            for (auto& mState : detailedMotionStates) {
+                if (mState) {
+                    transaction.objectsToChange.push_back(mState);
+                }
+            }
+            
         }
     }
     _avatarsToChangeInPhysics.swap(failedShapeBuilds);
@@ -470,6 +478,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
     }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
+    avatar->tearDownGrabs();
 
     avatar->die();
     queuePhysicsChange(avatar);
@@ -487,7 +496,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
         avatar->fadeOut(qApp->getMain3DScene(), removalReason);
     }
-    _avatarsToFade.push_back(removedAvatar);
+    _avatarsToFadeOut.push_back(removedAvatar);
 }
 
 void AvatarManager::clearOtherAvatars() {
@@ -529,6 +538,7 @@ void AvatarManager::deleteAllAvatars() {
         if (avatar != _myAvatar) {
             auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
             assert(!otherAvatar->_motionState);
+            assert(otherAvatar->getDetailedMotionStates().size() == 0);            
         }
     }
 }
@@ -538,6 +548,7 @@ void AvatarManager::handleChangedMotionStates(const VectorOfMotionStates& motion
 }
 
 void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents) {
+    bool playedCollisionSound { false };
     for (Collision collision : collisionEvents) {
         // TODO: The plan is to handle MOTIONSTATE_TYPE_AVATAR, and then MOTIONSTATE_TYPE_MYAVATAR. As it is, other
         // people's avatars will have an id that doesn't match any entities, and one's own avatar will have
@@ -545,38 +556,47 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
         // my avatar. (Other user machines will make a similar analysis and inject sound for their collisions.)
         if (collision.idA.isNull() || collision.idB.isNull()) {
             auto myAvatar = getMyAvatar();
-            auto collisionSound = myAvatar->getCollisionSound();
-            if (collisionSound) {
-                const auto characterController = myAvatar->getCharacterController();
-                const float avatarVelocityChange = (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
-                const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
-                const float MIN_AVATAR_COLLISION_ACCELERATION = 2.4f; // walking speed
-                const bool isSound = (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
+            myAvatar->collisionWithEntity(collision);
 
-                if (!isSound) {
-                    return;  // No sense iterating for others. We only have one avatar.
+            if (!playedCollisionSound) {
+                playedCollisionSound = true;
+                auto collisionSound = myAvatar->getCollisionSound();
+                if (collisionSound) {
+                    const auto characterController = myAvatar->getCharacterController();
+                    const float avatarVelocityChange =
+                        (characterController ? glm::length(characterController->getVelocityChange()) : 0.0f);
+                    const float velocityChange = glm::length(collision.velocityChange) + avatarVelocityChange;
+                    const float MIN_AVATAR_COLLISION_ACCELERATION = 2.4f;  // walking speed
+                    const bool isSound =
+                        (collision.type == CONTACT_EVENT_TYPE_START) && (velocityChange > MIN_AVATAR_COLLISION_ACCELERATION);
+
+                    if (!isSound) {
+                        return;  // No sense iterating for others. We only have one avatar.
+                    }
+                    // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
+                    const float energy = velocityChange * velocityChange;
+                    const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
+                    const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
+
+                    // For general entity collisionSoundURL, playSound supports changing the pitch for the sound based on the size of the object,
+                    // but most avatars are roughly the same size, so let's not be so fancy yet.
+                    const float AVATAR_STRETCH_FACTOR = 1.0f;
+
+                    _collisionInjectors.remove_if(
+                        [](const AudioInjectorPointer& injector) { return !injector || injector->isFinished(); });
+
+                    static const int MAX_INJECTOR_COUNT = 3;
+                    if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
+                        AudioInjectorOptions options;
+                        options.stereo = collisionSound->isStereo();
+                        options.position = myAvatar->getWorldPosition();
+                        options.volume = energyFactorOfFull;
+                        options.pitch = 1.0f / AVATAR_STRETCH_FACTOR;
+
+                        auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
+                        _collisionInjectors.emplace_back(injector);
+                    }
                 }
-                // Your avatar sound is personal to you, so let's say the "mass" part of the kinetic energy is already accounted for.
-                const float energy = velocityChange * velocityChange;
-                const float COLLISION_ENERGY_AT_FULL_VOLUME = 10.0f;
-                const float energyFactorOfFull = fmin(1.0f, energy / COLLISION_ENERGY_AT_FULL_VOLUME);
-
-                // For general entity collisionSoundURL, playSound supports changing the pitch for the sound based on the size of the object,
-                // but most avatars are roughly the same size, so let's not be so fancy yet.
-                const float AVATAR_STRETCH_FACTOR = 1.0f;
-
-                _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) {
-                    return !injector || injector->isFinished();
-                });
-
-                static const int MAX_INJECTOR_COUNT = 3;
-                if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
-                    auto injector = AudioInjector::playSound(collisionSound, energyFactorOfFull, AVATAR_STRETCH_FACTOR,
-                                                             myAvatar->getWorldPosition());
-                    _collisionInjectors.emplace_back(injector);
-                }
-                myAvatar->collisionWithEntity(collision);
-                return;
             }
         }
     }
@@ -611,101 +631,135 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
-                                                                 const QScriptValue& avatarIdsToDiscard) {
+                                                                 const QScriptValue& avatarIdsToDiscard,
+                                                                 bool pickAgainstMesh) {
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
-
-    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard, pickAgainstMesh);
 }
 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
                                                                        const QVector<EntityItemID>& avatarsToInclude,
-                                                                       const QVector<EntityItemID>& avatarsToDiscard) {
+                                                                       const QVector<EntityItemID>& avatarsToDiscard,
+                                                                       bool pickAgainstMesh) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
         BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
-                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard),
+                                  Q_ARG(bool, pickAgainstMesh));
         return result;
     }
 
-    // It's better to intersect the ray against the avatar's actual mesh, but this is currently difficult to
-    // do, because the transformed mesh data only exists over in GPU-land.  As a compromise, this code
-    // intersects against the avatars capsule and then against the (T-pose) mesh.  The end effect is that picking
-    // against the avatar is sort-of right, but you likely wont be able to pick against the arms.
+    PROFILE_RANGE(simulation_physics, __FUNCTION__);
 
-    // TODO -- find a way to extract transformed avatar mesh data from the rendering engine.
+    float bulletDistance = (float)INT_MAX;  // with FLT_MAX bullet rayTest does not return results 
+    glm::vec3 rayDirection = glm::normalize(ray.direction);
+    std::vector<MyCharacterController::RayAvatarResult> physicsResults = _myAvatar->getCharacterController()->rayTest(glmToBullet(ray.origin), glmToBullet(rayDirection), bulletDistance, QVector<uint>());
+    if (physicsResults.size() > 0) {
+        glm::vec3 rayDirectionInv = { rayDirection.x != 0.0f ? 1.0f / rayDirection.x : INFINITY,
+                                      rayDirection.y != 0.0f ? 1.0f / rayDirection.y : INFINITY,
+                                      rayDirection.z != 0.0f ? 1.0f / rayDirection.z : INFINITY };
 
-    std::vector<SortedAvatar> sortedAvatars;
-    auto avatarHashCopy = getHashCopy();
-    for (auto avatarData : avatarHashCopy) {
-        auto avatar = std::static_pointer_cast<Avatar>(avatarData);
-        if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatar->getID())) ||
-            (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatar->getID()))) {
-            continue;
-        }
-
-        float distance = FLT_MAX;
-#if 0
-        // if we weren't picking against the capsule, we would want to pick against the avatarBounds...
-        SkeletonModelPointer avatarModel = avatar->getSkeletonModel();
-        AABox avatarBounds = avatarModel->getRenderableMeshBound();
-        if (avatarBounds.contains(ray.origin)) {
-            distance = 0.0f;
-        } else {
-            float boundDistance = FLT_MAX;
-            BoxFace face;
-            glm::vec3 surfaceNormal;
-            if (avatarBounds.findRayIntersection(ray.origin, ray.direction, boundDistance, face, surfaceNormal)) {
-                distance = boundDistance;
+        for (auto &hit : physicsResults) {
+            auto avatarID = hit._intersectWithAvatar;
+            if ((avatarsToInclude.size() > 0 && !avatarsToInclude.contains(avatarID)) ||
+                (avatarsToDiscard.size() > 0 && avatarsToDiscard.contains(avatarID))) {
+                continue;
             }
-        }
-#else
-        glm::vec3 start;
-        glm::vec3 end;
-        float radius;
-        avatar->getCapsule(start, end, radius);
-        findRayCapsuleIntersection(ray.origin, ray.direction, start, end, radius, distance);
-#endif
 
-        if (distance < FLT_MAX) {
-            sortedAvatars.emplace_back(distance, avatar);
-        }
-    }
+            MyCharacterController::RayAvatarResult rayAvatarResult;
+            BoxFace face = BoxFace::UNKNOWN_FACE;
+            QVariantMap extraInfo;
+            AvatarPointer avatar = nullptr;
+            if (_myAvatar->getSessionUUID() != avatarID) {
+                auto avatarMap = getHashCopy();
+                AvatarHash::iterator itr = avatarMap.find(avatarID);
+                if (itr != avatarMap.end()) {
+                    avatar = std::static_pointer_cast<Avatar>(*itr);
+                }
+            } else {
+                avatar = _myAvatar;
+            }
 
-    if (sortedAvatars.size() > 1) {
-        static auto comparator = [](const SortedAvatar& left, const SortedAvatar& right) { return left.first < right.first; };
-        std::sort(sortedAvatars.begin(), sortedAvatars.end(), comparator);
-    }
+            if (!hit._isBound) {
+                rayAvatarResult = hit;
+            } else if (avatar) {
+                auto &multiSpheres = avatar->getMultiSphereShapes();
+                if (multiSpheres.size() > 0) {
+                    MyCharacterController::RayAvatarResult boxHit;
+                    boxHit._distance = FLT_MAX;
 
-    for (auto it = sortedAvatars.begin(); it != sortedAvatars.end(); ++it) {
-        const SortedAvatar& sortedAvatar = *it;
-        // We can exit once avatarCapsuleDistance > bestDistance
-        if (sortedAvatar.first > result.distance) {
-            break;
-        }
+                    for (size_t i = 0; i < hit._boundJoints.size(); i++) {
+                        assert(hit._boundJoints[i] < multiSpheres.size());
+                        auto &mSphere = multiSpheres[hit._boundJoints[i]];
+                        if (mSphere.isValid()) {
+                            float boundDistance = FLT_MAX;
+                            BoxFace boundFace = BoxFace::UNKNOWN_FACE;
+                            glm::vec3 boundSurfaceNormal;
+                            auto &bbox = mSphere.getBoundingBox();
+                            if (bbox.findRayIntersection(ray.origin, rayDirection, rayDirectionInv, boundDistance, boundFace, boundSurfaceNormal)) {
+                                if (boundDistance < boxHit._distance) {
+                                    boxHit._intersect = true;
+                                    boxHit._intersectWithAvatar = avatarID;
+                                    boxHit._intersectWithJoint = mSphere.getJointIndex();
+                                    boxHit._distance = boundDistance;
+                                    boxHit._intersectionPoint = ray.origin + boundDistance * rayDirection;
+                                    boxHit._intersectionNormal = boundSurfaceNormal;
+                                    face = boundFace;
+                                }
+                            }
+                        }
+                    }
+                    if (boxHit._distance < FLT_MAX) {
+                        rayAvatarResult = boxHit;
+                    }
+                }
+            }
 
-        float distance = FLT_MAX;
-        BoxFace face;
-        glm::vec3 surfaceNormal;
-        QVariantMap extraInfo;
-        SkeletonModelPointer avatarModel = sortedAvatar.second->getSkeletonModel();
-        if (avatarModel->findRayIntersectionAgainstSubMeshes(ray.origin, ray.direction, distance, face, surfaceNormal, extraInfo, true)) {
-            if (distance < result.distance) {
+            if (avatar && rayAvatarResult._intersect && pickAgainstMesh) {
+                glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
+                glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayAvatarResult._distance * rayDirection, rayAvatarResult._intersectWithJoint);
+
+                auto avatarOrientation = avatar->getWorldOrientation();
+                auto avatarPosition = avatar->getWorldPosition();
+
+                auto jointOrientation = avatarOrientation * avatar->getAbsoluteDefaultJointRotationInObjectFrame(rayAvatarResult._intersectWithJoint);
+                auto jointPosition = avatarPosition + (avatarOrientation * avatar->getAbsoluteDefaultJointTranslationInObjectFrame(rayAvatarResult._intersectWithJoint));
+
+                auto defaultFrameRayOrigin = jointPosition + jointOrientation * localRayOrigin;
+                auto defaultFrameRayPoint = jointPosition + jointOrientation * localRayPoint;
+                auto defaultFrameRayDirection = glm::normalize(defaultFrameRayPoint - defaultFrameRayOrigin);
+
+                float subMeshDistance = FLT_MAX;
+                BoxFace subMeshFace = BoxFace::UNKNOWN_FACE;
+                glm::vec3 subMeshSurfaceNormal;
+                QVariantMap subMeshExtraInfo;
+                if (avatar->getSkeletonModel()->findRayIntersectionAgainstSubMeshes(defaultFrameRayOrigin, defaultFrameRayDirection, subMeshDistance, subMeshFace, subMeshSurfaceNormal, subMeshExtraInfo, true, false)) {
+                    rayAvatarResult._distance = subMeshDistance;
+                    rayAvatarResult._intersectionPoint = ray.origin + subMeshDistance * rayDirection;
+                    rayAvatarResult._intersectionNormal = subMeshSurfaceNormal;
+                    face = subMeshFace;
+                    extraInfo = subMeshExtraInfo;
+                } else {
+                    rayAvatarResult._intersect = false;
+                }
+            }
+
+            if (rayAvatarResult._intersect) {
                 result.intersects = true;
-                result.avatarID = sortedAvatar.second->getID();
-                result.distance = distance;
+                result.avatarID = rayAvatarResult._intersectWithAvatar;
+                result.distance = rayAvatarResult._distance;
                 result.face = face;
-                result.surfaceNormal = surfaceNormal;
+                result.intersection = ray.origin + rayAvatarResult._distance * rayDirection;
+                result.surfaceNormal = rayAvatarResult._intersectionNormal;
+                result.jointIndex = rayAvatarResult._intersectWithJoint;
                 result.extraInfo = extraInfo;
+                break;
             }
         }
-    }
-
-    if (result.intersects) {
-        result.intersection = ray.origin + ray.direction * result.distance;
     }
 
     return result;
@@ -846,7 +900,7 @@ void AvatarManager::setAvatarSortCoefficient(const QString& name, const QScriptV
     }
 }
 
-QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentifiers) {
+QVariantMap AvatarManager::getPalData(const QStringList& specificAvatarIdentifiers) {
     QJsonArray palData;
 
     auto avatarMap = getHashCopy();
@@ -890,4 +944,14 @@ QVariantMap AvatarManager::getPalData(const QList<QString> specificAvatarIdentif
     QJsonObject doc;
     doc.insert("data", palData);
     return doc.toVariantMap();
+}
+
+void AvatarManager::accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators) {
+    auto avatarMap = getHashCopy();
+    AvatarHash::iterator itr = avatarMap.begin();
+    while (itr != avatarMap.end()) {
+        const auto& avatar = std::static_pointer_cast<Avatar>(*itr);
+        avatar->accumulateGrabPositions(grabAccumulators);
+        itr++;
+    }
 }

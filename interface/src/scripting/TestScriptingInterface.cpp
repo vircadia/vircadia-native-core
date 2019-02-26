@@ -199,3 +199,13 @@ void TestScriptingInterface::setOtherAvatarsReplicaCount(int count) {
 int TestScriptingInterface::getOtherAvatarsReplicaCount() {
     return qApp->getOtherAvatarsReplicaCount();
 }
+
+QString TestScriptingInterface::getOperatingSystemType() {
+#ifdef Q_OS_WIN
+    return "WINDOWS";
+#elif defined Q_OS_MAC
+    return "MACOS";
+#else
+    return "UNKNOWN";
+#endif
+}

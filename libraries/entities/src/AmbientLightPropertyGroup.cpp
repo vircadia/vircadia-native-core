@@ -42,7 +42,6 @@ void AmbientLightPropertyGroup::merge(const AmbientLightPropertyGroup& other) {
 void AmbientLightPropertyGroup::debugDump() const {
     qCDebug(entities) << "   AmbientLightPropertyGroup: ---------------------------------------------";
     qCDebug(entities) << "        ambientIntensity:" << getAmbientIntensity();
-    qCDebug(entities) << "        ambientURL:" << getAmbientURL();
 }
 
 void AmbientLightPropertyGroup::listChangedProperties(QList<QString>& out) {

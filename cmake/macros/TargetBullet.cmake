@@ -16,7 +16,6 @@ macro(TARGET_BULLET)
         list(APPEND BULLET_LIBRARIES ${LIB_DIR}/libLinearMath.a)
         list(APPEND BULLET_LIBRARIES ${LIB_DIR}/libBulletSoftBody.a)
     else()
-        add_dependency_external_projects(bullet)
         find_package(Bullet REQUIRED)
    endif()
     # perform the system include hack for OS X to ignore warnings

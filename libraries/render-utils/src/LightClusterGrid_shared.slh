@@ -5,6 +5,14 @@
 #define float_exp2 exp2
 #endif
 
+#ifdef __cplusplus
+#   define _MIN glm::min
+#   define _ABS(x) (int)fabsf(x)
+#else
+#   define _MIN min
+#   define _ABS abs
+#endif
+
 float frustumGrid_depthRampGridToVolume(float ngrid) {
    //  return ngrid;
    // return sqrt(ngrid);
@@ -87,14 +95,9 @@ ivec3 frustumGrid_indexToCluster(int index) {
 }
 
 vec3 frustumGrid_clusterPosToEye(vec3 clusterPos) {
-
     vec3 cvpos = clusterPos;
-
-
     vec3 volumePos = frustumGrid_gridToVolume(cvpos, frustumGrid.dims);
-
     vec3 eyePos = frustumGrid_volumeToEye(volumePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
-
     return eyePos;
 }
 
@@ -116,27 +119,19 @@ int frustumGrid_eyeDepthToClusterLayer(float eyeZ) {
 
     int gridZ = int(frustumGrid_volumeToGridDepth(volumeZ, frustumGrid.dims));
 
-    if (gridZ >= frustumGrid.dims.z) {
-        gridZ = frustumGrid.dims.z;
-    }
-
-
-    return gridZ;
+    return _MIN(gridZ, frustumGrid.dims.z);
 }
 
 ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 
     // make sure the frontEyePos is always in the front to eval the grid pos correctly
     vec3 frontEyePos = eyePos;
-    frontEyePos.z = (eyePos.z > 0.0f ? -eyePos.z : eyePos.z);
+    frontEyePos.z = -_ABS(eyePos.z);
     vec3 volumePos = frustumGrid_eyeToVolume(frontEyePos, frustumGrid.eyeToGridProj, frustumGrid.rangeNear, frustumGrid.rangeFar);
 
 
     vec3 gridPos = frustumGrid_volumeToGrid(volumePos, frustumGrid.dims);
-    
-    if (gridPos.z >= float(frustumGrid.dims.z)) {
-        gridPos.z = float(frustumGrid.dims.z);
-    }
+    gridPos.z = _MIN(gridPos.z, float(frustumGrid.dims.z));
 
     ivec3 igridPos = ivec3(floor(gridPos));
 
@@ -154,7 +149,7 @@ ivec3 frustumGrid_eyeToClusterPos(vec3 eyePos) {
 
 int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
     if (eyeDir.z >= 0.0f) {
-        return (eyeDir.x > 0.0f ? frustumGrid.dims.x : -1);
+        return int(eyeDir.x > 0.0f) * (frustumGrid.dims.x + 1) - 1;
     }
 
     float eyeDepth = -eyeDir.z;
@@ -168,7 +163,7 @@ int frustumGrid_eyeToClusterDirH(vec3 eyeDir) {
 
 int frustumGrid_eyeToClusterDirV(vec3 eyeDir) {
     if (eyeDir.z >= 0.0f) {
-        return (eyeDir.y > 0.0f ? frustumGrid.dims.y : -1);
+        return int(eyeDir.y > 0.0f) * (frustumGrid.dims.y + 1) - 1;
     }
 
     float eyeDepth = -eyeDir.z;

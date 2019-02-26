@@ -24,6 +24,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ClipboardScriptingInterface : public QObject {
     Q_OBJECT
@@ -50,9 +51,11 @@ public:
      * You can generate a JSON file using {@link Clipboard.exportEntities}.
      * @function Clipboard.importEntities
      * @param {string} filename Path and name of file to import.
+     * @param {boolean} does the ResourceRequestObserver observe this request?
+     * @param {number} optional internal id of object causing this import.
      * @returns {boolean} <code>true</code> if the import was successful, otherwise <code>false</code>.
      */
-    Q_INVOKABLE bool importEntities(const QString& filename);
+    Q_INVOKABLE bool importEntities(const QString& filename, const bool isObservable = true, const qint64 callerId = -1);
 
     /**jsdoc
      * Export the entities specified to a JSON file.
@@ -61,7 +64,7 @@ public:
      * @param {Uuid[]} entityIDs Array of IDs of the entities to export.
      * @returns {boolean} <code>true</code> if the export was successful, otherwise <code>false</code>.
      */
-    Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs);
+    Q_INVOKABLE bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs);
     
     /**jsdoc
     * Export the entities with centers within a cube to a JSON file.

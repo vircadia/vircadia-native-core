@@ -19,12 +19,11 @@ namespace controller {
 class ScaleFilter : public Filter {
     REGISTER_FILTER_CLASS(ScaleFilter);
 public:
-    ScaleFilter() {}
+    ScaleFilter() = default;
     ScaleFilter(float scale) : _scale(scale) {}
-    virtual ~ScaleFilter() {}
 
-    virtual float apply(float value) const override {
-        return value * _scale;
+    virtual AxisValue apply(AxisValue value) const override {
+        return { value.value * _scale, value.timestamp };
     }
 
     virtual Pose apply(Pose value) const override {

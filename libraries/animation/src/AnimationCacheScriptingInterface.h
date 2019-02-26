@@ -30,6 +30,7 @@ class AnimationCacheScriptingInterface : public ScriptableResourceCache, public 
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      * @hifi-assignment-client
      *
      * @property {number} numTotal - Total number of total resources. <em>Read-only.</em>

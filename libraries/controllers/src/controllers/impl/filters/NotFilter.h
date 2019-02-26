@@ -10,9 +10,8 @@ class NotFilter : public Filter {
     REGISTER_FILTER_CLASS(NotFilter);
 public:
     NotFilter();
-    virtual ~NotFilter() {}
 
-    virtual float apply(float value) const override;
+    virtual AxisValue apply(AxisValue value) const override;
     virtual Pose apply(Pose value) const override { return value; }
 };
 

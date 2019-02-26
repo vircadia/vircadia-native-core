@@ -19,6 +19,7 @@
 
 #include "AudioInjectorOptions.h"
 #include "AudioInjector.h"
+#include "AudioSolo.h"
 
 class AudioInjector;
 class AudioInjectorLocalBuffer;
@@ -37,6 +38,8 @@ public:
     // moves injector->getLocalBuffer() to another thread (so removes its parent)
     // take care to delete it when ~AudioInjector, as parenting Qt semantics will not work
     virtual bool outputLocalInjector(const AudioInjectorPointer& injector) = 0;
+
+    virtual AudioSolo& getAudioSolo() = 0;
 
 public slots:
     virtual bool shouldLoopbackInjectors() { return false; }

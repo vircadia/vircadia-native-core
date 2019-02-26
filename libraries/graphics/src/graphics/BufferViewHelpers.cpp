@@ -38,7 +38,7 @@ QMap<QString,int> ATTRIBUTES{
     {"position", gpu::Stream::POSITION },
     {"normal", gpu::Stream::NORMAL },
     {"color", gpu::Stream::COLOR },
-    {"tangent", gpu::Stream::TEXCOORD0 },
+    {"tangent", gpu::Stream::TANGENT },
     {"skin_cluster_index", gpu::Stream::SKIN_CLUSTER_INDEX },
     {"skin_cluster_weight", gpu::Stream::SKIN_CLUSTER_WEIGHT },
     {"texcoord0", gpu::Stream::TEXCOORD0 },

@@ -14,29 +14,50 @@
 
 #include <gpu/Pipeline.h>
 #include <render/RenderFetchCullSortTask.h>
+#include "AssembleLightingStageTask.h"
 #include "LightingModel.h"
-#include "LightStage.h"
 
 class RenderForwardTask {
 public:
-    using Input = RenderFetchCullSortTask::Output;
+    using Input = render::VaryingSet3<RenderFetchCullSortTask::Output, LightingModelPointer, AssembleLightingStageTask::Output>;
     using JobModel = render::Task::ModelI<RenderForwardTask, Input>;
 
     RenderForwardTask() {}
 
-    void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+    void build(JobModel& task, const render::Varying& input, render::Varying& output);
+};
+
+
+class PrepareFramebufferConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numSamples WRITE setNumSamples READ getNumSamples NOTIFY dirty)
+public:
+    int getNumSamples() const { return numSamples; }
+    void setNumSamples(int num) {
+        numSamples = std::max(1, std::min(32, num));
+        emit dirty();
+    }
+
+signals:
+    void dirty();
+
+protected:
+    int numSamples{ 4 };
 };
 
 class PrepareFramebuffer {
 public:
     using Inputs = gpu::FramebufferPointer;
-    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs>;
+    using Config = PrepareFramebufferConfig;
+    using JobModel = render::Job::ModelO<PrepareFramebuffer, Inputs, Config>;
 
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext,
             gpu::FramebufferPointer& framebuffer);
 
 private:
     gpu::FramebufferPointer _framebuffer;
+    int _numSamples;
 };
 
 class PrepareForward {

@@ -37,7 +37,7 @@ function notificationPollCallback(userStoriesArray) {
     //
     pingPong = !pingPong;
     var totalNewStories = 0;
-    var shouldNotifyIndividually = !ui.isOpen && ui.notificationInitialCallbackMade;
+    var shouldNotifyIndividually = !ui.isOpen && ui.notificationInitialCallbackMade[0];
     userStoriesArray.forEach(function (story) {
         if (story.audience !== "for_connections" &&
             story.audience !== "for_feed") {
@@ -91,7 +91,7 @@ function notificationPollCallback(userStoriesArray) {
     shouldShowDot = totalNewStories > 0 || (totalStories > 0 && shouldShowDot);
     ui.messagesWaiting(shouldShowDot && !ui.isOpen);
 
-    if (totalStories > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade) {
+    if (totalStories > 0 && !ui.isOpen && !ui.notificationInitialCallbackMade[0]) {
         message = "There " + (totalStories === 1 ? "is " : "are ") + totalStories + " event" +
             (totalStories === 1 ? "" : "s") + " to know about. " +
             "Open GOTO to see " + (totalStories === 1 ? "it" : "them") + ".";
@@ -122,12 +122,12 @@ function startup() {
         sortOrder: 8,
         onOpened: gotoOpened,
         home: GOTO_QML_SOURCE,
-        notificationPollEndpoint: endpoint,
-        notificationPollTimeoutMs: 60000,
-        notificationDataProcessPage: notificationDataProcessPage,
-        notificationPollCallback: notificationPollCallback,
-        notificationPollStopPaginatingConditionMet: isReturnedDataEmpty,
-        notificationPollCaresAboutSince: false
+        notificationPollEndpoint: [endpoint],
+        notificationPollTimeoutMs: [60000],
+        notificationDataProcessPage: [notificationDataProcessPage],
+        notificationPollCallback: [notificationPollCallback],
+        notificationPollStopPaginatingConditionMet: [isReturnedDataEmpty],
+        notificationPollCaresAboutSince: [false]
     });
 }
 

@@ -49,5 +49,11 @@ StackView {
         if (currentItem && currentItem.fromScript)
             currentItem.fromScript(message);
     }
+
+    Component.onDestruction: {
+        if (KeyboardScriptingInterface.raised) {
+            KeyboardScriptingInterface.raised = false;
+        }
+    }
 }
 

@@ -196,7 +196,7 @@ void DomainHandler::setURLAndID(QUrl domainURL, QUuid domainID) {
         _sockAddr.clear();
 
         // if this is a file URL we need to see if it has a ~ for us to expand
-        if (domainURL.scheme() == URL_SCHEME_FILE) {
+        if (domainURL.scheme() == HIFI_URL_SCHEME_FILE) {
             domainURL = PathUtils::expandToLocalDataAbsolutePath(domainURL);
         }
     }

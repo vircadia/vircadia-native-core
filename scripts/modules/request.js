@@ -18,7 +18,8 @@
 module.exports = {
 
     // ------------------------------------------------------------------
-    request: function (options, callback) { // cb(error, responseOfCorrectContentType) of url. A subset of npm request.
+    // cb(error, responseOfCorrectContentType, optionalCallbackParameter) of url. A subset of npm request.
+    request: function (options, callback, optionalCallbackParameter) {
         var httpRequest = new XMLHttpRequest(), key;
         // QT bug: apparently doesn't handle onload. Workaround using readyState.
         httpRequest.onreadystatechange = function () {
@@ -38,7 +39,7 @@ module.exports = {
                 if (error) {
                     response = { statusCode: httpRequest.status };
                 }
-                callback(error, response);
+                callback(error, response, optionalCallbackParameter);
             }
         };
         if (typeof options === 'string') {

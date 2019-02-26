@@ -5,6 +5,8 @@ const process = require('process');
 const hfApp = require('./hf-app');
 const path = require('path');
 const AccountInfo = require('./hf-acctinfo').AccountInfo;
+const url = require('url');
+const shell = require('electron').shell;
 const GetBuildInfo = hfApp.getBuildInfo;
 const buildInfo = GetBuildInfo();
 const osType = os.type();
@@ -30,10 +32,10 @@ const StartInterface=hfApp.startInterface;
 const IsInterfaceRunning=hfApp.isInterfaceRunning;
 
 const NotificationType = {
-    GOTO:        'goto',
-    PEOPLE:      'people',
-    WALLET:      'wallet',
-    MARKETPLACE: 'marketplace'
+    GOTO:         'goto',
+    PEOPLE:       'people',
+    ITEMS:        'items',
+    TRANSACTIONS: 'transactions'
 };
 
 
@@ -87,34 +89,34 @@ HifiNotification.prototype = {
                 }
                 break;
 
-            case NotificationType.WALLET:
+            case NotificationType.TRANSACTIONS:
                 if (typeof(this.data) === "number") {
                     if (this.data === 1) {
-                        text = "You have " + this.data + " unread Wallet transaction.";
+                        text = "You have " + this.data + " unread transaction.";
                     } else {
-                        text = "You have " + this.data + " unread Wallet transactions.";
+                        text = "You have " + this.data + " unread transactions.";
                     }
-                    message = "Click to open WALLET."
-                    url = "hifiapp:hifi/commerce/wallet/Wallet.qml";
+                    message = "Click to open INVENTORY."
+                    url = "hifiapp:INVENTORY";
                     break;
                 }
                 text = this.data.message.replace(/<\/?[^>]+(>|$)/g, "");
-                message = "Click to open WALLET.";
-                url = "hifiapp:WALLET";
+                message = "Click to open INVENTORY.";
+                url = "hifiapp:INVENTORY";
                 break;
 
-            case NotificationType.MARKETPLACE:
+            case NotificationType.ITEMS:
                 if (typeof(this.data) === "number") {
                     if (this.data === 1) {
-                        text = this.data + " of your purchased items has an update available.";
+                        text = this.data + " of your items has an update available.";
                     } else {  
-                        text = this.data + " of your purchased items have updates available.";
+                        text = this.data + " of your items have updates available.";
                     }
                 } else {
                     text = "Update available for " + this.data.base_item_title + ".";
                 }
-                message = "Click to open MARKET.";
-                url = "hifiapp:MARKET";
+                message = "Click to open INVENTORY.";
+                url = "hifiapp:INVENTORY";
                 break;
         }
         notifier.notify({
@@ -154,8 +156,13 @@ function HifiNotifications(config, menuNotificationCallback) {
 
     var _menuNotificationCallback = menuNotificationCallback;
     notifier.on('click', function (notifierObject, options) {
-        StartInterface(options.url);
-        _menuNotificationCallback(options.notificationType, false);
+        const optUrl = url.parse(options.url);
+        if ((optUrl.protocol === "hifi:") || (optUrl.protocol === "hifiapp:")) {
+            StartInterface(options.url);
+            _menuNotificationCallback(options.notificationType, false);
+        } else {
+            shell.openExternal(options.url);
+        }
     });
 }
 
@@ -228,7 +235,6 @@ HifiNotifications.prototype = {
     },
     _showNotification: function () {
         var _this = this;
-
         if (osType === 'Darwin') {
             this.pendingNotifications[0].show(function () {
                 // For OSX
@@ -318,10 +324,10 @@ HifiNotifications.prototype = {
                         case NotificationType.PEOPLE:
                             notifyData = content.data.users;
                             break;
-                        case NotificationType.WALLET:
+                        case NotificationType.TRANSACTIONS:
                             notifyData = content.data.history;
                             break;
-                        case NotificationType.MARKETPLACE:
+                        case NotificationType.ITEMS:
                             notifyData = content.data.updates;
                             break;
                     }
@@ -369,19 +375,16 @@ HifiNotifications.prototype = {
                           }
                         }, function (error, data) {
                             if (error || !data.body) {
-                                console.log("Error: unable to get " + url);
-                                finished(false);
+                                console.log("Error: " + error + ": unable to get " + url);
                                 return;
                             }
                             var content = JSON.parse(data.body);
                             if (!content || content.status != 'success') {
                                 console.log("Error: unable to get " + url);
-                                finished(false);
                                 return;
                             }
 
                             if (!content.total_entries) {
-                                finished(true, token);
                                 return;
                             }
                             if (!content.total_entries) {
@@ -480,7 +483,7 @@ HifiNotifications.prototype = {
         console.log("Polling for economic activity");
         var url = METAVERSE_SERVER_URL + ECONOMIC_ACTIVITY_URL + '?' + options.join('&');
         console.log(url);
-        _this._pollCommon(NotificationType.WALLET, url, since, function () {});
+        _this._pollCommon(NotificationType.TRANSACTIONS, url, since, function () {});
     },
     pollForMarketplaceUpdates: function (since) {
         var _this = this;
@@ -492,7 +495,7 @@ HifiNotifications.prototype = {
         console.log("Polling for marketplace update");
         var url = METAVERSE_SERVER_URL + UPDATES_URL + '?' + options.join('&');
         console.log(url);
-        _this._pollCommon(NotificationType.MARKETPLACE, url, since, function (success, token) {
+        _this._pollCommon(NotificationType.ITEMS, url, since, function (success, token) {
             if (success) {
                 var options = [
                     'page=1',
@@ -505,7 +508,7 @@ HifiNotifications.prototype = {
                             'bearer': token
                         }
                     }, function (error, data) {
-                        _this._pollToDisableHighlight(NotificationType.MARKETPLACE, error, data);
+                        _this._pollToDisableHighlight(NotificationType.ITEMS, error, data);
                 });
             }
         });

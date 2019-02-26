@@ -18,6 +18,8 @@
 
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/OculusPlatformPlugin.h>
+#include <shared/GlobalAppProperties.h>
 #include <ui/TabletScriptingInterface.h>
 #include <UserActivityLogger.h>
 
@@ -31,24 +33,24 @@
 
 HIFI_QML_DEF(LoginDialog)
 
+static const QUrl TABLET_LOGIN_DIALOG_URL("dialogs/TabletLoginDialog.qml");
+const QUrl LOGIN_DIALOG = PathUtils::qmlUrl("OverlayLoginDialog.qml");
+
 LoginDialog::LoginDialog(QQuickItem *parent) : OffscreenQmlDialog(parent) {
     auto accountManager = DependencyManager::get<AccountManager>();
+    // the login hasn't been dismissed yet if the user isn't logged in and is encouraged to login.
 #if !defined(Q_OS_ANDROID)
     connect(accountManager.data(), &AccountManager::loginComplete,
         this, &LoginDialog::handleLoginCompleted);
     connect(accountManager.data(), &AccountManager::loginFailed,
             this, &LoginDialog::handleLoginFailed);
+    connect(qApp, &Application::loginDialogFocusEnabled, this, &LoginDialog::focusEnabled);
+    connect(qApp, &Application::loginDialogFocusDisabled, this, &LoginDialog::focusDisabled);
+    connect(this, SIGNAL(dismissedLoginDialog()), qApp, SLOT(onDismissedLoginDialog()));
 #endif
 }
 
 LoginDialog::~LoginDialog() {
-    Setting::Handle<bool> loginDialogPoppedUp{ "loginDialogPoppedUp", false };
-    if (loginDialogPoppedUp.get()) {
-        QJsonObject data;
-        data["action"] = "user opted out";
-        UserActivityLogger::getInstance().logAction("encourageLoginDialog", data);
-    }
-    loginDialogPoppedUp.set(false);
 }
 
 void LoginDialog::showWithSelection() {
@@ -56,14 +58,25 @@ void LoginDialog::showWithSelection() {
     auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
 
-    if (tablet->getToolbarMode()) {
-        LoginDialog::show();
-    } else {
-        static const QUrl url("dialogs/TabletLoginDialog.qml");
-        tablet->initialScreen(url);
-        if (!hmd->getShouldShowTablet()) {
-            hmd->openTablet();
+    if (!qApp->isHMDMode()) {
+        if (qApp->getLoginDialogPoppedUp()) {
+            LoginDialog::show();
+            return;
+        } else {
+            if (!tablet->isPathLoaded(TABLET_LOGIN_DIALOG_URL)) {
+                tablet->loadQMLSource(TABLET_LOGIN_DIALOG_URL);
+            }
         }
+    } else {
+        if (!qApp->getLoginDialogPoppedUp()) {
+            tablet->initialScreen(TABLET_LOGIN_DIALOG_URL);
+        } else {
+            qApp->createLoginDialog();
+        }
+    }
+
+    if (!hmd->getShouldShowTablet()) {
+        hmd->openTablet();
     }
 }
 
@@ -82,8 +95,13 @@ void LoginDialog::toggleAction() {
         connection = connect(loginAction, &QAction::triggered, accountManager.data(), &AccountManager::logout);
     } else {
         // change the menu item to login
-        loginAction->setText("Login / Sign Up");
-        connection = connect(loginAction, &QAction::triggered, [] { LoginDialog::showWithSelection(); });
+        loginAction->setText("Log In / Sign Up");
+        connection = connect(loginAction, &QAction::triggered, [] {
+            // if not in login state, show.
+            if (!qApp->getLoginDialogPoppedUp()) {
+                LoginDialog::showWithSelection();
+            }
+        });
     }
 }
 
@@ -92,9 +110,102 @@ bool LoginDialog::isSteamRunning() const {
     return steamClient && steamClient->isRunning();
 }
 
+bool LoginDialog::isOculusRunning() const {
+    auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin();
+    return (oculusPlatformPlugin && oculusPlatformPlugin->isRunning());
+}
+
+QString LoginDialog::oculusUserID() const {
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        return oculusPlatformPlugin->getOculusUserID();
+    }
+    return "";
+}
+
+void LoginDialog::dismissLoginDialog() {
+    QAction* loginAction = Menu::getInstance()->getActionForOption(MenuOption::Login);
+    Q_CHECK_PTR(loginAction);
+    loginAction->setEnabled(true);
+
+    emit dismissedLoginDialog();
+}
+
 void LoginDialog::login(const QString& username, const QString& password) const {
     qDebug() << "Attempting to login " << username;
     DependencyManager::get<AccountManager>()->requestAccessToken(username, password);
+}
+
+void LoginDialog::loginThroughOculus() {
+   qDebug() << "Attempting to login through Oculus";
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+       oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString oculusID) {
+            DependencyManager::get<AccountManager>()->requestAccessTokenWithOculus(nonce, oculusID);
+        });
+    }
+}
+
+void LoginDialog::linkOculus() {
+    qDebug() << "Attempting to link Oculus account";
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatformPlugin->requestNonceAndUserID([this] (QString nonce, QString oculusID) {
+            if (nonce.isEmpty() || oculusID.isEmpty()) {
+                emit handleLoginFailed();
+                return;
+            }
+
+            JSONCallbackParameters callbackParams;
+            callbackParams.callbackReceiver = this;
+            callbackParams.jsonCallbackMethod = "linkCompleted";
+            callbackParams.errorCallbackMethod = "linkFailed";
+            const QString LINK_OCULUS_PATH = "api/v1/user/oculus/link";
+
+            QJsonObject payload;
+            payload["oculus_nonce"] = nonce;
+            payload["oculus_id"] = oculusID;
+
+            auto accountManager = DependencyManager::get<AccountManager>();
+            accountManager->sendRequest(LINK_OCULUS_PATH, AccountManagerAuth::Required,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        QJsonDocument(payload).toJson());
+        });
+    }
+}
+
+void LoginDialog::createAccountFromOculus(QString email, QString username, QString password) {
+    qDebug() << "Attempting to create account from Oculus info";
+    if (auto oculusPlatformPlugin = PluginManager::getInstance()->getOculusPlatformPlugin()) {
+        oculusPlatformPlugin->requestNonceAndUserID([this, email, username, password] (QString nonce, QString oculusID) {
+            if (nonce.isEmpty() || oculusID.isEmpty()) {
+                emit handleLoginFailed();
+                return;
+            }
+
+            JSONCallbackParameters callbackParams;
+            callbackParams.callbackReceiver = this;
+            callbackParams.jsonCallbackMethod = "createCompleted";
+            callbackParams.errorCallbackMethod = "createFailed";
+
+            const QString CREATE_ACCOUNT_FROM_OCULUS_PATH = "api/v1/user/oculus/create";
+
+            QJsonObject payload;
+            payload["oculus_nonce"] = nonce;
+            payload["oculus_id"] = oculusID;
+            if (!email.isEmpty()) {
+                payload["email"] = email;
+            }
+            if (!username.isEmpty()) {
+                payload["username"] = username;
+            }
+            if (!password.isEmpty()) {
+                payload["password"] = password;
+            }
+
+            auto accountManager = DependencyManager::get<AccountManager>();
+            accountManager->sendRequest(CREATE_ACCOUNT_FROM_OCULUS_PATH, AccountManagerAuth::None,
+                                        QNetworkAccessManager::PostOperation, callbackParams,
+                                        QJsonDocument(payload).toJson());
+            });
+    }
 }
 
 void LoginDialog::loginThroughSteam() {
@@ -128,7 +239,7 @@ void LoginDialog::linkSteam() {
             const QString LINK_STEAM_PATH = "api/v1/user/steam/link";
 
             QJsonObject payload;
-            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
 
             auto accountManager = DependencyManager::get<AccountManager>();
             accountManager->sendRequest(LINK_STEAM_PATH, AccountManagerAuth::Required,
@@ -138,7 +249,7 @@ void LoginDialog::linkSteam() {
     }
 }
 
-void LoginDialog::createAccountFromStream(QString username) {
+void LoginDialog::createAccountFromSteam(QString username) {
     qDebug() << "Attempting to create account from Steam info";
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->requestTicket([this, username](Ticket ticket) {
@@ -155,9 +266,9 @@ void LoginDialog::createAccountFromStream(QString username) {
             const QString CREATE_ACCOUNT_FROM_STEAM_PATH = "api/v1/user/steam/create";
 
             QJsonObject payload;
-            payload.insert("steam_auth_ticket", QJsonValue::fromVariant(QVariant(ticket)));
+            payload["steam_auth_ticket"] = QJsonValue::fromVariant(QVariant(ticket));
             if (!username.isEmpty()) {
-                payload.insert("username", QJsonValue::fromVariant(QVariant(username)));
+                payload["username"] = username;
             }
 
             auto accountManager = DependencyManager::get<AccountManager>();
@@ -169,25 +280,7 @@ void LoginDialog::createAccountFromStream(QString username) {
 }
 
 void LoginDialog::openUrl(const QString& url) const {
-    auto tablet = dynamic_cast<TabletProxy*>(DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system"));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-
-    if (tablet->getToolbarMode()) {
-        offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
-            newObject->setProperty("url", url);
-        });
-        LoginDialog::hide();
-    } else {
-        if (!hmd->getShouldShowTablet() && !qApp->isHMDMode()) {
-            offscreenUi->load("Browser.qml", [=](QQmlContext* context, QObject* newObject) {
-                newObject->setProperty("url", url);
-            });
-            LoginDialog::hide();
-        } else {
-            tablet->gotoWebScreen(url);
-        }
-    }
+    QDesktopServices::openUrl(QUrl(url));
 }
 
 void LoginDialog::linkCompleted(QNetworkReply* reply) {
@@ -203,6 +296,45 @@ void LoginDialog::createCompleted(QNetworkReply* reply) {
 }
 
 void LoginDialog::createFailed(QNetworkReply* reply) {
+    if (isOculusRunning()) {
+        auto replyData = reply->readAll();
+        QJsonParseError parseError;
+        auto doc = QJsonDocument::fromJson(replyData, &parseError);
+        if (parseError.error != QJsonParseError::NoError) {
+            emit handleCreateFailed(reply->errorString());
+            return;
+        }
+        auto data = doc["data"];
+        auto error = data["error"];
+        auto oculusError = data["oculus"];
+        auto user = error["username"].toArray();
+        auto uid = error["uid"].toArray();
+        auto email = error["email"].toArray();
+        auto password = error["password"].toArray();
+        QString reply;
+        if (uid[0].isString()) {
+            emit handleCreateFailed("Oculus ID " + uid[0].toString() + ".");
+            return;
+        }
+        if (user[0].isString()) {
+            reply = "Username " + user[0].toString() + ".";
+        }
+        if (email[0].isString()) {
+            reply.append((!reply.isEmpty()) ? "\n" : "");
+            reply.append("Email " + email[0].toString() + ".");
+        }
+        if (password[0].isString()) {
+            reply.append((!reply.isEmpty()) ? "\n" : "");
+            reply.append("Password " + password[0].toString() + ".");
+        }
+        if (!oculusError.isNull() && !oculusError.isUndefined()) {
+            emit handleCreateFailed("Could not verify token with Oculus. Please try again.");
+            return;
+        } else {
+            emit handleCreateFailed(reply);
+            return;
+        }
+    }
     emit handleCreateFailed(reply->errorString());
 }
 
@@ -231,6 +363,10 @@ void LoginDialog::signup(const QString& email, const QString& username, const QS
 
 void LoginDialog::signupCompleted(QNetworkReply* reply) {
     emit handleSignupCompleted();
+}
+
+bool LoginDialog::getLoginDialogPoppedUp() const {
+    return qApp->getLoginDialogPoppedUp();
 }
 
 QString errorStringFromAPIObject(const QJsonValue& apiObject) {

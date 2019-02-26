@@ -13,6 +13,26 @@
 
 #include <QOpenGLContext>
 
+#ifdef Q_OS_WIN
+#include <QtPlatformHeaders/QWGLNativeContext>
+#endif
+
+QOpenGLContextWrapper::Pointer QOpenGLContextWrapper::currentContextWrapper() {
+    return std::make_shared<QOpenGLContextWrapper>(QOpenGLContext::currentContext());
+}
+
+
+QOpenGLContextWrapper::NativeContextPointer QOpenGLContextWrapper::getNativeContext() const {
+    QOpenGLContextWrapper::NativeContextPointer result;
+    auto nativeHandle = _context->nativeHandle();
+    if (nativeHandle.canConvert<QGLNativeContext>()) {
+        result = std::make_shared<QGLNativeContext>();
+        *result = nativeHandle.value<QGLNativeContext>();
+    }
+    return result;
+}
+
+
 uint32_t QOpenGLContextWrapper::currentContextVersion() {
     QOpenGLContext* context = QOpenGLContext::currentContext();
     if (!context) {

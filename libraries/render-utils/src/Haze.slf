@@ -21,18 +21,17 @@
 
 <@include Haze.slh@>
 
-layout(binding=RENDER_UTILS_TEXTURE_HAZE_LINEAR_DEPTH) uniform sampler2D linearDepthMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_HAZE_LINEAR_DEPTH) uniform sampler2D linearDepthMap;
 
 vec4 unpackPositionFromZeye(vec2 texcoord) {
     float Zeye = -texture(linearDepthMap, texcoord).x;
-    int side = 0;
-    if (isStereo()) {
-        if (texcoord.x > 0.5) {
-            texcoord.x -= 0.5;
-            side = 1;
-        }
-        texcoord.x *= 2.0;
-    }
+
+    float check = float(isStereo());
+    float check2 = check * float(texcoord.x > 0.5);
+    texcoord.x -= check2 * 0.5;
+    int side = int(check2);
+    texcoord.x *= 1.0 + check;
+
     return vec4(evalEyePositionFromZeye(side, Zeye, texcoord), 1.0);
 }
 

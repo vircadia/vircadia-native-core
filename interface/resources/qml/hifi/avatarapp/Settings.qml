@@ -2,8 +2,8 @@ import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
-import "../../styles-uit"
-import "../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../controls" as HifiControls
 
 Rectangle {
@@ -14,12 +14,30 @@ Rectangle {
 
     signal scaleChanged(real scale);
 
+    property bool keyboardEnabled: true
+    property bool keyboardRaised: false
+    property bool punctuationMode: false
+
+    HifiControlsUit.Keyboard {
+        id: keyboard
+        z: 1000
+        raised: parent.keyboardEnabled && parent.keyboardRaised && HMD.active
+        numeric: parent.punctuationMode
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
+    }
+
     property alias onSaveClicked: dialogButtons.onYesClicked
     property alias onCancelClicked: dialogButtons.onNoClicked
 
     property real scaleValue: scaleSlider.value / 10
     property alias dominantHandIsLeft: leftHandRadioButton.checked
-    property alias avatarCollisionsOn: collisionsEnabledRadiobutton.checked
+    property alias otherAvatarsCollisionsOn: otherAvatarsCollisionsEnabledRadiobutton.checked
+    property alias environmentCollisionsOn: environmentCollisionsEnabledRadiobutton.checked
+    property alias hmdAvatarAlignmentTypeIsEyes: eyesRadioButton.checked
     property alias avatarAnimationOverrideJSON: avatarAnimationUrlInputText.text
     property alias avatarAnimationJSON: avatarAnimationUrlInputText.placeholderText
     property alias avatarCollisionSoundUrl: avatarCollisionSoundUrlInputText.text
@@ -31,18 +49,27 @@ Rectangle {
 
         scaleSlider.notify = false;
         scaleSlider.value = Math.round(avatarScale * 10);
-        scaleSlider.notify = true;;
+        scaleSlider.notify = true;
 
         if (settings.dominantHand === 'left') {
             leftHandRadioButton.checked = true;
         } else {
             rightHandRadioButton.checked = true;
         }
-
-        if (settings.collisionsEnabled) {
-            collisionsEnabledRadiobutton.checked = true;
+        if (settings.otherAvatarsCollisionsEnabled) {
+            otherAvatarsCollisionsEnabledRadiobutton.checked = true;
         } else {
-            collisionsDisabledRadioButton.checked = true;
+            otherAvatarsCollisionsDisabledRadiobutton.checked = true;
+        }
+        if (settings.collisionsEnabled) {
+            environmentCollisionsEnabledRadiobutton.checked = true;
+        } else {
+            environmentCollisionsDisabledRadiobutton.checked = true;
+        }
+        if (settings.hmdAvatarAlignmentType === 'eyes') {
+            eyesRadioButton.checked = true;
+        } else {
+            headRadioButton.checked = true;
         }
 
         avatarAnimationJSON = settings.animGraphUrl;
@@ -87,11 +114,11 @@ Rectangle {
                 size: 17;
                 text: "Avatar Scale"
                 verticalAlignment: Text.AlignVCenter
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             RowLayout {
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
                 Layout.fillWidth: true
 
                 spacing: 0
@@ -101,7 +128,7 @@ Rectangle {
                     text: 'T'
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
 
                 HifiControlsUit.Slider {
@@ -119,7 +146,7 @@ Rectangle {
                         }
                     }
 
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                     Layout.fillWidth: true
 
                     // TextStyle9
@@ -148,7 +175,7 @@ Rectangle {
                     text: 'T'
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
-                    anchors.verticalCenter: parent.verticalCenter
+                    Layout.alignment: Qt.AlignVCenter
                 }
             }
 
@@ -189,7 +216,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
 
-            rows: 2
+            rows: 4
             rowSpacing: 25
 
             columns: 3
@@ -212,7 +239,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 1
-                Layout.leftMargin: -40
+                Layout.leftMargin: -15
 
                 ButtonGroup.group: leftRight
                 checked: true
@@ -229,7 +256,7 @@ Rectangle {
 
                 Layout.row: 0
                 Layout.column: 2
-                Layout.rightMargin: 20
+                Layout.rightMargin: -15
 
                 ButtonGroup.group: leftRight
 
@@ -240,55 +267,143 @@ Rectangle {
                 boxSize: 20
             }
 
+            HifiConstants {
+                id: hifi
+            }
+
             // TextStyle9
             RalewaySemiBold {
                 size: 17;
                 Layout.row: 1
                 Layout.column: 0
-
-                text: "Avatar Collisions"
+                text: "Avatar to avatar collision"
             }
 
             ButtonGroup {
-                id: onOff
+                id: otherAvatarsOnOff
             }
 
             HifiControlsUit.RadioButton {
-                id: collisionsEnabledRadiobutton
+                id: otherAvatarsCollisionsEnabledRadiobutton
 
                 Layout.row: 1
                 Layout.column: 1
-                Layout.leftMargin: -40
-                ButtonGroup.group: onOff
+                Layout.leftMargin: -15
+
+                ButtonGroup.group: otherAvatarsOnOff
 
                 colorScheme: hifi.colorSchemes.light
                 fontSize: 17
                 letterSpacing: 1.4
-                checked: true
-
-                text: "ON"
+                text: "On"
                 boxSize: 20
-            }
-
-            HifiConstants {
-                id: hifi
             }
 
             HifiControlsUit.RadioButton {
-                id: collisionsDisabledRadioButton
+                id: otherAvatarsCollisionsDisabledRadiobutton
 
                 Layout.row: 1
                 Layout.column: 2
-                Layout.rightMargin: 20
+                Layout.rightMargin: -15
 
-                ButtonGroup.group: onOff
+                ButtonGroup.group: otherAvatarsOnOff
+
                 colorScheme: hifi.colorSchemes.light
                 fontSize: 17
                 letterSpacing: 1.4
-
-                text: "OFF"
+                text: "Off"
                 boxSize: 20
             }
+
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
+                Layout.row: 2
+                Layout.column: 0
+                text: "Avatar to environment collision"
+            }
+
+            ButtonGroup {
+                id: worldOnOff
+            }
+
+            HifiControlsUit.RadioButton {
+                id: environmentCollisionsEnabledRadiobutton
+
+                Layout.row: 2
+                Layout.column: 1
+                Layout.leftMargin: -15
+
+                ButtonGroup.group: worldOnOff
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "On"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: environmentCollisionsDisabledRadiobutton
+
+                Layout.row: 2
+                Layout.column: 2
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: worldOnOff
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Off"
+                boxSize: 20
+            }
+
+            // TextStyle9
+            RalewaySemiBold {
+                size: 17;
+                Layout.row: 3
+                Layout.column: 0
+                text: "HMD Alignment"
+            }
+
+            ButtonGroup {
+                id: headEyes
+            }
+
+            HifiControlsUit.RadioButton {
+                id: headRadioButton
+
+                Layout.row: 3
+                Layout.column: 1
+                Layout.leftMargin: -15
+
+                ButtonGroup.group: headEyes
+                checked: true
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Head"
+                boxSize: 20
+            }
+
+            HifiControlsUit.RadioButton {
+                id: eyesRadioButton
+
+                Layout.row: 3
+                Layout.column: 2
+                Layout.rightMargin: -15
+
+                ButtonGroup.group: headEyes
+
+                colorScheme: hifi.colorSchemes.light
+                fontSize: 17
+                letterSpacing: 1.4
+                text: "Eyes"
+                boxSize: 20
+            }
+
         }
 
         ColumnLayout {
@@ -311,9 +426,12 @@ Rectangle {
             InputTextStyle4 {
                 id: avatarAnimationUrlInputText
                 font.pixelSize: 17
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.fillWidth: true
                 placeholderText: 'user\\ﬁle\\dir'
+
+                onFocusChanged: {
+                    keyboardRaised = (avatarAnimationUrlInputText.focus || avatarCollisionSoundUrlInputText.focus);
+                }
             }
         }
 
@@ -337,9 +455,12 @@ Rectangle {
             InputTextStyle4 {
                 id: avatarCollisionSoundUrlInputText
                 font.pixelSize: 17
-                anchors.left: parent.left
-                anchors.right: parent.right
+                Layout.fillWidth: true
                 placeholderText: 'https://hifi-public.s3.amazonaws.com/sounds/Collisions-'
+
+                onFocusChanged: {
+                    keyboardRaised = (avatarAnimationUrlInputText.focus || avatarCollisionSoundUrlInputText.focus);
+                }
             }
         }
 

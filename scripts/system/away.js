@@ -45,7 +45,8 @@ var OVERLAY_DATA_HMD = {
     emissive: true,
     drawInFront: true,
     parentID: MyAvatar.SELF_ID,
-    parentJointIndex: CAMERA_MATRIX
+    parentJointIndex: CAMERA_MATRIX,
+    ignorePickIntersection: true
 };
 
 var AWAY_INTRO = {

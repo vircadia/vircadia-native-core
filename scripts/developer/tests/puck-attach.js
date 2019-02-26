@@ -85,7 +85,7 @@ function entityExists(entityID) {
     return Object.keys(Entities.getEntityProperties(entityID)).length > 0;
 }
 
-var VIVE_PUCK_MODEL = "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj";
+var VIVE_PUCK_MODEL = "https://s3.amazonaws.com/hifi-public/tony/vive_tracker_puck_y180z180.obj";
 var VIVE_PUCK_DIMENSIONS = { x: 0.0945, y: 0.0921, z: 0.0423 }; // 1/1000th scale of model
 var VIVE_PUCK_SEARCH_DISTANCE = 1.5; // metres
 var VIVE_PUCK_SPAWN_DISTANCE = 0.5; // metres

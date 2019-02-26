@@ -9,7 +9,7 @@
 <@include render-utils/ShaderConstants.h@>
 <@func declareSkyboxMap()@>
 // declareSkyboxMap
-layout(binding=RENDER_UTILS_TEXTURE_SKYBOX) uniform samplerCube skyboxMap;
+LAYOUT(binding=RENDER_UTILS_TEXTURE_SKYBOX) uniform samplerCube skyboxMap;
 
 vec4 evalSkyboxLight(vec3 direction, float lod) {
     // textureQueryLevels is not available until #430, so we require explicit lod

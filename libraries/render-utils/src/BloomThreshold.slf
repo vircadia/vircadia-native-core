@@ -12,8 +12,8 @@
 <@include BloomThreshold.shared.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-layout(binding=RENDER_UTILS_TEXTURE_BLOOM_COLOR) uniform sampler2D colorMap;
-layout(std140, binding=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
+LAYOUT(binding=RENDER_UTILS_TEXTURE_BLOOM_COLOR) uniform sampler2D colorMap;
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_BLOOM_PARAMS) uniform parametersBuffer {
     Parameters parameters;
 };
 

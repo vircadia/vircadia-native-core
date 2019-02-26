@@ -261,7 +261,6 @@ function onMessage(message) {
             }
             break;
         case 'removeFromStoryIDsToMaybeDelete':
-            console.log("Facebook OR Twitter button clicked for story_id " + message.story_id);
             removeFromStoryIDsToMaybeDelete(message.story_id);
             break;
         default:

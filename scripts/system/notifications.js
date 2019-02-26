@@ -343,6 +343,7 @@
     }
 
     var CLOSE_NOTIFICATION_ICON = Script.resolvePath("assets/images/close-small-light.svg");
+    var TEXT_OVERLAY_FONT_SIZE_IN_PIXELS = 18.0; // taken from TextOverlay::textSize
 
     //  This function creates and sizes the overlays
     function createNotification(text, notificationType, imageProperties) {
@@ -362,7 +363,7 @@
         if (text.length >= breakPoint) {
             breaks = count;
         }
-        extraLine = breaks * 16.0;
+        extraLine = breaks * TEXT_OVERLAY_FONT_SIZE_IN_PIXELS;
         for (i = 0; i < heights.length; i += 1) {
             stack = stack + heights[i];
         }
@@ -634,7 +635,7 @@
     Window.notifyEditError = onEditError;
     Window.notify = onNotify;
     Tablet.tabletNotification.connect(tabletNotification);
-    Wallet.walletNotSetup.connect(walletNotSetup);
+    WalletScriptingInterface.walletNotSetup.connect(walletNotSetup);
 
     Messages.subscribe(NOTIFICATIONS_MESSAGE_CHANNEL);
     Messages.messageReceived.connect(onMessageReceived);

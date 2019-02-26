@@ -25,13 +25,49 @@ class AudioScriptingInterface : public QObject, public Dependency {
 
     // JSDoc for property is in Audio.h.
     Q_PROPERTY(bool isStereoInput READ isStereoInput WRITE setStereoInput NOTIFY isStereoInputChanged)
+    Q_PROPERTY(bool isSoloing READ isSoloing)
+    Q_PROPERTY(QVector<QUuid> soloList READ getSoloList)
 
 public:
-    virtual ~AudioScriptingInterface() {}
+    virtual ~AudioScriptingInterface() = default;
     void setLocalAudioInterface(AbstractAudioInterface* audioInterface);
 
+    bool isSoloing() const {
+        return _localAudioInterface->getAudioSolo().isSoloing();
+    }
+
+    QVector<QUuid> getSoloList() const {
+        return _localAudioInterface->getAudioSolo().getUUIDs();
+    }
+
+    /**jsdoc
+     * Add nodes to the audio solo list
+     * @function Audio.addToSoloList
+     * @param {Uuid[]} uuidList - List of node UUIDs to add to the solo list.
+     */
+    Q_INVOKABLE void addToSoloList(QVector<QUuid> uuidList) {
+        _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
+    }
+
+    /**jsdoc
+     * Remove nodes from the audio solo list
+     * @function Audio.removeFromSoloList
+     * @param {Uuid[]} uuidList - List of node UUIDs to remove from the solo list.
+     */
+    Q_INVOKABLE void removeFromSoloList(QVector<QUuid> uuidList) {
+        _localAudioInterface->getAudioSolo().removeUUIDs(uuidList);
+    }
+
+    /**jsdoc
+     * Reset the list of soloed nodes.
+     * @function Audio.resetSoloList
+     */
+    Q_INVOKABLE void resetSoloList() {
+        _localAudioInterface->getAudioSolo().reset();
+    }
+
 protected:
-    AudioScriptingInterface() {}
+    AudioScriptingInterface() = default;
 
     // these methods are protected to stop C++ callers from calling, but invokable from script
 
@@ -66,11 +102,9 @@ protected:
      * @function Audio.playSystemSound
      * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
      * {@link SoundObject} for supported formats.
-     * @param {Vec3} position - The position in the domain to play the sound.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      */
-    // FIXME: there is no way to play a positionless sound
-    Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound, const QVector3D& position);
+    Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound);
 
     /**jsdoc
      * Set whether or not the audio input should be used in stereo. If the audio input does not support stereo then setting a 

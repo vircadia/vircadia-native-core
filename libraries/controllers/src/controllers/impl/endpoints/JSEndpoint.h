@@ -24,8 +24,8 @@ public:
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }
 
-    virtual float peek() const override;
-    virtual void apply(float newValue, const Pointer& source) override;
+    virtual AxisValue peek() const override;
+    virtual void apply(AxisValue newValue, const Pointer& source) override;
 
 private:
     mutable QJSValue _callable;

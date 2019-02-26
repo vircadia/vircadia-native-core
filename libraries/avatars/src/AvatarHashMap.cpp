@@ -85,8 +85,9 @@ std::vector<AvatarSharedPointer> AvatarReplicas::takeReplicas(const QUuid& paren
 void AvatarReplicas::processAvatarIdentity(const QUuid& parentID, const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
     if (_replicasMap.find(parentID) != _replicasMap.end()) {
         auto &replicas = _replicasMap[parentID];
+        QDataStream identityDataStream(identityData);
         for (auto avatar : replicas) {
-            avatar->processAvatarIdentity(identityData, identityChanged, displayNameChanged);
+            avatar->processAvatarIdentity(identityDataStream, identityChanged, displayNameChanged);
         }
     }
 }
@@ -194,28 +195,29 @@ int AvatarHashMap::numberOfAvatarsInRange(const glm::vec3& position, float range
     return count;
 }
 
-AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
-    return std::make_shared<AvatarData>();
+AvatarSharedPointer AvatarHashMap::newSharedAvatar(const QUuid& sessionUUID) {
+    auto avatarData = std::make_shared<AvatarData>();
+    avatarData->setSessionUUID(sessionUUID);
+    return avatarData;
 }
 
 AvatarSharedPointer AvatarHashMap::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     qCDebug(avatars) << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
 
-    auto avatar = newSharedAvatar();
+    auto avatar = newSharedAvatar(sessionUUID);
     avatar->setSessionUUID(sessionUUID);
     avatar->setOwningAvatarMixer(mixerWeakPointer);
 
-    // addAvatar is only called from newOrExistingAvatar, which already locks _hashLock
-    _avatarHash.insert(sessionUUID, avatar);
+    {
+        QWriteLocker locker(&_hashLock);
+        _avatarHash.insert(sessionUUID, avatar);
+    }
     emit avatarAddedEvent(sessionUUID);
-
     return avatar;
 }
 
-AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
-    bool& isNew) {
-    QWriteLocker locker(&_hashLock);
-    auto avatar = _avatarHash.value(sessionUUID);
+AvatarSharedPointer AvatarHashMap::newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer, bool& isNew) {
+    auto avatar = findAvatar(sessionUUID);
     if (!avatar) {
         avatar = addAvatar(sessionUUID, mixerWeakPointer);
         isNew = true;
@@ -258,7 +260,6 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 
         if (isNewAvatar) {
             QWriteLocker locker(&_hashLock);
-            _pendingAvatars.insert(sessionUUID, { std::chrono::steady_clock::now(), 0, avatar });
             avatar->setIsNewAvatar(true);
             auto replicaIDs = _replicas.getReplicaIDs(sessionUUID);
             for (auto replicaID : replicaIDs) {
@@ -285,44 +286,62 @@ AvatarSharedPointer AvatarHashMap::parseAvatarData(QSharedPointer<ReceivedMessag
 }
 
 void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    QDataStream avatarIdentityStream(message->getMessage());
 
-    // peek the avatar UUID from the incoming packet
-    QUuid identityUUID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
+    while (!avatarIdentityStream.atEnd()) {
+        // peek the avatar UUID from the incoming packet
+        avatarIdentityStream.startTransaction();
+        QUuid identityUUID;
+        avatarIdentityStream >> identityUUID;
+        avatarIdentityStream.rollbackTransaction();
 
-    if (identityUUID.isNull()) {
-        qCDebug(avatars) << "Refusing to process identity packet for null avatar ID";
-        return;
-    }
-
-    // make sure this isn't for an ignored avatar
-    auto nodeList = DependencyManager::get<NodeList>();
-    static auto EMPTY = QUuid();
-
-    {
-        QReadLocker locker(&_hashLock);
-        _pendingAvatars.remove(identityUUID);
-        auto me = _avatarHash.find(EMPTY);
-        if ((me != _avatarHash.end()) && (identityUUID == me.value()->getSessionUUID())) {
-            // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
-            // identity packet for ourself (such as when we are assigned a sessionDisplayName by the mixer upon joining),
-            // we make things match here.
-            identityUUID = EMPTY;
+        if (identityUUID.isNull()) {
+            qCDebug(avatars) << "Refusing to process identity packet for null avatar ID";
+            return;
         }
-    }
-    
-    if (!nodeList->isIgnoringNode(identityUUID) || nodeList->getRequestsDomainListData()) {
-        // mesh URL for a UUID, find avatar in our list
-        bool isNewAvatar;
-        auto avatar = newOrExistingAvatar(identityUUID, sendingNode, isNewAvatar);
-        bool identityChanged = false;
-        bool displayNameChanged = false;
-        // In this case, the "sendingNode" is the Avatar Mixer.
-        avatar->processAvatarIdentity(message->getMessage(), identityChanged, displayNameChanged);
-        _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
+
+        // make sure this isn't for an ignored avatar
+        auto nodeList = DependencyManager::get<NodeList>();
+        static auto EMPTY = QUuid();
+
+        {
+            QReadLocker locker(&_hashLock);
+            auto me = _avatarHash.find(EMPTY);
+            if ((me != _avatarHash.end()) && (identityUUID == me.value()->getSessionUUID())) {
+                // We add MyAvatar to _avatarHash with an empty UUID. Code relies on this. In order to correctly handle an
+                // identity packet for ourself (such as when we are assigned a sessionDisplayName by the mixer upon joining),
+                // we make things match here.
+                identityUUID = EMPTY;
+            }
+        }
+
+        if (!nodeList->isIgnoringNode(identityUUID) || nodeList->getRequestsDomainListData()) {
+            // mesh URL for a UUID, find avatar in our list
+            bool isNewAvatar;
+            auto avatar = newOrExistingAvatar(identityUUID, sendingNode, isNewAvatar);
+            bool identityChanged = false;
+            bool displayNameChanged = false;
+            // In this case, the "sendingNode" is the Avatar Mixer.
+            avatar->processAvatarIdentity(avatarIdentityStream, identityChanged, displayNameChanged);
+            _replicas.processAvatarIdentity(identityUUID, message->getMessage(), identityChanged, displayNameChanged);
+        }
     }
 }
 
 void AvatarHashMap::processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    AvatarTraits::TraitMessageSequence seq;
+
+    message->readPrimitive(&seq);
+
+    auto traitsAckPacket = NLPacket::create(PacketType::BulkAvatarTraitsAck, sizeof(AvatarTraits::TraitMessageSequence), true);
+    traitsAckPacket->writePrimitive(seq);
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
+    if (!avatarMixer.isNull()) {
+        // we have a mixer to send to, acknowledge that we received these
+        // traits.
+        nodeList->sendPacket(std::move(traitsAckPacket), *avatarMixer);
+    }
 
     while (message->getBytesLeftToRead()) {
         // read the avatar ID to figure out which avatar this is for
@@ -419,7 +438,6 @@ void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason remo
             }
         }
 
-        _pendingAvatars.remove(sessionUUID);
         auto removedAvatar = _avatarHash.take(sessionUUID);
 
         if (removedAvatar) {

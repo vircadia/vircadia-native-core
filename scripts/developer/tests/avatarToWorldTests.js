@@ -42,52 +42,6 @@ function jointToWorldPointTest_update(deltaTime) {
    Entities.editEntity(jointToWorldPointTest_sphereEntity, newProperties);
 }
 
-//jointToWorldDirection
-//	create line in world space
-//	each frame calculate world space direction of players head z axis
-//	update line to match
-var jointToWorldDirectionTest_lineEntity;
-function jointToWorldDirectionTest() {
-   var jointIndex = MyAvatar.getJointIndex("Head");
-   var avatarPos = MyAvatar.getJointPosition(jointIndex);
-
-   var jointDir = { x: 1, y: 0, z: 1 };
-   var worldDir = MyAvatar.jointToWorldDirection(jointDir, jointIndex);
-   print(worldDir.x);
-   print(worldDir.y);
-   print(worldDir.z);
-   jointToWorldDirectionTest_lineEntity = Entities.addEntity({
-      type: "Line",
-      color: {red: 250, green: 0, blue: 0},
-      dimensions: {x: 5, y: 5, z: 5},
-      lifetime: 10.0,
-      linePoints: [{
-        x: 0,
-        y: 0,
-        z: 0
-       }, worldDir
-       ],
-      position : avatarPos,
-   });
-}
-function jointToWorldDirection_update(deltaTime) {
-   var jointIndex = MyAvatar.getJointIndex("Head");
-   var avatarPos = MyAvatar.getJointPosition(jointIndex);
-   var jointDir = { x: 1, y: 0, z: 0 };
-   var worldDir = MyAvatar.jointToWorldDirection(jointDir, jointIndex);
-   var newProperties = {
-      linePoints: [{
-        x: 0,
-        y: 0,
-        z: 0
-      }, worldDir
-      ],
-      position : avatarPos
-   };
-   
-   Entities.editEntity(jointToWorldDirectionTest_lineEntity, newProperties);
-}
-
 //jointToWorldRotation
 //	create box in world space
 //	each frame calculate world space rotation of players head

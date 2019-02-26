@@ -6,6 +6,10 @@ if (NOT "${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
   message( FATAL_ERROR "Only 64 bit builds supported." )
 endif()
 
+if (USE_CCACHE OR "$ENV{USE_CCACHE}")
+  configure_ccache()
+endif()
+
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
 

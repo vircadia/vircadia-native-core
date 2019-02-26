@@ -12,8 +12,8 @@ import QtQuick 2.7
 import QtQuick.Controls 2.3
 import QtQuick.Controls 1.5 as QQC1
 
-import "../../controls-uit"
-import "../../styles-uit"
+import controlsUit 1.0
+import stylesUit 1.0
 
 import "../fileDialog"
 

@@ -10,8 +10,8 @@
 //
 
 import QtQuick 2.5
-import "../styles-uit"
-import "../controls-uit"
+import stylesUit 1.0
+import controlsUit 1.0
 
 Item {
     property var dialogTitleText : "";

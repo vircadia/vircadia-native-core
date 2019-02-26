@@ -19,13 +19,14 @@
 
 ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
     _procedural._vertexSource = gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource();
-    _procedural._opaquefragmentSource = gpu::Shader::createPixel(shader::procedural::fragment::proceduralSkybox)->getSource();
+    _procedural._opaqueFragmentSource = shader::Source::get(shader::procedural::fragment::proceduralSkybox);
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
     // Must match PrepareStencil::STENCIL_BACKGROUND
     const int8_t STENCIL_BACKGROUND = 0;
     _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_BACKGROUND, 0xFF, gpu::EQUAL,
         gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    _procedural._opaqueState->setDepthTest(gpu::State::DepthTest(false));
 }
 
 bool ProceduralSkybox::empty() {
@@ -35,7 +36,6 @@ bool ProceduralSkybox::empty() {
 void ProceduralSkybox::clear() {
     // Parse and prepare a procedural with no shaders to release textures
     parse(QString());
-    _procedural.isReady();
 
     Skybox::clear();
 }

@@ -51,6 +51,9 @@ Item {
                         text: root.positionText
                     }
                     StatText {
+                        text: root.recenterText
+                    }
+                    StatText {
                         text: "Anim Vars:--------------------------------------------------------------------------------"
                     }
                     ListView {
@@ -93,6 +96,9 @@ Item {
                         text: root.rotationText
                     }
                     StatText {
+                        text: root.sittingText
+                    }
+                    StatText {
                         text: "State Machines:---------------------------------------------------------------------------"
                     }
                     ListView {
@@ -121,6 +127,9 @@ Item {
 
                     StatText {
                         text: root.velocityText
+                    }
+                    StatText {
+                        text: root.walkingText
                     }
                     StatText {
                         text: "Alpha Values:--------------------------------------------------------------------------"

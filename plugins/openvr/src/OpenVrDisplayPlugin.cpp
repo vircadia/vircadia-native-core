@@ -319,6 +319,7 @@ public:
         glBindVertexArray(0);
         glDeleteVertexArrays(1, &_vao);
         _canvas->doneCurrent();
+        _canvas->moveToThread(_plugin.thread());
     }
 
     void update(const CompositeInfo& newCompositeInfo) { _queue.push(newCompositeInfo); }
@@ -463,7 +464,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
     auto chaperone = vr::VRChaperone();
     if (chaperone) {
         float const UI_RADIUS = 1.0f;
-        float const UI_HEIGHT = 1.6f;
+        float const UI_HEIGHT = 0.0f;
         float const UI_Z_OFFSET = 0.5;
 
         float xSize, zSize;
@@ -485,6 +486,7 @@ bool OpenVrDisplayPlugin::internalActivate() {
                 _submitCanvas->doneCurrent();
             });
         }
+        _submitCanvas->moveToThread(_submitThread.get());
     }
 
     return Parent::internalActivate();
@@ -669,8 +671,6 @@ void OpenVrDisplayPlugin::postPreview() {
     PoseData nextRender, nextSim;
     nextRender.frameIndex = presentCount();
 
-    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
-
     if (!_threadedSubmit) {
         vr::VRCompositor()->WaitGetPoses(nextRender.vrPoses, vr::k_unMaxTrackedDeviceCount, nextSim.vrPoses,
                                          vr::k_unMaxTrackedDeviceCount);
@@ -690,7 +690,7 @@ void OpenVrDisplayPlugin::postPreview() {
 }
 
 bool OpenVrDisplayPlugin::isHmdMounted() const {
-    return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+    return isHeadInHeadset();
 }
 
 void OpenVrDisplayPlugin::updatePresentPose() {

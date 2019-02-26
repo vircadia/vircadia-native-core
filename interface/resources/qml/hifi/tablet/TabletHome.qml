@@ -6,7 +6,7 @@ import QtQuick.Layouts 1.3
 import TabletScriptingInterface 1.0
 
 import "."
-import "../../styles-uit"
+import stylesUit 1.0
 import "../audio" as HifiAudio
 
 Item {
@@ -61,7 +61,7 @@ Item {
                 RalewaySemiBold {
                     text: Account.loggedIn ? qsTr("Log out") : qsTr("Log in")
                     horizontalAlignment: Text.AlignRight
-                    anchors.right: parent.right
+                    Layout.alignment: Qt.AlignRight
                     font.pixelSize: 20
                     color: "#afafaf"
                 }
@@ -71,7 +71,7 @@ Item {
                     height: Account.loggedIn ? parent.height/2 - parent.spacing/2 : 0
                     text: Account.loggedIn ? "[" + tabletRoot.usernameShort + "]" : ""
                     horizontalAlignment: Text.AlignRight
-                    anchors.right: parent.right
+                    Layout.alignment: Qt.AlignRight
                     font.pixelSize: 20
                     color: "#afafaf"
                 }
@@ -115,9 +115,9 @@ Item {
             property int previousIndex: -1
             Repeater {
                 id: pageRepeater
-                model: Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage)
+                model: tabletProxy != null ? Math.ceil(tabletProxy.buttons.rowCount() / TabletEnums.ButtonsOnPage) : 0
                 onItemAdded: {
-                    item.proxyModel.sourceModel = tabletProxy.buttons;
+                    item.proxyModel.sourceModel = tabletProxy != null ? tabletProxy.buttons : null;
                     item.proxyModel.pageIndex = index;
                 }
 
@@ -251,16 +251,28 @@ Item {
                 height: 15
 
                 Rectangle {
+                    property bool isHovered: false
                     anchors.centerIn: parent
-                    opacity: index === pageIndicator.currentIndex ? 0.95 : 0.45
-                    implicitWidth: index === pageIndicator.currentIndex ? 15 : 10
+                    opacity: index === pageIndicator.currentIndex || isHovered ? 0.95 : 0.45
+                    implicitWidth: index === pageIndicator.currentIndex || isHovered ? 15 : 10
                     implicitHeight: implicitWidth
                     radius: width/2
-                    color: "white"
+                    color: isHovered && index !== pageIndicator.currentIndex ? "#1fc6a6" : "white"
                     Behavior on opacity {
                         OpacityAnimator {
                             duration: 100
                         }
+                    }
+
+                    MouseArea {
+                        anchors.centerIn: parent
+                        width: 20
+                        height: 30 // Make it easier to target with laser.
+                        hoverEnabled: true
+                        enabled: true
+                        onEntered: parent.isHovered = true;
+                        onExited: parent.isHovered = false;
+                        onClicked: swipeView.currentIndex = index;
                     }
                 }
             }

@@ -13,8 +13,8 @@ import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
-import "../../styles-uit"
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 
 RowLayout {
     property var sound: null;

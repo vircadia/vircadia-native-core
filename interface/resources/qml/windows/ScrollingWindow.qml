@@ -13,9 +13,9 @@ import QtQuick 2.5
 import QtQuick.Controls 2.2
 import QtGraphicalEffects 1.0
 
-import "."
-import "../styles-uit"
-import "../controls-uit" as HiFiControls
+import "." as Windows
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 
 // FIXME how do I set the initial position of a window without
 // overriding places where the a individual client of the window
@@ -25,7 +25,7 @@ import "../controls-uit" as HiFiControls
 // of the desktop?  How do I ensure when the desktop resizes all the windows
 // are still at least partially visible?
 
-Window {
+Windows.Window {
     id: window
     HifiConstants { id: hifi }
     children: [ swallower, frame, defocuser, pane, activator ]
@@ -178,7 +178,7 @@ Window {
                 children: [ footer ]
             }
 
-            HiFiControls.Keyboard {
+            HifiControlsUit.Keyboard {
                 id: keyboard
                 enabled: !keyboardOverride
                 raised: keyboardEnabled && keyboardRaised

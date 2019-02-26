@@ -14,11 +14,12 @@
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
+import "../.." as HifiCommon
 
 // references XXX from root context
 
@@ -31,15 +32,20 @@ Rectangle {
     property bool ownershipStatusReceived: false;
     property bool balanceReceived: false;
     property bool availableUpdatesReceived: false;
+    property bool itemInfoReceived: false;
+    property bool dataReady: itemInfoReceived && ownershipStatusReceived && balanceReceived && availableUpdatesReceived;
     property string baseItemName: "";
     property string itemName;
     property string itemId;
     property string itemHref;
     property string itemAuthor;
     property int itemEdition: -1;
+    property bool hasSomethingToTradeIn: alreadyOwned && (itemEdition > 0); // i.e., don't trade in your artist's proof
+    property bool isTradingIn: isUpdating && hasSomethingToTradeIn;
+    property bool isStocking: availability === 'not for sale' && creator === Account.username;
     property string certificateId;
     property double balanceAfterPurchase;
-    property bool alreadyOwned: false;
+    property bool alreadyOwned: false; // Including proofs
     property int itemPrice: -1;
     property bool isCertified;
     property string itemType: "unknown";
@@ -54,7 +60,10 @@ Rectangle {
     property string referrer;
     property bool isInstalled;
     property bool isUpdating;
+    property string availability: "available";
+    property string creator: "";
     property string baseAppURL;
+    property int currentUpdatesPage: 1;
     // Style
     color: hifi.colors.white;
     Connections {
@@ -156,8 +165,14 @@ Rectangle {
                         break;
                     }
                 }
-                root.availableUpdatesReceived = true;
-                refreshBuyUI();
+
+                if (result.data.updates.length === 0 || root.isUpdating) {
+                    root.availableUpdatesReceived = true;
+                    refreshBuyUI();
+                } else {
+                    root.currentUpdatesPage++;
+                    Commerce.getAvailableUpdates(root.itemId, currentUpdatesPage)
+                }
             }
         }
 
@@ -174,10 +189,14 @@ Rectangle {
 
     onItemIdChanged: {
         root.ownershipStatusReceived = false;
+        root.itemInfoReceived = false;
         Commerce.alreadyOwned(root.itemId);
         root.availableUpdatesReceived = false;
+        root.currentUpdatesPage = 1;
         Commerce.getAvailableUpdates(root.itemId);
-        itemPreviewImage.source = "https://hifi-metaverse.s3-us-west-1.amazonaws.com/marketplace/previews/" + itemId + "/thumbnail/hifi-mp-" + itemId + ".jpg";
+        
+        var MARKETPLACE_API_URL = Account.metaverseServerURL + "/api/v1/marketplace/items/";
+        http.request({uri: MARKETPLACE_API_URL + root.itemId}, updateCheckoutQMLFromHTTP);
     }
 
     onItemTypeChanged: {
@@ -240,11 +259,6 @@ Rectangle {
                     lightboxPopup.button1method = function() {
                         lightboxPopup.visible = false;
                     }
-                    lightboxPopup.button2text = "GO TO WALLET";
-                    lightboxPopup.button2method = function() {
-                        lightboxPopup.visible = false;
-                        sendToScript({method: 'checkout_openWallet'});
-                    };
                     lightboxPopup.visible = true;
                 } else {
                     sendToScript(msg);
@@ -276,6 +290,7 @@ Rectangle {
             ownershipStatusReceived = false;
             balanceReceived = false;
             availableUpdatesReceived = false;
+            itemInfoReceived = false;
             Commerce.getWalletStatus();
         }
     }
@@ -352,7 +367,7 @@ Rectangle {
         Rectangle {
             id: loading;
             z: 997;
-            visible: !root.ownershipStatusReceived || !root.balanceReceived || !root.availableUpdatesReceived;
+            visible: !root.ownershipStatusReceived || !root.balanceReceived || !root.availableUpdatesReceived || !root.itemInfoReceived;
             anchors.fill: parent;
             color: hifi.colors.white;
 
@@ -383,7 +398,7 @@ Rectangle {
             anchors.leftMargin: 16;
             width: paintedWidth;
             height: paintedHeight;
-            text: "Review Purchase:";
+            text: "Review:";
             color: hifi.colors.black;
             size: 28;
         }
@@ -425,7 +440,7 @@ Rectangle {
                 anchors.top: parent.top;
                 anchors.left: itemPreviewImage.right;
                 anchors.leftMargin: 12;
-                anchors.right: itemPriceContainer.left;
+                anchors.right: parent.right;
                 anchors.rightMargin: 8;
                 height: 30;
                 // Style
@@ -440,21 +455,22 @@ Rectangle {
             Item {
                 id: itemPriceContainer;
                 // Anchors
-                anchors.top: parent.top;
-                anchors.right: parent.right;
+                anchors.top: itemNameText.bottom;
+                anchors.topMargin: 8;
+                anchors.left: itemNameText.left;
                 height: 30;
-                width: itemPriceTextLabel.width + itemPriceText.width + 20;
+                width: itemPriceText.width + 20;
 
-                // "HFC" balance label
+                // "HFC" label
                 HiFiGlyphs {
                     id: itemPriceTextLabel;
-                    visible: !(root.isUpdating && root.itemEdition > 0);
+                    visible: !isTradingIn && (root.itemPrice > 0);
                     text: hifi.glyphs.hfc;
                     // Size
                     size: 30;
                     // Anchors
-                    anchors.right: itemPriceText.left;
-                    anchors.rightMargin: 4;
+                    anchors.right: parent.right;
+                    //anchors.rightMargin: 4;
                     anchors.top: parent.top;
                     anchors.topMargin: 0;
                     width: paintedWidth;
@@ -464,13 +480,15 @@ Rectangle {
                 }
                 FiraSansSemiBold {
                     id: itemPriceText;
-                    text: (root.isUpdating && root.itemEdition > 0) ? "FREE\nUPDATE" : ((root.itemPrice === -1) ? "--" : root.itemPrice);
+                    text: isTradingIn ? "FREE\nUPDATE" : 
+                        (isStocking ? "Free for creator" :
+                            ((root.itemPrice === -1) ? "--" : ((root.itemPrice > 0) ? root.itemPrice : "FREE")));
                     // Text size
-                    size: (root.isUpdating && root.itemEdition > 0) ? 20 : 26;
+                    size: isTradingIn ? 20 : 26;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.right: parent.right;
-                    anchors.rightMargin: 16;
+                    anchors.left: itemPriceTextLabel.visible ? itemPriceTextLabel.right : parent.left;
+                    anchors.leftMargin: 4;
                     width: paintedWidth;
                     height: paintedHeight;
                     // Style
@@ -559,10 +577,10 @@ Rectangle {
                 }
             }
 
-            // "View in My Purchases" button
+            // "View in Inventory" button
             HifiControlsUit.Button {
                 id: viewInMyPurchasesButton;
-                visible: false;
+                visible: isCertified && dataReady && (isUpdating ? !hasSomethingToTradeIn : alreadyOwned);
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
@@ -570,7 +588,7 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN MY PURCHASES";
+                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN YOUR INVENTORY";
                 onClicked: {
                     if (root.isUpdating) {
                         sendToScript({method: 'checkout_goToPurchases', filterText: root.baseItemName});
@@ -583,8 +601,8 @@ Rectangle {
             // "Buy" button
             HifiControlsUit.Button {
                 id: buyButton;
-                visible: !((root.itemType === "avatar" || root.itemType === "app") && viewInMyPurchasesButton.visible)
-                enabled: (root.balanceAfterPurchase >= 0 && ownershipStatusReceived && balanceReceived && availableUpdatesReceived) || (!root.isCertified) || root.isUpdating;
+                visible: isTradingIn || !alreadyOwned || isStocking || !(root.itemType === "avatar" || root.itemType === "app");
+                enabled: (root.balanceAfterPurchase >= 0 && dataReady) || (!root.isCertified) || root.isUpdating;
                 color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
@@ -593,10 +611,15 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: (root.isUpdating && root.itemEdition > 0) ? "CONFIRM UPDATE" : (((root.isCertified) ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ?
-                    ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Buy It Again" : "Confirm Purchase") : "--") : "Get Item"));
+                text: isTradingIn ?
+                    "CONFIRM UPDATE" : 
+                    (((root.isCertified) ? 
+                        (dataReady ?
+                            ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Get It Again" : "Confirm") :
+                            "--") :
+                        "Get Item"));
                 onClicked: {
-                    if (root.isUpdating && root.itemEdition > 0) {
+                    if (isTradingIn) {
                         // If we're updating an app, the existing app needs to be uninstalled.
                         // This call will fail/return `false` if the app isn't installed, but that's OK.
                         if (root.itemType === "app") {
@@ -608,9 +631,9 @@ Rectangle {
                     } else if (root.isCertified) {
                         if (!root.shouldBuyWithControlledFailure) {
                             if (root.itemType === "contentSet" && !Entities.canReplaceContent()) {
-                                lightboxPopup.titleText = "Purchase Content Set";
+                                lightboxPopup.titleText = "Get Content Set";
                                 lightboxPopup.bodyText = "You will not be able to replace this domain's content with <b>" + root.itemName +
-                                    " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to purchase this content set?";
+                                    " </b>until the server owner gives you 'Replace Content' permissions.<br><br>Are you sure you want to get this content set?";
                                 lightboxPopup.button1text = "CANCEL";
                                 lightboxPopup.button1method = function() {
                                     lightboxPopup.visible = false;
@@ -653,7 +676,7 @@ Rectangle {
                 anchors.right: parent.right;
                 text: "Cancel"
                 onClicked: {
-                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                    sendToScript({method: 'checkout_cancelClicked', itemId: itemId});
                 }
             }
         }
@@ -694,7 +717,7 @@ Rectangle {
             id: completeText2;
             text: "The " + (root.itemTypesText)[itemTypesArray.indexOf(root.itemType)] +
                 ' <font color="' + hifi.colors.blueAccent + '"><a href="#">' + root.itemName + '</a></font>' +
-                " has been added to your Purchases and a receipt will appear in your Wallet's transaction history.";
+                " has been added to your Inventory.";
             // Text size
             size: 18;
             // Anchors
@@ -833,7 +856,7 @@ Rectangle {
                 }
                 lightboxPopup.button2text = "OPEN GOTO";
                 lightboxPopup.button2method = function() {
-                    sendToScript({method: 'purchases_openGoTo'});
+                    sendToScript({method: 'checkout_openGoTo'});
                     lightboxPopup.visible = false;
                 };
                 lightboxPopup.visible = true;
@@ -864,7 +887,7 @@ Rectangle {
 
         RalewaySemiBold {
             id: myPurchasesLink;
-            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View this item in My Purchases</a></font>';
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View this item in your Inventory</a></font>';
             // Text size
             size: 18;
             // Anchors
@@ -886,7 +909,8 @@ Rectangle {
 
         RalewaySemiBold {
             id: walletLink;
-            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View receipt in Wallet</a></font>';
+            visible: !WalletScriptingInterface.limitedCommerce;
+            text: '<font color="' + hifi.colors.primaryHighlight + '"><a href="#">View receipt in Recent Activity</a></font>';
             // Text size
             size: 18;
             // Anchors
@@ -902,18 +926,18 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                sendToScript({method: 'purchases_openWallet'});
+                sendToScript({method: 'checkout_openRecentActivity'});
             }
         }
 
         RalewayRegular {
             id: pendingText;
-            text: 'Your item is marked "pending" while your purchase is being confirmed. ' +
+            text: 'Your item is marked "pending" while the transfer is being confirmed. ' +
             '<b><font color="' + hifi.colors.primaryHighlight + '"><a href="#">Learn More</a></font></b>';
             // Text size
             size: 18;
             // Anchors
-            anchors.top: walletLink.bottom;
+            anchors.top: walletLink.visible ? walletLink.bottom : myPurchasesLink.bottom;
             anchors.topMargin: 32;
             height: paintedHeight;
             anchors.left: parent.left;
@@ -925,8 +949,8 @@ Rectangle {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
             onLinkActivated: {
-                lightboxPopup.titleText = "Purchase Confirmations";
-                lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed.<br><br>' +
+                lightboxPopup.titleText = "Confirmations";
+                lightboxPopup.bodyText = 'Your item is marked "pending" while the transfer is being confirmed.<br><br>' +
                 'Confirmations usually take about 90 seconds.';
                 lightboxPopup.button1text = "CLOSE";
                 lightboxPopup.button1method = function() {
@@ -936,9 +960,9 @@ Rectangle {
             }
         }
 
-        // "Continue Shopping" button
+        // "Continue" button
         HifiControlsUit.Button {
-            id: continueShoppingButton;
+            id: continueButton;
             color: hifi.buttons.noneBorderlessGray;
             colorScheme: hifi.colorSchemes.light;
             anchors.bottom: parent.bottom;
@@ -946,9 +970,9 @@ Rectangle {
             anchors.right: parent.right;
             width: 193;
             height: 44;
-            text: "Continue Shopping";
+            text: "Continue";
             onClicked: {
-                sendToScript({method: 'checkout_continueShopping', itemId: itemId});
+                sendToScript({method: 'checkout_continue', itemId: itemId});
             }
         }
     }
@@ -971,7 +995,7 @@ Rectangle {
 
         RalewayRegular {
             id: failureHeaderText;
-            text: "<b>Purchase Failed.</b><br>Your Purchases and HFC balance haven't changed.";
+            text: "<b>Purchase Failed.</b><br>Your Inventory and HFC balance haven't changed.";
             // Text size
             size: 24;
             // Anchors
@@ -1037,7 +1061,7 @@ Rectangle {
                 width: parent.width/2 - anchors.leftMargin*2;
                 text: "Back to Marketplace";
                 onClicked: {
-                    sendToScript({method: 'checkout_continueShopping', itemId: itemId});
+                    sendToScript({method: 'checkout_continue', itemId: itemId});
                 }
             }
         }
@@ -1053,16 +1077,49 @@ Rectangle {
                 buyButton.color = hifi.buttons.red;
                 root.shouldBuyWithControlledFailure = true;
             } else {
-                buyButton.text = (root.isCertified ? ((ownershipStatusReceived && balanceReceived && availableUpdatesReceived) ? (root.alreadyOwned ? "Buy Another" : "Buy"): "--") : "Get Item");
+                buyButton.text = (root.isCertified ? 
+                    (dataReady ?
+                        (root.alreadyOwned ? "Buy Another" : "Buy") :
+                        "--") :
+                    "Get Item");
                 buyButton.color = hifi.buttons.blue;
                 root.shouldBuyWithControlledFailure = false;
             }
         }
     }
+    
+
+    HifiCommon.RootHttpRequest {
+        id: http;
+    }
 
     //
     // FUNCTION DEFINITIONS START
     //
+
+    function updateCheckoutQMLFromHTTP(error, result) {
+        if (error || (result.status !== 'success')) {
+            // The QML will display a loading spinner forever if the user is stuck here.
+            console.log("Error in Checkout.qml when getting marketplace item info!");
+            return;
+        }
+
+        root.itemInfoReceived = true;
+        root.itemName = result.data.title;
+        root.itemPrice = result.data.cost;
+        root.itemAuthor = result.data.creator;
+        root.itemType = result.data.item_type || "unknown";
+        root.availability = result.data.availability;
+        root.creator = result.data.creator;
+        if (root.itemType === "unknown") {
+            root.itemHref = result.data.review_url;
+        } else {
+            root.itemHref = Account.metaverseServerURL + result.data.path;
+        }
+        itemPreviewImage.source = result.data.thumbnail_url;
+        refreshBuyUI();
+    }
+
     //
     // Function Name: fromScript()
     //
@@ -1076,27 +1133,33 @@ Rectangle {
     // Description:
     // Called when a message is received from a script.
     //
+
     function fromScript(message) {
         switch (message.method) {
-            case 'updateCheckoutQML':
-                root.itemId = message.params.itemId;
-                root.itemName = message.params.itemName.trim();
-                root.itemPrice = message.params.itemPrice;
-                root.itemHref = message.params.itemHref;
-                root.referrer = message.params.referrer;
-                root.itemAuthor = message.params.itemAuthor;
+            case 'updateCheckoutQMLItemID':
+                if (!message.params.itemId) {
+                    console.log("A message with method 'updateCheckoutQMLItemID' was sent without an itemId!");
+                    return;
+                }
+
+                // If we end up following the referrer (i.e. in case the wallet "isn't set up" or the user cancels),
+                // we want the user to be placed back on the individual item's page - thus we set the
+                // default of the referrer in this case to "itemPage".
+                root.referrer = message.params.referrer || "itemPage";
                 root.itemEdition = message.params.itemEdition || -1;
-                root.itemType = message.params.itemType || "unknown";
-                refreshBuyUI();
+                root.itemId = message.params.itemId;
+            break;
+            case 'http.response':
+                http.handleHttpResponse(message);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('Checkout.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);
 
     function canBuyAgain() {
-        return (root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "unknown");
+        return root.itemType === "entity" || root.itemType === "wearable" || root.itemType === "contentSet" || root.itemType === "unknown" || isStocking;
     }
 
     function handleContentSets() {
@@ -1122,10 +1185,10 @@ Rectangle {
         if (root.balanceAfterPurchase < 0) {
             // If you already own the item...
             if (!root.alreadyOwned) {
-                buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item.</b>";
+                buyText.text = "<b>You do not have sufficient funds to purchase this item.</b>";
             // Else if you don't already own the item...
             } else if (canBuyAgain()) {
-                buyText.text = "<b>Your Wallet does not have sufficient funds to purchase this item again.</b>";
+                buyText.text = "<b>You do not have sufficient funds to purchase this item again.</b>";
             } else {
                 buyText.text = "<b>While you do not have sufficient funds to buy this, you already have this item.</b>"
             }
@@ -1142,36 +1205,30 @@ Rectangle {
 
     function refreshBuyUI() {
         if (root.isCertified) {
-            if (root.ownershipStatusReceived && root.balanceReceived && root.availableUpdatesReceived) {
+            if (dataReady) {
                 buyText.text = "";
 
                 // If the user IS on the checkout page for the updated version of an owned item...
                 if (root.isUpdating) {
                     // If the user HAS already selected a specific edition to update...
-                    if (root.itemEdition > 0) {
+                    if (hasSomethingToTradeIn) {
                         buyText.text = "By pressing \"Confirm Update\", you agree to trade in your old item for the updated item that replaces it.";
                         buyTextContainer.color = "#FFFFFF";
                         buyTextContainer.border.color = "#FFFFFF";
                     // Else if the user HAS NOT selected a specific edition to update...
                     } else {
-                        viewInMyPurchasesButton.visible = true;
-
                         handleBuyAgainLogic();
                     }     
                 // If the user IS NOT on the checkout page for the updated verison of an owned item...
                 // (i.e. they are checking out an item "normally")
                 } else {
-                    if (root.alreadyOwned) {
-                        viewInMyPurchasesButton.visible = true;
-                    }
-                    
                     handleBuyAgainLogic();
                 }
             } else {
                 buyText.text = "";
             }
         } else {
-            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "My Purchases". You can access it again for free from the Marketplace.</i>';
+            buyText.text = '<i>This type of item cannot currently be certified, so it will not show up in "Inventory". You can access it again for free from the Marketplace.</i>';
             buyTextContainer.color = hifi.colors.white;
             buyTextContainer.border.color = hifi.colors.white;
             buyGlyph.text = "";
@@ -1185,6 +1242,7 @@ Rectangle {
             root.ownershipStatusReceived = false;
             Commerce.alreadyOwned(root.itemId);
             root.availableUpdatesReceived = false;
+            root.currentUpdatesPage = 1;
             Commerce.getAvailableUpdates(root.itemId);
             root.balanceReceived = false;
             Commerce.balance();

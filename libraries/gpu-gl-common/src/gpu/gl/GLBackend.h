@@ -32,7 +32,7 @@
 
 // Different versions for the stereo drawcall
 // Current preferred is  "instanced" which draw the shape twice but instanced and rely on clipping plane to draw left/right side only
-#if defined(USE_GLES)
+#if defined(USE_GLES) && !defined(HAVE_EXT_clip_cull_distance)
 #define GPU_STEREO_TECHNIQUE_DOUBLED_SIMPLE
 #else
 //#define GPU_STEREO_TECHNIQUE_DOUBLED_SMARTER
@@ -54,152 +54,7 @@
 #define GPU_STEREO_CAMERA_BUFFER
 #endif
 
-//
-// GL Backend pointer storage mechanism
-// One of the following three defines must be defined.
-// GPU_POINTER_STORAGE_SHARED
-
-// The platonic ideal, use references to smart pointers.
-// However, this produces artifacts because there are too many places in the code right now that
-// create temporary values (undesirable smart pointer duplications) and then those temp variables
-// get passed on and have their reference taken, and then invalidated
-// GPU_POINTER_STORAGE_REF
-
-// Raw pointer manipulation.  Seems more dangerous than the reference wrappers,
-// but in practice, the danger of grabbing a reference to a temporary variable
-// is causing issues
-// GPU_POINTER_STORAGE_RAW
-
-#if defined(USE_GLES)
-#define GPU_POINTER_STORAGE_SHARED
-#else
-#define GPU_POINTER_STORAGE_RAW
-#endif
-
 namespace gpu { namespace gl {
-
-#if defined(GPU_POINTER_STORAGE_SHARED)
-template <typename T>
-static inline bool compare(const std::shared_ptr<T>& a, const std::shared_ptr<T>& b) {
-    return a == b;
-}
-
-template <typename T>
-static inline T* acquire(const std::shared_ptr<T>& pointer) {
-    return pointer.get();
-}
-
-template <typename T>
-static inline void reset(std::shared_ptr<T>& pointer) {
-    return pointer.reset();
-}
-
-template <typename T>
-static inline bool valid(const std::shared_ptr<T>& pointer) {
-    return pointer.operator bool();
-}
-
-template <typename T>
-static inline void assign(std::shared_ptr<T>& pointer, const std::shared_ptr<T>& source) {
-    pointer = source;
-}
-
-using BufferReference = BufferPointer;
-using TextureReference = TexturePointer;
-using FramebufferReference = FramebufferPointer;
-using FormatReference = Stream::FormatPointer;
-using PipelineReference = PipelinePointer;
-
-#define GPU_REFERENCE_INIT_VALUE nullptr
-
-#elif defined(GPU_POINTER_STORAGE_REF)
-
-template <typename T>
-class PointerReferenceWrapper : public std::reference_wrapper<const std::shared_ptr<T>> {
-    using Parent = std::reference_wrapper<const std::shared_ptr<T>>;
-
-public:
-    using Pointer = std::shared_ptr<T>;
-    PointerReferenceWrapper() : Parent(EMPTY()) {}
-    PointerReferenceWrapper(const Pointer& pointer) : Parent(pointer) {}
-    void clear() { *this = EMPTY(); }
-
-private:
-    static const Pointer& EMPTY() {
-        static const Pointer EMPTY_VALUE;
-        return EMPTY_VALUE;
-    };
-};
-
-template <typename T>
-static bool compare(const PointerReferenceWrapper<T>& reference, const std::shared_ptr<T>& pointer) {
-    return reference.get() == pointer;
-}
-
-template <typename T>
-static inline T* acquire(const PointerReferenceWrapper<T>& reference) {
-    return reference.get().get();
-}
-
-template <typename T>
-static void assign(PointerReferenceWrapper<T>& reference, const std::shared_ptr<T>& pointer) {
-    reference = pointer;
-}
-
-template <typename T>
-static bool valid(const PointerReferenceWrapper<T>& reference) {
-    return reference.get().operator bool();
-}
-
-template <typename T>
-static inline void reset(PointerReferenceWrapper<T>& reference) {
-    return reference.clear();
-}
-
-using BufferReference = PointerReferenceWrapper<Buffer>;
-using TextureReference = PointerReferenceWrapper<Texture>;
-using FramebufferReference = PointerReferenceWrapper<Framebuffer>;
-using FormatReference = PointerReferenceWrapper<Stream::Format>;
-using PipelineReference = PointerReferenceWrapper<Pipeline>;
-
-#define GPU_REFERENCE_INIT_VALUE
-
-#elif defined(GPU_POINTER_STORAGE_RAW)
-
-template <typename T>
-static bool compare(const T* const& rawPointer, const std::shared_ptr<T>& pointer) {
-    return rawPointer == pointer.get();
-}
-
-template <typename T>
-static inline T* acquire(T*& rawPointer) {
-    return rawPointer;
-}
-
-template <typename T>
-static inline bool valid(const T* const& rawPointer) {
-    return rawPointer;
-}
-
-template <typename T>
-static inline void reset(T*& rawPointer) {
-    rawPointer = nullptr;
-}
-
-template <typename T>
-static inline void assign(T*& rawPointer, const std::shared_ptr<T>& pointer) {
-    rawPointer = pointer.get();
-}
-
-using BufferReference = Buffer*;
-using TextureReference = Texture*;
-using FramebufferReference = Framebuffer*;
-using FormatReference = Stream::Format*;
-using PipelineReference = Pipeline*;
-
-#define GPU_REFERENCE_INIT_VALUE nullptr
-
-#endif
 
 class GLBackend : public Backend, public std::enable_shared_from_this<GLBackend> {
     // Context Backend static interface required
@@ -240,7 +95,7 @@ public:
     // Shutdown rendering and persist any required resources
     void shutdown() override;
 
-    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false);
+    void setCameraCorrection(const Mat4& correction, const Mat4& prevRenderView, bool reset = false) override;
     void render(const Batch& batch) final override;
 
     // This call synchronize the Full Backend cache with the current GLState
@@ -248,6 +103,8 @@ public:
     // the gpu::Backend state with the true gl state which has probably been messed up by these ugly naked gl calls
     // Let's try to avoid to do that as much as possible!
     void syncCache() final override;
+
+    void syncProgram(const gpu::ShaderPointer& program) override;
 
     // This is the ugly "download the pixels to sysmem for taking a snapshot"
     // Just avoid using it, it's ugly and will break performances
@@ -419,16 +276,34 @@ protected:
     static const size_t INVALID_OFFSET = (size_t)-1;
     bool _inRenderTransferPass{ false };
     int _currentDraw{ -1 };
-
-    std::list<std::string> profileRanges;
+    
+    struct FrameTrash {
+        GLsync fence = nullptr;
+        std::list<std::pair<GLuint, Size>> buffersTrash;
+        std::list<std::pair<GLuint, Size>> texturesTrash;
+        std::list<std::pair<GLuint, Texture::ExternalRecycler>> externalTexturesTrash;
+        std::list<GLuint> framebuffersTrash;
+        std::list<GLuint> shadersTrash;
+        std::list<GLuint> programsTrash;
+        std::list<GLuint> queriesTrash;
+        
+        void swap(FrameTrash& other) {
+            buffersTrash.swap(other.buffersTrash);
+            texturesTrash.swap(other.texturesTrash);
+            externalTexturesTrash.swap(other.externalTexturesTrash);
+            framebuffersTrash.swap(other.framebuffersTrash);
+            shadersTrash.swap(other.shadersTrash);
+            programsTrash.swap(other.programsTrash);
+            queriesTrash.swap(other.queriesTrash);
+        }
+        
+        void cleanup();
+    };
+    
     mutable Mutex _trashMutex;
-    mutable std::list<std::pair<GLuint, Size>> _buffersTrash;
-    mutable std::list<std::pair<GLuint, Size>> _texturesTrash;
-    mutable std::list<std::pair<GLuint, Texture::ExternalRecycler>> _externalTexturesTrash;
-    mutable std::list<GLuint> _framebuffersTrash;
-    mutable std::list<GLuint> _shadersTrash;
-    mutable std::list<GLuint> _programsTrash;
-    mutable std::list<GLuint> _queriesTrash;
+    mutable FrameTrash _currentFrameTrash;
+    mutable std::list<FrameTrash> _previousFrameTrashes;
+    std::list<std::string> profileRanges;
     mutable std::list<std::function<void()>> _lambdaQueue;
 
     void renderPassTransfer(const Batch& batch);
@@ -563,13 +438,13 @@ protected:
 
             BufferState& operator=(const BufferState& other) = delete;
             void reset() {
-                gpu::gl::reset(buffer);
+                gpu::reset(buffer);
                 offset = 0;
                 size = 0;
             }
             bool compare(const BufferPointer& buffer, GLintptr offset, GLsizeiptr size) {
                 const auto& self = *this;
-                return (self.offset == offset && self.size == size && gpu::gl::compare(self.buffer, buffer));
+                return (self.offset == offset && self.size == size && gpu::compare(self.buffer, buffer));
             }
         };
 
@@ -643,18 +518,21 @@ protected:
         }
     } _pipeline;
 
-    // Backend dependant compilation of the shader
+    // Backend dependent compilation of the shader
     virtual void postLinkProgram(ShaderObject& programObject, const Shader& program) const;
     virtual GLShader* compileBackendProgram(const Shader& program, const Shader::CompilationHandler& handler);
     virtual GLShader* compileBackendShader(const Shader& shader, const Shader::CompilationHandler& handler);
-    virtual std::string getBackendShaderHeader() const = 0;
-    // For a program, this will return a string containing all the source files (without any
-    // backend headers or defines).  For a vertex, fragment or geometry shader, this will
-    // return the fully customized shader with all the version and backend specific
+
+    // For a program, this will return a string containing all the source files (without any 
+    // backend headers or defines).  For a vertex, fragment or geometry shader, this will 
+    // return the fully customized shader with all the version and backend specific 
     // preprocessor directives
     // The program string returned can be used as a key for a cache of shader binaries
     // The shader strings can be reliably sent to the low level `compileShader` functions
-    virtual std::string getShaderSource(const Shader& shader, int version) final;
+    virtual std::string getShaderSource(const Shader& shader, shader::Variant version) final;
+    shader::Variant getShaderVariant() const { return isStereo() ? shader::Variant::Stereo : shader::Variant::Mono; }
+    virtual shader::Dialect getShaderDialect() const = 0;
+
     class ElementResource {
     public:
         gpu::Element _element;

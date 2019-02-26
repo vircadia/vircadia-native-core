@@ -13,7 +13,7 @@
 
 <@include Shadows_shared.slh@>
 
-layout(std140, binding=RENDER_UTILS_BUFFER_SHADOW_PARAMS) uniform shadowTransformBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_SHADOW_PARAMS) uniform shadowTransformBuffer {
     ShadowParameters shadow;
 };
 

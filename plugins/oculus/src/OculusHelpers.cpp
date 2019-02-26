@@ -81,10 +81,30 @@ private:
             return;
         }
 
+#ifdef OCULUS_APP_ID
+        static std::once_flag once;
+        std::call_once(once, []() {
+            if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
+                if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
+                    qCWarning(oculusLog) << "Unable to initialize the platform for entitlement check - fail the check" << ovr::getError();
+                    return;
+                } else {
+                    qCDebug(oculusLog) << "Performing Oculus Platform entitlement check";
+                    ovr_Entitlement_GetIsViewerEntitled();
+                }
+            }
+        });
+#endif
+
         ovrGraphicsLuid luid;
         if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
             qCWarning(oculusLog) << "Failed to acquire Oculus session" << ovr::getError();
             return;
+        } else {
+            ovrResult setFloorLevelOrigin = ovr_SetTrackingOriginType(session, ovrTrackingOrigin::ovrTrackingOrigin_FloorLevel);
+            if (!OVR_SUCCESS(setFloorLevelOrigin)) {
+                qCWarning(oculusLog) << "Failed to set the Oculus tracking origin to floor level" << ovr::getError();
+            }
         }
     }
 
@@ -136,18 +156,24 @@ void ovr::withSession(const std::function<void(ovrSession)>& f) {
 }
 
 ovrSessionStatus ovr::getStatus() {
+    ovrResult result;
+    return ovr::getStatus(result);
+}
+
+ovrSessionStatus ovr::getStatus(ovrResult& result) {
     ovrSessionStatus status{};
     withSession([&](ovrSession session) {
-        if (!OVR_SUCCESS(ovr_GetSessionStatus(session, &status))) {
+        result = ovr_GetSessionStatus(session, &status);
+        if (!OVR_SUCCESS(result)) {
             qCWarning(oculusLog) << "Failed to get session status" << ovr::getError();
         }
     });
     return status;
 }
 
-ovrTrackingState ovr::getTrackingState() {
+ovrTrackingState ovr::getTrackingState(double absTime, ovrBool latencyMarker) {
     ovrTrackingState result{};
-    withSession([&](ovrSession session) { result = ovr_GetTrackingState(session, 0, ovrFalse); });
+    withSession([&](ovrSession session) { result = ovr_GetTrackingState(session, absTime, latencyMarker); });
     return result;
 }
 
@@ -270,52 +296,3 @@ controller::Pose hifi::ovr::toControllerPose(ovrHandType hand,
     pose.valid = true;
     return pose;
 }
-
-// FIXME These should be moved to an oculusPlatform plugin, they don't interact with the controller or session state
-#if 0 
-void handleOVREvents() {
-    updateSessionStatus(true);
-
-#ifdef OCULUS_APP_ID
-
-    if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
-        // pop messages to see if we got a return for an entitlement check
-        ovrMessageHandle message = ovr_PopMessage();
-
-        while (message) {
-            switch (ovr_Message_GetType(message)) {
-            case ovrMessage_Entitlement_GetIsViewerEntitled:
-            {
-                if (!ovr_Message_IsError(message)) {
-                    // this viewer is entitled, no need to flag anything
-                    qCDebug(oculus) << "Oculus Platform entitlement check succeeded, proceeding normally";
-                } else {
-                    // we failed the entitlement check, set our flag so the app can stop
-                    qCDebug(oculus) << "Oculus Platform entitlement check failed, app will now quit" << OCULUS_APP_ID;
-                    _quitRequested = true;
-                }
-            }
-            }
-
-            // free the message handle to cleanup and not leak
-            ovr_FreeMessage(message);
-
-            // pop the next message to check, if there is one
-            message = ovr_PopMessage();
-        }
-    }
-#endif
-}
-
-#ifdef OCULUS_APP_ID
-if (qApp->property(hifi::properties::OCULUS_STORE).toBool()) {
-    if (ovr_PlatformInitializeWindows(OCULUS_APP_ID) != ovrPlatformInitialize_Success) {
-        // we were unable to initialize the platform for entitlement check - fail the check
-        _quitRequested = true;
-    } else {
-        qCDebug(oculusLog) << "Performing Oculus Platform entitlement check";
-        ovr_Entitlement_GetIsViewerEntitled();
-    }
-}
-#endif
-#endif

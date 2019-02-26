@@ -1,8 +1,7 @@
 import QtQuick 2.7
-import QtWebEngine 1.5
-import "../controls-uit" as HiFiControls
+import controlsUit 1.0 as HiFiControls
 import "../styles" as HifiStyles
-import "../styles-uit"
+import stylesUit 1.0
 
 Item {
     id: root
@@ -17,6 +16,8 @@ Item {
     onKeyboardRaisedChanged: {
         if(!keyboardRaised) {
             webroot.unfocus();
+        } else {
+            webroot.stopUnfocus();
         }
     }
     property bool punctuationMode: false
@@ -193,6 +194,10 @@ Item {
     Component.onCompleted: {
         root.isDesktop = (typeof desktop !== "undefined");
         keyboardEnabled = HMD.active;
+    }
+
+    Component.onDestruction: {
+        keyboardRaised = false;
     }
 
     Keys.onPressed: {

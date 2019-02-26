@@ -18,8 +18,8 @@ import "../../styles"
 import "../../windows"
 import "../"
 import "../toolbars"
-import "../../styles-uit" as HifiStyles
-import "../../controls-uit" as HifiControls
+import stylesUit 1.0 as HifiStyles
+import controlsUit 1.0 as HifiControls
 import QtQuick.Controls 2.2 as QQC2
 import QtQuick.Templates 2.2 as T
 
@@ -56,10 +56,13 @@ StackView {
         Qt.callLater(function() {
             addressBarDialog.keyboardEnabled = HMD.active;
             addressLine.forceActiveFocus();
+            addressBarDialog.keyboardRaised = true;
         })
     }
+
     Component.onDestruction: {
         root.parentChanged.disconnect(center);
+        keyboard.raised = false;
     }
 
     function center() {
@@ -218,6 +221,11 @@ StackView {
                     leftMargin: 8;
                     verticalCenter: addressLineContainer.verticalCenter;
                 }
+
+                onFocusChanged: {
+                    addressBarDialog.raised = focus;
+                }
+
                 onTextChanged: {
                     updateLocationText(text.length > 0);
                 }

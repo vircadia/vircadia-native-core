@@ -30,7 +30,6 @@
 
 #include <gl/Context.h>
 
-#include "BandwidthRecorder.h"
 #include "Menu.h"
 #include "Util.h"
 #include "SequenceNumberStats.h"
@@ -159,27 +158,32 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(rayPicksCount, totalPicks[PickQuery::Ray]);
         STAT_UPDATE(parabolaPicksCount, totalPicks[PickQuery::Parabola]);
         STAT_UPDATE(collisionPicksCount, totalPicks[PickQuery::Collision]);
-        std::vector<QVector4D> updatedPicks = pickManager->getUpdatedPickCounts();
+        std::vector<QVector3D> updatedPicks = pickManager->getUpdatedPickCounts();
         STAT_UPDATE(stylusPicksUpdated, updatedPicks[PickQuery::Stylus]);
         STAT_UPDATE(rayPicksUpdated, updatedPicks[PickQuery::Ray]);
         STAT_UPDATE(parabolaPicksUpdated, updatedPicks[PickQuery::Parabola]);
         STAT_UPDATE(collisionPicksUpdated, updatedPicks[PickQuery::Collision]);
     }
 
-    auto bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
-    STAT_UPDATE(packetInCount, (int)bandwidthRecorder->getCachedTotalAverageInputPacketsPerSecond());
-    STAT_UPDATE(packetOutCount, (int)bandwidthRecorder->getCachedTotalAverageOutputPacketsPerSecond());
-    STAT_UPDATE_FLOAT(mbpsIn, (float)bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond() / 1000.0f, 0.01f);
-    STAT_UPDATE_FLOAT(mbpsOut, (float)bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond() / 1000.0f, 0.01f);
+    STAT_UPDATE(packetInCount, nodeList->getInboundPPS());
+    STAT_UPDATE(packetOutCount, nodeList->getOutboundPPS());
+    STAT_UPDATE_FLOAT(mbpsIn, nodeList->getInboundKbps() / 1000.0f, 0.01f);
+    STAT_UPDATE_FLOAT(mbpsOut, nodeList->getOutboundKbps() / 1000.0f, 0.01f);
 
-    STAT_UPDATE_FLOAT(assetMbpsIn, (float)bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
-    STAT_UPDATE_FLOAT(assetMbpsOut, (float)bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AssetServer) / 1000.0f, 0.01f);
-
-    // Second column: ping
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
     SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+
+    if (assetServerNode) {
+        STAT_UPDATE_FLOAT(assetMbpsIn, assetServerNode->getInboundKbps() / 1000.0f, 0.01f);
+        STAT_UPDATE_FLOAT(assetMbpsOut, assetServerNode->getOutboundKbps() / 1000.0f, 0.01f);
+    } else {
+        STAT_UPDATE_FLOAT(assetMbpsIn, 0.0f, 0.01f);
+        STAT_UPDATE_FLOAT(assetMbpsOut, 0.0f, 0.01f);
+    }
+
+    // Second column: ping
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1); 
     const int mixerLossRate = (int)roundf(_audioStats->data()->getMixerStream()->lossRateWindow() * 100.0f);
     const int clientLossRate = (int)roundf(_audioStats->data()->getClientStream()->lossRateWindow() * 100.0f);
@@ -198,7 +202,7 @@ void Stats::updateStats(bool force) {
         // TODO: this should also support entities
         if (node->getType() == NodeType::EntityServer) {
             totalPingOctree += node->getPingMs();
-            totalEntityKbps += node->getInboundBandwidth();
+            totalEntityKbps += node->getInboundKbps();
             octreeServerCount++;
             if (pingOctreeMax < node->getPingMs()) {
                 pingOctreeMax = node->getPingMs();
@@ -218,10 +222,10 @@ void Stats::updateStats(bool force) {
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
         if (avatarMixer) {
-            STAT_UPDATE(avatarMixerInKbps, (int)roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerInPps, (int)roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerOutKbps, (int)roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AvatarMixer)));
-            STAT_UPDATE(avatarMixerOutPps, (int)roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AvatarMixer)));
+            STAT_UPDATE(avatarMixerInKbps, (int)roundf(avatarMixer->getInboundKbps()));
+            STAT_UPDATE(avatarMixerInPps, avatarMixer->getInboundPPS());
+            STAT_UPDATE(avatarMixerOutKbps, (int)roundf(avatarMixer->getOutboundKbps()));
+            STAT_UPDATE(avatarMixerOutPps, avatarMixer->getOutboundPPS());
         } else {
             STAT_UPDATE(avatarMixerInKbps, -1);
             STAT_UPDATE(avatarMixerInPps, -1);
@@ -233,17 +237,15 @@ void Stats::updateStats(bool force) {
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         auto audioClient = DependencyManager::get<AudioClient>().data();
         if (audioMixerNode || force) {
-            STAT_UPDATE(audioMixerKbps, (int)roundf(
-                bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer) +
-                bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerPps, (int)roundf(
-                bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer) +
-                bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerKbps, (int)roundf(audioMixerNode->getInboundKbps() +
+                                                    audioMixerNode->getOutboundKbps()));
+            STAT_UPDATE(audioMixerPps, audioMixerNode->getInboundPPS() +
+                                       audioMixerNode->getOutboundPPS());
 
-            STAT_UPDATE(audioMixerInKbps, (int)roundf(bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerInPps, (int)roundf(bandwidthRecorder->getAverageInputPacketsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerOutKbps, (int)roundf(bandwidthRecorder->getAverageOutputKilobitsPerSecond(NodeType::AudioMixer)));
-            STAT_UPDATE(audioMixerOutPps, (int)roundf(bandwidthRecorder->getAverageOutputPacketsPerSecond(NodeType::AudioMixer)));
+            STAT_UPDATE(audioMixerInKbps, (int)roundf(audioMixerNode->getInboundKbps()));
+            STAT_UPDATE(audioMixerInPps, audioMixerNode->getInboundPPS());
+            STAT_UPDATE(audioMixerOutKbps, (int)roundf(audioMixerNode->getOutboundKbps()));
+            STAT_UPDATE(audioMixerOutPps, audioMixerNode->getOutboundPPS());
             STAT_UPDATE(audioAudioInboundPPS, (int)audioClient->getAudioInboundPPS());
             STAT_UPDATE(audioSilentInboundPPS, (int)audioClient->getSilentInboundPPS());
             STAT_UPDATE(audioOutboundPPS, (int)audioClient->getAudioOutboundPPS());

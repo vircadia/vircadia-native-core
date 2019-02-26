@@ -25,7 +25,6 @@
 
 class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled)
     Q_PROPERTY(int mode MEMBER mode WRITE setMode)
     Q_PROPERTY(glm::vec4 size MEMBER size NOTIFY dirty)
 public:
@@ -47,7 +46,7 @@ public:
                                        AmbientOcclusionFramebufferPointer,
                                        VelocityFramebufferPointer,
                                        DeferredFrameTransformPointer,
-                                       LightStage::FramePointer>;
+                                       LightStage::ShadowFramePointer>;
     using Config = DebugDeferredBufferConfig;
     using JobModel = render::Job::ModelI<DebugDeferredBuffer, Inputs, Config>;
 
@@ -91,6 +90,7 @@ protected:
         ScatteringDebugMode,
         AmbientOcclusionMode,
         AmbientOcclusionBlurredMode,
+        AmbientOcclusionNormalMode,
         VelocityMode,
         CustomMode,  // Needs to stay last
 
@@ -112,9 +112,9 @@ private:
     using StandardPipelines = std::array<gpu::PipelinePointer, NumModes>;
     using CustomPipelines = std::unordered_map<std::string, CustomPipeline>;
 
-    bool pipelineNeedsUpdate(Mode mode, std::string customFile = std::string()) const;
-    const gpu::PipelinePointer& getPipeline(Mode mode, std::string customFile = std::string());
-    std::string getShaderSourceCode(Mode mode, std::string customFile = std::string());
+    bool pipelineNeedsUpdate(Mode mode, const std::string& customFile = std::string()) const;
+    const gpu::PipelinePointer& getPipeline(Mode mode, const std::string& customFile = std::string());
+    std::string getShaderSourceCode(Mode mode, const std::string& customFile = std::string());
 
     ParametersBuffer _parameters;
     StandardPipelines _pipelines;

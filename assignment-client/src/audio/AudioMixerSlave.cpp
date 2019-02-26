@@ -272,6 +272,10 @@ bool shouldBeSkipped(MixableStream& stream, const Node& listener,
         return true;
     }
 
+    if (!listenerData.getSoloedNodes().empty()) {
+        return !contains(listenerData.getSoloedNodes(), stream.nodeStreamID.nodeID);
+    }
+
     bool shouldCheckIgnoreBox = (listenerAudioStream.isIgnoreBoxEnabled() ||
                                  stream.positionalStream->isIgnoreBoxEnabled());
     if (shouldCheckIgnoreBox &&
@@ -310,6 +314,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
     memset(_mixSamples, 0, sizeof(_mixSamples));
 
     bool isThrottling = _numToRetain != -1;
+    bool isSoloing = !listenerData->getSoloedNodes().empty();
 
     auto& streams = listenerData->getStreams();
 
@@ -376,13 +381,14 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
             stream.approximateVolume = approximateVolume(stream, listenerAudioStream);
         } else {
             if (shouldBeSkipped(stream, *listener, *listenerAudioStream, *listenerData)) {
-                addStream(stream, *listenerAudioStream, 0.0f);
+                addStream(stream, *listenerAudioStream, 0.0f, isSoloing);
                 streams.skipped.push_back(move(stream));
                 ++stats.activeToSkipped;
                 return true;
             }
 
-            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain());
+            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain(),
+                      isSoloing);
 
             if (shouldBeInactive(stream)) {
                 // To reduce artifacts we still call render to flush the HRTF for every silent
@@ -417,7 +423,8 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
                 return true;
             }
 
-            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain());
+            addStream(stream, *listenerAudioStream, listenerData->getMasterAvatarGain(),
+                      isSoloing);
 
             if (shouldBeInactive(stream)) {
                 // To reduce artifacts we still call render to flush the HRTF for every silent
@@ -484,7 +491,7 @@ bool AudioMixerSlave::prepareMix(const SharedNodePointer& listener) {
 
 void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStream,
                                 AvatarAudioStream& listeningNodeStream,
-                                float masterListenerGain) {
+                                float masterListenerGain, bool isSoloing) {
     ++stats.totalMixes;
 
     auto streamToAdd = mixableStream.positionalStream;
@@ -495,8 +502,12 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
+
+    float gain = masterListenerGain;
+    if (!isSoloing) {
+        gain = computeGain(masterListenerGain, listeningNodeStream, *streamToAdd, relativePosition, distance, isEcho);
+    }
 
     const int HRTF_DATASET_INDEX = 1;
 
@@ -759,13 +770,29 @@ float computeGain(float masterListenerGain, const AvatarAudioStream& listeningNo
             break;
         }
     }
-    // translate the zone setting to gain per log2(distance)
-    float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, EPSILON, 1.0f);
 
-    // calculate the attenuation using the distance to this node
-    // reference attenuation of 0dB at distance = 1.0m
-    gain *= fastExp2f(fastLog2f(g) * fastLog2f(std::max(distance, HRTF_NEARFIELD_MIN)));
-    gain = std::min(gain, 1.0f / HRTF_NEARFIELD_MIN);
+    if (attenuationPerDoublingInDistance < 0.0f) {
+        // translate a negative zone setting to distance limit
+        const float MIN_DISTANCE_LIMIT = ATTN_DISTANCE_REF + 1.0f;  // silent after 1m
+        float distanceLimit = std::max(-attenuationPerDoublingInDistance, MIN_DISTANCE_LIMIT);
+
+        // calculate the LINEAR attenuation using the distance to this node
+        // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
+        float d = distance - ATTN_DISTANCE_REF;
+        gain *= std::max(1.0f - d / (distanceLimit - ATTN_DISTANCE_REF), 0.0f);
+        gain = std::min(gain, ATTN_GAIN_MAX);
+
+    } else {
+        // translate a positive zone setting to gain per log2(distance)
+        const float MIN_ATTENUATION_COEFFICIENT = 0.001f;   // -60dB per log2(distance)
+        float g = glm::clamp(1.0f - attenuationPerDoublingInDistance, MIN_ATTENUATION_COEFFICIENT, 1.0f);
+
+        // calculate the LOGARITHMIC attenuation using the distance to this node
+        // reference attenuation of 0dB at distance = ATTN_DISTANCE_REF
+        float d = (1.0f / ATTN_DISTANCE_REF) * std::max(distance, HRTF_NEARFIELD_MIN);
+        gain *= fastExp2f(fastLog2f(g) * fastLog2f(d));
+        gain = std::min(gain, ATTN_GAIN_MAX);
+    }
 
     return gain;
 }

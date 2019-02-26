@@ -31,13 +31,25 @@ void SetupViews::run(const WorkloadContextPointer& renderContext, const Input& i
     auto& outViews = outputs;
     outViews.clear();
 
-    // Filter the first view centerer on the avatar head if needed
     if (_views.size() >= 2) {
+        // when inputs contains two or more views:
+        //   index 0 = view from avatar's head
+        //   index 1 = view from camera
+        //   index 2 and higher = secondary camera and whatever
         if (data.useAvatarView) {
+            // for debug purposes we keep the head view and skip that of the camera
             outViews.push_back(_views[0]);
             outViews.insert(outViews.end(), _views.begin() + 2, _views.end());
         } else {
-            outViews.insert(outViews.end(), _views.begin() + 1, _views.end());
+            // otherwise we use all of the views...
+            const float MIN_HEAD_CAMERA_SEPARATION_SQUARED = MIN_VIEW_BACK_FRONTS[0][1] * MIN_VIEW_BACK_FRONTS[0][1];
+            if (glm::distance2(_views[0].origin, _views[1].origin) < MIN_HEAD_CAMERA_SEPARATION_SQUARED) {
+                // ... unless the first two are close enough to be considered the same
+                // in which case we only keep one of them
+                outViews.insert(outViews.end(), _views.begin() + 1, _views.end());
+            } else {
+                outViews = _views;
+            }
         }
     } else {
         outViews = _views;
@@ -177,7 +189,6 @@ void ControlViews::regulateViews(workload::Views& outViews, const workload::Timi
         outView.regionBackFronts[workload::Region::R1] = regionBackFronts[workload::Region::R1];
         outView.regionBackFronts[workload::Region::R2] = regionBackFronts[workload::Region::R2];
         outView.regionBackFronts[workload::Region::R3] = regionBackFronts[workload::Region::R3];
-
         workload::View::updateRegionsFromBackFronts(outView);
     }
 }

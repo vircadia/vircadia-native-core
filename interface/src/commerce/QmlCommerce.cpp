@@ -22,7 +22,9 @@
 #include <ui/TabletScriptingInterface.h>
 #include "scripting/HMDScriptingInterface.h"
 
-QmlCommerce::QmlCommerce() {
+QmlCommerce::QmlCommerce() :
+    _appsPath(PathUtils::getAppDataPath() + "Apps/")
+{
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     connect(ledger.data(), &Ledger::buyResult, this, &QmlCommerce::buyResult);
@@ -38,28 +40,24 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferAssetToNodeResult, this, &QmlCommerce::transferAssetToNodeResult);
     connect(ledger.data(), &Ledger::transferAssetToUsernameResult, this, &QmlCommerce::transferAssetToUsernameResult);
+    connect(ledger.data(), &Ledger::authorizeAssetTransferResult, this, &QmlCommerce::authorizeAssetTransferResult);
     connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
     connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
 
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() { setPassphrase(""); });
-
-    _appsPath = PathUtils::getAppDataPath() + "Apps/";
 }
 
 
-
-
 void QmlCommerce::openSystemApp(const QString& appName) {
-    static QMap<QString, QString> systemApps {
+    static const QMap<QString, QString> systemApps {
         {"GOTO",        "hifi/tablet/TabletAddressDialog.qml"},
         {"PEOPLE",      "hifi/Pal.qml"},
         {"WALLET",      "hifi/commerce/wallet/Wallet.qml"},
-        {"MARKET",      "/marketplace.html"}
+        {"MARKET",      "hifi/commerce/marketplace/Marketplace.qml"}
     };
 
-    static QMap<QString, QString> systemInject{
-        {"MARKET",      "/scripts/system/html/js/marketplacesInject.js"}
+    static const QMap<QString, QString> systemInject{
     };
 
 
@@ -246,6 +244,21 @@ void QmlCommerce::transferAssetToUsername(const QString& username,
     ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
 }
 
+void QmlCommerce::authorizeAssetTransfer(const QString& couponID,
+    const QString& certificateID,
+    const int& amount,
+    const QString& optionalMessage) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
+        return emit authorizeAssetTransferResult(result);
+    }
+    QString key = keys[0];
+    ledger->authorizeAssetTransfer(key, couponID, certificateID, amount, optionalMessage);
+}
+
 void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {
     if (!certificateID.isEmpty()) {
         auto ledger = DependencyManager::get<Ledger>();
@@ -315,7 +328,7 @@ QString QmlCommerce::getInstalledApps(const QString& justInstalledAppID) {
     return installedAppsFromMarketplace;
 }
 
-bool QmlCommerce::installApp(const QString& itemHref) {
+bool QmlCommerce::installApp(const QString& itemHref, const bool& alsoOpenImmediately) {
     if (!QDir(_appsPath).exists()) {
         if (!QDir().mkdir(_appsPath)) {
             qCDebug(commerce) << "Couldn't make _appsPath directory.";
@@ -325,7 +338,8 @@ bool QmlCommerce::installApp(const QString& itemHref) {
 
     QUrl appHref(itemHref);
 
-    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref);
+    auto request =
+        DependencyManager::get<ResourceManager>()->createResourceRequest(this, appHref, true, -1, "QmlCommerce::installApp");
 
     if (!request) {
         qCDebug(commerce) << "Couldn't create resource request for app.";
@@ -357,13 +371,22 @@ bool QmlCommerce::installApp(const QString& itemHref) {
         QJsonObject appFileJsonObject = appFileJsonDocument.object();
         QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
-        if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
-            qCDebug(commerce) << "Couldn't load script.";
-            return false;
+        // Don't try to re-load (install) a script if it's already running
+        QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();
+        if (!runningScripts.contains(scriptUrl)) {
+            if ((DependencyManager::get<ScriptEngines>()->loadScript(scriptUrl.trimmed())).isNull()) {
+                qCDebug(commerce) << "Couldn't load script.";
+                return false;
+            }
+
+            QFileInfo appFileInfo(appFile);
+            emit appInstalled(appFileInfo.baseName());
         }
 
-        QFileInfo appFileInfo(appFile);
-        emit appInstalled(appFileInfo.baseName());
+        if (alsoOpenImmediately) {
+            QmlCommerce::openApp(itemHref);
+        }
+
         return true;
     });
     request->send();
@@ -386,8 +409,7 @@ bool QmlCommerce::uninstallApp(const QString& itemHref) {
     QString scriptUrl = appFileJsonObject["scriptURL"].toString();
 
     if (!DependencyManager::get<ScriptEngines>()->stopScript(scriptUrl.trimmed(), false)) {
-        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway. ScriptURL is:"
-                            << scriptUrl.trimmed();
+        qCWarning(commerce) << "Couldn't stop script during app uninstall. Continuing anyway.";
     }
 
     // Delete the .app.json from the filesystem
@@ -431,9 +453,9 @@ bool QmlCommerce::openApp(const QString& itemHref) {
     return true;
 }
 
-void QmlCommerce::getAvailableUpdates(const QString& itemId) {
+void QmlCommerce::getAvailableUpdates(const QString& itemId, const int& pageNumber, const int& itemsPerPage) {
     auto ledger = DependencyManager::get<Ledger>();
-    ledger->getAvailableUpdates(itemId);
+    ledger->getAvailableUpdates(itemId, pageNumber, itemsPerPage);
 }
 
 void QmlCommerce::updateItem(const QString& certificateId) {

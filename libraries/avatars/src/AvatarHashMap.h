@@ -32,6 +32,9 @@
 #include "AvatarData.h"
 #include "AssociatedTraitValues.h"
 
+const int CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 50;
+const quint64 MIN_TIME_BETWEEN_MY_AVATAR_DATA_SENDS = USECS_PER_SECOND / CLIENT_TO_AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND;
+
 /**jsdoc
  * <strong>Note:</strong> An <code>AvatarList</code> API is also provided for Interface and client entity scripts: it is a 
  * synonym for the {@link AvatarManager} API.
@@ -161,6 +164,11 @@ protected slots:
      */
     void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
+    /**jsdoc
+     * @function AvatarList.processBulkAvatarTraits
+     * @param {} message
+     * @param {} sendingNode
+     */
     void processBulkAvatarTraits(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     
     /**jsdoc
@@ -174,7 +182,7 @@ protected:
     AvatarHashMap();
 
     virtual AvatarSharedPointer parseAvatarData(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
-    virtual AvatarSharedPointer newSharedAvatar();
+    virtual AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID);
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
     AvatarSharedPointer newOrExistingAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer,
         bool& isNew);
@@ -183,15 +191,8 @@ protected:
     
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason = KillAvatarReason::NoReason);
     
-    AvatarHash _avatarHash;
-    struct PendingAvatar {
-        std::chrono::steady_clock::time_point creationTime;
-        int transmits;
-        AvatarSharedPointer avatar;
-    };
-    using AvatarPendingHash = QHash<QUuid, PendingAvatar>;
-    AvatarPendingHash _pendingAvatars;
     mutable QReadWriteLock _hashLock;
+    AvatarHash _avatarHash;
 
     std::unordered_map<QUuid, AvatarTraits::TraitVersions> _processedTraitVersions;
     AvatarReplicas _replicas;

@@ -13,13 +13,13 @@
 //
 <@include render-utils/ShaderConstants.h@>
 
-layout(binding=0) uniform sampler2D hudTexture;
+LAYOUT(binding=0) uniform sampler2D hudTexture;
 
 struct HUDData {
     float alpha;
 };
 
-layout(std140, binding=0) uniform hudBuffer {
+LAYOUT_STD140(binding=0) uniform hudBuffer {
     HUDData hud;
 };
 

@@ -51,7 +51,7 @@
 #include <xmmintrin.h>
 // convert float to int using round-to-nearest
 FORCEINLINE static int32_t floatToInt(float x) {
-    return _mm_cvt_ss2si(_mm_load_ss(&x));
+    return _mm_cvt_ss2si(_mm_set_ss(x));
 }
 
 #else 
@@ -150,7 +150,7 @@ static const int IEEE754_EXPN_BIAS = 127;
 //
 // Peak detection and -log2(x) for float input (mono)
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
-// x > 2^LOG2_HEADROOM undefined
+// x > 2^LOG2_HEADROOM returns 0
 //
 FORCEINLINE static int32_t peaklog2(float* input) {
 
@@ -161,12 +161,12 @@ FORCEINLINE static int32_t peaklog2(float* input) {
     uint32_t peak = u & IEEE754_FABS_MASK;
 
     // split into e and x - 1.0
-    int e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
-    // saturate
-    if (e > 31) {
-        return 0x7fffffff;
+    // saturate when e > 31 or e < 0
+    if ((uint32_t)e > 31) {
+        return 0x7fffffff & ~(e >> 31);
     }
 
     int k = x >> (31 - LOG2_TABBITS);
@@ -186,7 +186,7 @@ FORCEINLINE static int32_t peaklog2(float* input) {
 //
 // Peak detection and -log2(x) for float input (stereo)
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
-// x > 2^LOG2_HEADROOM undefined
+// x > 2^LOG2_HEADROOM returns 0
 //
 FORCEINLINE static int32_t peaklog2(float* input0, float* input1) {
 
@@ -200,12 +200,12 @@ FORCEINLINE static int32_t peaklog2(float* input0, float* input1) {
     uint32_t peak = MAX(u0, u1);
 
     // split into e and x - 1.0
-    int e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
-    // saturate
-    if (e > 31) {
-        return 0x7fffffff;
+    // saturate when e > 31 or e < 0
+    if ((uint32_t)e > 31) {
+        return 0x7fffffff & ~(e >> 31);
     }
 
     int k = x >> (31 - LOG2_TABBITS);
@@ -225,7 +225,7 @@ FORCEINLINE static int32_t peaklog2(float* input0, float* input1) {
 //
 // Peak detection and -log2(x) for float input (quad)
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
-// x > 2^LOG2_HEADROOM undefined
+// x > 2^LOG2_HEADROOM returns 0
 //
 FORCEINLINE static int32_t peaklog2(float* input0, float* input1, float* input2, float* input3) {
 
@@ -243,12 +243,12 @@ FORCEINLINE static int32_t peaklog2(float* input0, float* input1, float* input2,
     uint32_t peak = MAX(MAX(u0, u1), MAX(u2, u3));
 
     // split into e and x - 1.0
-    int e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
+    int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << IEEE754_EXPN_BITS) & 0x7fffffff;
 
-    // saturate
-    if (e > 31) {
-        return 0x7fffffff;
+    // saturate when e > 31 or e < 0
+    if ((uint32_t)e > 31) {
+        return 0x7fffffff & ~(e >> 31);
     }
 
     int k = x >> (31 - LOG2_TABBITS);

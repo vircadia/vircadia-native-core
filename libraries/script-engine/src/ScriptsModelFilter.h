@@ -23,6 +23,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 class ScriptsModelFilter : public QSortFilterProxyModel {
     Q_OBJECT

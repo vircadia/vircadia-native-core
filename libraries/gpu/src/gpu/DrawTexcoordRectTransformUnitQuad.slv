@@ -25,7 +25,7 @@ struct TexCoordRectParams {
     vec4 texcoordRect;
 };
 
-layout(binding=0) uniform texcoordRectBuffer {
+LAYOUT(binding=0) uniform texcoordRectBuffer {
     TexCoordRectParams params;
 };
 

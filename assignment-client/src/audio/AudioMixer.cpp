@@ -68,6 +68,13 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     // hash the available codecs (on the mixer)
     _availableCodecs.clear(); // Make sure struct is clean
     auto pluginManager = DependencyManager::set<PluginManager>();
+    // Only load codec plugins; for now assume codec plugins have 'codec' in their name.
+    auto codecPluginFilter = [](const QJsonObject& metaData) {
+        QJsonValue nameValue = metaData["MetaData"]["name"];
+        return nameValue.toString().contains("codec", Qt::CaseInsensitive);
+    };
+    pluginManager->setPluginFilter(codecPluginFilter);
+
     auto codecPlugins = pluginManager->getCodecPlugins();
     for_each(codecPlugins.cbegin(), codecPlugins.cend(),
         [&](const CodecPluginPointer& codec) {
@@ -89,7 +96,8 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::NodeIgnoreRequest,
             PacketType::RadiusIgnoreRequest,
             PacketType::RequestsDomainListData,
-            PacketType::PerAvatarGainSet },
+            PacketType::PerAvatarGainSet,
+            PacketType::AudioSoloRequest },
             this, "queueAudioPacket");
 
     // packets whose consequences are global should be processed on the main thread
@@ -337,7 +345,7 @@ void AudioMixer::sendStatsPacket() {
             QJsonObject nodeStats;
             QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
 
-            nodeStats["outbound_kbps"] = node->getOutboundBandwidth();
+            nodeStats["outbound_kbps"] = node->getOutboundKbps();
             nodeStats[USERNAME_UUID_REPLACEMENT_STATS_KEY] = uuidString;
 
             nodeStats["jitter"] = clientData->getAudioStreamStats();
@@ -434,7 +442,11 @@ void AudioMixer::start() {
             QCoreApplication::processEvents();
         }
 
-        int numToRetain = nodeList->size() * (1 - _throttlingRatio);
+        int numToRetain = -1;
+        assert(_throttlingRatio >= 0.0f && _throttlingRatio <= 1.0f);
+        if (_throttlingRatio > EPSILON) {
+            numToRetain = nodeList->size() * (1.0f - _throttlingRatio);
+        }
         nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
             // mix across slave threads
             auto mixTimer = _mixTiming.timer();
@@ -487,11 +499,8 @@ void AudioMixer::throttle(chrono::microseconds duration, int frame) {
 
     // target different mix and backoff ratios (they also have different backoff rates)
     // this is to prevent oscillation, and encourage throttling to find a steady state
-    const float TARGET = 0.9f;
-    // on a "regular" machine with 100 avatars, this is the largest value where
-    // - overthrottling can be recovered
-    // - oscillations will not occur after the recovery
-    const float BACKOFF_TARGET = 0.44f;
+    const float TARGET = _throttleStartTarget;
+    const float BACKOFF_TARGET = _throttleBackoffTarget;
 
     // the mixer is known to struggle at about 80 on a "regular" machine
     // so throttle 2/80 the streams to ensure smooth audio (throttling is linear)
@@ -550,6 +559,24 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                 _slavePool.setNumThreads(numThreads);
             }
         }
+
+        const QString THROTTLE_START_KEY = "throttle_start";
+        const QString THROTTLE_BACKOFF_KEY = "throttle_backoff";
+
+        float settingsThrottleStart = audioThreadingGroupObject[THROTTLE_START_KEY].toDouble(_throttleStartTarget);
+        float settingsThrottleBackoff = audioThreadingGroupObject[THROTTLE_BACKOFF_KEY].toDouble(_throttleBackoffTarget);
+
+        if (settingsThrottleBackoff > settingsThrottleStart) {
+            qCWarning(audio) << "Throttle backoff target cannot be higher than throttle start target. Using default values.";
+        } else if (settingsThrottleBackoff < 0.0f || settingsThrottleStart > 1.0f) {
+            qCWarning(audio) << "Throttle start and backoff targets must be greater than or equal to 0.0"
+                << "and lesser than or equal to 1.0. Using default values.";
+        } else {
+            _throttleStartTarget = settingsThrottleStart;
+            _throttleBackoffTarget = settingsThrottleBackoff;
+        }
+
+        qCDebug(audio) << "Throttle Start:" << _throttleStartTarget << "Throttle Backoff:" << _throttleBackoffTarget;
     }
 
     if (settingsObject.contains(AUDIO_BUFFER_GROUP_KEY)) {
@@ -716,7 +743,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
                     float coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
 
 
-                    if (ok && coefficient >= 0.0f && coefficient <= 1.0f &&
+                    if (ok && coefficient <= 1.0f &&
                         itSource != end(_audioZones) &&
                         itListener != end(_audioZones)) {
 

@@ -44,7 +44,8 @@ using namespace InteractiveWindowEnums;
  * @class InteractiveWindow
  *
  * @hifi-interface
- * @hifi-client-en
+ * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {string} title
  * @property {Vec2} position
@@ -84,9 +85,7 @@ private:
     Q_INVOKABLE void setPresentationMode(int presentationMode);
     Q_INVOKABLE int getPresentationMode() const;
 
-#ifdef Q_OS_WIN
     Q_INVOKABLE void parentNativeWindowToMainWindow();
-#endif
 
 public slots:
 

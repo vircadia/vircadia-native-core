@@ -6,80 +6,115 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// Note, `gl::Context is split into two files because a single file cannot include both the GLAD headers 
+// and the QOpenGLContext definition headers
+
 #include "Context.h"
 
 #include "Config.h"
 
-#include <QtGui/QOpenGLContext>
 #include <QtGui/QWindow>
+#include "QOpenGLContextWrapper.h"
 
 #ifdef Q_OS_WIN
 #include <QtPlatformHeaders/QWGLNativeContext>
 #endif
+
+#include <QtGui/QOpenGLDebugMessage>
 
 #include "GLHelpers.h"
 
 using namespace gl;
 
 void Context::destroyContext(QOpenGLContext* context) {
-    delete context;
+    context->deleteLater();
 }
 
 void Context::makeCurrent(QOpenGLContext* context, QSurface* surface) {
     context->makeCurrent(surface);
 }
 
-QOpenGLContext* Context::qglContext() {
-#ifdef GL_CUSTOM_CONTEXT
-    if (!_wrappedContext) {
-        _wrappedContext = new QOpenGLContext();
-        _wrappedContext->setNativeHandle(QVariant::fromValue(QWGLNativeContext(_hglrc, _hwnd)));
-        _wrappedContext->create();
+#if defined(GL_CUSTOM_CONTEXT)
+void Context::createWrapperContext() {
+    if (0 != _hglrc && nullptr == _qglContext) {
+        _qglContext = new QOpenGLContext();
+        _qglContext->setNativeHandle(QVariant::fromValue(QWGLNativeContext(_hglrc, _hwnd)));
+        _qglContext->create();
     }
-    return _wrappedContext;
-#else
-    
-    return _context;
-#endif
 }
+#endif
+
 
 void Context::moveToThread(QThread* thread) {
-    qglContext()->moveToThread(thread);
+    if (_qglContext) {
+        _qglContext->moveToThread(thread);
+    }
 }
 
-#ifndef GL_CUSTOM_CONTEXT
+void Context::debugMessageHandler(const QOpenGLDebugMessage& debugMessage) {
+    auto type = debugMessage.type();
+    if (type == QOpenGLDebugMessage::PerformanceType) {
+        return;
+    }
+
+    auto severity = debugMessage.severity();
+    switch (severity) {
+        case QOpenGLDebugMessage::NotificationSeverity:
+        case QOpenGLDebugMessage::LowSeverity:
+            qCDebug(glLogging) << debugMessage;
+            return;
+        default:
+            qCWarning(glLogging) << debugMessage;
+            break;
+    }
+}
+
+void Context::setupDebugLogging(QOpenGLContext *context) {
+    QOpenGLDebugLogger *logger = new QOpenGLDebugLogger(context);
+    QObject::connect(logger, &QOpenGLDebugLogger::messageLogged, context, [](const QOpenGLDebugMessage& message){
+        Context::debugMessageHandler(message);
+    });
+    if (logger->initialize()) {
+        logger->enableMessages();
+        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
+    } else {
+        qCWarning(glLogging) <<  "OpenGL context does not support debugging";
+    }
+}
+
+
+#if !defined(GL_CUSTOM_CONTEXT)
 bool Context::makeCurrent() {
     updateSwapchainMemoryCounter();
-    bool result = _context->makeCurrent(_window);
+    bool result = _qglContext->makeCurrent(_window);
     gl::initModuleGl();
     return result;
 }
 
 void Context::swapBuffers() {
-    _context->swapBuffers(_window);
+    qglContext()->swapBuffers(_window);
 }
 
 void Context::doneCurrent() {
-    if (_context) {
-        _context->doneCurrent();
+    if (_qglContext) {
+        _qglContext->doneCurrent();
     }
 }
+#endif
 
+Q_GUI_EXPORT QOpenGLContext *qt_gl_global_share_context();
 const QSurfaceFormat& getDefaultOpenGLSurfaceFormat();
 
-
-void Context::create() {
-    _context = new QOpenGLContext();
-    if (PRIMARY) {
-        _context->setShareContext(PRIMARY->qglContext());
-    } else {
-        PRIMARY = this;
+void Context::qtCreate(QOpenGLContext* shareContext) {
+    _qglContext = new QOpenGLContext();
+    _qglContext->setFormat(_window->format());
+    if (!shareContext) {
+        shareContext = qt_gl_global_share_context();
     }
-    _context->setFormat(getDefaultOpenGLSurfaceFormat());
-    _context->create();
 
-    _swapchainPixelSize = evalGLFormatSwapchainPixelSize(_context->format());
-    updateSwapchainMemoryCounter();
+    if (shareContext) {
+        _qglContext->setShareContext(shareContext);
+    }
+    _qglContext->create();
+    _swapchainPixelSize = evalGLFormatSwapchainPixelSize(_qglContext->format());
 }
-
-#endif

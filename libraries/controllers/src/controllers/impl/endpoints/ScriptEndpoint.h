@@ -24,9 +24,8 @@ public:
         : Endpoint(Input::INVALID_INPUT), _callable(callable) {
     }
 
-    virtual float peek() const override;
-    virtual void apply(float newValue, const Pointer& source) override;
-
+    virtual AxisValue peek() const override;
+    virtual void apply(AxisValue newValue, const Pointer& source) override;
 
     virtual Pose peekPose() const override;
     virtual void apply(const Pose& newValue, const Pointer& source) override;
@@ -42,7 +41,7 @@ protected:
 private:
     QScriptValue _callable;
     float _lastValueRead { 0.0f };
-    float _lastValueWritten { 0.0f };
+    AxisValue _lastValueWritten { 0.0f, 0 };
 
     bool _returnPose { false };
     Pose _lastPoseRead;

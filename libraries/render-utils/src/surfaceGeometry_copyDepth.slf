@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-layout(binding=0) uniform sampler2D depthMap;
+LAYOUT(binding=0) uniform sampler2D depthMap;
 
 layout(location=0) out vec4 outFragColor;
 

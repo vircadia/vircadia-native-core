@@ -31,6 +31,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>
@@ -41,6 +42,8 @@
  *     <em>Read-only.</em>
  * @property {number} y - The y display coordinate of the top left corner of the drawable area of the Interface window. 
  *     <em>Read-only.</em>
+ * @property {boolean} interstitialModeEnabled=true - <code>true</code> if the interstitial graphics are displayed when the 
+ *     domain is loading, otherwise <code>false</code>.
  */
 
 class WindowScriptingInterface : public QObject, public Dependency {
@@ -618,6 +621,15 @@ signals:
      * @returns {Signal}
      */
     void redirectErrorStateChanged(bool isInErrorState);
+
+    /**jsdoc
+     * Triggered when the interstitial mode changes.
+     * @function Window.interstitialModeChanged
+     * @param {bool} interstitialMode - The new interstitial mode value. If <code>true</code>, the interstitial graphics are 
+     * displayed when the domain is loading.
+     * @returns {Signal}
+     */
+    void interstitialModeChanged(bool interstitialMode);
 
     /**jsdoc
      * Triggered when a still snapshot has been taken by calling {@link Window.takeSnapshot|takeSnapshot} with 

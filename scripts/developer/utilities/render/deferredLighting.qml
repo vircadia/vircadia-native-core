@@ -11,10 +11,9 @@ import QtQuick 2.7
 import QtQuick.Controls 1.4
 import QtQuick.Layouts 1.3
 
-import "qrc:///qml/styles-uit"
-import "qrc:///qml/controls-uit" as HifiControls
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControls
 import  "configSlider"
-import "../lib/jet/qml" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -47,8 +46,8 @@ Rectangle {
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
-                         "Haze:LightingModel:enableHaze",                
-                         "ssao:AmbientOcclusion:enabled",                      
+                         "Haze:LightingModel:enableHaze",                        
+                         "AO:LightingModel:enableAmbientOcclusion",
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
                     HifiControls.CheckBox {
@@ -93,7 +92,7 @@ Rectangle {
                          "Spot:LightingModel:enableSpotLight",
                          "Light Contour:LightingModel:showLightContour",
                          "Zone Stack:DrawZoneStack:enabled",
-                         "Shadow:RenderShadowTask:enabled"
+                         "Shadow:LightingModel:enableShadow"
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -124,7 +123,6 @@ Rectangle {
                         anchors.right: parent.right 
                 }
             }
-
             Item {
                 height: childrenRect.height
                 anchors.left: parent.left
@@ -135,18 +133,17 @@ Rectangle {
                     anchors.left: parent.left           
                 }
 
-                HifiControls.ComboBox {
+                ComboBox {
                     anchors.right: parent.right           
                     currentIndex: 1
-                    model: ListModel {
-                        id: cbItems
-                        ListElement { text: "RGB"; color: "Yellow" }
-                        ListElement { text: "SRGB"; color: "Green" }
-                        ListElement { text: "Reinhard"; color: "Yellow" }
-                        ListElement { text: "Filmic"; color: "White" }
-                    }
+                    model: [
+                        "RGB",
+                        "SRGB",
+                        "Reinhard",
+                        "Filmic",
+                    ]
                     width: 200
-                    onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex }
+                    onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex; }
                 }
             }
         }
@@ -171,7 +168,7 @@ Rectangle {
                 framebuffer.config.mode = mode;
             }
 
-            HifiControls.ComboBox {
+            ComboBox {
                 anchors.right: parent.right           
                 currentIndex: 0
                 model: ListModel {
@@ -204,6 +201,7 @@ Rectangle {
                     ListElement { text: "Debug Scattering"; color: "White" }
                     ListElement { text: "Ambient Occlusion"; color: "White" }
                     ListElement { text: "Ambient Occlusion Blurred"; color: "White" }
+                    ListElement { text: "Ambient Occlusion Normal"; color: "White" }
                     ListElement { text: "Velocity"; color: "White" }
                     ListElement { text: "Custom"; color: "White" }
                 }
@@ -248,12 +246,6 @@ Rectangle {
                     checked: render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"] = checked }
                 }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Transparents in HUD"
-                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
-                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
-                }
 
             }
             Column {
@@ -276,14 +268,44 @@ Rectangle {
                     checked: render.mainViewTask.getConfig("DrawZones")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("ZoneRenderer")["enabled"] = checked; render.mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
                 }
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Transparents in HUD"
+                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
+                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
+                }
             }
         }
         Separator {}
-        HifiControls.Button {
-            text: "Engine"
-           // activeFocusOnPress: false
-            onClicked: {
-               sendToScript({method: "openEngineView"}); 
+        Row {
+            HifiControls.Button {
+                text: "Engine"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "LOD"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openEngineLODView"}); 
+                }
+            }
+            HifiControls.Button {
+                text: "Cull"
+            // activeFocusOnPress: false
+                onClicked: {
+                sendToScript({method: "openCullInspectorView"}); 
+                }
+            }
+        }
+        Row {
+            HifiControls.Button {
+                text: "Material"
+                onClicked: {
+                sendToScript({method: "openMaterialInspectorView"}); 
+                }
             }
         }
     }

@@ -1,0 +1,160 @@
+{
+    "version": "1.1",
+    "root": {
+        "id": "networkAnimStateMachine",
+        "type": "stateMachine",
+        "data": {
+            "currentState": "transitAnimStateMachine",
+            "states": [
+                {
+                    "id": "transitAnimStateMachine",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "userNetworkAnimA", "state": "userNetworkAnimA" },
+                        { "var": "userNetworkAnimB", "state": "userNetworkAnimB" }
+                    ]
+                },
+                {
+                    "id": "userNetworkAnimA",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "transitAnimStateMachine", "state": "transitAnimStateMachine" },
+                        { "var": "userNetworkAnimB", "state": "userNetworkAnimB" }
+                    ]
+                },
+                {
+                    "id": "userNetworkAnimB",
+                    "interpTarget": 6,
+                    "interpDuration": 6,
+                    "transitions": [
+                        { "var": "transitAnimStateMachine", "state": "transitAnimStateMachine" },
+                        { "var": "userNetworkAnimA", "state": "userNetworkAnimA" }
+                    ]
+                }
+            ]
+        },
+        "children": [
+            {
+                "id": "transitAnimStateMachine",
+                "type": "stateMachine",
+                "data": {
+                    "currentState": "idleAnim",
+                    "states": [
+                        {
+                            "id": "idleAnim",
+                            "interpTarget": 6,
+                            "interpDuration": 6,
+                            "transitions": [
+                                { "var": "postTransitAnim", "state": "postTransitAnim" },
+                                { "var": "preTransitAnim", "state": "preTransitAnim" }
+                            ]
+                        },
+                        {
+                            "id": "preTransitAnim",
+                            "interpTarget": 4,
+                            "interpDuration": 4,
+                            "transitions": [
+                                { "var": "idleAnim", "state": "idleAnim" },
+                                { "var": "transitAnim", "state": "transitAnim" }
+                            ]
+                        },
+                        {
+                            "id": "transitAnim",
+                            "interpTarget": 2,
+                            "interpDuration": 2,
+                            "transitions": [
+                                { "var": "preTransitAnim", "state": "preTransitAnim" },
+                                { "var": "postTransitAnim", "state": "postTransitAnim" }
+                            ]
+                        },
+                        {
+                            "id": "postTransitAnim",
+                            "interpTarget": 4,
+                            "interpDuration": 4,
+                            "transitions": [
+                                { "var": "transitAnim", "state": "transitAnim" },
+                                { "var": "idleAnim", "state": "idleAnim" }
+                            ]
+                        }
+                    ]
+                },
+                "children" : [
+                    {
+                        "id": "idleAnim",
+                        "type": "clip",
+                        "data": {
+                            "url": "qrc:///avatar/animations/idle.fbx",
+                            "startFrame": 0.0,
+                            "endFrame": 90.0,
+                            "timeScale": 1.0,
+                            "loopFlag": true
+                        },
+                        "children": []
+                    },
+                    {
+                        "id": "preTransitAnim",
+                        "type": "clip",
+                        "data": {
+                            "url": "qrc:///avatar/animations/teleport.fbx",
+                            "startFrame": 0.0,
+                            "endFrame": 10.0,
+                            "timeScale": 1.0,
+                            "loopFlag": false
+                        },
+                        "children": []
+                    },
+                    {
+                        "id": "transitAnim",
+                        "type": "clip",
+                        "data": {
+                            "url": "qrc:///avatar/animations/teleport.fbx",
+                            "startFrame": 11.0,
+                            "endFrame": 18.0,
+                            "timeScale": 1.0,
+                            "loopFlag": false
+                        },
+                        "children": []
+                    },
+                    {
+                        "id": "postTransitAnim",
+                        "type": "clip",
+                        "data": {
+                            "url": "qrc:///avatar/animations/teleport.fbx",
+                            "startFrame": 19.0,
+                            "endFrame": 44.0,
+                            "timeScale": 1.0,
+                            "loopFlag": false
+                        },
+                        "children": []
+                    }
+                ]
+            },
+            {
+                "id": "userNetworkAnimA",
+                "type": "clip",
+                "data": {
+                    "url": "qrc:///avatar/animations/idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            },
+            {
+                "id": "userNetworkAnimB",
+                "type": "clip",
+                "data": {
+                    "url": "qrc:///avatar/animations/idle.fbx",
+                    "startFrame": 0.0,
+                    "endFrame": 90.0,
+                    "timeScale": 1.0,
+                    "loopFlag": true
+                },
+                "children": []
+            }
+        ]
+    }
+}

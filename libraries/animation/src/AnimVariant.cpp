@@ -169,7 +169,8 @@ std::map<QString, QString> AnimVariantMap::toDebugMap() const {
             break;
             */
         default:
-            assert(("invalid AnimVariant::Type", false));
+            // invalid AnimVariant::Type
+            assert(false);
         }
     }
     return result;

@@ -28,7 +28,7 @@ struct HazeParams {
     vec3 colorModulationFactor;
     int hazeMode;
 
-    mat4 transform;
+    vec3 spare;
     float backgroundBlend;
 
     float hazeRangeFactor;
@@ -39,7 +39,7 @@ struct HazeParams {
 };
 
 // See ShapePipeline::Slot::BUFFER in ShapePipeline.h
-layout(std140, binding=RENDER_UTILS_BUFFER_HAZE_PARAMS) uniform hazeBuffer {
+LAYOUT_STD140(binding=RENDER_UTILS_BUFFER_HAZE_PARAMS) uniform hazeBuffer {
     HazeParams hazeParams;
 };
 
@@ -63,20 +63,17 @@ vec3 computeHazeColorKeyLightAttenuation(vec3 color, vec3 lightDirectionWS, vec3
     // Height at which haze density is reduced by 95% (default set to 2000.0 for safety ,this should never happen)
     float height_95p = 2000.0;
     const float log_p_005 = log(0.05);
+
     if (hazeParams.hazeKeyLightAltitudeFactor > 0.0f) {
         height_95p = -log_p_005 / hazeParams.hazeKeyLightAltitudeFactor;
     }
 
     // Note that we need the sine to be positive
-    float sin_pitch = abs(lightDirectionWS.y);
-            
-    float distance;
     const float minimumSinPitch = 0.001;
-    if (sin_pitch < minimumSinPitch) {
-        distance = height_95p / minimumSinPitch;
-    } else {
-        distance = height_95p / sin_pitch;
-    }
+    float sin_pitch = abs(lightDirectionWS.y);
+    sin_pitch = max(sin_pitch, minimumSinPitch);
+
+    float distance = height_95p / sin_pitch;
 
     // Integration is from the fragment towards the light source
     // Note that the haze base reference affects only the haze density as function of altitude
@@ -128,6 +125,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
     }
 
     vec4 potentialFragColor;
+    const float EPSILON = 0.0000001f;
 
     if ((hazeParams.hazeMode & HAZE_MODE_IS_MODULATE_COLOR) == HAZE_MODE_IS_MODULATE_COLOR) {
         // Compute separately for each colour
@@ -143,9 +141,9 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
 
         const float slopeThreshold = 0.01;
         float deltaHeight = fragPositionWS.y - eyeWorldHeight;
-        if (abs(deltaHeight) > slopeThreshold) {
-            float t = hazeParams.hazeHeightFactor * deltaHeight;
-            hazeIntegral *= (1.0 - exp (-t)) / t;
+        float t = hazeParams.hazeHeightFactor * deltaHeight;
+        if (abs(t) > EPSILON) {
+            hazeIntegral *= mix(1.0, (1.0 - exp(-t)) / t, float(abs(deltaHeight) > slopeThreshold));
         }
 
         vec3 hazeAmount = 1.0 - exp(-hazeIntegral);
@@ -171,13 +169,9 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
 
         const float slopeThreshold = 0.01;
         float deltaHeight = fragPositionWS.y - eyeWorldHeight;
-        if (abs(deltaHeight) > slopeThreshold) {
-            float t = hazeParams.hazeHeightFactor * deltaHeight;
-            // Protect from wild values
-            const float EPSILON = 0.0000001f;
-            if (abs(t) > EPSILON) {
-                hazeIntegral *= (1.0 - exp (-t)) / t;
-            }
+        float t = hazeParams.hazeHeightFactor * deltaHeight;
+        if (abs(t) > EPSILON) {
+            hazeIntegral *= mix(1.0, (1.0 - exp(-t)) / t, float(abs(deltaHeight) > slopeThreshold));
         }
 
         float hazeAmount = 1.0 - exp(-hazeIntegral);
@@ -189,9 +183,7 @@ vec4 computeHazeColor(vec3 fragPositionES, vec3 fragPositionWS, vec3 eyePosition
     // Mix with background at far range
     const float BLEND_DISTANCE = 27000.0f;
     vec4 outFragColor = potentialFragColor;
-    if (distance > BLEND_DISTANCE) {
-        outFragColor.a *= hazeParams.backgroundBlend;
-    }
+    outFragColor.a *= mix(1.0, hazeParams.backgroundBlend, float(distance > BLEND_DISTANCE));
 
     return outFragColor;
 }

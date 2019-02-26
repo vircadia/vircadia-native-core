@@ -20,9 +20,8 @@ namespace controller {
         ExponentialSmoothingFilter() {}
         ExponentialSmoothingFilter(float rotationConstant, float translationConstant) :
             _translationConstant(translationConstant), _rotationConstant(rotationConstant) {}
-        virtual ~ExponentialSmoothingFilter() {}
 
-        float apply(float value) const override { return value; }
+        AxisValue apply(AxisValue value) const override { return value; }
         Pose apply(Pose value) const override;
         bool parseParameters(const QJsonValue& parameters) override;
 

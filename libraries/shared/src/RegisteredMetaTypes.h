@@ -232,7 +232,7 @@ public:
 };
 
 /**jsdoc
- * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or overlays that lie under a
+ * A PickRay defines a vector with a starting point. It is used, for example, when finding entities or avatars that lie under a
  * mouse click or intersect a laser beam.
  *
  * @typedef {object} PickRay
@@ -269,6 +269,7 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
  *
  * @typedef {object} StylusTip
  * @property {number} side - The hand the tip is attached to: <code>0</code> for left, <code>1</code> for right.
+ * @property {Vec3} tipOffset  - the position offset of the stylus tip.
  * @property {Vec3} position - The position of the stylus tip.
  * @property {Quat} orientation - The orientation of the stylus tip.
  * @property {Vec3} velocity - The velocity of the stylus tip.
@@ -276,12 +277,14 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 class StylusTip : public MathPick {
 public:
     StylusTip() : position(NAN), velocity(NAN) {}
-    StylusTip(const bilateral::Side& side, const glm::vec3& position = Vectors::ZERO, const glm::quat& orientation = Quaternions::IDENTITY, const glm::vec3& velocity = Vectors::ZERO) :
-        side(side), position(position), orientation(orientation), velocity(velocity) {}
-    StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), position(vec3FromVariant(pickVariant["position"])),
-        orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
+    StylusTip(const bilateral::Side& side, const glm::vec3& tipOffset = Vectors::ZERO ,const glm::vec3& position = Vectors::ZERO,
+              const glm::quat& orientation = Quaternions::IDENTITY, const glm::vec3& velocity = Vectors::ZERO) :
+        side(side), tipOffset(tipOffset), position(position), orientation(orientation), velocity(velocity) {}
+    StylusTip(const QVariantMap& pickVariant) : side(bilateral::Side(pickVariant["side"].toInt())), tipOffset(vec3FromVariant(pickVariant["tipOffset"])),
+        position(vec3FromVariant(pickVariant["position"])), orientation(quatFromVariant(pickVariant["orientation"])), velocity(vec3FromVariant(pickVariant["velocity"])) {}
 
     bilateral::Side side { bilateral::Side::Invalid };
+    glm::vec3 tipOffset;
     glm::vec3 position;
     glm::quat orientation;
     glm::vec3 velocity;
@@ -289,12 +292,13 @@ public:
     operator bool() const override { return side != bilateral::Side::Invalid; }
 
     bool operator==(const StylusTip& other) const {
-        return (side == other.side && position == other.position && orientation == other.orientation && velocity == other.velocity);
+        return (side == other.side && tipOffset == other.tipOffset && position == other.position && orientation == other.orientation && velocity == other.velocity);
     }
 
     QVariantMap toVariantMap() const override {
         QVariantMap stylusTip;
         stylusTip["side"] = (int)side;
+        stylusTip["tipOffset"] = vec3toVariant(tipOffset);
         stylusTip["position"] = vec3toVariant(position);
         stylusTip["orientation"] = quatToVariant(orientation);
         stylusTip["velocity"] = vec3toVariant(velocity);
@@ -347,7 +351,7 @@ public:
 * The depth is measured in world space, but will scale with the parent if defined.
 * @property {CollisionMask} [collisionGroup=8] - The type of object this collision pick collides as. Objects whose collision masks overlap with the pick's collision group
 * will be considered colliding with the pick.
-* @property {Uuid} parentID - The ID of the parent, either an avatar, an entity, or an overlay.
+* @property {Uuid} parentID - The ID of the parent, either an avatar or an entity.
 * @property {number} parentJointIndex - The joint of the parent to parent to, for example, the joints on the model of an avatar. (default = 0, no joint)
 * @property {string} joint - If "Mouse," parents the pick to the mouse. If "Avatar," parents the pick to MyAvatar's head. Otherwise, parents to the joint of the given name on MyAvatar.
 */
@@ -641,6 +645,7 @@ using MeshPointer = std::shared_ptr<graphics::Mesh>;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  * @hifi-server-entity
  * @hifi-assignment-client
  *
@@ -700,6 +705,8 @@ QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const MeshFace &meshFa
 void meshFaceFromScriptValue(const QScriptValue &object, MeshFace& meshFaceResult);
 QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<MeshFace>& vector);
 void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>& result);
+
+QVariantMap parseTexturesToMap(QString textures, const QVariantMap& defaultTextures);
 
 
 #endif // hifi_RegisteredMetaTypes_h

@@ -11,6 +11,7 @@
 <@if not MODEL_MATERIAL_TEXTURES_SLH@>
 <@def MODEL_MATERIAL_TEXTURES_SLH@>
 
+<@include graphics/ShaderConstants.h@>
 <@include graphics/Material.slh@>
 
 <@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion, withScattering)@>
@@ -91,21 +92,21 @@ float fetchScatteringMap(vec2 uv) {
 #else
 
 <@if withAlbedo@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_ALBEDO) uniform sampler2D albedoMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_ALBEDO) uniform sampler2D albedoMap;
 vec4 fetchAlbedoMap(vec2 uv) {
     return texture(albedoMap, uv, TAA_TEXTURE_LOD_BIAS);
 }
 <@endif@>
 
 <@if withRoughness@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_ROUGHNESS) uniform sampler2D roughnessMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_ROUGHNESS) uniform sampler2D roughnessMap;
 float fetchRoughnessMap(vec2 uv) {
     return (texture(roughnessMap, uv, TAA_TEXTURE_LOD_BIAS).r);
 }
 <@endif@>
 
 <@if withNormal@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_NORMAL) uniform sampler2D normalMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_NORMAL) uniform sampler2D normalMap;
 vec3 fetchNormalMap(vec2 uv) {
     // unpack normal, swizzle to get into hifi tangent space with Y axis pointing out
     vec2 t = 2.0 * (texture(normalMap, uv, TAA_TEXTURE_LOD_BIAS).rg - vec2(0.5, 0.5));
@@ -115,28 +116,28 @@ vec3 fetchNormalMap(vec2 uv) {
 <@endif@>
 
 <@if withMetallic@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_METALLIC) uniform sampler2D metallicMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_METALLIC) uniform sampler2D metallicMap;
 float fetchMetallicMap(vec2 uv) {
     return (texture(metallicMap, uv, TAA_TEXTURE_LOD_BIAS).r);
 }
 <@endif@>
 
 <@if withEmissive@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
 vec3 fetchEmissiveMap(vec2 uv) {
     return texture(emissiveMap, uv, TAA_TEXTURE_LOD_BIAS).rgb;
 }
 <@endif@>
 
 <@if withOcclusion@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_OCCLUSION) uniform sampler2D occlusionMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_OCCLUSION) uniform sampler2D occlusionMap;
 float fetchOcclusionMap(vec2 uv) {
     return texture(occlusionMap, uv).r;
 }
 <@endif@>
 
 <@if withScattering@>
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_SCATTERING) uniform sampler2D scatteringMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_SCATTERING) uniform sampler2D scatteringMap;
 float fetchScatteringMap(vec2 uv) {
     float scattering = texture(scatteringMap, uv, TAA_TEXTURE_LOD_BIAS).r; // boolean scattering for now
     return max(((scattering - 0.1) / 0.9), 0.0);
@@ -150,32 +151,35 @@ float fetchScatteringMap(vec2 uv) {
 
 
 <@func fetchMaterialTexturesCoord0(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, scattering)@>
+    if (getTexMapArray()._materialParams.y != 1.0 && clamp(<$texcoord0$>, vec2(0.0), vec2(1.0)) != <$texcoord0$>) {
+        discard;
+    }
 <@if albedo@>
-    vec4 <$albedo$> = (((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
+    vec4 <$albedo$> = mix(vec4(1.0), fetchAlbedoMap(<$texcoord0$>), float((<$matKey$> & (ALBEDO_MAP_BIT | OPACITY_MASK_MAP_BIT | OPACITY_TRANSLUCENT_MAP_BIT)) != 0));
 <@endif@>
 <@if roughness@>
-    float <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? fetchRoughnessMap(<$texcoord0$>) : 1.0);
+    float <$roughness$> = mix(1.0, fetchRoughnessMap(<$texcoord0$>), float((<$matKey$> & ROUGHNESS_MAP_BIT) != 0));
 <@endif@>
 <@if normal@>
-    vec3 <$normal$> = (((<$matKey$> & NORMAL_MAP_BIT) != 0) ? fetchNormalMap(<$texcoord0$>) : vec3(0.0, 1.0, 0.0));
+    vec3 <$normal$> = mix(vec3(0.0, 1.0, 0.0), fetchNormalMap(<$texcoord0$>), float((<$matKey$> & NORMAL_MAP_BIT) != 0));
 <@endif@>
 <@if metallic@>
-    float <$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? fetchMetallicMap(<$texcoord0$>) : 0.0);
+    float <$metallic$> = float((<$matKey$> & METALLIC_MAP_BIT) != 0) * fetchMetallicMap(<$texcoord0$>);
 <@endif@>
 <@if emissive@>
-    vec3 <$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? fetchEmissiveMap(<$texcoord0$>) : vec3(0.0));
+    vec3 <$emissive$> = float((<$matKey$> & EMISSIVE_MAP_BIT) != 0) * fetchEmissiveMap(<$texcoord0$>);
 <@endif@>
 <@if scattering@>
-    float <$scattering$> = (((<$matKey$> & SCATTERING_MAP_BIT) != 0) ? fetchScatteringMap(<$texcoord0$>) : 0.0);
+    float <$scattering$> = float((<$matKey$> & SCATTERING_MAP_BIT) != 0) * fetchScatteringMap(<$texcoord0$>);
 <@endif@>
 <@endfunc@>
 
-<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmapVal)@>
+<@func fetchMaterialTexturesCoord1(matKey, texcoord1, occlusion, lightmap)@>
 <@if occlusion@>
-    float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord1$>) : 1.0);
+    float <$occlusion$> = mix(1.0, fetchOcclusionMap(<$texcoord1$>), float((<$matKey$> & OCCLUSION_MAP_BIT) != 0));
 <@endif@>
-<@if lightmapVal@>
-    vec3 <$lightmapVal$> = fetchLightmapMap(<$texcoord1$>);
+<@if lightmap@>
+    vec3 <$lightmap$> = fetchLightmapMap(<$texcoord1$>);
 <@endif@>
 <@endfunc@>
 
@@ -185,20 +189,10 @@ float fetchScatteringMap(vec2 uv) {
 
 <$declareMaterialTexMapArrayBuffer()$>
 
-layout(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
+LAYOUT(binding=GRAPHICS_TEXTURE_MATERIAL_EMISSIVE_LIGHTMAP) uniform sampler2D emissiveMap;
 vec3 fetchLightmapMap(vec2 uv) {
-    vec2 lightmapParams = getTexMapArray()._lightmapParams.xy;
+    vec2 lightmapParams = getTexMapArray()._lightmapParams;
     return (vec3(lightmapParams.x) + lightmapParams.y * texture(emissiveMap, uv).rgb);
-}
-<@endfunc@>
-
-<@func evalMaterialNormal(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
-{
-    vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);
-    vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
-    vec3 normalizedBitangent = cross(normalizedNormal, normalizedTangent);
-    vec3 localNormal = <$fetchedNormal$>;
-    <$normal$> = vec3(normalizedBitangent * localNormal.x + normalizedNormal * localNormal.y + normalizedTangent * localNormal.z);
 }
 <@endfunc@>
 
@@ -216,20 +210,19 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialAlbedo(fetchedAlbedo, materialAlbedo, matKey, albedo)@>
 {
-    <$albedo$>.xyz = (((<$matKey$> & ALBEDO_VAL_BIT) != 0) ? <$materialAlbedo$> : vec3(1.0));
-
-    if (((<$matKey$> & ALBEDO_MAP_BIT) != 0)) {
-        <$albedo$>.xyz *= <$fetchedAlbedo$>.xyz;
-    }
+    <$albedo$>.xyz = mix(vec3(1.0), <$materialAlbedo$>, float((<$matKey$> & ALBEDO_VAL_BIT) != 0));
+    <$albedo$>.xyz *= mix(vec3(1.0), <$fetchedAlbedo$>.xyz, float((<$matKey$> & ALBEDO_MAP_BIT) != 0));
 }
 <@endfunc@>
 
 <@func evalMaterialOpacity(fetchedOpacity, materialOpacity, matKey, opacity)@>
 {
     const float OPACITY_MASK_THRESHOLD = 0.5;
-    <$opacity$> = (((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0) ?
-                     (((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0) ? step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>) : <$fetchedOpacity$>) :
-                     1.0) * <$materialOpacity$>;
+    <$opacity$> = mix(1.0,
+                      mix(<$fetchedOpacity$>,
+                          step(OPACITY_MASK_THRESHOLD, <$fetchedOpacity$>),
+                          float((<$matKey$> & OPACITY_MASK_MAP_BIT) != 0)),
+                      float((<$matKey$> & (OPACITY_TRANSLUCENT_MAP_BIT | OPACITY_MASK_MAP_BIT)) != 0)) * <$materialOpacity$>;
 }
 <@endfunc@>
 
@@ -250,19 +243,19 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialRoughness(fetchedRoughness, materialRoughness, matKey, roughness)@>
 {
-    <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? <$fetchedRoughness$> : <$materialRoughness$>);
+    <$roughness$> = mix(<$materialRoughness$>, <$fetchedRoughness$>, float((<$matKey$> & ROUGHNESS_MAP_BIT) != 0));
 }
 <@endfunc@>
 
 <@func evalMaterialMetallic(fetchedMetallic, materialMetallic, matKey, metallic)@>
 {
-    <$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? <$fetchedMetallic$> : <$materialMetallic$>);
+    <$metallic$> = mix(<$materialMetallic$>, <$fetchedMetallic$>, float((<$matKey$> & METALLIC_MAP_BIT) != 0));
 }
 <@endfunc@>
 
 <@func evalMaterialEmissive(fetchedEmissive, materialEmissive, matKey, emissive)@>
 {
-    <$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? <$fetchedEmissive$> : <$materialEmissive$>);
+    <$emissive$> = mix(<$materialEmissive$>, <$fetchedEmissive$>, float((<$matKey$> & EMISSIVE_MAP_BIT) != 0));
 }
 <@endfunc@>
 
@@ -274,7 +267,7 @@ vec3 fetchLightmapMap(vec2 uv) {
 
 <@func evalMaterialScattering(fetchedScattering, materialScattering, matKey, scattering)@>
 {
-    <$scattering$> = (((<$matKey$> & SCATTERING_MAP_BIT) != 0) ? <$fetchedScattering$> : <$materialScattering$>);
+    <$scattering$> = mix(<$materialScattering$>, <$fetchedScattering$>, float((<$matKey$> & SCATTERING_MAP_BIT) != 0));
 }
 <@endfunc@>
 

@@ -31,6 +31,7 @@ class QScriptEngine;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Vec3} position - The position of the HMD if currently in VR display mode, otherwise
  *     {@link Vec3(0)|Vec3.ZERO}. <em>Read-only.</em>
@@ -53,14 +54,16 @@ class QScriptEngine;
  * @property {boolean} tabletContextualMode - <code>true</code> if the tablet has been opened in contextual mode, otherwise 
  *     <code>false</code>. In contextual mode, the tablet has been opened at a specific world position and orientation rather 
  *     than at a position and orientation relative to the user. <em>Read-only.</em>
- * @property {Uuid} tabletID - The UUID of the tablet body model overlay.
- * @property {Uuid} tabletScreenID - The UUID of the tablet's screen overlay.
- * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button overlay.
- * @property {Uuid} homeButtonHighlightID - The UUID of the tablet's "home" button highlight overlay.
- * @property {Uuid} miniTabletID - The UUID of the mini tablet's body model overlay. <code>null</code> if not in HMD mode.
- * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen overlay. <code>null</code> if not in HMD mode.
+ * @property {Uuid} tabletID - The UUID of the tablet body model entity.
+ * @property {Uuid} tabletScreenID - The UUID of the tablet's screen entity.
+ * @property {Uuid} homeButtonID - The UUID of the tablet's "home" button entity.
+ * @property {Uuid} homeButtonHighlightID - The UUID of the tablet's "home" button highlight entity.
+ * @property {Uuid} miniTabletID - The UUID of the mini tablet's body model entity. <code>null</code> if not in HMD mode.
+ * @property {Uuid} miniTabletScreenID - The UUID of the mini tablet's screen entity. <code>null</code> if not in HMD mode.
  * @property {number} miniTabletHand - The hand that the mini tablet is displayed on: <code>0</code> for left hand, 
  *     <code>1</code> for right hand, <code>-1</code> if not in HMD mode.
+ * @property {bool} miniTabletEnabled=true - <code>true</code> if the mini tablet is enabled to be displayed, otherwise 
+ *     <code>false</code>.
  * @property {Rect} playArea=0,0,0,0 - The size and position of the HMD play area in sensor coordinates. <em>Read-only.</em>
  * @property {Vec3[]} sensorPositions=[]] - The positions of the VR system sensors in sensor coordinates. <em>Read-only.</em>
  */
@@ -77,6 +80,7 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
     Q_PROPERTY(QUuid miniTabletID READ getCurrentMiniTabletID WRITE setCurrentMiniTabletID)
     Q_PROPERTY(QUuid miniTabletScreenID READ getCurrentMiniTabletScreenID WRITE setCurrentMiniTabletScreenID)
     Q_PROPERTY(int miniTabletHand READ getCurrentMiniTabletHand WRITE setCurrentMiniTabletHand)
+    Q_PROPERTY(bool miniTabletEnabled READ getMiniTabletEnabled WRITE setMiniTabletEnabled)
     Q_PROPERTY(QVariant playArea READ getPlayAreaRect);
     Q_PROPERTY(QVector<glm::vec3> sensorPositions READ getSensorPositions);
 
@@ -355,6 +359,22 @@ signals:
      */
     bool shouldShowHandControllersChanged();
 
+    /**jsdoc
+     * Triggered when the tablet is shown or hidden.
+     * @function HMD.showTabletChanged
+     * @param {boolean} showTablet - <code>true</code> if the tablet is showing, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    void showTabletChanged(bool showTablet);
+
+    /**jsdoc
+     * Triggered when the ability to display the mini tablet has changed.
+     * @function HMD.miniTabletEnabledChanged
+     * @param {boolean} enabled - <code>true</code> if the mini tablet is enabled to be displayed, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    bool miniTabletEnabledChanged(bool enabled);
+
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
@@ -388,8 +408,13 @@ public:
     void setCurrentMiniTabletHand(int miniTabletHand) { _miniTabletHand = miniTabletHand; }
     int getCurrentMiniTabletHand() const { return _miniTabletHand; }
 
+    void setMiniTabletEnabled(bool enabled);
+    bool getMiniTabletEnabled();
+
     QVariant getPlayAreaRect();
     QVector<glm::vec3> getSensorPositions();
+
+    glm::vec3 getPosition() const;
 
 private:
     bool _showTablet { false };
@@ -402,9 +427,7 @@ private:
     QUuid _miniTabletID;
     QUuid _miniTabletScreenID;
     int _miniTabletHand { -1 };
-
-    // Get the position of the HMD
-    glm::vec3 getPosition() const;
+    bool _miniTabletEnabled { true };
 
     // Get the orientation of the HMD
     glm::quat getOrientation() const;

@@ -29,6 +29,7 @@
 #include <EntitySimulation.h> // for SetOfEntities
 
 #include "AvatarMotionState.h"
+#include "DetailedMotionState.h"
 #include "MyAvatar.h"
 #include "OtherAvatar.h"
 
@@ -45,6 +46,7 @@ using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @borrows AvatarList.getAvatarIdentifiers as getAvatarIdentifiers
  * @borrows AvatarList.getAvatarsInRange as getAvatarsInRange
@@ -55,6 +57,7 @@ using SortedAvatar = std::pair<float, std::shared_ptr<Avatar>>;
  * @borrows AvatarList.sessionUUIDChanged as sessionUUIDChanged
  * @borrows AvatarList.processAvatarDataPacket as processAvatarDataPacket
  * @borrows AvatarList.processAvatarIdentityPacket as processAvatarIdentityPacket
+ * @borrows AvatarList.processBulkAvatarTraits as processBulkAvatarTraits
  * @borrows AvatarList.processKillAvatar as processKillAvatar
  */
 
@@ -91,7 +94,6 @@ public:
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    void sendIdentityRequest(const QUuid& avatarID) const;
 
     void setMyAvatarDataPacketsPaused(bool puase);
 
@@ -136,22 +138,33 @@ public:
      * @param {PickRay} ray
      * @param {Uuid[]} [avatarsToInclude=[]]
      * @param {Uuid[]} [avatarsToDiscard=[]]
+     * @param {boolean} pickAgainstMesh
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
-                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue());
+                                                                  const QScriptValue& avatarIdsToDiscard = QScriptValue(),
+                                                                  bool pickAgainstMesh = true);
     /**jsdoc
      * @function AvatarManager.findRayIntersectionVector
      * @param {PickRay} ray
      * @param {Uuid[]} avatarsToInclude
      * @param {Uuid[]} avatarsToDiscard
+     * @param {boolean} pickAgainstMesh
      * @returns {RayToAvatarIntersectionResult}
      */
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
                                                                         const QVector<EntityItemID>& avatarsToInclude,
-                                                                        const QVector<EntityItemID>& avatarsToDiscard);
+                                                                        const QVector<EntityItemID>& avatarsToDiscard,
+                                                                        bool pickAgainstMesh);
 
+    /**jsdoc
+     * @function AvatarManager.findParabolaIntersectionVector
+     * @param {PickParabola} pick
+     * @param {Uuid[]} avatarsToInclude
+     * @param {Uuid[]} avatarsToDiscard
+     * @returns {ParabolaToAvatarIntersectionResult}
+     */
     Q_INVOKABLE ParabolaToAvatarIntersectionResult findParabolaIntersectionVector(const PickParabola& pick,
                                                                                   const QVector<EntityItemID>& avatarsToInclude,
                                                                                   const QVector<EntityItemID>& avatarsToDiscard);
@@ -176,19 +189,20 @@ public:
      * than iterating over each avatar and obtaining data about them in JavaScript, as that method
      * locks and unlocks each avatar's data structure potentially hundreds of times per update tick.
      * @function AvatarManager.getPalData
-     * @param {string[]} specificAvatarIdentifiers - A list of specific Avatar Identifiers about
-     * which you want to get PAL data
-     * @returns {object}
+     * @param {string[]} [specificAvatarIdentifiers=[]] - The list of IDs of the avatars you want the PAL data for.
+     * If an empty list, the PAL data for all nearby avatars is returned.
+     * @returns {object[]} An array of objects, each object being the PAL data for an avatar.
      */
-    Q_INVOKABLE QVariantMap getPalData(const QList<QString> specificAvatarIdentifiers = QList<QString>());
+    Q_INVOKABLE QVariantMap getPalData(const QStringList& specificAvatarIdentifiers = QStringList());
 
     float getMyAvatarSendRate() const { return _myAvatarSendRate.rate(); }
-    int getIdentityRequestsSent() const { return _identityRequestsSent; }
 
     void queuePhysicsChange(const OtherAvatarPointer& avatar);
     void buildPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void handleProcessedPhysicsTransaction(PhysicsEngine::Transaction& transaction);
     void removeDeadAvatarEntities(const SetOfEntities& deadEntities);
+
+    void accumulateGrabPositions(std::map<QUuid, GrabLocationAccumulator>& grabAccumulators);
 
 public slots:
     /**jsdoc
@@ -206,15 +220,16 @@ private:
 
     void simulateAvatarFades(float deltaTime);
 
-    AvatarSharedPointer newSharedAvatar() override;
-    
+    AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID) override;
+
     // called only from the AvatarHashMap thread - cannot be called while this thread holds the
     // hash lock, since handleRemovedAvatar needs a write lock on the entity tree and the entity tree
     // frequently grabs a read lock on the hash to get a given avatar by ID
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
+    void handleTransitAnimations(AvatarTransit::Status status);
 
-    QVector<AvatarSharedPointer> _avatarsToFade;
+    QVector<AvatarSharedPointer> _avatarsToFadeOut;
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;
@@ -230,7 +245,6 @@ private:
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
     bool _myAvatarDataPacketsPaused { false };
-    mutable int _identityRequestsSent { 0 };
 
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;

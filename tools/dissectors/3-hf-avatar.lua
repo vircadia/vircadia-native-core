@@ -21,12 +21,30 @@ local f_avatar_data_default_rotations = ProtoField.string("hf_avatar.avatar_data
 local f_avatar_data_default_translations = ProtoField.string("hf_avatar.avatar_data_default_translations", "Valid Default")
 local f_avatar_data_sizes = ProtoField.string("hf_avatar.avatar_sizes", "Sizes")
 
+-- avatar trait data fields
+local f_avatar_trait_data = ProtoField.bytes("hf_avatar.avatar_trait_data", "Avatar Trait Data")
+
+local f_avatar_trait_id = ProtoField.guid("hf_avatar.trait_avatar_id", "Trait Avatar ID")
+local f_avatar_trait_type = ProtoField.int8("hf_avatar.trait_type", "Trait Type")
+local f_avatar_trait_version = ProtoField.int32("hf_avatar.trait_version", "Trait Version")
+local f_avatar_trait_instance_id = ProtoField.guid("hf_avatar.trait_instance_id", "Trait Instance ID")
+local f_avatar_trait_binary = ProtoField.bytes("hf_avatar.trait_binary", "Trait Binary Data")
 
 p_hf_avatar.fields = {
-  f_avatar_id, f_avatar_data_parent_id
+  f_avatar_id, f_avatar_data_parent_id,
+  f_avatar_trait_data,
+  f_avatar_trait_type, f_avatar_trait_id,
+  f_avatar_trait_version, f_avatar_trait_binary,
+  f_avatar_trait_instance_id
 }
 
 local packet_type_extractor = Field.new('hfudt.type')
+
+INSTANCED_TYPES = {
+  [1] = true
+}
+
+TOTAL_TRAIT_TYPES = 2
 
 function p_hf_avatar.dissector(buf, pinfo, tree)
   pinfo.cols.protocol = p_hf_avatar.name
@@ -52,7 +70,7 @@ function p_hf_avatar.dissector(buf, pinfo, tree)
 
     add_avatar_data_subtrees(avatar_data)
 
-  else
+  elseif packet_type == 11 then
     -- BulkAvatarData packet
     while i < buf:len() do
       -- avatar_id is first 16 bytes
@@ -65,9 +83,88 @@ function p_hf_avatar.dissector(buf, pinfo, tree)
 
       add_avatar_data_subtrees(avatar_data)
     end
+  elseif packet_type == 100 then
+    -- BulkAvatarTraits packet
+
+    -- loop over the packet until we're done reading it
+    while i < buf:len() do
+      i = i + read_avatar_trait_data(buf(i))
+    end
   end
 end
 
+function read_avatar_trait_data(buf)
+  local i = 0
+
+  -- avatar_id is first 16 bytes
+  local avatar_id_bytes = buf(i, 16)
+  i = i + 16
+
+  local traits_map = {}
+
+  -- loop over all of the traits for this avatar
+  while i < buf:len() do
+    -- pull out this trait type
+    local trait_type = buf(i, 1):le_int()
+    i = i + 1
+
+    debug("The trait type is " .. trait_type)
+
+    -- bail on our while if the trait type is null (-1)
+    if trait_type == -1 then break end
+
+    local trait_map = {}
+
+    -- pull out the trait version
+    trait_map.version = buf(i, 4):le_int()
+    i = i + 4
+
+    if INSTANCED_TYPES[trait_type] ~= nil then
+      -- pull out the trait instance ID
+      trait_map.instance_ID = buf(i, 16)
+      i = i + 16
+    end
+
+    -- pull out the trait binary size
+    trait_map.binary_size = buf(i, 2):le_int()
+    i = i + 2
+
+    -- unpack the binary data as long as this wasn't a delete
+    if trait_map.binary_size ~= -1 then
+      -- pull out the binary data for the trait
+      trait_map.binary_data = buf(i, trait_map.binary_size)
+      i = i + trait_map.binary_size
+    end
+
+    traits_map[trait_type] = trait_map
+  end
+
+  -- add a subtree including all of the data for this avatar
+  debug("Adding trait data of " .. i .. " bytes to the avatar tree")
+  local this_avatar_tree = avatar_subtree:add(f_avatar_trait_data, buf(0, i))
+
+  this_avatar_tree:add(f_avatar_trait_id, avatar_id_bytes)
+
+  -- enumerate the pulled traits and add them to the tree
+  local trait_type = 0
+  while trait_type < TOTAL_TRAIT_TYPES do
+    trait = traits_map[trait_type]
+
+    if trait ~= nil then
+      this_avatar_tree:add(f_avatar_trait_type, trait_type)
+      this_avatar_tree:add(f_avatar_trait_version, trait.version)
+      this_avatar_tree:add(f_avatar_trait_binary, trait.binary_data)
+
+      if trait.instance_ID ~= nil then
+        this_avatar_tree:add(f_avatar_trait_instance_id, trait.instance_ID)
+      end
+    end
+
+    trait_type = trait_type + 1
+  end
+
+  return i
+end
 
 function add_avatar_data_subtrees(avatar_data)
   if avatar_data["has_flags"] then
@@ -281,6 +378,9 @@ function decode_avatar_data_packet(buf)
     indices = decode_validity_bits(buf(i, num_validity_bytes), num_joints)
     i = i + num_validity_bytes
     result["valid_translations"] = "Valid Translations: " .. string.format("(%d/%d) {", #indices, num_joints) .. table.concat(indices, ", ") .. "}"
+
+    -- TODO: skip maxTranslationDimension
+    i = i + 4
 
     -- TODO: skip translations for now
     i = i + #indices * 6

@@ -12,7 +12,8 @@
 
 /* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager,
    Overlays, OverlayWebWindow, UserActivityLogger, Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera,
-   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool, OverlaySystemWindow */
+   progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, OverlaySystemWindow,
+   keyUpEventFromUIWindow:true */
 
 (function() { // BEGIN LOCAL_SCOPE
 
@@ -32,7 +33,6 @@ Script.include([
     "libraries/gridTool.js",
     "libraries/entityList.js",
     "libraries/utils.js",
-    "particle_explorer/particleExplorerTool.js",
     "libraries/entityIconOverlayManager.js"
 ]);
 
@@ -41,6 +41,8 @@ var CreateWindow = Script.require('./modules/createWindow.js');
 var TITLE_OFFSET = 60;
 var CREATE_TOOLS_WIDTH = 490;
 var MAX_DEFAULT_ENTITY_LIST_HEIGHT = 942;
+
+var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
 
 var createToolsWindow = new CreateWindow(
     Script.resourcesPath() + "qml/hifi/tablet/EditTools.qml",
@@ -80,12 +82,17 @@ var selectionManager = SelectionManager;
 var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
 var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
 var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
+var ZONE_URL = Script.resolvePath("assets/images/icon-zone.svg");
 
-var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
+var entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect', 'Zone'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
     if (properties.type === 'Light') {
         return {
             url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
+        };
+    } else if (properties.type === 'Zone') {
+        return {
+            url: ZONE_URL,
         };
     } else {
         return {
@@ -104,36 +111,17 @@ var gridTool = new GridTool({
 });
 gridTool.setVisible(false);
 
+var EntityShapeVisualizer = Script.require('./modules/entityShapeVisualizer.js');
+var entityShapeVisualizer = new EntityShapeVisualizer(["Zone"]);
+
 var entityListTool = new EntityListTool(shouldUseEditTabletApp);
 
 selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
-
-    // Update particle explorer
-    var needToDestroyParticleExplorer = false;
-    if (selectionManager.selections.length === 1) {
-        var selectedEntityID = selectionManager.selections[0];
-        if (selectedEntityID === selectedParticleEntityID) {
-            return;
-        }
-        var type = Entities.getEntityProperties(selectedEntityID, "type").type;
-        if (type === "ParticleEffect") {
-            selectParticleEntity(selectedEntityID);
-        } else {
-            needToDestroyParticleExplorer = true;
-        }
-    } else {
-        needToDestroyParticleExplorer = true;
-    }
-
-    if (needToDestroyParticleExplorer && selectedParticleEntityID !== null) {
-        selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
-    }
+    entityShapeVisualizer.setEntities(selectionManager.selections);
 });
 
-var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 
@@ -294,6 +282,198 @@ function checkEditPermissionsAndUpdate() {
     }
 }
 
+const DEFAULT_ENTITY_PROPERTIES = {
+    All: {
+        description: "",
+        rotation: { x: 0, y: 0, z: 0, w: 1 },
+        collidesWith: "static,dynamic,kinematic,otherAvatar,myAvatar",
+        collisionSoundURL: "",
+        cloneable: false,
+        ignoreIK: true,
+        canCastShadow: true,
+        href: "",
+        script: "",
+        serverScripts:"",
+        velocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        damping: 0,
+        angularVelocity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        angularDamping: 0,
+        restitution: 0.5,
+        friction: 0.5,
+        density: 1000,
+        gravity: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        acceleration: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        dynamic: false,
+    },
+    Shape: {
+        shape: "Box",
+        dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+        color: { red: 0, green: 180, blue: 239 },
+    },
+    Text: {
+        text: "Text",
+        dimensions: {
+            x: 0.65,
+            y: 0.3,
+            z: 0.01
+        },
+        textColor: { red: 255, green: 255, blue: 255 },
+        backgroundColor: { red: 0, green: 0, blue: 0 },
+        lineHeight: 0.06,
+        faceCamera: false,
+    },
+    Zone: {
+        dimensions: {
+            x: 10,
+            y: 10,
+            z: 10
+        },
+        flyingAllowed: true,
+        ghostingAllowed: true,
+        filter: "",
+        keyLightMode: "inherit",
+        keyLightColor: { red: 255, green: 255, blue: 255 },
+        keyLight: {
+            intensity: 1.0,
+            direction: {
+                x: 0.0,
+                y: -0.707106769084930, // 45 degrees
+                z: 0.7071067690849304
+            },
+            castShadows: true
+        },
+        ambientLightMode: "inherit",
+        ambientLight: {
+            ambientIntensity: 0.5,
+            ambientURL: ""
+        },
+        hazeMode: "inherit",
+        haze: {
+            hazeRange: 1000,
+            hazeAltitudeEffect: false,
+            hazeBaseRef: 0,
+            hazeColor: {
+                red: 128,
+                green: 154,
+                blue: 179
+            },
+            hazeBackgroundBlend: 0,
+            hazeEnableGlare: false,
+            hazeGlareColor: {
+                red: 255,
+                green: 229,
+                blue: 179
+            },
+        },
+        shapeType: "box",
+        bloomMode: "inherit"
+    },
+    Model: {
+        collisionShape: "none",
+        compoundShapeURL: "",
+        animation: {
+            url: "",
+            running: false,
+            allowTranslation: false,
+            loop: true,
+            hold: false,
+            currentFrame: 0,
+            firstFrame: 0,
+            lastFrame: 100000,
+            fps: 30.0,
+        }
+    },
+    Image: {
+        dimensions: {
+            x: 0.5385,
+            y: 0.2819,
+            z: 0.0092
+        },
+        shapeType: "box",
+        collisionless: true,
+        keepAspectRatio: false,
+        imageURL: DEFAULT_IMAGE
+    },
+    Web: {
+        dimensions: {
+            x: 1.6,
+            y: 0.9,
+            z: 0.01
+        },
+        sourceUrl: "https://highfidelity.com/",
+        dpi: 30,
+    },
+    ParticleEffect: {
+        lifespan: 1.5,
+        maxParticles: 10,
+        textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png",
+        emitRate: 5.5,
+        emitSpeed: 0,
+        speedSpread: 0,
+        emitDimensions: { x: 0, y: 0, z: 0 },
+        emitOrientation: { x: 0, y: 0, z: 0, w: 1 },
+        emitterShouldTrail: true,
+        particleRadius: 0.25,
+        radiusStart: 0,
+        radiusSpread: 0,
+        particleColor: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        colorSpread: {
+            red: 0,
+            green: 0,
+            blue: 0
+        },
+        alpha: 0,
+        alphaStart: 1,
+        alphaSpread: 0,
+        emitAcceleration: {
+            x: 0,
+            y: 2.5,
+            z: 0
+        },
+        accelerationSpread: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        particleSpin: 0,
+        spinSpread: 0,
+        rotateWithEntity: false,
+        polarStart: 0,
+        polarFinish: Math.PI,
+        azimuthStart: -Math.PI,
+        azimuthFinish: Math.PI
+    },
+    Light: {
+        color: { red: 255, green: 255, blue: 255 },
+        intensity: 5.0,
+        dimensions: DEFAULT_LIGHT_DIMENSIONS,
+        falloffRadius: 1.0,
+        isSpotlight: false,
+        exponent: 1.0,
+        cutoff: 75.0,
+    },
+};
+
 var toolBar = (function () {
     var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
     var that = {},
@@ -303,10 +483,30 @@ var toolBar = (function () {
         dialogWindow = null,
         tablet = null;
 
-    function createNewEntity(properties) {
-        var dimensions = properties.dimensions ? properties.dimensions : DEFAULT_DIMENSIONS;
+    function applyProperties(originalProperties, newProperties) {
+        for (var key in newProperties) {
+            originalProperties[key] = newProperties[key];
+        }
+    }
+    function createNewEntity(requestedProperties) {
+        var dimensions = requestedProperties.dimensions ? requestedProperties.dimensions : DEFAULT_DIMENSIONS;
         var position = getPositionToCreateEntity();
         var entityID = null;
+
+        var properties = {};
+
+        applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.All);
+
+        var type = requestedProperties.type;
+        if (type === "Box" || type === "Sphere") {
+            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES.Shape);
+        } else {
+            applyProperties(properties, DEFAULT_ENTITY_PROPERTIES[type]);
+        }
+
+        // We apply the requested properties first so that they take priority over any default properties.
+        applyProperties(properties, requestedProperties);
+
 
         if (position !== null && position !== undefined) {
             var direction;
@@ -317,7 +517,7 @@ var toolBar = (function () {
             }
             direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
 
-            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web", "Material"];
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Image", "Web", "Material"];
             if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
 
                 // Adjust position of entity per bounding box prior to creating it.
@@ -348,24 +548,21 @@ var toolBar = (function () {
 
             if (!properties.grab) {
                 properties.grab = {};
-            }
-            if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
-                !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
-                properties.grab.grabbable = true;
-            } else {
-                properties.grab.grabbable = false;
+                if (Menu.isOptionChecked(MENU_CREATE_ENTITIES_GRABBABLE) &&
+                    !(properties.type === "Zone" || properties.type === "Light" || properties.type === "ParticleEffect")) {
+                    properties.grab.grabbable = true;
+                } else {
+                    properties.grab.grabbable = false;
+                }
             }
 
-            SelectionManager.saveProperties();
             entityID = Entities.addEntity(properties);
+            SelectionManager.addEntity(entityID, false, this);
+            SelectionManager.saveProperties();
             pushCommandForSelections([{
                 entityID: entityID,
                 properties: properties
             }], [], true);
-
-            if (properties.type === "ParticleEffect") {
-                selectParticleEntity(entityID);
-            }
 
             var POST_ADJUST_ENTITY_TYPES = ["Model"];
             if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
@@ -385,7 +582,7 @@ var toolBar = (function () {
                         Entities.editEntity(entityID, {
                             position: position
                         });
-                        selectionManager._update();
+                        selectionManager._update(false, this);
                     } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
                         Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
                     }
@@ -397,9 +594,9 @@ var toolBar = (function () {
                                    properties.type + " would be out of bounds.");
         }
 
-        selectionManager.clearSelections();
+        selectionManager.clearSelections(this);
         entityListTool.sendUpdate();
-        selectionManager.setSelections([entityID]);
+        selectionManager.setSelections([entityID], this);
 
         Window.setFocus();
 
@@ -442,9 +639,9 @@ var toolBar = (function () {
 
     function handleNewModelDialogResult(result) {
         if (result) {
-            var url = result.textInput;
+            var url = result.url;
             var shapeType;
-            switch (result.comboBox) {
+            switch (result.collisionShapeIndex) {
             case SHAPE_TYPE_SIMPLE_HULL:
                 shapeType = "simple-hull";
                 break;
@@ -464,7 +661,7 @@ var toolBar = (function () {
                 shapeType = "none";
             }
 
-            var dynamic = result.checkBox !== null ? result.checkBox : DYNAMIC_DEFAULT;
+            var dynamic = result.dynamic !== null ? result.dynamic : DYNAMIC_DEFAULT;
             if (shapeType === "static-mesh" && dynamic) {
                 // The prompt should prevent this case
                 print("Error: model cannot be both static mesh and dynamic.  This should never happen.");
@@ -473,6 +670,9 @@ var toolBar = (function () {
                     type: "Model",
                     modelURL: url,
                     shapeType: shapeType,
+                    grab: {
+                        grabbable: result.grabbable
+                    },
                     dynamic: dynamic,
                     gravity: dynamic ? { x: 0, y: -10, z: 0 } : { x: 0, y: 0, z: 0 }
                 });
@@ -547,7 +747,7 @@ var toolBar = (function () {
         }
         deletedEntityTimer = Script.setTimeout(function () {
             if (entitiesToDelete.length > 0) {
-                selectionManager.removeEntities(entitiesToDelete);
+                selectionManager.removeEntities(entitiesToDelete, this);
             }
             entityListTool.removeEntities(entitiesToDelete, selectionManager.selections);
             entitiesToDelete = [];
@@ -645,166 +845,55 @@ var toolBar = (function () {
                     dialogWindow.fromQml.connect(fromQml);
                 }
             };
-        };
+        }
 
         addButton("newModelButton", createNewEntityDialogButtonCallback("Model"));
 
         addButton("newCubeButton", function () {
             createNewEntity({
                 type: "Box",
-                dimensions: DEFAULT_DIMENSIONS,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
             });
         });
 
         addButton("newSphereButton", function () {
             createNewEntity({
                 type: "Sphere",
-                dimensions: DEFAULT_DIMENSIONS,
-                color: {
-                    red: 255,
-                    green: 0,
-                    blue: 0
-                }
             });
         });
 
         addButton("newLightButton", function () {
             createNewEntity({
                 type: "Light",
-                dimensions: DEFAULT_LIGHT_DIMENSIONS,
-                isSpotlight: false,
-                color: {
-                    red: 150,
-                    green: 150,
-                    blue: 150
-                },
-
-                constantAttenuation: 1,
-                linearAttenuation: 0,
-                quadraticAttenuation: 0,
-                exponent: 0,
-                cutoff: 180 // in degrees
             });
         });
 
         addButton("newTextButton", function () {
             createNewEntity({
                 type: "Text",
-                dimensions: {
-                    x: 0.65,
-                    y: 0.3,
-                    z: 0.01
-                },
-                backgroundColor: {
-                    red: 64,
-                    green: 64,
-                    blue: 64
-                },
-                textColor: {
-                    red: 255,
-                    green: 255,
-                    blue: 255
-                },
-                text: "some text",
-                lineHeight: 0.06
             });
         });
 
         addButton("newImageButton", function () {
-            var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
-            var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
             createNewEntity({
-                type: "Model",
-                dimensions: {
-                    x: 0.5385,
-                    y: 0.2819,
-                    z: 0.0092
-                },
-                shapeType: "box",
-                collisionless: true,
-                modelURL: IMAGE_MODEL,
-                textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE })
+                type: "Image",
             });
         });
 
         addButton("newWebButton", function () {
             createNewEntity({
                 type: "Web",
-                dimensions: {
-                    x: 1.6,
-                    y: 0.9,
-                    z: 0.01
-                },
-                sourceUrl: "https://highfidelity.com/"
             });
         });
 
         addButton("newZoneButton", function () {
             createNewEntity({
                 type: "Zone",
-                dimensions: {
-                    x: 10,
-                    y: 10,
-                    z: 10
-                }
             });
         });
 
         addButton("newParticleButton", function () {
             createNewEntity({
                 type: "ParticleEffect",
-                isEmitting: true,
-                emitterShouldTrail: true,
-                color: {
-                    red: 200,
-                    green: 200,
-                    blue: 200
-                },
-                colorSpread: {
-                    red: 0,
-                    green: 0,
-                    blue: 0
-                },
-                colorStart: {
-                    red: 200,
-                    green: 200,
-                    blue: 200
-                },
-                colorFinish: {
-                    red: 0,
-                    green: 0,
-                    blue: 0
-                },
-                emitAcceleration: {
-                    x: -0.5,
-                    y: 2.5,
-                    z: -0.5
-                },
-                accelerationSpread: {
-                    x: 0.5,
-                    y: 1,
-                    z: 0.5
-                },
-                emitRate: 5.5,
-                emitSpeed: 0,
-                speedSpread: 0,
-                lifespan: 1.5,
-                maxParticles: 10,
-                particleRadius: 0.25,
-                radiusStart: 0,
-                radiusFinish: 0.1,
-                radiusSpread: 0,
-                alpha: 0,
-                alphaStart: 1,
-                alphaFinish: 0,
-                polarStart: 0,
-                polarFinish: 0,
-                textures: "https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png"
             });
         });
 
@@ -863,7 +952,7 @@ var toolBar = (function () {
             gridTool.setVisible(false);
             grid.setEnabled(false);
             propertiesTool.setVisible(false);
-            selectionManager.clearSelections();
+            selectionManager.clearSelections(this);
             cameraManager.disable();
             selectionDisplay.disableTriggerMapping();
             tablet.landscape = false;
@@ -991,7 +1080,7 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
             var entity = entityIconOverlayManager.findEntity(data.overlayID);
 
             if (entity !== null) {
-                selectionManager.setSelections([entity]);
+                selectionManager.setSelections([entity], this);
             }
         }
     }
@@ -1131,14 +1220,14 @@ function mouseClickEvent(event) {
     var result, properties, tabletClicked;
     if (isActive && event.isLeftButton) {
         result = findClickedEntity(event);
-        tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
+        var tabletOrEditHandleClicked = wasTabletOrEditHandleClicked(event);
         if (tabletOrEditHandleClicked) {
             return;
         }
 
         if (result === null || result === undefined) {
             if (!event.isShifted) {
-                selectionManager.clearSelections();
+                selectionManager.clearSelections(this);
             }
             return;
         }
@@ -1182,18 +1271,12 @@ function mouseClickEvent(event) {
             orientation = MyAvatar.orientation;
             intersection = rayPlaneIntersection(pickRay, P, Quat.getForward(orientation));
 
-            if (event.isShifted) {
-                particleExplorerTool.destroyWebView();
-            }
-            if (properties.type !== "ParticleEffect") {
-                particleExplorerTool.destroyWebView();
-            }
-
             if (!event.isShifted) {
-                selectionManager.setSelections([foundEntity]);
+                selectionManager.setSelections([foundEntity], this);
             } else {
-                selectionManager.addEntity(foundEntity, true);
+                selectionManager.addEntity(foundEntity, true, this);
             }
+            selectionManager.saveProperties();
 
             if (wantDebug) {
                 print("Model selected: " + foundEntity);
@@ -1251,7 +1334,7 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Redo",
-        shortcutKey: 'Ctrl+Shift+Z',
+        shortcutKey: 'Ctrl+Y',
         position: 1,
     });
 
@@ -1418,6 +1501,7 @@ Script.scriptEnding.connect(function () {
     cleanupModelMenus();
     tooltip.cleanup();
     selectionDisplay.cleanup();
+    entityShapeVisualizer.cleanup();
     Entities.setLightsArePickable(originalLightsArePickable);
 
     Overlays.deleteOverlay(importingSVOImageOverlay);
@@ -1461,7 +1545,7 @@ function insideBox(center, dimensions, point) {
            (Math.abs(point.z - center.z) <= (dimensions.z / 2.0));
 }
 
-function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
+function selectAllEntitiesInCurrentSelectionBox(keepIfTouching) {
     if (selectionManager.hasSelection()) {
         // Get all entities touching the bounding box of the current selection
         var boundingBoxCorner = Vec3.subtract(selectionManager.worldPosition,
@@ -1490,7 +1574,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
                 }
             }
         }
-        selectionManager.setSelections(entities);
+        selectionManager.setSelections(entities, this);
     }
 }
 
@@ -1524,30 +1608,42 @@ function sortSelectedEntities(selected) {
     return sortedEntities;
 }
 
-function recursiveDelete(entities, childrenList, deletedIDs) {
+function recursiveDelete(entities, childrenList, deletedIDs, entityHostType) {
+    var wantDebug = false;
     var entitiesLength = entities.length;
-    for (var i = 0; i < entitiesLength; i++) {
+    var initialPropertySets = Entities.getMultipleEntityProperties(entities);
+    var entityHostTypes = Entities.getMultipleEntityProperties(entities, 'entityHostType');
+    for (var i = 0; i < entitiesLength; ++i) {
         var entityID = entities[i];
+
+        if (entityHostTypes[i].entityHostType !== entityHostType) {
+            if (wantDebug) {
+                console.log("Skipping deletion of entity " + entityID + " with conflicting entityHostType: " +
+                    entityHostTypes[i].entityHostType);
+            }
+            continue;
+        }
+
         var children = Entities.getChildrenIDs(entityID);
         var grandchildrenList = [];
-        recursiveDelete(children, grandchildrenList, deletedIDs);
-        var initialProperties = Entities.getEntityProperties(entityID);
+        recursiveDelete(children, grandchildrenList, deletedIDs, entityHostType);
         childrenList.push({
             entityID: entityID,
-            properties: initialProperties,
+            properties: initialPropertySets[i],
             children: grandchildrenList
         });
         deletedIDs.push(entityID);
         Entities.deleteEntity(entityID);
     }
 }
+
 function unparentSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var selectedEntities = selectionManager.selections;
         var parentCheck = false;
 
         if (selectedEntities.length < 1) {
-            Window.notifyEditError("You must have an entity selected inorder to unparent it.");
+            Window.notifyEditError("You must have an entity selected in order to unparent it.");
             return;
         }
         selectedEntities.forEach(function (id, index) {
@@ -1607,30 +1703,31 @@ function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
         var deletedIDs = [];
 
-        selectedParticleEntityID = null;
-        particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         var newSortedSelection = sortSelectedEntities(selectionManager.selections);
-        for (var i = 0; i < newSortedSelection.length; i++) {
+        var entityHostTypes = Entities.getMultipleEntityProperties(newSortedSelection, 'entityHostType');
+        for (var i = 0; i < newSortedSelection.length; ++i) {
             var entityID = newSortedSelection[i];
             var initialProperties = SelectionManager.savedProperties[entityID];
-            if (!initialProperties.locked) {
-                var children = Entities.getChildrenIDs(entityID);
-                var childList = [];
-                recursiveDelete(children, childList, deletedIDs);
-                savedProperties.push({
-                    entityID: entityID,
-                    properties: initialProperties,
-                    children: childList
-                });
-                deletedIDs.push(entityID);
-                Entities.deleteEntity(entityID);
+            if (initialProperties.locked ||
+                (initialProperties.avatarEntity && initialProperties.owningAvatarID !== MyAvatar.sessionUUID)) {
+                continue;
             }
+            var children = Entities.getChildrenIDs(entityID);
+            var childList = [];
+            recursiveDelete(children, childList, deletedIDs, entityHostTypes[i].entityHostType);
+            savedProperties.push({
+                entityID: entityID,
+                properties: initialProperties,
+                children: childList
+            });
+            deletedIDs.push(entityID);
+            Entities.deleteEntity(entityID);
         }
 
         if (savedProperties.length > 0) {
-            SelectionManager.clearSelections();
+            SelectionManager.clearSelections(this);
             pushCommandForSelections([], savedProperties);
             entityListTool.deleteEntities(deletedIDs);
         }
@@ -1647,7 +1744,7 @@ function toggleSelectedEntitiesLocked() {
             });
         }
         entityListTool.sendUpdate();
-        selectionManager._update();
+        selectionManager._update(false, this);
     }
 }
 
@@ -1661,7 +1758,7 @@ function toggleSelectedEntitiesVisible() {
             });
         }
         entityListTool.sendUpdate();
-        selectionManager._update();
+        selectionManager._update(false, this);
     }
 }
 
@@ -1742,9 +1839,9 @@ function handleMenuEvent(menuItem) {
             Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Select All Entities In Box") {
-        selectAllEtitiesInCurrentSelectionBox(false);
+        selectAllEntitiesInCurrentSelectionBox(false);
     } else if (menuItem === "Select All Entities Touching Box") {
-        selectAllEtitiesInCurrentSelectionBox(true);
+        selectAllEntitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
         entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
@@ -1858,7 +1955,7 @@ function importSVO(importURL) {
             }
 
             if (isActive) {
-                selectionManager.setSelections(pastedEntityIDs);
+                selectionManager.setSelections(pastedEntityIDs, this);
             }
         } else {
             Window.notifyEditError("Can't import entities: entities would be out of bounds.");
@@ -1887,14 +1984,6 @@ var keyReleaseEvent = function (event) {
     if (isActive) {
         cameraManager.keyReleaseEvent(event);
     }
-    // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    if (event.key === KEY_P && event.isControl && !event.isAutoRepeat) {
-        if (event.isShifted) {
-            unparentSelectedEntities();
-        } else {
-            parentSelectedEntities();
-        }
-    }
 };
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
@@ -1906,7 +1995,7 @@ function deleteKey(value) {
 }
 function deselectKey(value) {
     if (value === 0) { // on release
-        selectionManager.clearSelections();
+        selectionManager.clearSelections(this);
     }
 }
 function toggleKey(value) {
@@ -1918,7 +2007,7 @@ function focusKey(value) {
     if (value === 0) { // on release
         cameraManager.enable();
         if (selectionManager.hasSelection()) {
-            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions, 
+            cameraManager.focus(selectionManager.worldPosition, selectionManager.worldDimensions,
                                 Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
         }
     }
@@ -1930,14 +2019,6 @@ function gridKey(value) {
         }
     }
 }
-var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-mapping.from([Controller.Hardware.Keyboard.Delete]).when([!Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.Backspace]).when([Controller.Hardware.Application.PlatformMac]).to(deleteKey);
-mapping.from([Controller.Hardware.Keyboard.D]).when([Controller.Hardware.Keyboard.Control]).to(deselectKey);
-mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
-mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
-mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
-
 function recursiveAdd(newParentID, parentData) {
     if (parentData.children !== undefined) {
         var children = parentData.children;
@@ -2038,14 +2119,14 @@ var DELETED_ENTITY_MAP = {};
 function applyEntityProperties(data) {
     var editEntities = data.editEntities;
     var selectedEntityIDs = [];
-    var selectEdits = data.createEntities.length == 0 || !data.selectCreated;
-    var i, entityID;
+    var selectEdits = data.createEntities.length === 0 || !data.selectCreated;
+    var i, entityID, entityProperties;
     for (i = 0; i < editEntities.length; i++) {
-        var entityID = editEntities[i].entityID;
+        entityID = editEntities[i].entityID;
         if (DELETED_ENTITY_MAP[entityID] !== undefined) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
-        var entityProperties = editEntities[i].properties;
+        entityProperties = editEntities[i].properties;
         if (entityProperties !== null) {
             Entities.editEntity(entityID, entityProperties);
         }
@@ -2055,7 +2136,7 @@ function applyEntityProperties(data) {
     }
     for (i = 0; i < data.createEntities.length; i++) {
         entityID = data.createEntities[i].entityID;
-        var entityProperties = data.createEntities[i].properties;
+        entityProperties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(entityProperties);
         recursiveAdd(newEntityID, data.createEntities[i]);
         DELETED_ENTITY_MAP[entityID] = newEntityID;
@@ -2069,12 +2150,17 @@ function applyEntityProperties(data) {
             entityID = DELETED_ENTITY_MAP[entityID];
         }
         Entities.deleteEntity(entityID);
+        var index = selectedEntityIDs.indexOf(entityID);
+        if (index >= 0) {
+            selectedEntityIDs.splice(index, 1);
+        }
     }
 
     // We might be getting an undo while edit.js is disabled. If that is the case, don't set
     // our selections, causing the edit widgets to display.
     if (isActive) {
-        selectionManager.setSelections(selectedEntityIDs);
+        selectionManager.setSelections(selectedEntityIDs, this);
+        selectionManager.saveProperties();
     }
 }
 
@@ -2162,6 +2248,7 @@ var PropertiesTool = function (opts) {
     // are selected or if no entity is selected this will be `null`.
     var currentSelectedEntityID = null;
     var statusMonitor = null;
+    var blockPropertyUpdates = false;
 
     that.setVisible = function (newVisible) {
         visible = newVisible;
@@ -2170,7 +2257,7 @@ var PropertiesTool = function (opts) {
     };
 
     that.setVisible(false);
-    
+
     function emitScriptEvent(data) {
         var dataString = JSON.stringify(data);
         webView.emitScriptEvent(dataString);
@@ -2191,9 +2278,21 @@ var PropertiesTool = function (opts) {
         });
     }
 
+    that.setSpaceMode = function(spaceMode) {
+        emitScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        })
+    };
+
     function updateSelections(selectionUpdated) {
+        if (blockPropertyUpdates) {
+            return;
+        }
+
         var data = {
-            type: 'update'
+            type: 'update',
+            spaceMode: selectionDisplay.getSpaceMode()
         };
 
         if (selectionUpdated) {
@@ -2223,9 +2322,14 @@ var PropertiesTool = function (opts) {
             if (entity.properties.rotation !== undefined) {
                 entity.properties.rotation = Quat.safeEulerAngles(entity.properties.rotation);
             }
+            if (entity.properties.localRotation !== undefined) {
+                entity.properties.localRotation = Quat.safeEulerAngles(entity.properties.localRotation);
+            }
+            if (entity.properties.emitOrientation !== undefined) {
+                entity.properties.emitOrientation = Quat.safeEulerAngles(entity.properties.emitOrientation);
+            }
             if (entity.properties.keyLight !== undefined && entity.properties.keyLight.direction !== undefined) {
-                entity.properties.keyLight.direction = Vec3.multiply(RADIANS_TO_DEGREES,
-                                                                     Vec3.toPolar(entity.properties.keyLight.direction));
+                entity.properties.keyLight.direction = Vec3.toPolar(entity.properties.keyLight.direction);
                 entity.properties.keyLight.direction.z = 0.0;
             }
             selections.push(entity);
@@ -2244,12 +2348,7 @@ var PropertiesTool = function (opts) {
             return;
         }
         var i, properties, dY, diff, newPosition;
-        if (data.type === "print") {
-            if (data.message) {
-                print(data.message);
-            }
-        } else if (data.type === "update") {
-            selectionManager.saveProperties();
+        if (data.type === "update") {
             if (selectionManager.selections.length > 1) {
                 for (i = 0; i < selectionManager.selections.length; i++) {
                     Entities.editEntity(selectionManager.selections[i], data.properties);
@@ -2257,31 +2356,42 @@ var PropertiesTool = function (opts) {
             } else if (data.properties) {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties.velocity = Vec3.ZERO;
-                    data.properties.angularVelocity = Vec3.ZERO;
+                    data.properties.localVelocity = Vec3.ZERO;
+                    data.properties.localAngularVelocity = Vec3.ZERO;
                 }
                 if (data.properties.rotation !== undefined) {
-                    var rotation = data.properties.rotation;
-                    data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
+                    data.properties.rotation = Quat.fromVec3Degrees(data.properties.rotation);
+                }
+                if (data.properties.localRotation !== undefined) {
+                    data.properties.localRotation = Quat.fromVec3Degrees(data.properties.localRotation);
+                }
+                if (data.properties.emitOrientation !== undefined) {
+                    data.properties.emitOrientation = Quat.fromVec3Degrees(data.properties.emitOrientation);
                 }
                 if (data.properties.keyLight !== undefined && data.properties.keyLight.direction !== undefined) {
-                    data.properties.keyLight.direction = Vec3.fromPolar(
-                        data.properties.keyLight.direction.x * DEGREES_TO_RADIANS,
-                        data.properties.keyLight.direction.y * DEGREES_TO_RADIANS
-                    );
+                    var currentKeyLightDirection = Vec3.toPolar(Entities.getEntityProperties(selectionManager.selections[0], ['keyLight.direction']).keyLight.direction);
+                    if (data.properties.keyLight.direction.x === undefined) {
+                        data.properties.keyLight.direction.x = currentKeyLightDirection.x;
+                    }
+                    if (data.properties.keyLight.direction.y === undefined) {
+                        data.properties.keyLight.direction.y = currentKeyLightDirection.y;
+                    }
+                    data.properties.keyLight.direction = Vec3.fromPolar(data.properties.keyLight.direction.x, data.properties.keyLight.direction.y);
                 }
                 Entities.editEntity(selectionManager.selections[0], data.properties);
                 if (data.properties.name !== undefined || data.properties.modelURL !== undefined || data.properties.materialURL !== undefined ||
-                        data.properties.visible !== undefined || data.properties.locked !== undefined) {
+                    data.properties.visible !== undefined || data.properties.locked !== undefined) {
                     entityListTool.sendUpdate();
                 }
             }
-            pushCommandForSelections();
-            selectionManager._update();
-        } else if (data.type === 'parent') {
-            parentSelectedEntities();
-        } else if (data.type === 'unparent') {
-            unparentSelectedEntities();
+            if (data.onlyUpdateEntities) {
+                blockPropertyUpdates = true;
+            } else {
+                pushCommandForSelections();
+                SelectionManager.saveProperties();
+            }
+            selectionManager._update(false, this);
+            blockPropertyUpdates = false;
         } else if (data.type === 'saveUserData' || data.type === 'saveMaterialData') {
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
@@ -2306,7 +2416,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "moveAllToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -2326,7 +2436,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "resetToNaturalDimensions") {
                 if (selectionManager.hasSelection()) {
@@ -2347,7 +2457,7 @@ var PropertiesTool = function (opts) {
                         }
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "previewCamera") {
                 if (selectionManager.hasSelection()) {
@@ -2365,7 +2475,7 @@ var PropertiesTool = function (opts) {
                         });
                     }
                     pushCommandForSelections();
-                    selectionManager._update();
+                    selectionManager._update(false, this);
                 }
             } else if (data.action === "reloadClientScripts") {
                 if (selectionManager.hasSelection()) {
@@ -2385,8 +2495,30 @@ var PropertiesTool = function (opts) {
             }
         } else if (data.type === "propertiesPageReady") {
             updateSelections(true);
+        } else if (data.type === "tooltipsRequest") {
+            emitScriptEvent({
+                type: 'tooltipsReply',
+                tooltips: Script.require('./assets/data/createAppTooltips.json'),
+                hmdActive: HMD.active,
+            });
+        } else if (data.type === "propertyRangeRequest") {
+            var propertyRanges = {};
+            data.properties.forEach(function (property) {
+                propertyRanges[property] = Entities.getPropertyInfo(property);
+            });
+            emitScriptEvent({
+                type: 'propertyRangeReply',
+                propertyRanges: propertyRanges,
+            });
         }
     };
+
+    HMD.displayModeChanged.connect(function() {
+        emitScriptEvent({
+            type: 'hmdActiveChanged',
+            hmdActive: HMD.active,
+        });
+    });
 
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
@@ -2394,6 +2526,7 @@ var PropertiesTool = function (opts) {
 
     return that;
 };
+
 
 var PopupMenu = function () {
     var self = this;
@@ -2491,7 +2624,7 @@ var PopupMenu = function () {
                 y: event.y
             });
             if (!pressingOverlay) {
-                if (hoveringOverlay !== null && hoveringOverlay !== null && overlay !== hoveringOverlay) {
+                if (hoveringOverlay !== null && overlay !== hoveringOverlay) {
                     Overlays.editOverlay(hoveringOverlay, {
                         backgroundColor: upColor
                     });
@@ -2564,6 +2697,97 @@ var PopupMenu = function () {
     return this;
 };
 
+function whenPressed(fn) {
+    return function(value) {
+        if (value > 0) {
+            fn();
+        }
+    };
+}
+
+function whenReleased(fn) {
+    return function(value) {
+        if (value === 0) {
+            fn();
+        }
+    };
+}
+
+var isOnMacPlatform = Controller.getValue(Controller.Hardware.Application.PlatformMac);
+
+var mapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
+if (isOnMacPlatform) {
+    mapping.from([Controller.Hardware.Keyboard.Backspace]).to(deleteKey);
+} else {
+    mapping.from([Controller.Hardware.Keyboard.Delete]).to(deleteKey);
+}
+mapping.from([Controller.Hardware.Keyboard.T]).to(toggleKey);
+mapping.from([Controller.Hardware.Keyboard.F]).to(focusKey);
+mapping.from([Controller.Hardware.Keyboard.G]).to(gridKey);
+mapping.from([Controller.Hardware.Keyboard.X])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.cutSelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.C])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.copySelectedEntities() }));
+mapping.from([Controller.Hardware.Keyboard.V])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.pasteEntities() }));
+mapping.from([Controller.Hardware.Keyboard.D])
+    .when([Controller.Hardware.Keyboard.Control])
+    .to(whenReleased(function() { selectionManager.duplicateSelection() }));
+
+// Bind undo to ctrl-shift-z to maintain backwards-compatibility
+mapping.from([Controller.Hardware.Keyboard.Z])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenPressed(function() { undoHistory.redo() }));
+
+
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { unparentSelectedEntities(); }));
+
+mapping.from([Controller.Hardware.Keyboard.P])
+    .when([Controller.Hardware.Keyboard.Control, !Controller.Hardware.Keyboard.Shift])
+    .to(whenReleased(function() { parentSelectedEntities(); }));
+
+keyUpEventFromUIWindow = function(keyUpEvent) {
+    var WANT_DEBUG_MISSING_SHORTCUTS = false;
+
+    var pressedValue = 0.0;
+
+    if ((!isOnMacPlatform && keyUpEvent.keyCodeString === "Delete")
+        || (isOnMacPlatform && keyUpEvent.keyCodeString === "Backspace")) {
+
+        deleteKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "T") {
+        toggleKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "F") {
+        focusKey(pressedValue);
+    } else if (keyUpEvent.keyCodeString === "G") {
+        gridKey(pressedValue);
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "X") {
+        selectionManager.cutSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "C") {
+        selectionManager.copySelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "V") {
+        selectionManager.pasteEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "D") {
+        selectionManager.duplicateSelection();
+    } else if (!isOnMacPlatform && keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") {
+        undoHistory.undo(); // undo is only handled via handleMenuItem on Mac
+    } else if (keyUpEvent.controlKey && !keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        parentSelectedEntities();
+    } else if (keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "P") {
+        unparentSelectedEntities();
+    } else if (!isOnMacPlatform &&
+              ((keyUpEvent.controlKey && keyUpEvent.shiftKey && keyUpEvent.keyCodeString === "Z") ||
+               (keyUpEvent.controlKey && keyUpEvent.keyCodeString === "Y"))) {
+        undoHistory.redo(); // redo is only handled via handleMenuItem on Mac
+    } else if (WANT_DEBUG_MISSING_SHORTCUTS) {
+        console.warn("unhandled key event: " + JSON.stringify(keyUpEvent))
+    }
+};
 
 var propertyMenu = new PopupMenu();
 
@@ -2577,59 +2801,10 @@ propertyMenu.onSelectMenuItem = function (name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 var propertiesTool = new PropertiesTool();
-var particleExplorerTool = new ParticleExplorerTool(createToolsWindow);
-var selectedParticleEntityID = null;
 
-function selectParticleEntity(entityID) {
-    selectedParticleEntityID = entityID;
-
-    var properties = Entities.getEntityProperties(entityID);
-    if (properties.emitOrientation) {
-        properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
-    }
-
-    particleExplorerTool.destroyWebView();
-    particleExplorerTool.createWebView();
-
-    particleExplorerTool.setActiveParticleEntity(entityID);
-
-    // Switch to particle explorer
-    var selectTabMethod = { method: 'selectTab', params: { id: 'particle' } };
-    if (shouldUseEditTabletApp()) {
-        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        tablet.sendToQml(selectTabMethod);
-    } else {
-        createToolsWindow.sendToQml(selectTabMethod);
-    }
-}
-
-entityListTool.webView.webEventReceived.connect(function(data) {
-    try {
-        data = JSON.parse(data);
-    } catch(e) {
-        print("edit.js: Error parsing JSON: " + e.name + " data " + data);
-        return;
-    }
-
-    if (data.type === 'parent') {
-        parentSelectedEntities();
-    } else if (data.type === 'unparent') {
-        unparentSelectedEntities();
-    } else if (data.type === "selectionUpdate") {
-        var ids = data.entityIds;
-        if (ids.length === 1) {
-            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
-                if (JSON.stringify(selectedParticleEntityID) === JSON.stringify(ids[0])) {
-                    // This particle entity is already selected, so return
-                    return;
-                }
-                // Destroy the old particles web view first
-            } else {
-                selectedParticleEntityID = 0;
-                particleExplorerTool.destroyWebView();
-            }
-        }
-    }
-});
+selectionDisplay.onSpaceModeChange = function(spaceMode) {
+    entityListTool.setSpaceMode(spaceMode);
+    propertiesTool.setSpaceMode(spaceMode);
+};
 
 }()); // END LOCAL_SCOPE

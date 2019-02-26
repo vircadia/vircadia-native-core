@@ -19,11 +19,10 @@ namespace controller {
 class RotateFilter : public Filter {
     REGISTER_FILTER_CLASS(RotateFilter);
 public:
-    RotateFilter() { }
+    RotateFilter() = default;
     RotateFilter(glm::quat rotation) : _rotation(rotation) {}
-    virtual ~RotateFilter() {}
 
-    virtual float apply(float value) const override { return value; }
+    virtual AxisValue apply(AxisValue value) const override { return value; }
 
     virtual Pose apply(Pose value) const override {
         return value.transform(glm::mat4(glm::quat(_rotation)));

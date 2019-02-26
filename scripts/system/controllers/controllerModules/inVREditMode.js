@@ -18,7 +18,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
     function InVREditMode(hand) {
         this.hand = hand;
-        this.disableModules = false;
+        this.isAppActive = false;
+        this.isEditing = false;
         this.running = false;
         var NO_HAND_LASER = -1; // Invalid hand parameter so that standard laser is not displayed.
         this.parameters = makeDispatcherModuleParameters(
@@ -66,7 +67,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         };
 
         this.isReady = function (controllerData) {
-            if (this.disableModules) {
+            if (this.isAppActive) {
                 return makeRunningValues(true, [], []);
             }
             return makeRunningValues(false, [], []);
@@ -74,14 +75,13 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
         this.run = function (controllerData) {
             // Default behavior if disabling is not enabled.
-            if (!this.disableModules) {
+            if (!this.isAppActive) {
                 return this.exitModule();
             }
 
             // Tablet stylus.
-            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND ?
-                                                           "RightTabletStylusInput" :
-                                                           "LeftTabletStylusInput");
+            var tabletStylusInput = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightTabletStylusInput" : "LeftTabletStylusInput");
             if (tabletStylusInput) {
                 var tabletReady = tabletStylusInput.isReady(controllerData);
                 if (tabletReady.active) {
@@ -90,9 +90,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Tablet surface.
-            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND ?
-                                                      "RightWebSurfaceLaserInput" :
-                                                      "LeftWebSurfaceLaserInput");
+            var overlayLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightWebSurfaceLaserInput" : "LeftWebSurfaceLaserInput");
             if (overlayLaser) {
                 var overlayLaserReady = overlayLaser.isReady(controllerData);
                 var target = controllerData.rayPicks[this.hand].objectID;
@@ -101,13 +100,12 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
                 }
             }
 
-            // Tablet grabbing.
-            var nearOverlay = getEnabledModuleByName(this.hand === RIGHT_HAND ?
-                                                     "RightNearParentingGrabOverlay" :
-                                                     "LeftNearParentingGrabOverlay");
-            if (nearOverlay) {
-                var nearOverlayReady = nearOverlay.isReady(controllerData);
-                if (nearOverlayReady.active && HMD.tabletID && nearOverlay.grabbedThingID === HMD.tabletID) {
+            // Tablet highlight and grabbing.
+            var tabletHighlight = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightNearTabletHighlight" : "LeftNearTabletHighlight");
+            if (tabletHighlight) {
+                var tabletHighlightReady = tabletHighlight.isReady(controllerData);
+                if (tabletHighlightReady.active) {
                     return this.exitModule();
                 }
             }
@@ -115,8 +113,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             // HUD overlay.
             if (!controllerData.triggerClicks[this.hand]) {
                 var hudLaser = getEnabledModuleByName(this.hand === RIGHT_HAND
-                    ? "RightHudOverlayPointer"
-                    : "LeftHudOverlayPointer");
+                    ? "RightHudOverlayPointer" : "LeftHudOverlayPointer");
                 if (hudLaser) {
                     var hudLaserReady = hudLaser.isReady(controllerData);
                     if (hudLaserReady.active) {
@@ -126,9 +123,8 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
             }
 
             // Teleport.
-            var teleporter = getEnabledModuleByName(this.hand === RIGHT_HAND ?
-                                                    "RightTeleporter" :
-                                                    "LeftTeleporter");
+            var teleporter = getEnabledModuleByName(this.hand === RIGHT_HAND
+                ? "RightTeleporter" : "LeftTeleporter");
             if (teleporter) {
                 var teleporterReady = teleporter.isReady(controllerData);
                 if (teleporterReady.active) {
@@ -146,19 +142,39 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
     enableDispatcherModule("LeftHandInVREditMode", leftHandInVREditMode);
     enableDispatcherModule("RightHandInVREditMode", rightHandInVREditMode);
 
-    var INVREDIT_DISABLER_MESSAGE_CHANNEL = "Hifi-InVREdit-Disabler";
-    this.handleMessage = function (channel, message, sender) {
-        if (sender === MyAvatar.sessionUUID && channel === INVREDIT_DISABLER_MESSAGE_CHANNEL) {
-            if (message === "both") {
-                leftHandInVREditMode.disableModules = true;
-                rightHandInVREditMode.disableModules = true;
-            } else if (message === "none") {
-                leftHandInVREditMode.disableModules = false;
-                rightHandInVREditMode.disableModules = false;
+    var INVREDIT_STATUS_CHANNEL = "Hifi-InVREdit-Status";
+    var HAND_RAYPICK_BLACKLIST_CHANNEL = "Hifi-Hand-RayPick-Blacklist";
+    this.handleMessage = function (channel, data, sender) {
+        if (channel === INVREDIT_STATUS_CHANNEL && sender === MyAvatar.sessionUUID) {
+            var message;
+
+            try {
+                message = JSON.parse(data);
+            } catch (e) {
+                return;
+            }
+
+            switch (message.method) {
+                case "active":
+                    leftHandInVREditMode.isAppActive = message.active;
+                    rightHandInVREditMode.isAppActive = message.active;
+                    break;
+                case "editing":
+                    if (message.hand === LEFT_HAND) {
+                        leftHandInVREditMode.isEditing = message.editing;
+                    } else {
+                        rightHandInVREditMode.isEditing = message.editing;
+                    }
+                    Messages.sendLocalMessage(HAND_RAYPICK_BLACKLIST_CHANNEL, JSON.stringify({
+                        action: "tablet",
+                        hand: message.hand,
+                        blacklist: message.editing
+                    }));
+                    break;
             }
         }
     };
-    Messages.subscribe(INVREDIT_DISABLER_MESSAGE_CHANNEL);
+    Messages.subscribe(INVREDIT_STATUS_CHANNEL);
     Messages.messageReceived.connect(this.handleMessage);
 
     this.cleanup = function () {

@@ -16,6 +16,7 @@
 #include <QtCore/QtGlobal>
 #include <QUrl>
 #include <QImage>
+#include <QRgb>
 #include <QBuffer>
 #include <QImageReader>
 
@@ -32,8 +33,8 @@ using namespace gpu;
 #include <nvtt/nvtt.h>
 
 #undef _CRT_SECURE_NO_WARNINGS
-#include <Etc.h>
-#include <EtcFilter.h>
+#include <Etc2/Etc.h>
+#include <Etc2/EtcFilter.h>
 
 static const glm::uvec2 SPARSE_PAGE_SIZE(128);
 static const glm::uvec2 MAX_TEXTURE_SIZE_GLES(2048);
@@ -214,8 +215,6 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
         newImageReader.setDevice(&content);
 
         if (newImageReader.canRead()) {
-            qCWarning(imagelogging) << "Image file" << filename.c_str() << "has extension" << filenameExtension.c_str()
-                                    << "but is actually a" << qPrintable(newImageReader.format()) << "(recovering)";
             return newImageReader.read();
         }
     }
@@ -223,7 +222,45 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
     return QImage();
 }
 
-gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename,
+void mapToRedChannel(QImage& image, ColorChannel sourceChannel) {
+    // Change format of image so we know exactly how to process it
+    if (image.format() != QImage::Format_ARGB32) {
+        image = image.convertToFormat(QImage::Format_ARGB32);
+    }
+
+    for (int i = 0; i < image.height(); i++) {
+        QRgb* pixel = reinterpret_cast<QRgb*>(image.scanLine(i));
+        // Past end pointer
+        QRgb* lineEnd = pixel + image.width();
+
+        // Transfer channel data from source to target
+        for (; pixel < lineEnd; pixel++) {
+            int colorValue;
+            switch (sourceChannel) {
+            case ColorChannel::RED:
+                colorValue = qRed(*pixel);
+                break;
+            case ColorChannel::GREEN:
+                colorValue = qGreen(*pixel);
+                break;
+            case ColorChannel::BLUE:
+                colorValue = qBlue(*pixel);
+                break;
+            case ColorChannel::ALPHA:
+                colorValue = qAlpha(*pixel);
+                break;
+            default:
+                colorValue = qRed(*pixel);
+                break;
+            }
+
+            // Dump the color in the red channel, ignore the rest
+            *pixel = qRgba(colorValue, 0, 0, 255);
+        }
+    }
+}
+
+gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& filename, ColorChannel sourceChannel,
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
 
@@ -238,7 +275,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
     // Validate that the image loaded
     if (imageWidth == 0 || imageHeight == 0 || image.format() == QImage::Format_Invalid) {
         QString reason(image.format() == QImage::Format_Invalid ? "(Invalid Format)" : "(Size is invalid)");
-        qCWarning(imagelogging) << "Failed to load" << filename.c_str() << qPrintable(reason);
+        qCWarning(imagelogging) << "Failed to load:" << qPrintable(reason);
         return nullptr;
     }
 
@@ -250,9 +287,14 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
         imageWidth = (int)(scaleFactor * (float)imageWidth + 0.5f);
         imageHeight = (int)(scaleFactor * (float)imageHeight + 0.5f);
         image = image.scaled(QSize(imageWidth, imageHeight), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        qCDebug(imagelogging).nospace() << "Downscaled " << filename.c_str() << " (" <<
+        qCDebug(imagelogging).nospace() << "Downscaled " << " (" <<
             QSize(originalWidth, originalHeight) << " to " <<
             QSize(imageWidth, imageHeight) << ")";
+    }
+
+    // Re-map to image with single red channel texture if requested
+    if (sourceChannel != ColorChannel::NONE) {
+        mapToRedChannel(image, sourceChannel);
     }
     
     auto loader = TextureUsage::getTextureLoaderForType(textureType);

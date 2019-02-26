@@ -9,14 +9,15 @@
 //
 
 /* global EntityListTool, Tablet, selectionManager, Entities, Camera, MyAvatar, Vec3, Menu, Messages,
-   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible */
+   cameraManager, MENU_EASE_ON_FOCUS, deleteSelectedEntities, toggleSelectedEntitiesLocked, toggleSelectedEntitiesVisible,
+   keyUpEventFromUIWindow */
 
 var PROFILING_ENABLED = false;
 var profileIndent = '';
 const PROFILE_NOOP = function(_name, fn, args) {
     fn.apply(this, args);
-} ;
-PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
+};
+const PROFILE = !PROFILING_ENABLED ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Script " + profileIndent + "(" + name + ") Begin");
     var previousIndent = profileIndent;
     profileIndent += '  ';
@@ -98,7 +99,11 @@ EntityListTool = function(shouldUseEditTabletApp) {
         that.setVisible(!visible);
     };
 
-    selectionManager.addEventListener(function() {
+    selectionManager.addEventListener(function(isSelectionUpdate, caller) {
+        if (caller === that) {
+            // ignore events that we emitted from the entity list itself
+            return;
+        }
         var selectedIDs = [];
 
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -110,6 +115,13 @@ EntityListTool = function(shouldUseEditTabletApp) {
             selectedIDs: selectedIDs
         });
     });
+
+    that.setSpaceMode = function(spaceMode) {
+        emitJSONScriptEvent({
+            type: 'setSpaceMode',
+            spaceMode: spaceMode
+        });
+    };
 
     that.clearEntityList = function() {
         emitJSONScriptEvent({
@@ -152,7 +164,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             var cameraPosition = Camera.position;
             PROFILE("getMultipleProperties", function () {
                 var multipleProperties = Entities.getMultipleEntityProperties(ids, ['name', 'type', 'locked',
-                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'script']);
+                    'visible', 'renderInfo', 'modelURL', 'materialURL', 'imageURL', 'script', 'certificateID']);
                 for (var i = 0; i < multipleProperties.length; i++) {
                     var properties = multipleProperties[i];
 
@@ -162,6 +174,8 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             url = properties.modelURL;
                         } else if (properties.type === "Material") {
                             url = properties.materialURL;
+                        } else if (properties.type === "Image") {
+                            url = properties.imageURL;
                         }
                         entities.push({
                             id: ids[i],
@@ -170,6 +184,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                             url: url,
                             locked: properties.locked,
                             visible: properties.visible,
+                            certificateID: properties.certificateID,
                             verticesCount: (properties.renderInfo !== undefined ?
                                 valueIfDefined(properties.renderInfo.verticesCount) : ""),
                             texturesCount: (properties.renderInfo !== undefined ?
@@ -196,6 +211,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 type: "update",
                 entities: entities,
                 selectedIDs: selectedIDs,
+                spaceMode: SelectionDisplay.getSpaceMode(),
             });
         });
     };
@@ -214,7 +230,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
         try {
             data = JSON.parse(data);
         } catch(e) {
-            print("entityList.js: Error parsing JSON: " + e.name + " data " + data);
+            print("entityList.js: Error parsing JSON");
             return;
         }
 
@@ -224,7 +240,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
             }
-            selectionManager.setSelections(entityIDs);
+            selectionManager.setSelections(entityIDs, that);
             if (data.focus) {
                 cameraManager.enable();
                 cameraManager.focus(selectionManager.worldPosition,
@@ -245,7 +261,7 @@ EntityListTool = function(shouldUseEditTabletApp) {
                 Window.saveAsync("Select Where to Save", "", "*.json");
             }
         } else if (data.type === "pal") {
-            var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.
+            var sessionIds = {}; // Collect the sessionsIds of all selected entities, w/o duplicates.
             selectionManager.selections.forEach(function (id) {
                 var lastEditedBy = Entities.getEntityProperties(id, 'lastEditedBy').lastEditedBy;
                 if (lastEditedBy) {
@@ -271,6 +287,23 @@ EntityListTool = function(shouldUseEditTabletApp) {
             filterInView = data.filterInView === true;
         } else if (data.type === "radius") {
             searchRadius = data.radius;
+        } else if (data.type === "cut") {
+            SelectionManager.cutSelectedEntities();
+        } else if (data.type === "copy") {
+            SelectionManager.copySelectedEntities();
+        } else if (data.type === "paste") {
+            SelectionManager.pasteEntities();
+        } else if (data.type === "duplicate") {
+            SelectionManager.duplicateSelection();
+            that.sendUpdate();
+        } else if (data.type === "rename") {
+            Entities.editEntity(data.entityID, {name: data.name});
+            // make sure that the name also gets updated in the properties window
+            SelectionManager._update();
+        } else if (data.type === "toggleSpaceMode") {
+            SelectionDisplay.toggleSpaceMode();
+        } else if (data.type === 'keyUpEvent') {
+            keyUpEventFromUIWindow(data.keyUpEvent);
         }
     };
 

@@ -31,6 +31,7 @@ class AudioScope : public QObject, public Dependency {
      *
      * @hifi-interface
      * @hifi-client-entity
+     * @hifi-avatar
      *
      * @property {number} scopeInput <em>Read-only.</em>
      * @property {number} scopeOutputLeft <em>Read-only.</em>

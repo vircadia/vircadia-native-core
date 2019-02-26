@@ -21,7 +21,6 @@
 #include <QtCore/QTimer>
 #include <QUuid>
 
-#include <ClientTraitsHandler.h>
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
 #include <ScriptEngine.h>
@@ -82,7 +81,6 @@ private slots:
     void nodeActivated(SharedNodePointer activatedNode);
     void nodeKilled(SharedNodePointer killedNode);
 
-    void processAgentAvatar();
     void processAgentAvatarAudio();
 
 private:
@@ -100,7 +98,6 @@ private:
 
     void setAvatarSound(SharedSoundPointer avatarSound) { _avatarSound = avatarSound; }
 
-    void sendAvatarIdentityPacket();
     void queryAvatars();
 
     QString _scriptContents;
@@ -108,9 +105,9 @@ private:
     ResourceRequest* _pendingScriptRequest { nullptr };
     bool _isListeningToAudioStream = false;
     SharedSoundPointer _avatarSound;
+    bool _shouldMuteRecordingAudio { false };
     int _numAvatarSoundSentBytes = 0;
     bool _isAvatar = false;
-    QTimer* _avatarIdentityTimer = nullptr;
     QTimer* _avatarQueryTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 

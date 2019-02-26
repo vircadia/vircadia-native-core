@@ -7,14 +7,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const SCROLL_ROWS = 2; // number of rows used as scrolling buffer, each time we pass this number of rows we scroll
-const FIRST_ROW_INDEX = 3; // the first elRow element's index in the child nodes of the table body
+const FIRST_ROW_INDEX = 2; // the first elRow element's index in the child nodes of the table body
 
-debugPrint = function (message) {
-    console.log(message);
-};
-
-function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, 
-                  updateRowFunction, clearRowFunction, WINDOW_NONVARIABLE_HEIGHT) {   
+function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunction, updateRowFunction, clearRowFunction,
+                  preRefreshFunction, postRefreshFunction, preResizeFunction, WINDOW_NONVARIABLE_HEIGHT) {
     this.elTableBody = elTableBody;
     this.elTableScroll = elTableScroll;
     this.elTableHeaderRow = elTableHeaderRow;
@@ -25,6 +21,9 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.createRowFunction = createRowFunction;
     this.updateRowFunction = updateRowFunction;
     this.clearRowFunction = clearRowFunction;
+    this.preRefreshFunction = preRefreshFunction;
+    this.postRefreshFunction = postRefreshFunction;
+    this.preResizeFunction = preResizeFunction;
     
     // the list of row elements created in the table up to max viewable height plus SCROLL_ROWS rows for scrolling buffer
     this.elRows = [];
@@ -38,7 +37,7 @@ function ListView(elTableBody, elTableScroll, elTableHeaderRow, createRowFunctio
     this.lastRowShiftScrollTop = 0;
     
     this.initialize();
-};
+}
     
 ListView.prototype = {
     getNumRows: function() {
@@ -70,11 +69,6 @@ ListView.prototype = {
             this.clearRowFunction(elRow);
             elRow.style.display = "none"; // hide cleared rows
         }
-    },
-
-    onScroll: function()  {
-        var that = this.listView;
-        that.scroll();
     },
 
     scroll: function() {
@@ -152,8 +146,33 @@ ListView.prototype = {
             this.refresh();
         }
     },
+
+    /**
+     * Scrolls firstRowIndex with least effort, also tries to make the window include the other selections in case lastRowIndex is set.
+     * In the case that firstRowIndex and lastRowIndex are already within the visible bounds then nothing will happen.
+     * @param {number} firstRowIndex - The row that will be scrolled to.
+     * @param {number} lastRowIndex - The last index of the bound.
+     */
+    scrollToRow: function (firstRowIndex, lastRowIndex) {
+        lastRowIndex = lastRowIndex ? lastRowIndex : firstRowIndex;
+        let boundingTop = firstRowIndex * this.rowHeight;
+        let boundingBottom = (lastRowIndex * this.rowHeight) + this.rowHeight;
+        if ((boundingBottom - boundingTop) > this.elTableScroll.clientHeight) {
+            boundingBottom = boundingTop + this.elTableScroll.clientHeight;
+        }
+
+        let currentVisibleAreaTop = this.elTableScroll.scrollTop;
+        let currentVisibleAreaBottom = currentVisibleAreaTop + this.elTableScroll.clientHeight;
+
+        if (boundingTop < currentVisibleAreaTop) {
+            this.elTableScroll.scrollTop = boundingTop;
+        } else if (boundingBottom > currentVisibleAreaBottom) {
+            this.elTableScroll.scrollTop = boundingBottom - (this.elTableScroll.clientHeight);
+        }
+    },
     
     refresh: function() {
+        this.preRefreshFunction();
         // block refreshing before rows are initialized
         let numRows = this.getNumRows();
         if (numRows === 0) {
@@ -192,6 +211,7 @@ ListView.prototype = {
                 this.lastRowShiftScrollTop = 0;
             }
         }
+        this.postRefreshFunction();
     },
     
     refreshBuffers: function() {
@@ -211,7 +231,7 @@ ListView.prototype = {
     
     refreshRowOffset: function() {
         // make sure the row offset isn't causing visible rows to pass the end of the item list and is clamped to 0
-        var numRows = this.getNumRows();
+        let numRows = this.getNumRows();
         if (this.rowOffset + numRows > this.itemData.length) {
             this.rowOffset = this.itemData.length - numRows;
         }
@@ -220,18 +240,13 @@ ListView.prototype = {
         }
     },
 
-    onResize: function() {
-        var that = this.listView;
-        that.resize();
-    },
-    
     resize: function() {        
         if (!this.elTableBody || !this.elTableScroll) {
-            debugPrint("ListView.resize - no valid table body or table scroll element");
+            console.log("ListView.resize - no valid table body or table scroll element");
             return;
         }
-
-        let prevScrollTop = this.elTableScroll.scrollTop;         
+        this.preResizeFunction();
+        let prevScrollTop = this.elTableScroll.scrollTop;  
 
         // take up available window space
         this.elTableScroll.style.height = window.innerHeight - WINDOW_NONVARIABLE_HEIGHT;
@@ -260,18 +275,6 @@ ListView.prototype = {
             this.elTableBody.insertBefore(scrollRow, this.elBottomBuffer);
             this.elRows.push(scrollRow);
         }
-
-        let ths = this.elTableHeaderRow;
-        let tds = this.getNumRows() > 0 ? this.elRows[0].childNodes : [];
-        if (!ths) {
-            debugPrint("ListView.resize - no valid table header row");
-        } else if (tds.length !== ths.length) {
-            debugPrint("ListView.resize - td list size " + tds.length + " does not match th list size " + ths.length);
-        }
-        // update the widths of the header cells to match the body cells (using first body row)
-        for (let i = 0; i < ths.length; i++) {
-            ths[i].width = tds[i].offsetWidth;
-        }
         
         // restore the scroll point to the same scroll point from before above changes
         this.elTableScroll.scrollTop = prevScrollTop;
@@ -281,12 +284,9 @@ ListView.prototype = {
     
     initialize: function() {
         if (!this.elTableBody || !this.elTableScroll) {
-            debugPrint("ListView.initialize - no valid table body or table scroll element");
+            console.log("ListView.initialize - no valid table body or table scroll element");
             return;
         }
-        
-        // delete initial blank row
-        this.elTableBody.deleteRow(0);
         
         this.elTopBuffer = document.createElement("tr");
         this.elTableBody.appendChild(this.elTopBuffer);
@@ -296,10 +296,10 @@ ListView.prototype = {
         this.elTableBody.appendChild(this.elBottomBuffer);
         this.elBottomBuffer.setAttribute("height", 0);
 
-        this.elTableScroll.listView = this;
-        this.elTableScroll.onscroll = this.onScroll;
-        window.listView = this;
-        window.onresize = this.onResize;
+        this.onScroll = this.scroll.bind(this);
+        this.elTableScroll.addEventListener("scroll", this.onScroll);
+        this.onResize = this.resize.bind(this);
+        window.addEventListener("resize", this.onResize);
 
         // initialize all row elements
         this.resize();

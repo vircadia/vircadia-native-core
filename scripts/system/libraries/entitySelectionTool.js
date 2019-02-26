@@ -26,6 +26,11 @@ Script.include([
     "./utils.js"
 ]);
 
+
+function deepCopy(v) {
+    return JSON.parse(JSON.stringify(v));
+}
+
 SelectionManager = (function() {
     var that = {};
 
@@ -35,7 +40,7 @@ SelectionManager = (function() {
         Messages.messageReceived.connect(handleEntitySelectionToolUpdates);
     }
 
-    // FUNCTION: HANDLE ENTITY SELECTION TOOL UDPATES
+    // FUNCTION: HANDLE ENTITY SELECTION TOOL UPDATES
     function handleEntitySelectionToolUpdates(channel, message, sender) {
         if (channel !== 'entityToolUpdates') {
             return;
@@ -49,7 +54,7 @@ SelectionManager = (function() {
         try {
             messageParsed = JSON.parse(message);
         } catch (err) {
-            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message: " + message);
+            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message");
             return;
         }
 
@@ -58,7 +63,7 @@ SelectionManager = (function() {
                 if (wantDebug) {
                     print("setting selection to " + messageParsed.entityID);
                 }
-                that.setSelections([messageParsed.entityID]);
+                that.setSelections([messageParsed.entityID], that);
             }
         } else if (messageParsed.method === "clearSelection") {
             if (!SelectionDisplay.triggered() || SelectionDisplay.triggeredHand === messageParsed.hand) {
@@ -131,7 +136,7 @@ SelectionManager = (function() {
         return that.selections.length > 0;
     };
 
-    that.setSelections = function(entityIDs) {
+    that.setSelections = function(entityIDs, caller) {
         that.selections = [];
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
@@ -139,10 +144,10 @@ SelectionManager = (function() {
             Selection.addToSelectedItemsList(HIGHLIGHT_LIST_NAME, "entity", entityID);
         }
 
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.addEntity = function(entityID, toggleSelection) {
+    that.addEntity = function(entityID, toggleSelection, caller) {
         if (entityID) {
             var idx = -1;
             for (var i = 0; i < that.selections.length; i++) {
@@ -160,7 +165,7 @@ SelectionManager = (function() {
             }
         }
 
-        that._update(true);
+        that._update(true, caller);
     };
 
     function removeEntityByID(entityID) {
@@ -171,37 +176,50 @@ SelectionManager = (function() {
         }
     }
 
-    that.removeEntity = function (entityID) {
+    that.removeEntity = function (entityID, caller) {
         removeEntityByID(entityID);
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.removeEntities = function(entityIDs) {
+    that.removeEntities = function(entityIDs, caller) {
         for (var i = 0, length = entityIDs.length; i < length; i++) {
             removeEntityByID(entityIDs[i]);
         }
-        that._update(true);
+        that._update(true, caller);
     };
 
-    that.clearSelections = function() {
+    that.clearSelections = function(caller) {
         that.selections = [];
-        that._update(true);
+        that._update(true, caller);
     };
     
-    that.addChildrenEntities = function(parentEntityID, entityList) {
+    that.addChildrenEntities = function(parentEntityID, entityList, entityHostType) {
+        var wantDebug = false;
         var children = Entities.getChildrenIDs(parentEntityID);
+        var entityHostTypes = Entities.getMultipleEntityProperties(children, 'entityHostType');
         for (var i = 0; i < children.length; i++) {
             var childID = children[i];
+
+            if (entityHostTypes[i].entityHostType !== entityHostType) {
+                if (wantDebug) {
+                    console.log("Skipping addition of entity " + childID + " with conflicting entityHostType: " +
+                        entityHostTypes[i].entityHostType);
+                }
+                continue;
+            }
+
             if (entityList.indexOf(childID) < 0) {
                 entityList.push(childID);
             }
-            that.addChildrenEntities(childID, entityList);
+            that.addChildrenEntities(childID, entityList, entityHostType);
         }
     };
 
-    // Return true if the given entity with `properties` is being grabbed by an avatar.
+    // Determine if an entity is being grabbed.
     // This is mostly a heuristic - there is no perfect way to know if an entity is being
     // grabbed.
+    //
+    // @return {boolean} true if the given entity with `properties` is being grabbed by an avatar
     function nonDynamicEntityIsBeingGrabbedByAvatar(properties) {
         if (properties.dynamic || Uuid.isNull(properties.parentID)) {
             return false;
@@ -228,6 +246,12 @@ SelectionManager = (function() {
         return false;
     }
 
+    var entityClipboard = {
+        entities: {}, // Map of id -> properties for copied entities
+        position: { x: 0, y: 0, z: 0 },
+        dimensions: { x: 0, y: 0, z: 0 },
+    };
+
     that.duplicateSelection = function() {
         var entitiesToDuplicate = [];
         var duplicatedEntityIDs = [];
@@ -237,12 +261,15 @@ SelectionManager = (function() {
         SelectionManager.saveProperties();
         
         // build list of entities to duplicate by including any unselected children of selected parent entities
-        Object.keys(that.savedProperties).forEach(function(originalEntityID) {
-            if (entitiesToDuplicate.indexOf(originalEntityID) < 0) {
+        var originalEntityIDs = Object.keys(that.savedProperties);
+        var entityHostTypes = Entities.getMultipleEntityProperties(originalEntityIDs, 'entityHostType');
+        for (var i = 0; i < originalEntityIDs.length; i++) {
+            var originalEntityID = originalEntityIDs[i];
+            if (entitiesToDuplicate.indexOf(originalEntityID) === -1) {
                 entitiesToDuplicate.push(originalEntityID);
             }
-            that.addChildrenEntities(originalEntityID, entitiesToDuplicate);
-        });
+            that.addChildrenEntities(originalEntityID, entitiesToDuplicate, entityHostTypes[i].entityHostType);
+        }
         
         // duplicate entities from above and store their original to new entity mappings and children needing re-parenting
         for (var i = 0; i < entitiesToDuplicate.length; i++) {
@@ -251,13 +278,17 @@ SelectionManager = (function() {
             if (properties === undefined) {
                 properties = Entities.getEntityProperties(originalEntityID);
             }
-            if (!properties.locked && (!properties.clientOnly || properties.owningAvatarID === MyAvatar.sessionUUID)) {
+            if (!properties.locked && (!properties.avatarEntity || properties.owningAvatarID === MyAvatar.sessionUUID)) {
                 if (nonDynamicEntityIsBeingGrabbedByAvatar(properties)) {
                     properties.parentID = null;
                     properties.parentJointIndex = null;
                     properties.localPosition = properties.position;
                     properties.localRotation = properties.rotation;
                 }
+
+                properties.localVelocity = Vec3.ZERO;
+                properties.localAngularVelocity = Vec3.ZERO;
+
                 delete properties.actionData;
                 var newEntityID = Entities.addEntity(properties);
 
@@ -268,7 +299,7 @@ SelectionManager = (function() {
                     var actionArguments = Entities.getActionArguments(properties.id, actionID);
                     if (actionArguments) {
                         var type = actionArguments.type;
-                        if (type == 'hold' || type == 'far-grab') {
+                        if (type === 'hold' || type === 'far-grab') {
                             continue;
                         }
                         delete actionArguments.ttl;
@@ -305,7 +336,178 @@ SelectionManager = (function() {
         return duplicatedEntityIDs;
     };
 
-    that._update = function(selectionUpdated) {
+    // Create the entities in entityProperties, maintaining parent-child relationships.
+    // @param entityProperties {array} - Array of entity property objects
+    that.createEntities = function(entityProperties) {
+        var entitiesToCreate = [];
+        var createdEntityIDs = [];
+        var createdChildrenWithOldParents = [];
+        var originalEntityToNewEntityID = [];
+
+        that.saveProperties();
+
+        for (var i = 0; i < entityProperties.length; ++i) {
+            var properties = entityProperties[i];
+            if (properties.parentID in originalEntityToNewEntityID) {
+                properties.parentID = originalEntityToNewEntityID[properties.parentID];
+            } else {
+                delete properties.parentID;
+            }
+
+            delete properties.actionData;
+            var newEntityID = Entities.addEntity(properties);
+
+            if (newEntityID) {
+                createdEntityIDs.push({
+                    entityID: newEntityID,
+                    properties: properties
+                });
+                if (properties.parentID !== Uuid.NULL) {
+                    createdChildrenWithOldParents[newEntityID] = properties.parentID;
+                }
+                originalEntityToNewEntityID[properties.id] = newEntityID;
+                properties.id = newEntityID;
+            }
+        }
+
+        return createdEntityIDs;
+    };
+
+    that.cutSelectedEntities = function() {
+        that.copySelectedEntities();
+        deleteSelectedEntities();
+    };
+
+    that.copySelectedEntities = function() {
+        var entityProperties = Entities.getMultipleEntityProperties(that.selections);
+        var entityHostTypes = Entities.getMultipleEntityProperties(that.selections, 'entityHostType');
+        var entities = {};
+        entityProperties.forEach(function(props) {
+            entities[props.id] = props;
+        });
+
+        function appendChildren(entityID, entities, entityHostType) {
+            var wantDebug = false;
+            var childrenIDs = Entities.getChildrenIDs(entityID);
+            var entityHostTypes = Entities.getMultipleEntityProperties(childrenIDs, 'entityHostType');
+            for (var i = 0; i < childrenIDs.length; ++i) {
+                var id = childrenIDs[i];
+
+                if (entityHostTypes[i].entityHostType !== entityHostType) {
+                    if (wantDebug) {
+                        console.warn("Skipping deletion of entity " + id + " with conflicting entityHostType: " +
+                            entityHostTypes[i].entityHostType);
+                    }
+                    continue;
+                }
+
+                if (!(id in entities)) {
+                    entities[id] = Entities.getEntityProperties(id); 
+                    appendChildren(id, entities);
+                }
+            }
+        }
+
+        var len = entityProperties.length;
+        for (var i = 0; i < len; ++i) {
+            appendChildren(entityProperties[i].id, entities, entityHostTypes[i].entityHostType);
+        }
+
+        for (var id in entities) {
+            var parentID = entities[id].parentID;
+            entities[id].root = !(parentID in entities);
+        }
+
+        entityClipboard.entities = [];
+
+        var ids = Object.keys(entities);
+        while (ids.length > 0) {
+            // Go through all remaining entities.
+            // If an entity does not have a parent left, move it into the list
+            for (var i = 0; i < ids.length; ++i) {
+                var id = ids[i];
+                var parentID = entities[id].parentID;
+                if (parentID in entities) {
+                    continue;
+                }
+                entityClipboard.entities.push(entities[id]);
+                delete entities[id];
+            }
+            ids = Object.keys(entities);
+        }
+
+        // Calculate size
+        if (entityClipboard.entities.length === 0) {
+            entityClipboard.dimensions = { x: 0, y: 0, z: 0 };
+            entityClipboard.position = { x: 0, y: 0, z: 0 };
+        } else {
+            var properties = entityClipboard.entities;
+            var brn = properties[0].boundingBox.brn;
+            var tfl = properties[0].boundingBox.tfl;
+            for (var i = 1; i < properties.length; i++) {
+                var bb = properties[i].boundingBox;
+                brn.x = Math.min(bb.brn.x, brn.x);
+                brn.y = Math.min(bb.brn.y, brn.y);
+                brn.z = Math.min(bb.brn.z, brn.z);
+                tfl.x = Math.max(bb.tfl.x, tfl.x);
+                tfl.y = Math.max(bb.tfl.y, tfl.y);
+                tfl.z = Math.max(bb.tfl.z, tfl.z);
+            }
+            entityClipboard.dimensions = {
+                x: tfl.x - brn.x,
+                y: tfl.y - brn.y,
+                z: tfl.z - brn.z
+            };
+            entityClipboard.position = {
+                x: brn.x + entityClipboard.dimensions.x / 2,
+                y: brn.y + entityClipboard.dimensions.y / 2,
+                z: brn.z + entityClipboard.dimensions.z / 2
+            };
+        }
+    };
+
+    that.pasteEntities = function() {
+        var dimensions = entityClipboard.dimensions;
+        var maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z);
+        var pastePosition = getPositionToCreateEntity(maxDimension);
+        var deltaPosition = Vec3.subtract(pastePosition, entityClipboard.position);
+
+        var copiedProperties = [];
+        var ids = [];
+        entityClipboard.entities.forEach(function(originalProperties) {
+            var properties = deepCopy(originalProperties);
+            if (properties.root) {
+                properties.position = Vec3.sum(properties.position, deltaPosition);
+                delete properties.localPosition;
+            } else {
+                delete properties.position;
+            }
+            copiedProperties.push(properties);
+        });
+
+        var currentSelections = deepCopy(SelectionManager.selections);
+
+        function redo(copiedProperties) {
+            var created = that.createEntities(copiedProperties);
+            var ids = [];
+            for (var i = 0; i < created.length; ++i) {
+                ids.push(created[i].entityID);
+            }
+            SelectionManager.setSelections(ids);
+        }
+
+        function undo(copiedProperties) {
+            for (var i = 0; i < copiedProperties.length; ++i) {
+                Entities.deleteEntity(copiedProperties[i].id);
+            }
+            SelectionManager.setSelections(currentSelections);
+        }
+
+        redo(copiedProperties);
+        undoHistory.pushCommand(undo, copiedProperties, redo, copiedProperties);
+    };
+
+    that._update = function(selectionUpdated, caller) {
         var properties = null;
         if (that.selections.length === 0) {
             that.localDimensions = null;
@@ -328,7 +530,7 @@ SelectionManager = (function() {
             that.entityType = properties.type;
             
             if (selectionUpdated) {
-                SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+                SelectionDisplay.useDesiredSpaceMode();
             }
         } else {
             properties = Entities.getEntityProperties(that.selections[0], ['type', 'boundingBox']);
@@ -365,12 +567,12 @@ SelectionManager = (function() {
             };
 
             // For 1+ selections we can only modify selections in world space
-            SelectionDisplay.setSpaceMode(SPACE_WORLD);
+            SelectionDisplay.setSpaceMode(SPACE_WORLD, false);
         }
 
         for (var j = 0; j < listeners.length; j++) {
             try {
-                listeners[j](selectionUpdated === true);
+                listeners[j](selectionUpdated === true, caller);
             } catch (e) {
                 print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }
@@ -427,12 +629,10 @@ SelectionDisplay = (function() {
 
     const STRETCH_CUBE_OFFSET = 0.06;
     const STRETCH_CUBE_CAMERA_DISTANCE_MULTIPLE = 0.02;
-    const STRETCH_MINIMUM_DIMENSION = 0.001;
     const STRETCH_PANEL_WIDTH = 0.01;
 
     const SCALE_OVERLAY_CAMERA_DISTANCE_MULTIPLE = 0.02;
     const SCALE_DIMENSIONS_CAMERA_DISTANCE_MULTIPLE = 0.5;
-    const SCALE_MINIMUM_DIMENSION = 0.01;
     
     const BOUNDING_EDGE_OFFSET = 0.5;
 
@@ -461,24 +661,28 @@ SelectionDisplay = (function() {
         ALL: 3
     };
 
-    const SCALE_DIRECTION = {
-        LBN: 0,
-        RBN: 1,
-        LBF: 2,
-        RBF: 3,
-        LTN: 4,
-        RTN: 5,
-        LTF: 6,
-        RTF: 7
-    };
-
     const ROTATE_DIRECTION = {
         PITCH: 0,
         YAW: 1,
         ROLL: 2
     };
 
+    const INEDIT_STATUS_CHANNEL = "Hifi-InEdit-Status";
+
+    /**
+     * The current space mode, this could have been a forced space mode since we do not support multi selection while in
+     * local space mode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
     var spaceMode = SPACE_LOCAL;
+
+    /**
+     * The desired space mode, this is the user set space mode, which should be respected whenever it is possible. In the case
+     * of multi entity selection this space mode may differ from the actual spaceMode.
+     * @type {string} - should only be set to SPACE_LOCAL or SPACE_WORLD
+     */
+    var desiredSpaceMode = SPACE_LOCAL;
+
     var overlayNames = [];
     var lastControllerPoses = [
         getControllerWorldLocation(Controller.Standard.LeftHand, true),
@@ -622,26 +826,14 @@ SelectionDisplay = (function() {
         borderSize: 1.4
     });
 
-    var handlePropertiesBoundingEdge = {
+    var handleBoundingBox = Overlays.addOverlay("cube", {
         alpha: 1,
         color: COLOR_BOUNDING_EDGE,
         visible: false,
-        ignoreRayIntersection: true,
+        ignorePickIntersection: true,
         drawInFront: true,
-        lineWidth: 0.2
-    };
-    var handleBoundingTREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingTLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingTFEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingTNEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingBREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingBLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingBFEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingBNEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingNREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingNLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingFREdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
-    var handleBoundingFLEdge = Overlays.addOverlay("line3d", handlePropertiesBoundingEdge);
+        isSolid: false
+    });
 
     var handleDuplicator = Overlays.addOverlay("cube", {
         alpha: 1,
@@ -729,26 +921,17 @@ SelectionDisplay = (function() {
         handleStretchYPanel,
         handleStretchZPanel,
         handleScaleCube,
-        handleBoundingTREdge,
-        handleBoundingTLEdge,
-        handleBoundingTFEdge,
-        handleBoundingTNEdge,
-        handleBoundingBREdge,
-        handleBoundingBLEdge,
-        handleBoundingBFEdge,
-        handleBoundingBNEdge,
-        handleBoundingNREdge,
-        handleBoundingNLEdge,
-        handleBoundingFREdge,
-        handleBoundingFLEdge,
+        handleBoundingBox,
         handleDuplicator,
         selectionBox,
         iconSelectionBox,
         xRailOverlay,
         yRailOverlay,
         zRailOverlay
-
     ];
+
+    const nonLayeredOverlays = [selectionBox, iconSelectionBox];
+
     var maximumHandleInAllOverlays = handleDuplicator;
 
     overlayNames[handleTranslateXCone] = "handleTranslateXCone";
@@ -773,18 +956,7 @@ SelectionDisplay = (function() {
 
     overlayNames[handleScaleCube] = "handleScaleCube";
 
-    overlayNames[handleBoundingTREdge] = "handleBoundingTREdge";
-    overlayNames[handleBoundingTLEdge] = "handleBoundingTLEdge";
-    overlayNames[handleBoundingTFEdge] = "handleBoundingTFEdge";
-    overlayNames[handleBoundingTNEdge] = "handleBoundingTNEdge";
-    overlayNames[handleBoundingBREdge] = "handleBoundingBREdge";
-    overlayNames[handleBoundingBLEdge] = "handleBoundingBLEdge";
-    overlayNames[handleBoundingBFEdge] = "handleBoundingBFEdge";
-    overlayNames[handleBoundingBNEdge] = "handleBoundingBNEdge";
-    overlayNames[handleBoundingNREdge] = "handleBoundingNREdge";
-    overlayNames[handleBoundingNLEdge] = "handleBoundingNLEdge";
-    overlayNames[handleBoundingFREdge] = "handleBoundingFREdge";
-    overlayNames[handleBoundingFLEdge] = "handleBoundingFLEdge";
+    overlayNames[handleBoundingBox] = "handleBoundingBox";
 
     overlayNames[handleDuplicator] = "handleDuplicator";
     overlayNames[selectionBox] = "selectionBox";
@@ -811,9 +983,10 @@ SelectionDisplay = (function() {
     that.triggerPressMapping = Controller.newMapping(Script.resolvePath('') + '-press');
     that.triggeredHand = NO_HAND;
     that.pressedHand = NO_HAND;
+    that.editingHand = NO_HAND;
     that.triggered = function() {
         return that.triggeredHand !== NO_HAND;
-    }
+    };
     function pointingAtDesktopWindowOrTablet(hand) {
         var pointingAtDesktopWindow = (hand === Controller.Standard.RightHand && 
                                        SelectionManager.pointingAtDesktopWindowRight) ||
@@ -860,7 +1033,7 @@ SelectionDisplay = (function() {
     that.disableTriggerMapping = function() {
         that.triggerClickMapping.disable();
         that.triggerPressMapping.disable();
-    }
+    };
     Script.scriptEnding.connect(that.disableTriggerMapping);
 
     // FUNCTION DEF(s): Intersection Check Helpers
@@ -873,7 +1046,31 @@ SelectionDisplay = (function() {
             return null;
         }
 
-        var intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludes, overlayExcludes);
+        // We want to first check the drawInFront overlays (i.e. the handles, but really everything except the selectionBoxes)
+        // so that you can click on them even when they're behind things
+        var overlayIncludesLayered = [];
+        var overlayIncludesNonLayered = [];
+        for (var i = 0; i < overlayIncludes.length; i++) {
+            var value = overlayIncludes[i];
+            var contains = false;
+            for (var j = 0; j < nonLayeredOverlays.length; j++) {
+                if (nonLayeredOverlays[j] === value) {
+                    contains = true;
+                    break;
+                }
+            }
+            if (contains) {
+                overlayIncludesNonLayered.push(value);
+            } else {
+                overlayIncludesLayered.push(value);
+            }
+        }
+
+        var intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludesLayered, overlayExcludes);
+
+        if (!intersectObj.intersects && overlayIncludesNonLayered.length > 0) {
+            intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludesNonLayered, overlayExcludes);
+        }
 
         if (wantDebug) {
             if (!overlayIncludes) {
@@ -943,6 +1140,12 @@ SelectionDisplay = (function() {
                 activeTool = hitTool;
                 that.clearDebugPickPlane();
                 if (activeTool.onBegin) {
+                    that.editingHand = that.triggeredHand;
+                    Messages.sendLocalMessage(INEDIT_STATUS_CHANNEL, JSON.stringify({
+                        method: "editing",
+                        hand: that.editingHand === Controller.Standard.LeftHand ? LEFT_HAND : RIGHT_HAND,
+                        editing: true
+                    }));
                     activeTool.onBegin(event, pickRay, results);
                 } else {
                     print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool(" + activeTool.mode + ") missing onBegin");
@@ -993,7 +1196,7 @@ SelectionDisplay = (function() {
     that.updateHighlight = function(event) {
         // if no tool is active, then just look for handles to highlight...
         var pickRay = generalComputePickRay(event.x, event.y);        
-        var result = Overlays.findRayIntersection(pickRay);
+        var result = testRayIntersect(pickRay, allOverlays);
         var pickedColor;
         var highlightNeeded = false;
 
@@ -1062,7 +1265,7 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Trigger SelectionManager::update");
             }
-            SelectionManager._update();
+            SelectionManager._update(false, that);
 
             if (wantDebug) {
                 print("=============== eST::MouseMoveEvent END =======================");
@@ -1091,6 +1294,12 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("    Triggering ActiveTool(" + activeTool.mode + ")'s onEnd");
                 }
+                Messages.sendLocalMessage(INEDIT_STATUS_CHANNEL, JSON.stringify({
+                    method: "editing",
+                    hand: that.editingHand === Controller.Standard.LeftHand ? LEFT_HAND : RIGHT_HAND,
+                    editing: false
+                }));
+                that.editingHand = NO_HAND;
                 activeTool.onEnd(event);
             } else if (wantDebug) {
                 print("    ActiveTool(" + activeTool.mode + ")'s missing onEnd");
@@ -1127,7 +1336,7 @@ SelectionDisplay = (function() {
             lastMouseEvent.isControl = event.isControl;
             lastMouseEvent.isAlt = event.isAlt;
             activeTool.onMove(lastMouseEvent);
-            SelectionManager._update();
+            SelectionManager._update(false, this);
         }
     };
 
@@ -1143,7 +1352,7 @@ SelectionDisplay = (function() {
             lastMouseEvent.isControl = event.isControl;
             lastMouseEvent.isAlt = event.isAlt;
             activeTool.onMove(lastMouseEvent);
-            SelectionManager._update();
+            SelectionManager._update(false, this);
         }
     };
 
@@ -1168,7 +1377,7 @@ SelectionDisplay = (function() {
         }
     };
 
-    function controllerComputePickRay(hand) {
+    function controllerComputePickRay() {
         var hand = that.triggered() ? that.triggeredHand : that.pressedHand;
         var controllerPose = getControllerWorldLocation(hand, true);
         if (controllerPose.valid) {
@@ -1228,8 +1437,21 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
+
+    /**
+     * This callback is used for spaceMode changes.
+     * @callback spaceModeChangedCallback
+     * @param {string} spaceMode
+     */
+
+    /**
+     * set this property with a callback to keep track of spaceMode changes.
+     * @type {spaceModeChangedCallback}
+     */
+    that.onSpaceModeChange = null;
+
     // FUNCTION: SET SPACE MODE
-    that.setSpaceMode = function(newSpaceMode) {
+    that.setSpaceMode = function(newSpaceMode, isDesiredChange) {
         var wantDebug = false;
         if (wantDebug) {
             print("======> SetSpaceMode called. ========");
@@ -1239,7 +1461,15 @@ SelectionDisplay = (function() {
             if (wantDebug) {
                 print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
             }
+            if (isDesiredChange) {
+                desiredSpaceMode = newSpaceMode;
+            }
             spaceMode = newSpaceMode;
+
+            if (that.onSpaceModeChange !== null) {
+                that.onSpaceModeChange(newSpaceMode);
+            }
+
             that.updateHandles();
         } else if (wantDebug) {
             print("WARNING: entitySelectionTool.setSpaceMode - Can't update SpaceMode. CurrentMode: " + 
@@ -1265,12 +1495,34 @@ SelectionDisplay = (function() {
         if (wantDebug) {
             print("PreToggle: " + spaceMode);
         }
-        spaceMode = (spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL;
-        that.updateHandles();
+        that.setSpaceMode((spaceMode === SPACE_LOCAL) ? SPACE_WORLD : SPACE_LOCAL, true);
         if (wantDebug) {
             print("PostToggle: " + spaceMode);        
             print("======== ToggleSpaceMode called. <=========");
         }
+    };
+
+    /**
+     * Switches the display mode back to the set desired display mode
+     */
+    that.useDesiredSpaceMode = function() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("========> UseDesiredSpaceMode called. =========");
+        }
+        that.setSpaceMode(desiredSpaceMode, false);
+        if (wantDebug) {
+            print("PostToggle: " + spaceMode);
+            print("======== UseDesiredSpaceMode called. <=========");
+        }
+    };
+
+    /**
+     * Get the currently set SpaceMode
+     * @returns {string} spaceMode
+     */
+    that.getSpaceMode = function() {
+        return spaceMode;
     };
 
     function addHandleTool(overlay, tool) {
@@ -1311,7 +1563,7 @@ SelectionDisplay = (function() {
             print("    SpaceMode: " + spaceMode);
             print("    DisplayMode: " + getMode());
         }
-
+        
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
             that.clearDebugPickPlane();
@@ -1342,7 +1594,7 @@ SelectionDisplay = (function() {
                 dimensions: dimensions
             };
             var isCameraInsideBox = isPointInsideBox(Camera.position, selectionBoxGeometry);
-
+            
             // in HMD if outside the bounding box clamp the overlays to the bounding box for now so lasers can hit them
             var maxHandleDimension = 0;
             if (HMD.active && !isCameraInsideBox) {
@@ -1447,40 +1699,26 @@ SelectionDisplay = (function() {
                 dimensions: scaleCubeDimensions
             });
 
-            // UPDATE BOUNDING BOX EDGES
+            // UPDATE BOUNDING BOX
+            Overlays.editOverlay(handleBoundingBox, {
+                position: position,
+                rotation: rotation,
+                dimensions: dimensions
+            });
+
+            // UPDATE STRETCH HIGHLIGHT PANELS
             var edgeOffsetX = BOUNDING_EDGE_OFFSET * dimensions.x;
             var edgeOffsetY = BOUNDING_EDGE_OFFSET * dimensions.y;
             var edgeOffsetZ = BOUNDING_EDGE_OFFSET * dimensions.z;
-            var LBNPosition = { x: -edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
-            LBNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LBNPosition));
-            var RBNPosition = { x: edgeOffsetX, y: -edgeOffsetY, z: -edgeOffsetZ };
-            RBNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RBNPosition));
-            var LBFPosition = { x: -edgeOffsetX, y: -edgeOffsetY, z: edgeOffsetZ };
-            LBFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LBFPosition));
             var RBFPosition = { x: edgeOffsetX, y: -edgeOffsetY, z: edgeOffsetZ };
             RBFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RBFPosition));
+            var RTFPosition = { x: edgeOffsetX, y: edgeOffsetY, z: edgeOffsetZ };
+            RTFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RTFPosition));
             var LTNPosition = { x: -edgeOffsetX, y: edgeOffsetY, z: -edgeOffsetZ };
             LTNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LTNPosition));
             var RTNPosition = { x: edgeOffsetX, y: edgeOffsetY, z: -edgeOffsetZ };
             RTNPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RTNPosition));
-            var LTFPosition = { x: -edgeOffsetX, y: edgeOffsetY, z: edgeOffsetZ };
-            LTFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, LTFPosition));
-            var RTFPosition = { x: edgeOffsetX, y: edgeOffsetY, z: edgeOffsetZ };
-            RTFPosition = Vec3.sum(position, Vec3.multiplyQbyV(rotation, RTFPosition));
-            Overlays.editOverlay(handleBoundingTREdge, { start: RTNPosition, end: RTFPosition });
-            Overlays.editOverlay(handleBoundingTLEdge, { start: LTNPosition, end: LTFPosition });
-            Overlays.editOverlay(handleBoundingTFEdge, { start: LTFPosition, end: RTFPosition });
-            Overlays.editOverlay(handleBoundingTNEdge, { start: LTNPosition, end: RTNPosition });
-            Overlays.editOverlay(handleBoundingBREdge, { start: RBNPosition, end: RBFPosition });
-            Overlays.editOverlay(handleBoundingBLEdge, { start: LBNPosition, end: LBFPosition });
-            Overlays.editOverlay(handleBoundingBFEdge, { start: LBFPosition, end: RBFPosition });
-            Overlays.editOverlay(handleBoundingBNEdge, { start: LBNPosition, end: RBNPosition });
-            Overlays.editOverlay(handleBoundingNREdge, { start: RTNPosition, end: RBNPosition });
-            Overlays.editOverlay(handleBoundingNLEdge, { start: LTNPosition, end: LBNPosition });
-            Overlays.editOverlay(handleBoundingFREdge, { start: RTFPosition, end: RBFPosition });
-            Overlays.editOverlay(handleBoundingFLEdge, { start: LTFPosition, end: LBFPosition });
-            
-            // UPDATE STRETCH HIGHLIGHT PANELS
+
             var RBFPositionRotated = Vec3.multiplyQbyV(rotationInverse, RBFPosition);
             var RTFPositionRotated = Vec3.multiplyQbyV(rotationInverse, RTFPosition);
             var LTNPositionRotated = Vec3.multiplyQbyV(rotationInverse, LTNPosition);
@@ -1611,11 +1849,11 @@ SelectionDisplay = (function() {
         var showOutlineForZone = (SelectionManager.selections.length === 1 && 
                                     typeof SelectionManager.savedProperties[SelectionManager.selections[0]] !== "undefined" &&
                                     SelectionManager.savedProperties[SelectionManager.selections[0]].type === "Zone");
-        that.setHandleBoundingEdgeVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
+        that.setHandleBoundingBoxVisible(showOutlineForZone || (!isActiveTool(handleRotatePitchRing) &&
                                                               !isActiveTool(handleRotateYawRing) &&
                                                               !isActiveTool(handleRotateRollRing)));
 
-        // keep duplicator always hidden for now since you can hold Alt to duplciate while  
+        // keep duplicator always hidden for now since you can hold Alt to duplicate while
         // translating an entity - we may bring duplicator back for HMD only later
         // that.setHandleDuplicatorVisible(!activeTool || isActiveTool(handleDuplicator));
 
@@ -1711,26 +1949,15 @@ SelectionDisplay = (function() {
     // FUNCTION: SET HANDLE SCALE VISIBLE
     that.setHandleScaleVisible = function(isVisible) {
         that.setHandleScaleVisible(isVisible);
-        that.setHandleBoundingEdgeVisible(isVisible);
+        that.setHandleBoundingBoxVisible(isVisible);
     };
 
     that.setHandleScaleVisible = function(isVisible) {
         Overlays.editOverlay(handleScaleCube, { visible: isVisible });
     };
 
-    that.setHandleBoundingEdgeVisible = function(isVisible) {
-        Overlays.editOverlay(handleBoundingTREdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingTLEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingTFEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingTNEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingBREdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingBLEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingBFEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingBNEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingNREdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingNLEdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingFREdge, { visible: isVisible });
-        Overlays.editOverlay(handleBoundingFLEdge, { visible: isVisible });
+    that.setHandleBoundingBoxVisible = function(isVisible) {
+        Overlays.editOverlay(handleBoundingBox, { visible: isVisible });
     };
 
     // FUNCTION: SET HANDLE DUPLICATOR VISIBLE
@@ -2007,7 +2234,7 @@ SelectionDisplay = (function() {
                     }
                 }
 
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2129,7 +2356,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
     
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2283,7 +2510,7 @@ SelectionDisplay = (function() {
 
                 var newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
 
-                var minimumDimension = STRETCH_MINIMUM_DIMENSION; 
+                var minimumDimension = Entities.getPropertyInfo("dimensions").minimum; 
                 if (newDimensions.x < minimumDimension) {
                     newDimensions.x = minimumDimension;
                     changeInDimensions.x = minimumDimension - initialDimensions.x;
@@ -2316,7 +2543,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
         
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }
@@ -2402,7 +2629,7 @@ SelectionDisplay = (function() {
                 newDimensions.y = Math.abs(newDimensions.y);
                 newDimensions.z = Math.abs(newDimensions.z);
 
-                var minimumDimension = SCALE_MINIMUM_DIMENSION; 
+                var minimumDimension = Entities.getPropertyInfo("dimensions").minimum; 
                 if (newDimensions.x < minimumDimension) {
                     newDimensions.x = minimumDimension;
                     changeInDimensions.x = minimumDimension - initialDimensions.x;
@@ -2427,7 +2654,7 @@ SelectionDisplay = (function() {
                 
                 previousPickRay = pickRay;
         
-                SelectionManager._update();
+                SelectionManager._update(false, this);
             }
         });
     }

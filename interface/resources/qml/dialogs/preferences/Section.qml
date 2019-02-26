@@ -12,8 +12,8 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import Hifi 1.0
 
-import "../../controls-uit" as HiFiControls
-import "../../styles-uit"
+import controlsUit 1.0 as HiFiControls
+import stylesUit 1.0
 import "."
 
 Preference {

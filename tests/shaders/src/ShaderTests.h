@@ -23,9 +23,8 @@ private slots:
     void testShaderLoad();
 
 private:
-    QWindow* _window{ nullptr };
-    gl::Context* _context{ nullptr };
+    gl::OffscreenContext* _context{ nullptr };
     gpu::ContextPointer _gpuContext;
 };
 
-#endif // hifi_ViewFruxtumTests_h
+#endif  // hifi_ViewFruxtumTests_h

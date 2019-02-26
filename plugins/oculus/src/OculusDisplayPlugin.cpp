@@ -134,6 +134,14 @@ void OculusDisplayPlugin::hmdPresent() {
         return;
     }
 
+    if (!_visible) {
+        return;
+    }
+
+    if (!_currentFrame) {
+        return;
+    }
+
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     {
@@ -195,6 +203,10 @@ void OculusDisplayPlugin::hmdPresent() {
 
         if (!OVR_SUCCESS(result)) {
             qWarning(oculusLog) << "Failed to present" << ovr::getError();
+            if (result == ovrError_DisplayLost) {
+                qWarning(oculusLog) << "Display lost, shutting down";
+                return;
+            }
         }
 
         static int compositorDroppedFrames = 0;

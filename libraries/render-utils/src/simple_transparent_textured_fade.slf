@@ -26,7 +26,7 @@
 <@include render-utils/ShaderConstants.h@>
 
 // the albedo texture
-layout(binding=0) uniform sampler2D originalTexture;
+LAYOUT(binding=0) uniform sampler2D originalTexture;
 
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
@@ -46,14 +46,10 @@ void main(void) {
     <$fetchFadeObjectParamsInstanced(fadeParams)$>
     applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
-    vec4 texel = texture(originalTexture, _texCoord0.st);
-    float opacity = _color.a;
-    if (_color.a <= 0.0) {
-        texel = color_sRGBAToLinear(texel);
-        opacity = -_color.a;
-    }
-    opacity *= texel.a;
-    vec3 albedo = _color.rgb * texel.rgb;
+    vec4 texel = texture(originalTexture, _texCoord0);
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
+    texel.rgb *= _color.rgb;
+    texel.a *= abs(_color.a);
 
     vec3 fragPosition = _positionES.xyz;
     vec3 fragNormal = normalize(_normalWS);
@@ -66,12 +62,11 @@ void main(void) {
         1.0,
         fragPosition,
         fragNormal,
-        albedo,
+        texel.rgb,
         DEFAULT_FRESNEL,
         0.0f,
         fadeEmissive,
         DEFAULT_ROUGHNESS,
-        opacity),
-        opacity);
-
+        texel.a),
+        texel.a);
 }

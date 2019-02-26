@@ -13,13 +13,12 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
-import "../../../styles-uit"
-import "../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
 import "qrc:////qml//hifi//models" as HifiModels  // Absolute path so the same code works everywhere.
 import "../wallet" as HifiWallet
 import "../common" as HifiCommerceCommon
-import "../inspectionCertificate" as HifiInspectionCertificate
 import "../common/sendAsset" as HifiSendAsset
 import "../.." as HifiCommon
 
@@ -30,11 +29,9 @@ Rectangle {
 
     id: root;
     property string activeView: "initialize";
-    property string referrerURL: "";
     property bool securityImageResultReceived: false;
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
-    property bool isShowingMyItems: false;
     property bool isDebuggingFirstUseTutorial: false;
     property string installedApps;
     property bool keyboardRaised: false;
@@ -92,7 +89,6 @@ Rectangle {
             if (result.status !== 'success') {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
-                sendToScript({method: 'purchases_availableUpdatesReceived', numUpdates: result.data.updates.length });
                 root.numUpdatesAvailable = result.total_entries;
             }
         }
@@ -106,28 +102,11 @@ Rectangle {
         }
     }
 
-    onIsShowingMyItemsChanged: {
-        getPurchases();
-    }
-
     Timer {
         id: notSetUpTimer;
         interval: 200;
         onTriggered: {
             sendToScript({method: 'purchases_walletNotSetUp'});
-        }
-    }
-
-    HifiInspectionCertificate.InspectionCertificate {
-        id: inspectionCertificate;
-        z: 998;
-        visible: false;
-        anchors.fill: parent;
-
-        Connections {
-            onSendToScript: {
-                sendToScript(message);
-            }
         }
     }
 
@@ -174,59 +153,10 @@ Rectangle {
         }
     }
 
-    //
-    // TITLE BAR START
-    //
-    HifiCommerceCommon.EmulatedMarketplaceHeader {
-        id: titleBarContainer;
-        z: 997;
-        visible: !needsLogIn.visible;
-        // Size
-        width: parent.width;
-        // Anchors
-        anchors.left: parent.left;
-        anchors.top: parent.top;
-
-        Connections {
-            onSendToParent: {
-                if (msg.method === 'needsLogIn' && root.activeView !== "needsLogIn") {
-                    root.activeView = "needsLogIn";
-                } else if (msg.method === 'showSecurityPicLightbox') {
-                    lightboxPopup.titleText = "Your Security Pic";
-                    lightboxPopup.bodyImageSource = msg.securityImageSource;
-                    lightboxPopup.bodyText = lightboxPopup.securityPicBodyText;
-                    lightboxPopup.button1text = "CLOSE";
-                    lightboxPopup.button1method = function() {
-                        lightboxPopup.visible = false;
-                    }
-                    lightboxPopup.button2text = "GO TO WALLET";
-                    lightboxPopup.button2method = function() {
-                        sendToScript({method: 'purchases_openWallet'});
-                        lightboxPopup.visible = false;
-                    };
-                    lightboxPopup.visible = true;
-                } else {
-                    sendToScript(msg);
-                }
-            }
-        }
-    }
-    MouseArea {
-        enabled: titleBarContainer.usernameDropdownVisible;
-        anchors.fill: parent;
-        onClicked: {
-            titleBarContainer.usernameDropdownVisible = false;
-        }
-    }
-    //
-    // TITLE BAR END
-    //
-
     Rectangle {
         id: initialize;
         visible: root.activeView === "initialize";
-        anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
+        anchors.top: parent.top;
         anchors.bottom: parent.bottom;
         anchors.left: parent.left;
         anchors.right: parent.right;
@@ -243,8 +173,7 @@ Rectangle {
         id: installedAppsContainer;
         z: 998;
         visible: false;
-        anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: -titleBarContainer.additionalDropdownHeight;
+        anchors.top: parent.top;
         anchors.left: parent.left;
         anchors.bottom: parent.bottom;
         width: parent.width;
@@ -446,8 +375,8 @@ Rectangle {
         // Anchors
         anchors.left: parent.left;
         anchors.right: parent.right;
-        anchors.top: titleBarContainer.bottom;
-        anchors.topMargin: 8 - titleBarContainer.additionalDropdownHeight;
+        anchors.top: parent.top;
+        anchors.topMargin: 8;
         anchors.bottom: parent.bottom;
 
         //
@@ -475,7 +404,7 @@ Rectangle {
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 width: paintedWidth;
-                text: isShowingMyItems ? "My Items" : "My Purchases";
+                text: "Items";
                 color: hifi.colors.black;
                 size: 22;
             }
@@ -517,8 +446,13 @@ Rectangle {
                             "filterName": "wearable"
                         },
                         {
+                            "separator" : true,
                             "displayName": "Updatable",
                             "filterName": "updated"
+                        },
+                        {
+                            "displayName": "My Submissions",
+                            "filterName": "proofs"
                         }
                     ]
                     filterBar.primaryFilterChoices.clear();
@@ -533,6 +467,7 @@ Rectangle {
                 onTextChanged: {
                     purchasesModel.searchFilter = filterBar.text;
                     filterBar.previousText = filterBar.text;
+
                 }
             }
         }
@@ -556,10 +491,18 @@ Rectangle {
             listModelName: 'purchases';
             listView: purchasesContentsList;
             getPage: function () {
-                console.debug('getPage', purchasesModel.listModelName, root.isShowingMyItems, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
+                console.debug('getPage', purchasesModel.listModelName, filterBar.primaryFilter_filterName, purchasesModel.currentPageToRetrieve, purchasesModel.itemsPerPage);
+                var editionFilter = "";
+                var primaryFilter = "";
+
+                if (filterBar.primaryFilter_filterName === "proofs") {
+                    editionFilter = "proofs";
+                } else {
+                    primaryFilter = filterBar.primaryFilter_filterName;
+                }
                 Commerce.inventory(
-                    root.isShowingMyItems ? "proofs" : "purchased",
-                    filterBar.primaryFilter_filterName,
+                    editionFilter,
+                    primaryFilter,
                     filterBar.text,
                     purchasesModel.currentPageToRetrieve,
                     purchasesModel.itemsPerPage
@@ -595,6 +538,7 @@ Rectangle {
             delegate: PurchasedItem {
                 itemName: title;
                 itemId: id;
+                updateItemId: model.upgrade_id ? model.upgrade_id : "";
                 itemPreviewImageUrl: preview;
                 itemHref: download_url;
                 certificateId: certificate_id;
@@ -606,10 +550,8 @@ Rectangle {
                 cardBackVisible: model.cardBackVisible || false;
                 isInstalled: model.isInstalled || false;
                 wornEntityID: model.wornEntityID;
-                upgradeUrl: model.upgrade_url;
                 upgradeTitle: model.upgrade_title;
                 itemType: model.item_type;
-                isShowingMyItems: root.isShowingMyItems;
                 valid: model.valid;
                 anchors.topMargin: 10;
                 anchors.bottomMargin: 10;
@@ -626,8 +568,6 @@ Rectangle {
                                 sendToScript({ method: 'purchases_updateWearables' });
                             }
                         } else if (msg.method === 'purchases_itemCertificateClicked') {
-                            inspectionCertificate.visible = true;
-                            inspectionCertificate.isLightbox = true;
                             sendToScript(msg);
                         } else if (msg.method === "showInvalidatedLightbox") {
                             lightboxPopup.titleText = "Item Invalidated";
@@ -640,7 +580,7 @@ Rectangle {
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showPendingLightbox") {
                             lightboxPopup.titleText = "Item Pending";
-                            lightboxPopup.bodyText = 'Your item is marked "pending" while your purchase is being confirmed. ' +
+                            lightboxPopup.bodyText = 'Your item is marked "pending" while the transfer is being confirmed. ' +
                             "Usually, purchases take about 90 seconds to confirm.";
                             lightboxPopup.button1text = "CLOSE";
                             lightboxPopup.button1method = function() {
@@ -662,6 +602,42 @@ Rectangle {
                             lightboxPopup.button2method = function() {
                                 Commerce.replaceContentSet(msg.itemHref, msg.certID);
                                 lightboxPopup.visible = false;
+                            };
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "showTrashLightbox") {
+                            lightboxPopup.titleText = "Send \"" + msg.itemName + "\" to Trash";
+                            lightboxPopup.bodyText = "Sending this item to the Trash means you will no longer own this item " +
+                                "and it will be inaccessible to you from Inventory.\n\nThis action cannot be undone.";
+                            lightboxPopup.button1text = "CANCEL";
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
+                            lightboxPopup.button2text = "CONFIRM";
+                            lightboxPopup.button2method = function() {
+                                if (msg.isInstalled) {
+                                    Commerce.uninstallApp(msg.itemHref);
+                                }
+
+                                if (MyAvatar.skeletonModelURL === msg.itemHref) {
+                                    MyAvatar.useFullAvatarURL('');
+                                }
+
+                                if (msg.itemType === "wearable" && msg.wornEntityID !== '') {
+                                    Entities.deleteEntity(msg.wornEntityID);
+                                    purchasesModel.setProperty(index, 'wornEntityID', '');
+                                }
+
+                                Commerce.transferAssetToUsername("trashbot", msg.certID, 1, "Sent " + msg.itemName + " to trash.");
+
+                                lightboxPopup.titleText = '"' + msg.itemName + '" Sent to Trash';
+                                lightboxPopup.button1text = "OK";
+                                lightboxPopup.button1method = function() {
+                                    root.purchasesReceived = false;
+                                    lightboxPopup.visible = false;
+                                    getPurchases();
+                                }
+                                lightboxPopup.button2text = "";
+                                lightboxPopup.bodyText = "";
                             };
                             lightboxPopup.visible = true;
                         } else if (msg.method === "showChangeAvatarLightbox") {
@@ -822,7 +798,8 @@ Rectangle {
 
         Rectangle {
             id: updatesAvailableBanner;
-            visible: root.numUpdatesAvailable > 0 && !root.isShowingMyItems;
+            visible: root.numUpdatesAvailable > 0 &&
+                     filterBar.primaryFilter_filterName !== "proofs";
             anchors.bottom: parent.bottom;
             anchors.left: parent.left;
             anchors.right: parent.right;
@@ -883,9 +860,8 @@ Rectangle {
             id: noItemsAlertContainer;
             visible: !purchasesContentsList.visible &&
                 root.purchasesReceived &&
-                root.isShowingMyItems &&
                 filterBar.text === "" &&
-                filterBar.primaryFilter_displayName === "";
+                filterBar.primaryFilter_filterName === "proofs";
             anchors.top: filterBarContainer.bottom;
             anchors.topMargin: 12;
             anchors.left: parent.left;
@@ -895,7 +871,7 @@ Rectangle {
             // Explanitory text
             RalewayRegular {
                 id: noItemsYet;
-                text: "<b>You haven't submitted anything to the Marketplace yet!</b><br><br>Submit an item to the Marketplace to add it to My Items.";
+                text: "<b>You haven't submitted anything to the Marketplace yet!</b><br><br>Submit an item to the Marketplace to add it to My Submissions.";
                 // Text size
                 size: 22;
                 // Anchors
@@ -933,7 +909,6 @@ Rectangle {
             id: noPurchasesAlertContainer;
             visible: !purchasesContentsList.visible &&
                 root.purchasesReceived &&
-                !root.isShowingMyItems &&
                 filterBar.text === "" &&
                 filterBar.primaryFilter_displayName === "";
             anchors.top: filterBarContainer.bottom;
@@ -945,7 +920,7 @@ Rectangle {
             // Explanitory text
             RalewayRegular {
                 id: haventPurchasedYet;
-                text: "<b>You haven't purchased anything yet!</b><br><br>Get an item from <b>Marketplace</b> to add it to My Purchases.";
+                text: "<b>You haven't gotten anything yet!</b><br><br>Get an item from <b>Marketplace</b> to add it to your Inventory.";
                 // Text size
                 size: 22;
                 // Anchors
@@ -1061,15 +1036,12 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updatePurchases':
-                referrerURL = message.referrerURL || "";
-                titleBarContainer.referrerURL = message.referrerURL || "";
                 filterBar.text = message.filterText ? message.filterText : "";
             break;
-            case 'inspectionCertificate_setCertificateId':
-                inspectionCertificate.fromScript(message);
-            break;
             case 'purchases_showMyItems':
-                root.isShowingMyItems = true;
+                filterBar.primaryFilter_filterName = "proofs";
+                filterBar.primaryFilter_displayName = "Proofs";
+                filterBar.primaryFilter_index = 6;
             break;
             case 'updateConnections':
                 sendAsset.updateConnections(message.connections);
@@ -1085,7 +1057,7 @@ Rectangle {
                 http.handleHttpResponse(message);
             break;
             default:
-                console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
+                console.log('Purchases.qml: Unrecognized message from marketplaces.js');
         }
     }
     signal sendToScript(var message);

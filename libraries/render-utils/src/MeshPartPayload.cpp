@@ -49,8 +49,6 @@ template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderAr
 }
 }
 
-const graphics::MaterialPointer MeshPartPayload::DEFAULT_MATERIAL = std::make_shared<graphics::Material>();
-
 MeshPartPayload::MeshPartPayload(const std::shared_ptr<const graphics::Mesh>& mesh, int partIndex, graphics::MaterialPointer material) {
     updateMeshPart(mesh, partIndex);
     addMaterial(graphics::MaterialLayer(material, 0));
@@ -85,11 +83,13 @@ void MeshPartPayload::updateKey(const render::ItemKey& key) {
     ItemKey::Builder builder(key);
     builder.withTypeShape();
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
@@ -104,10 +104,7 @@ Item::Bound MeshPartPayload::getBound() const {
 }
 
 ShapeKey MeshPartPayload::getShapeKey() const {
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
-    }
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     ShapeKey::Builder builder;
     builder.withMaterial();
@@ -158,7 +155,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
     }
 
@@ -209,6 +206,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
     bool useDualQuaternionSkinning = model->getUseDualQuaternionSkinning();
 
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+    _meshNumVertices = (int)modelMesh->getNumVertices();
     const Model::MeshState& state = model->getMeshState(_meshIndex);
 
     updateMeshPart(modelMesh, partIndex);
@@ -238,19 +236,16 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int meshIndex, in
 
     initCache(model);
 
-    if (_isBlendShaped) {
-        auto buffer = model->_blendshapeBuffers.find(meshIndex);
-        if (buffer != model->_blendshapeBuffers.end()) {
-            _blendshapeBuffer = buffer->second;
-        }
-    }
-
-#ifdef Q_OS_MAC
-    // On mac AMD, we specifically need to have a _blendshapeBuffer bound when using a deformed mesh pipeline
+#if defined(Q_OS_MAC) || defined(Q_OS_ANDROID)
+    // On mac AMD, we specifically need to have a _meshBlendshapeBuffer bound when using a deformed mesh pipeline
     // it cannot be null otherwise we crash in the drawcall using a deformed pipeline with a skinned only (not blendshaped) mesh
-    if ((_isBlendShaped || _isSkinned) && !_blendshapeBuffer) {
-        glm::vec4 data;
-        _blendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(glm::vec4), reinterpret_cast<const gpu::Byte*>(&data));
+    if (_isBlendShaped) {
+        std::vector<BlendshapeOffset> data(_meshNumVertices);
+        const auto blendShapeBufferSize = _meshNumVertices * sizeof(BlendshapeOffset);
+        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(blendShapeBufferSize, reinterpret_cast<const gpu::Byte*>(data.data()), blendShapeBufferSize);
+    } else if (_isSkinned) {
+        BlendshapeOffset data;
+        _meshBlendshapeBuffer = std::make_shared<gpu::Buffer>(sizeof(BlendshapeOffset), reinterpret_cast<const gpu::Byte*>(&data), sizeof(BlendshapeOffset));
     }
 #endif
 
@@ -262,8 +257,8 @@ void ModelMeshPartPayload::initCache(const ModelPointer& model) {
         _hasColorAttrib = vertexFormat->hasAttribute(gpu::Stream::COLOR);
         _isSkinned = vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT) && vertexFormat->hasAttribute(gpu::Stream::SKIN_CLUSTER_INDEX);
 
-        const FBXGeometry& geometry = model->getFBXGeometry();
-        const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
+        const HFMModel& hfmModel = model->getHFMModel();
+        const HFMMesh& mesh = hfmModel.meshes.at(_meshIndex);
 
         _isBlendShaped = !mesh.blendshapes.isEmpty();
         _hasTangents = !mesh.tangents.isEmpty();
@@ -292,8 +287,7 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<glm::mat4>& clu
         if (!_clusterBuffer) {
             _clusterBuffer = std::make_shared<gpu::Buffer>(clusterMatrices.size() * sizeof(glm::mat4),
                 (const gpu::Byte*) clusterMatrices.data());
-        }
-        else {
+        } else {
             _clusterBuffer->setSubData(0, clusterMatrices.size() * sizeof(glm::mat4),
                 (const gpu::Byte*) clusterMatrices.data());
         }
@@ -313,8 +307,7 @@ void ModelMeshPartPayload::updateClusterBuffer(const std::vector<Model::Transfor
         if (!_clusterBuffer) {
             _clusterBuffer = std::make_shared<gpu::Buffer>(clusterDualQuaternions.size() * sizeof(Model::TransformDualQuaternion),
                 (const gpu::Byte*) clusterDualQuaternions.data());
-        }
-        else {
+        } else {
             _clusterBuffer->setSubData(0, clusterDualQuaternions.size() * sizeof(Model::TransformDualQuaternion),
                 (const gpu::Byte*) clusterDualQuaternions.data());
         }
@@ -336,26 +329,29 @@ void ModelMeshPartPayload::updateKey(const render::ItemKey& key) {
         builder.withDeformed();
     }
 
-    if (topMaterialExists()) {
-        auto matKey = _drawMaterials.top().material->getKey();
-        if (matKey.isTranslucent()) {
-            builder.withTransparent();
-        }
+    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
+    }
+
+    auto matKey = _drawMaterials.getMaterialKey();
+    if (matKey.isTranslucent()) {
+        builder.withTransparent();
     }
 
     _itemKey = builder.build();
 }
 
-void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe, bool useDualQuaternionSkinning) {
+void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, PrimitiveMode primitiveMode, bool useDualQuaternionSkinning) {
     if (invalidateShapeKey) {
         _shapeKey = ShapeKey::Builder::invalid();
         return;
     }
 
-    graphics::MaterialKey drawMaterialKey;
-    if (topMaterialExists()) {
-        drawMaterialKey = _drawMaterials.top().material->getKey();
+    if (_drawMaterials.needsUpdate() || _drawMaterials.areTexturesLoading()) {
+        RenderPipelines::updateMultiMaterial(_drawMaterials);
     }
+
+    graphics::MaterialKey drawMaterialKey = _drawMaterials.getMaterialKey();
 
     bool isTranslucent = drawMaterialKey.isTranslucent();
     bool hasTangents = drawMaterialKey.isNormalMap() && _hasTangents;
@@ -363,6 +359,7 @@ void ModelMeshPartPayload::setShapeKey(bool invalidateShapeKey, bool isWireframe
     bool isUnlit = drawMaterialKey.isUnlit();
 
     bool isDeformed = _isBlendShaped || _isSkinned;
+    bool isWireframe = primitiveMode == PrimitiveMode::LINES;
 
     if (isWireframe) {
         isTranslucent = hasTangents = hasLightmap = false;
@@ -403,8 +400,8 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
     batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
     batch.setInputFormat((_drawMesh->getVertexFormat()));
-    if (_blendshapeBuffer) {
-        batch.setResourceBuffer(0, _blendshapeBuffer);
+    if (_meshBlendshapeBuffer) {
+        batch.setResourceBuffer(0, _meshBlendshapeBuffer);
     }
     batch.setInputStream(0, _drawMesh->getVertexStream());
 }
@@ -431,14 +428,14 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMesh(batch);
 
     // IF deformed pass the mesh key
-    auto drawcallInfo = (uint16_t) (((_isBlendShaped && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
+    auto drawcallInfo = (uint16_t) (((_isBlendShaped && _meshBlendshapeBuffer && args->_enableBlendshape) << 0) | ((_isSkinned && args->_enableSkinning) << 1));
     if (drawcallInfo) {
         batch.setDrawcallUniform(drawcallInfo);
     }
 
     // apply material properties
     if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
-        RenderPipelines::bindMaterial(!_drawMaterials.empty() ? _drawMaterials.top().material : DEFAULT_MATERIAL, batch, args->_enableTexturing);
+        RenderPipelines::bindMaterials(_drawMaterials, batch, args->_enableTexturing);
         args->_details._materialSwitches++;
     }
 
@@ -480,6 +477,15 @@ void ModelMeshPartPayload::computeAdjustedLocalBound(const std::vector<Model::Tr
                                 clusterDualQuaternions[i].getTranslation());
             clusterBound.transform(transform);
             _adjustedLocalBound += clusterBound;
+        }
+    }
+}
+
+void ModelMeshPartPayload::setBlendshapeBuffer(const std::unordered_map<int, gpu::BufferPointer>& blendshapeBuffers, const QVector<int>& blendedMeshSizes) {
+    if (_meshIndex < blendedMeshSizes.length() && blendedMeshSizes.at(_meshIndex) == _meshNumVertices) {
+        auto blendshapeBuffer = blendshapeBuffers.find(_meshIndex);
+        if (blendshapeBuffer != blendshapeBuffers.end()) {
+            _meshBlendshapeBuffer = blendshapeBuffer->second;
         }
     }
 }

@@ -107,7 +107,7 @@ function messageHandler(channel, messageString, senderID) {
     try {
         message = JSON.parse(messageString);
     } catch (e) {
-        print(e);
+		
     }
     switch (message.key) {
     case "hello":
@@ -149,7 +149,7 @@ function messageHandler(channel, messageString, senderID) {
         Window.alert("Someone else is summoning avatars.");
         break;
     default:
-        print("crowd-agent received unrecognized message:", messageString);
+        print("crowd-agent received unrecognized message");
     }
 }
 Messages.subscribe(MESSAGE_CHANNEL);

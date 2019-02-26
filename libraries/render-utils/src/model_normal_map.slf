@@ -1,9 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
+// <$_SCRIBE_FILENAME$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_normal_map.frag
-//  fragment shader
 //
 //  Created by Andrzej Kapolka on 5/6/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -44,25 +42,28 @@ void main(void) {
     float roughness = getMaterialRoughness(mat);
     <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
 
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
-    vec3 fragNormalWS;
-    <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
-
-    float metallic = getMaterialMetallic(mat);
-    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+    float occlusion = DEFAULT_OCCLUSION;
+    <$evalMaterialOcclusion(occlusionTex, matKey, occlusion)$>;
 
     float scattering = getMaterialScattering(mat);
     <$evalMaterialScattering(scatteringTex, scattering, matKey, scattering)$>;
 
+    vec3 fragNormalWS;
+    <$evalMaterialNormalLOD(_positionES, normalTex, _normalWS, _tangentWS, fragNormalWS)$>
+
     packDeferredFragment(
-        normalize(fragNormalWS.xyz),
+        normalize(fragNormalWS),
         opacity,
         albedo,
         roughness,
         metallic,
         emissive,
-        occlusionTex,
+        occlusion,
         scattering);
 }

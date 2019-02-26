@@ -33,144 +33,165 @@
 
 #include "flump3dec.h"
 
-QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
-    return engine->newQObject(new SoundScriptingInterface(in), QScriptEngine::ScriptOwnership);
+int audioDataPointerMetaTypeID = qRegisterMetaType<AudioDataPointer>("AudioDataPointer");
+
+using AudioConstants::AudioSample;
+
+AudioDataPointer AudioData::make(uint32_t numSamples, uint32_t numChannels,
+                                 const AudioSample* samples) {
+    // Compute the amount of memory required for the audio data object
+    const size_t bufferSize = numSamples * sizeof(AudioSample);
+    const size_t memorySize = sizeof(AudioData) + bufferSize;
+
+    // Allocate the memory for the audio data object and the buffer
+    void* memory = ::malloc(memorySize);
+    auto audioData = reinterpret_cast<AudioData*>(memory);
+    auto buffer = reinterpret_cast<AudioSample*>(audioData + 1);
+    assert(((char*)buffer - (char*)audioData) == sizeof(AudioData));
+
+    // Use placement new to construct the audio data object at the memory allocated
+    ::new(audioData) AudioData(numSamples, numChannels, buffer);
+
+    // Copy the samples to the buffer
+    memcpy(buffer, samples, bufferSize);
+
+    // Return shared_ptr that properly destruct the object and release the memory
+    return AudioDataPointer(audioData, [](AudioData* ptr) {
+        ptr->~AudioData();
+        ::free(ptr);
+    });
 }
 
-void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer& out) {
-    if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object.toQObject())) {
-        out = soundInterface->getSound();
-    }
-}
 
-SoundScriptingInterface::SoundScriptingInterface(const SharedSoundPointer& sound) : _sound(sound) {
-    // During shutdown we can sometimes get an empty sound pointer back
-    if (_sound) {
-        QObject::connect(_sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
-    }
-}
-
-Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) :
-    Resource(url),
-    _isStereo(isStereo),
-    _isAmbisonic(isAmbisonic),
-    _isReady(false)
-{
-}
+AudioData::AudioData(uint32_t numSamples, uint32_t numChannels, const AudioSample* samples)
+    : _numSamples(numSamples),
+      _numChannels(numChannels),
+      _data(samples)
+{}
 
 void Sound::downloadFinished(const QByteArray& data) {
+    if (!_self) {
+        soundProcessError(301, "Sound object has gone out of scope");
+        return;
+    }
+
     // this is a QRunnable, will delete itself after it has finished running
-    SoundProcessor* soundProcessor = new SoundProcessor(_url, data, _isStereo, _isAmbisonic);
+    auto soundProcessor = new SoundProcessor(_self, data);
     connect(soundProcessor, &SoundProcessor::onSuccess, this, &Sound::soundProcessSuccess);
     connect(soundProcessor, &SoundProcessor::onError, this, &Sound::soundProcessError);
     QThreadPool::globalInstance()->start(soundProcessor);
 }
 
-void Sound::soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, float duration) {
+void Sound::soundProcessSuccess(AudioDataPointer audioData) {
+    qCDebug(audio) << "Setting ready state for sound file" << _url.fileName();
 
-    qCDebug(audio) << "Setting ready state for sound file" << _url.toDisplayString();
-
-    _byteArray = data;
-    _isStereo = stereo;
-    _isAmbisonic = ambisonic;
-    _duration = duration;
-    _isReady = true;
+    _audioData = std::move(audioData);
     finishedLoading(true);
 
     emit ready();
 }
 
 void Sound::soundProcessError(int error, QString str) {
-    qCCritical(audio) << "Failed to process sound file" << _url.toDisplayString() << "code =" << error << str;
+    qCCritical(audio) << "Failed to process sound file: code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
     finishedLoading(false);
 }
 
+
+SoundProcessor::SoundProcessor(QWeakPointer<Resource> sound, QByteArray data) :
+    _sound(sound),
+    _data(data)
+{
+}
+
 void SoundProcessor::run() {
+    auto sound = qSharedPointerCast<Sound>(_sound.lock());
+    if (!sound) {
+        emit onError(301, "Sound object has gone out of scope");
+        return;
+    }
 
-    qCDebug(audio) << "Processing sound file" << _url.toDisplayString();
-
-    // replace our byte array with the downloaded data
-    QByteArray rawAudioByteArray = QByteArray(_data);
-    QString fileName = _url.fileName().toLower();
+    auto url = sound->getURL();
+    QString fileName = url.fileName().toLower();
+    qCDebug(audio) << "Processing sound file" << fileName;
 
     static const QString WAV_EXTENSION = ".wav";
     static const QString MP3_EXTENSION = ".mp3";
     static const QString RAW_EXTENSION = ".raw";
+    static const QString STEREO_RAW_EXTENSION = ".stereo.raw";
+    QString fileType;
+
+    QByteArray outputAudioByteArray;
+    AudioProperties properties;
 
     if (fileName.endsWith(WAV_EXTENSION)) {
-
-        QByteArray outputAudioByteArray;
-
-        int sampleRate = interpretAsWav(rawAudioByteArray, outputAudioByteArray);
-        if (sampleRate == 0) {
-            qCWarning(audio) << "Unsupported WAV file type";
-            emit onError(300, "Failed to load sound file, reason: unsupported WAV file type");
-            return;
-        }
-
-        downSample(outputAudioByteArray, sampleRate);
-
+        fileType = "WAV";
+        properties = interpretAsWav(_data, outputAudioByteArray);
     } else if (fileName.endsWith(MP3_EXTENSION)) {
-
-        QByteArray outputAudioByteArray;
-
-        int sampleRate = interpretAsMP3(rawAudioByteArray, outputAudioByteArray);
-        if (sampleRate == 0) {
-            qCWarning(audio) << "Unsupported MP3 file type";
-            emit onError(300, "Failed to load sound file, reason: unsupported MP3 file type");
-            return;
-        }
-
-        downSample(outputAudioByteArray, sampleRate);
-
-    } else if (fileName.endsWith(RAW_EXTENSION)) {
+        fileType = "MP3";
+        properties = interpretAsMP3(_data, outputAudioByteArray);
+    } else if (fileName.endsWith(STEREO_RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
-        if (fileName.toLower().endsWith("stereo.raw")) {
-            _isStereo = true;
-            qCDebug(audio) << "Processing sound of" << rawAudioByteArray.size() << "bytes from" << _url << "as stereo audio file.";
-        }
-
+        qCDebug(audio) << "Processing sound of" << _data.size() << "bytes from" << fileName << "as stereo audio file.";
         // Process as 48khz RAW file
-        downSample(rawAudioByteArray, 48000);
-
+        properties.numChannels = 2;
+        properties.sampleRate = 48000;
+        outputAudioByteArray = _data;
+    } else if (fileName.endsWith(RAW_EXTENSION)) {
+        // Process as 48khz RAW file
+        properties.numChannels = 1;
+        properties.sampleRate = 48000;
+        outputAudioByteArray = _data;
     } else {
         qCWarning(audio) << "Unknown sound file type";
         emit onError(300, "Failed to load sound file, reason: unknown sound file type");
         return;
     }
 
-    emit onSuccess(_data, _isStereo, _isAmbisonic, _duration);
+    if (properties.sampleRate == 0) {
+        qCWarning(audio) << "Unsupported" << fileType << "file type";
+        emit onError(300, "Failed to load sound file, reason: unsupported " + fileType + " file type");
+        return;
+    }
+
+    auto data = downSample(outputAudioByteArray, properties);
+
+    int numSamples = data.size() / AudioConstants::SAMPLE_SIZE;
+    auto audioData = AudioData::make(numSamples, properties.numChannels,
+                                     (const AudioSample*)data.constData());
+    emit onSuccess(audioData);
 }
 
-void SoundProcessor::downSample(const QByteArray& rawAudioByteArray, int sampleRate) {
+QByteArray SoundProcessor::downSample(const QByteArray& rawAudioByteArray,
+                                      AudioProperties properties) {
 
     // we want to convert it to the format that the audio-mixer wants
     // which is signed, 16-bit, 24Khz
 
-    if (sampleRate == AudioConstants::SAMPLE_RATE) {
+    if (properties.sampleRate == AudioConstants::SAMPLE_RATE) {
         // no resampling needed
-        _data = rawAudioByteArray;
-    } else {
-
-        int numChannels = _isAmbisonic ? AudioConstants::AMBISONIC : (_isStereo ? AudioConstants::STEREO : AudioConstants::MONO);
-        AudioSRC resampler(sampleRate, AudioConstants::SAMPLE_RATE, numChannels);
-
-        // resize to max possible output
-        int numSourceFrames = rawAudioByteArray.size() / (numChannels * sizeof(AudioConstants::AudioSample));
-        int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
-        int maxDestinationBytes = maxDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-        _data.resize(maxDestinationBytes);
-
-        int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(), 
-                                                    (int16_t*)_data.data(),
-                                                    numSourceFrames);
-
-        // truncate to actual output
-        int numDestinationBytes = numDestinationFrames * numChannels * sizeof(AudioConstants::AudioSample);
-        _data.resize(numDestinationBytes);
+        return rawAudioByteArray;
     }
+
+    AudioSRC resampler(properties.sampleRate, AudioConstants::SAMPLE_RATE,
+                       properties.numChannels);
+
+    // resize to max possible output
+    int numSourceFrames = rawAudioByteArray.size() / (properties.numChannels * AudioConstants::SAMPLE_SIZE);
+    int maxDestinationFrames = resampler.getMaxOutput(numSourceFrames);
+    int maxDestinationBytes = maxDestinationFrames * properties.numChannels * AudioConstants::SAMPLE_SIZE;
+    QByteArray data(maxDestinationBytes, Qt::Uninitialized);
+
+    int numDestinationFrames = resampler.render((int16_t*)rawAudioByteArray.data(),
+                                                (int16_t*)data.data(),
+                                                numSourceFrames);
+
+    // truncate to actual output
+    int numDestinationBytes = numDestinationFrames * properties.numChannels * sizeof(AudioSample);
+    data.resize(numDestinationBytes);
+
+    return data;
 }
 
 //
@@ -218,7 +239,9 @@ struct WAVEFormat {
 };
 
 // returns wavfile sample rate, used for resampling
-int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
+SoundProcessor::AudioProperties SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray,
+                                                               QByteArray& outputAudioByteArray) {
+    AudioProperties properties;
 
     // Create a data stream to analyze the data
     QDataStream waveStream(const_cast<QByteArray *>(&inputAudioByteArray), QIODevice::ReadOnly);
@@ -227,7 +250,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     RIFFHeader riff;
     if (waveStream.readRawData((char*)&riff, sizeof(RIFFHeader)) != sizeof(RIFFHeader)) {
         qCWarning(audio) << "Not a valid WAVE file.";
-        return 0;
+        return AudioProperties();
     }
 
     // Parse the "RIFF" chunk
@@ -235,11 +258,11 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
         waveStream.setByteOrder(QDataStream::LittleEndian);
     } else {
         qCWarning(audio) << "Currently not supporting big-endian audio files.";
-        return 0;
+        return AudioProperties();
     }
     if (strncmp(riff.type, "WAVE", 4) != 0) {
         qCWarning(audio) << "Not a valid WAVE file.";
-        return 0;
+        return AudioProperties();
     }
 
     // Read chunks until the "fmt " chunk is found
@@ -247,7 +270,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     while (true) {
         if (waveStream.readRawData((char*)&fmt, sizeof(chunk)) != sizeof(chunk)) {
             qCWarning(audio) << "Not a valid WAVE file.";
-            return 0;
+            return AudioProperties();
         }
         if (strncmp(fmt.id, "fmt ", 4) == 0) {
             break;
@@ -259,26 +282,26 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     WAVEFormat wave;
     if (waveStream.readRawData((char*)&wave, sizeof(WAVEFormat)) != sizeof(WAVEFormat)) {
         qCWarning(audio) << "Not a valid WAVE file.";
-        return 0;
+        return AudioProperties();
     }
 
     // Parse the "fmt " chunk
     if (qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_PCM &&
         qFromLittleEndian<quint16>(wave.audioFormat) != WAVEFORMAT_EXTENSIBLE) {
         qCWarning(audio) << "Currently not supporting non PCM audio files.";
-        return 0;
+        return AudioProperties();
     }
-    if (qFromLittleEndian<quint16>(wave.numChannels) == 2) {
-        _isStereo = true;
-    } else if (qFromLittleEndian<quint16>(wave.numChannels) == 4) {
-        _isAmbisonic = true;
-    } else if (qFromLittleEndian<quint16>(wave.numChannels) != 1) {
+
+    properties.numChannels = qFromLittleEndian<quint16>(wave.numChannels);
+    if (properties.numChannels != 1 &&
+        properties.numChannels != 2 &&
+        properties.numChannels != 4) {
         qCWarning(audio) << "Currently not supporting audio files with other than 1/2/4 channels.";
-        return 0;
+        return AudioProperties();
     }
     if (qFromLittleEndian<quint16>(wave.bitsPerSample) != 16) {
         qCWarning(audio) << "Currently not supporting non 16bit audio files.";
-        return 0;
+        return AudioProperties();
     }
 
     // Skip any extra data in the "fmt " chunk
@@ -289,7 +312,7 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     while (true) {
         if (waveStream.readRawData((char*)&data, sizeof(chunk)) != sizeof(chunk)) {
             qCWarning(audio) << "Not a valid WAVE file.";
-            return 0;
+            return AudioProperties();
         }
         if (strncmp(data.id, "data", 4) == 0) {
             break;
@@ -300,17 +323,21 @@ int SoundProcessor::interpretAsWav(const QByteArray& inputAudioByteArray, QByteA
     // Read the "data" chunk
     quint32 outputAudioByteArraySize = qFromLittleEndian<quint32>(data.size);
     outputAudioByteArray.resize(outputAudioByteArraySize);
-    if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
+    auto bytesRead = waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize);
+    if (bytesRead != (int)outputAudioByteArraySize) {
         qCWarning(audio) << "Error reading WAV file";
-        return 0;
+        return AudioProperties();
     }
 
-    _duration = (float)(outputAudioByteArraySize / (wave.sampleRate * wave.numChannels * wave.bitsPerSample / 8.0f));
-    return wave.sampleRate;
+    properties.sampleRate = wave.sampleRate;
+    return properties;
 }
 
 // returns MP3 sample rate, used for resampling
-int SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray) {
+SoundProcessor::AudioProperties SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray,
+                                                               QByteArray& outputAudioByteArray) {
+    AudioProperties properties;
+
     using namespace flump3dec;
 
     static const int MP3_SAMPLES_MAX = 1152;
@@ -321,21 +348,19 @@ int SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray, QByteA
     // create bitstream
     Bit_stream_struc *bitstream = bs_new();
     if (bitstream == nullptr) {
-        return 0;
+        return AudioProperties();
     }
 
     // create decoder
     mp3tl *decoder = mp3tl_new(bitstream, MP3TL_MODE_16BIT);
     if (decoder == nullptr) {
         bs_free(bitstream);
-        return 0;
+        return AudioProperties();
     }
 
     // initialize
     bs_set_data(bitstream, (uint8_t*)inputAudioByteArray.data(), inputAudioByteArray.size());
     int frameCount = 0;
-    int sampleRate = 0;
-    int numChannels = 0;
 
     // skip ID3 tag, if present
     Mp3TlRetcode result = mp3tl_skip_id3(decoder);
@@ -357,8 +382,8 @@ int SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray, QByteA
                                << "channels =" << header->channels;
 
                 // save header info
-                sampleRate = header->sample_rate;
-                numChannels = header->channels;
+                properties.sampleRate = header->sample_rate;
+                properties.numChannels = header->channels;
 
                 // skip Xing header, if present
                 result = mp3tl_skip_xing(decoder, header);
@@ -388,14 +413,32 @@ int SoundProcessor::interpretAsMP3(const QByteArray& inputAudioByteArray, QByteA
     // free bitstream
     bs_free(bitstream);
 
-    int outputAudioByteArraySize = outputAudioByteArray.size();
-    if (outputAudioByteArraySize == 0) {
+    if (outputAudioByteArray.isEmpty()) {
         qCWarning(audio) << "Error decoding MP3 file";
-        return 0;
+        return AudioProperties();
     }
 
-    _isStereo = (numChannels == 2);
-    _isAmbisonic = false;
-    _duration = (float)outputAudioByteArraySize / (sampleRate * numChannels * sizeof(int16_t));
-    return sampleRate;
+    return properties;
+}
+
+
+QScriptValue soundSharedPointerToScriptValue(QScriptEngine* engine, const SharedSoundPointer& in) {
+    return engine->newQObject(new SoundScriptingInterface(in), QScriptEngine::ScriptOwnership);
+}
+
+void soundSharedPointerFromScriptValue(const QScriptValue& object, SharedSoundPointer& out) {
+    if (auto soundInterface = qobject_cast<SoundScriptingInterface*>(object.toQObject())) {
+        out = soundInterface->getSound();
+    }
+}
+
+SoundScriptingInterface::SoundScriptingInterface(const SharedSoundPointer& sound) : _sound(sound) {
+    // During shutdown we can sometimes get an empty sound pointer back
+    if (_sound) {
+        QObject::connect(_sound.data(), &Sound::ready, this, &SoundScriptingInterface::ready);
+    }
+}
+
+Sound::Sound(const QUrl& url, bool isStereo, bool isAmbisonic) : Resource(url) {
+    _numChannels = isAmbisonic ? 4 : (isStereo ? 2 : 1);
 }

@@ -17,16 +17,13 @@ namespace controller {
 class ConstrainToIntegerFilter : public Filter {
     REGISTER_FILTER_CLASS(ConstrainToIntegerFilter);
 public:
-    ConstrainToIntegerFilter() {};
-    virtual ~ConstrainToIntegerFilter() {}
+    ConstrainToIntegerFilter() = default;
 
-    virtual float apply(float value) const override {
-        return glm::sign(value);
+    virtual AxisValue apply(AxisValue value) const override {
+        return { glm::sign(value.value), value.timestamp };
     }
 
     virtual Pose apply(Pose value) const override { return value; }
-
-protected:
 };
 
 }

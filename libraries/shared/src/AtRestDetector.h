@@ -17,21 +17,27 @@
 
 class AtRestDetector {
 public:
+    AtRestDetector() {};
     AtRestDetector(const glm::vec3& startPosition, const glm::quat& startRotation);
     void reset(const glm::vec3& startPosition, const glm::quat& startRotation);
 
     // returns true if object is at rest, dt in assumed to be seconds.
-    bool update(const glm::vec3& position, const glm::quat& startRotation);
+    void update(const glm::vec3& position, const glm::quat& startRotation);
 
+    void invalidate() { _isValid = false; }
     bool isAtRest() const { return _isAtRest; }
+    bool onRest() const { return !_lastIsAtRest && _isAtRest; }
+    bool onWake() const { return _lastIsAtRest && !_isAtRest; }
 
 protected:
+    bool _isValid { false };
     glm::vec3 _positionAverage;
     glm::vec3 _quatLogAverage;
     uint64_t _lastUpdateTime { 0 };
     float _positionVariance { 0.0f };
     float _quatLogVariance { 0.0f };
     bool _isAtRest { false };
+    bool _lastIsAtRest { false };
 };
 
 #endif

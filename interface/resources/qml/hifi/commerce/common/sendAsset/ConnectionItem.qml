@@ -16,8 +16,8 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
-import "../../../../styles-uit"
-import "../../../../controls-uit" as HifiControlsUit
+import stylesUit 1.0
+import controlsUit 1.0 as HifiControlsUit
 import "../../../../controls" as HifiControls
 import "../../wallet" as HifiWallet
 

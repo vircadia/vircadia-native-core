@@ -37,8 +37,6 @@
 #include "EntityDynamicInterface.h"
 #include "GrabPropertyGroup.h"
 
-#include "graphics/Material.h"
-
 class EntitySimulation;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
@@ -51,7 +49,6 @@ typedef std::shared_ptr<EntityDynamicInterface> EntityDynamicPointer;
 typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
-
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
 
@@ -63,6 +60,18 @@ const uint64_t MAX_OUTGOING_SIMULATION_UPDATE_PERIOD = 9 * USECS_PER_SECOND;
 const uint64_t MAX_INCOMING_SIMULATION_UPDATE_PERIOD = MAX_OUTGOING_SIMULATION_UPDATE_PERIOD + USECS_PER_SECOND;
 
 class MeshProxyList;
+
+#ifdef DOMAIN
+#undef DOMAIN
+#endif
+
+namespace entity {
+enum class HostType {
+    DOMAIN = 0,
+    AVATAR,
+    LOCAL
+};
+}
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -195,9 +204,6 @@ public:
     glm::vec3 getUnscaledDimensions() const;
     virtual void setUnscaledDimensions(const glm::vec3& value);
 
-    float getLocalRenderAlpha() const;
-    void setLocalRenderAlpha(float localRenderAlpha);
-
     void setDensity(float density);
     float computeMass() const;
     void setMass(float mass);
@@ -285,6 +291,15 @@ public:
     bool isVisibleInSecondaryCamera() const;
     void setIsVisibleInSecondaryCamera(bool value);
 
+    RenderLayer getRenderLayer() const;
+    void setRenderLayer(RenderLayer value);
+
+    PrimitiveMode getPrimitiveMode() const;
+    void setPrimitiveMode(PrimitiveMode value);
+
+    bool getIgnorePickIntersection() const;
+    void setIgnorePickIntersection(bool value);
+
     bool getCanCastShadow() const;
     void setCanCastShadow(bool value);
 
@@ -325,7 +340,7 @@ public:
     // TODO: move this "ScriptSimulationPriority" and "PendingOwnership" stuff into EntityMotionState
     // but first would need to do some other cleanup. In the meantime these live here as "scratch space"
     // to allow libs that don't know about each other to communicate.
-    void setScriptSimulationPriority(uint8_t priority);
+    void upgradeScriptSimulationPriority(uint8_t priority);
     void clearScriptSimulationPriority();
     uint8_t getScriptSimulationPriority() const { return _scriptSimulationPriority; }
     void setPendingOwnershipPriority(uint8_t priority);
@@ -420,7 +435,7 @@ public:
     quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
     void updateLastEditedFromRemote() { _lastEditedFromRemote = usecTimestampNow(); }
 
-    void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
+    void getTransformAndVelocityProperties(EntityItemProperties& properties) const;
 
     void flagForMotionStateChange() { _flags |= Simulation::DIRTY_MOTION_TYPE; }
 
@@ -455,6 +470,7 @@ public:
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
+    virtual int getJointParent(int index) const override { return -1; }
 
     virtual bool setLocalJointRotation(int index, const glm::quat& rotation) override { return false; }
     virtual bool setLocalJointTranslation(int index, const glm::vec3& translation) override { return false; }
@@ -477,10 +493,14 @@ public:
     void scriptHasUnloaded();
     void setScriptHasFinishedPreload(bool value);
     bool isScriptPreloadFinished();
+    virtual bool isWearable() const;
+    bool isDomainEntity() const { return _hostType == entity::HostType::DOMAIN; }
+    bool isAvatarEntity() const { return _hostType == entity::HostType::AVATAR; }
+    bool isLocalEntity() const { return _hostType == entity::HostType::LOCAL; }
+    entity::HostType getEntityHostType() const { return _hostType; }
+    virtual void setEntityHostType(entity::HostType hostType) { _hostType = hostType; }
 
-    bool getClientOnly() const { return _clientOnly; }
-    virtual void setClientOnly(bool clientOnly) { _clientOnly = clientOnly; }
-    // if this entity is client-only, which avatar is it associated with?
+    // if this entity is an avatar entity, which avatar is it associated with?
     QUuid getOwningAvatarID() const { return _owningAvatarID; }
     virtual void setOwningAvatarID(const QUuid& owningAvatarID) { _owningAvatarID = owningAvatarID; }
 
@@ -520,10 +540,6 @@ public:
     virtual void preDelete();
     virtual void postParentFixup() {}
 
-    void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
-    void removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName);
-    std::unordered_map<std::string, graphics::MultiMaterial> getMaterials();
-
     void setSimulationOwnershipExpiry(uint64_t expiry) { _simulationOwnershipExpiry = expiry; }
     uint64_t getSimulationOwnershipExpiry() const { return _simulationOwnershipExpiry; }
 
@@ -534,6 +550,17 @@ public:
     void setVisuallyReady(bool visuallyReady) { _visuallyReady = visuallyReady; }
 
     const GrabPropertyGroup& getGrabProperties() const { return _grabProperties; }
+
+    void prepareForSimulationOwnershipBid(EntityItemProperties& properties, uint64_t now, uint8_t priority);
+
+    virtual void addGrab(GrabPointer grab) override;
+    virtual void removeGrab(GrabPointer grab) override;
+    virtual void disableGrab(GrabPointer grab) override;
+
+    static void setBillboardRotationOperator(std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> getBillboardRotationOperator) { _getBillboardRotationOperator = getBillboardRotationOperator; }
+    static glm::quat getBillboardRotation(const glm::vec3& position, const glm::quat& rotation, BillboardMode billboardMode, const glm::vec3& frustumPos) { return _getBillboardRotationOperator(position, rotation, billboardMode, frustumPos); }
+    static void setPrimaryViewFrustumPositionOperator(std::function<glm::vec3()> getPrimaryViewFrustumPositionOperator) { _getPrimaryViewFrustumPositionOperator = getPrimaryViewFrustumPositionOperator; }
+    static glm::vec3 getPrimaryViewFrustumPosition() { return _getPrimaryViewFrustumPositionOperator(); }
 
 signals:
     void requestRenderUpdate();
@@ -573,7 +600,6 @@ protected:
     mutable bool _recalcMinAACube { true };
     mutable bool _recalcMaxAACube { true };
 
-    float _localRenderAlpha { ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA };
     float _density { ENTITY_ITEM_DEFAULT_DENSITY }; // kg/m^3
     // NOTE: _volumeMultiplier is used to allow some mass properties code exist in the EntityItem base class
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
@@ -604,7 +630,10 @@ protected:
     float _angularDamping { ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING };
     bool _visible { ENTITY_ITEM_DEFAULT_VISIBLE };
     bool _isVisibleInSecondaryCamera { ENTITY_ITEM_DEFAULT_VISIBLE_IN_SECONDARY_CAMERA };
+    RenderLayer _renderLayer { RenderLayer::WORLD };
+    PrimitiveMode _primitiveMode { PrimitiveMode::SOLID };
     bool _canCastShadow{ ENTITY_ITEM_DEFAULT_CAN_CAST_SHADOW };
+    bool _ignorePickIntersection { false };
     bool _collisionless { ENTITY_ITEM_DEFAULT_COLLISIONLESS };
     uint16_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic { ENTITY_ITEM_DEFAULT_DYNAMIC };
@@ -649,6 +678,9 @@ protected:
     bool _simulated { false }; // set by EntitySimulation
     bool _visuallyReady { true };
 
+    void enableNoBootstrap();
+    void disableNoBootstrap();
+
     bool addActionInternal(EntitySimulationPointer simulation, EntityDynamicPointer action);
     bool removeActionInternal(const QUuid& actionID, EntitySimulationPointer simulation = nullptr);
     void deserializeActionsInternal();
@@ -671,7 +703,7 @@ protected:
 
     QUuid _sourceUUID; /// the server node UUID we came from
 
-    bool _clientOnly { false };
+    entity::HostType _hostType { entity::HostType::DOMAIN };
     bool _transitingWithAvatar{ false };
     QUuid _owningAvatarID;
 
@@ -715,10 +747,11 @@ protected:
 
     GrabPropertyGroup _grabProperties;
 
-private:
-    std::unordered_map<std::string, graphics::MultiMaterial> _materials;
-    std::mutex _materialsLock;
+    QHash<QUuid, EntityDynamicPointer> _grabActions;
 
+private:
+    static std::function<glm::quat(const glm::vec3&, const glm::quat&, BillboardMode, const glm::vec3&)> _getBillboardRotationOperator;
+    static std::function<glm::vec3()> _getPrimaryViewFrustumPositionOperator;
 };
 
 #endif // hifi_EntityItem_h

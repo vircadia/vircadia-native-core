@@ -66,7 +66,7 @@ public:
     void resume();
     bool isPaused() const;
     bool fetchTexture(TextureAndFence& textureAndFence);
-
+    void addToDeletionList(QObject* object);
 
 private:
     bool event(QEvent* e) override;
@@ -90,6 +90,8 @@ private:
     void onTimer();
     void onAboutToQuit();
     void updateTextureAndFence(const TextureAndFence& newTextureAndFence);
+
+    QList<QPointer<QObject>> _deletionList;
 
     // Texture management
     TextureAndFence _latestTextureAndFence{ 0, 0 };

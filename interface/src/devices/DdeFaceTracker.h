@@ -32,6 +32,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class DdeFaceTracker : public FaceTracker, public Dependency {
@@ -168,7 +169,7 @@ private:
     int _calibrationCount;
     QVector<float> _calibrationValues;
     TextOverlay* _calibrationBillboard;
-    OverlayID _calibrationBillboardID;
+    QUuid _calibrationBillboardID;
     QString _calibrationMessage;
     bool _isCalibrated;
     void addCalibrationDatum();

@@ -247,15 +247,12 @@ process.on('uncaughtException', function(err) {
     log.error(err.stack);
 });
 
-var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
-    // Someone tried to run a second instance, focus the window (if there is one)
-    return true;
-});
+const gotTheLock = app.requestSingleInstanceLock()
 
-if (shouldQuit) {
-    log.warn("Another instance of the Sandbox is already running - this instance will quit.");
-    app.exit(0);
-    return;
+if (!gotTheLock) {
+  log.warn("Another instance of the Sandbox is already running - this instance will quit.");
+  app.exit(0);
+  return;
 }
 
 // Check command line arguments to see how to find binaries
@@ -340,7 +337,17 @@ var notificationState = NotificationState.UNNOTIFIED;
 
 function setNotificationState (notificationType, pending = undefined) {
     if (pending !== undefined) {
-        pendingNotifications[notificationType] = pending;
+        if ((notificationType === HifiNotificationType.TRANSACTIONS || 
+            notificationType === HifiNotificationType.ITEMS)) {
+            // special case, because we want to clear the indicator light
+            // on INVENTORY when either Transactions or Items are 
+            // clicked on in the notification popup, we detect that case
+            // here and force both to be unnotified.
+            pendingNotifications[HifiNotificationType.TRANSACTIONS] = pending;
+            pendingNotifications[HifiNotificationType.ITEMS] = pending;
+        } else {
+            pendingNotifications[notificationType] = pending;
+        }
         notificationState = NotificationState.UNNOTIFIED;
         for (var key in pendingNotifications) {
             if (pendingNotifications[key]) {
@@ -431,18 +438,12 @@ var labels = {
             setNotificationState(HifiNotificationType.PEOPLE, false);
         }
     },
-    wallet: {
-        label: 'Wallet',
+    inventory: {
+        label: 'Inventory',
         click: function () {
-            StartInterface("hifiapp:WALLET");
-            setNotificationState(HifiNotificationType.WALLET, false);
-        }
-    },
-    marketplace: {
-        label: 'Market',
-        click: function () {
-            StartInterface("hifiapp:MARKET");
-            setNotificationState(HifiNotificationType.MARKETPLACE, false);
+            StartInterface("hifiapp:INVENTORY");
+            setNotificationState(HifiNotificationType.ITEMS, false);
+            setNotificationState(HifiNotificationType.TRANSACTIONS, false);
         }
     },
     restart: {
@@ -531,8 +532,7 @@ function buildMenuArray(serverState) {
             if (trayNotifications.enabled()) {
                 menuArray.push(labels.goto);
                 menuArray.push(labels.people);
-                menuArray.push(labels.wallet);
-                menuArray.push(labels.marketplace);
+                menuArray.push(labels.inventory);
                 menuArray.push(separator);
             }
             menuArray.push(labels.showNotifications);
@@ -568,8 +568,7 @@ function updateLabels(serverState) {
     labels.showNotifications.checked = trayNotifications.enabled();
     labels.goto.icon = pendingNotifications[HifiNotificationType.GOTO] ? menuNotificationIcon : null;
     labels.people.icon = pendingNotifications[HifiNotificationType.PEOPLE] ? menuNotificationIcon : null;
-    labels.wallet.icon = pendingNotifications[HifiNotificationType.WALLET] ? menuNotificationIcon : null;
-    labels.marketplace.icon = pendingNotifications[HifiNotificationType.MARKETPLACE] ? menuNotificationIcon : null;
+    labels.inventory.icon = pendingNotifications[HifiNotificationType.ITEMS] || pendingNotifications[HifiNotificationType.TRANSACTIONS]? menuNotificationIcon : null;
     var onlineUsers = trayNotifications.getOnlineUsers();
     delete labels.people.submenu;
     if (onlineUsers) {
@@ -876,10 +875,6 @@ function onContentLoaded() {
                     });
                     hasShownUpdateNotification = true;
                 }
-            });
-            notifier.on('click', function(notifierObject, options) {
-                log.debug("Got click", options.url);
-                shell.openExternal(options.url);
             });
         }
 

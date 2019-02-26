@@ -17,7 +17,7 @@ import QtGraphicalEffects 1.0
 import TabletScriptingInterface 1.0
 
 import "toolbars"
-import "../styles-uit"
+import stylesUit 1.0
 
 Item {
     id: root;
@@ -133,7 +133,7 @@ Item {
         }
         onStatusChanged: {
             if (status == Image.Error) {
-                console.log("source: " + source + ": failed to load " + hifiUrl);
+                console.log("source: " + source + ": failed to load");
                 source = defaultThumbnail;
             }
         }
@@ -236,25 +236,39 @@ Item {
     property var hoverThunk: function () { };
     property var unhoverThunk: function () { };
     Rectangle {
-        anchors.fill: parent;
+        anchors.fill: parent
         visible: root.hovered
-        color: "transparent";
-        border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight;
-        z: 1;
+        color: "transparent"
+        border.width: 4
+        border.color: hifiStyleConstants.colors.primaryHighlight
+        z: 1
     }
     MouseArea {
-        anchors.fill: parent;
-        acceptedButtons: Qt.LeftButton;
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: true
+        onContainsMouseChanged: {
+            // Use onContainsMouseChanged rather than onEntered and onExited because the latter aren't always
+            // triggered correctly - e.g., if drag rightwards from right hand side of a card to the next card
+            // onExited doesn't fire, in which case can end up with two cards highlighted.
+            if (containsMouse) {
+                Tablet.playSound(TabletEnums.ButtonHover);
+                hoverThunk();
+            } else {
+                unhoverThunk();
+            }
+        }
+    }
+    MouseArea {
+        // Separate MouseArea for click handling so that it doesn't interfere with hovering and interaction
+        // with containing ListView.
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        hoverEnabled: false
         onClicked: {
             Tablet.playSound(TabletEnums.ButtonClick);
             goFunction("hifi://" + hifiUrl);
         }
-        hoverEnabled: true;
-        onEntered:  {
-            Tablet.playSound(TabletEnums.ButtonHover);
-            hoverThunk();
-        }
-        onExited: unhoverThunk();
     }
     StateImage {
         id: actionIcon;

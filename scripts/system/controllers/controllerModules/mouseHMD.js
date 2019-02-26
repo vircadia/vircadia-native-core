@@ -29,6 +29,7 @@
 
     function MouseHMD() {
         var _this = this;
+        this.hmdWasActive = HMD.active;
         this.mouseMoved = false;
         this.mouseActivity = new TimeLock(5000);
         this.handControllerActivity = new TimeLock(4000);
@@ -102,6 +103,8 @@
 
         this.isReady = function(controllerData, deltaTime) {
             var now = Date.now();
+            var hmdChanged = this.hmdWasActive !== HMD.active;
+            this.hmdWasActive = HMD.active;
             this.triggersPressed(controllerData, now);
             if (HMD.active) {
                 if (!this.mouseActivity.expired(now) && _this.handControllerActivity.expired()) {
@@ -110,7 +113,7 @@
                 } else {
                     Reticle.visible = false;
                 }
-            } else if (!Reticle.visible) {
+            } else if (hmdChanged && !Reticle.visible) {
                 Reticle.visible = true;
             }
 

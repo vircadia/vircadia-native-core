@@ -10,13 +10,15 @@
 //
 
 #include "WalletScriptingInterface.h"
+#include <SettingHandle.h>
 
 CheckoutProxy::CheckoutProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qmlObject, parent) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
 }
 
 WalletScriptingInterface::WalletScriptingInterface() {
-
+    connect(DependencyManager::get<AccountManager>().data(),
+        &AccountManager::limitedCommerceChanged, this, &WalletScriptingInterface::limitedCommerceChanged);
 }
 
 void WalletScriptingInterface::refreshWalletStatus() {
@@ -33,7 +35,7 @@ void WalletScriptingInterface::proveAvatarEntityOwnershipVerification(const QUui
     QSharedPointer<ContextOverlayInterface> contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
     EntityItemProperties entityProperties = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(entityID,
         contextOverlayInterface->getEntityPropertyFlags());
-    if (entityProperties.getClientOnly()) {
+    if (entityProperties.getEntityHostType() == entity::HostType::AVATAR) {
         if (!entityID.isNull() && entityProperties.getCertificateID().length() > 0) {
             contextOverlayInterface->requestOwnershipVerification(entityID);
         } else {

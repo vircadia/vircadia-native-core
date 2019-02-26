@@ -11,8 +11,19 @@
 
 #include "ContentSettingsBackupHandler.h"
 
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsuggest-override"
+#endif
+
 #include <quazip5/quazip.h>
 #include <quazip5/quazipfile.h>
+#include <quazip5/quazipdir.h>
+
+#if !defined(__clang__) && defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
 
 ContentSettingsBackupHandler::ContentSettingsBackupHandler(DomainServerSettingsManager& domainServerSettingsManager) :
     _settingsManager(domainServerSettingsManager)

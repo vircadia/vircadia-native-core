@@ -24,6 +24,7 @@ namespace AvatarTraits {
         SkeletonModelURL,
         FirstInstancedTrait,
         AvatarEntity = FirstInstancedTrait,
+        Grab,
         TotalTraitTypes
     };
 
@@ -40,6 +41,10 @@ namespace AvatarTraits {
     using TraitWireSize = int16_t;
     const TraitWireSize DELETED_TRAIT_SIZE = -1;
     const TraitWireSize MAXIMUM_TRAIT_SIZE = INT16_MAX;
+
+    using TraitMessageSequence = int64_t;
+    const TraitMessageSequence FIRST_TRAIT_SEQUENCE = 0;
+    const TraitMessageSequence MAX_TRAIT_SEQUENCE = INT64_MAX;
 
     inline qint64 packInstancedTraitDelete(TraitType traitType, TraitInstanceID instanceID, ExtendedIODevice& destination,
                                          TraitVersion traitVersion = NULL_TRAIT_VERSION) {

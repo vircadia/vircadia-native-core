@@ -95,7 +95,7 @@ QString GooglePolyScriptingInterface::getModelInfo(const QString& input) {
     }
     QString urlString(GET_POLY_URL);
     urlString = urlString.replace("model", name) + "key=" + _authCode;
-    qCDebug(scriptengine) << "Google URL request: " << urlString;
+    qCDebug(scriptengine) << "Google URL request";
     QUrl url(urlString);
     QString json = parseJSON(url, 2).toString();
     return json;
@@ -129,7 +129,7 @@ QUrl GooglePolyScriptingInterface::formatURLQuery(const QString& keyword, const 
 }
 
 QString GooglePolyScriptingInterface::getModelURL(const QUrl& url) {
-    qCDebug(scriptengine) << "Google URL request: " << url;
+    qCDebug(scriptengine) << "Google URL request";
     if (!url.isEmpty()) {
         return parseJSON(url, 1).toString();
     } else {

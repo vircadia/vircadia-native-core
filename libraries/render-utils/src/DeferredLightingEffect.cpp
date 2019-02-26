@@ -44,7 +44,7 @@ using namespace render;
 struct LightLocations {
     bool shadowTransform{ false };
     void initialize(const gpu::ShaderPointer& program) {
-        shadowTransform = program->getUniformBuffers().isValid(ru::Buffer::ShadowParams);
+        shadowTransform = program->getReflection().validUniformBuffer(ru::Buffer::ShadowParams);
     }
 };
 
@@ -374,11 +374,11 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     const DeferredFramebufferPointer& deferredFramebuffer,
     const LightingModelPointer& lightingModel,
     const LightStage::FramePointer& lightFrame,
+    const LightStage::ShadowFramePointer& shadowFrame,
     const HazeStage::FramePointer& hazeFrame,
     const SurfaceGeometryFramebufferPointer& surfaceGeometryFramebuffer,
     const AmbientOcclusionFramebufferPointer& ambientOcclusionFramebuffer,
-    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource,
-    bool renderShadows) {
+    const SubsurfaceScatteringResourcePointer& subsurfaceScatteringResource) {
 
     auto args = renderContext->args;
     auto& batch = (*args->_batch);
@@ -404,7 +404,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch.setResourceTexture(ru::Texture::DeferredDepth, deferredFramebuffer->getPrimaryDepthTexture());
         
         // FIXME: Different render modes should have different tasks
-        if (args->_renderMode == RenderArgs::DEFAULT_RENDER_MODE && deferredLightingEffect->isAmbientOcclusionEnabled() && ambientOcclusionFramebuffer) {
+        if (lightingModel->isAmbientOcclusionEnabled() && ambientOcclusionFramebuffer) {
             batch.setResourceTexture(ru::Texture::DeferredObscurance, ambientOcclusionFramebuffer->getOcclusionTexture());
         } else {
             // need to assign the white texture if ao is off
@@ -429,24 +429,23 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
             batch.setResourceTexture(ru::Texture::SsscSpecularBeckmann, subsurfaceScatteringResource->getScatteringSpecular());
         }
 
-        // Global directional light and ambient pass
-
+        // Global directional light, maybe shadow and ambient pass
         auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage);
         assert(lightStage->getNumLights() > 0);
-        auto lightAndShadow = lightStage->getCurrentKeyLightAndShadow(*lightFrame);
-        const auto& globalShadow = lightAndShadow.second;
+        auto keyLight = lightStage->getCurrentKeyLight(*lightFrame);
 
-        // Bind the shadow buffers
-        if (globalShadow) {
-            batch.setResourceTexture(ru::Texture::Shadow, globalShadow->map);
+        // Check if keylight casts shadows
+        bool keyLightCastShadows{ false };
+        LightStage::ShadowPointer globalShadow;
+        if (lightingModel->isShadowEnabled() && shadowFrame && !shadowFrame->_objects.empty()) {
+            globalShadow = shadowFrame->_objects.front();
+            if (globalShadow) {
+                keyLightCastShadows = true;
+            }
         }
 
-        auto program = deferredLightingEffect->_directionalSkyboxLight;
-        LightLocationsPtr locations = deferredLightingEffect->_directionalSkyboxLightLocations;
-
-        auto keyLight = lightAndShadow.first;
-
+        // Global Ambient light
         graphics::LightPointer ambientLight;
         if (lightStage && lightFrame->_ambientLights.size()) {
             ambientLight = lightStage->getLight(lightFrame->_ambientLights.front());
@@ -454,18 +453,10 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         bool hasAmbientMap = (ambientLight != nullptr);
 
         // Setup the global directional pass pipeline
+        auto program = deferredLightingEffect->_directionalSkyboxLight;
+        LightLocationsPtr locations = deferredLightingEffect->_directionalSkyboxLightLocations;
         {
-            // Check if keylight casts shadows
-            bool keyLightCastShadows { false };
-
-            if (renderShadows && lightStage && lightFrame->_sunLights.size()) {
-                graphics::LightPointer keyLight = lightStage->getLight(lightFrame->_sunLights.front());
-                if (keyLight) {
-                    keyLightCastShadows = keyLight->getCastShadows();
-                }
-            }
-
-            if (deferredLightingEffect->_shadowMapEnabled && keyLightCastShadows) {
+            if (keyLightCastShadows) {
 
                 // If the keylight has an ambient Map then use the Skybox version of the pass
                 // otherwise use the ambient sphere version
@@ -488,7 +479,8 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
                 }
             }
 
-            if (locations->shadowTransform && globalShadow) {
+            if (keyLightCastShadows && globalShadow) {
+                batch.setResourceTexture(ru::Texture::Shadow, globalShadow->map);
                 batch.setUniformBuffer(ru::Buffer::ShadowParams, globalShadow->getBuffer());
             }
 
@@ -510,10 +502,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         deferredLightingEffect->unsetKeyLightBatch(batch);
-
-        for (auto i = 0; i < SHADOW_CASCADE_MAX_COUNT; i++) {
-            batch.setResourceTexture(ru::Texture::Shadow +i, nullptr);
-        }
+        batch.setResourceTexture(ru::Texture::Shadow, nullptr);
     }
 }
 
@@ -606,23 +595,29 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
     }
 }
 
+RenderDeferred::RenderDeferred() {
+    DependencyManager::get<DeferredLightingEffect>()->init();
+}
+
 void RenderDeferred::configure(const Config& config) {
 }
 
 void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
-    PROFILE_RANGE(render, "DeferredLighting");
+    auto args = renderContext->args;
 
     auto deferredTransform = inputs.get0();
     auto deferredFramebuffer = inputs.get1();
-    auto lightingModel = inputs.get2();
-    auto surfaceGeometryFramebuffer = inputs.get3();
-    auto ssaoFramebuffer = inputs.get4();
-    auto subsurfaceScatteringResource = inputs.get5();
-    auto lightClusters = inputs.get6();
-    auto args = renderContext->args;
+    auto extraRenderBuffers = inputs.get2();
+        auto surfaceGeometryFramebuffer = extraRenderBuffers.get0();
+        auto ssaoFramebuffer = extraRenderBuffers.get1();
+        auto subsurfaceScatteringResource = extraRenderBuffers.get2();
 
-    const auto& lightFrame = inputs.get7();
-    const auto& hazeFrame = inputs.get8();
+    auto lightingModel = inputs.get3();
+    auto lightClusters = inputs.get4();
+    
+    const auto& lightFrame = inputs.get5();
+    const auto& shadowFrame = inputs.get6();
+    const auto& hazeFrame = inputs.get7();
 
     if (!_gpuTimer) {
         _gpuTimer = std::make_shared < gpu::RangeTimer>(__FUNCTION__);
@@ -633,7 +628,7 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
         args->_batch = &batch;
         _gpuTimer->begin(batch);
 
-        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, lightFrame, hazeFrame, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource, _renderShadows);
+        setupJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, lightFrame, shadowFrame, hazeFrame, surfaceGeometryFramebuffer, ssaoFramebuffer, subsurfaceScatteringResource);
 
         lightsJob.run(renderContext, deferredTransform, deferredFramebuffer, lightingModel, surfaceGeometryFramebuffer, lightClusters);
 
@@ -691,7 +686,6 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             // Add the global light to the light stage (for later shadow rendering)
             // Set this light to be the default
             _defaultLightID = lightStage->addLight(lp, true);
-            lightStage->addShadow(_defaultLightID);
         }
 
         auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();

@@ -37,7 +37,6 @@ void SoundEffect::play(QVariant position) {
         _injector->setOptions(options);
         _injector->restart();
     } else {
-        QByteArray samples = _sound->getByteArray();
-        _injector = AudioInjector::playSound(samples, options);
+        _injector = AudioInjector::playSound(_sound, options);
     }
 }

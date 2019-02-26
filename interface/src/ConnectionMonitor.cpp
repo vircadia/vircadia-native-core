@@ -48,7 +48,9 @@ void ConnectionMonitor::init() {
             emit setRedirectErrorState(REDIRECT_HIFI_ADDRESS, "", 5);
         } else {
             qDebug() << "ConnectionMonitor: Showing connection failure window";
+#if !defined(DISABLE_QML)
             DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(true);
+#endif
         }
     });
 }
@@ -59,8 +61,10 @@ void ConnectionMonitor::startTimer() {
 
 void ConnectionMonitor::stopTimer() {
     _timer.stop();
+#if !defined(DISABLE_QML)
     bool enableInterstitial = DependencyManager::get<NodeList>()->getDomainHandler().getInterstitialModeEnabled();
     if (!enableInterstitial) {
         DependencyManager::get<DialogsManager>()->setDomainConnectionFailureVisibility(false);
     }
+#endif
 }

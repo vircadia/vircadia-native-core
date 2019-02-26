@@ -22,7 +22,7 @@ precision mediump float;
 precision mediump int;
 #endif
 
-layout(binding=0) uniform sampler2D colorTexture;
+LAYOUT(binding=0) uniform sampler2D colorTexture;
 //uniform sampler2D historyTexture;
 
 // FIXME make into a uniform buffer or push constant if this shader ever comes into use

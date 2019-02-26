@@ -17,12 +17,11 @@ namespace controller {
         REGISTER_FILTER_CLASS(LowVelocityFilter);
 
     public:
-        LowVelocityFilter() {}
+        LowVelocityFilter() = default;
         LowVelocityFilter(float rotationConstant, float translationConstant) :
             _translationConstant(translationConstant), _rotationConstant(rotationConstant) {}
-        virtual ~LowVelocityFilter() {}
 
-        float apply(float value) const override { return value; }
+        AxisValue apply(AxisValue value) const override { return value; }
         Pose apply(Pose newPose) const override;
         bool parseParameters(const QJsonValue& parameters) override;
 

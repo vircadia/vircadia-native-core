@@ -38,11 +38,13 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "OctreePacketProcessor::processPacket()");
 
+#ifndef Q_OS_ANDROID
     const int WAY_BEHIND = 300;
 
     if (packetsToProcessCount() > WAY_BEHIND && qApp->getLogger()->extraDebugging()) {
         qDebug("OctreePacketProcessor::processPacket() packets to process=%d", packetsToProcessCount());
     }
+#endif
     
     bool wasStatsPacket = false;
 
@@ -91,7 +93,9 @@ void OctreePacketProcessor::processPacket(QSharedPointer<ReceivedMessage> messag
         return; // bail since piggyback version doesn't match
     }
 
-    qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
+    if (packetType != PacketType::EntityQueryInitialResultsComplete) {
+        qApp->trackIncomingOctreePacket(*message, sendingNode, wasStatsPacket);
+    }
     
     // seek back to beginning of packet after tracking
     message->seek(0);

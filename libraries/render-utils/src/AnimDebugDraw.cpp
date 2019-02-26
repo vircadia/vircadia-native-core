@@ -149,11 +149,11 @@ void AnimDebugDraw::shutdown() {
 }
 
 void AnimDebugDraw::addAbsolutePoses(const std::string& key, AnimSkeleton::ConstPointer skeleton, const AnimPoseVec& poses, const AnimPose& rootPose, const glm::vec4& color) {
-    _absolutePoses[key] = PosesInfo(skeleton, poses, rootPose, color);
+    _posesInfoMap[key] = PosesInfo(skeleton, poses, rootPose, color);
 }
 
 void AnimDebugDraw::removeAbsolutePoses(const std::string& key) {
-    _absolutePoses.erase(key);
+    _posesInfoMap.erase(key);
 }
 
 static const uint32_t red = toRGBA(255, 0, 0, 255);
@@ -320,7 +320,12 @@ void AnimDebugDraw::update() {
         return;
     }
     render::Transaction transaction;
-    transaction.updateItem<AnimDebugDrawData>(_itemID, [&](AnimDebugDrawData& data) {
+
+    // Make a copy of the _posesInfoMap member variable, and pass the copy into the lambda.
+    // This allows the body of the lambda, which executes on the render thread, to safely iterate over the map.
+    std::shared_ptr<PosesInfoMap> posesInfoMapCopy;
+    posesInfoMapCopy = std::make_shared<PosesInfoMap>(_posesInfoMap);
+    transaction.updateItem<AnimDebugDrawData>(_itemID, [posesInfoMapCopy](AnimDebugDrawData& data) {
 
         const size_t VERTICES_PER_BONE = (6 + (NUM_CIRCLE_SLICES * 2) * 3);
         const size_t VERTICES_PER_LINK = 8 * 2;
@@ -332,7 +337,7 @@ void AnimDebugDraw::update() {
         // figure out how many verts we will need.
         int numVerts = 0;
 
-        for (auto& iter : _absolutePoses) {
+        for (auto& iter : *posesInfoMapCopy) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
             for (auto i = 0; i < skeleton->getNumJoints(); i++) {
@@ -362,7 +367,7 @@ void AnimDebugDraw::update() {
         }
 
         // draw absolute poses
-        for (auto& iter : _absolutePoses) {
+        for (auto& iter : *posesInfoMapCopy) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             AnimPoseVec& absPoses = std::get<1>(iter.second);
             AnimPose rootPose = std::get<2>(iter.second);
@@ -421,7 +426,7 @@ void AnimDebugDraw::update() {
 
         data._indexBuffer->resize(sizeof(uint32_t) * numVerts);
         for (int i = 0; i < numVerts; i++) {
-            data._indexBuffer->setSubData<uint32_t>(i, (uint32_t)i);;
+            data._indexBuffer->setSubData<uint32_t>(i, (uint32_t)i);
         }
     });
     scene->enqueueTransaction(transaction);
