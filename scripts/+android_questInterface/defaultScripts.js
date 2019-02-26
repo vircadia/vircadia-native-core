@@ -25,6 +25,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/notifications.js",
     "system/commerce/wallet.js",
     "system/dialTone.js",
+    "system/marketplaces/marketplaces.js",
     "system/quickGoto.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
