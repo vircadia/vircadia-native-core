@@ -37,7 +37,13 @@ sudo apt-get -y install libpulse0 libnss3 libnspr4 libfontconfig1 libxcursor1 li
 
 Install build tools:
 ```bash
+# For Ubuntu 18.04
 sudo apt-get install cmake
+```
+```bash
+# For Ubuntu 16.04
+wget https://cmake.org/files/v3.9/cmake-3.9.5-Linux-x86_64.sh
+sudo sh cmake-3.9.5-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 ```
 
 Install Python 3:
