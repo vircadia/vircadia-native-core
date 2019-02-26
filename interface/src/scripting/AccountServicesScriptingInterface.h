@@ -98,7 +98,7 @@ public slots:
     bool isLoggedIn();
 
     /**jsdoc
-     * The function returns the log in status of the user and prompts the user to log in (with a login dialog) if they're not already logged in.
+     * The function returns the login status of the user and prompts the user to log in (with a login dialog) if they're not already logged in.
      * @function AccountServices.checkAndSignalForAccessToken
      * @returns {boolean} <code>true</code> if the user is logged in, <code>false</code> if not.
      */
