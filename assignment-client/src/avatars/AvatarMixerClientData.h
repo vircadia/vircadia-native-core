@@ -45,6 +45,7 @@ public:
     using HRCTime = p_high_resolution_clock::time_point;
     using PerNodeTraitVersions = std::unordered_map<Node::LocalID, AvatarTraits::TraitVersions>;
 
+    using NodeData::parseData;  // Avoid clang warning about hiding.
     int parseData(ReceivedMessage& message, const SlaveSharedData& SlaveSharedData);
     MixerAvatar& getAvatar() { return *_avatar; }
     const MixerAvatar& getAvatar() const { return *_avatar; }

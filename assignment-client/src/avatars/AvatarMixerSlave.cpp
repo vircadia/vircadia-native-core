@@ -308,7 +308,8 @@ namespace {
 }  // Close anonymous namespace.
 
 // Specialize computePriority() for avatars:
-template<> float PrioritySortUtil::PriorityQueue<SortableAvatar>::computePriority(const SortableAvatar& thing) const {
+namespace PrioritySortUtil {
+template<> float PriorityQueue<SortableAvatar>::computePriority(const SortableAvatar& thing) const {
     static constexpr float AVATAR_HERO_BONUS { 25.0f };  // Higher than any normal priority.
 
     float priority = std::numeric_limits<float>::min();
@@ -322,6 +323,7 @@ template<> float PrioritySortUtil::PriorityQueue<SortableAvatar>::computePriorit
     }
 
     return priority;
+}
 }
 
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
