@@ -932,7 +932,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         bool zoneAllowsFlying = zoneInteractionProperties.first;
         bool collisionlessAllowed = zoneInteractionProperties.second;
-        _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
+        _characterController.setZoneFlyingAllowed(zoneAllowsFlying || !isPhysicsEnabled);
+        _characterController.setComfortFlyingAllowed(_enableFlying);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 

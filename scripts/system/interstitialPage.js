@@ -325,6 +325,11 @@
                 leftMargin: domainNameLeftMargin
             };
 
+            // check to be sure we are going to look for an actual domain
+            if (!domain) {
+                doRequest = false;
+            }
+
             if (doRequest) {
                 var url = Account.metaverseServerURL + '/api/v1/places/' + domain;
                 request({

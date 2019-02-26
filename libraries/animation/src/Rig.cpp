@@ -1066,13 +1066,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         if (_enableInverseKinematics) {
             _animVars.set("ikOverlayAlpha", 1.0f);
-            _animVars.set("splineIKEnabled", true);
-            _animVars.set("leftHandIKEnabled", true);
-            _animVars.set("rightHandIKEnabled", true);
-            _animVars.set("leftFootIKEnabled", true);
-            _animVars.set("rightFootIKEnabled", true);
-            _animVars.set("leftFootPoleVectorEnabled", true);
-            _animVars.set("rightFootPoleVectorEnabled", true);
         } else {
             _animVars.set("ikOverlayAlpha", 0.0f);
             _animVars.set("splineIKEnabled", false);
