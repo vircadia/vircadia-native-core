@@ -63,21 +63,27 @@ public:
 
 public slots:
     /**jsdoc
-     * Set whether or not the script should emulate an avatar.
+     * Sets whether or not the script should emulate an avatar.
      * @function Agent.setIsAvatar
      * @param {boolean} isAvatar - <code>true</code> if the script should act as if an avatar, otherwise <code>false</code>.
+     * @example <caption>Make an assignment client script emulate an avatar.</caption>
+     * (function () {
+     *     Agent.setIsAvatar(true);
+     *     Avatar.displayName = "AC avatar";
+     *     print("Position: " + JSON.stringify(Avatar.position));  // 0, 0, 0
+     * }());
      */
     void setIsAvatar(bool isAvatar) const { _agent->setIsAvatar(isAvatar); }
 
     /**jsdoc
-     * Check whether or not the script is emulating an avatar.
+     * Checks whether or not the script is emulating an avatar.
      * @function Agent.isAvatar
      * @returns {boolean} <code>true</code> if the script is acting as if an avatar, otherwise <code>false</code>.
      */
     bool isAvatar() const { return _agent->isAvatar(); }
 
     /**jsdoc
-     * Play a sound from the position and with the orientation of the emulated avatar's head. No sound is played unless 
+     * Plays a sound from the position and with the orientation of the emulated avatar's head. No sound is played unless 
      * <code>isAvatar == true</code>.
      * @function Agent.playAvatarSound
      * @param {SoundObject} avatarSound - The sound to play.
