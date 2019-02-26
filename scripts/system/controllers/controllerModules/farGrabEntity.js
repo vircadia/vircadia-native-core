@@ -111,7 +111,7 @@ Script.include("/~/system/libraries/controllers.js");
             this.currentObjectPosition = targetProps.position;
             this.currentObjectRotation = targetProps.rotation;
             this.currentObjectTime = now;
-            this.initialEntityRotation = targetProps.rotation;
+            this.initialEntityRotation = targetProps.rotation;          // World frame.
 
             this.grabRadius = this.grabbedDistance;
             this.grabRadialVelocity = 0.0;
@@ -145,13 +145,10 @@ Script.include("/~/system/libraries/controllers.js");
 
             Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
 
-            var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);
-            var newTargetRotLocal = targetProps.rotation;
-            if (this.shouldManipulateTarget()) {
-                var rotBetween = this.calculateEntityRotationManipulation(worldControllerRotation);
-                var newTargetRotLocal = Quat.multiply(rotBetween, newTargetRotLocal);
-            }
             //MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+
+            var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);       // World frame.
+            var newTargetRotLocal = targetProps.rotation;                                   // World frame.
             this.setJointTranslation(newTargetPosLocal);
             this.setJointRotation(newTargetRotLocal);
 
@@ -243,10 +240,14 @@ Script.include("/~/system/libraries/controllers.js");
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
             var newTargetRotLocal = this.initialEntityRotation;
             if (this.shouldManipulateTarget()) {
-                var rotBetween = this.calculateEntityRotationManipulation(worldControllerRotation);
+                var dominantHandControllerLocation = controllerData.controllerLocations[this.getDominantHand()];
+                var worldDominantHandControllerRotation = dominantHandControllerLocation.rotation;
+                if (Quat.equal(Quat.IDENTITY, this.initialControllerRotation)) {
+                    this.initialControllerRotation = worldDominantHandControllerRotation;
+                }
+                var rotBetween = this.calculateEntityRotationManipulation(worldDominantHandControllerRotation);
                 var newTargetRotLocal = Quat.multiply(rotBetween, newTargetRotLocal);
             }
-            //MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
             this.setJointTranslation(newTargetPosLocal);
             this.setJointRotation(newTargetRotLocal);
 
@@ -271,10 +272,9 @@ Script.include("/~/system/libraries/controllers.js");
             unhighlightTargetEntity(this.targetEntityID);
             this.grabbing = false;
             this.potentialEntityWithContextOverlay = false;
-            var rot = this.getTargetRotation();
-            MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);                                    // RKNOTE: Here, we should edit the entity's position and rotation data with the current joint rotation data.
-            this.setTargetRotation(Quat.multiply(this.lastFarGrabJointRotation, rot));
+            MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);
             this.initialEntityRotation = Quat.IDENTITY;
+            this.initialControllerRotation = Quat.IDENTITY;
             this.targetEntityID = null;
         };
 
@@ -355,7 +355,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.initialControllerRotation = Quat.IDENTITY;
         this.initialEntityRotation = Quat.IDENTITY;
-        this.lastFarGrabJointRotation = Quat.IDENTITY;
 
         this.leftTrigger = 0.0;
         this.rightTrigger = 0.0;
@@ -486,7 +485,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.setJointRotation = function (newTargetRotLocal) {
-            this.lastFarGrabJointRotation = newTargetRotLocal;
             MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], newTargetRotLocal);
         };
 
