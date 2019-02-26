@@ -31,7 +31,7 @@ void JSBaker::bake() {
     // once our script is loaded, kick off a the processing
     connect(this, &JSBaker::originalScriptLoaded, this, &JSBaker::processScript);
 
-    if (_jsURL.isEmpty()) {
+    if (_originalScript.isEmpty()) {
         // first load the script (either locally or remotely)
         loadScript();
     } else {
@@ -139,10 +139,7 @@ bool JSBaker::bakeJS(const QByteArray& inputFile, QByteArray& outputFile) {
 
     in >> currentCharacter;
 
-    qDebug() << "boop" << inputFile;
-
     while (!in.atEnd()) {
-        qDebug() << "boop2" << currentCharacter << nextCharacter << previousCharacter;
         in >> nextCharacter;
 
         if (currentCharacter == '\r') {
@@ -230,8 +227,6 @@ bool JSBaker::bakeJS(const QByteArray& inputFile, QByteArray& outputFile) {
     if (currentCharacter != '\n') {
         out << currentCharacter;
     }
-
-    qDebug() << "boop3" << outputFile;
 
     // Successful bake. Return true
     return true;

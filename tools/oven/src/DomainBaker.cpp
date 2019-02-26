@@ -293,7 +293,9 @@ void DomainBaker::enumerateEntities() {
                 addModelBaker(MODEL_URL_KEY, entity[MODEL_URL_KEY].toString(), *it);
             }
             if (entity.contains(COMPOUND_SHAPE_URL_KEY)) {
-                // TODO: handle compoundShapeURL
+                // TODO: this could be optimized so that we don't do the full baking pass for collision shapes,
+                // but we have to handle the case where it's also used as a modelURL somewhere
+                addModelBaker(COMPOUND_SHAPE_URL_KEY, entity[COMPOUND_SHAPE_URL_KEY].toString(), *it);
             }
             if (entity.contains(ANIMATION_KEY)) {
                 auto animationObject = entity[ANIMATION_KEY].toObject();
@@ -359,7 +361,7 @@ void DomainBaker::handleFinishedModelBaker() {
 
     if (baker) {
         if (!baker->hasErrors()) {
-            // this FBXBaker is done and everything went according to plan
+            // this ModelBaker is done and everything went according to plan
             qDebug() << "Re-writing entity references to" << baker->getModelURL();
 
             // setup a new URL using the prefix we were passed
@@ -433,7 +435,7 @@ void DomainBaker::handleFinishedTextureBaker() {
 
     if (baker) {
         if (!baker->hasErrors()) {
-            // this FBXBaker is done and everything went according to plan
+            // this TextureBaker is done and everything went according to plan
             qDebug() << "Re-writing entity references to" << baker->getTextureURL();
 
             auto newURL = _destinationPath.resolved(baker->getMetaTextureFileName());
@@ -449,7 +451,7 @@ void DomainBaker::handleFinishedTextureBaker() {
                     // grab the old URL
                     QUrl oldURL = entity[property].toString();
 
-                    // copy the fragment and query, and user info from the old model URL
+                    // copy the fragment and query, and user info from the old texture URL
                     newURL.setQuery(oldURL.query());
                     newURL.setFragment(oldURL.fragment());
                     newURL.setUserInfo(oldURL.userInfo());
@@ -464,7 +466,7 @@ void DomainBaker::handleFinishedTextureBaker() {
                     auto oldObject = entity[propertySplit[0]].toObject();
                     QUrl oldURL = oldObject[propertySplit[1]].toString();
 
-                    // copy the fragment and query, and user info from the old model URL
+                    // copy the fragment and query, and user info from the old texture URL
                     newURL.setQuery(oldURL.query());
                     newURL.setFragment(oldURL.fragment());
                     newURL.setUserInfo(oldURL.userInfo());
@@ -478,8 +480,8 @@ void DomainBaker::handleFinishedTextureBaker() {
                 propertyEntityPair.second = entity;
             }
         } else {
-            // this skybox failed to bake - this doesn't fail the entire bake but we need to add the errors from
-            // the model to our warnings
+            // this texture failed to bake - this doesn't fail the entire bake but we need to add the errors from
+            // the texture to our warnings
             _warningList << baker->getWarnings();
         }
 
@@ -489,10 +491,10 @@ void DomainBaker::handleFinishedTextureBaker() {
         // drop our shared pointer to this baker so that it gets cleaned up
         _textureBakers.remove(baker->getTextureURL());
 
-         // emit progress to tell listeners how many models we have baked
+         // emit progress to tell listeners how many textures we have baked
          emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
 
-         // check if this was the last model we needed to re-write and if we are done now
+         // check if this was the last texture we needed to re-write and if we are done now
          checkIfRewritingComplete();
     }
 }
@@ -502,7 +504,7 @@ void DomainBaker::handleFinishedScriptBaker() {
 
     if (baker) {
         if (!baker->hasErrors()) {
-            // this FBXBaker is done and everything went according to plan
+            // this JSBaker is done and everything went according to plan
             qDebug() << "Re-writing entity references to" << baker->getJSPath();
 
             auto newURL = _destinationPath.resolved(baker->getBakedJSFilePath());
@@ -518,7 +520,7 @@ void DomainBaker::handleFinishedScriptBaker() {
                     // grab the old URL
                     QUrl oldURL = entity[property].toString();
 
-                    // copy the fragment and query, and user info from the old model URL
+                    // copy the fragment and query, and user info from the old script URL
                     newURL.setQuery(oldURL.query());
                     newURL.setFragment(oldURL.fragment());
                     newURL.setUserInfo(oldURL.userInfo());
@@ -533,7 +535,7 @@ void DomainBaker::handleFinishedScriptBaker() {
                     auto oldObject = entity[propertySplit[0]].toObject();
                     QUrl oldURL = oldObject[propertySplit[1]].toString();
 
-                    // copy the fragment and query, and user info from the old model URL
+                    // copy the fragment and query, and user info from the old script URL
                     newURL.setQuery(oldURL.query());
                     newURL.setFragment(oldURL.fragment());
                     newURL.setUserInfo(oldURL.userInfo());
@@ -547,22 +549,21 @@ void DomainBaker::handleFinishedScriptBaker() {
                 propertyEntityPair.second = entity;
             }
         } else {
-            // this model failed to bake - this doesn't fail the entire bake but we need to add
-            // the errors from the model to our warnings
+            // this script failed to bake - this doesn't fail the entire bake but we need to add
+            // the errors from the script to our warnings
             _warningList << baker->getErrors();
         }
 
         // remove the baked URL from the multi hash of entities needing a re-write
-
         _entitiesNeedingRewrite.remove(baker->getJSPath());
 
         // drop our shared pointer to this baker so that it gets cleaned up
         _scriptBakers.remove(baker->getJSPath());
 
-        // emit progress to tell listeners how many models we have baked
+        // emit progress to tell listeners how many scripts we have baked
         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
 
-        // check if this was the last model we needed to re-write and if we are done now
+        // check if this was the last script we needed to re-write and if we are done now
         checkIfRewritingComplete();
     }
 }
