@@ -44,6 +44,6 @@ Item {
         anchors.fill: bubbleIcon
         source: bubbleIcon
         color: AvatarInputs.ignoreRadiusEnabled ? "#1FC6A6" : "#FFFFFF";
-        opacity: 0.7
+        opacity: 0.3
     }
 }
