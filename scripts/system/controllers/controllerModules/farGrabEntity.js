@@ -239,7 +239,7 @@ Script.include("/~/system/libraries/controllers.js");
             // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
             if (this.shouldManipulateTarget()) {
-                var pose = Controller.getPoseValue((this.getDominantHand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
+                var pose = Controller.getPoseValue((this.getDominantHand() ? Controller.Standard.LeftHand : Controller.Standard.RightHand));
                 if (pose.valid) {
                     if (!this.manipulating) {
                         if (!this.wasManipulating) {
@@ -400,7 +400,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.shouldShowLaser = function () {
-            return (_this.getOffHandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+            return (_this.getDominantTrigger() > TRIGGER_ON_VALUE) ? true : false;
         };
 
         this.shouldGrab = function () {
@@ -409,11 +409,11 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.shouldCancel = function () {
             // Kill condition : Off hand is <= 15% trigger pull.
-            return (_this.getOffHandTrigger() <= TRIGGER_OFF_VALUE) ? true : false;
+            return (_this.getDominantTrigger() <= TRIGGER_OFF_VALUE) ? true : false;
         };
 
         this.shouldManipulateTarget = function () {
-            return (_this.getDominantTrigger() > TRIGGER_ON_VALUE) ? true : false;
+            return (_this.getOffHandTrigger() > TRIGGER_ON_VALUE) ? true : false;
         };
 
 
@@ -486,7 +486,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            if (HMD.active && this.hand === this.getOffHand()) {
+            if (HMD.active && this.hand === this.getDominantHand()) {
                 if (this.notPointingAtEntity(controllerData)) {
                     return makeRunningValues(false, [], []);
                 }
