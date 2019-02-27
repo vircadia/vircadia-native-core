@@ -19,6 +19,8 @@
 #include <EntityTree.h>
 #include <ZoneEntityItem.h>
 
+#include "AvatarLogging.h"
+
 #include "AvatarMixerSlave.h"
 
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : 
@@ -132,10 +134,21 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
 
     auto newPosition = getPosition();
     if (newPosition != oldPosition) {
+//#define AVATAR_HERO_TEST_HACK
+#ifdef AVATAR_HERO_TEST_HACK
+        {
+            const static QString heroKey { "HERO" };
+            _avatar->setPriorityAvatar(_avatar->getDisplayName().contains(heroKey));
+        }
+#else
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition, false } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
         _avatar->setPriorityAvatar(findPriorityZone.isInPriorityZone);
+        if (findPriorityZone.isInPriorityZone) {
+            qCWarning(avatars) << "Avatar" << _avatar->getDisplayName() << "in hero zone";
+        }
+#endif
     }
 
     return true;

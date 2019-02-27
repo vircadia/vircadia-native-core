@@ -32,6 +32,7 @@ public:
     int numIdentityPacketsSent { 0 };
     int numOthersIncluded { 0 };
     int overBudgetAvatars { 0 };
+    int numHeroesIncluded { 0 };
 
     quint64 ignoreCalculationElapsedTime { 0 };
     quint64 avatarDataPackingElapsedTime { 0 };
@@ -57,6 +58,7 @@ public:
         numIdentityPacketsSent = 0;
         numOthersIncluded = 0;
         overBudgetAvatars = 0;
+        numHeroesIncluded = 0;
 
         ignoreCalculationElapsedTime = 0;
         avatarDataPackingElapsedTime = 0;
@@ -80,6 +82,7 @@ public:
         numIdentityPacketsSent += rhs.numIdentityPacketsSent;
         numOthersIncluded += rhs.numOthersIncluded;
         overBudgetAvatars += rhs.overBudgetAvatars;
+        numHeroesIncluded += rhs.numHeroesIncluded;
 
         ignoreCalculationElapsedTime += rhs.ignoreCalculationElapsedTime;
         avatarDataPackingElapsedTime += rhs.avatarDataPackingElapsedTime;

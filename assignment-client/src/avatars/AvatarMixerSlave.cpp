@@ -596,6 +596,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
         if (detail != AvatarData::NoData) {
             _stats.numOthersIncluded++;
+            if (otherAvatar->getPriorityAvatar()) {
+                _stats.numHeroesIncluded++;
+            }
 
             // increment the number of avatars sent to this receiver
             nodeData->incrementNumAvatarsSentLastFrame();
