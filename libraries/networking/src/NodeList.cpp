@@ -246,6 +246,7 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 
 void NodeList::reset(bool skipDomainHandlerReset) {
     if (thread() != QThread::currentThread()) {
+
         QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, skipDomainHandlerReset));
         return;
     }
@@ -291,16 +292,30 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
+    static bool foo = false;
+
+    qWarning() << "Send Domain Server Checkin";
+
     if (!_sendDomainServerCheckInEnabled) {
         qCDebug(networking) << "Refusing to send a domain-server check in while it is disabled.";
         return;
     }
 
-    if (thread() != QThread::currentThread()) {
+    _globalPostedEvents = getGlobalPostedEventCount();
+
+    if (false && thread() != QThread::currentThread()) {
+        qWarning() << "Transition threads on send domain server checkin";
         QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
+
+        if (foo) {
+            qWarning() << "swapping threads before previous call completed";
+        }
+
+        foo = true;
         return;
     }
 
+    foo = false;
     if (_isShuttingDown) {
         qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
         return;
@@ -433,10 +448,17 @@ void NodeList::sendDomainServerCheckIn() {
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
             auto packetCopy = domainPacket->createCopy(*domainPacket);
+            qWarning() << "Domain List/Connect";
             sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
         }
+        qWarning() << "Domain List/Connect";
         sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
         
+    } else if (_domainHandler.getIP().isNull()) {
+        qWarning() << "Domain Handler IP Is Null";
+    }
+    else {
+        qWarning() << "Checkin packet timed out.";
     }
 }
 
