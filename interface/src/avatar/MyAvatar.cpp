@@ -2381,7 +2381,19 @@ void MyAvatar::clearWornAvatarEntities() {
     }
 }
 
-
+/**jsdoc
+ * Information about an avatar entity.
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>id</code></td><td>Uuid</td><td>Entity ID.</td></tr>
+ *     <tr><td><code>properties</code></td><td>{@link Entities.EntityProperties}</td><td>Entity properties.</td></tr>
+ *    </tbody>
+ * </table>
+ * @typedef {object} MyAvatar.AvatarEntityData
+ */
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     // NOTE: this method is NOT efficient
     QVariantList avatarEntitiesData;
