@@ -43,7 +43,6 @@ class AvatarInputs : public QObject {
 
     Q_PROPERTY(bool showAudioTools READ showAudioTools WRITE setShowAudioTools NOTIFY showAudioToolsChanged)
     Q_PROPERTY(bool ignoreRadiusEnabled READ getIgnoreRadiusEnabled NOTIFY ignoreRadiusEnabledChanged)
-    //Q_PROPERTY(bool enteredIgnoreRadius READ getEnteredIgnoreRadius NOTIFY enteredIgnoreRadiusChanged)
 
 public:
     static AvatarInputs* getInstance();
@@ -59,7 +58,6 @@ public:
     void update();
     bool showAudioTools() const { return _showAudioTools; }
     bool getIgnoreRadiusEnabled() const;
-    //bool getEnteredIgnoreRadius() const;
 
 public slots:
 
@@ -98,32 +96,11 @@ signals:
     void showAudioToolsChanged(bool show);
 
     /**jsdoc
-     * @function AvatarInputs.avatarEnteredIgnoreRadius
-     * @param {QUuid} avatarID
-     * @returns {Signal}
-    */
-    void avatarEnteredIgnoreRadius(QUuid avatarID);
-
-    /**jsdoc
-     * @function AvatarInputs.avatarLeftIgnoreRadius
-     * @param {QUuid} avatarID
-     * @returns {Signal}
-    */
-    void avatarLeftIgnoreRadius(QUuid avatarID);
-
-    /**jsdoc
      * @function AvatarInputs.ignoreRadiusEnabledChanged
      * @param {boolean} enabled
      * @returns {Signal}
      */
     void ignoreRadiusEnabledChanged(bool enabled);
-
-    /**jsdoc
-     * @function AvatarInputs.enteredIgnoreRadiusChanged
-     * @param {boolean} enabled
-     * @returns {Signal}
-     */
-    void enteredIgnoreRadiusChanged();
 
 protected:
 
