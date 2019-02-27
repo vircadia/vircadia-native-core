@@ -276,25 +276,31 @@ Script.include("/~/system/libraries/controllers.js");
             newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
             newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
 
-            // MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], MyAvatar.worldToJointPoint(newTargetPosition));
-
-            // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
+
+            // This block handles the user's ability to rotate the object they're FarGrabbing
             if (this.shouldManipulateTarget()) {
+                // Get the pose of the controller that is not grabbing.
                 var pose = Controller.getPoseValue((this.getOffhand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
                 if (pose.valid) {
+                    // If we weren't manipulating the object yet, initialize the entity's original position.
                     if (!this.manipulating) {
+                        // This will only be triggered if we've let go of the off-hand trigger and pulled it again without ending a grab.
+                        // Need to poll the entity's rotation again here.
                         if (!this.wasManipulating) {
-                            this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
+                            this.initialEntityRotation = this.getTargetRotation();
                         }
-                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);                                // Worldframe.
+                        // Save the original controller orientation, we only care about the delta between this rotation and wherever
+                        // the controller rotates, so that we can apply it to the entity's rotation.
+                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);
                         this.manipulating = true;
                     }
                 }
 
                 var rot = Quat.multiply(pose.rotation, MyAvatar.orientation);
                 var rotBetween = this.calculateEntityRotationManipulation(rot);
-                this.lastJointRotation = Quat.multiply(rotBetween, this.initialEntityRotation);
+                var doubleRot = Quat.multiply(rotBetween, rotBetween);
+                this.lastJointRotation = Quat.multiply(doubleRot, this.initialEntityRotation);
                 this.setJointRotation(this.lastJointRotation);
             } else {
                 if (this.manipulating) {
