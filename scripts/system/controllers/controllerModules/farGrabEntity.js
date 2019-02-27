@@ -60,6 +60,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMaxY = 0;
         this.endedGrab = 0;
         this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
+        this.disabled = false;
+        var _this = this;
+        this.leftTrigger = 0.0;
+        this.rightTrigger = 0.0;
+        this.initialControllerRotation = Quat.IDENTITY;
+        this.currentControllerRotation = Quat.IDENTITY;
+        this.manipulating = false;
+        this.wasManipulating = false;
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -75,6 +83,46 @@ Script.include("/~/system/libraries/controllers.js");
             100,
             makeLaserParams(this.hand, false));
 
+        //enableDispatcherModule("LeftFarGrabEntity", leftFarGrabEntity);
+        //enableDispatcherModule("RightFarGrabEntity", rightFarGrabEntity);
+
+        this.getOtherModule = function () {
+            // Used to fetch other module.
+            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("RightFarGrabEntity") : ("LeftFarGrabEntity"));
+        };
+
+        this.getTargetRotation = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["rotation"]);
+                return props.rotation;
+            }
+        };
+
+        this.getOffhand = function () {
+            return (this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND);
+        }
+
+        this.getOffhandTrigger = function () {
+            return (_this.hand === RIGHT_HAND ? _this.rightTrigger : _this.leftTrigger);
+        }
+
+        this.shouldManipulateTarget = function () {
+            return (_this.getOffhandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        };
+
+        this.calculateEntityRotationManipulation = function (controllerRotation) {
+            return Quat.multiply(controllerRotation, Quat.inverse(this.initialControllerRotation));
+        };
+
+        this.setJointTranslation = function (newTargetPosLocal) {
+            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+        };
+
+        this.setJointRotation = function (newTargetRotLocal) {
+            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], newTargetRotLocal);
+        };
 
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -142,8 +190,9 @@ Script.include("/~/system/libraries/controllers.js");
             Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
 
             var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
+            var newTargetRotLocal = targetProps.rotation;
+            this.setJointTranslation(newTargetPosLocal);
+            this.setJointRotation(newTargetRotLocal);
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(targetProps.id, "startDistanceGrab", args);
@@ -231,8 +280,31 @@ Script.include("/~/system/libraries/controllers.js");
 
             // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
+            if (this.shouldManipulateTarget()) {
+                var pose = Controller.getPoseValue((this.getOffhand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
+                if (pose.valid) {
+                    if (!this.manipulating) {
+                        if (!this.wasManipulating) {
+                            this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
+                        }
+                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);                                // Worldframe.
+                        this.manipulating = true;
+                    }
+                }
+
+                var rot = Quat.multiply(pose.rotation, MyAvatar.orientation);
+                var rotBetween = this.calculateEntityRotationManipulation(rot);
+                this.lastJointRotation = Quat.multiply(rotBetween, this.initialEntityRotation);
+                this.setJointRotation(this.lastJointRotation);
+            } else {
+                if (this.manipulating) {
+                    this.initialEntityRotation = this.lastJointRotation;
+                    this.wasManipulating = true;
+                }
+                this.manipulating = false;
+                this.initialControllerRotation = Quat.IDENTITY;
+            }
+            this.setJointTranslation(newTargetPosLocal);
 
             this.previousRoomControllerPosition = roomControllerPosition;
         };
@@ -254,9 +326,15 @@ Script.include("/~/system/libraries/controllers.js");
             }));
             unhighlightTargetEntity(this.targetEntityID);
             this.grabbing = false;
-            this.targetEntityID = null;
             this.potentialEntityWithContextOverlay = false;
             MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);
+            this.initialEntityRotation = Quat.IDENTITY;
+            this.initialControllerRotation = Quat.IDENTITY;
+            this.targetEntityID = null;
+            this.manipulating = false;
+            this.wasManipulating = false;
+            var otherModule = this.getOtherModule();
+            otherModule.disabled = false;
         };
 
         this.updateRecommendedArea = function() {
@@ -326,7 +404,9 @@ Script.include("/~/system/libraries/controllers.js");
 
                 this.distanceHolding = false;
 
-                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE && !this.disabled) {
+                    var otherModule = this.getOtherModule();
+                    otherModule.disabled = true;
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
@@ -336,6 +416,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
+            this.leftTrigger = controllerData.triggerValues[LEFT_HAND];
+            this.rightTrigger = controllerData.triggerValues[RIGHT_HAND];
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);
