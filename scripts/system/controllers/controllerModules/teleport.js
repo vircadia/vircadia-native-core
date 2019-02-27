@@ -847,8 +847,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.disableLasers = function() {
-            _this.setPlayAreaVisible(false, null, true);
-            _this.setTeleportVisible(false, null, true);
+            _this.setPlayAreaVisible(false, null, false);
+            _this.setTeleportVisible(false, null, false);
             Pointers.disablePointer(_this.teleportParabolaHandVisuals);
             Pointers.disablePointer(_this.teleportParabolaHandCollisions);
             Pointers.disablePointer(_this.teleportParabolaHeadVisuals);
