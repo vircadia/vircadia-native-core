@@ -13,6 +13,7 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import stylesUit 1.0
 
+import stylesUit 1.0
 import TabletScriptingInterface 1.0
 
 Rectangle {
@@ -34,8 +35,8 @@ Rectangle {
     property bool standalone: false;
     property var dragTarget: null;
 
-    width: 240;
-    height: 50;
+    width: 44;
+    height: 44;
 
     radius: 5;
 
@@ -48,8 +49,8 @@ Rectangle {
     // borders are painted over fill, so reduce the fill to fit inside the border
     Rectangle {
         color: standalone ? colors.fill : "#00000000";
-        width: 236;
-        height: 46;
+        width: 40;
+        height: 40;
 
         radius: 5;
 
@@ -98,7 +99,7 @@ Rectangle {
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: AudioScriptingInterface.muted ? muted : unmuted;
+        readonly property string icon: muted ? muted : unmuted;
     }
 
     Item {
@@ -106,7 +107,6 @@ Rectangle {
 
         anchors {
             left: parent.left;
-            leftMargin: 5;
             verticalCenter: parent.verticalCenter;
         }
 
@@ -125,11 +125,11 @@ Rectangle {
                 source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : 
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
 
-                width: 30;
-                height: 30;
+                width: 21;
+                height: 24;
                 anchors {
                     left: parent.left;
-                    leftMargin: 5;
+                    leftMargin: 7;
                     top: parent.top;
                     topMargin: 5;
                 }
@@ -146,20 +146,20 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: muted ? colors.muted : colors.unmuted;
+        readonly property string color: colors.muted;
 
         visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
-            leftMargin: 50;
-            verticalCenter: parent.verticalCenter;
+            top: parent.bottom
+            topMargin: 5
         }
 
-        width: 170;
+        width: icon.width;
         height: 8
 
-        Text {
+        RalewaySemiBold {
             anchors {
                 horizontalCenter: parent.horizontalCenter;
                 verticalCenter: parent.verticalCenter;
@@ -197,11 +197,14 @@ Rectangle {
     Item {
         id: bar;
 
-        visible: !status.visible;
+        anchors {
+            right: parent.right;
+            rightMargin: 7;
+            verticalCenter: parent.verticalCenter;
+        }
 
-        anchors.fill: status;
-
-        width: status.width;
+        width: 8;
+        height: 32;
 
         Rectangle { // base
             radius: 4;
@@ -211,13 +214,12 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
-            width: gated ? 0 : parent.width * level;
+            height: parent.height * level;
+            width: parent.width;
             radius: 5;
             anchors {
                 bottom: parent.bottom;
                 bottomMargin: 0;
-                top: parent.top;
-                topMargin: 0;
                 left: parent.left;
                 leftMargin: 0;
             }
@@ -227,10 +229,11 @@ Rectangle {
             anchors { fill: mask }
             source: mask
             start: Qt.point(0, 0);
-            end: Qt.point(170, 0);
+            end: Qt.point(0, bar.height);
+            rotation: 180
             gradient: Gradient {
                 GradientStop {
-                    position: 0;
+                    position: 0.0;
                     color: colors.greenStart;
                 }
                 GradientStop {
@@ -238,8 +241,8 @@ Rectangle {
                     color: colors.greenEnd;
                 }
                 GradientStop {
-                    position: 1;
-                    color: colors.yellow;
+                    position: 1.0;
+                    color: colors.red;
                 }
             }
         }
