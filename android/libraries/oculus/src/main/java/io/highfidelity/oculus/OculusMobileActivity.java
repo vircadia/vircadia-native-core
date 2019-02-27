@@ -39,18 +39,13 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private SurfaceHolder mSurfaceHolder;
 
     public void onCreate(Bundle savedInstanceState) {
-        if(this.getIntent().hasExtra("applicationArguments")){
-            System.out.println("QQQ_ OculusMobileActivity has arguments");
-            System.out.println("QQQ_ "+ this.getIntent().getStringExtra("applicationArguments"));
 
+        if(getIntent().hasExtra("applicationArguments")){
+            super.APPLICATION_PARAMETERS=getIntent().getStringExtra("applicationArguments");
         }
-        else{
-            System.out.println("QQQ_ OculusMobileActivity has NO arguments");
-        }
-
-
 
         super.onCreate(savedInstanceState);
+
 
         Log.w(TAG, "QQQ onCreate");
         // Create a native surface for VR rendering (Qt GL surfaces are not suitable

@@ -14,14 +14,6 @@ public class InterfaceActivity extends OculusMobileActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        if(this.getIntent().hasExtra("applicationArguments")){
-            System.out.println("QQQ_ InterfaceActivity: args EXISTS");
-            System.out.println("QQQ_ "+ this.getIntent().getStringExtra("applicationArguments"));
-        }
-        else{
-            System.out.println("QQQ_ InterfaceActivity: NO argmument");
-        }
-
         HifiUtils.upackAssets(getAssets(), getCacheDir().getAbsolutePath());
         super.onCreate(savedInstanceState);
     }
