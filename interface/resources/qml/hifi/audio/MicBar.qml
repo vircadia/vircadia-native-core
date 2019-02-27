@@ -13,7 +13,6 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 import stylesUit 1.0
 
-import stylesUit 1.0
 import TabletScriptingInterface 1.0
 
 Rectangle {
@@ -31,12 +30,12 @@ Rectangle {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
     }
-
+        
     property bool standalone: false;
     property var dragTarget: null;
 
-    width: 44;
-    height: 44;
+    width: 240;
+    height: 50;
 
     radius: 5;
 
@@ -49,8 +48,8 @@ Rectangle {
     // borders are painted over fill, so reduce the fill to fit inside the border
     Rectangle {
         color: standalone ? colors.fill : "#00000000";
-        width: 40;
-        height: 40;
+        width: 236;
+        height: 46;
 
         radius: 5;
 
@@ -107,6 +106,7 @@ Rectangle {
 
         anchors {
             left: parent.left;
+            leftMargin: 5;
             verticalCenter: parent.verticalCenter;
         }
 
@@ -125,11 +125,11 @@ Rectangle {
                 source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : 
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
 
-                width: 21;
-                height: 24;
+                width: 30;
+                height: 30;
                 anchors {
                     left: parent.left;
-                    leftMargin: 7;
+                    leftMargin: 5;
                     top: parent.top;
                     topMargin: 5;
                 }
@@ -146,20 +146,20 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: colors.muted;
+        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
 
         visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
-            top: parent.bottom
-            topMargin: 5
+            leftMargin: 50;
+            verticalCenter: parent.verticalCenter;
         }
 
-        width: icon.width;
+        width: 170;
         height: 8
 
-        RalewaySemiBold {
+        Text {
             anchors {
                 horizontalCenter: parent.horizontalCenter;
                 verticalCenter: parent.verticalCenter;
@@ -197,14 +197,11 @@ Rectangle {
     Item {
         id: bar;
 
-        anchors {
-            right: parent.right;
-            rightMargin: 7;
-            verticalCenter: parent.verticalCenter;
-        }
+        visible: !status.visible;
 
-        width: 8;
-        height: 32;
+        anchors.fill: status;
+
+        width: status.width;
 
         Rectangle { // base
             radius: 4;
@@ -214,12 +211,13 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
-            height: parent.height * level;
-            width: parent.width;
+            width: gated ? 0 : parent.width * level;
             radius: 5;
             anchors {
                 bottom: parent.bottom;
                 bottomMargin: 0;
+                top: parent.top;
+                topMargin: 0;
                 left: parent.left;
                 leftMargin: 0;
             }
@@ -229,11 +227,10 @@ Rectangle {
             anchors { fill: mask }
             source: mask
             start: Qt.point(0, 0);
-            end: Qt.point(0, bar.height);
-            rotation: 180
+            end: Qt.point(170, 0);
             gradient: Gradient {
                 GradientStop {
-                    position: 0.0;
+                    position: 0;
                     color: colors.greenStart;
                 }
                 GradientStop {
@@ -241,17 +238,17 @@ Rectangle {
                     color: colors.greenEnd;
                 }
                 GradientStop {
-                    position: 1.0;
-                    color: colors.red;
+                    position: 1;
+                    color: colors.yellow;
                 }
             }
         }
-
+        
         Rectangle {
             id: gatedIndicator;
             visible: gated && !AudioScriptingInterface.clipping
-
-            radius: 4;
+            
+            radius: 4;     
             width: 2 * radius;
             height: 2 * radius;
             color: "#0080FF";
@@ -260,12 +257,12 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
         }
-
+        
         Rectangle {
             id: clippingIndicator;
             visible: AudioScriptingInterface.clipping
-
-            radius: 4;
+            
+            radius: 4;     
             width: 2 * radius;
             height: 2 * radius;
             color: colors.red;
