@@ -732,6 +732,7 @@ private:
     bool _failedToConnectToEntityServer { false };
 
     bool _reticleClickPressed { false };
+    bool _keyboardFocusWaitingOnRenderable { false };
 
     int _avatarAttachmentRequest = 0;
 
