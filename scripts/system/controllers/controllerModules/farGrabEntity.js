@@ -48,7 +48,6 @@ Script.include("/~/system/libraries/controllers.js");
     }
 
     function FarGrabEntity(hand) {
-        var _this = this;
         this.hand = hand;
         this.grabbing = false;
         this.targetEntityID = null;
@@ -63,6 +62,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMaxY = 0;
         this.endedGrab = 0;
         this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
+        this.disabled = false;
+        var _this = this;
+        this.leftTrigger = 0.0;
+        this.rightTrigger = 0.0;
+        this.initialControllerRotation = Quat.IDENTITY;
+        this.currentControllerRotation = Quat.IDENTITY;
+        this.manipulating = false;
+        this.wasManipulating = false;
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -78,6 +85,46 @@ Script.include("/~/system/libraries/controllers.js");
             100,
             makeLaserParams(this.hand, false));
 
+        //enableDispatcherModule("LeftFarGrabEntity", leftFarGrabEntity);
+        //enableDispatcherModule("RightFarGrabEntity", rightFarGrabEntity);
+
+        this.getOtherModule = function () {
+            // Used to fetch other module.
+            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("LeftFarGrabEntity") : ("RightFarGrabEntity"));
+        };
+
+        this.getTargetRotation = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["rotation"]);
+                return props.rotation;
+            }
+        };
+
+        this.getOffhand = function () {
+            return (this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND);
+        }
+
+        this.getOffhandTrigger = function () {
+            return (_this.hand === RIGHT_HAND ? _this.leftTrigger : _this.rightTrigger);
+        }
+
+        this.shouldManipulateTarget = function () {
+            return (_this.getOffhandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        };
+
+        this.calculateEntityRotationManipulation = function (controllerRotation) {
+            return Quat.multiply(controllerRotation, Quat.inverse(this.initialControllerRotation));
+        };
+
+        this.setJointTranslation = function (newTargetPosLocal) {
+            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+        };
+
+        this.setJointRotation = function (newTargetRotLocal) {
+            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], newTargetRotLocal);
+        };
 
         this.handToController = function () {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -111,7 +158,6 @@ Script.include("/~/system/libraries/controllers.js");
             this.currentObjectPosition = targetProps.position;
             this.currentObjectRotation = targetProps.rotation;
             this.currentObjectTime = now;
-            //this.initialEntityRotation = targetProps.rotation;          // World frame.
 
             this.grabRadius = this.grabbedDistance;
             this.grabRadialVelocity = 0.0;
@@ -145,10 +191,8 @@ Script.include("/~/system/libraries/controllers.js");
 
             Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
 
-            //MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-
-            var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);       // World frame.
-            var newTargetRotLocal = targetProps.rotation;                                   // World frame.
+            var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);
+            var newTargetRotLocal = targetProps.rotation;
             this.setJointTranslation(newTargetPosLocal);
             this.setJointRotation(newTargetRotLocal);
 
@@ -234,18 +278,23 @@ Script.include("/~/system/libraries/controllers.js");
             newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
             newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
 
-            // MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], MyAvatar.worldToJointPoint(newTargetPosition));
-
-            // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
+
+            // This block handles the user's ability to rotate the object they're FarGrabbing
             if (this.shouldManipulateTarget()) {
-                var pose = Controller.getPoseValue((this.getDominantHand() ? Controller.Standard.LeftHand : Controller.Standard.RightHand));
+                // Get the pose of the controller that is not grabbing.
+                var pose = Controller.getPoseValue((this.getOffhand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
                 if (pose.valid) {
+                    // If we weren't manipulating the object yet, initialize the entity's original position.
                     if (!this.manipulating) {
+                        // This will only be triggered if we've let go of the off-hand trigger and pulled it again without ending a grab.
+                        // Need to poll the entity's rotation again here.
                         if (!this.wasManipulating) {
-                            this.initialEntityRotation = this.getTargetRotation();                                                              // Worldframe.
+                            this.initialEntityRotation = this.getTargetRotation();
                         }
-                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);                                // Worldframe.
+                        // Save the original controller orientation, we only care about the delta between this rotation and wherever
+                        // the controller rotates, so that we can apply it to the entity's rotation.
+                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);
                         this.manipulating = true;
                     }
                 }
@@ -292,6 +341,8 @@ Script.include("/~/system/libraries/controllers.js");
             this.targetEntityID = null;
             this.manipulating = false;
             this.wasManipulating = false;
+            var otherModule = this.getOtherModule();
+            otherModule.disabled = false;
         };
 
         this.updateRecommendedArea = function () {
@@ -353,148 +404,17 @@ Script.include("/~/system/libraries/controllers.js");
             return null;
         };
 
-        var mappingName = "FarGrab-Mapping-" + Math.random();
-        var grabMapping;
-
-        this.setup = function () {
-            grabMapping = Controller.newMapping(mappingName);
-            grabMapping.from(Controller.Standard.LT).peek().to(_this.getLeftTrigger);
-            grabMapping.from(Controller.Standard.RT).peek().to(_this.getRightTrigger);
-            Controller.enableMapping(mappingName);
-        };
-
-        this.cleanup = function () {
-            grabMapping.disable();
-        };
-
-        this.initialControllerRotation = Quat.IDENTITY;
-        this.initialEntityRotation = Quat.IDENTITY;
-        this.manipulating = false;
-        this.wasManipulating = false;
-
-        this.leftTrigger = 0.0;
-        this.rightTrigger = 0.0;
-
-        this.getDominantHand = function () {
-            return (MyAvatar.getDominantHand() === "left") ? LEFT_HAND : RIGHT_HAND;
-        };
-
-        this.getOffHand = function () {
-            return (MyAvatar.getDominantHand() === "left") ? RIGHT_HAND : LEFT_HAND;
-        };
-
-        this.getLeftTrigger = function (value) {
-            _this.leftTrigger = value;
-        };
-
-        this.getRightTrigger = function (value) {
-            _this.rightTrigger = value;
-        };
-
-        this.getDominantTrigger = function () {
-            return (MyAvatar.getDominantHand() === "left") ? (_this.leftTrigger) : (_this.rightTrigger);
-        };
-
-        this.getOffHandTrigger = function () {
-            return (MyAvatar.getDominantHand() === "left") ? (_this.rightTrigger) : (_this.leftTrigger);
-        };
-
-        this.shouldShowLaser = function () {
-            return (_this.getDominantTrigger() > TRIGGER_ON_VALUE) ? true : false;
-        };
-
-        this.shouldGrab = function () {
-            return (_this.getDominantTrigger() > TRIGGER_ON_VALUE && _this.getOffHandTrigger() > TRIGGER_ON_VALUE) ? true : false;
-        };
-
-        this.shouldCancel = function () {
-            // Kill condition : Off hand is <= 15% trigger pull.
-            return (_this.getDominantTrigger() <= TRIGGER_OFF_VALUE) ? true : false;
-        };
-
-        this.shouldManipulateTarget = function () {
-            return (_this.getOffHandTrigger() > TRIGGER_ON_VALUE) ? true : false;
-        };
-
-
-        this.getTargetPosition = function () {
-            if (this.targetIsNull()) {
-                return null;
-            } else {
-                var props = Entities.getEntityProperties(this.targetEntityID, ["position"]);
-                return props.position;
-            }
-        };
-
-        this.getTargetRotation = function () {
-            if (this.targetIsNull()) {
-                return null;
-            } else {
-                var props = Entities.getEntityProperties(this.targetEntityID, ["rotation"]);
-                return props.rotation;
-            }
-        };
-
-        this.getTargetLocalPosition = function () {
-            if (this.targetIsNull()) {
-                return null;
-            } else {
-                var props = Entities.getEntityProperties(this.targetEntityID, ["localPosition"]);
-                return props.localPosition;
-            }
-        };
-        
-        this.getTargetLocalRotation = function () {
-            if (this.targetIsNull()) {
-                return null;
-            } else {
-                var props = Entities.getEntityProperties(this.targetEntityID, ["localRotation"]);
-                return props.localRotation;
-            }
-        };
-
-        this.setTargetPosition = function (newPos) {
-            if (this.targetIsNull()) {
-                print("Fargrab Error: No target to edit position.");
-                return;
-            } else {
-                var props = { position: newPos };
-                Entities.editEntity(this.targetEntityID, props);
-            }
-        };
-
-        this.setTargetRotation = function (newRot) {
-            if (this.targetIsNull()) {
-                print("Fargrab Error: No target to edit rotation.");
-                return;
-            } else {
-                var props = { rotation: newRot };
-                Entities.editEntity(this.targetEntityID, props);
-            }
-        };
-
-        this.calculateEntityRotationManipulation = function (controllerRotation) {
-            return Quat.multiply(controllerRotation, Quat.inverse(this.initialControllerRotation));
-        };
-
-        this.setJointTranslation = function (newTargetPosLocal) {
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-        };
-
-        this.setJointRotation = function (newTargetRotLocal) {
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], newTargetRotLocal);
-        };
-
         this.isReady = function (controllerData) {
-            if (HMD.active && this.hand === this.getDominantHand()) {
+            if (HMD.active) {
                 if (this.notPointingAtEntity(controllerData)) {
                     return makeRunningValues(false, [], []);
                 }
 
                 this.distanceHolding = false;
 
-                //if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                if (this.shouldShowLaser()) {
+                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE && !this.disabled) {
+                    var otherModule = this.getOtherModule();
+                    otherModule.disabled = true;
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
@@ -504,8 +424,9 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            //if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
-            if (this.shouldCancel() || this.targetIsNull()) {
+            this.leftTrigger = controllerData.triggerValues[LEFT_HAND];
+            this.rightTrigger = controllerData.triggerValues[RIGHT_HAND];
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);
             }
@@ -552,7 +473,7 @@ Script.include("/~/system/libraries/controllers.js");
 
                 var rayPickInfo = controllerData.rayPicks[this.hand];
                 if (rayPickInfo.type === Picks.INTERSECTED_ENTITY) {
-                    if (this.shouldGrab()) {
+                    if (controllerData.triggerClicks[this.hand]) {
                         var entityID = rayPickInfo.objectID;
                         var targetProps = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                         if (targetProps.href !== "") {
@@ -654,15 +575,11 @@ Script.include("/~/system/libraries/controllers.js");
 
     var leftFarGrabEntity = new FarGrabEntity(LEFT_HAND);
     var rightFarGrabEntity = new FarGrabEntity(RIGHT_HAND);
-    leftFarGrabEntity.setup();
-    rightFarGrabEntity.setup();
 
     enableDispatcherModule("LeftFarGrabEntity", leftFarGrabEntity);
     enableDispatcherModule("RightFarGrabEntity", rightFarGrabEntity);
 
     function cleanup() {
-        leftFarGrabEntity.cleanup();
-        rightFarGrabEntity.cleanup();
         disableDispatcherModule("LeftFarGrabEntity");
         disableDispatcherModule("RightFarGrabEntity");
     }
