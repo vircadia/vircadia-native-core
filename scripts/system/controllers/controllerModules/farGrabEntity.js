@@ -88,7 +88,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.getOtherModule = function () {
             // Used to fetch other module.
-            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("RightFarGrabEntity") : ("LeftFarGrabEntity"));
+            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("LeftFarGrabEntity") : ("RightFarGrabEntity"));
         };
 
         this.getTargetRotation = function () {
@@ -105,7 +105,7 @@ Script.include("/~/system/libraries/controllers.js");
         }
 
         this.getOffhandTrigger = function () {
-            return (_this.hand === RIGHT_HAND ? _this.rightTrigger : _this.leftTrigger);
+            return (_this.hand === RIGHT_HAND ? _this.leftTrigger : _this.rightTrigger);
         }
 
         this.shouldManipulateTarget = function () {
