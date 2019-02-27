@@ -23,13 +23,15 @@ public class PermissionsChecker extends Activity {
     private static final String EXTRA_ARGS = "args";
     private String mArgs;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mArgs =(getIntent().getStringExtra(EXTRA_ARGS));
 
-        System.out.println("QQQ_ launched args: "+mArgs);
+        if(!TextUtils.isEmpty(mArgs)) {
+            System.out.println("Application launched with following args: " + mArgs);
+        }
+
         requestAppPermissions(REQUIRED_PERMISSIONS,REQUEST_PERMISSIONS);
     }
 

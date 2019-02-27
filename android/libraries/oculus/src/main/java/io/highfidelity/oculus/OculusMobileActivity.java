@@ -46,7 +46,6 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
         super.onCreate(savedInstanceState);
 
-
         Log.w(TAG, "QQQ onCreate");
         // Create a native surface for VR rendering (Qt GL surfaces are not suitable
         // because of the lack of fine control over the surface callbacks)
