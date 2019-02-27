@@ -16,10 +16,10 @@ Item {
     id: root;
     objectName: "AvatarInputsBar"
     property int modality: Qt.NonModal
+    readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled
     width: audio.width;
     height: audio.height;
     x: 10; y: 5;
-
     readonly property bool shouldReposition: true;
 
     HifiAudio.MicBarApplication {
@@ -40,11 +40,10 @@ Item {
         }
     }
     ColorOverlay {
+        id: bubbleIconOverlay
         anchors.fill: bubbleIcon
         source: bubbleIcon
-        color: Users.getIgnoreRadiusEnabled() ? Qt.rgba(31, 198, 166, 0.3) : Qt.rgba(255, 255, 255, 0.3);
-        onColorChanged: {
-            console.log("colorChanged")
-        }
+        color: AvatarInputs.ignoreRadiusEnabled ? "#1FC6A6" : "#FFFFFF";
+        opacity: 0.7
     }
 }

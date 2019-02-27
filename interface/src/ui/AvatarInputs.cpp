@@ -30,6 +30,8 @@ AvatarInputs* AvatarInputs::getInstance() {
 
 AvatarInputs::AvatarInputs(QObject* parent) : QObject(parent) {
     _showAudioTools = showAudioToolsSetting.get();
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &AvatarInputs::ignoreRadiusEnabledChanged);
 }
 
 #define AI_UPDATE(name, src) \
@@ -81,6 +83,10 @@ void AvatarInputs::setShowAudioTools(bool showAudioTools) {
     _showAudioTools = showAudioTools;
     showAudioToolsSetting.set(_showAudioTools);
     emit showAudioToolsChanged(_showAudioTools);
+}
+
+bool AvatarInputs::getIgnoreRadiusEnabled() const {
+    return DependencyManager::get<NodeList>()->getIgnoreRadiusEnabled();
 }
 
 void AvatarInputs::toggleCameraMute() {
