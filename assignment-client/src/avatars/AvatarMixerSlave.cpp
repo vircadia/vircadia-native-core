@@ -307,25 +307,6 @@ namespace {
 
 }  // Close anonymous namespace.
 
-//// Specialize computePriority() for avatars:
-//namespace PrioritySortUtil {
-//template<> float PriorityQueue<SortableAvatar>::computePriority(const SortableAvatar& thing) const {
-//    static constexpr float AVATAR_HERO_BONUS { 25.0f };  // Higher than any normal priority.
-//
-//    float priority = std::numeric_limits<float>::min();
-//
-//    for (const auto& view : _views) {
-//        priority = std::max(priority, computePriority(view, thing));
-//    }
-//
-//    if (thing.getAvatar()->getPriorityAvatar()) {
-//        priority += AVATAR_HERO_BONUS;
-//    }
-//
-//    return priority;
-//}
-//}
-
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
     const float AVATAR_HERO_FRACTION { 0.4f };
     const Node* destinationNode = node.data();
@@ -392,17 +373,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     using AvatarPriorityQueue = PrioritySortUtil::PriorityQueue<SortableAvatar>;
     // Keep two independent queues, one for heroes and one for the riff-raff.
     enum PriorityVariants { kHero, kNonhero };
-    AvatarPriorityQueue avatarPriorityQueues[2] = { {cameraViews,
-        AvatarData::_avatarSortCoefficientSize, AvatarData::_avatarSortCoefficientCenter, AvatarData::_avatarSortCoefficientAge},
-        {cameraViews,
-        AvatarData::_avatarSortCoefficientSize, AvatarData::_avatarSortCoefficientCenter, AvatarData::_avatarSortCoefficientAge}
+    AvatarPriorityQueue avatarPriorityQueues[2] =
+    {
+        {cameraViews, AvatarData::_avatarSortCoefficientSize, 
+            AvatarData::_avatarSortCoefficientCenter, AvatarData::_avatarSortCoefficientAge},
+        {cameraViews, AvatarData::_avatarSortCoefficientSize,
+            AvatarData::_avatarSortCoefficientCenter, AvatarData::_avatarSortCoefficientAge}
     };
-
-    //PrioritySortUtil::PriorityQueue<SortableAvatar> sortedAvatars(cameraViews,
-    //        AvatarData::_avatarSortCoefficientSize,
-    //        AvatarData::_avatarSortCoefficientCenter,
-    //        AvatarData::_avatarSortCoefficientAge);
-    //sortedAvatars.reserve(_end - _begin);
 
     avatarPriorityQueues[kNonhero].reserve(_end - _begin);
 

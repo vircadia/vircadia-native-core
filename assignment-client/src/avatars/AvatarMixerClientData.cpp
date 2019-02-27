@@ -145,9 +145,9 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         FindPriorityZone findPriorityZone { newPosition, false } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
         _avatar->setPriorityAvatar(findPriorityZone.isInPriorityZone);
-        if (findPriorityZone.isInPriorityZone) {
-            qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
-        }
+        //if (findPriorityZone.isInPriorityZone) {
+        //    qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
+        //}
 #endif
     }
 
