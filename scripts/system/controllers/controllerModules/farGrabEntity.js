@@ -252,7 +252,8 @@ Script.include("/~/system/libraries/controllers.js");
 
                 var rot = Quat.multiply(pose.rotation, MyAvatar.orientation);
                 var rotBetween = this.calculateEntityRotationManipulation(rot);
-                this.lastJointRotation = Quat.multiply(rotBetween, this.initialEntityRotation);
+                var doubleRot = Quat.multiply(rotBetween, rotBetween);
+                this.lastJointRotation = Quat.multiply(doubleRot, this.initialEntityRotation);
                 this.setJointRotation(this.lastJointRotation);
             } else {
                 if (this.manipulating) {
@@ -359,8 +360,6 @@ Script.include("/~/system/libraries/controllers.js");
             grabMapping = Controller.newMapping(mappingName);
             grabMapping.from(Controller.Standard.LT).peek().to(_this.getLeftTrigger);
             grabMapping.from(Controller.Standard.RT).peek().to(_this.getRightTrigger);
-            grabMapping.from(Controller.Standard.LeftGrip).peek().to(_this.setLeftGrip);
-            grabMapping.from(Controller.Standard.RightGrip).peek().to(_this.setRightGrip);
             Controller.enableMapping(mappingName);
         };
 
@@ -375,8 +374,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.leftTrigger = 0.0;
         this.rightTrigger = 0.0;
-        this.leftGrip = 0.0;
-        this.rightGrip = 0.0;
 
         this.getDominantHand = function () {
             return (MyAvatar.getDominantHand() === "left") ? LEFT_HAND : RIGHT_HAND;
@@ -400,22 +397,6 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.getOffHandTrigger = function () {
             return (MyAvatar.getDominantHand() === "left") ? (_this.rightTrigger) : (_this.leftTrigger);
-        };
-
-        this.setLeftGrip = function (value) {
-            this.leftGrip = value;
-        };
-
-        this.setRightGrip = function (value) {
-            this.rightGrip = value;
-        };
-
-        this.getDominantGrip = function () {
-            return (MyAvatar.getDominantHand() === "left" ? (_this.leftGrip) : (_this.rightGrip));
-        };
-
-        this.getOffhandGrip = function () {
-            return (MyAvatar.getDominantHand() === "left" ? (_this.rightGrip) : (_this.leftGrip));
         };
 
         this.shouldShowLaser = function () {
