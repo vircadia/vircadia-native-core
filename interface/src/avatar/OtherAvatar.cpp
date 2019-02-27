@@ -365,7 +365,7 @@ void OtherAvatar::handleChangedAvatarEntityData() {
     // AVATAR ENTITY UPDATE FLOW
     // - if queueEditEntityMessage() sees "AvatarEntity" HostType it calls _myAvatar->storeAvatarEntityDataPayload()
     // - storeAvatarEntityDataPayload() saves the payload and flags the trait instance for the entity as updated,
-    // - ClientTraitsHandler::sendChangedTraitsToMixea() sends the entity bytes to the mixer which relays them to other interfaces
+    // - ClientTraitsHandler::sendChangedTraitsToMixer() sends the entity bytes to the mixer which relays them to other interfaces
     // - AvatarHashMap::processBulkAvatarTraits() on other interfaces calls avatar->processTraitInstance()
     // - AvatarData::processTraitInstance() calls storeAvatarEntityDataPayload(), which sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate() calls handleChangedAvatarEntityData() every frame which checks _avatarEntityDataChanged
