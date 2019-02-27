@@ -1446,6 +1446,34 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _overlays.init(); // do this before scripts load
     DependencyManager::set<ContextOverlayInterface>();
 
+    auto offscreenUi = getOffscreenUI();
+    connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
+        // Now that we've loaded the menu and thus switched to the previous display plugin
+        // we can unlock the desktop repositioning code, since all the positions will be
+        // relative to the desktop size for this plugin
+        auto offscreenUi = getOffscreenUI();
+        auto desktop = offscreenUi->getDesktop();
+        if (desktop) {
+            desktop->setProperty("repositionLocked", false);
+        }
+    });
+
+    connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
+#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
+        // Do not show login dialog if requested not to on the command line
+        QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
+        int index = arguments().indexOf(hifiNoLoginCommandLineKey);
+        if (index != -1) {
+            resumeAfterLoginDialogActionTaken();
+            return;
+        }
+
+        showLoginScreen();
+#else
+        resumeAfterLoginDialogActionTaken();
+#endif
+    });
+
     // Initialize the user interface and menu system
     // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
@@ -1790,34 +1818,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     loadSettings();
 
     updateVerboseLogging();
-
-    // Now that we've loaded the menu and thus switched to the previous display plugin
-    // we can unlock the desktop repositioning code, since all the positions will be
-    // relative to the desktop size for this plugin
-    auto offscreenUi = getOffscreenUI();
-    connect(offscreenUi.data(), &OffscreenUi::desktopReady, []() {
-        auto offscreenUi = getOffscreenUI();
-        auto desktop = offscreenUi->getDesktop();
-        if (desktop) {
-            desktop->setProperty("repositionLocked", false);
-        }
-    });
-
-    connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
-#if !defined(Q_OS_ANDROID) && !defined(DISABLE_QML)
-        // Do not show login dialog if requested not to on the command line
-        QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
-        int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
-            resumeAfterLoginDialogActionTaken();
-            return;
-        }
-
-        showLoginScreen();
-#else
-        resumeAfterLoginDialogActionTaken();
-#endif
-    });
 
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
