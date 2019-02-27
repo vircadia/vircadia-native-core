@@ -106,9 +106,8 @@ void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObjec
     QJsonObject assignmentStats;
     assignmentStats["numQueuedCheckIns"] = _numQueuedCheckIns;
 
-    assignmentStats["globalPostedEventCount"] = (long long)nodeList->getGlobalPostedEventCount();
+    assignmentStats["globalPostedEventCount"] = nodeList->getGlobalPostedEventCount();
 
-    assignmentStats["domainReportDuration"] = domainServerReportPerSec.count();
     statsObject["assignmentStats"] = assignmentStats;
 
     nodeList->sendStatsToDomainServer(statsObject);
