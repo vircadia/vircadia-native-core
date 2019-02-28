@@ -54,8 +54,8 @@ Rectangle {
     }
 
     onLevelChanged: {
-        var rectOpacity = AudioScriptingInterface.muted && (level >= userSpeakingLevel)? 0.9 : 0.3;
-        if (mouseArea.containsMouse) {
+        var rectOpacity = muted && (level >= userSpeakingLevel) ? 0.9 : 0.3;
+        if (mouseArea.containsMouse && rectOpacity != 0.9) {
             rectOpacity = 0.5;
         }
         opacity = rectOpacity;
