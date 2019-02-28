@@ -318,7 +318,7 @@ public:
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
 
-    size_t getMaxConnectionRate() { return _maxConnectionRate; }
+    size_t getMaxConnectionRate() const { return _maxConnectionRate; }
     void setMaxConnectionRate(size_t rate) { _maxConnectionRate = rate; }
 
     int getInboundPPS() const { return _inboundPPS; }
