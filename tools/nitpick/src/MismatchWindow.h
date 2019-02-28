@@ -25,7 +25,9 @@ public:
     UserResponse getUserResponse() { return _userResponse; }
 
     QPixmap computeDiffPixmap(QImage expectedImage, QImage resultImage);
+
     QPixmap getComparisonImage();
+    QPixmap getSSIMResultsImage(SSIMResults* ssimResults);
 
 private slots:
     void on_passTestButton_clicked();

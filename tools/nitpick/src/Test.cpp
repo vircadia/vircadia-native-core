@@ -100,12 +100,14 @@ int Test::compareImageLists() {
         };
 
         _mismatchWindow.setTestResult(testResult);
+        
+        QPixmap ssimResultsPixMap = _mismatchWindow.getSSIMResultsImage(_imageComparer.getSSIMResults());
 
         if (similarityIndex < THRESHOLD) {
             ++numberOfFailures;
 
             if (!isInteractiveMode) {
-                appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), true);
+                appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), ssimResultsPixMap, true);
             } else {
                 _mismatchWindow.exec();
 
@@ -113,7 +115,7 @@ int Test::compareImageLists() {
                     case USER_RESPONSE_PASS:
                         break;
                     case USE_RESPONSE_FAIL:
-                        appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), true);
+                        appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), ssimResultsPixMap, true);
                         break;
                     case USER_RESPONSE_ABORT:
                         keepOn = false;
@@ -124,7 +126,7 @@ int Test::compareImageLists() {
                 }
             }
         } else {
-            appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), false);
+            appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), ssimResultsPixMap, false);
         }
 
         _progressBar->setValue(i);
@@ -156,7 +158,7 @@ int Test::checkTextResults() {
     return testsFailed.length();
 }
 
-void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImage, bool hasFailed) {
+void Test::appendTestResultsToFile(const TestResult& testResult, const QPixmap& comparisonImage, const QPixmap& ssimResultsImage, bool hasFailed) {
     // Critical error if Test Results folder does not exist
     if (!QDir().exists(_testResultsFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + _testResultsFolderPath + " not found");
@@ -211,6 +213,14 @@ void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImag
 
     sourceFile = testResult._pathname + testResult._actualImageFilename;
     destinationFile = resultFolderPath + "/" + "Actual Image.png";
+    if (!QFile::copy(sourceFile, destinationFile)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
+        exit(-1);
+    }
+
+    // Create the SSIM results image
+    sourceFile = testResult._pathname + testResult._actualImageFilename;
+    destinationFile = resultFolderPath + "/" + "SSIM results.png";
     if (!QFile::copy(sourceFile, destinationFile)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to copy " + sourceFile + " to " + destinationFile);
         exit(-1);

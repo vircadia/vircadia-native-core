@@ -12,9 +12,17 @@
 
 #include <cmath>
 
+ImageComparer::ImageComparer() {
+    _ssimResults = new SSIMResults();
+}
+
+ImageComparer::~ImageComparer() {
+    delete _ssimResults;
+}
+
 // Computes SSIM - see https://en.wikipedia.org/wiki/Structural_similarity
 // The value is computed for the luminance component and the average value is returned
-double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) const {
+double ImageComparer::compareImages(const QImage& resultImage, const QImage& expectedImage) const {
     const int L = 255; // (2^number of bits per pixel) - 1
 
     const double K1 { 0.01 };
@@ -96,6 +104,7 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
             double numerator = (2.0 * mP * mQ + c1) * (2.0 * sigPQ + c2);
             double denominator = (mP * mP + mQ * mQ + c1) * (sigsqP + sigsqQ + c2);
 
+            _ssimResults->results.push_back(numerator / denominator);
             ssim += numerator / denominator;
             ++windowCounter;
 
@@ -106,5 +115,12 @@ double ImageComparer::compareImages(QImage resultImage, QImage expectedImage) co
         y = 0;
     }
 
+    _ssimResults->width = (int)(expectedImage.width() / WIN_SIZE);
+    _ssimResults->height = (int)(expectedImage.height() / WIN_SIZE);
+
     return ssim / windowCounter;
 };
+
+SSIMResults* ImageComparer::getSSIMResults() {
+    return _ssimResults;
+}

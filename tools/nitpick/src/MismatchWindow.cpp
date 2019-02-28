@@ -99,3 +99,35 @@ void MismatchWindow::on_abortTestsButton_clicked() {
 QPixmap MismatchWindow::getComparisonImage() {
     return _diffPixmap;
 }
+
+QPixmap MismatchWindow::getSSIMResultsImage(SSIMResults* ssimResults) {
+    // This is an optimization, as QImage.setPixel() is embarrassingly slow
+    const int ELEMENT_SIZE { 8 };
+    unsigned char* buffer = new unsigned char[(ssimResults->height * ELEMENT_SIZE) * (ssimResults->width * ELEMENT_SIZE ) * 3];
+
+
+    // loop over each SSIM result (a double in [-1.0 .. 1.0]
+    int i { 0 };
+    for (int y = 0; y < ssimResults->height; ++y) {
+        for (int x = 0; x < ssimResults->width; ++x) {
+            ////QRgb pixelP = expectedImage.pixel(QPoint(x, y));
+
+            ////// Convert to luminance
+            ////double p = R_Y * qRed(pixelP) + G_Y * qGreen(pixelP) + B_Y * qBlue(pixelP);
+
+            ////// The intensity value is modified to increase the brightness of the displayed image
+            ////double absoluteDifference = fabs(p - q) / 255.0;
+            ////double modifiedDifference = sqrt(absoluteDifference);
+
+            ////int difference = (int)(modifiedDifference * 255.0);
+
+            ////buffer[3 * (x + y * expectedImage.width()) + 0] = difference;
+            ////buffer[3 * (x + y * expectedImage.width()) + 1] = difference;
+            ////buffer[3 * (x + y * expectedImage.width()) + 2] = difference;
+
+            ++i;
+        }
+    }
+
+    return QPixmap();
+}

@@ -10,6 +10,7 @@
 #ifndef hifi_common_h
 #define hifi_common_h
 
+#include <vector>
 #include <QtCore/QString>
 
 class TestResult {
@@ -38,5 +39,12 @@ enum UserResponse {
 const double R_Y = 0.212655f;
 const double G_Y = 0.715158f;
 const double B_Y = 0.072187f;
+
+class SSIMResults {
+public:
+    int width;
+    int height;
+    std::vector<double> results;
+};
 
 #endif // hifi_common_h
