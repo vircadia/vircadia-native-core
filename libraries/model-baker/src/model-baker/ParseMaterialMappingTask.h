@@ -19,7 +19,7 @@
 
 class ParseMaterialMappingTask {
 public:
-    using Input = QVariantHash;
+    using Input = baker::VaryingSet2 <QUrl, QVariantHash>;
     using Output = MaterialMapping;
     using JobModel = baker::Job::ModelIO<ParseMaterialMappingTask, Input, Output>;
 
