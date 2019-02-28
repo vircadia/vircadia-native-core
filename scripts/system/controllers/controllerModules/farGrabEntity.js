@@ -83,14 +83,11 @@ Script.include("/~/system/libraries/controllers.js");
             100,
             makeLaserParams(this.hand, false));
 
-        //enableDispatcherModule("LeftFarGrabEntity", leftFarGrabEntity);
-        //enableDispatcherModule("RightFarGrabEntity", rightFarGrabEntity);
-
         this.getOtherModule = function () {
-            // Used to fetch other module.
             return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("LeftFarGrabEntity") : ("RightFarGrabEntity"));
         };
 
+        // Get the rotation of the fargrabbed entity.
         this.getTargetRotation = function () {
             if (this.targetIsNull()) {
                 return null;
@@ -108,10 +105,12 @@ Script.include("/~/system/libraries/controllers.js");
             return (_this.hand === RIGHT_HAND ? _this.leftTrigger : _this.rightTrigger);
         }
 
+        // Activation criteria for rotating a fargrabbed entity. If we're changing the mapping, this is where to do it.
         this.shouldManipulateTarget = function () {
             return (_this.getOffhandTrigger() > TRIGGER_ON_VALUE) ? true : false;
         };
 
+        // Get the delta between the current rotation and where the controller was when manipulation started.
         this.calculateEntityRotationManipulation = function (controllerRotation) {
             return Quat.multiply(controllerRotation, Quat.inverse(this.initialControllerRotation));
         };
@@ -303,11 +302,14 @@ Script.include("/~/system/libraries/controllers.js");
                 this.lastJointRotation = Quat.multiply(doubleRot, this.initialEntityRotation);
                 this.setJointRotation(this.lastJointRotation);
             } else {
+                // If we were manipulating but the user isn't currently expressing this intent, we want to know so we preserve the rotation
+                // between manipulations without ending the fargrab.
                 if (this.manipulating) {
                     this.initialEntityRotation = this.lastJointRotation;
                     this.wasManipulating = true;
                 }
                 this.manipulating = false;
+                // Reset the inital controller position.
                 this.initialControllerRotation = Quat.IDENTITY;
             }
             this.setJointTranslation(newTargetPosLocal);
