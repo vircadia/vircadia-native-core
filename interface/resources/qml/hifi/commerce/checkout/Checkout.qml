@@ -41,8 +41,8 @@ Rectangle {
     property string itemAuthor;
     property int itemEdition: -1;
     property bool hasSomethingToTradeIn: alreadyOwned && (itemEdition > 0); // i.e., don't trade in your artist's proof
-    property bool isTradingIn: isUpdating && hasSomethingToTradeIn;
-    property bool isStocking: availability === 'not for sale' && creator === Account.username;
+    property bool isTradingIn: canUpdate && hasSomethingToTradeIn;
+    property bool isStocking: (availability === 'not for sale') && (creator === Account.username) && ;
     property string certificateId;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false; // Including proofs
@@ -59,7 +59,7 @@ Rectangle {
     property bool canRezCertifiedItems: Entities.canRezCertified() || Entities.canRezTmpCertified();
     property string referrer;
     property bool isInstalled;
-    property bool isUpdating;
+    property bool canUpdate;
     property string availability: "available";
     property string creator: "";
     property string baseAppURL;
@@ -144,6 +144,7 @@ Rectangle {
         }
 
         onAvailableUpdatesResult: {
+            // Answers the updatable original item cert data still owned by this user that are EITHER instances of this marketplace id, or update to this marketplace id.
             if (result.status !== 'success') {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
@@ -155,7 +156,7 @@ Rectangle {
                         if (root.itemEdition !== -1 && root.itemEdition !== parseInt(result.data.updates[i].edition_number)) {
                             continue;
                         }
-                        root.isUpdating = true;
+                        root.canUpdate = true;
                         root.baseItemName = result.data.updates[i].base_item_title;
                         // This CertID is the one corresponding to the base item CertID that the user already owns
                         root.certificateId = result.data.updates[i].certificate_id;
@@ -166,7 +167,7 @@ Rectangle {
                     }
                 }
 
-                if (result.data.updates.length === 0 || root.isUpdating) {
+                if (result.data.updates.length === 0 || root.canUpdate) {
                     root.availableUpdatesReceived = true;
                     refreshBuyUI();
                 } else {
@@ -264,13 +265,6 @@ Rectangle {
                     sendToScript(msg);
                 }
             }
-        }
-    }
-    MouseArea {
-        enabled: titleBarContainer.usernameDropdownVisible;
-        anchors.fill: parent;
-        onClicked: {
-            titleBarContainer.usernameDropdownVisible = false;
         }
     }
     //
@@ -481,7 +475,7 @@ Rectangle {
                 FiraSansSemiBold {
                     id: itemPriceText;
                     text: isTradingIn ? "FREE\nUPDATE" : 
-                        (isStocking ? "Free for creator" :
+                       (isStocking ? "Free for creator" :
                             ((root.itemPrice === -1) ? "--" : ((root.itemPrice > 0) ? root.itemPrice : "FREE")));
                     // Text size
                     size: isTradingIn ? 20 : 26;
@@ -580,7 +574,7 @@ Rectangle {
             // "View in Inventory" button
             HifiControlsUit.Button {
                 id: viewInMyPurchasesButton;
-                visible: isCertified && dataReady && (isUpdating ? !hasSomethingToTradeIn : alreadyOwned);
+                visible: isCertified && dataReady && (isTradingIn ? hasSomethingToTradeIn : alreadyOwned);
                 color: hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: buyTextContainer.visible ? buyTextContainer.bottom : checkoutActionButtonsContainer.top;
@@ -588,9 +582,9 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: root.isUpdating ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN YOUR INVENTORY";
+                text: (canUpdate && !isTradingIn) ? "UPDATE TO THIS ITEM FOR FREE" : "VIEW THIS ITEM IN YOUR INVENTORY";
                 onClicked: {
-                    if (root.isUpdating) {
+                    if (root.canUpdate) {
                         sendToScript({method: 'checkout_goToPurchases', filterText: root.baseItemName});
                     } else {
                         sendToScript({method: 'checkout_goToPurchases', filterText: root.itemName});
@@ -602,7 +596,11 @@ Rectangle {
             HifiControlsUit.Button {
                 id: buyButton;
                 visible: isTradingIn || !alreadyOwned || isStocking || !(root.itemType === "avatar" || root.itemType === "app");
-                enabled: (root.balanceAfterPurchase >= 0 && dataReady) || (!root.isCertified) || root.isUpdating;
+                property bool checkBalance: dataReady && (root.availability === "available")
+                enabled: (checkBalance && (balanceAfterPurchase >= 0)) || !isCertified || isTradingIn || isStocking;
+                text: isTradingIn ? "Confirm Update" :
+                    (enabled ? (viewInMyPurchasesButton.visible ? "Get It Again" : (dataReady ? "Get Item" : "--")) :
+                        (checkBalance ? "Insufficient Funds" : availability))
                 color: viewInMyPurchasesButton.visible ? hifi.buttons.white : hifi.buttons.blue;
                 colorScheme: hifi.colorSchemes.light;
                 anchors.top: viewInMyPurchasesButton.visible ? viewInMyPurchasesButton.bottom :
@@ -611,13 +609,6 @@ Rectangle {
                 height: 50;
                 anchors.left: parent.left;
                 anchors.right: parent.right;
-                text: isTradingIn ?
-                    "CONFIRM UPDATE" : 
-                    (((root.isCertified) ? 
-                        (dataReady ?
-                            ((viewInMyPurchasesButton.visible && !root.isUpdating) ? "Get It Again" : "Confirm") :
-                            "--") :
-                        "Get Item"));
                 onClicked: {
                     if (isTradingIn) {
                         // If we're updating an app, the existing app needs to be uninstalled.
@@ -1209,7 +1200,7 @@ Rectangle {
                 buyText.text = "";
 
                 // If the user IS on the checkout page for the updated version of an owned item...
-                if (root.isUpdating) {
+                if (root.canUpdate) {
                     // If the user HAS already selected a specific edition to update...
                     if (hasSomethingToTradeIn) {
                         buyText.text = "By pressing \"Confirm Update\", you agree to trade in your old item for the updated item that replaces it.";
