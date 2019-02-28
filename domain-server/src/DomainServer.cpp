@@ -2548,7 +2548,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         _pendingFileContent.seek(_pendingFileContent.size());
         _pendingFileContent.write(dataChunk);
         _pendingFileContent.close();
-        
+
         // Respond immediately - will timeout if we wait for restore.
         connection->respond(HTTPConnection::StatusCode200);
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
