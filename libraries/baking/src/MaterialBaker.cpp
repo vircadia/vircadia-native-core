@@ -182,12 +182,12 @@ void MaterialBaker::handleFinishedTextureBaker() {
 
 void MaterialBaker::outputMaterial() {
     if (_materialResource) {
-        QJsonDocument json;
+        QJsonObject json;
         if (_materialResource->parsedMaterials.networkMaterials.size() == 1) {
             auto networkMaterial = _materialResource->parsedMaterials.networkMaterials.begin();
             auto scriptableMaterial = scriptable::ScriptableMaterial(networkMaterial->second);
             QVariant materialVariant = scriptable::scriptableMaterialToScriptValue(&_scriptEngine, scriptableMaterial).toVariant();
-            json = QJsonDocument::fromVariant(materialVariant);
+            json.insert("materials", QJsonDocument::fromVariant(materialVariant).object());
         } else {
             QJsonArray materialArray;
             for (auto networkMaterial : _materialResource->parsedMaterials.networkMaterials) {
@@ -195,10 +195,10 @@ void MaterialBaker::outputMaterial() {
                 QVariant materialVariant = scriptable::scriptableMaterialToScriptValue(&_scriptEngine, scriptableMaterial).toVariant();
                 materialArray.append(QJsonDocument::fromVariant(materialVariant).object());
             }
-            json.setArray(materialArray);
+            json.insert("materials", materialArray);
         }
 
-        QByteArray outputMaterial = json.toJson(QJsonDocument::Compact);
+        QByteArray outputMaterial = QJsonDocument(json).toJson(QJsonDocument::Compact);
         if (_isURL) {
             auto fileName = QUrl(_materialData).fileName();
             auto baseName = fileName.left(fileName.lastIndexOf('.'));

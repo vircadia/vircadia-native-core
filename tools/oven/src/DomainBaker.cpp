@@ -288,6 +288,8 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 // All the Entity Properties that can be baked
 // ***************************************************************************************
 
+const QString TYPE_KEY = "type";
+
 // Models
 const QString MODEL_URL_KEY = "modelURL";
 const QString COMPOUND_SHAPE_URL_KEY = "compoundShapeURL";
@@ -349,7 +351,13 @@ void DomainBaker::enumerateEntities() {
 
             // Textures
             if (entity.contains(TEXTURES_KEY)) {
-                // TODO: the textures property is treated differently for different entity types
+                if (entity.contains(TYPE_KEY)) {
+                    QString type = entity[TYPE_KEY].toString();
+                    // TODO: handle textures for model entities
+                    if (type == "ParticleEffect" || type == "PolyLine") {
+                        addTextureBaker(TEXTURES_KEY, entity[TEXTURES_KEY].toString(), image::TextureUsage::DEFAULT_TEXTURE, *it);
+                    }
+                }
             }
             if (entity.contains(IMAGE_URL_KEY)) {
                 addTextureBaker(IMAGE_URL_KEY, entity[IMAGE_URL_KEY].toString(), image::TextureUsage::DEFAULT_TEXTURE, *it);
