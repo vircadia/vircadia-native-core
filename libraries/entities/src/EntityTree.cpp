@@ -781,7 +781,6 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _simulation->prepareEntityForDelete(theEntity);
         }
 
-        // keep a record of valid stale spaceIndices so they can be removed from the Space
         int32_t spaceIndex = theEntity->getSpaceIndex();
         if (spaceIndex != -1) {
             // stale spaceIndices will be freed later
