@@ -22,6 +22,8 @@
 
 #include "Baker.h"
 
+#include <material-networking/MaterialCache.h>
+
 extern const QString BAKED_TEXTURE_KTX_EXT;
 extern const QString BAKED_META_TEXTURE_SUFFIX;
 
@@ -43,6 +45,10 @@ public:
 
     static void setCompressionEnabled(bool enabled) { _compressionEnabled = enabled; }
 
+    void setMapChannel(graphics::Material::MapChannel mapChannel) { _mapChannel = mapChannel; }
+    graphics::Material::MapChannel getMapChannel() const { return _mapChannel; }
+    image::TextureUsage::Type getTextureType() const { return _textureType; }
+
 public slots:
     virtual void bake() override;
     virtual void abort() override; 
@@ -60,6 +66,8 @@ private:
     QUrl _textureURL;
     QByteArray _originalTexture;
     image::TextureUsage::Type _textureType;
+    graphics::Material::MapChannel _mapChannel;
+    bool _mapChannelSet { false };
 
     QString _baseFilename;
     QDir _outputDirectory;

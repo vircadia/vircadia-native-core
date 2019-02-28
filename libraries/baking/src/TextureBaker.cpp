@@ -128,7 +128,14 @@ void TextureBaker::processTexture() {
 
     TextureMeta meta;
 
-    auto originalCopyFilePath = _outputDirectory.absoluteFilePath(_textureURL.fileName());
+    // If two textures have the same URL but are used differently, we need to process them separately
+    QString addMapChannel = QString::fromStdString("_" + std::to_string(_textureType));
+    _baseFilename += addMapChannel;
+
+    QString newFilename = _textureURL.fileName();
+    newFilename.replace(QString("."), addMapChannel + ".");
+    QString originalCopyFilePath = _outputDirectory.absoluteFilePath(newFilename);
+
     {
         QFile file { originalCopyFilePath };
         if (!file.open(QIODevice::WriteOnly) || file.write(_originalTexture) == -1) {
@@ -138,7 +145,7 @@ void TextureBaker::processTexture() {
         // IMPORTANT: _originalTexture is empty past this point
         _originalTexture.clear();
         _outputFiles.push_back(originalCopyFilePath);
-        meta.original = _metaTexturePathPrefix + _textureURL.fileName();
+        meta.original = _metaTexturePathPrefix + newFilename;
     }
 
     auto buffer = std::static_pointer_cast<QIODevice>(std::make_shared<QFile>(originalCopyFilePath));

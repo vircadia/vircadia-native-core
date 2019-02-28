@@ -20,6 +20,10 @@
 #include <StatTracker.h>
 #include <ResourceManager.h>
 #include <ResourceRequestObserver.h>
+#include <ResourceCache.h>
+#include <material-networking/TextureCache.h>
+
+#include "MaterialBaker.h"
 
 Oven* Oven::_staticInstance { nullptr };
 
@@ -33,6 +37,12 @@ Oven::Oven() {
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ResourceManager>(false);
     DependencyManager::set<ResourceRequestObserver>();
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<TextureCache>();
+
+    MaterialBaker::setNextOvenWorkerThreadOperator([] {
+        return Oven::instance().getNextWorkerThread();
+    });
 }
 
 Oven::~Oven() {

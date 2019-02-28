@@ -363,56 +363,58 @@ namespace scriptable {
         obj.setProperty("name", material.name);
         obj.setProperty("model", material.model);
 
+        bool hasPropertyFallthroughs = !material.propertyFallthroughs.empty();
+
         const QScriptValue FALLTHROUGH("fallthrough");
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OPACITY_VAL_BIT)) {
             obj.setProperty("opacity", FALLTHROUGH);
         } else if (material.key.isTranslucentFactor()) {
             obj.setProperty("opacity", material.opacity);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::GLOSSY_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::GLOSSY_VAL_BIT)) {
             obj.setProperty("roughness", FALLTHROUGH);
         } else if (material.key.isGlossy()) {
             obj.setProperty("roughness", material.roughness);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_VAL_BIT)) {
             obj.setProperty("metallic", FALLTHROUGH);
         } else if (material.key.isMetallic()) {
             obj.setProperty("metallic", material.metallic);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_VAL_BIT)) {
             obj.setProperty("scattering", FALLTHROUGH);
         } else if (material.key.isScattering()) {
             obj.setProperty("scattering", material.scattering);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::UNLIT_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::UNLIT_VAL_BIT)) {
             obj.setProperty("unlit", FALLTHROUGH);
         } else if (material.key.isUnlit()) {
             obj.setProperty("unlit", material.unlit);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::EMISSIVE_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::EMISSIVE_VAL_BIT)) {
             obj.setProperty("emissive", FALLTHROUGH);
         } else if (material.key.isEmissive()) {
             obj.setProperty("emissive", vec3ColorToScriptValue(engine, material.emissive));
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::ALBEDO_VAL_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::ALBEDO_VAL_BIT)) {
             obj.setProperty("albedo", FALLTHROUGH);
         } else if (material.key.isAlbedo()) {
             obj.setProperty("albedo", vec3ColorToScriptValue(engine, material.albedo));
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::EMISSIVE_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::EMISSIVE_MAP_BIT)) {
             obj.setProperty("emissiveMap", FALLTHROUGH);
         } else if (!material.emissiveMap.isEmpty()) {
             obj.setProperty("emissiveMap", material.emissiveMap);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::ALBEDO_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::ALBEDO_MAP_BIT)) {
             obj.setProperty("albedoMap", FALLTHROUGH);
         } else if (!material.albedoMap.isEmpty()) {
             obj.setProperty("albedoMap", material.albedoMap);
@@ -422,26 +424,26 @@ namespace scriptable {
             obj.setProperty("opacityMap", material.opacityMap);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::OCCLUSION_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::OCCLUSION_MAP_BIT)) {
             obj.setProperty("occlusionMap", FALLTHROUGH);
         } else if (!material.occlusionMap.isEmpty()) {
             obj.setProperty("occlusionMap", material.occlusionMap);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::LIGHTMAP_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::LIGHTMAP_MAP_BIT)) {
             obj.setProperty("lightmapMap", FALLTHROUGH);
         } else if (!material.lightmapMap.isEmpty()) {
             obj.setProperty("lightmapMap", material.lightmapMap);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::SCATTERING_MAP_BIT)) {
             obj.setProperty("scatteringMap", FALLTHROUGH);
         } else if (!material.scatteringMap.isEmpty()) {
             obj.setProperty("scatteringMap", material.scatteringMap);
         }
 
         // Only set one of each of these
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::METALLIC_MAP_BIT)) {
             obj.setProperty("metallicMap", FALLTHROUGH);
         } else if (!material.metallicMap.isEmpty()) {
             obj.setProperty("metallicMap", material.metallicMap);
@@ -449,7 +451,7 @@ namespace scriptable {
             obj.setProperty("specularMap", material.specularMap);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::ROUGHNESS_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::ROUGHNESS_MAP_BIT)) {
             obj.setProperty("roughnessMap", FALLTHROUGH);
         } else if (!material.roughnessMap.isEmpty()) {
             obj.setProperty("roughnessMap", material.roughnessMap);
@@ -457,7 +459,7 @@ namespace scriptable {
             obj.setProperty("glossMap", material.glossMap);
         }
 
-        if (material.propertyFallthroughs.at(graphics::MaterialKey::NORMAL_MAP_BIT)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::MaterialKey::NORMAL_MAP_BIT)) {
             obj.setProperty("normalMap", FALLTHROUGH);
         } else if (!material.normalMap.isEmpty()) {
             obj.setProperty("normalMap", material.normalMap);
@@ -466,16 +468,16 @@ namespace scriptable {
         }
 
         // These need to be implemented, but set the fallthrough for now
-        if (material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM0)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM0)) {
             obj.setProperty("texCoordTransform0", FALLTHROUGH);
         }
-        if (material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM1)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::TEXCOORDTRANSFORM1)) {
             obj.setProperty("texCoordTransform1", FALLTHROUGH);
         }
-        if (material.propertyFallthroughs.at(graphics::Material::LIGHTMAP_PARAMS)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::LIGHTMAP_PARAMS)) {
             obj.setProperty("lightmapParams", FALLTHROUGH);
         }
-        if (material.propertyFallthroughs.at(graphics::Material::MATERIAL_PARAMS)) {
+        if (hasPropertyFallthroughs && material.propertyFallthroughs.at(graphics::Material::MATERIAL_PARAMS)) {
             obj.setProperty("materialParams", FALLTHROUGH);
         }
 

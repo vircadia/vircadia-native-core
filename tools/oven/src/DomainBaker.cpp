@@ -220,7 +220,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, QJ
     // grab a clean version of the URL without a query or fragment
     QUrl scriptURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
 
-    // setup a script baker for this URL, as long as we aren't baking a texture already
+    // setup a script baker for this URL, as long as we aren't baking a script already
     if (!_scriptBakers.contains(scriptURL)) {
 
         // setup a baker for this script
@@ -255,7 +255,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
         materialData = QUrl(data).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
     } else {
         materialData = data;
-    }    
+    }
 
     // setup a material baker for this URL, as long as we aren't baking a material already
     if (!_materialBakers.contains(materialData)) {
@@ -280,7 +280,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
         ++_totalNumberOfSubBakes;
     }
 
-    // add this QJsonValueRef to our multi hash so that it can re-write the texture URL
+    // add this QJsonValueRef to our multi hash so that it can re-write the material URL
     // to the baked version once the baker is complete
     _entitiesNeedingRewrite.insert(materialData, { property, jsonRef });
 }
@@ -389,7 +389,7 @@ void DomainBaker::enumerateEntities() {
                 addMaterialBaker(MATERIAL_URL_KEY, entity[MATERIAL_URL_KEY].toString(), true, *it);
             }
             if (entity.contains(MATERIAL_DATA_KEY)) {
-                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_URL_KEY].toString(), false, *it);
+                addMaterialBaker(MATERIAL_DATA_KEY, entity[MATERIAL_DATA_KEY].toString(), false, *it);
             }
         }
     }
@@ -533,11 +533,11 @@ void DomainBaker::handleFinishedTextureBaker() {
         // drop our shared pointer to this baker so that it gets cleaned up
         _textureBakers.remove(baker->getTextureURL());
 
-         // emit progress to tell listeners how many textures we have baked
-         emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
+        // emit progress to tell listeners how many textures we have baked
+        emit bakeProgress(++_completedSubBakes, _totalNumberOfSubBakes);
 
-         // check if this was the last texture we needed to re-write and if we are done now
-         checkIfRewritingComplete();
+        // check if this was the last texture we needed to re-write and if we are done now
+        checkIfRewritingComplete();
     }
 }
 

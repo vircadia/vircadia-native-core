@@ -29,6 +29,8 @@ public:
     bool isURL() const { return _isURL; }
     QString getBakedMaterialData() const { return _bakedMaterialData; }
 
+    static void setNextOvenWorkerThreadOperator(std::function<QThread*()> getNextOvenWorkerThreadOperator) { _getNextOvenWorkerThreadOperator = getNextOvenWorkerThreadOperator; }
+
 public slots:
     virtual void bake() override;
 
@@ -38,6 +40,7 @@ signals:
 private slots:
     void processMaterial();
     void outputMaterial();
+    void handleFinishedTextureBaker();
 
 private:
     void loadMaterial();
@@ -46,13 +49,16 @@ private:
     bool _isURL;
 
     NetworkMaterialResourcePointer _materialResource;
-    size_t _numTexturesToLoad { 0 };
-    size_t _numTexturesLoaded { 0 };
 
-    QHash<QUrl, QSharedPointer<TextureBaker>> _textureBakers;
+    QHash<QPair<QUrl, image::TextureUsage::Type>, QSharedPointer<TextureBaker>> _textureBakers;
+    QMultiHash<QPair<QUrl, image::TextureUsage::Type>, std::shared_ptr<NetworkMaterial>> _materialsNeedingRewrite;
 
     QString _bakedOutputDir;
+    QString _textureOutputDir;
     QString _bakedMaterialData;
+
+    QScriptEngine _scriptEngine;
+    static std::function<QThread*()> _getNextOvenWorkerThreadOperator;
 };
 
 #endif // !hifi_MaterialBaker_h
