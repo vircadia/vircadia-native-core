@@ -26,6 +26,9 @@ class MeshPart;
 
 class GeometryMappingResource;
 
+using GeometryMappingPair = std::pair<QUrl, QVariantHash>;
+Q_DECLARE_METATYPE(GeometryMappingPair)
+
 class Geometry {
 public:
     using Pointer = std::shared_ptr<Geometry>;
@@ -145,11 +148,13 @@ class ModelCache : public ResourceCache, public Dependency {
 public:
 
     GeometryResource::Pointer getGeometryResource(const QUrl& url,
-                                                  const QVariantHash& mapping = QVariantHash(),
+                                                  const GeometryMappingPair& mapping =
+                                                        GeometryMappingPair(QUrl(), QVariantHash()),
                                                   const QUrl& textureBaseUrl = QUrl());
 
     GeometryResource::Pointer getCollisionGeometryResource(const QUrl& url,
-                                                           const QVariantHash& mapping = QVariantHash(),
+                                                           const GeometryMappingPair& mapping =
+                                                                 GeometryMappingPair(QUrl(), QVariantHash()),
                                                            const QUrl& textureBaseUrl = QUrl());
 
 protected:

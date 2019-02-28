@@ -14,12 +14,13 @@
 #include <hfm/HFM.h>
 
 #include "Engine.h"
+#include "BakerTypes.h"
 
 #include <material-networking/MaterialCache.h>
 
 class ParseMaterialMappingTask {
 public:
-    using Input = baker::VaryingSet2 <QUrl, QVariantHash>;
+    using Input = baker::GeometryMappingPair;
     using Output = MaterialMapping;
     using JobModel = baker::Job::ModelIO<ParseMaterialMappingTask, Input, Output>;
 
