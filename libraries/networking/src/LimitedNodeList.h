@@ -51,6 +51,8 @@ const int INVALID_PORT = -1;
 
 const quint64 NODE_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
+static const size_t DEFAULT_MAX_CONNECTION_RATE { 50 };
+
 extern const std::set<NodeType_t> SOLO_NODE_TYPES;
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
@@ -316,6 +318,9 @@ public:
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
 
+    size_t getMaxConnectionRate() { return _maxConnectionRate; }
+    void setMaxConnectionRate(size_t rate) { _maxConnectionRate = rate; }
+
     int getInboundPPS() const { return _inboundPPS; }
     int getOutboundPPS() const { return _outboundPPS; }
     float getInboundKbps() const { return _inboundKbps; }
@@ -367,7 +372,20 @@ protected slots:
 
     void clientConnectionToSockAddrReset(const HifiSockAddr& sockAddr);
 
+    void processDelayedAdds();
+
 protected:
+    struct NewNodeInfo {
+        qint8 type;
+        QUuid uuid;
+        HifiSockAddr publicSocket;
+        HifiSockAddr localSocket;
+        NodePermissions permissions;
+        bool isReplicated;
+        Node::LocalID sessionLocalID;
+        QUuid connectionSecretUUID;
+    };
+
     LimitedNodeList(int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
     LimitedNodeList(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
     void operator=(LimitedNodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
@@ -389,6 +407,11 @@ protected:
                                const QUuid& peerRequestID = QUuid());
 
     bool sockAddrBelongsToNode(const HifiSockAddr& sockAddr);
+
+    void addNewNode(NewNodeInfo info);
+    void delayNodeAdd(NewNodeInfo info);
+    void removeDelayedAdd(QUuid nodeUUID);
+    bool isDelayedNode(QUuid nodeUUID);
 
     NodeHash _nodeHash;
     mutable QReadWriteLock _nodeMutex { QReadWriteLock::Recursive };
@@ -439,6 +462,10 @@ private:
     LocalIDMapping _localIDMap;
     Node::LocalID _sessionLocalID { 0 };
     bool _flagTimeForConnectionStep { false }; // only keep track in interface
+
+    size_t _maxConnectionRate { DEFAULT_MAX_CONNECTION_RATE };
+    size_t _nodesAddedInCurrentTimeSlice { 0 };
+    std::vector<NewNodeInfo> _delayedNodeAdds;
 
     int _inboundPPS { 0 };
     int _outboundPPS { 0 };

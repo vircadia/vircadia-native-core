@@ -38,7 +38,6 @@
 #include <Trace.h>
 
 using namespace std::chrono_literals;
-static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL = 1s;
 static const std::chrono::milliseconds KEEPALIVE_PING_INTERVAL = 1s;
 
 NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
@@ -117,11 +116,6 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
-
-    // check for local socket updates every so often
-    QTimer* delayedAddsFlushTimer = new QTimer(this);
-    connect(delayedAddsFlushTimer, &QTimer::timeout, this, &NodeList::processDelayedAdds);
-    delayedAddsFlushTimer->start(CONNECTION_RATE_INTERVAL);
 
     auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainList, this, "processDomainServerList");
@@ -714,6 +708,7 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     qCDebug(networking) << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
     killNodeWithUUID(nodeUUID);
+    removeDelayedAdd(nodeUUID);
 }
 
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
@@ -734,45 +729,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
         info.publicSocket.setAddress(_domainHandler.getIP());
     }
 
-    // Throttle connection of new agents.
-    if (info.type != NodeType::Agent
-        || _nodesAddedInCurrentTimeSlice < _maxConnectionRate) {
-
-        addNewNode(info);
-        ++_nodesAddedInCurrentTimeSlice;
-    } else {
-        delayNodeAdd(info);
-    }
-}
-
-void NodeList::addNewNode(NewNodeInfo info) {
-    SharedNodePointer node = addOrUpdateNode(info.uuid, info.type, info.publicSocket, info.localSocket,
-                                             info.sessionLocalID, info.isReplicated, false,
-                                             info.connectionSecretUUID, info.permissions);
-
-    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
-    // and always have their public socket as their active socket
-    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
-        node->setLastHeardMicrostamp(usecTimestampNow());
-        node->activatePublicSocket();
-    }
-};
-
-void NodeList::delayNodeAdd(NewNodeInfo info) {
-    _delayedNodeAdds.push_back(info);
-};
-
-void NodeList::processDelayedAdds() {
-    _nodesAddedInCurrentTimeSlice = 0;
-
-    auto nodesToAdd = glm::min(_delayedNodeAdds.size(), _maxConnectionRate);
-    auto firstNodeToAdd = _delayedNodeAdds.begin();
-    auto lastNodeToAdd = firstNodeToAdd + nodesToAdd;
-
-    for (auto it = firstNodeToAdd; it != lastNodeToAdd; ++it) {
-        addNewNode(*it);
-    }
-    _delayedNodeAdds.erase(firstNodeToAdd, lastNodeToAdd);
+    addNewNode(info);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -819,7 +776,6 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
-
     // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
     // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
 
@@ -833,6 +789,14 @@ void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
         // ping this node immediately
         pingPunchForInactiveNode(node);
     }
+
+    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
+    // and always have their public socket as their active socket
+    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+        node->activatePublicSocket();
+    }
+
 }
 
 void NodeList::handleNodePingTimeout() {
