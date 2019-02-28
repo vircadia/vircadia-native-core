@@ -763,17 +763,23 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
         nodecount++;
     }
     
-    //Build default joints
-    hfmModel.joints.resize(1);
-    hfmModel.joints[0].parentIndex = -1;
-    hfmModel.joints[0].distanceToParent = 0;
-    hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
-    hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
-    hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
-    hfmModel.joints[0].name = "OBJ";
-    hfmModel.joints[0].isSkeletonJoint = true;
-
-    hfmModel.jointIndices["x"] = 1;
+    HFMJoint joint;
+    joint.isSkeletonJoint = true;
+    joint.bindTransformFoundInCluster = false;
+    joint.distanceToParent = 0;
+    joint.parentIndex = -1;
+    hfmModel.joints.resize(_file.nodes.size());
+    hfmModel.jointIndices["x"] = _file.nodes.size();
+    int jointInd = 0;
+    for (auto& node : _file.nodes) {
+        joint.preTransform = glm::mat4(1);
+        for (int i = 0; i < node.transforms.size(); i++) {
+            joint.preTransform = node.transforms[i] * joint.preTransform;
+        }
+        joint.name = node.name;
+        hfmModel.joints[jointInd] = joint;
+        jointInd++;
+    }
 
     //Build materials
     QVector<QString> materialIDs;
@@ -804,7 +810,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 hfmModel.meshes.append(HFMMesh());
                 HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
                 HFMCluster cluster;
-                cluster.jointIndex = 0;
+                cluster.jointIndex = nodecount;
                 cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
                     0, 1, 0, 0,
                     0, 0, 1, 0,
@@ -907,7 +913,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                         int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
                         for (int n = 0; n < tangents.size() - 3; n += stride) {
                             float tanW = stride == 4 ? tangents[n + 3] : 1; 
-                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tangents[n + 2]));
+                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                         }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
@@ -957,16 +963,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                     mesh.meshExtents.addPoint(vertex);
                     hfmModel.meshExtents.addPoint(vertex);
                 }
-                
-                // since mesh.modelTransform seems to not have any effect I apply the transformation the model 
-                for (int h = 0; h < mesh.vertices.size(); h++) {
-                    glm::vec4 ver = glm::vec4(mesh.vertices[h], 1);
-                    if (node.transforms.size() > 0) {
-                        ver = node.transforms[0] * ver; // for model dependency should multiply also by parents transforms?
-                        mesh.vertices[h] = glm::vec3(ver[0], ver[1], ver[2]);
-                    }
-                }
-
+               
                 mesh.meshIndex = hfmModel.meshes.size();
             }
             
