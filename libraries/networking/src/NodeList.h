@@ -38,6 +38,8 @@
 
 const quint64 DOMAIN_SERVER_CHECK_IN_MSECS = 1 * 1000;
 
+static const size_t DEFAULT_MAX_CONNECTION_RATE { 50 };
+
 using PacketOrPacketList = std::pair<std::unique_ptr<NLPacket>, std::unique_ptr<NLPacketList>>;
 using NodePacketOrPacketListPair = std::pair<SharedNodePointer, PacketOrPacketList>;
 
@@ -93,6 +95,9 @@ public:
     bool getSendDomainServerCheckInEnabled() { return _sendDomainServerCheckInEnabled; }
     void setSendDomainServerCheckInEnabled(bool enabled) { _sendDomainServerCheckInEnabled = enabled; }
 
+    size_t getMaxConnectionRate() { return _maxConnectionRate; }
+    void setMaxConnectionRate(size_t rate) { _maxConnectionRate = rate; }
+
     void removeFromIgnoreMuteSets(const QUuid& nodeID);
 
     virtual bool isDomainServer() const override { return false; }
@@ -146,6 +151,17 @@ private slots:
     void maybeSendIgnoreSetToNode(SharedNodePointer node);
 
 private:
+    struct NewNodeInfo {
+        qint8 type;
+        QUuid uuid;
+        HifiSockAddr publicSocket;
+        HifiSockAddr localSocket;
+        NodePermissions permissions;
+        bool isReplicated;
+        Node::LocalID sessionLocalID;
+        QUuid connectionSecretUUID;
+    };
+
     NodeList() : LimitedNodeList(INVALID_PORT, INVALID_PORT) { assert(false); } // Not implemented, needed for DependencyManager templates compile
     NodeList(char ownerType, int socketListenPort = INVALID_PORT, int dtlsListenPort = INVALID_PORT);
     NodeList(NodeList const&) = delete; // Don't implement, needed to avoid copies of singleton
@@ -164,6 +180,10 @@ private:
 
     bool sockAddrBelongsToDomainOrNode(const HifiSockAddr& sockAddr);
 
+    void addNewNode(NewNodeInfo info);
+    void delayNodeAdd(NewNodeInfo info);
+    void processDelayedAdds();
+
     std::atomic<NodeType_t> _ownerType;
     NodeSet _nodeTypesOfInterest;
     DomainHandler _domainHandler;
@@ -180,6 +200,10 @@ private:
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _personalMutedNodeIDs;
     mutable QReadWriteLock _avatarGainMapLock;
     tbb::concurrent_unordered_map<QUuid, float, UUIDHasher> _avatarGainMap;
+
+    size_t _maxConnectionRate { DEFAULT_MAX_CONNECTION_RATE };
+    size_t _nodesAddedInCurrentTimeSlice { 0 };
+    std::vector<NewNodeInfo> _delayedNodeAdds;
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
 #if defined(Q_OS_ANDROID)

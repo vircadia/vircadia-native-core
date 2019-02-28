@@ -37,7 +37,9 @@
 #include "SharedUtil.h"
 #include <Trace.h>
 
-const int KEEPALIVE_PING_INTERVAL_MS = 1000;
+using namespace std::chrono_literals;
+static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL = 1s;
+static const std::chrono::milliseconds KEEPALIVE_PING_INTERVAL = 1s;
 
 NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
@@ -104,7 +106,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
 
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
-    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
+    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL); // 1s, Qt::CoarseTimer acceptable
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
     connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
@@ -115,6 +117,11 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();
+
+    // check for local socket updates every so often
+    QTimer* delayedAddsFlushTimer = new QTimer(this);
+    connect(delayedAddsFlushTimer, &QTimer::timeout, this, &NodeList::processDelayedAdds);
+    delayedAddsFlushTimer->start(CONNECTION_RATE_INTERVAL);
 
     auto& packetReceiver = getPacketReceiver();
     packetReceiver.registerListener(PacketType::DomainList, this, "processDomainServerList");
@@ -200,7 +207,6 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 }
 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
@@ -711,27 +717,38 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
 }
 
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
-    // setup variables to read into from QDataStream
-    qint8 nodeType;
-    QUuid nodeUUID, connectionSecretUUID;
-    HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    NodePermissions permissions;
-    bool isReplicated;
-    Node::LocalID sessionLocalID;
+    NewNodeInfo info;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions
-        >> isReplicated >> sessionLocalID;
+    packetStream >> info.type
+                 >> info.uuid
+                 >> info.publicSocket
+                 >> info.localSocket
+                 >> info.permissions
+                 >> info.isReplicated
+                 >> info.sessionLocalID
+                 >> info.connectionSecretUUID;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
-    if (nodePublicSocket.getAddress().isNull()) {
-        nodePublicSocket.setAddress(_domainHandler.getIP());
+    if (info.publicSocket.getAddress().isNull()) {
+        info.publicSocket.setAddress(_domainHandler.getIP());
     }
 
-    packetStream >> connectionSecretUUID;
+    // Throttle connection of new agents.
+    if (info.type != NodeType::Agent
+        || _nodesAddedInCurrentTimeSlice < _maxConnectionRate) {
 
-    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket,
-                                             sessionLocalID, isReplicated, false, connectionSecretUUID, permissions);
+        addNewNode(info);
+        ++_nodesAddedInCurrentTimeSlice;
+    } else {
+        delayNodeAdd(info);
+    }
+}
+
+void NodeList::addNewNode(NewNodeInfo info) {
+    SharedNodePointer node = addOrUpdateNode(info.uuid, info.type, info.publicSocket, info.localSocket,
+                                             info.sessionLocalID, info.isReplicated, false,
+                                             info.connectionSecretUUID, info.permissions);
 
     // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
     // and always have their public socket as their active socket
@@ -739,6 +756,23 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
         node->setLastHeardMicrostamp(usecTimestampNow());
         node->activatePublicSocket();
     }
+};
+
+void NodeList::delayNodeAdd(NewNodeInfo info) {
+    _delayedNodeAdds.push_back(info);
+};
+
+void NodeList::processDelayedAdds() {
+    _nodesAddedInCurrentTimeSlice = 0;
+
+    auto nodesToAdd = glm::min(_delayedNodeAdds.size(), _maxConnectionRate);
+    auto firstNodeToAdd = _delayedNodeAdds.begin();
+    auto lastNodeToAdd = firstNodeToAdd + nodesToAdd;
+
+    for (auto it = firstNodeToAdd; it != lastNodeToAdd; ++it) {
+        addNewNode(*it);
+    }
+    _delayedNodeAdds.erase(firstNodeToAdd, lastNodeToAdd);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
