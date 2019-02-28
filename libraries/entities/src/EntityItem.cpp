@@ -2656,6 +2656,7 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
     // which means that we only handle a filtered query asking for entities where the serverScripts property is non-default
 
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    static const QString ENTITY_TYPE_PROPERTY = "type";
 
     foreach(const auto& property, jsonFilters.keys()) {
         if (property == SERVER_SCRIPTS_PROPERTY && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
@@ -2665,6 +2666,8 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
             } else {
                 return false;
             }
+        } else if (property == ENTITY_TYPE_PROPERTY) {
+            return (jsonFilters[property] == EntityTypes::getEntityTypeName(getType()) );
         }
     }
 
