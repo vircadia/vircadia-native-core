@@ -297,6 +297,9 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
                 avatar->setIsNewAvatar(false);
             }
             avatar->simulate(deltaTime, inView);
+            if (avatar->getSkeletonModel()->isLoaded() && avatar->getWorkloadRegion() == workload::Region::R1) {
+                _myAvatar->addAvatarHandsToFlow(avatar);
+            }
             avatar->updateRenderItem(renderTransaction);
             avatar->updateSpaceProxy(workloadTransaction);
             avatar->setLastRenderUpdateTime(startTime);
@@ -716,7 +719,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const Pic
                 }
             }
 
-            if (rayAvatarResult._intersect && pickAgainstMesh) {
+            if (avatar && rayAvatarResult._intersect && pickAgainstMesh) {
                 glm::vec3 localRayOrigin = avatar->worldToJointPoint(ray.origin, rayAvatarResult._intersectWithJoint);
                 glm::vec3 localRayPoint = avatar->worldToJointPoint(ray.origin + rayAvatarResult._distance * rayDirection, rayAvatarResult._intersectWithJoint);
 

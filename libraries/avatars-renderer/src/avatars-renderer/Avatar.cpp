@@ -1535,6 +1535,7 @@ void Avatar::setModelURLFinished(bool success) {
 // rig is ready
 void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
+    buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
     buildSpine2SplineRatioCache();
 }

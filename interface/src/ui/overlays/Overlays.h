@@ -729,7 +729,7 @@ private:
 
     QVariantMap convertEntityToOverlayProperties(const EntityItemProperties& entityProps);
     EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id);
-    EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps, glm::quat& rotationToSave, const QString& type, bool add, const QUuid& id = QUuid());
+    EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps, std::pair<glm::quat, bool>& rotationToSave, const QString& type, bool add, const QUuid& id = QUuid());
 
 private slots:
     void mousePressPointerEvent(const QUuid& id, const PointerEvent& event);

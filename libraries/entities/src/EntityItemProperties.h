@@ -279,6 +279,7 @@ public:
 
     // Model
     DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString, "");
+    DEFINE_PROPERTY_REF(PROP_MODEL_SCALE, ModelScale, modelScale, glm::vec3, glm::vec3(1.0f));
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
     DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
     DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());

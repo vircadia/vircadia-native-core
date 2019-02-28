@@ -456,11 +456,11 @@ public:
     graphics::MaterialKey getMaterialKey() const { return graphics::MaterialKey(_schemaBuffer.get<graphics::MultiMaterial::Schema>()._key); }
     const gpu::TextureTablePointer& getTextureTable() const { return _textureTable; }
 
-    bool needsUpdate() const { return _needsUpdate; }
     void setNeedsUpdate(bool needsUpdate) { _needsUpdate = needsUpdate; }
-
     void setTexturesLoading(bool value) { _texturesLoading = value; }
-    bool areTexturesLoading() const { return _texturesLoading; }
+    void setInitialized() { _initialized = true; }
+
+    bool shouldUpdate() const { return !_initialized || _needsUpdate || _texturesLoading; }
 
     int getTextureCount() const { calculateMaterialInfo(); return _textureCount; }
     size_t getTextureSize()  const { calculateMaterialInfo(); return _textureSize; }
@@ -471,6 +471,7 @@ private:
     gpu::TextureTablePointer _textureTable { std::make_shared<gpu::TextureTable>() };
     bool _needsUpdate { false };
     bool _texturesLoading { false };
+    bool _initialized { false };
 
     mutable size_t _textureSize { 0 };
     mutable int _textureCount { 0 };

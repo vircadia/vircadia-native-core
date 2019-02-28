@@ -27,8 +27,9 @@ QString Audio::HMD { "VR" };
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
 
 float Audio::loudnessToLevel(float loudness) {
-    float level = 6.02059991f * fastLog2f(loudness);    // level in dBFS
-    level = (level + 48.0f) * (1/39.0f);                // map [-48, -9] dBFS to [0, 1]
+    float level = loudness * (1/32768.0f);  // level in [0, 1]
+    level = 6.02059991f * fastLog2f(level); // convert to dBFS
+    level = (level + 48.0f) * (1/42.0f);    // map [-48, -6] dBFS to [0, 1]
     return glm::clamp(level, 0.0f, 1.0f);
 }
 
