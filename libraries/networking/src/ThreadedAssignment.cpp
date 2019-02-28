@@ -37,7 +37,6 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
     // if the NL tells us we got a DS response, clear our member variable of queued check-ins
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::receivedDomainServerList, this, &ThreadedAssignment::clearQueuedCheckIns);
-    timestamp = p_high_resolution_clock::now();
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
@@ -106,8 +105,6 @@ void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObjec
     QJsonObject assignmentStats;
     assignmentStats["numQueuedCheckIns"] = _numQueuedCheckIns;
 
-    assignmentStats["globalPostedEventCount"] = nodeList->getGlobalPostedEventCount();
-
     statsObject["assignmentStats"] = assignmentStats;
 
     nodeList->sendStatsToDomainServer(statsObject);
@@ -121,16 +118,16 @@ void ThreadedAssignment::sendStatsPacket() {
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
     // verify that the number of queued check-ins is not >= our max
     // the number of queued check-ins is cleared anytime we get a response from the domain-server
-
-    timestamp = p_high_resolution_clock::now();
-
     if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         qCDebug(networking) << "At least" << MAX_SILENT_DOMAIN_SERVER_CHECK_INS << "have been queued without a response from domain-server"
             << "Stopping the current assignment";
         stop();
     } else {
         auto nodeList = DependencyManager::get<NodeList>();
-        QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn", Qt::DirectConnection);
+        // Call sendDomainServerCheckIn directly instead of putting it on
+        // the event queue.  Under high load, the event queue can back up
+        // longer than the total timeout period and cause a restart
+        nodeList->sendDomainServerCheckIn();
 
         // increase the number of queued check ins
         _numQueuedCheckIns++;

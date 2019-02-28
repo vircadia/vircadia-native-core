@@ -100,8 +100,6 @@ public:
     virtual Node::LocalID getDomainLocalID() const override { return _domainHandler.getLocalID(); }
     virtual HifiSockAddr getDomainSockAddr() const override { return _domainHandler.getSockAddr(); }
 
-    int getGlobalPostedEventCount() { return _globalPostedEvents; }
-
 public slots:
     void reset(bool skipDomainHandlerReset = false);
     void resetFromDomainHandler() { reset(true); }
@@ -173,7 +171,6 @@ private:
     bool _isShuttingDown { false };
     QTimer _keepAlivePingTimer;
     bool _requestsDomainListData { false };
-    int _globalPostedEvents { 0 };
 
     bool _sendDomainServerCheckInEnabled { true };
 

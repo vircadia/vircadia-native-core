@@ -246,7 +246,6 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 
 void NodeList::reset(bool skipDomainHandlerReset) {
     if (thread() != QThread::currentThread()) {
-
         QMetaObject::invokeMethod(this, "reset", Q_ARG(bool, skipDomainHandlerReset));
         return;
     }
@@ -292,30 +291,17 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
-    static bool foo = false;
-
-    qWarning() << "Send Domain Server Checkin";
+    // This function is called by the server check-in timer thread
+    // not the NodeList thread.  Calling it on the NodeList thread
+    // resulted in starvation of the server check-in function.
+    // be VERY CAREFUL modifying this code as members of NodeList
+    // may be called by multiple threads.
 
     if (!_sendDomainServerCheckInEnabled) {
         qCDebug(networking) << "Refusing to send a domain-server check in while it is disabled.";
         return;
     }
 
-    _globalPostedEvents = getGlobalPostedEventCount();
-
-    if (false && thread() != QThread::currentThread()) {
-        qWarning() << "Transition threads on send domain server checkin";
-        QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
-
-        if (foo) {
-            qWarning() << "swapping threads before previous call completed";
-        }
-
-        foo = true;
-        return;
-    }
-
-    foo = false;
     if (_isShuttingDown) {
         qCDebug(networking) << "Refusing to send a domain-server check in while shutting down.";
         return;
@@ -329,17 +315,18 @@ void NodeList::sendDomainServerCheckIn() {
         handleICEConnectionToDomainServer();
         // let the domain handler know we are due to send a checkin packet
     } else if (!_domainHandler.getIP().isNull() && !_domainHandler.checkInPacketTimeout()) {
-
-        PacketType domainPacketType = !_domainHandler.isConnected()
+        bool domainIsConnected = _domainHandler.isConnected();
+        HifiSockAddr domainSockAddr = _domainHandler.getSockAddr();
+        PacketType domainPacketType = !domainIsConnected
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
-        if (!_domainHandler.isConnected()) {
+        if (!domainIsConnected) {
             qCDebug(networking) << "Sending connect request to domain-server at" << _domainHandler.getHostname();
 
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
 
-            if (_domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
+            if (domainSockAddr.getAddress() == QHostAddress::LocalHost
                 || _domainHandler.getHostname() == "localhost") {
 
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
@@ -353,7 +340,7 @@ void NodeList::sendDomainServerCheckIn() {
         auto accountManager = DependencyManager::get<AccountManager>();
         const QUuid& connectionToken = _domainHandler.getConnectionToken();
 
-        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull();
+        bool requiresUsernameSignature = !domainIsConnected && !connectionToken.isNull();
 
         if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
             qWarning() << "A keypair is required to present a username signature to the domain-server"
@@ -368,6 +355,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         QDataStream packetStream(domainPacket.get());
 
+        HifiSockAddr localSockAddr = _localSockAddr;
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
@@ -376,13 +364,9 @@ void NodeList::sendDomainServerCheckIn() {
             }
 #endif
 
-            QUuid connectUUID;
+            QUuid connectUUID = _domainHandler.getAssignmentUUID();
 
-            if (!_domainHandler.getAssignmentUUID().isNull()) {
-                // this is a connect request and we're an assigned node
-                // so set our packetUUID as the assignment UUID
-                connectUUID = _domainHandler.getAssignmentUUID();
-            } else if (_domainHandler.requiresICE()) {
+            if (connectUUID.isNull() && _domainHandler.requiresICE()) {
                 // this is a connect request and we're an interface client
                 // that used ice to discover the DS
                 // so send our ICE client UUID with the connect request
@@ -398,10 +382,9 @@ void NodeList::sendDomainServerCheckIn() {
 
             // if possible, include the MAC address for the current interface in our connect request
             QString hardwareAddress;
-
             for (auto networkInterface : QNetworkInterface::allInterfaces()) {
                 for (auto interfaceAddress : networkInterface.addressEntries()) {
-                    if (interfaceAddress.ip() == _localSockAddr.getAddress()) {
+                    if (interfaceAddress.ip() == localSockAddr.getAddress()) {
                         // this is the interface whose local IP matches what we've detected the current IP to be
                         hardwareAddress = networkInterface.hardwareAddress();
 
@@ -425,10 +408,10 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << _publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
-        if (!_domainHandler.isConnected()) {
+        if (!domainIsConnected) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
 
@@ -448,17 +431,10 @@ void NodeList::sendDomainServerCheckIn() {
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
             auto packetCopy = domainPacket->createCopy(*domainPacket);
-            qWarning() << "Domain List/Connect";
-            sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
+            sendPacket(std::move(packetCopy), domainSockAddr);
         }
-        qWarning() << "Domain List/Connect";
-        sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
+        sendPacket(std::move(domainPacket), domainSockAddr);
         
-    } else if (_domainHandler.getIP().isNull()) {
-        qWarning() << "Domain Handler IP Is Null";
-    }
-    else {
-        qWarning() << "Checkin packet timed out.";
     }
 }
 

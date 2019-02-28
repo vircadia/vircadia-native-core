@@ -1055,11 +1055,6 @@ void DomainServer::processListRequestPacket(QSharedPointer<ReceivedMessage> mess
         _gatekeeper.cleanupICEPeerForNode(sendingNode->getUUID());
     }
 
-    if (sendingNode->getType() == NodeType::AvatarMixer) {
-        qWarning() << "Avatar Mixer Node Report in.";
-    }
-
-
     // guard against patched agents asking to hear about other agents
     auto safeInterestSet = nodeRequestData.interestList.toSet();
     if (sendingNode->getType() == NodeType::Agent) {
