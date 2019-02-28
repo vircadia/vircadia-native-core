@@ -958,21 +958,17 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 }
 
 void AvatarMixer::setupEntityQuery() {
-    static char queryJsonString[] = R"({"avatarPriority": true, "type": "Zone"})";
-
     _entityViewer.init();
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
     _slaveSharedData.entityTree = _entityViewer.getTree();
 
-    QJsonParseError jsonParseError;
-    const QJsonDocument priorityZoneQuery(QJsonDocument::fromJson(queryJsonString, &jsonParseError));
-    if (jsonParseError.error != QJsonParseError::NoError) {
-        qCDebug(avatars) << "Error parsing:" << queryJsonString << " - " << jsonParseError.errorString();
-        return;
-    }
-    _entityViewer.getOctreeQuery().setJSONParameters(priorityZoneQuery.object());
+    // ES query: {"avatarPriority": true, "type": "Zone"}
+    QJsonObject priorityZoneQuery;
+    priorityZoneQuery["avatarPriority"] = true;
+    priorityZoneQuery["type"] = "Zone";
 
+    _entityViewer.getOctreeQuery().setJSONParameters(priorityZoneQuery);
 }
 
 void AvatarMixer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
