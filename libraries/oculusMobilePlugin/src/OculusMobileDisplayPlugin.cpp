@@ -58,7 +58,7 @@ void OculusMobileDisplayPlugin::deinit() {
 
 bool OculusMobileDisplayPlugin::internalActivate() {
     _renderTargetSize = { 1024, 512 };
-    _cullingProjection = ovr::toGlm(ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 90.0f, 90.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
+    _cullingProjection = ovr::toGlm(ovrMatrix4f_CreateProjectionFov(90.0f, 90.0f, 0.0f, 0.0f, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 
 
     withOvrJava([&](const ovrJava* java){
@@ -220,12 +220,12 @@ bool OculusMobileDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
        });
     }
 
-    static uint32_t count = 0;
-    if ((++count % 1000) == 0) {
-        AbstractViewStateInterface::instance()->postLambdaEvent([] {
-            goToDevMobile();
-        });
-    }
+  //  static uint32_t count = 0;
+  //  if ((++count % 1000) == 0) {
+  //      AbstractViewStateInterface::instance()->postLambdaEvent([] {
+  //          goToDevMobile();
+  //      });
+  //  }
 
     return result && Parent::beginFrameRender(frameIndex);
 }

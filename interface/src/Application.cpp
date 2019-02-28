@@ -2413,15 +2413,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
     connect(&AndroidHelper::instance(), &AndroidHelper::toggleAwayMode, this, &Application::toggleAwayMode);
-
     AndroidHelper::instance().notifyLoadComplete();
 #endif
     pauseUntilLoginDetermined();
-
-#if defined(Q_OS_ANDROID)
-    const QString QUEST_DEV = "hifi://quest-dev";
-    DependencyManager::get<AddressManager>()->handleLookupString(QUEST_DEV);
-#endif
 }
 
 void Application::updateVerboseLogging() {

@@ -108,14 +108,14 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     @Override
     protected void onRestart() {
         super.onRestart();
-        Log.w(TAG, "QQQ_ onRestart called ****");
+        Log.w(TAG, "QQQ_ onRestart called");
         questOnAppAfterLoad();
         questNativeAwayMode();
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ_ surfaceCreated ************************************");
+        Log.w(TAG, "QQQ_ surfaceCreated");
         nativeOnSurfaceChanged(holder.getSurface());
         mSurfaceHolder = holder;
     }
@@ -129,7 +129,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ_ surfaceDestroyed ***************************************************");
+        Log.w(TAG, "QQQ_ surfaceDestroyed");
         nativeOnSurfaceChanged(null);
         mSurfaceHolder = null;
     }
