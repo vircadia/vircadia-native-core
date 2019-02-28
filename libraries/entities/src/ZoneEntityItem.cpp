@@ -65,6 +65,7 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(avatarPriority, getAvatarPriority);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightMode, getKeyLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientLightMode, getAmbientLightMode);
@@ -117,6 +118,7 @@ bool ZoneEntityItem::setSubClassProperties(const EntityItemProperties& propertie
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(skyboxMode, setSkyboxMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(hazeMode, setHazeMode);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(bloomMode, setBloomMode);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(avatarPriority, setAvatarPriority);
 
     somethingChanged = somethingChanged || _keyLightPropertiesChanged || _ambientLightPropertiesChanged ||
         _stagePropertiesChanged || _skyboxPropertiesChanged || _hazePropertiesChanged || _bloomPropertiesChanged;
@@ -192,6 +194,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
     READ_ENTITY_PROPERTY(PROP_BLOOM_MODE, uint32_t, setBloomMode);
+    READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, bool, setAvatarPriority);
 
     return bytesRead;
 }
@@ -211,6 +214,7 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_FLYING_ALLOWED;
     requestedProperties += PROP_GHOSTING_ALLOWED;
     requestedProperties += PROP_FILTER_URL;
+    requestedProperties += PROP_AVATAR_PRIORITY;
 
     requestedProperties += PROP_KEY_LIGHT_MODE;
     requestedProperties += PROP_AMBIENT_LIGHT_MODE;
@@ -256,6 +260,7 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)getSkyboxMode());
     APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)getHazeMode());
     APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)getBloomMode());
+    APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, getAvatarPriority());
 }
 
 void ZoneEntityItem::debugDump() const {
@@ -269,6 +274,7 @@ void ZoneEntityItem::debugDump() const {
     qCDebug(entities) << "   _ambientLightMode:" << EntityItemProperties::getComponentModeAsString(_ambientLightMode);
     qCDebug(entities) << "         _skyboxMode:" << EntityItemProperties::getComponentModeAsString(_skyboxMode);
     qCDebug(entities) << "          _bloomMode:" << EntityItemProperties::getComponentModeAsString(_bloomMode);
+    qCDebug(entities) << "     _avatarPriority:" << getAvatarPriority();
 
     _keyLightProperties.debugDump();
     _ambientLightProperties.debugDump();
@@ -463,4 +469,17 @@ void ZoneEntityItem::fetchCollisionGeometryResource() {
         hullURL.setQuery(queryArgs);
         _shapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
+}
+
+bool ZoneEntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
+    // currently the only property filter we handle in ZoneEntityItem is value of avatarPriority
+
+    static const QString AVATAR_PRIORITY_PROPERTY = "avatarPriority";
+
+    if (jsonFilters.contains(AVATAR_PRIORITY_PROPERTY)) {
+        return (jsonFilters[AVATAR_PRIORITY_PROPERTY].toBool() == _avatarPriority);
+    }
+
+    // Chain to base:
+    return EntityItem::matchesJSONFilters(jsonFilters);
 }

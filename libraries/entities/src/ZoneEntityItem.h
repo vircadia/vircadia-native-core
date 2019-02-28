@@ -66,6 +66,8 @@ public:
     QString getCompoundShapeURL() const;
     virtual void setCompoundShapeURL(const QString& url);
 
+    virtual bool matchesJSONFilters(const QJsonObject& jsonFilters) const override;
+
     KeyLightPropertyGroup getKeyLightProperties() const { return resultWithReadLock<KeyLightPropertyGroup>([&] { return _keyLightProperties; }); }
     AmbientLightPropertyGroup getAmbientLightProperties() const { return resultWithReadLock<AmbientLightPropertyGroup>([&] { return _ambientLightProperties; }); }
 
@@ -96,6 +98,9 @@ public:
     QString getFilterURL() const;
     void setFilterURL(const QString url); 
 
+    bool getAvatarPriority() const { return _avatarPriority; }
+    void setAvatarPriority(bool value) { _avatarPriority = value; }
+
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
     bool skyboxPropertiesChanged() const { return _skyboxPropertiesChanged; }
@@ -125,6 +130,7 @@ public:
     static const bool DEFAULT_FLYING_ALLOWED;
     static const bool DEFAULT_GHOSTING_ALLOWED;
     static const QString DEFAULT_FILTER_URL;
+    static const bool DEFAULT_AVATAR_PRIORITY = false;
 
 protected:
     KeyLightPropertyGroup _keyLightProperties;
@@ -148,6 +154,9 @@ protected:
     bool _flyingAllowed { DEFAULT_FLYING_ALLOWED };
     bool _ghostingAllowed { DEFAULT_GHOSTING_ALLOWED };
     QString _filterURL { DEFAULT_FILTER_URL };
+
+    // Avatar-updates priority
+    bool _avatarPriority { DEFAULT_AVATAR_PRIORITY };
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };
