@@ -41,7 +41,7 @@
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
 using namespace std::chrono_literals;
-static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL = 1s;
+static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
 
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
@@ -94,7 +94,7 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     // Flush delayed adds every second
     QTimer* delayedAddsFlushTimer = new QTimer(this);
     connect(delayedAddsFlushTimer, &QTimer::timeout, this, &NodeList::processDelayedAdds);
-    delayedAddsFlushTimer->start(CONNECTION_RATE_INTERVAL);
+    delayedAddsFlushTimer->start(CONNECTION_RATE_INTERVAL_MS.count());
 
     // check the local socket right now
     updateLocalSocket();
@@ -848,13 +848,13 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
 
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
-			if (packet->isReliable()) {
-				auto packetCopy = NLPacket::createCopy(*packet);
-				sendPacket(std::move(packetCopy), *node);
-			} else {
-				sendUnreliablePacket(*packet, *node);
-			}
-			++n;
+            if (packet->isReliable()) {
+                auto packetCopy = NLPacket::createCopy(*packet);
+                sendPacket(std::move(packetCopy), *node);
+            } else {
+                sendUnreliablePacket(*packet, *node);
+            }
+            ++n;
         }
     });
 

@@ -37,8 +37,7 @@
 #include "SharedUtil.h"
 #include <Trace.h>
 
-using namespace std::chrono_literals;
-static const std::chrono::milliseconds KEEPALIVE_PING_INTERVAL = 1s;
+const int KEEPALIVE_PING_INTERVAL_MS = 1000;
 
 NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) :
     LimitedNodeList(socketListenPort, dtlsListenPort),
@@ -105,7 +104,7 @@ NodeList::NodeList(char newOwnerType, int socketListenPort, int dtlsListenPort) 
     connect(this, &LimitedNodeList::nodeActivated, this, &NodeList::maybeSendIgnoreSetToNode);
 
     // setup our timer to send keepalive pings (it's started and stopped on domain connect/disconnect)
-    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL); // 1s, Qt::CoarseTimer acceptable
+    _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS); // 1s, Qt::CoarseTimer acceptable
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
     connect(&_domainHandler, SIGNAL(connectedToDomain(QUrl)), &_keepAlivePingTimer, SLOT(start()));
     connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);

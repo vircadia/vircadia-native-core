@@ -908,7 +908,7 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
         const QString CONNECTION_RATE = "connection_rate";
         auto nodeList = DependencyManager::get<NodeList>();
         auto defaultConnectionRate = nodeList->getMaxConnectionRate();
-        int connectionRate = avatarMixerGroupObject[CONNECTION_RATE].toInt(defaultConnectionRate);
+        int connectionRate = avatarMixerGroupObject[CONNECTION_RATE].toInt((int)defaultConnectionRate);
         nodeList->setMaxConnectionRate(connectionRate);
     }
 
