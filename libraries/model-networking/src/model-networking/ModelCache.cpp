@@ -80,7 +80,8 @@ namespace std {
     struct hash<GeometryExtra> {
         size_t operator()(const GeometryExtra& geometryExtra) const {
             size_t result = 0;
-            hash_combine(result, geometryExtra.mapping.second, geometryExtra.textureBaseUrl, geometryExtra.combineParts);
+            hash_combine(result, geometryExtra.mapping.first, geometryExtra.mapping.second, geometryExtra.textureBaseUrl,
+                geometryExtra.combineParts);
             return result;
         }
     };
