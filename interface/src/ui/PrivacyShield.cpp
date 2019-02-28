@@ -1,5 +1,5 @@
 //
-//  PrivacyShield.h
+//  PrivacyShield.cpp
 //  interface/src/ui
 //
 //  Created by Wayne Chen on 2/27/19.
@@ -9,4 +9,4 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PrivacyShield.cpp"
+#include "PrivacyShield.h"
