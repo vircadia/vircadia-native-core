@@ -7,10 +7,12 @@
 //
 
 import Hifi 1.0 as Hifi
-import QtQuick 2.4
+import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
 import "./hifi/audio" as HifiAudio
+
+import TabletScriptingInterface 1.0
 
 Item {
     id: root;
@@ -19,7 +21,8 @@ Item {
     readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled
     width: audio.width;
     height: audio.height;
-    x: 10; y: 5;
+    x: 10;
+    y: 5;
     readonly property bool shouldReposition: true;
 
     HifiAudio.MicBarApplication {
@@ -28,22 +31,58 @@ Item {
         standalone: true;
         dragTarget: parent;
     }
-    Image {
-        id: bubbleIcon
-        source: "../icons/tablet-icons/bubble-i.svg";
-        width: 28;
-        height: 28;
+    Rectangle {
+        id: bubbleRect
+        width: bubbleIcon.width + 10
+        height: parent.height
+        radius: 5;
+        opacity: 0.5;
+
+        color: "#00000000";
+        border {
+            width: mouseArea.containsMouse || mouseArea.containsPress ? 2 : 0;
+            color: "#80FFFFFF";
+        }
         anchors {
             left: root.right
             top: root.top
-            topMargin: (root.height - bubbleIcon.height) / 2
         }
-    }
-    ColorOverlay {
-        id: bubbleIconOverlay
-        anchors.fill: bubbleIcon
-        source: bubbleIcon
-        color: AvatarInputs.ignoreRadiusEnabled ? "#1FC6A6" : "#FFFFFF";
-        opacity: 0.3
+
+        MouseArea {
+            id: mouseArea;
+            anchors.fill: parent
+
+            hoverEnabled: true;
+            scrollGestureEnabled: false;
+            onClicked: {
+                Tablet.playSound(TabletEnums.ButtonClick);
+            }
+            drag.target: root;
+            onContainsMouseChanged: {
+                if (containsMouse) {
+                    Tablet.playSound(TabletEnums.ButtonHover);
+                    bubbleRect.opacity = 0.7;
+                } else {
+                    bubbleRect.opacity = 0.5;
+                }
+            }
+        }
+        Image {
+            id: bubbleIcon
+            source: "../icons/tablet-icons/bubble-i.svg";
+            sourceSize: Qt.size(28, 28);
+            smooth: true;
+            visible: false
+            anchors.top: parent.top
+            anchors.topMargin: (parent.height - bubbleIcon.height) / 2
+            anchors.left: parent.left
+            anchors.leftMargin: (parent.width - bubbleIcon.width) / 2
+        }
+        ColorOverlay {
+            id: bubbleIconOverlay
+            anchors.fill: bubbleIcon
+            source: bubbleIcon
+            color: AvatarInputs.ignoreRadiusEnabled ? "#1FC6A6" : "#FFFFFF";
+        }
     }
 }

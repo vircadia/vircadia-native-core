@@ -32,6 +32,14 @@ Rectangle {
 
     radius: 5;
 
+    onLevelChanged: {
+        var rectOpacity = AudioScriptingInterface.muted && (level >= userSpeakingLevel)? 0.9 : 0.3;
+        if (mouseArea.containsMouse) {
+            rectOpacity = 0.5;
+        }
+        opacity = rectOpacity;
+    }
+
     color: "#00000000";
     border {
         width: mouseArea.containsMouse || mouseArea.containsPress ? 2 : 0;
@@ -121,6 +129,7 @@ Rectangle {
             }
 
             ColorOverlay {
+                id: imageOverlay
                 anchors { fill: image }
                 source: image;
                 color: colors.icon;
@@ -170,6 +179,7 @@ Rectangle {
         height: 32;
 
         Rectangle { // base
+            id: baseBar
             radius: 4;
             anchors { fill: parent }
             color: colors.gutter;
