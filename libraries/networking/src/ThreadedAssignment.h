@@ -48,7 +48,6 @@ protected:
     QTimer _domainServerTimer;
     QTimer _statsTimer;
     int _numQueuedCheckIns { 0 };
-    p_high_resolution_clock::time_point timestamp;
 
 protected slots:
     void domainSettingsRequestFailed();
