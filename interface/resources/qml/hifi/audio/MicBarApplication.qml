@@ -17,6 +17,8 @@ import TabletScriptingInterface 1.0
 
 Rectangle {
     readonly property var level: AudioScriptingInterface.inputLevel;
+    readonly property var clipping: AudioScriptingInterface.clipping;
+    readonly property var muted: AudioScriptingInterface.muted;
     readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
@@ -24,6 +26,9 @@ Rectangle {
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
     }
 
+    readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
+    readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
+    readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -33,8 +38,8 @@ Rectangle {
     radius: 5;
 
     onLevelChanged: {
-        var rectOpacity = AudioScriptingInterface.muted && (level >= userSpeakingLevel)? 0.9 : 0.3;
-        if (mouseArea.containsMouse) {
+        var rectOpacity = muted && (level >= userSpeakingLevel) ? 0.9 : 0.3;
+        if (mouseArea.containsMouse && rectOpacity != 0.9) {
             rectOpacity = 0.5;
         }
         opacity = rectOpacity;
@@ -87,8 +92,8 @@ Rectangle {
     QtObject {
         id: colors;
 
-        readonly property string unmuted: "#FFF";
-        readonly property string muted: "#E2334D";
+        readonly property string unmutedColor: "#FFF";
+        readonly property string mutedColor: "#E2334D";
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
@@ -96,7 +101,7 @@ Rectangle {
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: AudioScriptingInterface.muted ? muted : unmuted;
+        readonly property string icon: muted ? mutedColor : unmutedColor;
     }
 
     Item {
@@ -112,14 +117,11 @@ Rectangle {
 
         Item {
             Image {
-                readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
-                readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
-
                 id: image;
-                source: AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
+                source: muted ? mutedIcon : clipping ? clippingIcon : unmutedIcon;
 
-                width: 21;
-                height: 24;
+                width: 29;
+                height: 32;
                 anchors {
                     left: parent.left;
                     leftMargin: 7;
@@ -142,7 +144,8 @@ Rectangle {
 
         readonly property string color: colors.muted;
 
-        visible: AudioScriptingInterface.muted && (level >= userSpeakingLevel);
+        visible: muted && (level >= userSpeakingLevel);
+        opacity: 0.9
 
         anchors {
             left: parent.left;
@@ -215,14 +218,14 @@ Rectangle {
                 }
                 GradientStop {
                     position: 1.0;
-                    color: colors.red;
+                    color: colors.yellow;
                 }
             }
         }
-
+/*
         Rectangle {
             id: gatedIndicator;
-            visible: gated && !AudioScriptingInterface.clipping
+            visible: gated && !clipping
 
             radius: 4;
             width: 2 * radius;
@@ -236,7 +239,7 @@ Rectangle {
 
         Rectangle {
             id: clippingIndicator;
-            visible: AudioScriptingInterface.clipping
+            visible: clipping
 
             radius: 4;
             width: 2 * radius;
@@ -247,5 +250,6 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
         }
+*/
     }
 }
