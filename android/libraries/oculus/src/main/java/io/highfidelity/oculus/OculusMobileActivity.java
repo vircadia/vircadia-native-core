@@ -39,6 +39,11 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private SurfaceHolder mSurfaceHolder;
 
     public void onCreate(Bundle savedInstanceState) {
+
+        if(getIntent().hasExtra("applicationArguments")){
+            super.APPLICATION_PARAMETERS=getIntent().getStringExtra("applicationArguments");
+        }
+
         super.onCreate(savedInstanceState);
 
         Log.w(TAG, "QQQ onCreate");
