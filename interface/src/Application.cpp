@@ -211,6 +211,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
+#include "ui/PrivacyShield.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -931,6 +932,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
+    DependencyManager::set<PrivacyShield>();
 
     return previousSessionCrashed;
 }
@@ -2670,6 +2672,9 @@ void Application::cleanupBeforeQuit() {
         nodeList->getPacketReceiver().setShouldDropPackets(true);
     }
 
+    // destroy privacy shield before entity shutdown.
+    DependencyManager::get<PrivacyShield>()->destroyPrivacyShield();
+
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
@@ -2748,6 +2753,7 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<PickManager>();
     DependencyManager::destroy<KeyboardScriptingInterface>();
     DependencyManager::destroy<Keyboard>();
+    DependencyManager::destroy<PrivacyShield>();
     DependencyManager::destroy<AvatarPackager>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
@@ -5549,6 +5555,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("Developer")->setVisible(_developerMenuVisible);
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
+
+    DependencyManager::get<PrivacyShield>()->createPrivacyShield();
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -6506,6 +6514,8 @@ void Application::update(float deltaTime) {
         _loginStateManager.update(getMyAvatar()->getDominantHand(), _loginDialogID);
         updateLoginDialogPosition();
     }
+
+    DependencyManager::get<PrivacyShield>()->update(deltaTime);
 
     {
         PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
