@@ -522,6 +522,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                     _stats.overBudgetAvatars++;
                     detail = AvatarData::PALMinimum;
                 } else {
+                    if (currentVariant == kHero) {
+                        qCWarning(avatars) << "Overbudget break with hero avatars!" << destinationNode->getUUID().toString();
+                    }
                     _stats.overBudgetAvatars += remainingAvatars;
                     break;
                 }
@@ -538,7 +541,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             const MixerAvatar* sourceAvatar = sourceNodeData->getConstAvatarData();
 
             // Typically all out-of-view avatars but such avatars' priorities will rise with time:
-            bool isLowerPriority = sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;  // XXX: hero handling?
+            bool isLowerPriority = currentVariant != kHero && sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;  // XXX: hero handling?
 
             if (isLowerPriority) {
                 detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
