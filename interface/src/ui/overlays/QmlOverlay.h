@@ -25,10 +25,8 @@ public:
     QmlOverlay(const QUrl& url, const QmlOverlay* overlay);
     ~QmlOverlay();
 
-    bool supportsGetProperty() const override { return false; }
-
     void setProperties(const QVariantMap& properties) override;
-    void render(RenderArgs* args) override;
+    void render(RenderArgs* args) override {}
 
 private:
     Q_INVOKABLE void qmlElementDestroyed();

@@ -31,7 +31,6 @@ public:
 
     virtual render::ItemKey getKey();
     virtual AABox getBounds() const = 0;
-    virtual bool supportsGetProperty() const { return true; }
 
     virtual bool addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction);
     virtual void removeFromScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction);
@@ -42,17 +41,15 @@ public:
 
     // getters
     virtual QString getType() const = 0;
-    bool isLoaded() { return true; }
     bool getVisible() const { return _visible; }
 
     // setters
-    virtual void setVisible(bool visible) { _visible = visible; }
+    void setVisible(bool visible) { _visible = visible; }
     unsigned int getStackOrder() const { return _stackOrder; }
     void setStackOrder(unsigned int stackOrder) { _stackOrder = stackOrder; }
 
-    Q_INVOKABLE virtual void setProperties(const QVariantMap& properties);
+    Q_INVOKABLE virtual void setProperties(const QVariantMap& properties) = 0;
     Q_INVOKABLE virtual Overlay* createClone() const = 0;
-    Q_INVOKABLE virtual QVariant getProperty(const QString& property);
 
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
@@ -60,7 +57,7 @@ public:
 protected:
     render::ItemID _renderItemID { render::Item::INVALID_ITEM_ID };
 
-    bool _visible;
+    bool _visible { true };
     unsigned int _stackOrder { 0 };
 
 private:
