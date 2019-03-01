@@ -32,7 +32,7 @@ public:
         }
 
         bool success;
-        Transform jointWorldTransform = nestable->getTransform(_jointIndex, success);
+        Transform jointWorldTransform = nestable->getJointTransform(_jointIndex, success);
 
         if (!success) {
             return Transform();

@@ -16,8 +16,7 @@
 #include "Application.h"
 
 Overlay::Overlay() :
-    _renderItemID(render::Item::INVALID_ITEM_ID),
-    _visible(true)
+    _renderItemID(render::Item::INVALID_ITEM_ID)
 {
 }
 
@@ -32,20 +31,6 @@ void Overlay::setProperties(const QVariantMap& properties) {
         bool visible = properties["visible"].toBool();
         setVisible(visible);
     }
-}
-
-QVariant Overlay::getProperty(const QString& property) {
-    if (property == "type") {
-        return QVariant(getType());
-    }
-    if (property == "id") {
-        return getID();
-    }
-    if (property == "visible") {
-        return _visible;
-    }
-
-    return QVariant();
 }
 
 bool Overlay::addToScene(Overlay::Pointer overlay, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -65,7 +50,7 @@ render::ItemKey Overlay::getKey() {
     builder.withViewSpace();
     builder.withLayer(render::hifi::LAYER_2D);
 
-    if (!getVisible()) {
+    if (!_visible) {
         builder.withInvisible();
     }
 

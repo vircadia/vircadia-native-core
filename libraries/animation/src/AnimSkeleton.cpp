@@ -152,8 +152,19 @@ void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
     }
 }
 
+void AnimSkeleton::convertRelativeRotationsToAbsolute(std::vector<glm::quat>& rotations) const {
+    // rotations start off relative and leave in absolute frame
+    int lastIndex = std::min((int)rotations.size(), _jointsSize);
+    for (int i = 0; i < lastIndex; ++i) {
+        int parentIndex = _parentIndices[i];
+        if (parentIndex != -1) {
+            rotations[i] = rotations[parentIndex] * rotations[i];
+        }
+    }
+}
+
 void AnimSkeleton::convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const {
-    // poses start off absolute and leave in relative frame
+    // rotations start off absolute and leave in relative frame
     int lastIndex = std::min((int)rotations.size(), _jointsSize);
     for (int i = lastIndex - 1; i >= 0; --i) {
         int parentIndex = _parentIndices[i];

@@ -95,57 +95,85 @@ void AnimClip::setCurrentFrameInternal(float frame) {
     _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame + _startFrame, dt, _loopFlag, _id, triggers);
 }
 
+static std::vector<int> buildJointIndexMap(const AnimSkeleton& dstSkeleton, const AnimSkeleton& srcSkeleton) {
+    std::vector<int> jointIndexMap;
+    int srcJointCount = srcSkeleton.getNumJoints();
+    jointIndexMap.reserve(srcJointCount);
+    for (int srcJointIndex = 0; srcJointIndex < srcJointCount; srcJointIndex++) {
+        QString srcJointName = srcSkeleton.getJointName(srcJointIndex);
+        int dstJointIndex = dstSkeleton.nameToJointIndex(srcJointName);
+        jointIndexMap.push_back(dstJointIndex);
+    }
+    return jointIndexMap;
+}
+
 void AnimClip::copyFromNetworkAnim() {
     assert(_networkAnim && _networkAnim->isLoaded() && _skeleton);
     _anim.clear();
 
     auto avatarSkeleton = getSkeleton();
-
-    // build a mapping from animation joint indices to avatar joint indices.
-    // by matching joints with the same name.
     const HFMModel& animModel = _networkAnim->getHFMModel();
     AnimSkeleton animSkeleton(animModel);
     const int animJointCount = animSkeleton.getNumJoints();
     const int avatarJointCount = avatarSkeleton->getNumJoints();
-    std::vector<int> animToAvatarJointIndexMap;
-    animToAvatarJointIndexMap.reserve(animJointCount);
-    for (int animJointIndex = 0; animJointIndex < animJointCount; animJointIndex++) {
-        QString animJointName = animSkeleton.getJointName(animJointIndex);
-        int avatarJointIndex = avatarSkeleton->nameToJointIndex(animJointName);
-        animToAvatarJointIndexMap.push_back(avatarJointIndex);
-    }
+
+    // build a mapping from animation joint indices to avatar joint indices by matching joints with the same name.
+    std::vector<int> avatarToAnimJointIndexMap = buildJointIndexMap(animSkeleton, *avatarSkeleton);
 
     const int animFrameCount = animModel.animationFrames.size();
     _anim.resize(animFrameCount);
 
     for (int frame = 0; frame < animFrameCount; frame++) {
-
         const HFMAnimationFrame& animFrame = animModel.animationFrames[frame];
 
-        // init all joints in animation to default pose
-        // this will give us a resonable result for bones in the avatar skeleton but not in the animation.
-        _anim[frame].reserve(avatarJointCount);
-        for (int avatarJointIndex = 0; avatarJointIndex < avatarJointCount; avatarJointIndex++) {
-            _anim[frame].push_back(avatarSkeleton->getRelativeDefaultPose(avatarJointIndex));
+        // extract the full rotations from the animFrame (including pre and post rotations from the animModel).
+        std::vector<glm::quat> animRotations;
+        animRotations.reserve(animJointCount);
+        for (int i = 0; i < animJointCount; i++) {
+            animRotations.push_back(animModel.joints[i].preRotation * animFrame.rotations[i] * animModel.joints[i].postRotation);
         }
 
-        for (int animJointIndex = 0; animJointIndex < animJointCount; animJointIndex++) {
-            int avatarJointIndex = animToAvatarJointIndexMap[animJointIndex];
+        // convert rotations into absolute frame
+        animSkeleton.convertRelativeRotationsToAbsolute(animRotations);
 
-            // skip joints that are in the animation but not in the avatar.
-            if (avatarJointIndex >= 0 && avatarJointIndex < avatarJointCount) {
+        // build absolute rotations for the avatar
+        std::vector<glm::quat> avatarRotations;
+        avatarRotations.reserve(avatarJointCount);
+        for (int avatarJointIndex = 0; avatarJointIndex < avatarJointCount; avatarJointIndex++) {
+            int animJointIndex = avatarToAnimJointIndexMap[avatarJointIndex];
+            if (animJointIndex >= 0) {
+                // This joint is in both animation and avatar.
+                // Set the absolute rotation directly
+                avatarRotations.push_back(animRotations[animJointIndex]);
+            } else {
+                // This joint is NOT in the animation at all.
+                // Set it so that the default relative rotation remains unchanged.
+                glm::quat avatarRelativeDefaultRot = avatarSkeleton->getRelativeDefaultPose(avatarJointIndex).rot();
+                glm::quat avatarParentAbsoluteRot;
+                int avatarParentJointIndex = avatarSkeleton->getParentIndex(avatarJointIndex);
+                if (avatarParentJointIndex >= 0) {
+                    avatarParentAbsoluteRot = avatarRotations[avatarParentJointIndex];
+                }
+                avatarRotations.push_back(avatarParentAbsoluteRot * avatarRelativeDefaultRot);
+            }
+        }
 
+        // convert avatar rotations into relative frame
+        avatarSkeleton->convertAbsoluteRotationsToRelative(avatarRotations);
+
+        _anim[frame].reserve(avatarJointCount);
+
+        for (int avatarJointIndex = 0; avatarJointIndex < avatarJointCount; avatarJointIndex++) {
+            const AnimPose& avatarDefaultPose = avatarSkeleton->getRelativeDefaultPose(avatarJointIndex);
+
+            // copy scale over from avatar default pose
+            glm::vec3 relativeScale = avatarDefaultPose.scale();
+
+            glm::vec3 relativeTranslation;
+            int animJointIndex = avatarToAnimJointIndexMap[avatarJointIndex];
+            if (animJointIndex >= 0) {
+                // This joint is in both animation and avatar.
                 const glm::vec3& animTrans = animFrame.translations[animJointIndex];
-                const glm::quat& animRot = animFrame.rotations[animJointIndex];
-
-                const AnimPose& animPreRotPose = animSkeleton.getPreRotationPose(animJointIndex);
-                AnimPose animPostRotPose = animSkeleton.getPostRotationPose(animJointIndex);
-                AnimPose animRotPose(glm::vec3(1.0f), animRot, glm::vec3());
-
-                // adjust anim scale to equal the scale from the avatar joint.
-                // we do not support animated scale.
-                const AnimPose& avatarDefaultPose = avatarSkeleton->getRelativeDefaultPose(avatarJointIndex);
-                animPostRotPose.scale() = avatarDefaultPose.scale();
 
                 // retarget translation from animation to avatar
                 const glm::vec3& animZeroTrans = animModel.animationFrames[0].translations[animJointIndex];
@@ -192,11 +220,15 @@ void AnimClip::copyFromNetworkAnim() {
                     }
                 }
 
-                AnimPose animTransPose = AnimPose(glm::vec3(1.0f), glm::quat(), avatarDefaultPose.trans() + boneLengthScale * (animTrans - animZeroTrans));
-
-                _anim[frame][avatarJointIndex] = animTransPose * animPreRotPose * animRotPose * animPostRotPose;
-
+                relativeTranslation = avatarDefaultPose.trans() + boneLengthScale * (animTrans - animZeroTrans);
+            } else {
+                // This joint is NOT in the animation at all.
+                // preserve the default translation.
+                relativeTranslation = avatarDefaultPose.trans();
             }
+
+            // build the final pose
+            _anim[frame].push_back(AnimPose(relativeScale, avatarRotations[avatarJointIndex], relativeTranslation));
         }
     }
 

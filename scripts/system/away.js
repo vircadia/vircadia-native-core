@@ -65,7 +65,7 @@ var eventMappingName = "io.highfidelity.away"; // goActive on hand controller bu
 var eventMapping = Controller.newMapping(eventMappingName);
 var avatarPosition = MyAvatar.position;
 var wasHmdMounted = HMD.mounted;
-
+var previousBubbleState = Users.getIgnoreRadiusEnabled();
 
 // some intervals we may create/delete
 var avatarMovedInterval;
@@ -166,7 +166,12 @@ function goAway(fromStartup) {
             avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
         }, WAIT_FOR_MOVE_ON_STARTUP);
     }
-    
+
+    previousBubbleState = Users.getIgnoreRadiusEnabled();
+    if (!previousBubbleState) {
+        Users.toggleIgnoreRadius();
+    }
+    UserActivityLogger.bubbleToggled(Users.getIgnoreRadiusEnabled());
     UserActivityLogger.toggledAway(true);
     MyAvatar.isAway = true;
 }
@@ -178,6 +183,11 @@ function goActive() {
 
     UserActivityLogger.toggledAway(false);
     MyAvatar.isAway = false;
+
+    if (Users.getIgnoreRadiusEnabled() !== previousBubbleState) {
+        Users.toggleIgnoreRadius();
+        UserActivityLogger.bubbleToggled(Users.getIgnoreRadiusEnabled());
+    }
 
     if (!Window.hasFocus()) {
         Window.setFocus();

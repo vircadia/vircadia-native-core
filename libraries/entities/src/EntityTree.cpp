@@ -52,7 +52,15 @@ EntityTree::EntityTree(bool shouldReaverage) :
 }
 
 EntityTree::~EntityTree() {
-    eraseAllOctreeElements(false);
+    // NOTE: to eraseAllOctreeElements() in this context is useless because
+    // any OctreeElements in the tree still have shared backpointers to this Tree
+    // which means the dtor never would have been called in the first place!
+    //
+    // I'm keeping this useless commented-out line to remind us:
+    // we don't need shared pointer overhead for EntityTrees.
+    // TODO: EntityTreeElement::_tree should be raw back pointer.
+    // AND: EntityItem::_element should be a raw back pointer.
+    //eraseAllOctreeElements(false); // KEEP THIS
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -74,16 +82,15 @@ void EntityTree::eraseNonLocalEntities() {
     emit clearingEntities();
 
     if (_simulation) {
-        // This will clear all entities host types including local entities, because local entities
-        // are not in the physics simulation
+        // local entities are not in the simulation, so we clear ALL
         _simulation->clearEntities();
     }
-    _staleProxies.clear();
-    QHash<EntityItemID, EntityItemPointer> localMap;
-    localMap.swap(_entityMap);
-    QHash<EntityItemID, EntityItemPointer> savedEntities;
     this->withWriteLock([&] {
-        foreach(EntityItemPointer entity, localMap) {
+        QHash<EntityItemID, EntityItemPointer> savedEntities;
+        // NOTE: lock the Tree first, then lock the _entityMap.
+        // It should never be done the other way around.
+        QReadLocker locker(&_entityMapLock);
+        foreach(EntityItemPointer entity, _entityMap) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
                 element->cleanupNonLocalEntities();
@@ -91,11 +98,16 @@ void EntityTree::eraseNonLocalEntities() {
 
             if (entity->isLocalEntity()) {
                 savedEntities[entity->getEntityItemID()] = entity;
+            } else {
+                int32_t spaceIndex = entity->getSpaceIndex();
+                if (spaceIndex != -1) {
+                    // stale spaceIndices will be freed later
+                    _staleProxies.push_back(spaceIndex);
+                }
             }
         }
+        _entityMap.swap(savedEntities);
     });
-    localMap.clear();
-    _entityMap = savedEntities;
 
     resetClientEditStats();
     clearDeletedEntities();
@@ -113,13 +125,13 @@ void EntityTree::eraseNonLocalEntities() {
         _needsParentFixup = localEntitiesNeedsParentFixup;
     }
 }
+
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
     if (_simulation) {
         _simulation->clearEntities();
     }
-    _staleProxies.clear();
     QHash<EntityItemID, EntityItemPointer> localMap;
     localMap.swap(_entityMap);
     this->withWriteLock([&] {
@@ -127,6 +139,11 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
                 element->cleanupEntities();
+            }
+            int32_t spaceIndex = entity->getSpaceIndex();
+            if (spaceIndex != -1) {
+                // assume stale spaceIndices will be freed later
+                _staleProxies.push_back(spaceIndex);
             }
         }
     });
@@ -764,9 +781,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _simulation->prepareEntityForDelete(theEntity);
         }
 
-        // keep a record of valid stale spaceIndices so they can be removed from the Space
         int32_t spaceIndex = theEntity->getSpaceIndex();
         if (spaceIndex != -1) {
+            // stale spaceIndices will be freed later
             _staleProxies.push_back(spaceIndex);
         }
     }

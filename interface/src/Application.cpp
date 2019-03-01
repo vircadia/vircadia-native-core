@@ -3773,9 +3773,12 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
+    std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
 
-    return tmpTree->getNamedPaths();
+    // we must manually eraseAllOctreeElements(false) else the tmpTree will mem-leak
+    tmpTree->eraseAllOctreeElements(false);
 
+    return namedPaths;
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {
@@ -4981,9 +4984,9 @@ void Application::idle() {
 
     {
         if (_keyboardFocusWaitingOnRenderable && getEntities()->renderableForEntityId(_keyboardFocusedEntity.get())) {
-            _keyboardFocusWaitingOnRenderable = false;
             QUuid entityId = _keyboardFocusedEntity.get();
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            _keyboardFocusWaitingOnRenderable = false;
             setKeyboardFocusEntity(entityId);
         }
     }
@@ -5769,6 +5772,11 @@ void Application::reloadResourceCaches() {
     DependencyManager::get<recording::ClipCache>()->refreshAll();
 
     DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
+
+    DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+    getOffscreenUI()->clearCache();
+
+    DependencyManager::get<Keyboard>()->createKeyboard();
 
     getMyAvatar()->resetFullAvatarURL();
 }
