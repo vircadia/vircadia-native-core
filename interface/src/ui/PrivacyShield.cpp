@@ -37,22 +37,22 @@ PrivacyShield::PrivacyShield() {
 
 void PrivacyShield::createPrivacyShield() {
     // Affects bubble height
-    auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    auto avatarScale = myAvatar->getTargetScale();
-    auto avatarSensorToWorldScale = myAvatar->getSensorToWorldScale();
-    auto avatarWorldPosition = myAvatar->getWorldPosition();
-    auto avatarWorldOrientation = myAvatar->getWorldOrientation();
-    EntityItemProperties properties;
-    properties.setName("Privacy-Shield");
-    properties.setModelURL(PathUtils::resourcesUrl("assets/models/Bubble-v14.fbx").toString());
-    properties.setDimensions(glm::vec3(avatarSensorToWorldScale, 0.75 * avatarSensorToWorldScale, avatarSensorToWorldScale));
-    properties.setPosition(glm::vec3(avatarWorldPosition.x,
-        -avatarScale * 2 + avatarWorldPosition.y + avatarScale * PRIVACY_SHIELD_HEIGHT_SCALE, avatarWorldPosition.z));
-    properties.setRotation(avatarWorldOrientation * Quaternions::Y_180);
-    properties.setModelScale(glm::vec3(2.0,  0.5 * (avatarScale + 1.0), 2.0));
-    properties.setVisible(false);
+    //auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //auto avatarScale = myAvatar->getTargetScale();
+    //auto avatarSensorToWorldScale = myAvatar->getSensorToWorldScale();
+    //auto avatarWorldPosition = myAvatar->getWorldPosition();
+    //auto avatarWorldOrientation = myAvatar->getWorldOrientation();
+    //EntityItemProperties properties;
+    //properties.setName("Privacy-Shield");
+    //properties.setModelURL(PathUtils::resourcesUrl("assets/models/Bubble-v14.fbx").toString());
+    //properties.setDimensions(glm::vec3(avatarSensorToWorldScale, 0.75 * avatarSensorToWorldScale, avatarSensorToWorldScale));
+    //properties.setPosition(glm::vec3(avatarWorldPosition.x,
+    //    -avatarScale * 2 + avatarWorldPosition.y + avatarScale * PRIVACY_SHIELD_HEIGHT_SCALE, avatarWorldPosition.z));
+    //properties.setRotation(avatarWorldOrientation * Quaternions::Y_180);
+    //properties.setModelScale(glm::vec3(2.0,  0.5 * (avatarScale + 1.0), 2.0));
+    //properties.setVisible(false);
 
-    _localPrivacyShieldID = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(properties, entity::HostType::LOCAL);
+    //_localPrivacyShieldID = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(properties, entity::HostType::LOCAL);
     //_bubbleActivateSound = DependencyManager::get<SoundCache>()->getSound(PathUtils::resourcesUrl() + "assets/sounds/bubble.wav");
 
     //onPrivacyShieldToggled(DependencyManager::get<UsersScriptingInterface>()->getIgnoreRadiusEnabled(), true);
@@ -63,39 +63,39 @@ void PrivacyShield::destroyPrivacyShield() {
 }
 
 void PrivacyShield::update(float deltaTime) {
-    if (_updateConnected) {
-        auto now = usecTimestampNow();
-        auto delay = (now - _privacyShieldTimestamp);
-        auto privacyShieldAlpha = 1.0 - (delay / PRIVACY_SHIELD_VISIBLE_DURATION_MS);
-        if (privacyShieldAlpha > 0) {
-            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            auto avatarScale = myAvatar->getTargetScale();
-            auto avatarSensorToWorldScale = myAvatar->getSensorToWorldScale();
-            auto avatarWorldPosition = myAvatar->getWorldPosition();
-            auto avatarWorldOrientation = myAvatar->getWorldOrientation();
-            EntityItemProperties properties;
-            properties.setDimensions(glm::vec3(avatarSensorToWorldScale, 0.75 * avatarSensorToWorldScale, avatarSensorToWorldScale));
-            properties.setRotation(avatarWorldOrientation * Quaternions::Y_180);
-            if (delay < PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS) {
-                properties.setPosition(glm::vec3(avatarWorldPosition.x, 
-                    (-((PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS - delay) / PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS)) * avatarScale *  2.0 +
-                    avatarWorldPosition.y + avatarScale * PRIVACY_SHIELD_HEIGHT_SCALE, avatarWorldPosition.z));
-                properties.setModelScale(glm::vec3(2.0,
-                    ((1 - ((PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS - delay) / PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS)) *
-                    (0.5 * (avatarScale + 1.0))), 2.0));
-            } else {
-                properties.setPosition(glm::vec3(avatarWorldPosition.x, avatarWorldPosition.y + avatarScale * PRIVACY_SHIELD_HEIGHT_SCALE, avatarWorldPosition.z));
-                properties.setModelScale(glm::vec3(2.0,  0.5 * (avatarScale + 1.0), 2.0));
-            }
-            DependencyManager::get<EntityScriptingInterface>()->editEntity(_localPrivacyShieldID, properties);
-        }
-        else {
-            hidePrivacyShield();
-            if (_updateConnected) {
-                _updateConnected = false;
-            }
-        }
-    }
+    //if (_updateConnected) {
+    //    auto now = usecTimestampNow();
+    //    auto delay = (now - _privacyShieldTimestamp);
+    //    auto privacyShieldAlpha = 1.0 - (delay / PRIVACY_SHIELD_VISIBLE_DURATION_MS);
+    //    if (privacyShieldAlpha > 0) {
+    //        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    //        auto avatarScale = myAvatar->getTargetScale();
+    //        auto avatarSensorToWorldScale = myAvatar->getSensorToWorldScale();
+    //        auto avatarWorldPosition = myAvatar->getWorldPosition();
+    //        auto avatarWorldOrientation = myAvatar->getWorldOrientation();
+    //        EntityItemProperties properties;
+    //        properties.setDimensions(glm::vec3(avatarSensorToWorldScale, 0.75 * avatarSensorToWorldScale, avatarSensorToWorldScale));
+    //        properties.setRotation(avatarWorldOrientation * Quaternions::Y_180);
+    //        if (delay < PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS) {
+    //            properties.setPosition(glm::vec3(avatarWorldPosition.x, 
+    //                (-((PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS - delay) / PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS)) * avatarScale *  2.0 +
+    //                avatarWorldPosition.y + avatarScale * PRIVACY_SHIELD_HEIGHT_SCALE, avatarWorldPosition.z));
+    //            properties.setModelScale(glm::vec3(2.0,
+    //                ((1 - ((PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS - delay) / PRIVACY_SHIELD_RAISE_ANIMATION_DURATION_MS)) *
+    //                (0.5 * (avatarScale + 1.0))), 2.0));
+    //        } else {
+    //            properties.setPosition(glm::vec3(avatarWorldPosition.x, avatarWorldPosition.y + avatarScale * PRIVACY_SHIELD_HEIGHT_SCALE, avatarWorldPosition.z));
+    //            properties.setModelScale(glm::vec3(2.0,  0.5 * (avatarScale + 1.0), 2.0));
+    //        }
+    //        DependencyManager::get<EntityScriptingInterface>()->editEntity(_localPrivacyShieldID, properties);
+    //    }
+    //    else {
+    //        hidePrivacyShield();
+    //        if (_updateConnected) {
+    //            _updateConnected = false;
+    //        }
+    //    }
+    //}
 }
 
 void PrivacyShield::enteredIgnoreRadius() {

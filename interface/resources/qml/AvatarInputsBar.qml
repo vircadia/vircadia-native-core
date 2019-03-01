@@ -36,7 +36,7 @@ Item {
         width: bubbleIcon.width + 10
         height: parent.height
         radius: 5;
-        opacity: 0.5;
+        opacity: AvatarInputs.ignoreRadiusEnabled ? 0.7 : 0.3;
 
         color: "#00000000";
         border {
@@ -56,14 +56,12 @@ Item {
             scrollGestureEnabled: false;
             onClicked: {
                 Tablet.playSound(TabletEnums.ButtonClick);
+                Users.toggleIgnoreRadius();
             }
             drag.target: root;
             onContainsMouseChanged: {
                 if (containsMouse) {
                     Tablet.playSound(TabletEnums.ButtonHover);
-                    bubbleRect.opacity = 0.7;
-                } else {
-                    bubbleRect.opacity = 0.5;
                 }
             }
         }
@@ -82,7 +80,7 @@ Item {
             id: bubbleIconOverlay
             anchors.fill: bubbleIcon
             source: bubbleIcon
-            color: AvatarInputs.ignoreRadiusEnabled ? "#1FC6A6" : "#FFFFFF";
+            color: "#FFFFFF";
         }
     }
 }
