@@ -12,6 +12,7 @@
 #include <AudioClient.h>
 #include <SettingHandle.h>
 #include <trackers/FaceTracker.h>
+#include <UsersScriptingInterface.h>
 
 #include "Application.h"
 #include "Menu.h"
@@ -31,7 +32,9 @@ AvatarInputs* AvatarInputs::getInstance() {
 AvatarInputs::AvatarInputs(QObject* parent) : QObject(parent) {
     _showAudioTools = showAudioToolsSetting.get();
     auto nodeList = DependencyManager::get<NodeList>();
+    auto usersScriptingInterface = DependencyManager::get<UsersScriptingInterface>();
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &AvatarInputs::ignoreRadiusEnabledChanged);
+    connect(usersScriptingInterface.data(), &UsersScriptingInterface::enteredIgnoreRadius, this, &AvatarInputs::enteredIgnoreRadiusChanged);
 }
 
 #define AI_UPDATE(name, src) \
