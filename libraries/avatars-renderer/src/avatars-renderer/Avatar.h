@@ -287,8 +287,6 @@ public:
     * @returns {Quat}
     */
     Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
-    virtual glm::vec3 getSpine2SplineOffset() const { return _spine2SplineOffset; }
-    virtual float getSpine2SplineRatio() const { return _spine2SplineRatio; }
 
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
