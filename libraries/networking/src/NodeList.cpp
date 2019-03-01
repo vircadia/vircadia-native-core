@@ -307,27 +307,31 @@ void NodeList::sendDomainServerCheckIn() {
         return;
     }
 
-    if (_publicSockAddr.isNull()) {
+    auto publicSockAddr = _publicSockAddr;
+    auto domainHandlerIp = _domainHandler.getIP();
+
+    if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
-    } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
+    } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
         // let the domain handler know we are due to send a checkin packet
-    } else if (!_domainHandler.getIP().isNull() && !_domainHandler.checkInPacketTimeout()) {
+    } else if (!domainHandlerIp.isNull() && !_domainHandler.checkInPacketTimeout()) {
         bool domainIsConnected = _domainHandler.isConnected();
         HifiSockAddr domainSockAddr = _domainHandler.getSockAddr();
         PacketType domainPacketType = !domainIsConnected
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
         if (!domainIsConnected) {
-            qCDebug(networking) << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+            auto hostname = _domainHandler.getHostname();
+            qCDebug(networking) << "Sending connect request to domain-server at" << hostname;
 
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
 
             if (domainSockAddr.getAddress() == QHostAddress::LocalHost
-                || _domainHandler.getHostname() == "localhost") {
+                || hostname == "localhost") {
 
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
                 getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, domainPort);
@@ -408,7 +412,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << _publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
         if (!domainIsConnected) {
