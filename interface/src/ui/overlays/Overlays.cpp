@@ -414,32 +414,12 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         }
 
         if (add && !overlayProps.contains("rotation") && !overlayProps.contains("localRotation")) {
-            glm::quat rotation;
-            overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
+            overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT));
         } else if (overlayProps.contains("rotation")) {
-            glm::quat rotation;
-            {
-                auto iter = overlayProps.find("rotation");
-                if (iter != overlayProps.end()) {
-                    rotation = quatFromVariant(iter.value());
-                }
-            }
+            glm::quat rotation = quatFromVariant(overlayProps["rotation"]);
             overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
-
-            if (overlayProps.contains("localRotation")) {
-                auto iter = overlayProps.find("localRotation");
-                if (iter != overlayProps.end()) {
-                    overlayProps.erase(iter);
-                }
-            }
         } else if (overlayProps.contains("localRotation")) {
-            glm::quat rotation;
-            {
-                auto iter = overlayProps.find("localRotation");
-                if (iter != overlayProps.end()) {
-                    rotation = quatFromVariant(iter.value());
-                }
-            }
+            glm::quat rotation = quatFromVariant(overlayProps["localRotation"]);
             overlayProps["localRotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
         }
 
