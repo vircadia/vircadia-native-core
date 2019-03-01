@@ -117,11 +117,12 @@ Script.include("/~/system/libraries/utils.js");
                 this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
             }
-            Overlays.editOverlay(this.grabbedThingID, reparentProps);
 
             // resizeTablet to counter adjust offsets to account for change of scale from sensorToWorldMatrix
             if (HMD.tabletID && this.grabbedThingID === HMD.tabletID) {
-                resizeTablet(getTabletWidthFromSettings(), reparentProps.parentJointIndex);
+                reparentAndScaleTablet(getTabletWidthFromSettings(), reparentProps);
+            } else {
+                Entities.editEntity(this.grabbedThingID, reparentProps);
             }
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
@@ -140,7 +141,7 @@ Script.include("/~/system/libraries/utils.js");
                 });
             } else if (!this.robbed){
                 // before we grabbed it, overlay was a child of something; put it back.
-                Overlays.editOverlay(this.grabbedThingID, {
+                Entities.editEntity(this.grabbedThingID, {
                     parentID: this.previousParentID[this.grabbedThingID],
                     parentJointIndex: this.previousParentJointIndex[this.grabbedThingID]
                 });
