@@ -733,7 +733,6 @@ private:
 
     bool _reticleClickPressed { false };
     bool _keyboardFocusWaitingOnRenderable { false };
-    ThreadSafeValueCache<EntityItemID> _entityIdWaitingOnRenderable;
 
     int _avatarAttachmentRequest = 0;
 
