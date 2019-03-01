@@ -29,6 +29,7 @@ Rectangle {
     readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
     readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
     readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
+    readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -118,7 +119,7 @@ Rectangle {
         Item {
             Image {
                 id: image;
-                source: muted ? mutedIcon : clipping ? clippingIcon : unmutedIcon;
+                source: muted ? mutedIcon : clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
 
                 width: 29;
                 height: 32;
