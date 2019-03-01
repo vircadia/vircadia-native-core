@@ -40,7 +40,7 @@ Rectangle {
     property string itemHref;
     property string itemAuthor;
     property int itemEdition: -1;
-    property bool hasSomethingToTradeIn: alreadyOwned && (itemEdition > 0); // i.e., don't trade in your artist's proof
+    property bool hasSomethingToTradeIn: itemEdition > 0; // i.e., don't trade in your artist's proof
     property bool isTradingIn: canUpdate && hasSomethingToTradeIn;
     property bool isStocking: (availability === 'not for sale') && (creator === Account.username) && !updated_item_id;
     property string certificateId;
