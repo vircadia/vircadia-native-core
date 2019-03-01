@@ -1537,6 +1537,7 @@ void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
     buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
+    buildSpine2SplineRatioCache();
 }
 
 // rig has been reset.

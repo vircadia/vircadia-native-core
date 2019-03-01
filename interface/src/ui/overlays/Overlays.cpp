@@ -772,29 +772,29 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
         return UNKNOWN_ENTITY_ID;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QUuid result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
-        return result;
-    }
-
-    Overlay::Pointer overlay;
-    if (type == ImageOverlay::TYPE) {
+    if (type == ImageOverlay::TYPE || type == TextOverlay::TYPE || type == RectangleOverlay::TYPE) {
 #if !defined(DISABLE_QML)
-        overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-#endif
-    } else if (type == TextOverlay::TYPE) {
-#if !defined(DISABLE_QML)
-        overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-#endif
-    } else if (type == RectangleOverlay::TYPE) {
-        overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    }
+        if (QThread::currentThread() != thread()) {
+            QUuid result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
+            return result;
+        }
 
-    if (overlay) {
-        overlay->setProperties(properties.toMap());
-        return add2DOverlay(overlay);
+        Overlay::Pointer overlay;
+        if (type == ImageOverlay::TYPE) {
+            overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        } else if (type == TextOverlay::TYPE) {
+            overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        } else if (type == RectangleOverlay::TYPE) {
+            overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        }
+        if (overlay) {
+            overlay->setProperties(properties.toMap());
+            return add2DOverlay(overlay);
+        }
+#endif
+        return QUuid();
     }
 
     QString entityType = overlayToEntityType(type);
@@ -835,15 +835,14 @@ QUuid Overlays::cloneOverlay(const QUuid& id) {
         return UNKNOWN_ENTITY_ID;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QUuid result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QUuid result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return add2DOverlay(Overlay::Pointer(overlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
     }
 
@@ -919,6 +918,11 @@ void Overlays::deleteOverlay(const QUuid& id) {
 
     Overlay::Pointer overlay = take2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(const QUuid&, id));
+            return;
+        }
+
         _overlaysToDelete.push_back(overlay);
         emit overlayDeleted(id);
         return;
@@ -933,15 +937,14 @@ QString Overlays::getOverlayType(const QUuid& id) {
         return "";
     }
 
-    if (QThread::currentThread() != thread()) {
-        QString result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QString result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return overlay->getType();
     }
 
@@ -949,15 +952,14 @@ QString Overlays::getOverlayType(const QUuid& id) {
 }
 
 QObject* Overlays::getOverlayObject(const QUuid& id) {
-    if (QThread::currentThread() != thread()) {
-        QObject* result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QObject* result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return qobject_cast<QObject*>(&(*overlay));
     }
 
@@ -969,6 +971,12 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
         return UNKNOWN_ENTITY_ID;
     }
 
+    if (QThread::currentThread() != thread()) {
+        QUuid result;
+        BLOCKING_INVOKE_METHOD(this, "getOverlayAtPoint", Q_RETURN_ARG(QUuid, result), Q_ARG(const glm::vec2&, point));
+        return result;
+    }
+
     QMutexLocker locker(&_mutex);
     QMapIterator<QUuid, Overlay::Pointer> i(_overlays);
     unsigned int bestStackOrder = 0;
@@ -976,8 +984,7 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
     while (i.hasNext()) {
         i.next();
         auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
-        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-            thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
+        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
             if (thisOverlay->getStackOrder() > bestStackOrder) {
                 bestID = i.key();
                 bestStackOrder = thisOverlay->getStackOrder();
@@ -991,9 +998,7 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
 QVariant Overlays::getProperty(const QUuid& id, const QString& property) {
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
-        if (overlay->supportsGetProperty()) {
-            return overlay->getProperty(property);
-        }
+        // We don't support getting properties from QML Overlays right now
         return QVariant();
     }
 
@@ -1009,12 +1014,8 @@ QVariantMap Overlays::getProperties(const QUuid& id, const QStringList& properti
     Overlay::Pointer overlay = get2DOverlay(id);
     QVariantMap result;
     if (overlay) {
-        if (overlay->supportsGetProperty()) {
-            for (const auto& property : properties) {
-                result.insert(property, overlay->getProperty(property));
-            }
-        }
-        return result;
+        // We don't support getting properties from QML Overlays right now
+        return QVariantMap();
     }
 
     QVariantMap overlayProperties = convertEntityToOverlayProperties(DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id));
@@ -1141,38 +1142,30 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 }
 
 bool Overlays::isLoaded(const QUuid& id) {
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
-        return overlay->isLoaded();
+        return true;
     }
 
     return DependencyManager::get<EntityScriptingInterface>()->isLoaded(id);
 }
 
 QSizeF Overlays::textSize(const QUuid& id, const QString& text) {
-    if (QThread::currentThread() != thread()) {
-        QSizeF result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(const QUuid&, id), Q_ARG(QString, text));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QSizeF result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(const QUuid&, id), Q_ARG(QString, text));
+            return result;
+        }
         if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(overlay)) {
             return textOverlay->textSize(text);
         }
         return QSizeF(0.0f, 0.0f);
-    } else {
-        return DependencyManager::get<EntityScriptingInterface>()->textSize(id, text);
     }
+
+    return DependencyManager::get<EntityScriptingInterface>()->textSize(id, text);
 }
 
 bool Overlays::isAddedOverlay(const QUuid& id) {

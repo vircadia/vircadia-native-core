@@ -70,6 +70,7 @@ public class QtActivity extends Activity {
     public final String QT_ANDROID_DEFAULT_THEME = QT_ANDROID_THEMES[0]; // sets the default theme.
     private QtActivityLoader m_loader = new QtActivityLoader(this);
 
+    public boolean isPausing=false;
     public QtActivity() {
     }
 
@@ -650,8 +651,12 @@ public class QtActivity extends Activity {
     @Override
     protected void onStop() {
         super.onStop();
-        QtApplication.invokeDelegate();
+
+        if(!isPausing){
+            QtApplication.invokeDelegate();
+        }
     }
+
 
     //---------------------------------------------------------------------------
 

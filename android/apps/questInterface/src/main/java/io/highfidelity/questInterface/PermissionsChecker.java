@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.TextUtils;
 
 import io.highfidelity.oculus.OculusMobileActivity;
 import io.highfidelity.utils.HifiUtils;
@@ -19,9 +20,18 @@ public class PermissionsChecker extends Activity {
         Manifest.permission.CAMERA
     };
 
+    private static final String EXTRA_ARGS = "args";
+    private String mArgs;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mArgs =(getIntent().getStringExtra(EXTRA_ARGS));
+
+        if(!TextUtils.isEmpty(mArgs)) {
+            System.out.println("Application launched with following args: " + mArgs);
+        }
+
         requestAppPermissions(REQUIRED_PERMISSIONS,REQUEST_PERMISSIONS);
     }
 
@@ -47,7 +57,13 @@ public class PermissionsChecker extends Activity {
     }
 
     private void launchActivityWithPermissions() {
-        startActivity(new Intent(this, InterfaceActivity.class));
+        Intent intent= new Intent(this, InterfaceActivity.class);
+
+        if(!TextUtils.isEmpty(mArgs)) {
+            intent.putExtra("applicationArguments", mArgs);
+        }
+
+        startActivity(intent);
         finish();
     }
 
