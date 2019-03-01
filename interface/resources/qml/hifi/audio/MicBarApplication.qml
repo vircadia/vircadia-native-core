@@ -124,7 +124,6 @@ Rectangle {
                 height: 32;
                 anchors {
                     left: parent.left;
-                    leftMargin: 7;
                     top: parent.top;
                     topMargin: 5;
                 }
@@ -142,10 +141,7 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: colors.muted;
-
         visible: muted && (level >= userSpeakingLevel);
-        opacity: 0.9
 
         anchors {
             left: parent.left;
@@ -162,7 +158,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: parent.color;
+            color: colors.mutedColor;
 
             text: "MUTED";
             size: 12;
