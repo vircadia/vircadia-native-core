@@ -976,7 +976,20 @@ void AvatarMixer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, Sh
 
     switch (packetType) {
     case PacketType::OctreeStats:
+    {   // Ignore stats, but may have a different Entity packet appended.
+        OctreeHeadlessViewer::parseOctreeStats(message, senderNode);
+        const auto piggyBackedSizeWithHeader = message->getBytesLeftToRead();
+        if (piggyBackedSizeWithHeader > 0) {
+            // pull out the piggybacked packet and create a new QSharedPointer<NLPacket> for it
+            auto buffer = std::unique_ptr<char[]>(new char[piggyBackedSizeWithHeader]);
+            memcpy(buffer.get(), message->getRawMessage() + message->getPosition(), piggyBackedSizeWithHeader);
+
+            auto newPacket = NLPacket::fromReceivedPacket(std::move(buffer), piggyBackedSizeWithHeader, message->getSenderSockAddr());
+            auto newMessage = QSharedPointer<ReceivedMessage>::create(*newPacket);
+            handleOctreePacket(newMessage, senderNode);
+        }
         break;
+    }
 
     case PacketType::EntityData:
         _entityViewer.processDatagram(*message, senderNode);
