@@ -153,11 +153,11 @@ void AnimClip::copyFromNetworkAnim() {
                 const float EPSILON = 0.0001f;
 
                 const int avatarHipsParentIndex = avatarSkeleton->getParentIndex(avatarSkeleton->nameToJointIndex("Hips"));
-                if (avatarJointIndex == avatarSkeleton->nameToJointIndex("Hips") && (avatarHipsParentIndex >= 0)) {
+                const int animHipsParentIndex = animSkeleton.getParentIndex(animSkeleton.nameToJointIndex("Hips"));
+                if (avatarJointIndex == avatarSkeleton->nameToJointIndex("Hips") && (avatarHipsParentIndex >= 0) || (animHipsParentIndex >= 0)) {
 
                     const AnimPose& animHipsAbsoluteDefaultPose = animSkeleton.getAbsoluteDefaultPose(animSkeleton.nameToJointIndex("Hips"));
                     const AnimPose& avatarHipsAbsoluteDefaultPose = avatarSkeleton->getAbsoluteDefaultPose(avatarSkeleton->nameToJointIndex("Hips"));
-                    const AnimPose& avatarHipsParentAbsoluteDefaultPose = avatarSkeleton->getAbsoluteDefaultPose(avatarHipsParentIndex);
 
                     // the get the units and the heights for the animation and the avatar
                     const float animationUnitScale = extractScale(animModel.offset).y;
@@ -166,10 +166,12 @@ void AnimClip::copyFromNetworkAnim() {
                     const float animHeightInMeters = animationUnitScale * animHipsAbsoluteDefaultPose.trans().y;
 
                     // get the parent scales for the avatar and the animation
-                    const float avatarHipsParentScale = avatarHipsParentAbsoluteDefaultPose.scale().y;
+                    float avatarHipsParentScale = 1.0f;
                     float animHipsParentScale = 1.0f;
-                    const int animHipsParentIndex = animSkeleton.getParentIndex(animSkeleton.nameToJointIndex("Hips"));
-                    // also, check to see if the animation hips have a scaled parent.
+                    if (avatarHipsParentIndex >= 0) {
+                        const AnimPose& avatarHipsParentAbsoluteDefaultPose = avatarSkeleton->getAbsoluteDefaultPose(avatarHipsParentIndex);
+                        avatarHipsParentScale = avatarHipsParentAbsoluteDefaultPose.scale().y;
+                    }
                     if (animHipsParentIndex >= 0) {
                         const AnimPose& animationHipsParentAbsoluteDefaultPose = animSkeleton.getAbsoluteDefaultPose(animHipsParentIndex);
                         animHipsParentScale = animationHipsParentAbsoluteDefaultPose.scale().y;
