@@ -259,6 +259,12 @@ void Keyboard::setUse3DKeyboard(bool use) {
 void Keyboard::createKeyboard() {
     auto pointerManager = DependencyManager::get<PointerManager>();
 
+    if (_created) {
+        pointerManager->removePointer(_leftHandStylus);
+        pointerManager->removePointer(_rightHandStylus);
+        clearKeyboardKeys();
+    }
+
     QVariantMap modelProperties {
         { "url", MALLET_MODEL_URL }
     };
@@ -289,6 +295,8 @@ void Keyboard::createKeyboard() {
     loadKeyboardFile(keyboardSvg);
 
     _keySound = DependencyManager::get<SoundCache>()->getSound(SOUND_FILE);
+
+    _created = true;
 }
 
 bool Keyboard::isRaised() const {

@@ -20,6 +20,8 @@ enum EntityPropertyList {
 
     // Core properties
     PROP_SIMULATION_OWNER,
+    PROP_PARENT_ID,
+    PROP_PARENT_JOINT_INDEX,
     PROP_VISIBLE,
     PROP_NAME,
     PROP_LOCKED,
@@ -34,8 +36,6 @@ enum EntityPropertyList {
     PROP_LAST_EDITED_BY,
     PROP_ENTITY_HOST_TYPE,            // not sent over the wire
     PROP_OWNING_AVATAR_ID,            // not sent over the wire
-    PROP_PARENT_ID,
-    PROP_PARENT_JOINT_INDEX,
     PROP_QUERY_AA_CUBE,
     PROP_CAN_CAST_SHADOW,
     PROP_VISIBLE_IN_SECONDARY_CAMERA, // not sent over the wire
