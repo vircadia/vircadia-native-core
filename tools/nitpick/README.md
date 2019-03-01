@@ -67,10 +67,10 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
     1.  Copy the downloaded file to (for example) **C:\adb** and extract in place.  
         Verify you see *adb.exe* in **C:\adb\platform-tools\\**.
     1.  After installation - add the path to adb.exe to the Windows PATH environment variable (note that it is in *adb\platform-tools*).
-1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
+1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from (change X.X.X to correct version):  
 [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.dmg>).* 
 ### Mac
-1.  (first time) Install brew
+1.  (First time) Install brew
     In a terminal:  
   `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`  
     Note that you will need to press RETURN again, and will then be asked for your password.
@@ -100,6 +100,16 @@ This is needed because the Mac Python supplied no longer links with the deprecat
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3  
 1.  (First time)Install adb (the Android Debug Bridge) - in a terminal:  
     `brew cask install android-platform-tools`
+1.  (First time) Set terminal privileges
+    1.  Click on Apple icon (top left)
+    1.  Select System Preferences...
+    1.  Select Security & Privacy
+    1.  Select Accessibility
+    1.  Click on "Click the lock to make changes" and enter passsword if requested
+    1.  Set Checkbox near *Terminal* to checked.
+    1.  Click on "Click the lock to prevent furthur changes"
+    1.  Close window
+
 1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
 [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-vX.X.X.dmg>).* 
 # Usage
