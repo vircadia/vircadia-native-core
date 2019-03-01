@@ -31,6 +31,7 @@ public:
     void notifyEnterForeground();
     void notifyBeforeEnterBackground();
     void notifyEnterBackground();
+    void notifyToggleAwayMode();
 
     void performHapticFeedback(int duration);
     void processURL(const QString &url);
@@ -55,7 +56,7 @@ signals:
     void enterForeground();
     void beforeEnterBackground();
     void enterBackground();
-
+    void toggleAwayMode();
     void hapticFeedbackRequested(int duration);
 
     void handleSignupCompleted();

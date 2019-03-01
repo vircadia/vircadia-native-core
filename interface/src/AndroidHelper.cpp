@@ -45,6 +45,10 @@ void AndroidHelper::notifyBeforeEnterBackground() {
     emit beforeEnterBackground();
 }
 
+void AndroidHelper::notifyToggleAwayMode() {
+    emit toggleAwayMode();
+}
+
 void AndroidHelper::notifyEnterBackground() {
     emit enterBackground();
 }
