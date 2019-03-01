@@ -3773,9 +3773,12 @@ std::map<QString, QString> Application::prepareServerlessDomainContents(QUrl dom
         tmpTree->reaverageOctreeElements();
         tmpTree->sendEntities(&_entityEditSender, getEntities()->getTree(), 0, 0, 0);
     }
+    std::map<QString, QString> namedPaths = tmpTree->getNamedPaths();
 
-    return tmpTree->getNamedPaths();
+    // we must manually eraseAllOctreeElements(false) else the tmpTree will mem-leak
+    tmpTree->eraseAllOctreeElements(false);
 
+    return namedPaths;
 }
 
 void Application::loadServerlessDomain(QUrl domainURL) {

@@ -232,8 +232,6 @@ void EntityTreeRenderer::clearNonLocalEntities() {
             }
         }
         scene->enqueueTransaction(transaction);
-    } else {
-        qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
 
     _renderablesToUpdate = savedEntities;
