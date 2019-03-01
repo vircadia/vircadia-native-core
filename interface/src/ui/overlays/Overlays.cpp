@@ -413,30 +413,31 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             overlayProps["dimensions"] = vec3toVariant(ratio * dimensions);
         }
 
-        if (add || overlayProps.contains("rotation")) {
+        if (add && !overlayProps.contains("rotation") && !overlayProps.contains("localRotation")) {
+            glm::quat rotation;
+            overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
+        } else if (overlayProps.contains("rotation")) {
             glm::quat rotation;
             {
                 auto iter = overlayProps.find("rotation");
                 if (iter != overlayProps.end()) {
                     rotation = quatFromVariant(iter.value());
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_ROTATION;
-                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getRotation();
                 }
             }
             overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
-        }
-        if (add || overlayProps.contains("localRotation")) {
+
+            if (overlayProps.contains("localRotation")) {
+                auto iter = overlayProps.find("localRotation");
+                if (iter != overlayProps.end()) {
+                    overlayProps.erase(iter);
+                }
+            }
+        } else if (overlayProps.contains("localRotation")) {
             glm::quat rotation;
             {
                 auto iter = overlayProps.find("localRotation");
                 if (iter != overlayProps.end()) {
                     rotation = quatFromVariant(iter.value());
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_LOCAL_ROTATION;
-                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getLocalRotation();
                 }
             }
             overlayProps["localRotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
