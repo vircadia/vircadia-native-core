@@ -102,7 +102,11 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
-    void createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit);
+    void createWebPage(
+        QCheckBox* updateAWSCheckBox, 
+        QRadioButton* diffImageRadioButton,
+        QRadioButton* ssimImageRadionButton,
+        QLineEdit* urlLineEdit);
 
 private:
     QProgressBar* _progressBar;

@@ -148,10 +148,6 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
     }
 }
 
-void Nitpick::on_evaluateTestsPushbutton_clicked() {
-    _test->startTestsEvaluation(false, false);
-}
-
 void Nitpick::on_createRecursiveScriptPushbutton_clicked() {
     _test->createRecursiveScript();
 }
@@ -242,6 +238,10 @@ void Nitpick::on_showTaskbarPushbutton_clicked() {
 #endif
 }
 
+void Nitpick::on_evaluateTestsPushbutton_clicked() {
+    _test->startTestsEvaluation(false, false);
+}
+
 void Nitpick::on_closePushbutton_clicked() {
     exit(0);
 }
@@ -255,7 +255,7 @@ void Nitpick::on_createXMLScriptRadioButton_clicked() {
 }
 
 void Nitpick::on_createWebPagePushbutton_clicked() {
-    _test->createWebPage(_ui.updateAWSCheckBox, _ui.awsURLLineEdit);
+    _test->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit);
 }
 
 void Nitpick::downloadFile(const QUrl& url) {

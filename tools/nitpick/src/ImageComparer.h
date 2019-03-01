@@ -17,14 +17,13 @@
 
 class ImageComparer {
 public:
-    ImageComparer();
-    ~ImageComparer();
+    void compareImages(const QImage& resultImage, const QImage& expectedImage);
+    double getSSIMValue();
 
-    double compareImages(const QImage& resultImage, const QImage& expectedImage) const;
-    SSIMResults* getSSIMResults();
+    SSIMResults getSSIMResults();
 
 private:
-    SSIMResults* _ssimResults;
+    SSIMResults _ssimResults;
 };
 
 #endif // hifi_ImageComparer_h

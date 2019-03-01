@@ -12,17 +12,9 @@
 
 #include <cmath>
 
-ImageComparer::ImageComparer() {
-    _ssimResults = new SSIMResults();
-}
-
-ImageComparer::~ImageComparer() {
-    delete _ssimResults;
-}
-
 // Computes SSIM - see https://en.wikipedia.org/wiki/Structural_similarity
 // The value is computed for the luminance component and the average value is returned
-double ImageComparer::compareImages(const QImage& resultImage, const QImage& expectedImage) const {
+void ImageComparer::compareImages(const QImage& resultImage, const QImage& expectedImage) {
     const int L = 255; // (2^number of bits per pixel) - 1
 
     const double K1 { 0.01 };
@@ -47,8 +39,13 @@ double ImageComparer::compareImages(const QImage& resultImage, const QImage& exp
     double p[WIN_SIZE * WIN_SIZE];
     double q[WIN_SIZE * WIN_SIZE];
 
+    _ssimResults.results.clear();
+
     int windowCounter{ 0 };
     double ssim{ 0.0 };
+    double min { 1.0 };
+    double max { -1.0 };
+
     while (x < expectedImage.width()) {
         int lastX = x + WIN_SIZE - 1;
         if (lastX > expectedImage.width() - 1) {
@@ -104,8 +101,13 @@ double ImageComparer::compareImages(const QImage& resultImage, const QImage& exp
             double numerator = (2.0 * mP * mQ + c1) * (2.0 * sigPQ + c2);
             double denominator = (mP * mP + mQ * mQ + c1) * (sigsqP + sigsqQ + c2);
 
-            _ssimResults->results.push_back(numerator / denominator);
-            ssim += numerator / denominator;
+            double value { numerator / denominator };
+            _ssimResults.results.push_back(value);
+            ssim += value;
+
+            if (value < min) min = value;
+            if (value > max) max = value;
+
             ++windowCounter;
 
             y += WIN_SIZE;
@@ -115,12 +117,17 @@ double ImageComparer::compareImages(const QImage& resultImage, const QImage& exp
         y = 0;
     }
 
-    _ssimResults->width = (int)(expectedImage.width() / WIN_SIZE);
-    _ssimResults->height = (int)(expectedImage.height() / WIN_SIZE);
-
-    return ssim / windowCounter;
+    _ssimResults.width = (int)(expectedImage.width() / WIN_SIZE);
+    _ssimResults.height = (int)(expectedImage.height() / WIN_SIZE);
+    _ssimResults.min = min;
+    _ssimResults.max = max;
+    _ssimResults.ssim = ssim / windowCounter;
 };
 
-SSIMResults* ImageComparer::getSSIMResults() {
+double ImageComparer::getSSIMValue() {
+    return _ssimResults.ssim;
+}
+
+SSIMResults ImageComparer::getSSIMResults() {
     return _ssimResults;
 }
