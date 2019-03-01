@@ -19,7 +19,6 @@
 #include <AbstractViewStateInterface.h>
 
 #include "RenderableEntityItem.h"
-#include "ui/overlays/Overlay.h"
 #include <avatar/AvatarManager.h>
 #include <render/HighlightStyle.h>
 
@@ -37,15 +36,10 @@ public:
     bool addToGameplayObjects(const EntityItemID& entityID);
     bool removeFromGameplayObjects(const EntityItemID& entityID);
 
-    std::vector<OverlayID> getOverlayIDs() const { return _overlayIDs; }
-    bool addToGameplayObjects(const OverlayID& overlayID);
-    bool removeFromGameplayObjects(const OverlayID& overlayID);
-
 private:
     bool containsData { false };
     std::vector<QUuid> _avatarIDs;
     std::vector<EntityItemID> _entityIDs;
-    std::vector<OverlayID> _overlayIDs;
 };
 
 
@@ -83,11 +77,12 @@ protected:
 };
 
 /**jsdoc
- * The <code>Selection</code> API provides a means of grouping together avatars, entities, and overlays in named lists.
+ * The <code>Selection</code> API provides a means of grouping together avatars and entities in named lists.
  * @namespace Selection
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @example <caption>Outline an entity when it is grabbed by a controller.</caption>
  * // Create a box and copy the following text into the entity's "Script URL" field.
@@ -174,14 +169,14 @@ public:
     Q_INVOKABLE bool clearSelectedItemsList(const QString& listName);
 
     /**jsdoc
-    * Print out the list of avatars, entities, and overlays in a selection to the <em>debug log</em> (not the script log).
+    * Print out the list of avatars and entities in a selection to the <em>debug log</em> (not the script log).
     * @function Selection.printList
     * @param {string} listName - The name of the selection list.
     */
     Q_INVOKABLE void printList(const QString& listName);
 
     /**jsdoc
-    * Get the list of avatars, entities, and overlays stored in a selection list.
+    * Get the list of avatars and entities stored in a selection list.
     * @function Selection.getSelectedItemsList
     * @param {string} listName - The name of the selection list.
     * @returns {Selection.SelectedItemsList} The content of a selection list. If the list name doesn't exist, the function 

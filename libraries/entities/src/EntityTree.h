@@ -45,7 +45,6 @@ public:
     QHash<EntityItemID, EntityItemID>* map;
 };
 
-
 class EntityTree : public Octree, public SpatialParentTree {
     Q_OBJECT
 public:
@@ -75,6 +74,8 @@ public:
         return std::static_pointer_cast<EntityTreeElement>(_rootElement);
     }
 
+
+    virtual void eraseNonLocalEntities() override;
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,
@@ -92,18 +93,16 @@ public:
     virtual void processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
     virtual void processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) override;
 
-    virtual EntityItemID findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+    virtual EntityItemID evalRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
-        bool visibleOnly, bool collidableOnly, bool precisionPicking, 
-        OctreeElementPointer& element, float& distance,
+        PickFilter searchFilter, OctreeElementPointer& element, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
-    virtual EntityItemID findParabolaIntersection(const PickParabola& parabola,
+    virtual EntityItemID evalParabolaIntersection(const PickParabola& parabola,
         QVector<EntityItemID> entityIdsToInclude, QVector<EntityItemID> entityIdsToDiscard,
-        bool visibleOnly, bool collidableOnly, bool precisionPicking,
-        OctreeElementPointer& element, glm::vec3& intersection, float& distance, float& parabolicDistance,
-        BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
+        PickFilter searchFilter, OctreeElementPointer& element, glm::vec3& intersection,
+        float& distance, float& parabolicDistance, BoxFace& face, glm::vec3& surfaceNormal, QVariantMap& extraInfo,
         Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     virtual bool rootElementHasData() const override { return true; }
@@ -128,44 +127,19 @@ public:
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
     void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
-    /// \param position point of query in world-frame (meters)
-    /// \param targetRadius radius of query (meters)
-    EntityItemPointer findClosestEntity(const glm::vec3& position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id) const;
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID) const;
     virtual SpatiallyNestablePointer findByID(const QUuid& id) const override { return findEntityByID(id); }
 
     EntityItemID assignEntityID(const EntityItemID& entityItemID); /// Assigns a known ID for a creator token ID
 
-
-    /// finds all entities that touch a sphere
-    /// \param center the center of the sphere in world-frame (meters)
-    /// \param radius the radius of the sphere in world-frame (meters)
-    /// \param foundEntities[out] vector of EntityItemPointer
-    /// \remark Side effect: any initial contents in foundEntities will be lost
-    void findEntities(const glm::vec3& center, float radius, QVector<EntityItemPointer>& foundEntities);
-
-    /// finds all entities that touch a cube
-    /// \param cube the query cube in world-frame (meters)
-    /// \param foundEntities[out] vector of non-EntityItemPointer
-    /// \remark Side effect: any initial contents in entities will be lost
-    void findEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities);
-
-    /// finds all entities that touch a box
-    /// \param box the query box in world-frame (meters)
-    /// \param foundEntities[out] vector of non-EntityItemPointer
-    /// \remark Side effect: any initial contents in entities will be lost
-    void findEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities);
-
-    /// finds all entities within a frustum
-    /// \parameter frustum the query frustum
-    /// \param foundEntities[out] vector of EntityItemPointer
-    void findEntities(const ViewFrustum& frustum, QVector<EntityItemPointer>& foundEntities);
-
-    /// finds all entities that match scanOperator
-    /// \parameter scanOperator function that scans entities that match criteria
-    /// \parameter foundEntities[out] vector of EntityItemPointer
-    void findEntities(RecurseOctreeOperation& scanOperator, QVector<EntityItemPointer>& foundEntities);
+    QUuid evalClosestEntity(const glm::vec3& position, float targetRadius, PickFilter searchFilter);
+    void evalEntitiesInSphere(const glm::vec3& center, float radius, PickFilter searchFilter, QVector<QUuid>& foundEntities);
+    void evalEntitiesInSphereWithType(const glm::vec3& center, float radius, EntityTypes::EntityType type, PickFilter searchFilter, QVector<QUuid>& foundEntities);
+    void evalEntitiesInSphereWithName(const glm::vec3& center, float radius, const QString& name, bool caseSensitive, PickFilter searchFilter, QVector<QUuid>& foundEntities);
+    void evalEntitiesInCube(const AACube& cube, PickFilter searchFilter, QVector<QUuid>& foundEntities);
+    void evalEntitiesInBox(const AABox& box, PickFilter searchFilter, QVector<QUuid>& foundEntities);
+    void evalEntitiesInFrustum(const ViewFrustum& frustum, PickFilter searchFilter, QVector<QUuid>& foundEntities);
 
     void addNewlyCreatedHook(NewlyCreatedEntityHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedEntityHook* hook);
@@ -288,27 +262,22 @@ public:
     void setIsServerlessMode(bool value) { _serverlessDomain = value; }
     bool isServerlessMode() const { return _serverlessDomain; }
 
-    static void setAddMaterialToEntityOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToEntityOperator) { _addMaterialToEntityOperator = addMaterialToEntityOperator; }
-    static void setRemoveMaterialFromEntityOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromEntityOperator) { _removeMaterialFromEntityOperator = removeMaterialFromEntityOperator; }
-    static bool addMaterialToEntity(const QUuid& entityID, graphics::MaterialLayer material, const std::string& parentMaterialName);
-    static bool removeMaterialFromEntity(const QUuid& entityID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+    static void setGetEntityObjectOperator(std::function<QObject*(const QUuid&)> getEntityObjectOperator) { _getEntityObjectOperator = getEntityObjectOperator; }
+    static QObject* getEntityObject(const QUuid& id);
 
-    static void setAddMaterialToAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToAvatarOperator) { _addMaterialToAvatarOperator = addMaterialToAvatarOperator; }
-    static void setRemoveMaterialFromAvatarOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromAvatarOperator) { _removeMaterialFromAvatarOperator = removeMaterialFromAvatarOperator; }
-    static bool addMaterialToAvatar(const QUuid& avatarID, graphics::MaterialLayer material, const std::string& parentMaterialName);
-    static bool removeMaterialFromAvatar(const QUuid& avatarID, graphics::MaterialPointer material, const std::string& parentMaterialName);
-
-    static void setAddMaterialToOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> addMaterialToOverlayOperator) { _addMaterialToOverlayOperator = addMaterialToOverlayOperator; }
-    static void setRemoveMaterialFromOverlayOperator(std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> removeMaterialFromOverlayOperator) { _removeMaterialFromOverlayOperator = removeMaterialFromOverlayOperator; }
-    static bool addMaterialToOverlay(const QUuid& overlayID, graphics::MaterialLayer material, const std::string& parentMaterialName);
-    static bool removeMaterialFromOverlay(const QUuid& overlayID, graphics::MaterialPointer material, const std::string& parentMaterialName);
+    static void setTextSizeOperator(std::function<QSizeF(const QUuid&, const QString&)> textSizeOperator) { _textSizeOperator = textSizeOperator; }
+    static QSizeF textSize(const QUuid& id, const QString& text);
 
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
+
+    void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                 bool force, bool tellServer);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void deletingEntityPointer(EntityItem* entityID);
     void addingEntity(const EntityItemID& entityID);
+    void addingEntityPointer(EntityItem* entityID);
     void editingEntityPointer(const EntityItemPointer& entityID);
     void entityScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
@@ -321,11 +290,6 @@ protected:
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties,
             const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
-    static bool findNearPointOperation(const OctreeElementPointer& element, void* extraData);
-    static bool findInSphereOperation(const OctreeElementPointer& element, void* extraData);
-    static bool findInCubeOperation(const OctreeElementPointer& element, void* extraData);
-    static bool findInBoxOperation(const OctreeElementPointer& element, void* extraData);
-    static bool findInFrustumOperation(const OctreeElementPointer& element, void* extraData);
     static bool sendEntitiesOperation(const OctreeElementPointer& element, void* extraData);
     static void bumpTimestamp(EntityItemProperties& properties);
 
@@ -412,18 +376,17 @@ private:
 
     std::shared_ptr<AvatarData> _myAvatar{ nullptr };
 
-    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToEntityOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromEntityOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToAvatarOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromAvatarOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialLayer, const std::string&)> _addMaterialToOverlayOperator;
-    static std::function<bool(const QUuid&, graphics::MaterialPointer, const std::string&)> _removeMaterialFromOverlayOperator;
+    static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
+    static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
 
     std::vector<int32_t> _staleProxies;
 
     bool _serverlessDomain { false };
 
     std::map<QString, QString> _namedPaths;
+
+    void updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
+                                       MovingEntitiesOperator& moveOperator, bool force, bool tellServer);
 };
 
 void convertGrabUserDataToProperties(EntityItemProperties& properties);

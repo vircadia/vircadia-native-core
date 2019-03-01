@@ -13,7 +13,7 @@
 
 ### CMake External Project Dependencies
 
-These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.  
+These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.
 - [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83
 - [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8
 - [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Win32) / 0.5 (Mac)
@@ -22,7 +22,7 @@ These dependencies need not be installed manually. They are automatically downlo
 - [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3
 - [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3
 - [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/):   4.3
-- [vcpkg](https://github.com/highfidelity/vcpkg): 
+- [vcpkg](https://github.com/highfidelity/vcpkg):
 - [VHACD](https://github.com/virneo/v-hacd)
 - [zlib](http://www.zlib.net/):   1.28 (Win32 only)
 - [nvtt](https://github.com/highfidelity/nvidia-texture-tools):   2.1.1 (customized)
@@ -47,6 +47,18 @@ The path it needs to be set to will depend on where and how Qt5 was installed. e
     export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.10.1/clang_64/lib/cmake/
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.10.1/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
+
+#### Vcpkg
+
+Hifi uses vcpkg to download and build dependencies.
+You do not need to install vcpkg.
+
+Building the dependencies can be lengthy and the resulting files will be stored in your OS temp directory.
+However, those files can potentially get cleaned up by the OS, so in order to avoid this and having to redo the lengthy build step, you can set the following environment variable:
+
+export HIFI_VCPKG_BASE=/path/to/directory
+
+Where /path/to/directory is the path to a directory where you wish the build files to get stored.
 
 #### Generating build files
 
@@ -80,7 +92,7 @@ In the examples below the variable $NAME would be replaced by the name of the de
 
 ### Optional Components
 
-#### Build Options 
+#### Build Options
 
 The following build options can be used when running CMake
 
@@ -89,7 +101,7 @@ The following build options can be used when running CMake
 * BUILD_TESTS
 * BUILD_TOOLS
 
-#### Developer Build Options 
+#### Developer Build Options
 
 * USE_GLES
 * DISABLE_UI

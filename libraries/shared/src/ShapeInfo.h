@@ -18,8 +18,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include "HashKey.h"
-
 const float MIN_SHAPE_OFFSET = 0.001f; // offsets less than 1mm will be ignored
 
 // Bullet has a mesh generation util for convex shapes that we used to
@@ -47,7 +45,8 @@ enum ShapeType {
     SHAPE_TYPE_SIMPLE_COMPOUND,
     SHAPE_TYPE_STATIC_MESH,
     SHAPE_TYPE_ELLIPSOID,
-    SHAPE_TYPE_CIRCLE
+    SHAPE_TYPE_CIRCLE,
+    SHAPE_TYPE_MULTISPHERE
 };
 
 class ShapeInfo {
@@ -57,6 +56,8 @@ public:
     using PointList = QVector<glm::vec3>;
     using PointCollection = QVector<PointList>;
     using TriangleIndices = QVector<int32_t>;
+    using SphereData = glm::vec4;
+    using SphereCollection = QVector<SphereData>;
 
     static QString getNameForShapeType(ShapeType type);
     static ShapeType getShapeTypeForName(QString string);
@@ -68,7 +69,8 @@ public:
     void setSphere(float radius);
     void setPointCollection(const PointCollection& pointCollection);
     void setCapsuleY(float radius, float cylinderHalfHeight);
-    void setOffset(const glm::vec3& offset);
+    void setMultiSphere(const std::vector<glm::vec3>& centers, const std::vector<float>& radiuses);
+    void setOffset(const glm::vec3& offset);    
 
     ShapeType getType() const { return _type; }
 
@@ -78,6 +80,7 @@ public:
 
     PointCollection& getPointCollection() { return _pointCollection; }
     const PointCollection& getPointCollection() const { return _pointCollection; }
+    const SphereCollection& getSphereCollection() const { return _sphereCollection; }
 
     TriangleIndices& getTriangleIndices() { return _triangleIndices; }
     const TriangleIndices& getTriangleIndices() const { return _triangleIndices; }
@@ -86,21 +89,18 @@ public:
 
     float computeVolume() const;
 
-    /// Returns whether point is inside the shape
-    /// For compound shapes it will only return whether it is inside the bounding box
-    bool contains(const glm::vec3& point) const;
-
-    const HashKey& getHash() const;
+    uint64_t getHash() const;
 
 protected:
     void setHalfExtents(const glm::vec3& halfExtents);
 
     QUrl _url; // url for model of convex collision hulls
+    SphereCollection _sphereCollection;
     PointCollection _pointCollection;
     TriangleIndices _triangleIndices;
     glm::vec3 _halfExtents = glm::vec3(0.0f);
     glm::vec3 _offset = glm::vec3(0.0f);
-    mutable HashKey _hashKey;
+    mutable uint64_t _hash64;
     ShapeType _type = SHAPE_TYPE_NONE;
 };
 

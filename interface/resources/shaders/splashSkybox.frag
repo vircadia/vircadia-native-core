@@ -1,47 +1,32 @@
-const vec3 COLOR = vec3(0x00, 0xD8, 0x02) / vec3(0xFF);
-const float CUTOFF = 0.65;
-const float NOISE_MULT = 8.0;
-const float NOISE_POWER = 1.0;
+// Replicate the default skybox texture
 
-float noise4D(vec4 p) {
-	return fract(sin(dot(p ,vec4(12.9898,78.233,126.7235, 593.2241))) * 43758.5453);
-}
-
-float worley4D(vec4 p) {
-	float r = 3.0;
-    vec4 f = floor(p);
-    vec4 x = fract(p);
-	for(int i = -1; i<=1; i++)
-	{
-		for(int j = -1; j<=1; j++)
-		{
-			for(int k = -1; k<=1; k++)
-			{
-                for (int l = -1; l <= 1; l++) {
-                	vec4 q = vec4(float(i),float(j),float(k), float(l));
-    				vec4 v = q + vec4(noise4D((q+f)*1.11), noise4D((q+f)*1.14), noise4D((q+f)*1.17), noise4D((q+f)*1.20)) - x;
-    				float d = dot(v, v);
-					r = min(r, d);
-                }
-			}
-		}
-	}
-    return sqrt(r);
-}
-
-
-vec3 mainColor(vec3 direction) {
-    float n = worley4D(vec4(direction * NOISE_MULT, iGlobalTime / 3.0));
-    n = 1.0 - n;
-    n = pow(n, NOISE_POWER);
-    if (n < CUTOFF) {
-        return vec3(0.0);
-    }
-
-    n = (n - CUTOFF) / (1.0 - CUTOFF);
-	return COLOR * (1.0 - n);
-}
+const int NUM_COLORS = 5;
+const vec3 WHITISH = vec3(0.471, 0.725, 0.825);
+const vec3 GREENISH = vec3(0.157, 0.529, 0.588);
+const vec3 COLORS[NUM_COLORS] = vec3[](
+    GREENISH,
+    GREENISH,
+    WHITISH,
+    WHITISH,
+    vec3(0.6, 0.275, 0.706)    // purple
+);
+const float PI = 3.14159265359;
+const vec3 BLACK = vec3(0.0);
+const vec3 SPACE_BLUE = vec3(0.0, 0.118, 0.392);
+const float HORIZONTAL_OFFSET = 3.75;
 
 vec3 getSkyboxColor() {
-	return mainColor(normalize(_normal));
+    vec2 horizontal = vec2(_normal.x, _normal.z);
+    horizontal = normalize(horizontal);
+    float theta = atan(horizontal.y, horizontal.x);
+    theta = 0.5 * (theta / PI + 1.0);
+    float index = theta * NUM_COLORS;
+    index = mod(index + HORIZONTAL_OFFSET, NUM_COLORS);
+    int index1 = int(index) % NUM_COLORS;
+    int index2 = (index1 + 1) % NUM_COLORS;
+    vec3 horizonColor = mix(COLORS[index1], COLORS[index2], index - index1);
+    horizonColor = mix(horizonColor, SPACE_BLUE, smoothstep(0.0, 0.08, _normal.y));
+    horizonColor = mix(horizonColor, BLACK, smoothstep(0.04, 0.15, _normal.y));
+    horizonColor = mix(BLACK, horizonColor, smoothstep(-0.01, 0.0, _normal.y));
+	return pow(horizonColor, vec3(0.4545));;
 }

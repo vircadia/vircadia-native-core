@@ -38,10 +38,10 @@ namespace VirtualPad {
     const float Manager::BASE_DIAMETER_PIXELS = 512.0f;
     const float Manager::BASE_MARGIN_PIXELS = 59.0f;
     const float Manager::STICK_RADIUS_PIXELS = 105.0f;
-    const float Manager::JUMP_BTN_TRIMMED_RADIUS_PIXELS = 67.0f;
-    const float Manager::JUMP_BTN_FULL_PIXELS = 164.0f;
-    const float Manager::JUMP_BTN_BOTTOM_MARGIN_PIXELS = 80.0f;
-    const float Manager::JUMP_BTN_RIGHT_MARGIN_PIXELS = 13.0f;
+    const float Manager::BTN_TRIMMED_RADIUS_PIXELS = 67.0f;
+    const float Manager::BTN_FULL_PIXELS = 164.0f;
+    const float Manager::BTN_BOTTOM_MARGIN_PIXELS = 80.0f;
+    const float Manager::BTN_RIGHT_MARGIN_PIXELS = 13.0f;
 
     Manager::Manager() {
 
@@ -76,20 +76,23 @@ namespace VirtualPad {
         _extraBottomMargin = margin;
     }
 
-    glm::vec2 Manager::getJumpButtonPosition() {
-        return _jumpButtonPosition;
-    }
-
-    void Manager::setJumpButtonPosition(glm::vec2 point) {
-        _jumpButtonPosition = point;
-    }
-
     void Manager::requestHapticFeedback(int duration) {
         emit hapticFeedbackRequested(duration);
     }
 
     Instance* Manager::getLeftVirtualPad() {
         return &_leftVPadInstance;
+    }
+
+    glm::vec2 Manager::getButtonPosition(Manager::Button button) {
+        if (_buttonsPositions.count(button)) {
+            return _buttonsPositions.at(button);
+        }
+        return glm::vec2();
+    }
+
+    void Manager::setButtonPosition(Manager::Button button, glm::vec2 point) {
+        _buttonsPositions[button] = point;
     }
 
     bool Instance::isShown() {

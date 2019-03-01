@@ -18,6 +18,7 @@ Q_DECLARE_LOGGING_CATEGORY(trace_app)
 Q_DECLARE_LOGGING_CATEGORY(trace_app_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_metadata)
 Q_DECLARE_LOGGING_CATEGORY(trace_network)
+Q_DECLARE_LOGGING_CATEGORY(trace_picks)
 Q_DECLARE_LOGGING_CATEGORY(trace_render)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_render_gpu)
@@ -34,6 +35,7 @@ Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics)
 Q_DECLARE_LOGGING_CATEGORY(trace_simulation_physics_detail)
 Q_DECLARE_LOGGING_CATEGORY(trace_startup)
 Q_DECLARE_LOGGING_CATEGORY(trace_workload)
+Q_DECLARE_LOGGING_CATEGORY(trace_baker)
 
 class Duration {
 public:

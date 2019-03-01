@@ -94,7 +94,7 @@ void HTTPResourceRequest::onRequestFinished() {
     //   Content-Range: <unit> <range-start>-<range-end>/*
     //   Content-Range: <unit> */<size>
     //
-    auto parseContentRangeHeader = [](QString contentRangeHeader) -> std::pair<bool, uint64_t> {
+    static auto parseContentRangeHeader = [](QString contentRangeHeader) -> std::pair<bool, uint64_t> {
         auto unitRangeParts = contentRangeHeader.split(' ');
         if (unitRangeParts.size() != 2) {
             return { false, 0 };
@@ -113,6 +113,15 @@ void HTTPResourceRequest::onRequestFinished() {
             auto size = sizeStr.toLong(&ok);
             return { ok, size };
         }
+    };
+
+    static auto parseMediaType = [](QString contentTypeHeader) -> std::pair<bool, QString> {
+        auto contentTypeParts = contentTypeHeader.split(';');
+        if (contentTypeParts.size() < 1) {
+            return { false, "" };
+        }
+
+        return { true, contentTypeParts[0] };
     };
 
     switch(_reply->error()) {
@@ -138,6 +147,16 @@ void HTTPResourceRequest::onRequestFinished() {
                 } else {
                     _rangeRequestSuccessful = false;
                     _totalSizeOfResource = _data.size();
+                }
+            }
+
+            {
+                auto contentTypeHeader = _reply->rawHeader("Content-Type");
+                bool success;
+                QString mediaType;
+                std::tie(success, mediaType) = parseMediaType(contentTypeHeader);
+                if (success) {
+                    _webMediaType = mediaType;
                 }
             }
 

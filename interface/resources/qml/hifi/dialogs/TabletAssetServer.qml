@@ -148,7 +148,7 @@ Rectangle {
     }
 
     function canAddToWorld(path) {
-        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i];
+        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i, /\.jpg\b/i, /\.png\b/i, /\.gltf\b/i];
 
         if (selectedItemCount > 1) {
             return false;
@@ -189,15 +189,17 @@ Rectangle {
         var grabbable = MenuInterface.isOptionChecked("Create Entities As Grabbable (except Zones, Particles, and Lights)");
 
         if (defaultURL.endsWith(".jpg") || defaultURL.endsWith(".png")) {
-            var name = assetProxyModel.data(treeView.selection.currentIndex);
-            var modelURL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
-            var textures = JSON.stringify({ "tex.picture": defaultURL});
-            var shapeType = "box";
-            var dynamic = false;
-            var collisionless = true;
-            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation)));
-            var gravity = Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0);
-            Entities.addModelEntity(name, modelURL, textures, shapeType, dynamic, collisionless, grabbable, position, gravity);
+            Entities.addEntity({
+                type: "Image",
+                name: assetProxyModel.data(treeView.selection.currentIndex),
+                imageURL: defaultURL,
+                keepAspectRatio: false,
+                dynamic: false,
+                collisionless: true,
+                grabbable: grabbable,
+                position: Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getForward(MyAvatar.orientation))),
+                gravity: Vec3.multiply(Vec3.fromPolar(Math.PI / 2, 0), 0)
+            });
         } else {
             var SHAPE_TYPE_NONE = 0;
             var SHAPE_TYPE_SIMPLE_HULL = 1;

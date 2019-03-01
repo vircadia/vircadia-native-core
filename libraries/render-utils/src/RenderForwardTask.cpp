@@ -48,39 +48,45 @@ using namespace render;
 extern void initForwardPipelines(ShapePlumber& plumber);
 
 void RenderForwardTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    auto items = input.get<Input>();
-    auto fadeEffect = DependencyManager::get<FadeEffect>();
-
     // Prepare the ShapePipelines
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initForwardPipelines(*shapePlumber);
 
-    // Extract opaques / transparents / lights / metas / overlays / background
-    const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
-    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    //const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
-    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
-    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    // Unpack inputs
+    const auto& inputs = input.get<Input>();
+    
+    // Separate the fetched items
+    const auto& fetchedItems = inputs.get0();
 
-    //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
-    //const auto& spatialSelection = items[1];
+        const auto& items = fetchedItems.get0();
 
+            // Extract opaques / transparents / lights / metas / layered / background
+            const auto& opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
+            const auto& transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+            const auto& metas = items[RenderFetchCullSortTask::META];
+            const auto& inFrontOpaque = items[RenderFetchCullSortTask::LAYER_FRONT_OPAQUE_SHAPE];
+            const auto& inFrontTransparent = items[RenderFetchCullSortTask::LAYER_FRONT_TRANSPARENT_SHAPE];
+            const auto& hudOpaque = items[RenderFetchCullSortTask::LAYER_HUD_OPAQUE_SHAPE];
+            const auto& hudTransparent = items[RenderFetchCullSortTask::LAYER_HUD_TRANSPARENT_SHAPE];
+
+    // Lighting model comes next, the big configuration of the view
+    const auto& lightingModel = inputs[1];
+
+    // Extract the Lighting Stages Current frame ( and zones)
+    const auto& lightingStageInputs = inputs.get2();
+        // Fetch the current frame stacks from all the stages
+        const auto currentStageFrames = lightingStageInputs.get0();
+            const auto lightFrame = currentStageFrames[0];
+            const auto backgroundFrame = currentStageFrames[1];
+ 
+        const auto& zones = lightingStageInputs[1];
+
+    // First job, alter faded
     fadeEffect->build(task, opaques);
 
     // Prepare objects shared by several jobs
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
-    const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
-
-    // Filter zones from the general metas bucket
-    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
-
-    // Fetch the current frame stacks from all the stages
-    const auto currentFrames = task.addJob<FetchCurrentFrames>("FetchCurrentFrames");
-    const auto lightFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(0);
-    const auto backgroundFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(1);
-    //const auto hazeFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(2);
-    //const auto bloomFrame = currentFrames.getN<FetchCurrentFrames::Outputs>(3);
 
     // GPU jobs: Start preparing the main framebuffer
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
@@ -90,17 +96,12 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", framebuffer);
 
-    // Layered Overlays
-    const auto filteredOverlaysOpaque = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredOpaque", overlayOpaques, render::hifi::LAYER_3D_FRONT);
-    const auto filteredOverlaysTransparent = task.addJob<FilterLayeredItems>("FilterOverlaysLayeredTransparent", overlayTransparents, render::hifi::LAYER_3D_FRONT);
-    const auto overlaysInFrontOpaque = filteredOverlaysOpaque.getN<FilterLayeredItems::Outputs>(0);
-    const auto overlaysInFrontTransparent = filteredOverlaysTransparent.getN<FilterLayeredItems::Outputs>(0);
+    // Layered
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
-
-    const auto overlayInFrontOpaquesInputs = DrawOverlay3D::Inputs(overlaysInFrontOpaque, lightingModel, nullJitter).asVarying();
-    const auto overlayInFrontTransparentsInputs = DrawOverlay3D::Inputs(overlaysInFrontTransparent, lightingModel, nullJitter).asVarying();
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontOpaque", overlayInFrontOpaquesInputs, true);
-    task.addJob<DrawOverlay3D>("DrawOverlayInFrontTransparent", overlayInFrontTransparentsInputs, false);
+    const auto inFrontOpaquesInputs = DrawLayered3D::Inputs(inFrontOpaque, lightingModel, nullJitter).asVarying();
+    const auto inFrontTransparentsInputs = DrawLayered3D::Inputs(inFrontTransparent, lightingModel, nullJitter).asVarying();
+    task.addJob<DrawLayered3D>("DrawInFrontOpaque", inFrontOpaquesInputs, true);
+    task.addJob<DrawLayered3D>("DrawInFrontTransparent", inFrontTransparentsInputs, false);
 
     // Draw opaques forward
     const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
@@ -125,41 +126,61 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
         task.addJob<DebugZoneLighting>("DrawZoneStack", debugZoneInputs);
     }
 
+    // Just resolve the msaa
+    const auto resolveInputs =
+        ResolveFramebuffer::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
+    const auto resolvedFramebuffer = task.addJob<ResolveFramebuffer>("Resolve", resolveInputs);
+    //auto resolvedFramebuffer = task.addJob<ResolveNewFramebuffer>("Resolve", framebuffer);
+
+#if defined(Q_OS_ANDROID)
+#else
     // Lighting Buffer ready for tone mapping
     // Forward rendering on GLES doesn't support tonemapping to and from the same FBO, so we specify 
     // the output FBO as null, which causes the tonemapping to target the blit framebuffer
-    const auto toneMappingInputs = ToneMappingDeferred::Inputs(framebuffer, static_cast<gpu::FramebufferPointer>(nullptr) ).asVarying();
+    const auto toneMappingInputs = ToneMappingDeferred::Inputs(resolvedFramebuffer, static_cast<gpu::FramebufferPointer>(nullptr)).asVarying();
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
+#endif
 
     // Layered Overlays
     // Composite the HUD and HUD overlays
-    task.addJob<CompositeHUD>("HUD");
+    task.addJob<CompositeHUD>("HUD", resolvedFramebuffer);
+
+    const auto hudOpaquesInputs = DrawLayered3D::Inputs(hudOpaque, lightingModel, nullJitter).asVarying();
+    const auto hudTransparentsInputs = DrawLayered3D::Inputs(hudTransparent, lightingModel, nullJitter).asVarying();
+    task.addJob<DrawLayered3D>("DrawHUDOpaque", hudOpaquesInputs, true);
+    task.addJob<DrawLayered3D>("DrawHUDTransparent", hudTransparentsInputs, false);
 
     // Disable blit because we do tonemapping and compositing directly to the blit FBO
     // Blit!
     // task.addJob<Blit>("Blit", framebuffer);
 }
 
+void PrepareFramebuffer::configure(const Config& config) {
+    _numSamples = config.getNumSamples();
+}
+
 void PrepareFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& framebuffer) {
     glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded rendering
-    if (_framebuffer && _framebuffer->getSize() != frameSize) {
+    if (_framebuffer && (_framebuffer->getSize() != frameSize || _framebuffer->getNumSamples() != _numSamples)) {
         _framebuffer.reset();
     }
 
     if (!_framebuffer) {
         _framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("forward"));
 
+        int numSamples = _numSamples;
+
         auto colorFormat = gpu::Element::COLOR_SRGBA_32;
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
         auto colorTexture =
-            gpu::Texture::createRenderBuffer(colorFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+            gpu::Texture::createRenderBufferMultisample(colorFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
         _framebuffer->setRenderBuffer(0, colorTexture);
 
         auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);  // Depth24_Stencil8 texel format
         auto depthTexture =
-            gpu::Texture::createRenderBuffer(depthFormat, frameSize.x, frameSize.y, gpu::Texture::SINGLE_MIP, defaultSampler);
+           gpu::Texture::createRenderBufferMultisample(depthFormat, frameSize.x, frameSize.y, numSamples, defaultSampler);
         _framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
     }
 

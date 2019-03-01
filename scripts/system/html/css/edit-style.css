@@ -598,11 +598,17 @@ div.section[collapsed="true"], div.section[collapsed="true"] > .section-header {
 
 .triple-label {
     text-transform: uppercase;
+    text-align: center;
     padding: 6px 0;
+    cursor: default;
 }
 
 .triple-item {
     margin-right: 10px;
+}
+
+.triple-item.rgb.fstuple {
+    display: block !important;
 }
 
 .section-header[collapsed="true"] {
@@ -911,14 +917,17 @@ div.refresh input[type="button"] {
     clear: both;
 }
 
+.draggable-number-container {
+    flex: 0 1 124px;
+}
 .draggable-number {
     position: relative;
-}
-.draggable-number div {
     height: 28px;
-    width: 124px;
+    flex: 0 1 124px;
 }
-.draggable-number.text {
+
+.draggable-number .text {
+    position: absolute;
     display: inline-block;
     color: #afafaf;
     background-color: #252525;
@@ -930,11 +939,12 @@ div.refresh input[type="button"] {
     width: 100%;
     line-height: 2;
     box-sizing: border-box;
+    z-index: 1;
 }
-.draggable-number.text:hover {
+.draggable-number .text:hover {
     cursor: ew-resize;
 }
-.draggable-number span {
+.draggable-number .left-arrow, .draggable-number .right-arrow {
     position: absolute;
     display: inline-block;
     font-family: HiFi-Glyphs;
@@ -944,14 +954,14 @@ div.refresh input[type="button"] {
 .draggable-number span:hover {
     cursor: default;
 }
-.draggable-number.left-arrow {
+.draggable-number .left-arrow {
     top: 3px;
-    left: 0px;
+    left: 0;
     transform: rotate(180deg);
 }
-.draggable-number.right-arrow {
+.draggable-number .right-arrow {
     top: 3px;
-    right: 0px;
+    right: 0;
 }
 .draggable-number input[type=number] {
     position: absolute;
@@ -983,6 +993,10 @@ div.refresh input[type="button"] {
     left: -16px;
     font-family: FiraSans-SemiBold;
     font-size: 15px;
+}
+
+.rect .rect-row {
+    margin-bottom: 8px;
 }
 
 .row .property {
@@ -1196,6 +1210,26 @@ div#grid-section, body#entity-list-body {
     width: 200px;
     padding-top: 1px;
 }
+#filter-type-options-buttons {
+    top: -22px;
+    width: 224px;
+    z-index: 2;
+    background-color: #afafaf;
+    padding-bottom: 6px;
+}
+#filter-type-options input[type=button] {
+    position: relative;
+    left: 16px;
+    z-index: 3;
+    height: 23px;
+    min-width: 60px;
+    font-size: 10px;
+    color: #000;
+    background: linear-gradient(#afafaf 20%, #808080 100%);
+}
+#filter-type-options input[type=button]:enabled:hover {
+    background: linear-gradient(#afafaf 20%, #575757 100%);
+}
 
 #filter-search-and-icon {
     position: relative;
@@ -1381,6 +1415,10 @@ input[type=button]#export {
     cursor: col-resize;
 }
 
+#entity-table .dragging {
+    background-color: #b3ecff;
+}
+
 #entity-table td {
     box-sizing: border-box;
 }
@@ -1508,12 +1546,14 @@ input.rename-entity {
 }
 
 .create-app-tooltip {
+    z-index: 100;
     position: absolute;
     background: #6a6a6a;
     border: 1px solid black;
     width: 258px;
     min-height: 20px;
     padding: 5px;
+    z-index: 100;
 }
 
 .create-app-tooltip .create-app-tooltip-description {
@@ -1586,10 +1626,10 @@ input.rename-entity {
     margin-left: 4px;
     margin-right: 10px;
 }
-.fstuple label.red, .fstuple label.x {
+.fstuple label.red, .fstuple label.x, .fstuple label.w {
     color: #C62147;
 }
-.fstuple label.green, .fstuple label.y {
+.fstuple label.green, .fstuple label.y, .fstuple label.h {
     color: #359D85;
 }
 .fstuple label.blue, .fstuple label.z {
@@ -1629,10 +1669,6 @@ input.number-slider {
     flex-flow: column;
 }
 
-.flex-column + .flex-column {
-    padding-left: 50px;
-}
-
 .flex-center {
     align-items: center;
 }
@@ -1645,6 +1681,7 @@ input.number-slider {
     font-family: Raleway-Light;
     font-size: 14px;
     margin: 6px 0;
+    cursor: default;
 }
 
 #property-name, #property-id {
@@ -1657,9 +1694,38 @@ input.number-slider {
 }
 
 #placeholder-property-type {
-    min-width: 0px;
+    min-width: 0;
 }
 
 .collapse-icon {
     cursor: pointer;
+}
+
+#property-userData-editor.error {
+    border: 2px solid red;
+}
+
+#property-userData-editorStatus {
+    color: white;
+    background-color: red;
+    padding: 5px;
+    display: none;
+    cursor: pointer;
+}
+
+#property-materialData-editor.error {
+    border: 2px solid red;
+}
+
+#property-materialData-editorStatus {
+    color: white;
+    background-color: red;
+    padding: 5px;
+    display: none;
+    cursor: pointer;
+}
+
+input[type=number].hide-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    visibility: hidden;
 }

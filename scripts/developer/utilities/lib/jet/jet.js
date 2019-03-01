@@ -45,6 +45,24 @@ function job_propKeys(job) {
     return propKeys; 
 }
 
+// Access job inputs
+// return all the inputs of a job
+function job_inoutKeys(job) {
+    var keys = Object.keys(job)
+    var inoutKeys = [];
+    for (var k=0; k < keys.length;k++) {
+        // Filter for relevant property
+        var key = keys[k]
+        if ((typeof job[key]) !== "function") {
+            if ((key == "input") || (key == "output")) {
+                inoutKeys.push(keys[k]);
+            }
+        }
+    }
+
+    return inoutKeys; 
+}
+
 // Use this function to create a functor that will fill the specifed array with one entry name per task and job and it s rank
 function job_list_functor(jobList, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100
@@ -55,7 +73,7 @@ function job_list_functor(jobList, maxDepth) {
 } 
 
 // Use this function to create a functor that will print the content of the Job visited calling the  specified 'printout' function
-function job_print_functor(printout, showProps, maxDepth) {
+function job_print_functor(printout, showProps, showInOuts, maxDepth) {
     if (maxDepth === undefined) maxDepth = 100
     return function (job, depth, index) {
         var tab = "    "
@@ -69,10 +87,133 @@ function job_print_functor(printout, showProps, maxDepth) {
                 printout(depthTab + tab + tab + typeof prop + " " + keys[p] + " " + prop);
             }
         }
+        if (showInOuts) {
+            printout("jsdkfkjdskflj")
+            var inouts = job_inoutKeys(job);
+            for (var p=0; p < inouts.length;p++) {
+                var prop = job[inouts[p]]
+                printout(depthTab + tab + tab + typeof prop + " " + inouts[p] + " " + prop);
+            }
+        }
         return depth < maxDepth;
     }
 } 
 
+// Use this function to create a functor that will build a tree datastructure of the Job visited
+
+function job_tree_model_array_functor(jobTreeArray, newNodeFunctor) {
+    var jobsRoot;
+    var numJobs = 0;
+    var jobTreePath = []
+    if (newNodeFunctor === undefined) newNodeFunctor = function (node) {}
+
+    return function (job, depth, index) {
+        var id = numJobs
+        var newItem = {"name": job.objectName, "level": depth, "index": index, "id": id, "subNode": [], "path": ""}
+        if (depth == 0) {
+            newNodeFunctor(newItem)
+            jobTreeArray.push(newItem)
+            numJobs++
+            jobsRoot = jobTreeArray[0].subNode;
+        } else {
+            if (jobTreePath.length < depth) {
+                var node = jobsRoot;
+                var path;
+                for (var n = 0; n < jobTreePath.length; n++) {
+                    newItem.path += (n > 0 ? "." : "") + node[jobTreePath[n]].name
+                    node = node[jobTreePath[n]].subNode
+                }
+                
+                newNodeFunctor(newItem)
+                node.push((newItem))
+                numJobs++
+                jobTreePath.push(0);
+            } else if (jobTreePath.length >= depth) {
+                var node = jobsRoot;
+                for (var n = 0; n < (depth - 1); n++) {
+                    newItem.path += (n > 0 ? "." : "") + node[jobTreePath[n]].name
+                    node = node[jobTreePath[n]].subNode
+                }
+
+                newNodeFunctor(newItem)
+                node.push((newItem))
+                numJobs++
+                jobTreePath[depth-1] = index;
+                while (jobTreePath.length > depth) {
+                    jobTreePath.pop();
+                }                       
+            }
+        }
+        return true;
+    }
+}
+
+function job_tree_model_functor(jobTreeModel, maxLevel, newNodeFunctor) {
+    var jobsRoot;
+    var numJobs = 0;
+    var jobTreePath = []
+    if (newNodeFunctor === undefined) newNodeFunctor = function (node) {}
+
+    return function (job, depth, index) {
+        var id = numJobs
+        var newItem = {"name": job.objectName, "level": depth, "index": index, "id": id, "subNode": [], "path": "", "init": (depth < maxLevel), "ud": {}}
+        if (depth == 0) {
+            newNodeFunctor(newItem)
+            jobTreeModel.append(newItem)
+            numJobs++
+            jobsRoot = jobTreeModel.get(0).subNode;
+        } else {
+            if (jobTreePath.length < depth) {
+                var node = jobsRoot;
+                var path;
+                for (var n = 0; n < jobTreePath.length; n++) {
+                    newItem.path += (n > 0 ? "." : "") + node.get(jobTreePath[n]).name
+                    node = node.get(jobTreePath[n]).subNode
+                }
+                
+                newNodeFunctor(newItem)
+                node.append((newItem))
+                numJobs++
+                jobTreePath.push(0);
+            } else if (jobTreePath.length >= depth) {
+                var node = jobsRoot;
+                for (var n = 0; n < (depth - 1); n++) {
+                    newItem.path += (n > 0 ? "." : "") + node.get(jobTreePath[n]).name
+                    node = node.get(jobTreePath[n]).subNode
+                }
+
+                newNodeFunctor(newItem)
+                node.append((newItem))
+                numJobs++
+                jobTreePath[depth-1] = index;
+                while (jobTreePath.length > depth) {
+                    jobTreePath.pop();
+                }                       
+            }
+        }
+        return true;
+    }
+}
+
+
+// Traverse the jobTreenode data structure created above
+function job_traverseTreeNode(root, functor, depth) {
+    if (root.subNode.length) { 
+        depth++;
+        for (var i = 0; i <root.subNode.length; i++) {
+            var sub = root.subNode[i];
+            if (functor(sub, depth, i)) {
+                job_traverseTreeNode(sub, functor, depth, 0)
+            }
+        }
+    }
+}
+
+function job_traverseTreeNodeRoot(root, functor) {
+    if (functor(root, 0, 0)) {
+        job_traverseTreeNode(root, functor, 0)
+    }   
+}
 // Expose functions for regular js including this files through the 'Jet' object
 /*Jet = {}
 Jet.task_traverse = task_traverse

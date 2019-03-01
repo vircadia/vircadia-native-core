@@ -42,6 +42,9 @@ scriptable::ScriptableMaterial& scriptable::ScriptableMaterial::operator=(const 
     lightmapMap = material.lightmapMap;
     scatteringMap = material.scatteringMap;
 
+    defaultFallthrough = material.defaultFallthrough;
+    propertyFallthroughs = material.propertyFallthroughs;
+
     return *this;
 }
 
@@ -54,7 +57,9 @@ scriptable::ScriptableMaterial::ScriptableMaterial(const graphics::MaterialPoint
     scattering(material->getScattering()),
     unlit(material->isUnlit()),
     emissive(material->getEmissive()),
-    albedo(material->getAlbedo())
+    albedo(material->getAlbedo()),
+    defaultFallthrough(material->getDefaultFallthrough()),
+    propertyFallthroughs(material->getPropertyFallthroughs())
 {
     auto map = material->getTextureMap(graphics::Material::MapChannel::EMISSIVE_MAP);
     if (map && map->getTextureSource()) {

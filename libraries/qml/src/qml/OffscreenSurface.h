@@ -30,6 +30,7 @@ class QQmlComponent;
 class QQuickWindow;
 class QQuickItem;
 class OffscreenQmlSharedObject;
+class QQmlFileSelector;
 
 namespace hifi { namespace qml {
 
@@ -72,6 +73,7 @@ public:
     QQuickWindow* getWindow();
     QObject* getEventHandler();
     QQmlContext* getSurfaceContext();
+    QQmlFileSelector* getFileSelector();
 
     // Checks to see if a new texture is available.  If one is, the function returns true and
     // textureAndFence will be populated with the texture ID and a fence which will be signalled

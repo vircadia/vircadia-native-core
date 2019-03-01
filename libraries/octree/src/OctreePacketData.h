@@ -34,6 +34,12 @@
 #include <udt/PacketHeaders.h>
 
 #include "MaterialMappingMode.h"
+#include "BillboardMode.h"
+#include "RenderLayer.h"
+#include "PrimitiveMode.h"
+#include "WebInputMode.h"
+#include "PulseMode.h"
+#include "GizmoType.h"
 
 #include "OctreeConstants.h"
 #include "OctreeElement.h"
@@ -197,6 +203,9 @@ public:
     /// appends an AACube value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const AACube& aaCube);
 
+    /// appends an QRect value to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QRect& rect);
+
     /// appends a position to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendPosition(const glm::vec3& value);
 
@@ -258,6 +267,12 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::quat& result) { int bytes = unpackOrientationQuatFromBytes(dataBytes, result); return bytes; }
     static int unpackDataFromBytes(const unsigned char* dataBytes, ShapeType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, MaterialMappingMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, BillboardMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, RenderLayer& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, PrimitiveMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, WebInputMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, PulseMode& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
+    static int unpackDataFromBytes(const unsigned char* dataBytes, GizmoType& result) { memcpy(&result, dataBytes, sizeof(result)); return sizeof(result); }
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec2& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::vec3& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, glm::u8vec3& result);
@@ -269,6 +284,7 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<bool>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, AACube& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QRect& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large

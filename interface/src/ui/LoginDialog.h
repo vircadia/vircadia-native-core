@@ -18,6 +18,8 @@
 
 class QNetworkReply;
 
+extern const QUrl LOGIN_DIALOG;
+
 class LoginDialog : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
@@ -40,9 +42,15 @@ signals:
 
     void handleCreateCompleted();
     void handleCreateFailed(QString error);
-    
+
     void handleSignupCompleted();
     void handleSignupFailed(QString errorString);
+
+    // occurs upon dismissing the encouraging log in.
+    void dismissedLoginDialog();
+
+    void focusEnabled();
+    void focusDisabled();
 
 public slots:
     void linkCompleted(QNetworkReply* reply);
@@ -50,21 +58,31 @@ public slots:
 
     void createCompleted(QNetworkReply* reply);
     void createFailed(QNetworkReply* reply);
-    
+
     void signupCompleted(QNetworkReply* reply);
     void signupFailed(QNetworkReply* reply);
 
 protected slots:
+    Q_INVOKABLE void dismissLoginDialog();
+
     Q_INVOKABLE bool isSteamRunning() const;
+    Q_INVOKABLE bool isOculusRunning() const;
+
+    Q_INVOKABLE QString oculusUserID() const;
 
     Q_INVOKABLE void login(const QString& username, const QString& password) const;
     Q_INVOKABLE void loginThroughSteam();
     Q_INVOKABLE void linkSteam();
-    Q_INVOKABLE void createAccountFromStream(QString username = QString());
-    
+    Q_INVOKABLE void createAccountFromSteam(QString username = QString());
+    Q_INVOKABLE void loginThroughOculus();
+    Q_INVOKABLE void linkOculus();
+    Q_INVOKABLE void createAccountFromOculus(QString email = QString(), QString username = QString(), QString password = QString());
+
     Q_INVOKABLE void signup(const QString& email, const QString& username, const QString& password);
 
     Q_INVOKABLE void openUrl(const QString& url) const;
+
+    Q_INVOKABLE bool getLoginDialogPoppedUp() const;
 };
 
 #endif // hifi_LoginDialog_h

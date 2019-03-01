@@ -117,7 +117,7 @@ const AnimPoseVec& AnimPoleVectorConstraint::evaluate(const AnimVariantMap& anim
     if (axisLength > MIN_LENGTH && refVectorLength > MIN_LENGTH && sideVectorLength > MIN_LENGTH &&
         refVectorProjLength > MIN_LENGTH && poleVectorProjLength > MIN_LENGTH) {
 
-        float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), 0.0f, 1.0f);
+        float dot = glm::clamp(glm::dot(refVectorProj / refVectorProjLength, poleVectorProj / poleVectorProjLength), -1.0f, 1.0f);
         float sideDot = glm::dot(poleVector, sideVector);
         float theta = copysignf(1.0f, sideDot) * acosf(dot);
 

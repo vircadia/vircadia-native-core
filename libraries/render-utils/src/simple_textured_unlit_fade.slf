@@ -40,24 +40,22 @@ void main(void) {
     <$fetchFadeObjectParamsInstanced(fadeParams)$>
     applyFade(fadeParams, _positionWS.xyz, fadeEmissive);
 
-    vec4 texel = texture(originalTexture, _texCoord0.st);
-    float colorAlpha = _color.a;
-    if (_color.a <= 0.0) {
-        texel = color_sRGBAToLinear(texel);
-        colorAlpha = -_color.a;
-    }
+    vec4 texel = texture(originalTexture, _texCoord0);
+    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
+    texel.rgb *= _color.rgb;
+    texel.a *= abs(_color.a);
 
     const float ALPHA_THRESHOLD = 0.999;
-    if (colorAlpha * texel.a < ALPHA_THRESHOLD) {
+    if (texel.a < ALPHA_THRESHOLD) {
        packDeferredFragmentTranslucent(
             normalize(_normalWS),
-            colorAlpha * texel.a,
-            _color.rgb * texel.rgb+fadeEmissive,
+            texel.a,
+            texel.rgb + fadeEmissive,
             DEFAULT_ROUGHNESS);
     } else {
         packDeferredFragmentUnlit(
             normalize(_normalWS),
             1.0,
-            _color.rgb * texel.rgb+fadeEmissive);
+            texel.rgb + fadeEmissive);
     }
 }

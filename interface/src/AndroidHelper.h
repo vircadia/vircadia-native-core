@@ -41,6 +41,9 @@ public:
     void operator=(AndroidHelper const&) = delete;
 
     void signup(QString email, QString username, QString password);
+    QString getDisplayName();
+    void setDisplayName(const QString &displayName);
+    void setMyAvatarUrl(const QString &avatarUrl);
 
 public slots:
     void showLoginDialog(QUrl url);

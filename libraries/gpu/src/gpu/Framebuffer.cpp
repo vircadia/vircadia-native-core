@@ -82,6 +82,14 @@ uint32 Framebuffer::getFrameCount() const {
     }
 }
 
+uint16 evalRenderBufferNumLayers(const Texture& texture, uint16 subresource) {
+    if (subresource == TextureView::UNDEFINED_SUBRESOURCE) {
+        return texture.getNumSlices();
+    } else {
+        return 1;
+    }
+}
+
 bool Framebuffer::validateTargetCompatibility(const Texture& texture, uint32 subresource) const {
     if (texture.getType() == Texture::TEX_1D) {
         return false;
@@ -92,7 +100,8 @@ bool Framebuffer::validateTargetCompatibility(const Texture& texture, uint32 sub
     } else {
         if ((texture.getWidth() == getWidth()) && 
             (texture.getHeight() == getHeight()) && 
-            (texture.getNumSamples() == getNumSamples())) {
+            (texture.getNumSamples() == getNumSamples()) &&
+            (evalRenderBufferNumLayers(texture, subresource) == getNumLayers())) {
             return true;
         } else {
             return false;
@@ -100,7 +109,7 @@ bool Framebuffer::validateTargetCompatibility(const Texture& texture, uint32 sub
     }
 }
 
-void Framebuffer::updateSize(const TexturePointer& texture) {
+void Framebuffer::updateSize(const TexturePointer& texture, uint32 subresource) {
     if (!isEmpty()) {
         return;
     }
@@ -109,8 +118,9 @@ void Framebuffer::updateSize(const TexturePointer& texture) {
         _width = texture->getWidth();
         _height = texture->getHeight();
         _numSamples = texture->getNumSamples();
+        _numLayers = evalRenderBufferNumLayers(*texture, subresource);
     } else {
-        _width = _height = _numSamples = 0;
+        _width = _height = _numSamples = _numLayers = 0;
     }
 }
 
@@ -135,6 +145,14 @@ uint16 Framebuffer::getNumSamples() const {
         return getSwapchain()->getNumSamples();
     } else {
         return _numSamples;
+    }
+}
+
+uint16 Framebuffer::getNumLayers() const {
+    if (isSwapchain()) {
+        return getSwapchain()->getNumLayers();
+    } else {
+        return _numLayers;
     }
 }
 
@@ -164,7 +182,7 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
 
     ++_colorStamps[slot];
 
-    updateSize(texture);
+    updateSize(texture, subresource);
 
     // assign the new one
     _renderBuffers[slot] = TextureView(texture, subresource);
@@ -191,7 +209,7 @@ void Framebuffer::removeRenderBuffers() {
         renderBuffer._texture.reset();
     }
 
-    updateSize(TexturePointer(nullptr));
+    updateSize(TexturePointer(nullptr), TextureView::UNDEFINED_SUBRESOURCE);
 }
 
 
@@ -240,7 +258,7 @@ bool Framebuffer::assignDepthStencilBuffer(const TexturePointer& texture, const 
     }
 
     ++_depthStamp;
-    updateSize(texture);
+    updateSize(texture, subresource);
 
     // assign the new one
     _depthStencilBuffer = TextureView(texture, subresource, format);

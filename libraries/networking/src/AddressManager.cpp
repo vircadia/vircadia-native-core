@@ -30,7 +30,8 @@
 #include "UserActivityLogger.h"
 #include "udt/PacketHeaders.h"
 
-const QString DEFAULT_HIFI_ADDRESS = "file:///~/serverless/tutorial.json";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HOME_ADDRESS = "file:///~/serverless/tutorial.json";
 const QString REDIRECT_HIFI_ADDRESS = "file:///~/serverless/redirect.json";
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
 const QString SETTINGS_CURRENT_ADDRESS_KEY = "address";
@@ -314,7 +315,9 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
 
                 // wasn't an address - lookup the place name
                 // we may have a path that defines a relative viewpoint - pass that through the lookup so we can go to it after
-                attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                if (!lookupUrl.host().isNull() && !lookupUrl.host().isEmpty()) {
+                    attemptPlaceNameLookup(lookupUrl.host(), lookupUrl.path(), trigger);
+                }
             }
         }
 
@@ -336,7 +339,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
         // be loaded over http(s)
         // lookupUrl.scheme() == URL_SCHEME_HTTP ||
         // lookupUrl.scheme() == HIFI_URL_SCHEME_HTTPS ||
-        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd 
+        // TODO once a file can return a connection refusal if there were to be some kind of load error, we'd
         // need to store the previous domain tried in _lastVisitedURL. For now , do not store it.
 
         _previousAPILookup.clear();

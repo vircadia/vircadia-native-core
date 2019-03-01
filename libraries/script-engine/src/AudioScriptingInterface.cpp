@@ -38,10 +38,10 @@ void AudioScriptingInterface::setLocalAudioInterface(AbstractAudioInterface* aud
     }
 }
 
-ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer sound, const QVector3D& position) {
+ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer sound) {
     AudioInjectorOptions options;
-    options.position = glm::vec3(position.x(), position.y(), position.z());
     options.localOnly = true;
+    options.positionSet = false;    // system sound
     return playSound(sound, options);
 }
 

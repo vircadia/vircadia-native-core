@@ -9,23 +9,6 @@
 
 /* global alert, augmentSpinButtons, clearTimeout, console, document, Element, 
    EventBridge, JSONEditor, openEventBridge, setTimeout, window, _ $ */
-    
-const ICON_FOR_TYPE = {
-    Box: "V",
-    Sphere: "n",
-    Shape: "n",
-    ParticleEffect: "&#xe004;",
-    Model: "&#xe008;",
-    Web: "q",
-    Image: "&#xe02a;",
-    Text: "l",
-    Light: "p",
-    Zone: "o",
-    PolyVox: "&#xe005;",
-    Multiple: "&#xe000;",
-    PolyLine: "&#xe01b;",
-    Material: "&#xe00b;"
-};  
 
 const DEGREES_TO_RADIANS = Math.PI / 180.0;
 
@@ -44,7 +27,7 @@ const GROUPS = [
             {
                 label: NO_SELECTION,
                 type: "icon",
-                icons: ICON_FOR_TYPE,
+                icons: ENTITY_TYPE_ICON,
                 propertyID: "type",
                 replaceID: "placeholder-property-type",
             },
@@ -129,23 +112,71 @@ const GROUPS = [
                 propertyID: "textColor",
             },
             {
+                label: "Text Alpha",
+                type: "number-draggable",
+                min: 0,
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "textAlpha",
+            },
+            {
                 label: "Background Color",
                 type: "color",
                 propertyID: "backgroundColor",
             },
             {
-                label: "Line Height",
-                type: "number",
+                label: "Background Alpha",
+                type: "number-draggable",
                 min: 0,
-                step: 0.005,
-                decimals: 4,
-                unit: "m",
-                propertyID: "lineHeight"
+                max: 1,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "backgroundAlpha",
             },
             {
-                label: "Face Camera",
-                type: "bool",
-                propertyID: "faceCamera"
+                label: "Line Height",
+                type: "number-draggable",
+                min: 0,
+                step: 0.001,
+                decimals: 4,
+                unit: "m",
+                propertyID: "lineHeight",
+            },
+            {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "textBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Top Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "topMargin",
+            },
+            {
+                label: "Right Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "rightMargin",
+            },
+            {
+                label: "Bottom Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "bottomMargin",
+            },
+            {
+                label: "Left Margin",
+                type: "number-draggable",
+                step: 0.01,
+                decimals: 2,
+                propertyID: "leftMargin",
             },
         ]
     },
@@ -153,6 +184,20 @@ const GROUPS = [
         id: "zone",
         addToGroup: "base",
         properties: [
+            {
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "sphere": "Sphere", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "compound": "Use Compound Shape URL" },
+                propertyID: "zoneShapeType",
+                propertyName: "shapeType", // actual entity property name
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "zoneCompoundShapeURL",
+                propertyName: "compoundShapeURL", // actual entity property name
+            },
             {
                 label: "Flying Allowed",
                 type: "bool",
@@ -183,17 +228,18 @@ const GROUPS = [
             },
             {
                 label: "Light Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
-                max: 10,
-                step: 0.1,
+                max: 40,
+                step: 0.01,
                 decimals: 2,
                 propertyID: "keyLight.intensity",
                 showPropertyRule: { "keyLightMode": "enabled" },
             },
             {
                 label: "Light Horizontal Angle",
-                type: "number",
+                type: "number-draggable",
+                step: 0.1,
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
@@ -202,7 +248,8 @@ const GROUPS = [
             },
             {
                 label: "Light Vertical Angle",
-                type: "number",
+                type: "number-draggable",
+                step: 0.1,
                 multiplier: DEGREES_TO_RADIANS,
                 decimals: 2,
                 unit: "deg",
@@ -241,9 +288,9 @@ const GROUPS = [
             },
             {
                 label: "Ambient Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
-                max: 10,
+                max: 200,
                 step: 0.1,
                 decimals: 2,
                 propertyID: "ambientLight.ambientIntensity",
@@ -270,10 +317,10 @@ const GROUPS = [
             },
             {
                 label: "Range",
-                type: "number",
-                min: 5,
+                type: "number-draggable",
+                min: 1,
                 max: 10000,
-                step: 5,
+                step: 1,
                 decimals: 0,
                 unit: "m",
                 propertyID: "haze.hazeRange",
@@ -287,10 +334,10 @@ const GROUPS = [
             },
             {
                 label: "Base",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 1000,
-                step: 10,
+                step: 1,
                 decimals: 0,
                 unit: "m",
                 propertyID: "haze.hazeBaseRef",
@@ -298,10 +345,10 @@ const GROUPS = [
             },
             {
                 label: "Ceiling",
-                type: "number",
+                type: "number-draggable",
                 min: -1000,
                 max: 5000,
-                step: 10,
+                step: 1,
                 decimals: 0,
                 unit: "m",
                 propertyID: "haze.hazeCeiling",
@@ -315,11 +362,11 @@ const GROUPS = [
             },
             {
                 label: "Background Blend",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "haze.hazeBackgroundBlend",
                 showPropertyRule: { "hazeMode": "enabled" },
             },
@@ -337,7 +384,7 @@ const GROUPS = [
             },
             {
                 label: "Glare Angle",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 180,
                 step: 1,
@@ -353,31 +400,31 @@ const GROUPS = [
             },
             {
                 label: "Bloom Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "bloom.bloomIntensity",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
             {
                 label: "Bloom Threshold",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "bloom.bloomThreshold",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
             {
                 label: "Bloom Size",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 2,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 3,
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
@@ -390,7 +437,9 @@ const GROUPS = [
             {
                 label: "Model",
                 type: "string",
+                placeholder: "URL",
                 propertyID: "modelURL",
+                hideIfCertified: true,
             },
             {
                 label: "Collision Shape",
@@ -404,11 +453,13 @@ const GROUPS = [
                 label: "Compound Shape",
                 type: "string",
                 propertyID: "compoundShapeURL",
+                hideIfCertified: true,
             },
             {
                 label: "Animation",
                 type: "string",
                 propertyID: "animation.url",
+                hideIfCertified: true,
             },
             {
                 label: "Play Automatically",
@@ -432,22 +483,22 @@ const GROUPS = [
             },
             {
                 label: "Animation Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.currentFrame",
             },
             {
                 label: "First Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.firstFrame",
             },
             {
                 label: "Last Frame",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.lastFrame",
             },
             {
                 label: "Animation FPS",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "animation.fps",
             },
             {
@@ -460,6 +511,7 @@ const GROUPS = [
                 type: "textarea",
                 propertyID: "originalTextures",
                 readOnly: true,
+                hideIfCertified: true,
             },
         ]
     },
@@ -471,7 +523,38 @@ const GROUPS = [
                 label: "Image",
                 type: "string",
                 placeholder: "URL",
-                propertyID: "image",
+                propertyID: "imageURL",
+            },
+            {
+                label: "Color",
+                type: "color",
+                propertyID: "imageColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Emissive",
+                type: "bool",
+                propertyID: "emissive",
+            },
+            {
+                label: "Sub Image",
+                type: "rect",
+                min: 0,
+                step: 1,
+                subLabels: [ "x", "y", "w", "h" ],
+                propertyID: "subImage",
+            },
+            {
+                label: "Billboard Mode",
+                type: "dropdown",
+                options: { none: "None", yaw: "Yaw", full: "Full"},
+                propertyID: "imageBillboardMode",
+                propertyName: "billboardMode", // actual entity property name
+            },
+            {
+                label: "Keep Aspect Ratio",
+                type: "bool",
+                propertyID: "keepAspectRatio",
             },
         ]
     },
@@ -486,7 +569,7 @@ const GROUPS = [
             },
             {
                 label: "Source Resolution",
-                type: "number",
+                type: "number-draggable",
                 propertyID: "dpi",
             },
         ]
@@ -503,18 +586,20 @@ const GROUPS = [
             },
             {
                 label: "Intensity",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
+                max: 10000,
                 step: 0.1,
-                decimals: 1,
+                decimals: 2,
                 propertyID: "intensity",
             },
             {
                 label: "Fall-Off Radius",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
+                max: 10000,
                 step: 0.1,
-                decimals: 1,
+                decimals: 2,
                 unit: "m",
                 propertyID: "falloffRadius",
             },
@@ -525,14 +610,15 @@ const GROUPS = [
             },
             {
                 label: "Spotlight Exponent",
-                type: "number",
+                type: "number-draggable",
+                min: 0,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "exponent",
             },
             {
                 label: "Spotlight Cut-Off",
-                type: "number",
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "cutoff",
@@ -557,32 +643,42 @@ const GROUPS = [
                 propertyID: "materialData",
             },
             {
-                label: "Submesh to Replace",
-                type: "number",
-                min: 0,
-                step: 1,
-                propertyID: "submeshToReplace",
-            },
-            {
-                label: "Material Name to Replace",
-                type: "string",
-                propertyID: "materialNameToReplace",
-            },
-            {
                 label: "Select Submesh",
                 type: "bool",
                 propertyID: "selectSubmesh",
             },
             {
+                label: "Submesh to Replace",
+                type: "number-draggable",
+                min: 0,
+                step: 1,
+                propertyID: "submeshToReplace",
+                indentedLabel: true,
+            },
+            {
+                label: "Material to Replace",
+                type: "string",
+                propertyID: "materialNameToReplace",
+                indentedLabel: true,
+            },
+            {
                 label: "Priority",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 propertyID: "priority",
             },
             {
+                label: "Material Mapping Mode",
+                type: "dropdown",
+                options: {
+                    uv: "UV space", projected: "3D projected"
+                },
+                propertyID: "materialMappingMode",
+            },
+            {
                 label: "Material Position",
                 type: "vec2",
-                vec2Type: "xy",
+                vec2Type: "xyz",
                 min: 0,
                 max: 1,
                 step: 0.1,
@@ -593,20 +689,58 @@ const GROUPS = [
             {
                 label: "Material Scale",
                 type: "vec2",
-                vec2Type: "wh",
+                vec2Type: "xyz",
                 min: 0,
                 step: 0.1,
                 decimals: 4,
-                subLabels: [ "width", "height" ],
+                subLabels: [ "x", "y" ],
                 propertyID: "materialMappingScale",
             },
             {
                 label: "Material Rotation",
-                type: "number",
+                type: "number-draggable",
                 step: 0.1,
                 decimals: 2,
                 unit: "deg",
                 propertyID: "materialMappingRot",
+            },
+            {
+                label: "Material Repeat",
+                type: "bool",
+                propertyID: "materialRepeat",
+            },
+        ]
+    },
+    {
+        id: "grid",
+        addToGroup: "base",
+        properties: [
+            {
+                label: "Color",
+                type: "color",
+                propertyID: "gridColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Follow Camera",
+                type: "bool",
+                propertyID: "followCamera",
+            },
+            {
+                label: "Major Grid Every",
+                type: "number-draggable",
+                min: 0,
+                step: 1,
+                decimals: 0,
+                propertyID: "majorGridEvery",
+            },
+            {
+                label: "Minor Grid Every",
+                type: "number-draggable",
+                min: 0,
+                step: 0.01,
+                decimals: 2,
+                propertyID: "minorGridEvery",
             },
         ]
     },
@@ -621,19 +755,15 @@ const GROUPS = [
             },
             {
                 label: "Lifespan",
-                type: "number",
+                type: "number-draggable",
                 unit: "s",
-                min: 0.01,
-                max: 10,
                 step: 0.01,
                 decimals: 2,
                 propertyID: "lifespan",
             },
             {
                 label: "Max Particles",
-                type: "number",
-                min: 1,
-                max: 10000,
+                type: "number-draggable",
                 step: 1,
                 propertyID: "maxParticles",
             },
@@ -652,27 +782,21 @@ const GROUPS = [
         properties: [
             {
                 label: "Emit Rate",
-                type: "number",
-                min: 1,
-                max: 1000,
+                type: "number-draggable",
                 step: 1,
                 propertyID: "emitRate",
             },
             {
                 label: "Emit Speed",
-                type: "number",
-                min: 0,
-                max: 5,
-                step: 0.01,
+                type: "number-draggable",
+                step: 0.1,
                 decimals: 2,
                 propertyID: "emitSpeed",
             },
             {
                 label: "Speed Spread",
-                type: "number",
-                min: 0,
-                max: 5,
-                step: 0.01,
+                type: "number-draggable",
+                step: 0.1,
                 decimals: 2,
                 propertyID: "speedSpread",
             },
@@ -680,7 +804,6 @@ const GROUPS = [
                 label: "Emit Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
-                min: 0,
                 step: 0.01,
                 round: 100,
                 subLabels: [ "x", "y", "z" ],
@@ -688,11 +811,9 @@ const GROUPS = [
             },
             {
                 label: "Emit Radius Start",
-                type: "number",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
                 propertyID: "emitRadiusStart"
             },
             {
@@ -720,12 +841,11 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Size",
+                propertyID: "particleRadiusTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
-                        min: 0,
-                        max: 4,
+                        type: "number-draggable",
                         step: 0.01,
                         decimals: 2,
                         propertyID: "radiusStart",
@@ -733,18 +853,14 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
-                        min: 0,
-                        max: 4,
+                        type: "number-draggable",
                         step: 0.01,
                         decimals: 2,
                         propertyID: "particleRadius",
                     },
                     {
                         label: "Finish",
-                        type: "number",
-                        min: 0,
-                        max: 4,
+                        type: "number-draggable",
                         step: 0.01,
                         decimals: 2,
                         propertyID: "radiusFinish",
@@ -754,9 +870,7 @@ const GROUPS = [
             },
             {
                 label: "Size Spread",
-                type: "number",
-                min: 0,
-                max: 4,
+                type: "number-draggable",
                 step: 0.01,
                 decimals: 2,
                 propertyID: "radiusSpread",
@@ -771,6 +885,7 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Color",
+                propertyID: "particleColorTriple",
                 properties: [
                     {
                         label: "Start",
@@ -807,33 +922,28 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Alpha",
+                propertyID: "particleAlphaTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
-                        min: 0,
-                        max: 1,
-                        step: 0.01,
-                        decimals: 2,
+                        type: "number-draggable",
+                        step: 0.001,
+                        decimals: 3,
                         propertyID: "alphaStart",
                         fallbackProperty: "alpha",
                     },
                     {
                         label: "Middle",
-                        type: "number",
-                        min: 0,
-                        max: 1,
-                        step: 0.01,
-                        decimals: 2,
+                        type: "number-draggable",
+                        step: 0.001,
+                        decimals: 3,
                         propertyID: "alpha",
                     },
                     {
                         label: "Finish",
-                        type: "number",
-                        min: 0,
-                        max: 1,
-                        step: 0.01,
-                        decimals: 2,
+                        type: "number-draggable",
+                        step: 0.001,
+                        decimals: 3,
                         propertyID: "alphaFinish",
                         fallbackProperty: "alpha",
                     },
@@ -841,11 +951,9 @@ const GROUPS = [
             },
             {
                 label: "Alpha Spread",
-                type: "number",
-                min: 0,
-                max: 1,
-                step: 0.01,
-                decimals: 2,
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
                 propertyID: "alphaSpread",
             },
         ]
@@ -882,15 +990,14 @@ const GROUPS = [
         properties: [
             {
                 type: "triple",
-                label: "Alpha",
+                label: "Spin",
+                propertyID: "particleSpinTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
-                        min: -360,
-                        max: 360,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "spinStart",
@@ -898,22 +1005,18 @@ const GROUPS = [
                     },
                     {
                         label: "Middle",
-                        type: "number",
-                        min: -360,
-                        max: 360,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "particleSpin",
                     },
                     {
                         label: "Finish",
-                        type: "number",
-                        min: -360,
-                        max: 360,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "spinFinish",
@@ -923,11 +1026,9 @@ const GROUPS = [
             },
             {
                 label: "Spin Spread",
-                type: "number",
-                min: 0,
-                max: 360,
-                step: 1,
-                decimals: 0,
+                type: "number-draggable",
+                step: 0.1,
+                decimals: 2,
                 multiplier: DEGREES_TO_RADIANS,
                 unit: "deg",
                 propertyID: "spinSpread",
@@ -947,25 +1048,22 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Horizontal Angle",
+                propertyID: "particlePolarTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
-                        min: -180,
-                        max: 0,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "polarStart",
                     },
                     {
                         label: "Finish",
-                        type: "number",
-                        min: 0,
-                        max: 180,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "polarFinish",
@@ -975,25 +1073,22 @@ const GROUPS = [
             {
                 type: "triple",
                 label: "Vertical Angle",
+                propertyID: "particleAzimuthTriple",
                 properties: [
                     {
                         label: "Start",
-                        type: "number",
-                        min: 0,
-                        max: 180,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "azimuthStart",
                     },
                     {
                         label: "Finish",
-                        type: "number",
-                        min: 0,
-                        max: 180,
-                        step: 1,
-                        decimals: 0,
+                        type: "number-draggable",
+                        step: 0.1,
+                        decimals: 2,
                         multiplier: DEGREES_TO_RADIANS,
                         unit: "deg",
                         propertyID: "azimuthFinish",
@@ -1010,6 +1105,7 @@ const GROUPS = [
                 label: "Position",
                 type: "vec3",
                 vec3Type: "xyz",
+                step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
@@ -1020,6 +1116,7 @@ const GROUPS = [
                 label: "Local Position",
                 type: "vec3",
                 vec3Type: "xyz",
+                step: 0.1,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
@@ -1052,8 +1149,7 @@ const GROUPS = [
                 label: "Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
-                min: 0,
-                step: 0.1,
+                step: 0.01,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
@@ -1064,8 +1160,7 @@ const GROUPS = [
                 label: "Local Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
-                min: 0,
-                step: 0.1,
+                step: 0.01,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m",
@@ -1074,7 +1169,7 @@ const GROUPS = [
             },
             {
                 label: "Scale",
-                type: "number",
+                type: "number-draggable",
                 defaultValue: 100,
                 unit: "%",
                 buttons: [ { id: "rescale", label: "Rescale", className: "blue", onClick: rescaleDimensions }, 
@@ -1085,7 +1180,7 @@ const GROUPS = [
                 label: "Pivot",
                 type: "vec3",
                 vec3Type: "xyz",
-                step: 0.1,
+                step: 0.001,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "(ratio of dimension)",
@@ -1116,14 +1211,16 @@ const GROUPS = [
             },
             {
                 label: "Clone Lifetime",
-                type: "number",
+                type: "number-draggable",
+                min: -1,
                 unit: "s",
                 propertyID: "cloneLifetime",
                 showPropertyRule: { "cloneable": "true" },
             },
             {
                 label: "Clone Limit",
-                type: "number",
+                type: "number-draggable",
+                min: 0,
                 propertyID: "cloneLimit",
                 showPropertyRule: { "cloneable": "true" },
             },
@@ -1166,6 +1263,7 @@ const GROUPS = [
                 buttons: [ { id: "reload", label: "F", className: "glyph", onClick: reloadScripts } ],
                 propertyID: "script",
                 placeholder: "URL",
+                hideIfCertified: true,
             },
             {
                 label: "Server Script",
@@ -1252,6 +1350,7 @@ const GROUPS = [
                 placeholder: "URL",
                 propertyID: "collisionSoundURL",
                 showPropertyRule: { "collisionless": "false" },
+                hideIfCertified: true,
             },
             {
                 label: "Dynamic",
@@ -1268,7 +1367,7 @@ const GROUPS = [
                 label: "Linear Velocity",
                 type: "vec3",
                 vec3Type: "xyz",
-                step: 0.1,
+                step: 0.01,
                 decimals: 4,
                 subLabels: [ "x", "y", "z" ],
                 unit: "m/s",
@@ -1276,11 +1375,11 @@ const GROUPS = [
             },
             {
                 label: "Linear Damping",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
-                decimals: 2,
+                step: 0.001,
+                decimals: 4,
                 propertyID: "damping",
             },
             {
@@ -1295,36 +1394,30 @@ const GROUPS = [
             },
             {
                 label: "Angular Damping",
-                type: "number",
+                type: "number-draggable",
                 min: 0,
                 max: 1,
-                step: 0.01,
+                step: 0.001,
                 decimals: 4,
                 propertyID: "angularDamping",
             },
             {
                 label: "Bounciness",
-                type: "number",
-                min: 0,
-                max: 1,
-                step: 0.01,
+                type: "number-draggable",
+                step: 0.001,
                 decimals: 4,
                 propertyID: "restitution",
             },
             {
                 label: "Friction",
-                type: "number",
-                min: 0,
-                max: 10,
-                step: 0.1,
+                type: "number-draggable",
+                step: 0.01,
                 decimals: 4,
                 propertyID: "friction",
             },
             {
                 label: "Density",
-                type: "number",
-                min: 100,
-                max: 10000,
+                type: "number-draggable",
                 step: 1,
                 decimals: 4,
                 propertyID: "density",
@@ -1344,6 +1437,7 @@ const GROUPS = [
                 type: "vec3",
                 vec3Type: "xyz",
                 subLabels: [ "x", "y", "z" ],
+                step: 0.1,
                 decimals: 4,
                 unit: "m/s<sup>2</sup>",
                 propertyID: "acceleration",
@@ -1356,7 +1450,7 @@ const GROUPS_PER_TYPE = {
   None: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   Shape: [ 'base', 'shape', 'spatial', 'behavior', 'collision', 'physics' ],
   Text: [ 'base', 'text', 'spatial', 'behavior', 'collision', 'physics' ],
-  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'collision', 'physics' ],
+  Zone: [ 'base', 'zone', 'spatial', 'behavior', 'physics' ],
   Model: [ 'base', 'model', 'spatial', 'behavior', 'collision', 'physics' ],
   Image: [ 'base', 'image', 'spatial', 'behavior', 'collision', 'physics' ],
   Web: [ 'base', 'web', 'spatial', 'behavior', 'collision', 'physics' ],
@@ -1366,10 +1460,12 @@ const GROUPS_PER_TYPE = {
                     'particles_acceleration', 'particles_spin', 'particles_constraints', 'spatial', 'behavior', 'physics' ],
   PolyLine: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
   PolyVox: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
+  Grid: [ 'base', 'grid', 'spatial', 'behavior', 'physics' ],
   Multiple: [ 'base', 'spatial', 'behavior', 'collision', 'physics' ],
 };
 
 const EDITOR_TIMEOUT_DURATION = 1500;
+const IMAGE_DEBOUNCE_TIMEOUT = 250;
 const DEBOUNCE_TIMEOUT = 125;
 
 const COLOR_MIN = 0;
@@ -1395,6 +1491,13 @@ const PROPERTY_NAME_DIVISION = {
     SUBPROPERTY: 2,
 };
 
+const RECT_ELEMENTS = {
+    X_NUMBER: 0,
+    Y_NUMBER: 1,
+    WIDTH_NUMBER: 2,
+    HEIGHT_NUMBER: 3,
+};
+
 const VECTOR_ELEMENTS = {
     X_NUMBER: 0,
     Y_NUMBER: 1,
@@ -1415,13 +1518,14 @@ const TEXTURE_ELEMENTS = {
 
 const JSON_EDITOR_ROW_DIV_INDEX = 2;
 
-var elGroups = {};
-var properties = {};
-var colorPickers = {};
-var particlePropertyUpdates = {};
-var selectedEntityProperties;
-var lastEntityID = null;
-var createAppTooltip = new CreateAppTooltip();
+let elGroups = {};
+let properties = {};
+let propertyRangeRequests = [];
+let colorPickers = {};
+let particlePropertyUpdates = {};
+let selectedEntityProperties;
+let lastEntityID = null;
+let createAppTooltip = new CreateAppTooltip();
 let currentSpaceMode = PROPERTY_SPACE_MODE.LOCAL;
 
 function createElementFromHTML(htmlString) {
@@ -1438,13 +1542,21 @@ function getPropertyInputElement(propertyID) {
     let property = properties[propertyID];          
     switch (property.data.type) {
         case 'string':
+        case 'number':
         case 'bool':
         case 'dropdown':
         case 'textarea':
         case 'texture':
             return property.elInput;
-        case 'number':
+        case 'number-draggable':
             return property.elNumber.elInput;
+        case 'rect':
+            return {
+                x: property.elNumberX.elInput,
+                y: property.elNumberY.elInput,
+                width: property.elNumberWidth.elInput,
+                height: property.elNumberHeight.elInput
+            };
         case 'vec3': 
         case 'vec2':
             return { x: property.elNumberX.elInput, y: property.elNumberY.elInput, z: property.elNumberZ.elInput };
@@ -1513,20 +1625,32 @@ function resetProperties() {
         let propertyData = property.data;
         
         switch (propertyData.type) {
+            case 'number':
             case 'string': {
-                property.elInput.value = "";
+                if (propertyData.defaultValue !== undefined) {
+                    property.elInput.value = propertyData.defaultValue;
+                } else {
+                    property.elInput.value = "";
+                }
                 break;
             }
             case 'bool': {
                 property.elInput.checked = false;
                 break;
             }
-            case 'number': {
+            case 'number-draggable': {
                 if (propertyData.defaultValue !== undefined) {
                     property.elNumber.setValue(propertyData.defaultValue);
                 } else { 
                     property.elNumber.setValue("");
                 }
+                break;
+            }
+            case 'rect': {
+                property.elNumberX.setValue("");
+                property.elNumberY.setValue("");
+                property.elNumberWidth.setValue("");
+                property.elNumberHeight.setValue("");
                 break;
             }
             case 'vec3': 
@@ -1641,7 +1765,7 @@ function updateVisibleSpaceModeProperties() {
  * PROPERTY UPDATE FUNCTIONS
  */
 
-function updateProperty(originalPropertyName, propertyValue, isParticleProperty, blockUpdateCallback) {
+function updateProperty(originalPropertyName, propertyValue, isParticleProperty) {
     let propertyUpdate = {};
     // if this is a compound property name (i.e. animation.running) then split it by . up to 3 times
     let splitPropertyName = originalPropertyName.split('.');
@@ -1667,24 +1791,28 @@ function updateProperty(originalPropertyName, propertyValue, isParticleProperty,
         });
         particleSyncDebounce();
     } else {
-        updateProperties(propertyUpdate, blockUpdateCallback);
+        // only update the entity property value itself if in the middle of dragging
+        // prevent undo command push, saving new property values, and property update 
+        // callback until drag is complete (additional update sent via dragEnd callback)
+        let onlyUpdateEntity = properties[originalPropertyName] && properties[originalPropertyName].dragging === true;
+        updateProperties(propertyUpdate, onlyUpdateEntity);
     }
 }
 
-var particleSyncDebounce = _.debounce(function () {
+let particleSyncDebounce = _.debounce(function () {
     updateProperties(particlePropertyUpdates);
     particlePropertyUpdates = {};
 }, DEBOUNCE_TIMEOUT);
 
-function updateProperties(propertiesToUpdate, blockUpdateCallback) {
-    if (blockUpdateCallback === undefined) {
-        blockUpdateCallback = false;
+function updateProperties(propertiesToUpdate, onlyUpdateEntity) {
+    if (onlyUpdateEntity === undefined) {
+        onlyUpdateEntity = false;
     }
     EventBridge.emitWebEvent(JSON.stringify({
         id: lastEntityID,
         type: "update",
         properties: propertiesToUpdate,
-        blockUpdateCallback: blockUpdateCallback
+        onlyUpdateEntities: onlyUpdateEntity
     }));
 }
 
@@ -1709,9 +1837,8 @@ function createDragStartFunction(property) {
 function createDragEndFunction(property) {
     return function() {
         property.dragging = false;
-        EventBridge.emitWebEvent(JSON.stringify({
-            type: "updateProperties"
-        }));
+        // send an additional update post-dragging to consider whole property change from dragStart to dragEnd to be 1 action
+        this.valueChangeFunction();
     };
 }
 
@@ -1722,7 +1849,7 @@ function createEmitNumberPropertyUpdateFunction(property) {
             multiplier = 1;
         }
         let value = parseFloat(this.value) * multiplier;
-        updateProperty(property.name, value, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, value, property.isParticleProperty);
     };
 }
 
@@ -1736,7 +1863,7 @@ function createEmitVec2PropertyUpdateFunction(property) {
             x: property.elNumberX.elInput.value * multiplier,
             y: property.elNumberY.elInput.value * multiplier
         };
-        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, newValue, property.isParticleProperty);
     };
 }
 
@@ -1751,7 +1878,19 @@ function createEmitVec3PropertyUpdateFunction(property) {
             y: property.elNumberY.elInput.value * multiplier,
             z: property.elNumberZ.elInput.value * multiplier
         };
-        updateProperty(property.name, newValue, property.isParticleProperty, property.dragging);
+        updateProperty(property.name, newValue, property.isParticleProperty);
+    };
+}
+
+function createEmitRectPropertyUpdateFunction(property) {
+    return function() {
+        let newValue = {
+            x: property.elNumberX.elInput.value,
+            y: property.elNumberY.elInput.value,
+            width: property.elNumberWidth.elInput.value,
+            height: property.elNumberHeight.elInput.value,
+        };
+        updateProperty(property.name, newValue, property.isParticleProperty);
     };
 }
 
@@ -1783,14 +1922,6 @@ function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElemen
     updateProperty(propertyName, propertyValue, isParticleProperty);
 }
 
-function createImageURLUpdateFunction(property) {
-    return function () {
-        let newTextures = JSON.stringify({ "tex.picture": this.value });
-        updateProperty(property.name, newTextures, property.isParticleProperty);
-    };
-}
-
-
 /**
  * PROPERTY ELEMENT CREATION FUNCTIONS
  */
@@ -1806,7 +1937,7 @@ function createStringProperty(property, elProperty) {
                type="text"
                ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
                ${propertyData.readOnly ? 'readonly' : ''}></input>
-        `)
+        `);
 
     
     elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
@@ -1854,11 +1985,61 @@ function createBoolProperty(property, elProperty) {
     return elInput;
 }
 
-function createNumberProperty(property, elProperty) { 
+function createNumberProperty(property, elProperty) {
+    let elementID = property.elementID;
+    let propertyData = property.data;
+
+    elProperty.className = "text";
+
+    let elInput = createElementFromHTML(`
+        <input id="${elementID}"
+               class='hide-spinner'
+               type="number"
+               ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
+               ${propertyData.readOnly ? 'readonly' : ''}></input>
+        `)
+
+    if (propertyData.min !== undefined) {
+        elInput.setAttribute("min", propertyData.min);
+    }
+    if (propertyData.max !== undefined) {
+        elInput.setAttribute("max", propertyData.max);
+    }
+    if (propertyData.step !== undefined) {
+        elInput.setAttribute("step", propertyData.step);
+    }
+    if (propertyData.defaultValue !== undefined) {
+        elInput.value = propertyData.defaultValue;
+    }
+
+    elInput.addEventListener('change', createEmitNumberPropertyUpdateFunction(property));
+
+    elProperty.appendChild(elInput);
+
+    if (propertyData.buttons !== undefined) {
+        addButtons(elProperty, elementID, propertyData.buttons, false);
+    }
+
+    return elInput;
+}
+
+function updateNumberMinMax(property) {
+    let elInput = property.elInput;
+    let min = property.data.min;
+    let max = property.data.max;
+    if (min !== undefined) {
+        elInput.setAttribute("min", min);
+    }
+    if (max !== undefined) {
+        elInput.setAttribute("max", max);
+    }
+}
+
+function createNumberDraggableProperty(property, elProperty) { 
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "draggable-number";
+    elProperty.className += " draggable-number-container";
 
     let dragStartFunction = createDragStartFunction(property);
     let dragEndFunction = createDragEndFunction(property);
@@ -1877,10 +2058,62 @@ function createNumberProperty(property, elProperty) {
     elProperty.appendChild(elDraggableNumber.elDiv);
 
     if (propertyData.buttons !== undefined) {
-        addButtons(elDraggableNumber.elText, elementID, propertyData.buttons, false);
+        addButtons(elDraggableNumber.elDiv, elementID, propertyData.buttons, false);
     }
     
     return elDraggableNumber;
+}
+
+function updateNumberDraggableMinMax(property) {
+    let propertyData = property.data;
+    property.elNumber.updateMinMax(propertyData.min, propertyData.max);
+}
+
+function createRectProperty(property, elProperty) {
+    let propertyData = property.data;
+
+    elProperty.className = "rect";
+
+    let elXYRow = document.createElement('div');
+    elXYRow.className = "rect-row fstuple";
+    elProperty.appendChild(elXYRow);
+
+    let elWidthHeightRow = document.createElement('div');
+    elWidthHeightRow.className = "rect-row fstuple";
+    elProperty.appendChild(elWidthHeightRow);
+
+
+    let elNumberX = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.X_NUMBER]);
+    let elNumberY = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.Y_NUMBER]);
+    let elNumberWidth = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.WIDTH_NUMBER]);
+    let elNumberHeight = createTupleNumberInput(property, propertyData.subLabels[RECT_ELEMENTS.HEIGHT_NUMBER]);
+
+    elXYRow.appendChild(elNumberX.elDiv);
+    elXYRow.appendChild(elNumberY.elDiv);
+    elWidthHeightRow.appendChild(elNumberWidth.elDiv);
+    elWidthHeightRow.appendChild(elNumberHeight.elDiv);
+
+    let valueChangeFunction = createEmitRectPropertyUpdateFunction(property);
+    elNumberX.setValueChangeFunction(valueChangeFunction);
+    elNumberY.setValueChangeFunction(valueChangeFunction);
+    elNumberWidth.setValueChangeFunction(valueChangeFunction);
+    elNumberHeight.setValueChangeFunction(valueChangeFunction);
+
+    let elResult = [];
+    elResult[RECT_ELEMENTS.X_NUMBER] = elNumberX;
+    elResult[RECT_ELEMENTS.Y_NUMBER] = elNumberY;
+    elResult[RECT_ELEMENTS.WIDTH_NUMBER] = elNumberWidth;
+    elResult[RECT_ELEMENTS.HEIGHT_NUMBER] = elNumberHeight;
+    return elResult;
+}
+
+function updateRectMinMax(property) {
+    let min = property.data.min;
+    let max = property.data.max;
+    property.elNumberX.updateMinMax(min, max);
+    property.elNumberY.updateMinMax(min, max);
+    property.elNumberWidth.updateMinMax(min, max);
+    property.elNumberHeight.updateMinMax(min, max);
 }
 
 function createVec3Property(property, elProperty) {
@@ -1932,12 +2165,22 @@ function createVec2Property(property, elProperty) {
     return elResult;
 }
 
+function updateVectorMinMax(property) {
+    let min = property.data.min;
+    let max = property.data.max;
+    property.elNumberX.updateMinMax(min, max);
+    property.elNumberY.updateMinMax(min, max);
+    if (property.elNumberZ) {
+        property.elNumberZ.updateMinMax(min, max);
+    }
+}
+
 function createColorProperty(property, elProperty) {
     let propertyName = property.name;
     let elementID = property.elementID;
     let propertyData = property.data;
     
-    elProperty.className = "rgb fstuple";
+    elProperty.className += " rgb fstuple";
     
     let elColorPicker = document.createElement('div');
     elColorPicker.className = "color-picker";
@@ -1978,7 +2221,7 @@ function createColorProperty(property, elProperty) {
         color: '000000',
         submit: false, // We don't want to have a submission button
         onShow: function(colpick) {
-            $(colorPickerID).attr('active', 'true');
+            console.log("Showing");
             // The original color preview within the picker needs to be updated on show because
             // prior to the picker being shown we don't have access to the selections' starting color.
             colorPickers[colorPickerID].colpickSetColor({
@@ -1986,13 +2229,18 @@ function createColorProperty(property, elProperty) {
                 "g": elNumberG.elInput.value,
                 "b": elNumberB.elInput.value
             });
+
+            // Set the color picker active after setting the color, otherwise an update will be sent on open.
+            $(colorPickerID).attr('active', 'true');
         },
         onHide: function(colpick) {
             $(colorPickerID).attr('active', 'false');
         },
         onChange: function(hsb, hex, rgb, el) {
             $(el).css('background-color', '#' + hex);
-            emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
+            if ($(colorPickerID).attr('active') === 'true') {
+                emitColorPropertyUpdate(propertyName, rgb.r, rgb.g, rgb.b);
+            }
         }
     });
     
@@ -2080,7 +2328,7 @@ function createTextureProperty(property, elProperty) {
     elInput.setAttribute("id", elementID);
     elInput.setAttribute("type", "text"); 
     
-    let imageLoad = _.debounce(function (url) {
+    let imageLoad = function(url) {
         if (url.slice(0, 5).toLowerCase() === "atp:/") {
             elImage.src = "";
             elImage.style.display = "none";
@@ -2100,15 +2348,12 @@ function createTextureProperty(property, elProperty) {
             elDiv.classList.remove("no-preview");
             elDiv.classList.add("no-texture");
         }
-    }, DEBOUNCE_TIMEOUT * 2);
-    elInput.imageLoad = imageLoad;
-    elInput.oninput = function (event) {
-        // Add throttle
-        let url = event.target.value;
-        imageLoad(url);
-        updateProperty(property.name, url, property.isParticleProperty)
     };
-    elInput.onchange = elInput.oninput;
+    elInput.imageLoad = imageLoad;
+    elInput.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
+    elInput.addEventListener('change', function(ev) {
+        imageLoad(ev.target.value);
+    });
 
     elProperty.appendChild(elInput);
     elProperty.appendChild(elDiv);
@@ -2197,7 +2442,19 @@ function createProperty(propertyData, propertyElementID, propertyName, propertyI
             break;
         }
         case 'number': {
-            property.elNumber = createNumberProperty(property, elProperty);
+            property.elInput = createNumberProperty(property, elProperty);
+            break;
+        }
+        case 'number-draggable': {
+            property.elNumber = createNumberDraggableProperty(property, elProperty);
+            break;
+        }
+        case 'rect': {
+            let elRect = createRectProperty(property, elProperty);
+            property.elNumberX = elRect[RECT_ELEMENTS.X_NUMBER];
+            property.elNumberY = elRect[RECT_ELEMENTS.Y_NUMBER];
+            property.elNumberWidth = elRect[RECT_ELEMENTS.WIDTH_NUMBER];
+            property.elNumberHeight = elRect[RECT_ELEMENTS.HEIGHT_NUMBER];
             break;
         }
         case 'vec3': {
@@ -2342,31 +2599,41 @@ function saveUserData() {
     saveJSONUserData(true);
 }
 
+function setJSONError(property, isError) {
+    $("#property-"+ property + "-editor").toggleClass('error', isError);
+    let $propertyUserDataEditorStatus = $("#property-"+ property + "-editorStatus");
+    $propertyUserDataEditorStatus.css('display', isError ? 'block' : 'none');
+    $propertyUserDataEditorStatus.text(isError ? 'Invalid JSON code - look for red X in your code' : '');
+}
+
 function setUserDataFromEditor(noUpdate) {
     let json = null;
+    let errorFound = false;
     try {
         json = editor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('userData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+
+    let text = editor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                id: lastEntityID,
+                type: "saveUserData",
+                properties: {
+                    userData: text
+                }
+            })
+        );
     } else {
-        let text = editor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveUserData",
-                    properties: {
-                        userData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('userData', text, false);
-        }
+        updateProperty('userData', text, false);
     }
 }
 
@@ -2425,7 +2692,7 @@ function multiDataUpdater(groupName, updateKeyPair, userDataElement, defaults, r
     updateProperties(propertyUpdate, false);
 }
 
-var editor = null;
+let editor = null;
 
 function createJSONEditor() {
     let container = document.getElementById("property-userData-editor");
@@ -2488,9 +2755,10 @@ function hideUserDataSaved() {
 
 function showStaticUserData() {
     if (editor !== null) {
-        $('#property-userData-static').show();
-        $('#property-userData-static').css('height', $('#property-userData-editor').height());
-        $('#property-userData-static').text(editor.getText());
+        let $propertyUserDataStatic = $('#property-userData-static');
+        $propertyUserDataStatic.show();
+        $propertyUserDataStatic.css('height', $('#property-userData-editor').height());
+        $propertyUserDataStatic.text(editor.getText());
     }
 }
 
@@ -2511,12 +2779,13 @@ function getEditorJSON() {
 
 function deleteJSONEditor() {
     if (editor !== null) {
+        setJSONError('userData', false);
         editor.destroy();
         editor = null;
     }
 }
 
-var savedJSONTimer = null;
+let savedJSONTimer = null;
 
 function saveJSONUserData(noUpdate) {
     setUserDataFromEditor(noUpdate);
@@ -2561,33 +2830,35 @@ function saveMaterialData() {
 
 function setMaterialDataFromEditor(noUpdate) {
     let json = null;
+    let errorFound = false;
     try {
         json = materialEditor.get();
     } catch (e) {
-        alert('Invalid JSON code - look for red X in your code ', +e);
+        errorFound = true;
     }
-    if (json === null) {
+
+    setJSONError('materialData', errorFound);
+
+    if (errorFound) {
         return;
+    }
+    let text = materialEditor.getText();
+    if (noUpdate) {
+        EventBridge.emitWebEvent(
+            JSON.stringify({
+                id: lastEntityID,
+                type: "saveMaterialData",
+                properties: {
+                    materialData: text
+                }
+            })
+        );
     } else {
-        let text = materialEditor.getText();
-        if (noUpdate === true) {
-            EventBridge.emitWebEvent(
-                JSON.stringify({
-                    id: lastEntityID,
-                    type: "saveMaterialData",
-                    properties: {
-                        materialData: text
-                    }
-                })
-            );
-            return;
-        } else {
-            updateProperty('materialData', text, false);
-        }
+        updateProperty('materialData', text, false);
     }
 }
 
-var materialEditor = null;
+let materialEditor = null;
 
 function createJSONMaterialEditor() {
     let container = document.getElementById("property-materialData-editor");
@@ -2650,9 +2921,10 @@ function hideMaterialDataSaved() {
 
 function showStaticMaterialData() {
     if (materialEditor !== null) {
-        $('#property-materialData-static').show();
-        $('#property-materialData-static').css('height', $('#property-materialData-editor').height());
-        $('#property-materialData-static').text(materialEditor.getText());
+        let $propertyMaterialDataStatic = $('#property-materialData-static');
+        $propertyMaterialDataStatic.show();
+        $propertyMaterialDataStatic.css('height', $('#property-materialData-editor').height());
+        $propertyMaterialDataStatic.text(materialEditor.getText());
     }
 }
 
@@ -2673,12 +2945,13 @@ function getMaterialEditorJSON() {
 
 function deleteJSONMaterialEditor() {
     if (materialEditor !== null) {
+        setJSONError('materialData', false);
         materialEditor.destroy();
         materialEditor = null;
     }
 }
 
-var savedMaterialJSONTimer = null;
+let savedMaterialJSONTimer = null;
 
 function saveJSONMaterialData(noUpdate) {
     setMaterialDataFromEditor(noUpdate);
@@ -2740,6 +3013,13 @@ function toggleDropdown(event) {
     element = element.parentNode;
     let isDropped = element.getAttribute("dropped");
     element.setAttribute("dropped", isDropped !== "true" ? "true" : "false");
+}
+
+function closeAllDropdowns() {
+    elDropdowns = document.querySelectorAll("div.dropdown > dl");
+    for (let i = 0; i < elDropdowns.length; ++i) {
+        elDropdowns[i].setAttribute('dropped', 'false');
+    }
 }
 
 function setDropdownValue(event) {
@@ -2852,23 +3132,20 @@ function loaded() {
                         elGroup.appendChild(elContainer);
                     }
 
-                    elLabel = document.createElement('label');
-                    elLabel.setAttribute("for", propertyElementID);
+                    let labelText = propertyData.label !== undefined ? propertyData.label : "";
+                    let className = '';
                     if (propertyData.indentedLabel || propertyData.showPropertyRule !== undefined) {
-                        let elSpan = document.createElement('span');
-                        elSpan.className = 'indented';
-                        elSpan.innerText = propertyData.label !== undefined ? propertyData.label : "";
-                        elLabel.appendChild(elSpan);
-                    } else {
-                        elLabel.innerText = propertyData.label !== undefined ? propertyData.label : "";
+                        className = 'indented';
                     }
+                    elLabel = createElementFromHTML(
+                        `<label><span class="${className}">${labelText}</span></label>`);
                     elContainer.appendChild(elLabel);
                 } else {
                     elContainer = document.getElementById(propertyData.replaceID);
                 }
 
                 if (elLabel) {
-                    createAppTooltip.registerTooltipElement(elLabel, propertyID);
+                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID);
                 }
 
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
@@ -2879,23 +3156,29 @@ function loaded() {
                     for (let i = 0; i < propertyData.properties.length; ++i) {
                         let innerPropertyData = propertyData.properties[i];
 
-                        let elWrapper = createElementFromHTML('<div class="flex-column flex-center triple-item"><div></div></div>');
+                        let elWrapper = createElementFromHTML('<div class="triple-item"></div>');
+                        elProperty.appendChild(elWrapper);
 
                         let propertyID = innerPropertyData.propertyID;               
                         let propertyName = innerPropertyData.propertyName !== undefined ? innerPropertyData.propertyName : propertyID;
                         let propertyElementID = "property-" + propertyID;
                         propertyElementID = propertyElementID.replace('.', '-');
 
-                        elWrapper.appendChild(createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`));
-                        elProperty.appendChild(elWrapper);
-
-                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper.childNodes[0]);
+                        let property = createProperty(innerPropertyData, propertyElementID, propertyName, propertyID, elWrapper);
                         property.isParticleProperty = group.id.includes("particles");
                         property.elContainer = elContainer;
                         property.spaceMode = propertySpaceMode;
+
+                        let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
+                        createAppTooltip.registerTooltipElement(elLabel, propertyID);
+
+                        elWrapper.appendChild(elLabel);
                         
                         if (property.type !== 'placeholder') {
                             properties[propertyID] = property;
+                        }
+                        if (innerPropertyData.type === 'number' || innerPropertyData.type === 'number-draggable') {
+                            propertyRangeRequests.push(propertyID);
                         }
                     }
                 } else {
@@ -2906,6 +3189,10 @@ function loaded() {
                     
                     if (property.type !== 'placeholder') {
                         properties[propertyID] = property;
+                    }           
+                    if (propertyData.type === 'number' || propertyData.type === 'number-draggable' || 
+                        propertyData.type === 'vec2' || propertyData.type === 'vec3' || propertyData.type === 'rect') {
+                        propertyRangeRequests.push(propertyID);
                     }
                     
                     let showPropertyRule = propertyData.showPropertyRule;
@@ -2938,7 +3225,7 @@ function loaded() {
                     let elServerScriptError = document.getElementById("property-serverScripts-error");
                     let elServerScriptStatus = document.getElementById("property-serverScripts-status");
                     elServerScriptError.value = data.errorInfo;
-                    // If we just set elServerScriptError's diplay to block or none, we still end up with
+                    // If we just set elServerScriptError's display to block or none, we still end up with
                     // it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
                     // So set it's parent to block or none
                     elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
@@ -3030,23 +3317,22 @@ function loaded() {
                             }
                         }
 
-                        let doSelectElement = lastEntityID === '"' + selectedEntityProperties.id + '"';
+                        let hasSelectedEntityChanged = lastEntityID !== '"' + selectedEntityProperties.id + '"';
+                        let doSelectElement = !hasSelectedEntityChanged;
 
                         // the event bridge and json parsing handle our avatar id string differently.
                         lastEntityID = '"' + selectedEntityProperties.id + '"';
 
-                        // HTML workaround since image is not yet a separate entity type
-                        let IMAGE_MODEL_NAME = 'default-image-model.fbx';
-                        if (selectedEntityProperties.type === "Model") {
-                            let urlParts = selectedEntityProperties.modelURL.split('/');
-                            let propsFilename = urlParts[urlParts.length - 1];
-
-                            if (propsFilename === IMAGE_MODEL_NAME) {
-                                selectedEntityProperties.type = "Image";
-                            }
-                        }
-
                         showGroupsForType(selectedEntityProperties.type);
+                        
+                        if (selectedEntityProperties.locked) {
+                            disableProperties();
+                            getPropertyInputElement("locked").removeAttribute('disabled');
+                        } else {
+                            enableProperties();
+                            disableSaveUserDataButton();
+                            disableSaveMaterialDataButton()
+                        }
                         
                         for (let propertyID in properties) {
                             let property = properties[propertyID];
@@ -3058,12 +3344,22 @@ function loaded() {
                             if (propertyValue === undefined && !isSubProperty) {
                                 continue;
                             }
+
+                            if (propertyData.hideIfCertified) {
+                                let shouldHide = selectedEntityProperties.certificateID !== "";
+                                if (shouldHide) {
+                                    propertyValue = "** Certified **";
+                                }
+                                property.elInput.disabled = shouldHide;
+                            }
                             
                             let isPropertyNotNumber = false;
                             switch (propertyData.type) {
                                 case 'number':
+                                case 'number-draggable':
                                     isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
                                     break;
+                                case 'rect':
                                 case 'vec3':
                                 case 'vec2':
                                     isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
@@ -3094,6 +3390,10 @@ function loaded() {
                                     break;
                                 }
                                 case 'number': {
+                                    property.elInput.value = propertyValue;
+                                    break;
+                                }
+                                case 'number-draggable': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
                                     let value = propertyValue / multiplier;
                                     if (propertyData.round !== undefined) {
@@ -3102,6 +3402,12 @@ function loaded() {
                                     property.elNumber.setValue(value);
                                     break;
                                 }
+                                case 'rect':
+                                    property.elNumberX.setValue(propertyValue.x);
+                                    property.elNumberY.setValue(propertyValue.y);
+                                    property.elNumberWidth.setValue(propertyValue.width);
+                                    property.elNumberHeight.setValue(propertyValue.height);
+                                    break;
                                 case 'vec3':
                                 case 'vec2': {
                                     let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
@@ -3132,6 +3438,18 @@ function loaded() {
                                     property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
                                                                                      propertyValue.green + "," + 
                                                                                      propertyValue.blue + ")";
+                                    if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
+                                        // Set the color picker inactive before setting the color,
+                                        // otherwise an update will be sent directly after setting it here.
+                                        $(property.elColorPicker).attr('active', 'false');
+                                        colorPickers['#' + property.elementID].colpickSetColor({
+                                            "r": propertyValue.red,
+                                            "g": propertyValue.green,
+                                            "b": propertyValue.blue
+                                        });
+                                        $(property.elColorPicker).attr('active', 'true');
+                                    }
+
                                     property.elNumberR.setValue(propertyValue.red);
                                     property.elNumberG.setValue(propertyValue.green);
                                     property.elNumberB.setValue(propertyValue.blue);
@@ -3171,10 +3489,7 @@ function loaded() {
 
                         updateVisibleSpaceModeProperties();
 
-                        if (selectedEntityProperties.type === "Image") {
-                            let imageLink = JSON.parse(selectedEntityProperties.textures)["tex.picture"];
-                            getPropertyInputElement("image").value = imageLink;
-                        } else if (selectedEntityProperties.type === "Material") {
+                        if (selectedEntityProperties.type === "Material") {
                             let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
                             let elParentMaterialNameNumber = getPropertyInputElement("submeshToReplace");
                             let elParentMaterialNameCheckbox = getPropertyInputElement("selectSubmesh");
@@ -3236,15 +3551,6 @@ function loaded() {
                             hideMaterialDataSaved();
                         }
                         
-                        if (selectedEntityProperties.locked) {
-                            disableProperties();
-                            getPropertyInputElement("locked").removeAttribute('disabled');
-                        } else {
-                            enableProperties();
-                            disableSaveUserDataButton();
-                            disableSaveMaterialDataButton()
-                        }
-                        
                         let activeElement = document.activeElement;
                         if (doSelectElement && typeof activeElement.select !== "undefined") {
                             activeElement.select();
@@ -3258,11 +3564,48 @@ function loaded() {
                 } else if (data.type === 'setSpaceMode') {
                     currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
                     updateVisibleSpaceModeProperties();
+                } else if (data.type === 'propertyRangeReply') {
+                    let propertyRanges = data.propertyRanges;
+                    for (let property in propertyRanges) {
+                        let propertyRange = propertyRanges[property];
+                        if (propertyRange !== undefined) {
+                            let propertyData = properties[property].data;
+                            let multiplier = propertyData.multiplier;
+                            if (propertyData.min === undefined && propertyRange.minimum != "") {
+                                propertyData.min = propertyRange.minimum;
+                                if (multiplier !== undefined) {
+                                    propertyData.min /= multiplier;
+                                }
+                            }
+                            if (propertyData.max === undefined && propertyRange.maximum != "") {
+                                propertyData.max = propertyRange.maximum;
+                                if (multiplier !== undefined) {
+                                    propertyData.max /= multiplier;
+                                }
+                            }
+                            switch (propertyData.type) {
+                                case 'number':
+                                    updateNumberMinMax(properties[property]);
+                                    break;
+                                case 'number-draggable':
+                                    updateNumberDraggableMinMax(properties[property]);
+                                    break;
+                                case 'vec3':
+                                case 'vec2':
+                                    updateVectorMinMax(properties[property]);
+                                    break;
+                                case 'rect':
+                                    updateRectMinMax(properties[property]);
+                                    break;
+                            }
+                        }
+                    }
                 }
             });
 
-            // Request tooltips as soon as we can process a reply:
+            // Request tooltips and property ranges as soon as we can process a reply:
             EventBridge.emitWebEvent(JSON.stringify({ type: 'tooltipsRequest' }));
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'propertyRangeRequest', properties: propertyRangeRequests }));
         }
         
         // Server Script Status
@@ -3297,12 +3640,15 @@ function loaded() {
         elStaticUserData.setAttribute("id", userDataElementID + "-static");
         let elUserDataEditor = document.createElement('div');
         elUserDataEditor.setAttribute("id", userDataElementID + "-editor");
+        let elUserDataEditorStatus = document.createElement('div');
+        elUserDataEditorStatus.setAttribute("id", userDataElementID + "-editorStatus");
         let elUserDataSaved = document.createElement('span');
         elUserDataSaved.setAttribute("id", userDataElementID + "-saved");
         elUserDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elUserDataSaved);
         elDiv.insertBefore(elStaticUserData, elUserData);
         elDiv.insertBefore(elUserDataEditor, elUserData);
+        elDiv.insertBefore(elUserDataEditorStatus, elUserData);
         
         // Material Data
         let materialDataProperty = properties["materialData"];
@@ -3313,12 +3659,15 @@ function loaded() {
         elStaticMaterialData.setAttribute("id", materialDataElementID + "-static");
         let elMaterialDataEditor = document.createElement('div');
         elMaterialDataEditor.setAttribute("id", materialDataElementID + "-editor");
+        let elMaterialDataEditorStatus = document.createElement('div');
+        elMaterialDataEditorStatus.setAttribute("id", materialDataElementID + "-editorStatus");
         let elMaterialDataSaved = document.createElement('span');
         elMaterialDataSaved.setAttribute("id", materialDataElementID + "-saved");
         elMaterialDataSaved.innerText = "Saved!";
         elDiv.childNodes[JSON_EDITOR_ROW_DIV_INDEX].appendChild(elMaterialDataSaved);
         elDiv.insertBefore(elStaticMaterialData, elMaterialData);
         elDiv.insertBefore(elMaterialDataEditor, elMaterialData);
+        elDiv.insertBefore(elMaterialDataEditorStatus, elMaterialData);
         
         // Special Property Callbacks
         let elParentMaterialNameString = getPropertyInputElement("materialNameToReplace");
@@ -3339,8 +3688,6 @@ function loaded() {
                 showParentMaterialNameBox(false, elParentMaterialNameNumber, elParentMaterialNameString);
             }
         });
-        
-        getPropertyInputElement("image").addEventListener('change', createImageURLUpdateFunction(properties['textures']));
         
         // Collapsible sections
         let elCollapsible = document.getElementsByClassName("collapse-icon");
@@ -3437,6 +3784,8 @@ function loaded() {
             property.elInput = dt;
             dt.addEventListener('change', createEmitTextPropertyUpdateFunction(property));
         }
+
+        document.addEventListener('click', function(ev) { closeAllDropdowns() }, true);
         
         elDropdowns = document.getElementsByTagName("select");
         while (elDropdowns.length > 0) {
@@ -3451,9 +3800,15 @@ function loaded() {
         };
 
         document.addEventListener("keyup", function (keyUpEvent) {
-            if (keyUpEvent.target.nodeName === "INPUT") {
+            const FILTERED_NODE_NAMES = ["INPUT", "TEXTAREA"];
+            if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
+
+            if (elUserDataEditor.contains(keyUpEvent.target) || elMaterialDataEditor.contains(keyUpEvent.target)) {
+                return;
+            }
+
             let {code, key, keyCode, altKey, ctrlKey, metaKey, shiftKey} = keyUpEvent;
 
             let controlKey = window.navigator.platform.startsWith("Mac") ? metaKey : ctrlKey;
@@ -3508,6 +3863,7 @@ function loaded() {
     });
 
     augmentSpinButtons();
+    disableDragDrop();
 
     // Disable right-click context menu which is not visible in the HMD and makes it seem like the app has locked
     document.addEventListener("contextmenu", function(event) {

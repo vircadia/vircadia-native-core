@@ -37,8 +37,6 @@ class FBXNode;
 
 class TextureParam {
 public:
-    glm::vec2 UVTranslation;
-    glm::vec2 UVScaling;
     glm::vec4 cropping;
     QString UVSet;
 
@@ -63,8 +61,6 @@ public:
     bool isDefault;
 
     TextureParam() :
-        UVTranslation(0.0f),
-        UVScaling(1.0f),
         cropping(0.0f),
         UVSet("map1"),
         translation(0.0f),
@@ -77,8 +73,6 @@ public:
     {}
     
     TextureParam(const TextureParam& src) :
-        UVTranslation(src.UVTranslation),
-        UVScaling(src.UVScaling),
         cropping(src.cropping),
         UVSet(src.UVSet),
         translation(src.translation),
@@ -92,10 +86,31 @@ public:
     
 };
 
+class MaterialParam {
+public:
+    glm::vec3 translation;
+    glm::vec3 scaling;
+
+    MaterialParam() :
+        translation(0.0),
+        scaling(1.0)
+    {}
+
+    MaterialParam(const MaterialParam& src) :
+        translation(src.translation),
+        scaling(src.scaling)
+    {}
+};
+
 class ExtractedMesh;
 
 class FBXSerializer : public HFMSerializer {
 public:
+    virtual ~FBXSerializer() {}
+
+    MediaType getMediaType() const override;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
+
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.
     /// \exception QString if an error occurs in parsing
@@ -108,11 +123,8 @@ public:
 
     static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
     QHash<QString, ExtractedMesh> meshes;
-    static void buildModelMesh(HFMMesh& extractedMesh, const QString& url);
 
-    static glm::vec3 normalizeDirForPacking(const glm::vec3& dir);
-
-    HFMTexture getTexture(const QString& textureID);
+    HFMTexture getTexture(const QString& textureID, const QString& materialID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
@@ -139,8 +151,9 @@ public:
     QHash<QString, QString> occlusionTextures;
 
     QHash<QString, HFMMaterial> _hfmMaterials;
+    QHash<QString, MaterialParam> _materialParams;
 
-    void consolidateHFMMaterials(const QVariantHash& mapping);
+    void consolidateHFMMaterials();
 
     bool _loadLightmaps { true };
     float _lightmapOffset { 0.0f };

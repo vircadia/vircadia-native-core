@@ -14,18 +14,20 @@
 
 #include <ObjectMotionState.h>
 
-#include "RenderableLightEntityItem.h"
-#include "RenderableLineEntityItem.h"
-#include "RenderableModelEntityItem.h"
-#include "RenderableParticleEffectEntityItem.h"
-#include "RenderablePolyVoxEntityItem.h"
-#include "RenderablePolyLineEntityItem.h"
 #include "RenderableShapeEntityItem.h"
+#include "RenderableModelEntityItem.h"
 #include "RenderableTextEntityItem.h"
+#include "RenderableImageEntityItem.h"
 #include "RenderableWebEntityItem.h"
+#include "RenderableParticleEffectEntityItem.h"
+#include "RenderableLineEntityItem.h"
+#include "RenderablePolyLineEntityItem.h"
+#include "RenderablePolyVoxEntityItem.h"
+#include "RenderableGridEntityItem.h"
+#include "RenderableGizmoEntityItem.h"
+#include "RenderableLightEntityItem.h"
 #include "RenderableZoneEntityItem.h"
 #include "RenderableMaterialEntityItem.h"
-
 
 using namespace render;
 using namespace render::entities;
@@ -39,7 +41,7 @@ enum class RenderItemStatusIcon {
     SIMULATION_OWNER = 3,
     HAS_ACTIONS = 4,
     OTHER_SIMULATION_OWNER = 5,
-    CLIENT_ONLY = 6,
+    ENTITY_HOST_TYPE = 6,
     NONE = 255
 };
 
@@ -115,17 +117,20 @@ void EntityRenderer::makeStatusGetters(const EntityItemPointer& entity, Item::St
     });
 
     statusGetters.push_back([entity, myNodeID] () -> render::Item::Status::Value {
-        if (entity->getClientOnly()) {
+        if (entity->isAvatarEntity()) {
             if (entity->getOwningAvatarID() == myNodeID) {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::GREEN,
-                    (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
             } else {
                 return render::Item::Status::Value(1.0f, render::Item::Status::Value::RED,
-                    (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+                    (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
             }
+        } else if (entity->isLocalEntity()) {
+            return render::Item::Status::Value(1.0f, render::Item::Status::Value::BLUE,
+                (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
         }
         return render::Item::Status::Value(0.0f, render::Item::Status::Value::GREEN,
-            (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
+            (unsigned char)RenderItemStatusIcon::ENTITY_HOST_TYPE);
     });
 }
 
@@ -136,12 +141,11 @@ std::shared_ptr<T> make_renderer(const EntityItemPointer& entity) {
     return std::shared_ptr<T>(new T(entity), [](T* ptr) { ptr->deleteLater(); });
 }
 
-EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _entity(entity) {
+EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entity->getCreated()), _entity(entity) {
     connect(entity.get(), &EntityItem::requestRenderUpdate, this, [&] {
         _needsRenderUpdate = true;
         emit requestRenderUpdate();
     });
-    _materials = entity->getMaterials();
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -154,20 +158,40 @@ Item::Bound EntityRenderer::getBound() {
     return _bound;
 }
 
+ShapeKey EntityRenderer::getShapeKey() {
+    if (_primitiveMode == PrimitiveMode::LINES) {
+        return ShapeKey::Builder().withOwnPipeline().withWireframe();
+    }
+    return ShapeKey::Builder().withOwnPipeline();
+}
+
 render::hifi::Tag EntityRenderer::getTagMask() const {
     return _isVisibleInSecondaryCamera ? render::hifi::TAG_ALL_VIEWS : render::hifi::TAG_MAIN_VIEW;
 }
 
+render::hifi::Layer EntityRenderer::getHifiRenderLayer() const {
+    switch (_renderLayer) {
+        case RenderLayer::WORLD:
+            return render::hifi::LAYER_3D;
+        case RenderLayer::FRONT:
+            return render::hifi::LAYER_3D_FRONT;
+        case RenderLayer::HUD:
+            return render::hifi::LAYER_3D_HUD;
+        default:
+            return render::hifi::LAYER_3D;
+    }
+}
+
 ItemKey EntityRenderer::getKey() {
     if (isTransparent()) {
-        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask());
+        return ItemKey::Builder::transparentShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     }
 
     // This allows shapes to cast shadows
     if (_canCastShadow) {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster();
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withShadowCaster().withLayer(getHifiRenderLayer());
     } else {
-        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask());
+        return ItemKey::Builder::opaqueShape().withTypeMeta().withTagBits(getTagMask()).withLayer(getHifiRenderLayer());
     }
 }
 
@@ -214,20 +238,37 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
     using Type = EntityTypes::EntityType_t;
     auto type = entity->getType();
     switch (type) {
-        case Type::Light:
-            result = make_renderer<LightEntityRenderer>(entity);
-            break;
 
-        case Type::Line:
-            result = make_renderer<LineEntityRenderer>(entity);
+        case Type::Shape:
+        case Type::Box:
+        case Type::Sphere:
+            result = make_renderer<ShapeEntityRenderer>(entity);
             break;
 
         case Type::Model:
             result = make_renderer<ModelEntityRenderer>(entity);
             break;
 
+        case Type::Text:
+            result = make_renderer<TextEntityRenderer>(entity);
+            break;
+
+        case Type::Image:
+            result = make_renderer<ImageEntityRenderer>(entity);
+            break;
+
+        case Type::Web:
+            if (!nsightActive()) {
+                result = make_renderer<WebEntityRenderer>(entity);
+            }
+            break;
+
         case Type::ParticleEffect:
             result = make_renderer<ParticleEffectEntityRenderer>(entity);
+            break;
+
+        case Type::Line:
+            result = make_renderer<LineEntityRenderer>(entity);
             break;
 
         case Type::PolyLine:
@@ -238,20 +279,16 @@ EntityRenderer::Pointer EntityRenderer::addToScene(EntityTreeRenderer& renderer,
             result = make_renderer<PolyVoxEntityRenderer>(entity);
             break;
 
-        case Type::Shape:
-        case Type::Box:
-        case Type::Sphere:
-            result = make_renderer<ShapeEntityRenderer>(entity);
+        case Type::Grid:
+            result = make_renderer<GridEntityRenderer>(entity);
             break;
 
-        case Type::Text:
-            result = make_renderer<TextEntityRenderer>(entity);
+        case Type::Gizmo:
+            result = make_renderer<GizmoEntityRenderer>(entity);
             break;
 
-        case Type::Web:
-            if (!nsightActive()) {
-                result = make_renderer<WebEntityRenderer>(entity);
-            }
+        case Type::Light:
+            result = make_renderer<LightEntityRenderer>(entity);
             break;
 
         case Type::Zone:
@@ -283,6 +320,7 @@ bool EntityRenderer::addToScene(const ScenePointer& scene, Transaction& transact
     transaction.resetItem(_renderItemID, renderPayload);
     onAddToScene(_entity);
     updateInScene(scene, transaction);
+    _entity->bumpAncestorChainRenderableVersion();
     return true;
 }
 
@@ -290,6 +328,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
     onRemoveFromScene(_entity);
     transaction.removeItem(_renderItemID);
     Item::clearID(_renderItemID);
+    _entity->bumpAncestorChainRenderableVersion();
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
@@ -313,14 +352,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
-}
-
-void EntityRenderer::clearSubRenderItemIDs() {
-    _subRenderItemIDs.clear();
-}
-
-void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
-    _subRenderItemIDs = ids;
 }
 
 //
@@ -397,6 +428,8 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         _moving = entity->isMovingRelativeToParent();
         _visible = entity->getVisible();
         setIsVisibleInSecondaryCamera(entity->isVisibleInSecondaryCamera());
+        setRenderLayer(entity->getRenderLayer());
+        setPrimitiveMode(entity->getPrimitiveMode());
         _canCastShadow = entity->getCanCastShadow();
         _cauterized = entity->getCauterized();
         _needsRenderUpdate = false;
@@ -431,4 +464,33 @@ void EntityRenderer::addMaterial(graphics::MaterialLayer material, const std::st
 void EntityRenderer::removeMaterial(graphics::MaterialPointer material, const std::string& parentMaterialName) {
     std::lock_guard<std::mutex> lock(_materialsLock);
     _materials[parentMaterialName].remove(material);
+}
+
+glm::vec4 EntityRenderer::calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start) {
+    if (pulseProperties.getPeriod() == 0.0f || (pulseProperties.getColorMode() == PulseMode::NONE && pulseProperties.getAlphaMode() == PulseMode::NONE)) {
+        return color;
+    }
+
+    float t = ((float)(usecTimestampNow() - start)) / ((float)USECS_PER_SECOND);
+    float pulse = 0.5f * (cosf(t * (2.0f * (float)M_PI) / pulseProperties.getPeriod()) + 1.0f) * (pulseProperties.getMax() - pulseProperties.getMin()) + pulseProperties.getMin();
+    float outPulse = (1.0f - pulse);
+
+    glm::vec4 result = color;
+    if (pulseProperties.getColorMode() == PulseMode::IN_PHASE) {
+        result.r *= pulse;
+        result.g *= pulse;
+        result.b *= pulse;
+    } else if (pulseProperties.getColorMode() == PulseMode::OUT_PHASE) {
+        result.r *= outPulse;
+        result.g *= outPulse;
+        result.b *= outPulse;
+    }
+
+    if (pulseProperties.getAlphaMode() == PulseMode::IN_PHASE) {
+        result.a *= pulse;
+    } else if (pulseProperties.getAlphaMode() == PulseMode::OUT_PHASE) {
+        result.a *= outPulse;
+    }
+
+    return result;
 }

@@ -19,14 +19,22 @@ Original.Button {
 
     property int color: 0
     property int colorScheme: hifi.colorSchemes.light
+    property string fontFamily: "Raleway"
     property int fontSize: hifi.fontSizes.buttonLabel
+    property bool fontBold: true
     property int radius: hifi.buttons.radius
     property alias implicitTextWidth: buttonText.implicitWidth
     property string buttonGlyph: "";
+    property int buttonGlyphSize: 34;
+    property int buttonGlyphRightMargin: 0;
     property int fontCapitalization: Font.AllUppercase
 
     width: hifi.dimensions.buttonWidth
     height: hifi.dimensions.controlLineHeight
+
+    property size implicitPadding: Qt.size(20, 16)
+    property int implicitWidth: buttonContentItem.implicitWidth + implicitPadding.width
+    property int implicitHeight: buttonContentItem.implicitHeight + implicitPadding.height
 
     HifiConstants { id: hifi }
 
@@ -35,13 +43,13 @@ Original.Button {
             Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
-    
+
     onFocusChanged: {
         if (focus) {
             Tablet.playSound(TabletEnums.ButtonHover);
         }
     }
-    
+
     onClicked: {
         Tablet.playSound(TabletEnums.ButtonClick);
     }
@@ -89,14 +97,23 @@ Original.Button {
     }
 
     contentItem: Item {
+        id: buttonContentItem
+        implicitWidth: (buttonGlyph.visible ? buttonGlyph.implicitWidth : 0) + buttonText.implicitWidth
+        implicitHeight: buttonText.implicitHeight
+        TextMetrics {
+            id: buttonGlyphTextMetrics;
+            font: buttonGlyph.font;
+            text: buttonGlyph.text;
+        }
         HiFiGlyphs {
             id: buttonGlyph;
             visible: control.buttonGlyph !== "";
             text: control.buttonGlyph === "" ? hifi.glyphs.question : control.buttonGlyph;
             // Size
-            size: 34;
+            size: control.buttonGlyphSize;
             // Anchors
             anchors.right: buttonText.left;
+            anchors.rightMargin: control.buttonGlyphRightMargin
             anchors.top: parent.top;
             anchors.bottom: parent.bottom;
             // Style
@@ -106,17 +123,32 @@ Original.Button {
             horizontalAlignment: Text.AlignHCenter;
             verticalAlignment: Text.AlignVCenter;
         }
-        RalewayBold {
+
+        TextMetrics {
+            id: buttonTextMetrics;
+            font: buttonText.font;
+            text: buttonText.text;
+        }
+        Text {
             id: buttonText;
-            anchors.centerIn: parent;
+            width: buttonTextMetrics.width
+            anchors.verticalCenter: parent.verticalCenter;
             font.capitalization: control.fontCapitalization
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
-            size: control.fontSize
+            font.family: control.fontFamily
+            font.pixelSize: control.fontSize
+            font.bold: control.fontBold
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             text: control.text
+            Component.onCompleted: {
+                if (control.buttonGlyph !== "") {
+                    buttonText.x = buttonContentItem.width/2 - buttonTextMetrics.width/2 + (buttonGlyphTextMetrics.width + control.buttonGlyphRightMargin)/2;
+                } else {
+                    buttonText.anchors.centerIn = parent;
+                }
+            }
         }
     }
 }
-

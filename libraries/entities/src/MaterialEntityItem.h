@@ -12,8 +12,6 @@
 #include "EntityItem.h"
 
 #include "MaterialMappingMode.h"
-#include <model-networking/ModelCache.h>
-#include <model-networking/MaterialCache.h>
 
 class MaterialEntityItem : public EntityItem {
     using Pointer = std::shared_ptr<MaterialEntityItem>;
@@ -21,12 +19,8 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     MaterialEntityItem(const EntityItemID& entityItemID);
-    ~MaterialEntityItem();
 
     ALLOW_INSTANTIATION // This class can be instantiated
-
-    void update(const quint64& now) override;
-    bool needsToCallUpdate() const override { return true; }
 
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const override;
@@ -52,38 +46,30 @@ public:
 
     virtual void setUnscaledDimensions(const glm::vec3& value) override;
 
-    QString getMaterialURL() const { return _materialURL; }
-    void setMaterialURL(const QString& materialURLString, bool materialDataChanged = false);
+    QString getMaterialURL() const;
+    void setMaterialURL(const QString& materialURL);
 
-    void setCurrentMaterialName(const std::string& currentMaterialName);
-
-    MaterialMappingMode getMaterialMappingMode() const { return _materialMappingMode; }
-    void setMaterialMappingMode(MaterialMappingMode mode) { _materialMappingMode = mode; }
-
-    quint16 getPriority() const { return _priority; }
-    void setPriority(quint16 priority);
-
-    QString getParentMaterialName() const { return _parentMaterialName; }
-    void setParentMaterialName(const QString& parentMaterialName);
-
-    glm::vec2 getMaterialMappingPos() const { return _materialMappingPos; }
-    void setMaterialMappingPos(const glm::vec2& materialMappingPos);
-    glm::vec2 getMaterialMappingScale() const { return _materialMappingScale; }
-    void setMaterialMappingScale(const glm::vec2& materialMappingScale);
-    float getMaterialMappingRot() const { return _materialMappingRot; }
-    void setMaterialMappingRot(const float& materialMappingRot);
-
-    QString getMaterialData() const { return _materialData; }
+    QString getMaterialData() const;
     void setMaterialData(const QString& materialData);
 
-    std::shared_ptr<NetworkMaterial> getMaterial() const;
+    MaterialMappingMode getMaterialMappingMode() const;
+    void setMaterialMappingMode(MaterialMappingMode mode);
 
-    void setParentID(const QUuid& parentID) override;
+    bool getMaterialRepeat() const { return _materialRepeat; }
+    void setMaterialRepeat(bool repeat) { _materialRepeat = repeat; }
 
-    void applyMaterial();
-    void removeMaterial();
+    quint16 getPriority() const;
+    void setPriority(quint16 priority);
 
-    void postParentFixup() override;
+    QString getParentMaterialName() const;
+    void setParentMaterialName(const QString& parentMaterialName);
+
+    glm::vec2 getMaterialMappingPos() const;
+    void setMaterialMappingPos(const glm::vec2& materialMappingPos);
+    glm::vec2 getMaterialMappingScale() const;
+    void setMaterialMappingScale(const glm::vec2& materialMappingScale);
+    float getMaterialMappingRot() const;
+    void setMaterialMappingRot(float materialMappingRot);
 
     AACube calculateInitialQueryAACube(bool& success) override;
 
@@ -104,8 +90,10 @@ private:
     //     emissiveMap, albedoMap (set opacityMap = albedoMap for transparency), metallicMap or specularMap, roughnessMap or glossMap,
     //     normalMap or bumpMap, occlusionMap, lightmapMap (broken, FIXME), scatteringMap (only works if normal mapped)
     QString _materialURL;
-    // Type of material.  "uv" or "projected".  NOT YET IMPLEMENTED, only UV is used
+    // Type of material.  "uv" or "projected".
     MaterialMappingMode _materialMappingMode { UV };
+    bool _materialRepeat { true };
+    glm::vec3 _desiredDimensions;
     // Priority for this material when applying it to its parent.  Only the highest priority material will be used.  Materials with the same priority are (essentially) randomly sorted.
     // Base materials that come with models always have priority 0.
     quint16 _priority { 0 };
@@ -119,12 +107,6 @@ private:
     // How much to rotate this material within its parent's UV-space (degrees)
     float _materialMappingRot { 0 };
     QString _materialData;
-
-    NetworkMaterialResourcePointer _networkMaterial;
-    NetworkMaterialResource::ParsedMaterials _parsedMaterials;
-    std::string _currentMaterialName;
-
-    bool _retryApply { false };
 
 };
 

@@ -100,6 +100,9 @@ public:
     void setRelayParentJoints(bool relayJoints);
     bool getRelayParentJoints() const;
 
+    void setGroupCulled(bool value);
+    bool getGroupCulled() const;
+
     bool getAnimationIsPlaying() const;
     float getAnimationCurrentFrame() const;
     float getAnimationFPS() const;
@@ -123,6 +126,9 @@ public:
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
+    glm::vec3 getModelScale() const;
+    void setModelScale(const glm::vec3& modelScale);
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
@@ -138,6 +144,7 @@ protected:
     // they aren't currently updated from data in the model/rig, and they don't have a direct effect
     // on what's rendered.
     ReadWriteLockable _jointDataLock;
+    ReadWriteLockable _modelScaleLock;
 
     bool _jointRotationsExplicitlySet { false }; // were the joints set as a property or just side effect of animations
     bool _jointTranslationsExplicitlySet{ false }; // were the joints set as a property or just side effect of animations
@@ -154,12 +161,12 @@ protected:
     glm::u8vec3 _color;
     QString _modelURL;
     bool _relayParentJoints;
+    bool _groupCulled { false };
 
     ThreadSafeValueCache<QString> _compoundShapeURL;
 
     AnimationPropertyGroup _animationProperties;
 
-    mutable QReadWriteLock _texturesLock;
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;

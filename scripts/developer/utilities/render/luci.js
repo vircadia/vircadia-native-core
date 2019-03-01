@@ -12,6 +12,8 @@
 
 (function() {
     var AppUi = Script.require('appUi');
+    
+    var MaterialInspector = Script.require('./materialInspector.js');
 
     var moveDebugCursor = false;
     var onMousePressEvent = function (e) {
@@ -41,11 +43,12 @@
         Render.getConfig("RenderMainView").getConfig("DebugDeferredBuffer").size = { x: nx, y: ny, z: 1.0, w: 1.0 };
     }
 
-    function Page(title, qmlurl, width, height) {
+    function Page(title, qmlurl, width, height, handleWindowFunc) {
         this.title = title;
         this.qml = qmlurl;
         this.width = width;
         this.height = height;
+        this.handleWindowFunc = handleWindowFunc;
 
         this.window;
 
@@ -73,8 +76,10 @@
                 presentationMode: Desktop.PresentationMode.NATIVE,
                 size: {x: this.width, y: this.height}
             });
+            this.handleWindowFunc(this.window);
             this.window.closed.connect(function () {
                 that.killView();
+                this.handleWindowFunc(undefined);
             });
         }  
     };
@@ -84,8 +89,12 @@
         this._pages = {};
     };
 
-    Pages.prototype.addPage = function (command, title, qmlurl, width, height) {
-        this._pages[command] = new Page(title, qmlurl, width, height);
+    Pages.prototype.addPage = function (command, title, qmlurl, width, height, handleWindowFunc) {
+        if (handleWindowFunc === undefined) {
+            // Workaround for bad linter
+            handleWindowFunc = function(window){};
+        }
+        this._pages[command] = new Page(title, qmlurl, width, height, handleWindowFunc);
     };
 
     Pages.prototype.open = function (command) {
@@ -110,6 +119,7 @@
     pages.addPage('openEngineView', 'Render Engine', 'engineInspector.qml', 300, 400);
     pages.addPage('openEngineLODView', 'Render LOD', 'lod.qml', 300, 400);
     pages.addPage('openCullInspectorView', 'Cull Inspector', 'culling.qml', 300, 400);
+    pages.addPage('openMaterialInspectorView', 'Material Inspector', 'materialInspector.qml', 300, 400, MaterialInspector.setWindow);
 
     function fromQml(message) {
         if (pages.open(message.method)) {

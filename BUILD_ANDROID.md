@@ -6,12 +6,7 @@ Building is currently supported on OSX, Windows and Linux platforms, but develop
 
 You will need the following tools to build Android targets.
 
-* [Gradle](https://gradle.org/install/)
 * [Android Studio](https://developer.android.com/studio/index.html)
-
-### Gradle
-
-Install gradle version 4.1 or higher.  Following the instructions to install via [SDKMAN!](http://sdkman.io/install.html) is recommended.  
 
 ### Android Studio
 
@@ -28,6 +23,8 @@ From the SDK Tools tab select the following
 * Android SDK Platform-Tools
 * Android SDK Tools
 * NDK (even if you have the NDK installed separately)
+
+Make sure the NDK installed version is 18 (or higher)
 
 # Environment 
 
@@ -51,17 +48,17 @@ Enter the repository `android` directory
 
 `cd hifi/android`
 
-Execute a gradle pre-build setup.  This step should only need to be done once
+Execute two gradle pre-build steps.  This steps should only need to be done once, unless you're working on the Android dependencies
 
-`gradle setupDependencies`
+`./gradlew extractDependencies`
 
+`./gradlew setupDependencies`
 
 # Building & Running
 
 * Open Android Studio
 * Choose _Open Existing Android Studio Project_
 * Navigate to the `hifi` repository and choose the `android` folder and select _OK_
-* If Android Studio asks you if you want to use the Gradle wrapper, select cancel and tell it where your local gradle installation is.  If you used SDKMAN to install gradle it will be located in `$HOME/.sdkman/candidates/gradle/current/`
 * From the _Build_ menu select _Make Project_
 * Once the build completes, from the _Run_ menu select _Run App_ 
 

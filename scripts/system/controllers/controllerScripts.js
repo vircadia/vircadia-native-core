@@ -18,11 +18,7 @@ var CONTOLLER_SCRIPTS = [
     "toggleAdvancedMovementForHandControllers.js",
     "handTouch.js",
     "controllerDispatcher.js",
-    "controllerModules/nearParentGrabEntity.js",
     "controllerModules/nearParentGrabOverlay.js",
-    "controllerModules/nearActionGrabEntity.js",
-    "controllerModules/farActionGrabEntityDynOnly.js",
-    "controllerModules/farParentGrabEntity.js",
     "controllerModules/stylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
@@ -36,11 +32,12 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/mouseHMD.js",
     "controllerModules/scaleEntity.js",
     "controllerModules/nearGrabHyperLinkEntity.js",
-    "controllerModules/nearTabletHighlight.js"
+    "controllerModules/nearTabletHighlight.js",
+    "controllerModules/nearGrabEntity.js",
+    "controllerModules/farGrabEntity.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
-
 
 function runDefaultsTogether() {
     for (var j in CONTOLLER_SCRIPTS) {

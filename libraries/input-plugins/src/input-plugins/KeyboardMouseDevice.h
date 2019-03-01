@@ -118,9 +118,9 @@ public:
 
 protected:
     QPoint _lastCursor;
+    QPoint _previousCursor;
     QPoint _mousePressPos;
     quint64 _mousePressTime;
-    bool _mouseMoved;
     bool _clickDeadspotActive;
     glm::vec2 _lastTouch;
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
@@ -130,6 +130,9 @@ protected:
     std::chrono::high_resolution_clock::time_point _lastTouchTime;
 
     static bool _enableTouch;
+
+private:
+    void updateDeltaAxisValue(int channel, float value);
 };
 
 #endif // hifi_KeyboardMouseDevice_h

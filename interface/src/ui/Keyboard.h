@@ -25,8 +25,6 @@
 #include <shared/ReadWriteLockable.h>
 #include <SettingHandle.h>
 
-#include "ui/overlays/Overlay.h"
-
 class PointerEvent;
 
 
@@ -47,8 +45,8 @@ public:
 
     static Key::Type getKeyTypeFromString(const QString& keyTypeString);
 
-    OverlayID getID() const { return _keyID; }
-    void setID(OverlayID overlayID) { _keyID = overlayID; }
+    QUuid getID() const { return _keyID; }
+    void setID(const QUuid& id) { _keyID = id; }
 
     void startTimer(int time);
     bool timerFinished();
@@ -77,86 +75,124 @@ private:
     int _switchToLayer { 0 };
     bool _pressed { false };
 
-    OverlayID _keyID;
+    QUuid _keyID;
     QString _keyString;
 
     glm::vec3 _originalLocalPosition;
     glm::vec3 _originalDimensions;
     glm::vec3 _currentLocalPosition;
+    bool _originalDimensionsAndLocalPositionSaved { false };
 
     std::shared_ptr<QTimer> _timer { std::make_shared<QTimer>() };
 };
 
-class Keyboard : public Dependency, public QObject, public ReadWriteLockable {
+class Keyboard : public QObject, public Dependency, public ReadWriteLockable {
+    Q_OBJECT
 public:
     Keyboard();
     void createKeyboard();
     void registerKeyboardHighlighting();
     bool isRaised() const;
     void setRaised(bool raised);
-
+    void setResetKeyboardPositionOnRaise(bool reset);
     bool isPassword() const;
     void setPassword(bool password);
+    void enableRightMallet();
+    void enableLeftMallet();
+    void disableRightMallet();
+    void disableLeftMallet();
+
+    void setLeftHandLaser(unsigned int leftHandLaser);
+    void setRightHandLaser(unsigned int rightHandLaser);
+
+    void setPreferMalletsOverLasers(bool preferMalletsOverLasers);
+    bool getPreferMalletsOverLasers() const;
 
     bool getUse3DKeyboard() const;
     void setUse3DKeyboard(bool use);
+    bool containsID(const QUuid& id) const;
 
     void loadKeyboardFile(const QString& keyboardFile);
-    QVector<OverlayID> getKeysID();
+    QSet<QUuid> getKeyIDs();
+    QUuid getAnchorID();
 
 public slots:
-    void handleTriggerBegin(const OverlayID& overlayID, const PointerEvent& event);
-    void handleTriggerEnd(const OverlayID& overlayID, const PointerEvent& event);
-    void handleTriggerContinue(const OverlayID& overlayID, const PointerEvent& event);
-    void handleHoverBegin(const OverlayID& overlayID, const PointerEvent& event);
-    void handleHoverEnd(const OverlayID& overlayID, const PointerEvent& event);
+    void handleTriggerBegin(const QUuid& id, const PointerEvent& event);
+    void handleTriggerEnd(const QUuid& id, const PointerEvent& event);
+    void handleTriggerContinue(const QUuid& id, const PointerEvent& event);
+    void handleHoverBegin(const QUuid& id, const PointerEvent& event);
+    void handleHoverEnd(const QUuid& id, const PointerEvent& event);
     void scaleKeyboard(float sensorToWorldScale);
 
 private:
     struct Anchor {
-        OverlayID overlayID;
+        QUuid entityID;
         glm::vec3 originalDimensions;
+    };
+
+    struct BackPlate {
+        QUuid entityID;
+        glm::vec3 dimensions;
+        glm::vec3 localPosition;
     };
 
     struct TextDisplay {
         float lineHeight;
-        OverlayID overlayID;
+        QUuid entityID;
         glm::vec3 localPosition;
         glm::vec3 dimensions;
     };
 
     void raiseKeyboard(bool raise) const;
     void raiseKeyboardAnchor(bool raise) const;
-
-    void setLayerIndex(int layerIndex);
     void enableStylus();
     void disableStylus();
+    void enableSelectionLists();
+    void disableSelectionLists();
+
+    void setLayerIndex(int layerIndex);
     void clearKeyboardKeys();
     void switchToLayer(int layerIndex);
     void updateTextDisplay();
+    bool shouldProcessEntityAndPointerEvent(const PointerEvent& event) const;
+    bool shouldProcessPointerEvent(const PointerEvent& event) const;
+    bool shouldProcessEntity() const;
+    void addIncludeItemsToMallets();
 
     void startLayerSwitchTimer();
-    bool isLayerSwitchTimerFinished();
+    bool isLayerSwitchTimerFinished() const;
 
     bool _raised { false };
+    bool _resetKeyboardPositionOnRaise { true };
     bool _password { false };
     bool _capsEnabled { false };
     int _layerIndex { 0 };
+    Setting::Handle<bool> _preferMalletsOverLasers { "preferMalletsOverLaser", true };
     unsigned int _leftHandStylus { 0 };
     unsigned int _rightHandStylus { 0 };
+    unsigned int _leftHandLaser { 0 };
+    unsigned int _rightHandLaser { 0 };
     SharedSoundPointer _keySound { nullptr };
     std::shared_ptr<QTimer> _layerSwitchTimer { std::make_shared<QTimer>() };
 
     mutable ReadWriteLockable _use3DKeyboardLock;
+    mutable ReadWriteLockable _handLaserLock;
+    mutable ReadWriteLockable _preferMalletsOverLasersSettingLock;
+    mutable ReadWriteLockable _ignoreItemsLock;
+
+#ifdef Q_OS_ANDROID
+    Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", false };
+#else
     Setting::Handle<bool> _use3DKeyboard { "use3DKeyboard", true };
+#endif
 
     QString _typedCharacters;
     TextDisplay _textDisplay;
     Anchor _anchor;
+    BackPlate _backPlate;
 
-    mutable ReadWriteLockable _ignoreItemsLock;
-    QVector<OverlayID> _itemsToIgnore;
-    std::vector<QHash<OverlayID, Key>> _keyboardLayers;
+    QSet<QUuid> _itemsToIgnore;
+    std::vector<QHash<QUuid, Key>> _keyboardLayers;
 };
 
 #endif

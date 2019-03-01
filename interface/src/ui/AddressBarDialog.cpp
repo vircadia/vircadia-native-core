@@ -59,7 +59,7 @@ void AddressBarDialog::loadHome() {
     auto locationBookmarks = DependencyManager::get<LocationBookmarks>();
     QString homeLocation = locationBookmarks->addressForBookmark(LocationBookmarks::HOME_BOOKMARK);
     if (homeLocation == "") {
-        homeLocation = DEFAULT_HIFI_ADDRESS;
+        homeLocation = DEFAULT_HOME_ADDRESS;
     }
     DependencyManager::get<AddressManager>()->handleLookupString(homeLocation);
 }

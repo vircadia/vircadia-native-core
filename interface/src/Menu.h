@@ -46,6 +46,7 @@ namespace MenuOption {
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString AvatarBookmarks = "Avatar Bookmarks";
+    const QString AvatarPackager = "Avatar Packager";
     const QString Back = "Back";
     const QString BinaryEyelidControl = "Binary Eyelid Control";
     const QString BookmarkAvatar = "Bookmark Avatar";
@@ -117,7 +118,7 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FullscreenMirror = "Mirror";
     const QString Help = "Help...";
-    const QString HomeLocation = "Home";
+    const QString HomeLocation = "Home ";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";

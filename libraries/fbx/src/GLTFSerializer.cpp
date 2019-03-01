@@ -32,13 +32,9 @@
 #include <NetworkAccessManager.h>
 #include <ResourceManager.h>
 #include <PathUtils.h>
+#include <image/ColorChannel.h>
 
 #include "FBXSerializer.h"
-
-
-GLTFSerializer::GLTFSerializer() {
-
-}
 
 bool GLTFSerializer::getStringVal(const QJsonObject& object, const QString& fieldname,
                               QString& value, QMap<QString, bool>&  defined) {
@@ -127,6 +123,31 @@ bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString&
     }
     defined.insert(fieldname, _defined);
     return _defined;
+}
+
+QByteArray GLTFSerializer::setGLBChunks(const QByteArray& data) {
+    int byte = 4; 
+    int jsonStart = data.indexOf("JSON", Qt::CaseSensitive);
+    int binStart = data.indexOf("BIN", Qt::CaseSensitive);
+    int jsonLength, binLength;
+    QByteArray jsonLengthChunk, binLengthChunk;
+
+    jsonLengthChunk = data.mid(jsonStart - byte, byte);
+    QDataStream tempJsonLen(jsonLengthChunk);
+    tempJsonLen.setByteOrder(QDataStream::LittleEndian);
+    tempJsonLen >> jsonLength;
+    QByteArray jsonChunk = data.mid(jsonStart + byte, jsonLength);
+
+    if (binStart != -1) {
+        binLengthChunk = data.mid(binStart - byte, byte);
+
+        QDataStream tempBinLen(binLengthChunk);
+        tempBinLen.setByteOrder(QDataStream::LittleEndian);
+        tempBinLen >> binLength;
+
+        _glbBinary = data.mid(binStart + byte, binLength);
+    }
+    return jsonChunk;
 }
 
 int GLTFSerializer::getMeshPrimitiveRenderingMode(const QString& type)
@@ -314,6 +335,14 @@ bool GLTFSerializer::addBuffer(const QJsonObject& object) {
     GLTFBuffer buffer;
    
     getIntVal(object, "byteLength", buffer.byteLength, buffer.defined);
+
+    if (_url.toString().endsWith("glb")) {
+        if (!_glbBinary.isEmpty()) {
+            buffer.blob = _glbBinary;
+        } else {
+            return false;
+        }
+    }
     if (getStringVal(object, "uri", buffer.uri, buffer.defined)) {
         if (!readBinary(buffer.uri, buffer.blob)) {
             return false;
@@ -357,9 +386,14 @@ bool GLTFSerializer::addImage(const QJsonObject& object) {
     
     QString mime;
     getStringVal(object, "uri", image.uri, image.defined);
+    if (image.uri.contains("data:image/png;base64,")) {
+        image.mimeType = getImageMimeType("image/png");
+    } else if (image.uri.contains("data:image/jpeg;base64,")) {
+        image.mimeType = getImageMimeType("image/jpeg");
+    }
     if (getStringVal(object, "mimeType", mime, image.defined)) {
         image.mimeType = getImageMimeType(mime);
-    }
+    } 
     getIntVal(object, "bufferView", image.bufferView, image.defined);
     
     _file.images.push_back(image);
@@ -535,17 +569,23 @@ bool GLTFSerializer::addTexture(const QJsonObject& object) {
 
 bool GLTFSerializer::parseGLTF(const QByteArray& data) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
-    
-    QJsonDocument d = QJsonDocument::fromJson(data);
+
+    QByteArray jsonChunk = data;
+
+    if (_url.toString().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
+        jsonChunk = setGLBChunks(data);
+    }    
+   
+    QJsonDocument d = QJsonDocument::fromJson(jsonChunk);
     QJsonObject jsFile = d.object();
 
-    bool isvalid = setAsset(jsFile);
-    if (isvalid) {
+    bool success = setAsset(jsFile);
+    if (success) {
         QJsonArray accessors;
         if (getObjectArrayVal(jsFile, "accessors", accessors, _file.defined)) {
             foreach(const QJsonValue & accVal, accessors) {
                 if (accVal.isObject()) {
-                    addAccessor(accVal.toObject());
+                    success = success && addAccessor(accVal.toObject());
                 }
             }
         }
@@ -554,7 +594,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "animations", animations, _file.defined)) {
             foreach(const QJsonValue & animVal, accessors) {
                 if (animVal.isObject()) {
-                    addAnimation(animVal.toObject());
+                    success = success && addAnimation(animVal.toObject());
                 }
             }
         }
@@ -563,7 +603,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "bufferViews", bufferViews, _file.defined)) {
             foreach(const QJsonValue & bufviewVal, bufferViews) {
                 if (bufviewVal.isObject()) {
-                    addBufferView(bufviewVal.toObject());
+                    success = success && addBufferView(bufviewVal.toObject());
                 }
             }
         }
@@ -572,7 +612,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "buffers", buffers, _file.defined)) {
             foreach(const QJsonValue & bufVal, buffers) {
                 if (bufVal.isObject()) {
-                    addBuffer(bufVal.toObject());
+                    success = success && addBuffer(bufVal.toObject());
                 }
             }
         }
@@ -581,7 +621,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "cameras", cameras, _file.defined)) {
             foreach(const QJsonValue & camVal, cameras) {
                 if (camVal.isObject()) {
-                    addCamera(camVal.toObject());
+                    success = success && addCamera(camVal.toObject());
                 }
             }
         }
@@ -590,7 +630,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "images", images, _file.defined)) {
             foreach(const QJsonValue & imgVal, images) {
                 if (imgVal.isObject()) {
-                    addImage(imgVal.toObject());
+                    success = success && addImage(imgVal.toObject());
                 }
             }
         }
@@ -599,7 +639,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "materials", materials, _file.defined)) {
             foreach(const QJsonValue & matVal, materials) {
                 if (matVal.isObject()) {
-                    addMaterial(matVal.toObject());
+                    success = success && addMaterial(matVal.toObject());
                 }
             }
         }
@@ -608,7 +648,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "meshes", meshes, _file.defined)) {
             foreach(const QJsonValue & meshVal, meshes) {
                 if (meshVal.isObject()) {
-                    addMesh(meshVal.toObject());
+                    success = success && addMesh(meshVal.toObject());
                 }
             }
         }
@@ -617,7 +657,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "nodes", nodes, _file.defined)) {
             foreach(const QJsonValue & nodeVal, nodes) {
                 if (nodeVal.isObject()) {
-                    addNode(nodeVal.toObject());
+                    success = success && addNode(nodeVal.toObject());
                 }
             }
         }
@@ -626,7 +666,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "samplers", samplers, _file.defined)) {
             foreach(const QJsonValue & samVal, samplers) {
                 if (samVal.isObject()) {
-                    addSampler(samVal.toObject());
+                    success = success && addSampler(samVal.toObject());
                 }
             }
         }
@@ -635,7 +675,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "scenes", scenes, _file.defined)) {
             foreach(const QJsonValue & sceneVal, scenes) {
                 if (sceneVal.isObject()) {
-                    addScene(sceneVal.toObject());
+                    success = success && addScene(sceneVal.toObject());
                 }
             }
         }
@@ -644,7 +684,7 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "skins", skins, _file.defined)) {
             foreach(const QJsonValue & skinVal, skins) {
                 if (skinVal.isObject()) {
-                    addSkin(skinVal.toObject());
+                    success = success && addSkin(skinVal.toObject());
                 }
             }
         }
@@ -653,15 +693,12 @@ bool GLTFSerializer::parseGLTF(const QByteArray& data) {
         if (getObjectArrayVal(jsFile, "textures", textures, _file.defined)) {
             foreach(const QJsonValue & texVal, textures) {
                 if (texVal.isObject()) {
-                    addTexture(texVal.toObject());
+                    success = success && addTexture(texVal.toObject());
                 }
             }
         }
-    } else {
-        qCDebug(modelformat) << "Error parsing GLTF file.";
-        return false;
-    }
-    return true;
+    } 
+    return success;
 }
 
 glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
@@ -728,7 +765,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     
     //Build default joints
     hfmModel.joints.resize(1);
-    hfmModel.joints[0].isFree = false;
     hfmModel.joints[0].parentIndex = -1;
     hfmModel.joints[0].distanceToParent = 0;
     hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
@@ -840,6 +876,39 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                         for (int n = 0; n < normals.size(); n = n + 3) {
                             mesh.normals.push_back(glm::vec3(normals[n], normals[n + 1], normals[n + 2]));
                         }
+                    } else if (key == "COLOR_0") {
+                        QVector<float> colors;
+                        success = addArrayOfType(buffer.blob, 
+                            bufferview.byteOffset + accBoffset, 
+                            accessor.count, 
+                            colors,
+                            accessor.type, 
+                            accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF COLOR_0 data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < colors.size() - 3; n += stride) {
+                            mesh.colors.push_back(glm::vec3(colors[n], colors[n + 1], colors[n + 2]));
+                        }
+                    } else if (key == "TANGENT") {
+                        QVector<float> tangents;
+                        success = addArrayOfType(buffer.blob, 
+                            bufferview.byteOffset + accBoffset, 
+                            accessor.count, 
+                            tangents,
+                            accessor.type, 
+                            accessor.componentType);
+                        if (!success) {
+                            qWarning(modelformat) << "There was a problem reading glTF TANGENT data for model " << _url;
+                            continue;
+                        }
+                        int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
+                        for (int n = 0; n < tangents.size() - 3; n += stride) {
+                            float tanW = stride == 4 ? tangents[n + 3] : 1; 
+                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tangents[n + 2]));
+                        }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
                         success = addArrayOfType(buffer.blob, 
@@ -879,7 +948,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 }
                 mesh.parts.push_back(part);
 
-                // populate the texture coordenates if they don't exist
+                // populate the texture coordinates if they don't exist
                 if (mesh.texCoords.size() == 0) {
                     for (int i = 0; i < part.triangleIndices.size(); i++) mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
                 }
@@ -899,7 +968,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 }
 
                 mesh.meshIndex = hfmModel.meshes.size();
-                FBXSerializer::buildModelMesh(mesh, url.toString());
             }
             
         }
@@ -910,10 +978,25 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     return true;
 }
 
-HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
-    
-    _url = url;
+MediaType GLTFSerializer::getMediaType() const {
+    MediaType mediaType("gltf");
+    mediaType.extensions.push_back("gltf");
+    mediaType.webMediaTypes.push_back("model/gltf+json");
 
+    mediaType.extensions.push_back("glb");
+    mediaType.webMediaTypes.push_back("model/gltf-binary");
+
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<GLTFSerializer>>();
+}
+
+HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
+
+    _url = url;
+    
     // Normalize url for local files
     QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
@@ -921,23 +1004,31 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
         _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
     }
 
-    parseGLTF(data);
-    //_file.dump();
-    auto hfmModelPtr = std::make_shared<HFMModel>();
-    HFMModel& hfmModel = *hfmModelPtr;
+    if (parseGLTF(data)) {
+        //_file.dump();
+        auto hfmModelPtr = std::make_shared<HFMModel>();
+        HFMModel& hfmModel = *hfmModelPtr;
+        buildGeometry(hfmModel, _url);
 
-    buildGeometry(hfmModel, _url);
-    
-    //hfmDebugDump(data);
-    return hfmModelPtr;
-    
+        //hfmDebugDump(data);
+        return hfmModelPtr;
+    } else {
+        qCDebug(modelformat) << "Error parsing GLTF file.";
+    }
+
+    return nullptr;
 }
 
 bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
-    QUrl binaryUrl = _url.resolved(url);
-
     bool success;
-    std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+
+    if (url.contains("data:application/octet-stream;base64,")) {
+        outdata = requestEmbeddedData(url);
+        success = !outdata.isEmpty();
+    } else {
+        QUrl binaryUrl = _url.resolved(url);
+        std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+    }
     
     return success;
 }
@@ -970,6 +1061,11 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     }
 }
 
+QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
+    QString binaryUrl = url.split(",")[1]; 
+    return binaryUrl.isEmpty() ? QByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
+}
+
 
 QNetworkReply* GLTFSerializer::request(QUrl& url, bool isTest) {
     if (!qApp) {
@@ -998,14 +1094,30 @@ QNetworkReply* GLTFSerializer::request(QUrl& url, bool isTest) {
 HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     HFMTexture fbxtex = HFMTexture();
     fbxtex.texcoordSet = 0;
-    
+  
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
+
         QString fname = QUrl(url).fileName();
         QUrl textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
+        
+        if (_url.toString().endsWith("glb") && !_glbBinary.isEmpty()) {
+            int bufferView = _file.images[texture.source].bufferView;
+       
+            GLTFBufferView& imagesBufferview = _file.bufferviews[bufferView];
+            int offset = imagesBufferview.byteOffset;
+            int length = imagesBufferview.byteLength;
+
+            fbxtex.content = _glbBinary.mid(offset, length);
+            fbxtex.filename = textureUrl.toEncoded().append(texture.source);
+        }
+
+        if (url.contains("data:image/jpeg;base64,") || url.contains("data:image/png;base64,")) {
+            fbxtex.content = requestEmbeddedData(url); 
+        }
     }
     return fbxtex;
 }
@@ -1052,8 +1164,10 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& mat
         }
         if (material.pbrMetallicRoughness.defined["metallicRoughnessTexture"]) {
             fbxmat.roughnessTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.roughnessTexture.sourceChannel = image::ColorChannel::GREEN;
             fbxmat.useRoughnessMap = true;
             fbxmat.metallicTexture = getHFMTexture(_file.textures[material.pbrMetallicRoughness.metallicRoughnessTexture]);
+            fbxmat.metallicTexture.sourceChannel = image::ColorChannel::BLUE;
             fbxmat.useMetallicMap = true;
         }
         if (material.pbrMetallicRoughness.defined["roughnessFactor"]) {
@@ -1182,21 +1296,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  hasSkeletonJoints =" << hfmModel.hasSkeletonJoints;
     qCDebug(modelformat) << "  offset =" << hfmModel.offset;
 
-    qCDebug(modelformat) << "  leftEyeJointIndex =" << hfmModel.leftEyeJointIndex;
-    qCDebug(modelformat) << "  rightEyeJointIndex =" << hfmModel.rightEyeJointIndex;
-    qCDebug(modelformat) << "  neckJointIndex =" << hfmModel.neckJointIndex;
-    qCDebug(modelformat) << "  rootJointIndex =" << hfmModel.rootJointIndex;
-    qCDebug(modelformat) << "  leanJointIndex =" << hfmModel.leanJointIndex;
-    qCDebug(modelformat) << "  headJointIndex =" << hfmModel.headJointIndex;
-    qCDebug(modelformat) << "  leftHandJointIndex" << hfmModel.leftHandJointIndex;
-    qCDebug(modelformat) << "  rightHandJointIndex" << hfmModel.rightHandJointIndex;
-    qCDebug(modelformat) << "  leftToeJointIndex" << hfmModel.leftToeJointIndex;
-    qCDebug(modelformat) << "  rightToeJointIndex" << hfmModel.rightToeJointIndex;
-    qCDebug(modelformat) << "  leftEyeSize = " << hfmModel.leftEyeSize;
-    qCDebug(modelformat) << "  rightEyeSize = " << hfmModel.rightEyeSize;
-
-    qCDebug(modelformat) << "  palmDirection = " << hfmModel.palmDirection;
-
     qCDebug(modelformat) << "  neckPivot = " << hfmModel.neckPivot;
 
     qCDebug(modelformat) << "  bindExtents.size() = " << hfmModel.bindExtents.size();
@@ -1309,8 +1408,6 @@ void GLTFSerializer::hfmDebugDump(const HFMModel& hfmModel) {
         qCDebug(modelformat) << "    shapeInfo.dots =" << joint.shapeInfo.dots;
         qCDebug(modelformat) << "    shapeInfo.points =" << joint.shapeInfo.points;
 
-        qCDebug(modelformat) << "    isFree =" << joint.isFree;
-        qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
         qCDebug(modelformat) << "    translation" << joint.translation;

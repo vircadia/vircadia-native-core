@@ -28,6 +28,7 @@ Item {
     property string purchaseStatus;
     property string itemName;
     property string itemId;
+    property string updateItemId;
     property string itemPreviewImageUrl;
     property string itemHref;
     property string certificateId;
@@ -45,9 +46,9 @@ Item {
     property bool cardBackVisible;
     property bool isInstalled;
     property string wornEntityID;
-    property string upgradeUrl;
+    property string updatedItemId;
     property string upgradeTitle;
-    property bool updateAvailable: root.upgradeUrl !== "";
+    property bool updateAvailable: root.updateItemId && root.updateItemId !== "";
     property bool valid;
 
     property string originalStatusText;
@@ -175,7 +176,8 @@ Item {
 
                     Item {
                         property alias buttonGlyphText: buttonGlyph.text;
-                        property alias buttonText: buttonText.text;
+                        property alias itemButtonText: buttonText.text;
+                        property alias glyphSize: buttonGlyph.size;
                         property string buttonColor: hifi.colors.black;
                         property string buttonColor_hover: hifi.colors.blueHighlight;
                         property alias enabled: buttonMouseArea.enabled;
@@ -186,7 +188,8 @@ Item {
                             anchors.top: parent.top;
                             anchors.topMargin: 4;
                             anchors.horizontalCenter: parent.horizontalCenter;
-                            anchors.bottom: parent.verticalCenter;
+                            anchors.bottom: buttonText.visible ? parent.verticalCenter : parent.bottom;
+                            anchors.bottomMargin: buttonText.visible ? 0 : 4;
                             width: parent.width;
                             size: 40;
                             horizontalAlignment: Text.AlignHCenter;
@@ -196,6 +199,7 @@ Item {
 
                         RalewayRegular {
                             id: buttonText;
+                            visible: text !== "";
                             anchors.top: parent.verticalCenter;
                             anchors.topMargin: 4;
                             anchors.bottom: parent.bottom;
@@ -240,7 +244,7 @@ Item {
                     onLoaded: {
                         item.enabled = root.valid;
                         item.buttonGlyphText = hifi.glyphs.gift;
-                        item.buttonText = "Gift";
+                        item.itemButtonText = "Gift";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({
@@ -267,7 +271,7 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.market;
-                        item.buttonText = "View in Marketplace";
+                        item.itemButtonText = "View in Marketplace";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({method: 'purchases_itemInfoClicked', itemId: root.itemId});
@@ -285,7 +289,7 @@ Item {
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.certificate;
-                        item.buttonText = "View Certificate";
+                        item.itemButtonText = "View Certificate";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({method: 'purchases_itemCertificateClicked', itemCertificateId: root.certificateId});
@@ -300,15 +304,19 @@ Item {
                     anchors.right: certificateButton.left;
                     anchors.top: parent.top;
                     anchors.bottom: parent.bottom;
-                    width: 78;
+                    width: 72;
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.uninstall;
-                        item.buttonText = "Uninstall";
+                        item.itemButtonText = "Uninstall";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             Commerce.uninstallApp(root.itemHref);
                         }
+                    }
+
+                    onVisibleChanged: {
+                        trashButton.updateProperties();
                     }
                 }
 
@@ -319,24 +327,62 @@ Item {
                     anchors.right: uninstallButton.visible ? uninstallButton.left : certificateButton.left;
                     anchors.top: parent.top;
                     anchors.bottom: parent.bottom;
-                    width: 84;
+                    width: 78;
 
                     onLoaded: {
                         item.buttonGlyphText = hifi.glyphs.update;
-                        item.buttonText = "Update";
+                        item.itemButtonText = "Update";
                         item.buttonColor = "#E2334D";
                         item.buttonClicked = function() {
                             sendToPurchases({ method: 'flipCard', closeAll: true });
                             sendToPurchases({
                                 method: 'updateItemClicked',
-                                itemId: root.itemId,
+                                itemId: root.updateAvailable ? root.updateItemId : root.itemId,
                                 itemEdition: root.itemEdition,
-                                upgradeUrl: root.upgradeUrl,
                                 itemHref: root.itemHref,
                                 itemType: root.itemType,
                                 isInstalled: root.isInstalled,
                                 wornEntityID: root.wornEntityID
                             });
+                        }
+                    }
+
+                    onVisibleChanged: {
+                        trashButton.updateProperties();
+                    }
+                }
+
+                Loader {
+                    id: trashButton;
+                    visible: root.itemEdition > 0;
+                    sourceComponent: contextCardButton;
+                    anchors.right: updateButton.visible ? updateButton.left : (uninstallButton.visible ? uninstallButton.left : certificateButton.left);
+                    anchors.top: parent.top;
+                    anchors.bottom: parent.bottom;
+                    width: (updateButton.visible && uninstallButton.visible) ? 15 : 78;
+
+                    onLoaded: {
+                        item.buttonGlyphText = hifi.glyphs.trash;
+                        updateProperties();
+                        item.buttonClicked = function() {
+                            sendToPurchases({method: 'showTrashLightbox',
+                                isInstalled: root.isInstalled,
+                                itemHref: root.itemHref,
+                                itemName: root.itemName,
+                                certID: root.certificateId,
+                                itemType: root.itemType,
+                                wornEntityID: root.wornEntityID
+                            });
+                        }
+                    }
+
+                    function updateProperties() {
+                        if (updateButton.visible && uninstallButton.visible) {
+                            item.itemButtonText = "";
+                            item.glyphSize = 20;
+                        } else {
+                            item.itemButtonText = "Send to Trash";
+                            item.glyphSize = 30;
                         }
                     }
                 }

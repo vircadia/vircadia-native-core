@@ -104,7 +104,7 @@ class ScriptEngine;
  * <ul>
  *   <li>{@link Controller.getValue|getValue}</li>
  *   <li>{@link Controller.getAxisValue|getAxisValue}</li>
- *   <li>{@link Controller.getPoseValue|getgetPoseValue}</li>
+ *   <li>{@link Controller.getPoseValue|getPoseValue}</li>
  *   <li>{@link Controller.getActionValue|getActionValue}</li>
  * </ul>
  *
@@ -199,6 +199,7 @@ class ScriptEngine;
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {Controller.Actions} Actions - Predefined actions on Interface and the user's avatar. These can be used as end
  *     points in a {@link RouteObject} mapping. A synonym for <code>Controller.Hardware.Actions</code>.

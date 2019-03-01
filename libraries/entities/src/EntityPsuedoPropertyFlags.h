@@ -23,7 +23,6 @@ namespace EntityPsuedoPropertyFlag {
         FlagsActive,
         ID,
         Type,
-        Created,
         Age,
         AgeAsText,
         LastEdited,
@@ -31,7 +30,10 @@ namespace EntityPsuedoPropertyFlag {
         OriginalTextures,
         RenderInfo,
         ClientOnly,
-        OwningAvatarID,
+        AvatarEntity,
+        LocalEntity,
+        FaceCamera,
+        IsFacingAvatar,
 
         NumFlags
     };

@@ -27,13 +27,13 @@ AnyEndpoint::AnyEndpoint(Endpoint::List children) : Endpoint(Input::INVALID_INPU
     }
 }
 
-// The value of an any-point is considered to be the maxiumum absolute value,
+// The value of an any-point is considered to be the maximum absolute value,
 // this handles any's of multiple axis values as well as single values as well
-float AnyEndpoint::peek() const {
-    float result = 0.0f;
+AxisValue AnyEndpoint::peek() const {
+    auto result = AxisValue();
     for (auto& child : _children) {
         auto childValue = child->peek();
-        if (std::abs(childValue) > std::abs(result)) {
+        if (std::abs(childValue.value) > std::abs(result.value)) {
             result = childValue;
         }
     }
@@ -41,18 +41,18 @@ float AnyEndpoint::peek() const {
 }
 
 // Fetching the value must trigger any necessary side effects of value() on ALL the children.
-float AnyEndpoint::value() {
-    float result = 0.0f;
+AxisValue AnyEndpoint::value() {
+    auto result = AxisValue();
     for (auto& child : _children) {
         auto childValue = child->value();
-        if (std::abs(childValue) > std::abs(result)) {
+        if (std::abs(childValue.value) > std::abs(result.value)) {
             result = childValue;
         }
     }
     return result;
 }
 
-void AnyEndpoint::apply(float newValue, const Endpoint::Pointer& source) {
+void AnyEndpoint::apply(AxisValue newValue, const Endpoint::Pointer& source) {
     qFatal("AnyEndpoint is read only");
 }
 

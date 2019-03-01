@@ -12,7 +12,7 @@ target_python()
 
 if (HIFI_ANDROID )
     execute_process(
-        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --android --build-root ${CMAKE_BINARY_DIR}
+        COMMAND ${HIFI_PYTHON_EXEC} ${CMAKE_CURRENT_SOURCE_DIR}/prebuild.py --android ${HIFI_ANDROID_APP} --build-root ${CMAKE_BINARY_DIR}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     )
 else()
@@ -52,6 +52,7 @@ else()
   set(MOBILE 0)
 endif()
 
+set(HIFI_USE_OPTIMIZED_IK OFF)
 set(BUILD_CLIENT_OPTION ON)
 set(BUILD_SERVER_OPTION ON)
 set(BUILD_TESTS_OPTION OFF)
@@ -80,15 +81,42 @@ endif()
 if (ANDROID)
   set(GLES_OPTION ON)
   set(PLATFORM_QT_COMPONENTS AndroidExtras WebView)
+  add_definitions(-DHIFI_ANDROID_APP=\"${HIFI_ANDROID_APP}\")
+  if (
+      (${HIFI_ANDROID_APP} STREQUAL "questInterface") OR 
+      (${HIFI_ANDROID_APP} STREQUAL "questFramePlayer") OR
+      (${HIFI_ANDROID_APP} STREQUAL "framePlayer") 
+    )
+    # We know the quest hardware has this extension, so we can force the use of instanced stereo
+    add_definitions(-DHAVE_EXT_clip_cull_distance)
+    # We can also use multiview stereo techniques
+    add_definitions(-DHAVE_OVR_multiview2)
+    add_definitions(-DHAVE_OVR_multiview)
+    # We can also use our own foveated textures
+    add_definitions(-DHAVE_QCOM_texture_foveated)
+
+    # if set, the application itself or some library it depends on MUST implement 
+    # `DisplayPluginList getDisplayPlugins()` and `InputPluginList getInputPlugins()`
+    add_definitions(-DCUSTOM_INPUT_PLUGINS) 
+    add_definitions(-DCUSTOM_DISPLAY_PLUGINS) 
+    set(PLATFORM_PLUGIN_LIBRARIES oculusMobile oculusMobilePlugin)
+  endif()
+
+  # Allow client code to use preprocessor macros to distinguish between quest and non-quest builds
+  if (${HIFI_ANDROID_APP} STREQUAL "questInterface")
+    add_definitions(-DANDROID_APP_QUEST_INTERFACE) 
+  elseif(${HIFI_ANDROID_APP} STREQUAL "interface")
+    add_definitions(-DANDROID_APP_INTERFACE) 
+  endif()
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine)
+  set(PLATFORM_QT_COMPONENTS WebEngine Xml)
 endif ()
 
 if (USE_GLES AND (NOT ANDROID))
   set(DISABLE_QML_OPTION ON)
 endif()
 
-
+option(HIFI_USE_OPTIMIZED_IK "USE OPTIMIZED IK" ${HIFI_USE_OPTIMIZED_IK_OPTION})
 option(BUILD_CLIENT "Build client components" ${BUILD_CLIENT_OPTION})
 option(BUILD_SERVER "Build server components" ${BUILD_SERVER_OPTION})
 option(BUILD_TESTS "Build tests" ${BUILD_TESTS_OPTION})
@@ -108,8 +136,10 @@ set(PLATFORM_QT_GL OpenGL)
 
 if (USE_GLES)
   add_definitions(-DUSE_GLES)
+  add_definitions(-DGPU_POINTER_STORAGE_SHARED)
   set(PLATFORM_GL_BACKEND gpu-gl-common gpu-gles)
 else()
+  add_definitions(-DGPU_POINTER_STORAGE_RAW)
   set(PLATFORM_GL_BACKEND gpu-gl-common gpu-gl)
 endif()
 
@@ -117,6 +147,7 @@ foreach(PLATFORM_QT_COMPONENT ${PLATFORM_QT_COMPONENTS})
   list(APPEND PLATFORM_QT_LIBRARIES "Qt5::${PLATFORM_QT_COMPONENT}")
 endforeach()
 
+MESSAGE(STATUS "USE OPTIMIZED IK:      " ${HIFI_USE_OPTIMIZED_IK})
 MESSAGE(STATUS "Build server:          " ${BUILD_SERVER})
 MESSAGE(STATUS "Build client:          " ${BUILD_CLIENT})
 MESSAGE(STATUS "Build tests:           " ${BUILD_TESTS})
@@ -162,6 +193,10 @@ find_package( Threads )
 add_definitions(-DGLM_FORCE_RADIANS)
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_definitions(-DGLM_FORCE_CTOR_INIT)
+if (HIFI_USE_OPTIMIZED_IK)
+  MESSAGE(STATUS "SET THE USE IK DEFINITION ")
+  add_definitions(-DHIFI_USE_OPTIMIZED_IK)
+endif()
 set(HIFI_LIBRARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libraries")
 
 set(EXTERNAL_PROJECT_PREFIX "project")
@@ -174,7 +209,7 @@ set_packaging_parameters()
 
 # FIXME hack to work on the proper Android toolchain
 if (ANDROID)
-  add_subdirectory(android/app)
+  add_subdirectory(android/apps/${HIFI_ANDROID_APP})
   return()
 endif()
 

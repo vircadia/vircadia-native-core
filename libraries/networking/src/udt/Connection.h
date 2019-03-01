@@ -73,6 +73,9 @@ public:
     void setMaxBandwidth(int maxBandwidth);
 
     void sendHandshakeRequest();
+    
+    void recordSentUnreliablePackets(int wireSize, int payloadSize);
+    void recordReceivedUnreliablePackets(int wireSize, int payloadSize);
 
 signals:
     void packetSent();
@@ -80,7 +83,8 @@ signals:
 
 private slots:
     void recordSentPackets(int wireSize, int payloadSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint);
-    void recordRetransmission(int wireSize, SequenceNumber sequenceNumber, p_high_resolution_clock::time_point timePoint);
+    void recordRetransmission(int wireSize, int payloadSize, SequenceNumber sequenceNumber, p_high_resolution_clock::time_point timePoint);
+
     void queueInactive();
     void queueTimeout();
     

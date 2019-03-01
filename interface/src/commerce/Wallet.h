@@ -54,6 +54,29 @@ public:
     void clear();
 
     void getWalletStatus();
+    
+    /**jsdoc
+     * <p>A <code>WalletStatus</code> may have one of the following values:</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Meaning</th><th>Description</th></tr>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>Not logged in</td><td>The user isn't logged in.</td></tr>
+     *     <tr><td><code>1</code></td><td>Not set up</td><td>The user's wallet isn't set up.</td></tr>
+     *     <tr><td><code>2</code></td><td>Pre-existing</td><td>There is a wallet present on the server but not one 
+     *       locally.</td></tr>
+     *     <tr><td><code>3</code></td><td>Conflicting</td><td>There is a wallet present on the server plus one present locally, 
+     *       and they don't match.</td></tr>
+     *     <tr><td><code>4</code></td><td>Not authenticated</td><td>There is a wallet present locally but the user hasn't 
+     *       logged into it.</td></tr>
+     *     <tr><td><code>5</code></td><td>Ready</td><td>The wallet is ready for use.</td></tr>
+     *   </tbody>
+     * </table>
+     * <p>Wallets used to be stored locally but now they're stored on the server, unless the computer once had a wallet stored
+     * locally in which case the wallet may be present in both places.</p>
+     * @typedef {number} WalletScriptingInterface.WalletStatus
+     */
     enum WalletStatus {
         WALLET_STATUS_NOT_LOGGED_IN = 0,
         WALLET_STATUS_NOT_SET_UP,

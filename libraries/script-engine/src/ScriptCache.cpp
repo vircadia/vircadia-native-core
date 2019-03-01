@@ -87,7 +87,7 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     if (_scriptCache.contains(url) && !forceDownload) {
         auto scriptContent = _scriptCache[url];
         lock.unlock();
-        qCDebug(scriptengine) << "Found script in cache:" << url.toString();
+        qCDebug(scriptengine) << "Found script in cache:" << url.fileName();
         contentAvailable(url.toString(), scriptContent, true, true, STATUS_CACHED);
     } else {
         auto& scriptRequest = _activeScriptRequests[url];

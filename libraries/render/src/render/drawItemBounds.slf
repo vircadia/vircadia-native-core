@@ -18,11 +18,7 @@ layout(location=0) out vec4 outFragColor;
 void main(void) {
     float var = step(fract(varTexcoord.x * varTexcoord.y * 1.0), 0.5);
 
-    if (varColor.a == 0.0) {
-        outFragColor = vec4(mix(vec3(0.0), varColor.xyz, var), mix(0.0, 1.0, var));
-        
-    } else {
-        outFragColor = vec4(mix(vec3(1.0), varColor.xyz, var), varColor.a);
-    }
-
+    outFragColor = mix(vec4(mix(vec3(1.0), varColor.xyz, var), varColor.a),
+                       vec4(mix(vec3(0.0), varColor.xyz, var), var),
+                       float(varColor.a == 0.0));
 }

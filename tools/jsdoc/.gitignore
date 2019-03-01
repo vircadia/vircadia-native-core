@@ -1,2 +1,6 @@
-out
+out/*
+!out/README.md
+
+
+
 

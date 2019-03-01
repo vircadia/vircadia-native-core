@@ -102,11 +102,9 @@ protected:
      * @function Audio.playSystemSound
      * @param {SoundObject} sound - The content of an audio file, loaded using {@link SoundCache.getSound}. See 
      * {@link SoundObject} for supported formats.
-     * @param {Vec3} position - The position in the domain to play the sound.
      * @returns {AudioInjector} The audio injector that plays the audio file.
      */
-    // FIXME: there is no way to play a positionless sound
-    Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound, const QVector3D& position);
+    Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound);
 
     /**jsdoc
      * Set whether or not the audio input should be used in stereo. If the audio input does not support stereo then setting a 

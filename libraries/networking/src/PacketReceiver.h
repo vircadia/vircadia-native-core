@@ -49,13 +49,8 @@ public:
     PacketReceiver(const PacketReceiver&) = delete;
 
     PacketReceiver& operator=(const PacketReceiver&) = delete;
-    
-    int getInPacketCount() const { return _inPacketCount; }
-    int getInByteCount() const { return _inByteCount; }
 
     void setShouldDropPackets(bool shouldDropPackets) { _shouldDropPackets = shouldDropPackets; }
-    
-    void resetCounters() { _inPacketCount = 0; _inByteCount = 0; }
 
     // If deliverPending is false, ReceivedMessage will only be delivered once all packets for the message have
     // been received. If deliverPending is true, ReceivedMessage will be delivered as soon as the first packet
@@ -87,8 +82,7 @@ private:
 
     QMutex _packetListenerLock;
     QHash<PacketType, Listener> _messageListenerMap;
-    int _inPacketCount = 0;
-    int _inByteCount = 0;
+
     bool _shouldDropPackets = false;
     QMutex _directConnectSetMutex;
     QSet<QObject*> _directlyConnectedObjects;

@@ -16,7 +16,6 @@
 #include <QtNetwork/QNetworkReply>
 #include <hfm/ModelFormatLogging.h>
 #include <hfm/HFMSerializer.h>
-#include "FBXSerializer.h"
 
 
 struct GLTFAsset {
@@ -703,11 +702,14 @@ struct GLTFFile {
 class GLTFSerializer : public QObject, public HFMSerializer {
     Q_OBJECT
 public:
-    GLTFSerializer();
+    MediaType getMediaType() const override;
+    std::unique_ptr<hfm::Serializer::Factory> getFactory() const override;
+
     HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
 private:
     GLTFFile _file;
     QUrl _url;
+    QByteArray _glbBinary;
 
     glm::mat4 getModelTransform(const GLTFNode& node);
 
@@ -730,6 +732,8 @@ private:
                            QVector<double>& values, QMap<QString, bool>&  defined);
     bool getObjectArrayVal(const QJsonObject& object, const QString& fieldname, 
                            QJsonArray& objects, QMap<QString, bool>& defined);
+
+    QByteArray setGLBChunks(const QByteArray& data);
     
     int getMaterialAlphaMode(const QString& type);
     int getAccessorType(const QString& type);
@@ -771,6 +775,8 @@ private:
                        QVector<glm::vec3>& out_vertices, QVector<glm::vec3>& out_normals);
 
     std::tuple<bool, QByteArray> requestData(QUrl& url);
+    QByteArray requestEmbeddedData(const QString& url);
+
     QNetworkReply* request(QUrl& url, bool isTest);
     bool doesResourceExist(const QString& url);
 

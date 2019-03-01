@@ -2548,7 +2548,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         _pendingFileContent.seek(_pendingFileContent.size());
         _pendingFileContent.write(dataChunk);
         _pendingFileContent.close();
-        
+
         // Respond immediately - will timeout if we wait for restore.
         connection->respond(HTTPConnection::StatusCode200);
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {
@@ -3172,23 +3172,33 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
         const QString PATH_VIEWPOINT_KEY = "viewpoint";
         const QString INDEX_PATH = "/";
 
-        // check out paths in the _configMap to see if we have a match
-        auto keypath = QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY).arg(pathQuery);
-        QVariant pathMatch = _settingsManager.valueForKeyPath(keypath);
+        QString responseViewpoint;
 
-        if (pathMatch.isValid() || pathQuery == INDEX_PATH) {
+        // check out paths in the _configMap to see if we have a match
+        auto pathsVariant = _settingsManager.valueForKeyPath(SETTINGS_PATHS_KEY);
+
+        auto lowerPathQuery = pathQuery.toLower();
+
+        if (pathsVariant.canConvert<QVariantMap>()) {
+            auto pathsMap = pathsVariant.toMap();
+
+            // enumerate the paths and look case-insensitively for a matching one
+            for (auto it = pathsMap.constKeyValueBegin(); it != pathsMap.constKeyValueEnd(); ++it) {
+                if ((*it).first.toLower() == lowerPathQuery) {
+                    responseViewpoint = (*it).second.toMap()[PATH_VIEWPOINT_KEY].toString().toLower();
+                    break;
+                }
+            }
+        }
+
+        if (responseViewpoint.isEmpty() && pathQuery == INDEX_PATH) {
+            const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
+            responseViewpoint = DEFAULT_INDEX_PATH;
+        }
+
+        if (!responseViewpoint.isEmpty()) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
-
-            QString responseViewpoint;
-
-            // if we didn't match the path BUT this is for the index path then send back our default
-            if (pathMatch.isValid()) {
-                responseViewpoint = pathMatch.toMap()[PATH_VIEWPOINT_KEY].toString();
-            } else {
-                const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
-                responseViewpoint = DEFAULT_INDEX_PATH;
-            }
 
             if (!responseViewpoint.isEmpty()) {
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();

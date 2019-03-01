@@ -113,6 +113,13 @@ void doEvery(quint64& lastReportUsecs, quint64 secs, F lamdba) {
 // Maximum accuracy in msecs
 float secTimestampNow();
 
+// Custom deleter for QObjects that calls deleteLater
+struct LaterDeleter {
+    void operator()(QObject* ptr) {
+        ptr->deleteLater();
+    }
+};
+
 float randFloat();
 int randIntInRange (int min, int max);
 float randFloatInRange (float min,float max);

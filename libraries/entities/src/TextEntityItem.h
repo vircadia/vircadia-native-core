@@ -14,6 +14,8 @@
 
 #include "EntityItem.h"
 
+#include "PulsePropertyGroup.h"
+
 class TextEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -33,7 +35,7 @@ public:
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const override;
 
     virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
-                                    EntityTreeElementExtraEncodeDataPointer modelTreeElementExtraEncodeData,
+                                    EntityTreeElementExtraEncodeDataPointer entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
@@ -45,6 +47,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged) override;
 
+    glm::vec3 getRaycastDimensions() const override;
     virtual bool supportsDetailedIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          OctreeElementPointer& element, float& distance,
@@ -67,20 +70,49 @@ public:
     glm::u8vec3 getTextColor() const;
     void setTextColor(const glm::u8vec3& value);
 
+    static const float DEFAULT_TEXT_ALPHA;
+    float getTextAlpha() const;
+    void setTextAlpha(float value);
+
     static const glm::u8vec3 DEFAULT_BACKGROUND_COLOR;
     glm::u8vec3 getBackgroundColor() const;
     void setBackgroundColor(const glm::u8vec3& value);
 
-    static const bool DEFAULT_FACE_CAMERA;
-    bool getFaceCamera() const;
-    void setFaceCamera(bool value);
+    float getBackgroundAlpha() const;
+    void setBackgroundAlpha(float value);
+
+    BillboardMode getBillboardMode() const;
+    void setBillboardMode(BillboardMode value);
+
+    static const float DEFAULT_MARGIN;
+    float getLeftMargin() const;
+    void setLeftMargin(float value);
+
+    float getRightMargin() const;
+    void setRightMargin(float value);
+
+    float getTopMargin() const;
+    void setTopMargin(float value);
+
+    float getBottomMargin() const;
+    void setBottomMargin(float value);
+
+    PulsePropertyGroup getPulseProperties() const;
 
 private:
+    BillboardMode _billboardMode;
+
     QString _text;
     float _lineHeight;
     glm::u8vec3 _textColor;
+    float _textAlpha;
     glm::u8vec3 _backgroundColor;
-    bool _faceCamera;
+    float _backgroundAlpha;
+    PulsePropertyGroup _pulseProperties;
+    float _leftMargin;
+    float _rightMargin;
+    float _topMargin;
+    float _bottomMargin;
 };
 
 #endif // hifi_TextEntityItem_h

@@ -167,7 +167,7 @@ TransformObject getTransformObject() {
         vec4 eyeClipEdge[2]= vec4[2](vec4(-1,0,0,1), vec4(1,0,0,1));
         vec2 eyeOffsetScale = vec2(-0.5, +0.5);
         uint eyeIndex = uint(_stereoSide);
-#ifndef GPU_GLES
+#if !defined(GPU_GLES) || (defined(HAVE_EXT_clip_cull_distance) && !defined(VULKAN))
 #ifdef GPU_GL450
         gl_ViewportIndex = _stereoSide + 1;
       //  gl_ViewportIndex = 2 - _stereoSide;

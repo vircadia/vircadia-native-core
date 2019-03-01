@@ -66,6 +66,7 @@ void RenderEventHandler::onInitalize() {
         qFatal("Unable to make QML rendering context current on render thread");
     }
     _shared->initializeRenderControl(_canvas.getContext());
+    _initialized = true;
 }
 
 void RenderEventHandler::resize() {
@@ -150,22 +151,24 @@ void RenderEventHandler::onRender() {
 }
 
 void RenderEventHandler::onQuit() {
-    if (_canvas.getContext() != QOpenGLContextWrapper::currentContext()) {
-        qFatal("QML rendering context not current on render thread");
-    }
+    if (_initialized) {
+        if (_canvas.getContext() != QOpenGLContextWrapper::currentContext()) {
+            qFatal("QML rendering context not current on render thread");
+        }
 
-    if (_depthStencil) {
-        glDeleteRenderbuffers(1, &_depthStencil);
-        _depthStencil = 0;
-    }
+        if (_depthStencil) {
+            glDeleteRenderbuffers(1, &_depthStencil);
+            _depthStencil = 0;
+        }
 
-    if (_fbo) {
-        glDeleteFramebuffers(1, &_fbo);
-        _fbo = 0;
-    }
+        if (_fbo) {
+            glDeleteFramebuffers(1, &_fbo);
+            _fbo = 0;
+        }
 
-    _shared->shutdownRendering(_canvas, _currentSize);
-    _canvas.doneCurrent();
+        _shared->shutdownRendering(_canvas, _currentSize);
+        _canvas.doneCurrent();
+    }
     _canvas.moveToThreadWithContext(qApp->thread());
     moveToThread(qApp->thread());
     QThread::currentThread()->quit();

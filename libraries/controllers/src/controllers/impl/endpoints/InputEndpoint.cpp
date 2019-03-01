@@ -14,19 +14,19 @@
 
 using namespace controller;
 
-float InputEndpoint::peek() const {
+AxisValue InputEndpoint::peek() const {
     if (isPose()) {
-        return peekPose().valid ? 1.0f : 0.0f;
+        return peekPose().valid ? AxisValue(1.0f, 0) : AxisValue(0.0f, 0);
     }
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     auto deviceProxy = userInputMapper->getDevice(_input);
     if (!deviceProxy) {
-        return 0.0f;
+        return AxisValue();
     }
     return deviceProxy->getValue(_input);
 }
 
-float InputEndpoint::value(){
+AxisValue InputEndpoint::value() {
     _read = true;
     return peek();
 }

@@ -39,7 +39,7 @@ void DialogsManager::maybeCreateDialog(QPointer<T>& member) {
         Q_CHECK_PTR(parent);
         member = new T(parent);
         Q_CHECK_PTR(member);
-        
+
         if (_hmdToolsDialog && member->windowHandle()) {
             _hmdToolsDialog->watchWindow(member->windowHandle());
         }
@@ -57,7 +57,7 @@ void DialogsManager::showAddressBar() {
     if (!hmd->getShouldShowTablet()) {
         hmd->openTablet();
     }
-    qApp->setKeyboardFocusOverlay(hmd->getCurrentTabletScreenID());
+    qApp->setKeyboardFocusEntity(hmd->getCurrentTabletScreenID());
     setAddressBarVisible(true);
 }
 
@@ -70,7 +70,7 @@ void DialogsManager::hideAddressBar() {
         tablet->gotoHomeScreen();
         hmd->closeTablet();
     }
-    qApp->setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
+    qApp->setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     setAddressBarVisible(false);
 }
 
@@ -115,6 +115,10 @@ void DialogsManager::toggleLoginDialog() {
 
 void DialogsManager::showLoginDialog() {
     LoginDialog::showWithSelection();
+}
+
+void DialogsManager::hideLoginDialog() {
+    LoginDialog::hide();
 }
 
 void DialogsManager::showUpdateDialog() {

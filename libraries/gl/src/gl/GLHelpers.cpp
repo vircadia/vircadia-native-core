@@ -198,11 +198,48 @@ namespace gl {
 
 
     bool checkGLErrorDebug(const char* name) {
-#ifdef DEBUG
+        // Disabling error checking macro on Android debug builds for now, 
+        // as it throws off performance testing, which must be done on 
+        // Debug builds
+#if defined(DEBUG) && !defined(Q_OS_ANDROID)
         return checkGLError(name);
 #else
         Q_UNUSED(name);
         return false;
 #endif
+    }
+
+    // Enables annotation of captures made by tools like renderdoc
+    bool khrDebugEnabled() {
+        static std::once_flag once;
+        static bool khrDebug = false;
+        std::call_once(once, [&] {
+            khrDebug = nullptr != glPushDebugGroupKHR;
+        });
+        return khrDebug;
+    }
+
+    // Enables annotation of captures made by tools like renderdoc
+    bool extDebugMarkerEnabled() {
+        static std::once_flag once;
+        static bool extMarker = false;
+        std::call_once(once, [&] {
+            extMarker = nullptr != glPushGroupMarkerEXT;
+        });
+        return extMarker;
+    }
+
+    bool debugContextEnabled() {
+#if defined(Q_OS_MAC)
+        // OSX does not support GL_KHR_debug or GL_ARB_debug_output
+        static bool enableDebugLogger = false;
+#elif defined(DEBUG) || defined(USE_GLES)
+        //static bool enableDebugLogger = true;
+        static bool enableDebugLogger = false;
+#else
+        static const QString DEBUG_FLAG("HIFI_DEBUG_OPENGL");
+        static bool enableDebugLogger = QProcessEnvironment::systemEnvironment().contains(DEBUG_FLAG);
+#endif
+        return enableDebugLogger;
     }
 }

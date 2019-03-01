@@ -31,6 +31,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} innerWidth - The width of the drawable area of the Interface window (i.e., without borders or other
  *     chrome), in pixels. <em>Read-only.</em>

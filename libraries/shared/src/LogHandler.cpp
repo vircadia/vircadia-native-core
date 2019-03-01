@@ -38,7 +38,6 @@ LogHandler::LogHandler() {
 }
 
 LogHandler::~LogHandler() {
-    flushRepeatedMessages();
 }
 
 const char* stringForLogType(LogMsgType msgType) {

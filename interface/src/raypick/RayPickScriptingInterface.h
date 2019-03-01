@@ -19,14 +19,14 @@
 #include "PickScriptingInterface.h"
 
 /**jsdoc
- * Synonym for {@link Picks} as used for ray picks.
+ * Synonym for {@link Picks} as used for ray picks.  Deprecated.
  *
  * @namespace RayPick
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
- * @property {number} PICK_NOTHING <em>Read-only.</em>
  * @property {number} PICK_ENTITIES <em>Read-only.</em>
  * @property {number} PICK_OVERLAYS <em>Read-only.</em>
  * @property {number} PICK_AVATARS <em>Read-only.</em>
@@ -44,7 +44,6 @@
 
 class RayPickScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
-    Q_PROPERTY(unsigned int PICK_NOTHING READ PICK_NOTHING CONSTANT)
     Q_PROPERTY(unsigned int PICK_ENTITIES READ PICK_ENTITIES CONSTANT)
     Q_PROPERTY(unsigned int PICK_OVERLAYS READ PICK_OVERLAYS CONSTANT)
     Q_PROPERTY(unsigned int PICK_AVATARS READ PICK_AVATARS CONSTANT)
@@ -55,6 +54,7 @@ class RayPickScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(unsigned int PICK_ALL_INTERSECTIONS READ PICK_ALL_INTERSECTIONS CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_LOCAL_ENTITY READ INTERSECTED_LOCAL_ENTITY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_OVERLAY READ INTERSECTED_OVERLAY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_AVATAR READ INTERSECTED_AVATAR CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
@@ -141,12 +141,6 @@ public:
 public slots:
 
     /**jsdoc
-     * @function RayPick.PICK_NOTHING
-     * @returns {number}
-     */
-    static unsigned int PICK_NOTHING() { return PickScriptingInterface::PICK_NOTHING(); }
-
-    /**jsdoc
      * @function RayPick.PICK_ENTITIES
      * @returns {number}
      */
@@ -210,7 +204,13 @@ public slots:
      * @function RayPick.INTERSECTED_OVERLAY
      * @returns {number}
      */
-    static unsigned int INTERSECTED_OVERLAY() { return PickScriptingInterface::INTERSECTED_OVERLAY(); }
+    static unsigned int INTERSECTED_LOCAL_ENTITY() { return PickScriptingInterface::INTERSECTED_LOCAL_ENTITY(); }
+
+    /**jsdoc
+     * @function RayPick.INTERSECTED_OVERLAY
+     * @returns {number}
+     */
+    static unsigned int INTERSECTED_OVERLAY() { return PickScriptingInterface::INTERSECTED_LOCAL_ENTITY(); }
 
     /**jsdoc
      * @function RayPick.INTERSECTED_AVATAR

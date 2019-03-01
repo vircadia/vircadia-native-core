@@ -35,10 +35,13 @@
 #include "MovingPercentile.h"
 #include "NodePermissions.h"
 #include "HMACAuth.h"
+#include "udt/ConnectionStats.h"
+#include "NumericalConstants.h"
 
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
+    using Stats = udt::ConnectionStats::Stats;
 
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
@@ -94,6 +97,14 @@ public:
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
+    void updateStats(Stats stats);
+    const Stats& getConnectionStats() const;
+
+    int getInboundPPS() const;
+    int getOutboundPPS() const;
+    float getInboundKbps() const;
+    float getOutboundKbps() const;
+
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
@@ -115,6 +126,8 @@ private:
     IgnoredNodeIDs _ignoredNodeIDs;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
     std::vector<QString> _replicatedUsernames { };
+
+    Stats _stats;
 };
 
 Q_DECLARE_METATYPE(Node*)

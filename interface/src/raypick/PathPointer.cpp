@@ -73,10 +73,10 @@ void PathPointer::setLength(float length) {
     });
 }
 
-void PathPointer::setLockEndUUID(const QUuid& objectID, const bool isOverlay, const glm::mat4& offsetMat) {
+void PathPointer::setLockEndUUID(const QUuid& objectID, bool isAvatar, const glm::mat4& offsetMat) {
     withWriteLock([&] {
         _lockEndObject.id = objectID;
-        _lockEndObject.isOverlay = isOverlay;
+        _lockEndObject.isAvatar = isAvatar;
         _lockEndObject.offsetMat = offsetMat;
     });
 }
@@ -97,12 +97,8 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             glm::quat rot;
             glm::vec3 dim;
             glm::vec3 registrationPoint;
-            if (_lockEndObject.isOverlay) {
-                pos = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "position").value);
-                rot = quatFromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "rotation").value);
-                dim = vec3FromVariant(qApp->getOverlays().getProperty(_lockEndObject.id, "dimensions").value);
-                registrationPoint = glm::vec3(0.5f);
-            } else {
+            // TODO: use isAvatar
+            {
                 EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_lockEndObject.id);
                 glm::mat4 entityMat = createMatFromQuatAndPos(props.getRotation(), props.getPosition());
                 glm::mat4 finalPosAndRotMat = entityMat * _lockEndObject.offsetMat;
@@ -117,7 +113,7 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             distance = glm::distance(origin, endVec);
             glm::vec3 normalizedDirection = glm::normalize(direction);
 
-            type = _lockEndObject.isOverlay ? IntersectionType::OVERLAY : IntersectionType::ENTITY;
+            type = IntersectionType::ENTITY;
             id = _lockEndObject.id;
             intersection = endVec;
             surfaceNormal = -normalizedDirection;
@@ -126,8 +122,6 @@ PickResultPointer PathPointer::getVisualPickResult(const PickResultPointer& pick
             id = getPickedObjectID(pickResult);
             if (type == IntersectionType::ENTITY) {
                 endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(id)[3];
-            } else if (type == IntersectionType::OVERLAY) {
-                endVec = vec3FromVariant(qApp->getOverlays().getProperty(id, "position").value);
             } else if (type == IntersectionType::AVATAR) {
                 endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(id)->getPosition();
             }
@@ -184,8 +178,8 @@ void PathPointer::editRenderState(const std::string& state, const QVariant& star
     withWriteLock([&] {
         auto renderState = _renderStates.find(state);
         if (renderState != _renderStates.end()) {
-            updateRenderStateOverlay(renderState->second->getStartID(), startProps);
-            updateRenderStateOverlay(renderState->second->getEndID(), endProps);
+            updateRenderState(renderState->second->getStartID(), startProps);
+            updateRenderState(renderState->second->getEndID(), endProps);
             QVariant startDim = startProps.toMap()["dimensions"];
             if (startDim.isValid()) {
                 renderState->second->setStartDim(vec3FromVariant(startDim));
@@ -204,7 +198,8 @@ void PathPointer::editRenderState(const std::string& state, const QVariant& star
     });
 }
 
-void PathPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
+void PathPointer::updateRenderState(const QUuid& id, const QVariant& props) {
+    // FIXME: we have to keep using the Overlays interface here, because existing scripts use overlay properties to define pointers
     if (!id.isNull() && props.isValid()) {
         QVariantMap propMap = props.toMap();
         propMap.remove("visible");
@@ -223,7 +218,7 @@ Pointer::Buttons PathPointer::getPressedButtons(const PickResultPointer& pickRes
         std::string button = trigger.getButton();
         TriggerState& state = _states[button];
         // TODO: right now, LaserPointers don't support axes, only on/off buttons
-        if (trigger.getEndpoint()->peek() >= 1.0f) {
+        if (trigger.getEndpoint()->peek().value >= 1.0f) {
             toReturn.insert(button);
 
             if (_previousButtons.find(button) == _previousButtons.end()) {
@@ -249,65 +244,79 @@ Pointer::Buttons PathPointer::getPressedButtons(const PickResultPointer& pickRes
     return toReturn;
 }
 
-StartEndRenderState::StartEndRenderState(const OverlayID& startID, const OverlayID& endID) :
+StartEndRenderState::StartEndRenderState(const QUuid& startID, const QUuid& endID) :
     _startID(startID), _endID(endID) {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (!_startID.isNull()) {
-        _startDim = vec3FromVariant(qApp->getOverlays().getProperty(_startID, "dimensions").value);
-        _startIgnoreRays = qApp->getOverlays().getProperty(_startID, "ignoreRayIntersection").value.toBool();
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_DIMENSIONS;
+        desiredProperties += PROP_IGNORE_PICK_INTERSECTION;
+        auto properties = entityScriptingInterface->getEntityProperties(_startID, desiredProperties);
+        _startDim = properties.getDimensions();
+        _startIgnorePicks = properties.getIgnorePickIntersection();
     }
     if (!_endID.isNull()) {
-        _endDim = vec3FromVariant(qApp->getOverlays().getProperty(_endID, "dimensions").value);
-        _endRot = quatFromVariant(qApp->getOverlays().getProperty(_endID, "rotation").value);
-        _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignoreRayIntersection").value.toBool();
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_DIMENSIONS;
+        desiredProperties += PROP_ROTATION;
+        desiredProperties += PROP_IGNORE_PICK_INTERSECTION;
+        auto properties = entityScriptingInterface->getEntityProperties(_endID, desiredProperties);
+        _endDim = properties.getDimensions();
+        _endRot = properties.getRotation();
+        _endIgnorePicks = properties.getIgnorePickIntersection();
     }
 }
 
 void StartEndRenderState::cleanup() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (!_startID.isNull()) {
-        qApp->getOverlays().deleteOverlay(_startID);
+        entityScriptingInterface->deleteEntity(_startID);
     }
     if (!_endID.isNull()) {
-        qApp->getOverlays().deleteOverlay(_endID);
+        entityScriptingInterface->deleteEntity(_endID);
     }
 }
 
 void StartEndRenderState::disable() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (!getStartID().isNull()) {
-        QVariantMap startProps;
-        startProps.insert("visible", false);
-        startProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(getStartID(), startProps);
+        EntityItemProperties properties;
+        properties.setVisible(false);
+        properties.setIgnorePickIntersection(true);
+        entityScriptingInterface->editEntity(getStartID(), properties);
     }
     if (!getEndID().isNull()) {
-        QVariantMap endProps;
-        endProps.insert("visible", false);
-        endProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(getEndID(), endProps);
+        EntityItemProperties properties;
+        properties.setVisible(false);
+        properties.setIgnorePickIntersection(true);
+        entityScriptingInterface->editEntity(getEndID(), properties);
     }
     _enabled = false;
 }
 
 void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, const glm::vec3& surfaceNormal, float parentScale, bool distanceScaleEnd, bool centerEndY,
                                  bool faceAvatar, bool followNormal, float followNormalStrength, float distance, const PickResultPointer& pickResult) {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     if (!getStartID().isNull()) {
-        QVariantMap startProps;
-        startProps.insert("position", vec3toVariant(origin));
-        startProps.insert("visible", true);
-        startProps.insert("dimensions", vec3toVariant(getStartDim() * parentScale));
-        startProps.insert("ignoreRayIntersection", doesStartIgnoreRays());
-        qApp->getOverlays().editOverlay(getStartID(), startProps);
+        EntityItemProperties properties;
+        properties.setPosition(origin);
+        properties.setVisible(true);
+        properties.setDimensions(getStartDim() * parentScale);
+        properties.setIgnorePickIntersection(doesStartIgnorePicks());
+        entityScriptingInterface->editEntity(getStartID(), properties);
     }
 
     if (!getEndID().isNull()) {
-        QVariantMap endProps;
-        glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(getEndID(), "dimensions").value);
+        EntityItemProperties properties;
+        EntityPropertyFlags desiredProperties;
+        desiredProperties += PROP_DIMENSIONS;
+        glm::vec3 dim;
         if (distanceScaleEnd) {
             dim = getEndDim() * glm::distance(origin, end);
-            endProps.insert("dimensions", vec3toVariant(dim));
         } else {
             dim = getEndDim() * parentScale;
-            endProps.insert("dimensions", vec3toVariant(dim));
         }
+        properties.setDimensions(dim);
 
         glm::quat normalQuat = Quat().lookAtSimple(Vectors::ZERO, surfaceNormal);
         normalQuat = normalQuat * glm::quat(glm::vec3(-M_PI_2, 0, 0));
@@ -343,11 +352,11 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
                 _avgEndRot = rotation;
             }
         }
-        endProps.insert("position", vec3toVariant(position));
-        endProps.insert("rotation", quatToVariant(rotation));
-        endProps.insert("visible", true);
-        endProps.insert("ignoreRayIntersection", doesEndIgnoreRays());
-        qApp->getOverlays().editOverlay(getEndID(), endProps);
+        properties.setPosition(position);
+        properties.setRotation(rotation);
+        properties.setVisible(true);
+        properties.setIgnorePickIntersection(doesEndIgnorePicks());
+        entityScriptingInterface->editEntity(getEndID(), properties);
     }
     _enabled = true;
 }
@@ -355,9 +364,8 @@ void StartEndRenderState::update(const glm::vec3& origin, const glm::vec3& end, 
 glm::vec2 PathPointer::findPos2D(const PickedObject& pickedObject, const glm::vec3& origin) {
     switch (pickedObject.type) {
     case ENTITY:
+    case LOCAL_ENTITY:
         return RayPick::projectOntoEntityXYPlane(pickedObject.objectID, origin);
-    case OVERLAY:
-        return RayPick::projectOntoOverlayXYPlane(pickedObject.objectID, origin);
     case HUD:
         return DependencyManager::get<PickManager>()->calculatePos2DFromHUD(origin);
     default:
