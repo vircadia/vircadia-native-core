@@ -122,7 +122,7 @@ Rectangle {
                 marketplaceItem.attributions = result.data.attributions;
                 marketplaceItem.license = result.data.license;
                 marketplaceItem.availability = result.data.availability;
-                marketplaceItem.updated_item_id = result.updated_item_id;
+                marketplaceItem.updated_item_id = result.data.updated_item_id || "";
                 marketplaceItem.created_at = result.data.created_at;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;

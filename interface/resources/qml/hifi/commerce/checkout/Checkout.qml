@@ -42,7 +42,7 @@ Rectangle {
     property int itemEdition: -1;
     property bool hasSomethingToTradeIn: alreadyOwned && (itemEdition > 0); // i.e., don't trade in your artist's proof
     property bool isTradingIn: canUpdate && hasSomethingToTradeIn;
-    property bool isStocking: (availability === 'not for sale') && (creator === Account.username) && ;
+    property bool isStocking: (availability === 'not for sale') && (creator === Account.username) && !updated_item_id;
     property string certificateId;
     property double balanceAfterPurchase;
     property bool alreadyOwned: false; // Including proofs
@@ -61,6 +61,7 @@ Rectangle {
     property bool isInstalled;
     property bool canUpdate;
     property string availability: "available";
+    property string updated_item_id: "";
     property string creator: "";
     property string baseAppURL;
     property int currentUpdatesPage: 1;
@@ -1101,6 +1102,7 @@ Rectangle {
         root.itemAuthor = result.data.creator;
         root.itemType = result.data.item_type || "unknown";
         root.availability = result.data.availability;
+        root.updated_item_id = result.data.updated_item_id || ""
         root.creator = result.data.creator;
         if (root.itemType === "unknown") {
             root.itemHref = result.data.review_url;
