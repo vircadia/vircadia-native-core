@@ -4980,10 +4980,11 @@ void Application::idle() {
     }
 
     {
-        if (_keyboardFocusWaitingOnRenderable && getEntities()->renderableForEntityId(_keyboardFocusedEntity.get())) {
-            _keyboardFocusWaitingOnRenderable = false;
-            QUuid entityId = _keyboardFocusedEntity.get();
+        if (_keyboardFocusWaitingOnRenderable && getEntities()->renderableForEntityId(_entityIdWaitingOnRenderable.get())) {
+            QUuid entityId = _entityIdWaitingOnRenderable.get();
+            _entityIdWaitingOnRenderable.set(UNKNOWN_ENTITY_ID);
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            _keyboardFocusWaitingOnRenderable = false;
             setKeyboardFocusEntity(entityId);
         }
     }
@@ -5836,6 +5837,7 @@ void Application::setKeyboardFocusEntity(const QUuid& id) {
                 auto entityItemRenderable = entities->renderableForEntityId(entityId);
                 if (!entityItemRenderable) {
                     _keyboardFocusWaitingOnRenderable = true;
+                    _entityIdWaitingOnRenderable.set(id);
                 } else if (entityItemRenderable->wantsKeyboardFocus()) {
                     entities->setProxyWindow(entityId, _window->windowHandle());
                     if (_keyboardMouseDevice->isActive()) {
