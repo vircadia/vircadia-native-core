@@ -4984,9 +4984,9 @@ void Application::idle() {
 
     {
         if (_keyboardFocusWaitingOnRenderable && getEntities()->renderableForEntityId(_keyboardFocusedEntity.get())) {
-            _keyboardFocusWaitingOnRenderable = false;
             QUuid entityId = _keyboardFocusedEntity.get();
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            _keyboardFocusWaitingOnRenderable = false;
             setKeyboardFocusEntity(entityId);
         }
     }
