@@ -266,6 +266,7 @@ void WebEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& scene
                     _webSurface->resize(QSize(windowSize.x, windowSize.y));
                     updateModelTransformAndBound();
                     _renderTransform = getModelTransform();
+                    _renderTransform.setScale(1.0f);
                     _renderTransform.postScale(entity->getScaledDimensions());
                 });
             });
