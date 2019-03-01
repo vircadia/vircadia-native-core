@@ -558,25 +558,23 @@ SharedNodePointer LimitedNodeList::nodeWithLocalID(Node::LocalID localID) const 
 }
 
 void LimitedNodeList::eraseAllNodes() {
-    QSet<SharedNodePointer> killedNodes;
+    std::vector<SharedNodePointer> killedNodes;
 
     {
         // iterate the current nodes - grab them so we can emit that they are dying
         // and then remove them from the hash
         QWriteLocker writeLocker(&_nodeMutex);
 
-        _localIDMap.clear();
-
         if (_nodeHash.size() > 0) {
             qCDebug(networking) << "LimitedNodeList::eraseAllNodes() removing all nodes from NodeList.";
 
-            auto it = _nodeHash.begin();
-
-            while (it != _nodeHash.end())  {
-                killedNodes.insert(it->second);
-                it = _nodeHash.unsafe_erase(it);
+            killedNodes.reserve(_nodeHash.size());
+            for (auto& pair : _nodeHash) {
+                killedNodes.push_back(pair.second);
             }
         }
+        _localIDMap.clear();
+        _nodeHash.clear();
     }
 
     foreach(const SharedNodePointer& killedNode, killedNodes) {
@@ -593,18 +591,13 @@ void LimitedNodeList::reset() {
 }
 
 bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID, ConnectionID newConnectionID) {
-    QReadLocker readLocker(&_nodeMutex);
+    auto matchingNode = nodeWithUUID(nodeUUID);
 
-    NodeHash::iterator it = _nodeHash.find(nodeUUID);
-    if (it != _nodeHash.end()) {
-        SharedNodePointer matchingNode = it->second;
-
-        readLocker.unlock();
-
+    if (matchingNode) {
         {
             QWriteLocker writeLocker(&_nodeMutex);
             _localIDMap.unsafe_erase(matchingNode->getLocalID());
-            _nodeHash.unsafe_erase(it);
+            _nodeHash.unsafe_erase(matchingNode->getUUID());
         }
 
         handleNodeKill(matchingNode, newConnectionID);
@@ -645,30 +638,26 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                                    Node::LocalID localID, bool isReplicated, bool isUpstream,
                                                    const QUuid& connectionSecret, const NodePermissions& permissions) {
-    {
-        QReadLocker readLocker(&_nodeMutex);
-        NodeHash::const_iterator it = _nodeHash.find(uuid);
+    auto matchingNode = nodeWithUUID(uuid);
+    if (matchingNode) {
+        matchingNode->setPublicSocket(publicSocket);
+        matchingNode->setLocalSocket(localSocket);
+        matchingNode->setPermissions(permissions);
+        matchingNode->setConnectionSecret(connectionSecret);
+        matchingNode->setIsReplicated(isReplicated);
+        matchingNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
+        matchingNode->setLocalID(localID);
 
-        if (it != _nodeHash.end()) {
-            SharedNodePointer& matchingNode = it->second;
-
-            matchingNode->setPublicSocket(publicSocket);
-            matchingNode->setLocalSocket(localSocket);
-            matchingNode->setPermissions(permissions);
-            matchingNode->setConnectionSecret(connectionSecret);
-            matchingNode->setIsReplicated(isReplicated);
-            matchingNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
-            matchingNode->setLocalID(localID);
-
-            return matchingNode;
-        }
+        return matchingNode;
     }
 
     auto removeOldNode = [&](auto node) {
         if (node) {
-            QWriteLocker writeLocker(&_nodeMutex);
-            _localIDMap.unsafe_erase(node->getLocalID());
-            _nodeHash.unsafe_erase(node->getUUID());
+            {
+                QWriteLocker writeLocker(&_nodeMutex);
+                _localIDMap.unsafe_erase(node->getLocalID());
+                _nodeHash.unsafe_erase(node->getUUID());
+            }
             handleNodeKill(node);
         }
     };
