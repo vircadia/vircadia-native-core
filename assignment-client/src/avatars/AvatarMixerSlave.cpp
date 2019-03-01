@@ -325,7 +325,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     destinationNodeData->resetInViewStats();
 
     const AvatarData& avatar = destinationNodeData->getAvatar();
-    glm::vec3 myPosition = avatar.getClientGlobalPosition();
+    glm::vec3 destinationPosition = avatar.getClientGlobalPosition();
 
     // reset the internal state for correct random number distribution
     distribution.reset();
@@ -355,6 +355,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // about avatars they've ignored or that are out of view
     bool PALIsOpen = destinationNodeData->getRequestsDomainListData();
     bool PALWasOpen = destinationNodeData->getPrevRequestsDomainListData();
+    if (PALIsOpen) {
+        qCWarning(avatars) << "PAL is open:" << avatar.getSessionDisplayName();
+    }
 
     // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
     bool getsAnyIgnored = PALIsOpen && destinationNode->getCanKick();
@@ -365,7 +368,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // compute node bounding box
     const float MY_AVATAR_BUBBLE_EXPANSION_FACTOR = 4.0f; // magic number determined emperically
-    AABox nodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR);
+    AABox destinationNodeBox = computeBubbleBox(avatar, MY_AVATAR_BUBBLE_EXPANSION_FACTOR);
 
     // prepare to sort
     const auto& cameraViews = destinationNodeData->getViewFrustums();
@@ -417,8 +420,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             // Don't bother with these checks if the other avatar has their bubble enabled and we're gettingAnyIgnored
             if (destinationNodeData->isIgnoreRadiusEnabled() || (sourceAvatarNodeData->isIgnoreRadiusEnabled() && !getsAnyIgnored)) {
                 // Perform the collision check between the two bounding boxes
-                AABox otherNodeBox = sourceAvatarNodeData->getAvatar().getDefaultBubbleBox();
-                if (nodeBox.touches(otherNodeBox)) {
+                AABox sourceNodeBox = sourceAvatarNodeData->getAvatar().getDefaultBubbleBox();
+                if (destinationNodeBox.touches(sourceNodeBox)) {
                     destinationNodeData->ignoreOther(destinationNode, sourceAvatarNode);
                     sendAvatar = getsAnyIgnored;
                 }
@@ -454,6 +457,13 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             } else if (lastSeqFromSender - lastSeqToReceiver > 1) {
                 // this is a skip - we still send the packet but capture the presence of the skip so we see it happening
                 ++numAvatarsWithSkippedFrames;
+            }
+        }
+        {
+            if (sourceAvatarNodeData->getConstAvatarData()->getPriorityAvatar() && !sendAvatar) {
+                qCWarning(avatars) << "Hero avatar dropped:" << sourceAvatarNodeData->getConstAvatarData()->getSessionDisplayName()
+                    << "lastSeqToReceiver =" << destinationNodeData->getLastBroadcastSequenceNumber(sourceAvatarNode->getLocalID())
+                    << "lastSeqFromSender = " << sourceAvatarNodeData->getLastReceivedSequenceNumber();
             }
         }
         quint64 endIgnoreCalculation = usecTimestampNow();
@@ -571,7 +581,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             do {
                 auto startSerialize = chrono::high_resolution_clock::now();
                 QByteArray bytes = sourceAvatar->toByteArray(detail, lastEncodeForOther, lastSentJointsForOther,
-                    sendStatus, dropFaceTracking, distanceAdjust, myPosition,
+                    sendStatus, dropFaceTracking, distanceAdjust, destinationPosition,
                     &lastSentJointsForOther, avatarSpaceAvailable);
                 auto endSerialize = chrono::high_resolution_clock::now();
                 _stats.toByteArrayElapsedTime +=
