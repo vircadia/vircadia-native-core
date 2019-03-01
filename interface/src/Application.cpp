@@ -5414,6 +5414,13 @@ void Application::pauseUntilLoginDetermined() {
         return;
     }
 
+    if (_resumeAfterLoginDialogActionTakenWasCalled) {
+        // This happens occasionally (though not often): resumeAfterLoginDialogActionTaken() has already been called.
+        // We must abort this method, otherwise Interface will remain in the "Paused" state permanently.
+        // E.g., the menus "Edit", "View", etc. will not appear.
+        return;
+    }
+
     auto myAvatar = getMyAvatar();
     _previousAvatarTargetScale = myAvatar->getTargetScale();
     _previousAvatarSkeletonModel = myAvatar->getSkeletonModelURL().toString();
@@ -5528,6 +5535,8 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("Developer")->setVisible(_developerMenuVisible);
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
+
+    _resumeAfterLoginDialogActionTakenWasCalled = true;
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {

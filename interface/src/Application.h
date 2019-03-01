@@ -802,5 +802,8 @@ private:
 
     bool _showTrackedObjects { false };
     bool _prevShowTrackedObjects { false };
+
+    // Whether resumeAfterLoginDialogActionTaken() has been called
+    bool _resumeAfterLoginDialogActionTakenWasCalled { false };
 };
 #endif // hifi_Application_h
