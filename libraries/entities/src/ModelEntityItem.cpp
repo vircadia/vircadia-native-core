@@ -301,6 +301,31 @@ void ModelEntityItem::setModelURL(const QString& url) {
     });
 }
 
+glm::vec3 ModelEntityItem::getScaledDimensions() const {
+    glm::vec3 parentScale =  getTransform().getScale();
+    return _unscaledDimensions * parentScale;
+}
+
+void ModelEntityItem::setScaledDimensions(const glm::vec3& value) {
+    glm::vec3 parentScale = getTransform().getScale();
+    setUnscaledDimensions(value / parentScale);
+}
+
+const Transform ModelEntityItem::getTransform() const {
+    bool success;
+    return getTransform(success);
+}
+
+const Transform ModelEntityItem::getTransform(bool& success, int depth) const {
+    const Transform parentTransform = getParentTransform(success, depth);
+    Transform localTransform = getLocalTransform();
+    localTransform.postScale(getModelScale());
+
+    Transform worldTransform;
+    Transform::mult(worldTransform, parentTransform, localTransform);
+
+    return worldTransform;
+}
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
@@ -715,13 +740,13 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
 }
 
 glm::vec3 ModelEntityItem::getModelScale() const {
-    return _modelScaleLock.resultWithReadLock<glm::vec3>([&] {
-        return getSNScale();
+    return resultWithReadLock<glm::vec3>([&] {
+        return _modelScale;
     });
 }
 
 void ModelEntityItem::setModelScale(const glm::vec3& modelScale) {
-    _modelScaleLock.withWriteLock([&] {
-        setSNScale(modelScale);
+    withWriteLock([&] {
+        _modelScale = modelScale;
     });
 }

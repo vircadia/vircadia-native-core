@@ -59,7 +59,6 @@ signals:
 
 public slots:
     void clickDownOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
-    void holdingClickOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseReleaseOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
 
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
