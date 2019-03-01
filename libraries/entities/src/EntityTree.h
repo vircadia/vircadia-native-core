@@ -75,7 +75,7 @@ public:
     }
 
 
-    virtual void eraseNonLocalEntities() override;
+    virtual void eraseDomainAndNonOwnedEntities() override;
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,
@@ -255,6 +255,7 @@ public:
     QByteArray computeNonce(const QString& certID, const QString ownerKey);
     bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
 
+    QUuid getMyAvatarSessionUUID() { return _myAvatar ? _myAvatar->getSessionUUID() : QUuid(); }
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
     void swapStaleProxies(std::vector<int>& proxies) { proxies.swap(_staleProxies); }

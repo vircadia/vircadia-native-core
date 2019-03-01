@@ -196,8 +196,8 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     });
 }
 
-void EntityTreeRenderer::stopNonLocalEntityScripts() {
-    leaveNonLocalEntities();
+void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
+    leaveDomainAndNonOwnedEntities();
     // unload and stop the engine
     if (_entitiesScriptEngine) {
         QList<EntityItemID> entitiesWithEntityScripts = _entitiesScriptEngine->getListOfEntityScriptIDs();
@@ -206,7 +206,7 @@ void EntityTreeRenderer::stopNonLocalEntityScripts() {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
 
             if (entityItem) {
-                if (!entityItem->isLocalEntity()) {
+                if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                     _entitiesScriptEngine->unloadEntityScript(entityID, true);
                 }
             }
@@ -214,8 +214,8 @@ void EntityTreeRenderer::stopNonLocalEntityScripts() {
     }
 }
 
-void EntityTreeRenderer::clearNonLocalEntities() {
-    stopNonLocalEntityScripts();
+void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
+    stopDomainAndNonOwnedEntities();
 
     std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
     // remove all entities from the scene
@@ -225,7 +225,7 @@ void EntityTreeRenderer::clearNonLocalEntities() {
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
-            if (!entityItem->isLocalEntity()) {
+            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 renderer->removeFromScene(scene, transaction);
             } else {
                 savedEntities[entry.first] = entry.second;
@@ -239,7 +239,7 @@ void EntityTreeRenderer::clearNonLocalEntities() {
 
     _layeredZones.clearNonLocalLayeredZones();
 
-    OctreeProcessor::clearNonLocalEntities();
+    OctreeProcessor::clearDomainAndNonOwnedEntities();
 }
 
 void EntityTreeRenderer::clear() {
@@ -655,22 +655,22 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
     return didUpdate;
 }
 
-void EntityTreeRenderer::leaveNonLocalEntities() {
+void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
     if (_tree && !_shuttingDown) {
-        QVector<EntityItemID> currentLocalEntitiesInside;
+        QVector<EntityItemID> currentEntitiesInsideToSave;
         foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
-            if (!entityItem->isLocalEntity()) {
+            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 emit leaveEntity(entityID);
                 if (_entitiesScriptEngine) {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                 }
             } else {
-                currentLocalEntitiesInside.push_back(entityID);
+                currentEntitiesInsideToSave.push_back(entityID);
             }
         }
 
-        _currentEntitiesInside = currentLocalEntitiesInside;
+        _currentEntitiesInside = currentEntitiesInsideToSave;
         forceRecheckEntities();
     }
 }
