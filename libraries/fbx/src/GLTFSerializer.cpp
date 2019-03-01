@@ -739,8 +739,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(_file.nodes.size());
     int nodecount = 0;
+    bool hasChildren = false;
     foreach(auto &node, _file.nodes) {
         //nodes_transforms.push_back(getModelTransform(node));
+        hasChildren |= !node.children.isEmpty();
         foreach(int child, node.children) nodeDependencies[child].push_back(nodecount);
         nodecount++;
     }
@@ -772,8 +774,10 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
     hfmModel.jointIndices["x"] = _file.nodes.size();
     int jointInd = 0;
     for (auto& node : _file.nodes) {
+        int size = node.transforms.size();
+        if (hasChildren) { size--; }
         joint.preTransform = glm::mat4(1);
-        for (int i = 0; i < node.transforms.size(); i++) {
+        for (int i = 0; i < size; i++) {
             joint.preTransform = node.transforms[i] * joint.preTransform;
         }
         joint.name = node.name;
