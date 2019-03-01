@@ -469,7 +469,7 @@ void AWSInterface::updateAWS() {
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'addTestCases.py'");
+                              "Could not create 'updateAWS.py'");
         exit(-1);
     }
 

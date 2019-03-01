@@ -34,6 +34,9 @@
     </property>
    </widget>
    <widget class="QTabWidget" name="tabWidget">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
     <property name="geometry">
      <rect>
       <x>45</x>
@@ -495,7 +498,7 @@
      <widget class="QCheckBox" name="checkBoxServerless">
       <property name="geometry">
        <rect>
-        <x>20</x>
+        <x>240</x>
         <y>70</y>
         <width>120</width>
         <height>20</height>
@@ -549,11 +552,78 @@
       </property>
       <property name="geometry">
        <rect>
-        <x>170</x>
+        <x>175</x>
         <y>100</y>
-        <width>451</width>
+        <width>445</width>
         <height>21</height>
        </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderLabel_5">
+      <property name="geometry">
+       <rect>
+        <x>128</x>
+        <y>125</y>
+        <width>40</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Script</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="scriptURLOnDesktopLineEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>175</x>
+        <y>130</y>
+        <width>445</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="runFullSuiteOnDesktopCheckBox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>130</y>
+        <width>120</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Run Full Suite</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="usePreviousInstallationOnDesktopCheckBox">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>70</y>
+        <width>171</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>usePreviousInstallation</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </widget>
@@ -568,7 +638,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>90</y>
+        <y>150</y>
         <width>160</width>
         <height>30</height>
        </rect>
@@ -581,7 +651,7 @@
       <property name="geometry">
        <rect>
         <x>190</x>
-        <y>96</y>
+        <y>156</y>
         <width>320</width>
         <height>30</height>
        </rect>
@@ -623,7 +693,7 @@
       <property name="geometry">
        <rect>
         <x>460</x>
-        <y>410</y>
+        <y>440</y>
         <width>160</width>
         <height>30</height>
        </rect>
@@ -639,7 +709,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>410</y>
+        <y>440</y>
         <width>440</width>
         <height>30</height>
        </rect>
@@ -651,9 +721,9 @@
       </property>
       <property name="geometry">
        <rect>
-        <x>170</x>
-        <y>170</y>
-        <width>451</width>
+        <x>175</x>
+        <y>245</y>
+        <width>445</width>
         <height>21</height>
        </rect>
       </property>
@@ -662,7 +732,7 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>170</y>
+        <y>245</y>
         <width>120</width>
         <height>20</height>
        </rect>
@@ -684,7 +754,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>210</y>
+        <y>100</y>
         <width>160</width>
         <height>30</height>
        </rect>
@@ -696,7 +766,7 @@
      <widget class="QLabel" name="workingFolderLabel_4">
       <property name="geometry">
        <rect>
-        <x>300</x>
+        <x>20</x>
         <y>60</y>
         <width>41</width>
         <height>31</height>
@@ -709,7 +779,7 @@
      <widget class="QLabel" name="statusLabelOnMobile">
       <property name="geometry">
        <rect>
-        <x>350</x>
+        <x>70</x>
         <y>60</y>
         <width>271</width>
         <height>31</height>
@@ -726,7 +796,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>250</y>
+        <y>325</y>
         <width>160</width>
         <height>30</height>
        </rect>
@@ -742,13 +812,93 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>300</y>
+        <y>375</y>
         <width>160</width>
         <height>30</height>
        </rect>
       </property>
       <property name="text">
        <string>Run Interface</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderLabel_6">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>240</y>
+        <width>31</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>URL</string>
+      </property>
+     </widget>
+     <widget class="QLineEdit" name="scriptURLOnMobileLineEdit">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>175</x>
+        <y>275</y>
+        <width>445</width>
+        <height>21</height>
+       </rect>
+      </property>
+     </widget>
+     <widget class="QLabel" name="workingFolderLabel_7">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>270</y>
+        <width>40</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Script</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="runFullSuiteOnMobileCheckBox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>275</y>
+        <width>120</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>Run Full Suite</string>
+      </property>
+      <property name="checked">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="usePreviousInstallationOnMobileCheckBox">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>210</y>
+        <width>171</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+      <property name="text">
+       <string>usePreviousInstallation</string>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
       </property>
      </widget>
     </widget>
@@ -920,6 +1070,9 @@
          <width>561</width>
          <height>21</height>
         </rect>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
        </property>
       </widget>
      </widget>

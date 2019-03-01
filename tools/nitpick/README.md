@@ -47,14 +47,20 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 ### Windows
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. Click the "add python to path" checkbox on the python installer  
-    1. After installation - add the path to python.exe to the Windows PATH environment variable.
+    1. After installation:  
+        1. Open a new terminal
+        1. Enter `python` and hit enter
+        1. Verify that python is available (the prompt will change to `>>>`)
+        1. Type `exit()` and hit enter to close python
+    1.  Install requests (a python library to download files from URLs)
+        `pip3 install requests`
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
     1.  Open a new command prompt and run  
         `aws configure`
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
-    1.  Install the latest release of Boto3 via pip:  
+    1.  Install the latest release of Boto3 via pip (from a terminal):  
         `pip install boto3`
 
 1.  (First time) Download adb (Android Debug Bridge) from *https://dl.google.com/android/repository/platform-tools-latest-windows.zip*
@@ -76,11 +82,13 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
       `open "/Applications/Python 3.7/Install Certificates.command"`.  
 This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
-1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
     In a terminal:  
     `curl -O https://bootstrap.pypa.io/get-pip.py`  
     In a terminal:  
     `python3 get-pip.py --user`  
+    1.  Install requests (a python library to download files from URLs)  
+        `pip3 install requests`
+1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
     1.  Use pip to install the AWS CLI.  
         `pip3 install awscli --upgrade --user`  
         This will install aws in your user.  For user XXX, aws will be located in ~/Library/Python/3.7/bin  

@@ -9,7 +9,7 @@
 //
 
 #include "TestRailInterface.h"
-#include "Test.h"
+#include "TestCreator.h"
 
 #include <quazip5/quazip.h>
 #include <quazip5/JlCompress.h>
@@ -258,7 +258,7 @@ bool TestRailInterface::requestTestRailResultsDataFromUser() {
 }
 
 bool TestRailInterface::isAValidTestDirectory(const QString& directory) {
-    if (Test::isAValidDirectory(directory)) {
+    if (TestCreator::isAValidDirectory(directory)) {
         // Ignore the utils and preformance directories
         if (directory.right(QString("utils").length()) == "utils" ||
             directory.right(QString("performance").length()) == "performance") {

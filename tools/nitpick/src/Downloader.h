@@ -11,38 +11,19 @@
 #ifndef hifi_downloader_h
 #define hifi_downloader_h
 
-#include <QObject>
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QUrl>
-#include <QDateTime>
-#include <QFile>
-#include <QFileInfo>
-#include <QDebug>
+#include "BusyWindow.h"
 
 #include <QObject>
-#include <QByteArray>
-#include <QNetworkAccessManager>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-
 class Downloader : public QObject {
 Q_OBJECT
 public:
-    explicit Downloader(QUrl fileURL, QObject *parent = 0);
+    Downloader();
 
-    QByteArray downloadedData() const;
-
-signals:
-    void downloaded();
-
-private slots:
-    void fileDownloaded(QNetworkReply* pReply);
+    void downloadFiles(const QStringList& URLs, const QString& directoryName, const QStringList& filenames, void *caller);
 
 private:
-    QNetworkAccessManager _networkAccessManager;
-    QByteArray _downloadedData;
+    QString _pythonCommand;
+    BusyWindow _busyWindow;
 };
 
 #endif // hifi_downloader_h
