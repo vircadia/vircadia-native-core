@@ -5770,6 +5770,11 @@ void Application::reloadResourceCaches() {
 
     DependencyManager::get<NodeList>()->reset();  // Force redownload of .fst models
 
+    DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+    getOffscreenUI()->clearCache();
+
+    DependencyManager::get<Keyboard>()->createKeyboard();
+
     getMyAvatar()->resetFullAvatarURL();
 }
 
