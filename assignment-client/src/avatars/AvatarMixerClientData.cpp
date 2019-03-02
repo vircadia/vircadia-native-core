@@ -91,22 +91,26 @@ namespace {
     struct FindPriorityZone {
         glm::vec3 position;
         bool isInPriorityZone { false };
+        float zoneVolume { std::numeric_limits<float>::max() };
+
         static bool operation(const OctreeElementPointer& element, void* extraData) {
             auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
             if (element->getAACube().contains(findPriorityZone->position)) {
                 const EntityTreeElementPointer entityTreeElement = static_pointer_cast<EntityTreeElement>(element);
                 entityTreeElement->forEachEntity([&findPriorityZone](EntityItemPointer item) {
                     if (item->getType() == EntityTypes::Zone 
-                        && item->contains(findPriorityZone->position)
-                        && static_pointer_cast<ZoneEntityItem>(item)->getAvatarPriority()) {
-                            findPriorityZone->isInPriorityZone = true;
+                        && item->contains(findPriorityZone->position)) {
+                        auto zoneItem = static_pointer_cast<ZoneEntityItem>(item);
+                        if (zoneItem->getAvatarPriority() != COMPONENT_MODE_INHERIT) {
+                            float volume = zoneItem->getVolumeEstimate();
+                            if (volume < findPriorityZone->zoneVolume) { // Smaller volume wins
+                                findPriorityZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
+                                findPriorityZone->zoneVolume = volume;
+                            }
+                        }
                     }
                 });
-                if (findPriorityZone->isInPriorityZone) {
-                    return false;  // For now, stop at first hit.
-                } else {
-                    return true;
-                }
+                return true;  // Keep recursing 
             } else {  // Position isn't within this subspace, so end recursion.
                 return false;
             }
@@ -144,10 +148,10 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition, false } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
-        _avatar->setPriorityAvatar(findPriorityZone.isInPriorityZone);
-        if (findPriorityZone.isInPriorityZone) {
-            qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
-        }
+        _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
+        //if (findPriorityZone.isInPriorityZone) {
+        //    qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
+        //}
 #endif
     }
 

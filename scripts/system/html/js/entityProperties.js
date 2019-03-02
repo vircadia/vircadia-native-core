@@ -430,7 +430,8 @@ const GROUPS = [
             },
             {
                 label: "Avatar Priority",
-                type: "bool",
+                type: "dropdown",
+                options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
                 propertyID: "avatarPriority",
             },
 

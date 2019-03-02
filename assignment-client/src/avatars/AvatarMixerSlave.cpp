@@ -460,7 +460,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             }
         }
         {
-            if (sourceAvatarNodeData->getConstAvatarData()->getPriorityAvatar() && !sendAvatar) {
+            if (sourceAvatarNodeData->getConstAvatarData()->getHasPriority() && !sendAvatar) {
                 qCWarning(avatars) << "Hero avatar dropped:" << sourceAvatarNodeData->getConstAvatarData()->getSessionDisplayName()
                     << "lastSeqToReceiver =" << destinationNodeData->getLastBroadcastSequenceNumber(sourceAvatarNode->getLocalID())
                     << "lastSeqFromSender = " << sourceAvatarNodeData->getLastReceivedSequenceNumber();
@@ -474,7 +474,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             const MixerAvatar* avatarNodeData = sourceAvatarNodeData->getConstAvatarData();
             auto lastEncodeTime = destinationNodeData->getLastOtherAvatarEncodeTime(sourceAvatarNode->getLocalID());
 
-            avatarPriorityQueues[avatarNodeData->getPriorityAvatar() ? kHero : kNonhero].push(
+            avatarPriorityQueues[avatarNodeData->getHasPriority() ? kHero : kNonhero].push(
                 SortableAvatar(avatarNodeData, sourceAvatarNode, lastEncodeTime));
         }
         
@@ -601,7 +601,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
             if (detail != AvatarData::NoData) {
                 _stats.numOthersIncluded++;
-                if (sourceAvatar->getPriorityAvatar()) {
+                if (sourceAvatar->getHasPriority()) {
                     _stats.numHeroesIncluded++;
                 }
 

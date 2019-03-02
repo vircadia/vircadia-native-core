@@ -65,13 +65,13 @@ EntityItemProperties ZoneEntityItem::getProperties(const EntityPropertyFlags& de
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(flyingAllowed, getFlyingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ghostingAllowed, getGhostingAllowed);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(filterURL, getFilterURL);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(avatarPriority, getAvatarPriority);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(keyLightMode, getKeyLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientLightMode, getAmbientLightMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(skyboxMode, getSkyboxMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(hazeMode, getHazeMode);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(bloomMode, getBloomMode);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(avatarPriority, getAvatarPriority);
 
     return properties;
 }
@@ -194,7 +194,7 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
     READ_ENTITY_PROPERTY(PROP_HAZE_MODE, uint32_t, setHazeMode);
     READ_ENTITY_PROPERTY(PROP_BLOOM_MODE, uint32_t, setBloomMode);
-    READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, bool, setAvatarPriority);
+    READ_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
 
     return bytesRead;
 }
@@ -476,8 +476,10 @@ bool ZoneEntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
 
     static const QString AVATAR_PRIORITY_PROPERTY = "avatarPriority";
 
-    if (jsonFilters.contains(AVATAR_PRIORITY_PROPERTY)) {
-        return (jsonFilters[AVATAR_PRIORITY_PROPERTY].toBool() == _avatarPriority);
+    // If set ignore only priority-inherit zones:
+    if (jsonFilters.contains(AVATAR_PRIORITY_PROPERTY) && jsonFilters[AVATAR_PRIORITY_PROPERTY].toBool()
+        && _avatarPriority != COMPONENT_MODE_INHERIT) {
+        return true;
     }
 
     // Chain to base:

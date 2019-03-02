@@ -225,6 +225,15 @@ QString EntityItemProperties::getBloomModeAsString() const {
     return getComponentModeAsString(_bloomMode);
 }
 
+namespace {
+    const QStringList AVATAR_PRIORITIES_AS_STRING
+        { "inherit", "crowd", "hero" };
+}
+
+QString EntityItemProperties::getAvatarPriorityAsString() const {
+    return AVATAR_PRIORITIES_AS_STRING.value(_avatarPriority);
+}
+
 std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
     return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
         return (pair.second == mode);
@@ -246,6 +255,15 @@ void EntityItemProperties::setBloomModeFromString(const QString& bloomMode) {
     if (result != COMPONENT_MODES.end()) {
         _bloomMode = result->first;
         _bloomModeChanged = true;
+    }
+}
+
+void EntityItemProperties::setAvatarPriorityFromString(QString const& avatarPriority) {
+    auto result = AVATAR_PRIORITIES_AS_STRING.indexOf(avatarPriority);
+
+    if (result != -1) {
+        _avatarPriority = result;
+        _avatarPriorityChanged = true;
     }
 }
 
@@ -616,12 +634,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
     CHECK_PROPERTY_CHANGE(PROP_FILTER_URL, filterURL);
-    CHECK_PROPERTY_CHANGE(PROP_AVATAR_PRIORITY, avatarPriority);
     CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
     CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
+    CHECK_PROPERTY_CHANGE(PROP_AVATAR_PRIORITY, avatarPriority);
 
     // Polyvox
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -1422,8 +1440,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
  *     certain properties.<br />
  *
- * @property {boolean} avatarPriority=false - If <code>true</code> avatars within this zone will have their movements distributed to other
- *     clients with priority over other avatars. Use, for example, on a performance stage with a few presenters.
+ * @property {string} avatarPriority="inherit" - Configures the update priority of contained avatars to other clients.<br />
+ *     <code>"inherit"</code>: Priority from enclosing zones is unchanged.<br />
+ *     <code>"crowd"</code>: Priority in this zone is the normal priority.<br />
+ *     <code>"hero"</code>: Avatars in this zone will have an increased update priority
  * <pre>
  *
  * function filter(properties) {
@@ -1753,13 +1773,13 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FILTER_URL, filterURL);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_AVATAR_PRIORITY, avatarPriority);
 
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AVATAR_PRIORITY, avatarPriority, getAvatarPriorityAsString());
     }
 
     // Web only
@@ -2114,12 +2134,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(flyingAllowed, bool, setFlyingAllowed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(filterURL, QString, setFilterURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(avatarPriority, bool, setAvatarPriority);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(avatarPriority, AvatarPriority);
 
     // Polyvox
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
@@ -2393,12 +2413,12 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(flyingAllowed);
     COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
     COPY_PROPERTY_IF_CHANGED(filterURL);
-    COPY_PROPERTY_IF_CHANGED(avatarPriority);
     COPY_PROPERTY_IF_CHANGED(keyLightMode);
     COPY_PROPERTY_IF_CHANGED(ambientLightMode);
     COPY_PROPERTY_IF_CHANGED(skyboxMode);
     COPY_PROPERTY_IF_CHANGED(hazeMode);
     COPY_PROPERTY_IF_CHANGED(bloomMode);
+    COPY_PROPERTY_IF_CHANGED(avatarPriority);
 
     // Polyvox
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -2778,12 +2798,12 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
         ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_AVATAR_PRIORITY, AvatarPriority, avatarPriority, bool);
         ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AVATAR_PRIORITY, AvatarPriority, avatarPriority, uint32_t);
 
         // Polyvox
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, vec3);
@@ -3184,7 +3204,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)properties.getSkyboxMode());
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
-                APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, properties.getAvatarPriority());
+                APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, (uint32_t)properties.getAvatarPriority());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -3641,13 +3661,13 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FILTER_URL, QString, setFilterURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AVATAR_PRIORITY, bool, setAvatarPriority);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
@@ -4022,13 +4042,13 @@ void EntityItemProperties::markAllChanged() {
     _bloom.markAllChanged();
     _flyingAllowedChanged = true;
     _ghostingAllowedChanged = true;
-    _avatarPriorityChanged = true;
     _filterURLChanged = true;
     _keyLightModeChanged = true;
     _ambientLightModeChanged = true;
     _skyboxModeChanged = true;
     _hazeModeChanged = true;
     _bloomModeChanged = true;
+    _avatarPriorityChanged = true;
 
     // Polyvox
     _voxelVolumeSizeChanged = true;
@@ -4608,9 +4628,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (filterURLChanged()) {
         out += "filterURL";
     }
-    if (avatarPriorityChanged()) {
-        out += "avatarPriority";
-    }
     if (keyLightModeChanged()) {
         out += "keyLightMode";
     }
@@ -4625,6 +4642,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (bloomModeChanged()) {
         out += "bloomMode";
+    }
+    if (avatarPriorityChanged()) {
+        out += "avatarPriority";
     }
 
     // Polyvox
