@@ -31,6 +31,7 @@ using namespace udt;
 using namespace std::chrono;
 
 Connection::Connection(Socket* parentSocket, HifiSockAddr destination, std::unique_ptr<CongestionControl> congestionControl) :
+    QObject(parentSocket),
     _parentSocket(parentSocket),
     _destination(destination),
     _congestionControl(move(congestionControl))
@@ -192,10 +193,19 @@ void Connection::recordSentPackets(int wireSize, int payloadSize,
     _congestionControl->onPacketSent(wireSize, seqNum, timePoint);
 }
 
-void Connection::recordRetransmission(int wireSize, SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
-    _stats.record(ConnectionStats::Stats::Retransmission);
+void Connection::recordRetransmission(int wireSize, int payloadSize,
+                                      SequenceNumber seqNum, p_high_resolution_clock::time_point timePoint) {
+    _stats.recordRetransmittedPackets(payloadSize, wireSize);
 
     _congestionControl->onPacketReSent(wireSize, seqNum, timePoint);
+}
+
+void Connection::recordSentUnreliablePackets(int wireSize, int payloadSize) {
+    _stats.recordUnreliableSentPackets(payloadSize, wireSize);
+}
+
+void Connection::recordReceivedUnreliablePackets(int wireSize, int payloadSize) {
+    _stats.recordUnreliableReceivedPackets(payloadSize, wireSize);
 }
 
 void Connection::sendACK() {
@@ -212,7 +222,7 @@ void Connection::sendACK() {
     // have the socket send off our packet
     _parentSocket->writeBasePacket(*_ackPacket, _destination);
     
-    _stats.record(ConnectionStats::Stats::SentACK);
+    _stats.recordSentACK(_ackPacket->getWireSize());
 }
 
 SequenceNumber Connection::nextACK() const {
@@ -270,7 +280,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
     sendACK();
     
     if (wasDuplicate) {
-        _stats.record(ConnectionStats::Stats::Duplicate);
+        _stats.recordDuplicatePackets(payloadSize, packetSize);
     } else {
         _stats.recordReceivedPackets(payloadSize, packetSize);
     }
@@ -318,7 +328,7 @@ void Connection::processACK(ControlPacketPointer controlPacket) {
     controlPacket->readPrimitive(&ack);
     
     // update the total count of received ACKs
-    _stats.record(ConnectionStats::Stats::ReceivedACK);
+    _stats.recordReceivedACK(controlPacket->getWireSize());
     
     // validate that this isn't a BS ACK
     if (ack > getSendQueue().getCurrentSequenceNumber()) {

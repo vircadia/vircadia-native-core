@@ -651,6 +651,15 @@ done:
     return result;
 }
 
+MediaType OBJSerializer::getMediaType() const {
+    MediaType mediaType("obj");
+    mediaType.extensions.push_back("obj");
+    return mediaType;
+}
+
+std::unique_ptr<hfm::Serializer::Factory> OBJSerializer::getFactory() const {
+    return std::make_unique<hfm::Serializer::SimpleFactory<OBJSerializer>>();
+}
 
 HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
@@ -678,7 +687,6 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
         mesh.meshIndex = 0;
 
         hfmModel.joints.resize(1);
-        hfmModel.joints[0].isFree = false;
         hfmModel.joints[0].parentIndex = -1;
         hfmModel.joints[0].distanceToParent = 0;
         hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
@@ -821,9 +829,6 @@ HFMModel::Pointer OBJSerializer::read(const QByteArray& data, const QVariantHash
             mesh.meshExtents.addPoint(vertex);
             hfmModel.meshExtents.addPoint(vertex);
         }
-
-        // Build the single mesh.
-        FBXSerializer::buildModelMesh(mesh, _url.toString());
 
         // hfmDebugDump(hfmModel);
     } catch(const std::exception& e) {
@@ -1042,8 +1047,7 @@ void hfmDebugDump(const HFMModel& hfmModel) {
     qCDebug(modelformat) << "  joints.count() =" << hfmModel.joints.count();
 
     foreach (HFMJoint joint, hfmModel.joints) {
-        qCDebug(modelformat) << "    isFree =" << joint.isFree;
-        qCDebug(modelformat) << "    freeLineage" << joint.freeLineage;
+
         qCDebug(modelformat) << "    parentIndex" << joint.parentIndex;
         qCDebug(modelformat) << "    distanceToParent" << joint.distanceToParent;
         qCDebug(modelformat) << "    translation" << joint.translation;

@@ -25,6 +25,8 @@ const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
 const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
 const float LightEntityItem::DEFAULT_FALLOFF_RADIUS = 0.1f;
 const float LightEntityItem::DEFAULT_EXPONENT = 0.0f;
+const float LightEntityItem::MIN_CUTOFF = 0.0f;
+const float LightEntityItem::MAX_CUTOFF = 90.0f;
 const float LightEntityItem::DEFAULT_CUTOFF = PI / 2.0f;
 
 bool LightEntityItem::_lightsArePickable = false;
@@ -71,8 +73,8 @@ void LightEntityItem::dimensionsChanged() {
 EntityItemProperties LightEntityItem::getProperties(const EntityPropertyFlags& desiredProperties, bool allowEmptyDesiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties, allowEmptyDesiredProperties); // get the properties from our base class
 
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(intensity, getIntensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(exponent, getExponent);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cutoff, getCutoff);
@@ -115,7 +117,7 @@ void LightEntityItem::setIsSpotlight(bool value) {
 }
 
 void LightEntityItem::setCutoff(float value) {
-    value = glm::clamp(value, 0.0f, 90.0f);
+    value = glm::clamp(value, MIN_CUTOFF, MAX_CUTOFF);
     if (value == getCutoff()) {
         return;
     }
@@ -155,8 +157,8 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
 bool LightEntityItem::setSubClassProperties(const EntityItemProperties& properties) {
     bool somethingChanged = EntityItem::setSubClassProperties(properties); // set the properties in our base class
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(intensity, setIntensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(exponent, setExponent);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cutoff, setCutoff);
@@ -174,8 +176,8 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     int bytesRead = 0;
     const unsigned char* dataAt = data;
 
-    READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
     READ_ENTITY_PROPERTY(PROP_COLOR, glm::u8vec3, setColor);
+    READ_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
     READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
     READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
     READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
@@ -187,8 +189,8 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-    requestedProperties += PROP_IS_SPOTLIGHT;
     requestedProperties += PROP_COLOR;
+    requestedProperties += PROP_IS_SPOTLIGHT;
     requestedProperties += PROP_INTENSITY;
     requestedProperties += PROP_EXPONENT;
     requestedProperties += PROP_CUTOFF;
@@ -205,8 +207,8 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
                                     OctreeElement::AppendState& appendState) const { 
 
     bool successPropertyFits = true;
-    APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, getIsSpotlight());
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
+    APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, getIsSpotlight());
     APPEND_ENTITY_PROPERTY(PROP_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_EXPONENT, getExponent());
     APPEND_ENTITY_PROPERTY(PROP_CUTOFF, getCutoff());

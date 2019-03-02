@@ -98,10 +98,11 @@ vec4 pixelShaderGaussian(vec2 texcoord, vec2 direction, vec2 pixelStep) {
             totalWeight += weight;
         }
     }
-    
-    if (totalWeight>0.0) {
+
+    if (totalWeight > 0.0) {
         srcBlurred /= totalWeight;
     }
+
     srcBlurred.a = getOutputAlpha();
     return srcBlurred;
 }
@@ -159,10 +160,11 @@ vec4 pixelShaderGaussianDepthAware(vec2 texcoord, vec2 direction, vec2 pixelStep
             totalWeight += weight;
         }
     }   
-    
-    if (totalWeight>0.0) {
+
+    if (totalWeight > 0.0) {
         srcBlurred /= totalWeight;
     }
+
     return srcBlurred;
 }
 

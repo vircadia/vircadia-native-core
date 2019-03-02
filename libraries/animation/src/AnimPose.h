@@ -21,9 +21,11 @@ class AnimPose {
 public:
     AnimPose() {}
     explicit AnimPose(const glm::mat4& mat);
+
     explicit AnimPose(const glm::quat& rotIn) : _scale(1.0f), _rot(rotIn), _trans(0.0f) {}
     AnimPose(const glm::quat& rotIn, const glm::vec3& transIn) : _scale(1.0f), _rot(rotIn), _trans(transIn) {}
     AnimPose(const glm::vec3& scaleIn, const glm::quat& rotIn, const glm::vec3& transIn) : _scale(scaleIn), _rot(rotIn), _trans(transIn) {}
+
     static const AnimPose identity;
 
     glm::vec3 xformPoint(const glm::vec3& rhs) const;

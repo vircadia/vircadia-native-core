@@ -392,10 +392,47 @@ void GLBackend::renderPassDraw(const Batch& batch) {
     }
 }
 
+// Support annotating captures in tools like Renderdoc
+class GlDuration {
+public:
+#ifdef USE_GLES
+    GlDuration(const char* name) {
+        // We need to use strlen here instead of -1, because the Snapdragon profiler
+        // will crash otherwise 
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, strlen(name), name);
+    }
+    ~GlDuration() {
+        glPopDebugGroup();
+    }
+#else
+    GlDuration(const char* name) {
+        if (::gl::khrDebugEnabled()) {
+            glPushDebugGroupKHR(GL_DEBUG_SOURCE_APPLICATION_KHR, 0, -1, name);
+        }
+    }
+    ~GlDuration() {
+        if (::gl::khrDebugEnabled()) {
+            glPopDebugGroupKHR();
+        }
+    }
+#endif
+};
+
+#if defined(GPU_STEREO_DRAWCALL_INSTANCED) && !defined(GL_CLIP_DISTANCE0)
+#define GL_CLIP_DISTANCE0 GL_CLIP_DISTANCE0_EXT
+#endif
+
+#define GL_PROFILE_RANGE(category, name) \
+    PROFILE_RANGE(category, name); \
+    GlDuration glProfileRangeThis(name);
+
 void GLBackend::render(const Batch& batch) {
-    PROFILE_RANGE(render_gpu_gl, batch.getName());
+    GL_PROFILE_RANGE(render_gpu_gl, batch.getName().c_str());
 
     _transform._skybox = _stereo._skybox = batch.isSkyboxEnabled();
+    // FIXME move this to between the transfer and draw passes, so that
+    // framebuffer setup can see the proper stereo state and enable things 
+    // like foveation
     // Allow the batch to override the rendering stereo settings
     // for things like full framebuffer copy operations (deferred lighting passes)
     bool savedStereo = _stereo._enable;
@@ -406,7 +443,7 @@ void GLBackend::render(const Batch& batch) {
     _transform._projectionJitter = Vec2(0.0f, 0.0f);
     
     {
-        PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
+        GL_PROFILE_RANGE(render_gpu_gl_detail, "Transfer");
         renderPassTransfer(batch);
     }
 
@@ -418,7 +455,7 @@ void GLBackend::render(const Batch& batch) {
 #endif
 //#endif
     {
-        PROFILE_RANGE(render_gpu_gl_detail, _stereo.isStereo() ? "Render Stereo" : "Render");
+        GL_PROFILE_RANGE(render_gpu_gl_detail, _stereo.isStereo() ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
 //#ifdef GPU_STEREO_DRAWCALL_INSTANCED
@@ -862,4 +899,8 @@ void GLBackend::setCameraCorrection(const Mat4& correction, const Mat4& prevRend
     _transform._correction.correctionInverse = invCorrection;
     _pipeline._cameraCorrectionBuffer._buffer->setSubData(0, _transform._correction);
     _pipeline._cameraCorrectionBuffer._buffer->flush();
+}
+
+void GLBackend::syncProgram(const gpu::ShaderPointer& program) {
+    gpu::gl::GLShader::sync(*this, *program);
 }

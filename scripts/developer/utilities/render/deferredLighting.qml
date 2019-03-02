@@ -14,7 +14,6 @@ import QtQuick.Layouts 1.3
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControls
 import  "configSlider"
-import "../lib/jet/qml" as Jet
 
 Rectangle {
     HifiConstants { id: hifi;}
@@ -47,8 +46,8 @@ Rectangle {
                          "Emissive:LightingModel:enableEmissive", 
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
-                         "Haze:LightingModel:enableHaze",                
-                         "ssao:AmbientOcclusion:enabled",                      
+                         "Haze:LightingModel:enableHaze",                        
+                         "AO:LightingModel:enableAmbientOcclusion",
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
                     HifiControls.CheckBox {
@@ -93,7 +92,7 @@ Rectangle {
                          "Spot:LightingModel:enableSpotLight",
                          "Light Contour:LightingModel:showLightContour",
                          "Zone Stack:DrawZoneStack:enabled",
-                         "Shadow:RenderShadowTask:enabled"
+                         "Shadow:LightingModel:enableShadow"
                     ]
                     HifiControls.CheckBox {
                         boxSize: 20
@@ -124,7 +123,6 @@ Rectangle {
                         anchors.right: parent.right 
                 }
             }
-
             Item {
                 height: childrenRect.height
                 anchors.left: parent.left
@@ -135,18 +133,38 @@ Rectangle {
                     anchors.left: parent.left           
                 }
 
-                HifiControls.ComboBox {
+                ComboBox {
                     anchors.right: parent.right           
                     currentIndex: 1
-                    model: ListModel {
-                        id: cbItems
-                        ListElement { text: "RGB"; color: "Yellow" }
-                        ListElement { text: "SRGB"; color: "Green" }
-                        ListElement { text: "Reinhard"; color: "Yellow" }
-                        ListElement { text: "Filmic"; color: "White" }
-                    }
+                    model: [
+                        "RGB",
+                        "SRGB",
+                        "Reinhard",
+                        "Filmic",
+                    ]
                     width: 200
-                    onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex }
+                    onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex; }
+                }
+            }
+        }
+        Separator {}          
+        Column {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            spacing: 5 
+            Repeater {
+                model: [ "MSAA:PrepareFramebuffer:numSamples:4:1"
+                              ]
+                ConfigSlider {
+                        label: qsTr(modelData.split(":")[0])
+                        integral: true
+                        config: render.mainViewTask.getConfig(modelData.split(":")[1])
+                        property: modelData.split(":")[2]
+                        max: modelData.split(":")[3]
+                        min: modelData.split(":")[4]
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
                 }
             }
         }
@@ -171,7 +189,7 @@ Rectangle {
                 framebuffer.config.mode = mode;
             }
 
-            HifiControls.ComboBox {
+            ComboBox {
                 anchors.right: parent.right           
                 currentIndex: 0
                 model: ListModel {
@@ -249,12 +267,6 @@ Rectangle {
                     checked: render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDOpaqueBounds")["enabled"] = checked }
                 }
-                HifiControls.CheckBox {
-                    boxSize: 20
-                    text: "Transparents in HUD"
-                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
-                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
-                }
 
             }
             Column {
@@ -276,6 +288,12 @@ Rectangle {
                     text: "Zones"
                     checked: render.mainViewTask.getConfig("DrawZones")["enabled"]
                     onCheckedChanged: { render.mainViewTask.getConfig("ZoneRenderer")["enabled"] = checked; render.mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
+                }
+                HifiControls.CheckBox {
+                    boxSize: 20
+                    text: "Transparents in HUD"
+                    checked: render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"]
+                    onCheckedChanged: { render.mainViewTask.getConfig("DrawOverlayHUDTransparentBounds")["enabled"] = checked }
                 }
             }
         }
@@ -300,6 +318,14 @@ Rectangle {
             // activeFocusOnPress: false
                 onClicked: {
                 sendToScript({method: "openCullInspectorView"}); 
+                }
+            }
+        }
+        Row {
+            HifiControls.Button {
+                text: "Material"
+                onClicked: {
+                sendToScript({method: "openMaterialInspectorView"}); 
                 }
             }
         }

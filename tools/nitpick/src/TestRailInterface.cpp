@@ -20,7 +20,7 @@
 #include <QMessageBox>
 #include <QTextStream>
 
-TestRailInterface::TestRailInterface() {
+TestRailInterface::TestRailInterface() : _pythonInterface(NULL) {
     _testRailTestCasesSelectorWindow.setURL("https://highfidelity.testrail.net");
     _testRailTestCasesSelectorWindow.setUser("@highfidelity.io");
 
@@ -275,7 +275,7 @@ void TestRailInterface::processDirectoryPython(const QString& directory,
                                                const QString& userGitHub,
                                                const QString& branchGitHub) {
     // Loop over all entries in directory
-    QDirIterator it(directory.toStdString().c_str());
+    QDirIterator it(directory);
     while (it.hasNext()) {
         QString nextDirectory = it.next();
 
@@ -855,7 +855,7 @@ QDomElement TestRailInterface::processDirectoryXML(const QString& directory,
     QDomElement result = element;
 
     // Loop over all entries in directory
-    QDirIterator it(directory.toStdString().c_str());
+    QDirIterator it(directory);
     while (it.hasNext()) {
         QString nextDirectory = it.next();
 

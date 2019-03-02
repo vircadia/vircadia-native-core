@@ -21,7 +21,7 @@
     var TEXTURE_EPSILON = 0.01;
     var isVisible = false;
     var VOLUME = 0.4;
-    var tune = SoundCache.getSound(Script.resolvePath("/~/system/assets/sounds/crystals_and_voices.mp3"));
+    var tune = SoundCache.getSound(Script.resourcesPath() + "sounds/crystals_and_voices.mp3");
     var sample = null;
     var MAX_LEFT_MARGIN = 1.9;
     var INNER_CIRCLE_WIDTH = 4.7;
@@ -324,6 +324,11 @@
                 text: domainName,
                 leftMargin: domainNameLeftMargin
             };
+
+            // check to be sure we are going to look for an actual domain
+            if (!domain) {
+                doRequest = false;
+            }
 
             if (doRequest) {
                 var url = Account.metaverseServerURL + '/api/v1/places/' + domain;

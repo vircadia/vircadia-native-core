@@ -66,6 +66,8 @@ public:
                     if (gltexture) {
                         if (gltexture->_target == GL_TEXTURE_2D) {
                             glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[unit], GL_TEXTURE_2D, gltexture->_texture, 0);
+                        } else if (gltexture->_target == GL_TEXTURE_2D_MULTISAMPLE) {
+                            glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[unit], GL_TEXTURE_2D_MULTISAMPLE, gltexture->_texture, 0);
                         } else {
                             glFramebufferTextureLayer(GL_FRAMEBUFFER, colorAttachments[unit], gltexture->_texture, 0,
                                                       b._subresource);
@@ -98,6 +100,8 @@ public:
             if (gltexture) {
                 if (gltexture->_target == GL_TEXTURE_2D) {
                     glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
+                } else if (gltexture->_target == GL_TEXTURE_2D_MULTISAMPLE) {
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D_MULTISAMPLE, gltexture->_texture, 0);
                 } else {
                     glFramebufferTextureLayer(GL_FRAMEBUFFER, attachement, gltexture->_texture, 0,
                                               _gpuObject.getDepthStencilBufferSubresource());

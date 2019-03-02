@@ -35,6 +35,7 @@
 #include "assets/ATPAssetMigrator.h"
 #include "audio/AudioScope.h"
 #include "avatar/AvatarManager.h"
+#include "avatar/AvatarPackager.h"
 #include "AvatarBookmarks.h"
 #include "devices/DdeFaceTracker.h"
 #include "MainWindow.h"
@@ -48,6 +49,7 @@
 #include "DeferredLightingEffect.h"
 #include "PickManager.h"
 
+#include "LightingModel.h"
 #include "AmbientOcclusionEffect.h"
 #include "RenderShadowTask.h"
 #include "AntialiasingEffect.h"
@@ -123,10 +125,12 @@ Menu::Menu() {
     // Edit > Running Scripts
     auto action = addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J);
     connect(action, &QAction::triggered, [] {
-        static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
-        static const QUrl tabletUrl("hifi/dialogs/TabletRunningScripts.qml");
-        static const QString name("RunningScripts");
-        qApp->showDialog(widgetUrl, tabletUrl, name);
+        if (!qApp->getLoginDialogPoppedUp()) {
+            static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
+            static const QUrl tabletUrl("hifi/dialogs/TabletRunningScripts.qml");
+            static const QString name("RunningScripts");
+            qApp->showDialog(widgetUrl, tabletUrl, name);
+        }
     });
 
     editMenu->addSeparator();
@@ -141,9 +145,13 @@ Menu::Menu() {
         assetServerAction->setEnabled(nodeList->getThisNodeCanWriteAssets());
     }
 
-    // Edit > Package Avatar as .fst...
-    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
-        qApp, SLOT(packageModel()));
+    // Edit > Avatar Packager
+#ifndef Q_OS_ANDROID
+    action = addActionToQMenuAndActionHash(editMenu, MenuOption::AvatarPackager);
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<AvatarPackager>()->open();
+    });
+#endif
 
     // Edit > Reload All Content
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
@@ -241,8 +249,10 @@ Menu::Menu() {
     // Settings > General...
     action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_G, nullptr, nullptr);
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
-            QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
+        if (!qApp->getLoginDialogPoppedUp()) {
+            qApp->showDialog(QString("hifi/dialogs/GeneralPreferencesDialog.qml"),
+                QString("hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
+        }
     });
 
     // Settings > Controls...
@@ -389,13 +399,9 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewShadowTaskConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
-            if (mainViewShadowTaskConfig) {
-                if (action->isChecked()) {
-                    mainViewShadowTaskConfig->setPreset("Enabled");
-                } else {
-                    mainViewShadowTaskConfig->setPreset("None");
-                }
+            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+            if (lightingModelConfig) {
+                lightingModelConfig->setShadow(action->isChecked());
             }
         }
     });
@@ -404,15 +410,11 @@ Menu::Menu() {
     connect(action, &QAction::triggered, [action] {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
-            if (mainViewAmbientOcclusionConfig) {
-                if (action->isChecked()) {
-                    mainViewAmbientOcclusionConfig->setPreset("Enabled");
-                } else {
-                    mainViewAmbientOcclusionConfig->setPreset("None");
-                }
+            auto lightingModelConfig = renderConfig->getConfig<MakeLightingModel>("RenderMainView.LightingModel");
+            if (lightingModelConfig) {
+                lightingModelConfig->setAmbientOcclusion(action->isChecked());
             }
-        }
+         }
     });
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
@@ -648,6 +650,8 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowTrackedObjects, 0, false, qApp, SLOT(setShowTrackedObjects(bool)));
 
+    addActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::PackageModel, 0, qApp, SLOT(packageModel()));
+
     // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
@@ -802,7 +806,7 @@ Menu::Menu() {
     connect(action, &QAction::triggered, qApp, []() { std::thread(crash::newFault).join(); });
 
     // Developer > Show Statistics
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats, 0, true);
 
     // Developer > Show Animation Statistics
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AnimStats);

@@ -121,21 +121,17 @@ float taa_fetchDepth(vec2 uv) {
 }
 
 
-#define ZCMP_GT(a, b) (a > b)
+#define ZCMP_GT(a, b) float(a > b)
 
 vec2 taa_getImageSize() {
     vec2 imageSize = getWidthHeight(0);
-    if (isStereo()) {
-        imageSize.x *= 2.0;
-    }
+    imageSize.x *= 1.0 + float(isStereo());
     return imageSize;
 }
 
 vec2 taa_getTexelSize() {
     vec2 texelSize = getInvWidthHeight();
-    if (isStereo()) {
-        texelSize.x *= 0.5;
-    }
+    texelSize.x *= 1.0 - 0.5 * float(isStereo());
     return texelSize;
 }
 
@@ -158,16 +154,16 @@ vec3 taa_findClosestFragment3x3(vec2 uv)
     vec3 dbr = vec3( 1, 1, taa_fetchDepth(uv + dv + du));
 
     vec3 dmin = dtl;
-    if (ZCMP_GT(dmin.z, dtc.z)) dmin = dtc;
-    if (ZCMP_GT(dmin.z, dtr.z)) dmin = dtr;
+    dmin = mix(dmin, dtc, ZCMP_GT(dmin.z, dtc.z));
+    dmin = mix(dmin, dtr, ZCMP_GT(dmin.z, dtr.z));
 
-    if (ZCMP_GT(dmin.z, dml.z)) dmin = dml;
-    if (ZCMP_GT(dmin.z, dmc.z)) dmin = dmc;
-    if (ZCMP_GT(dmin.z, dmr.z)) dmin = dmr;
+    dmin = mix(dmin, dml, ZCMP_GT(dmin.z, dml.z));
+    dmin = mix(dmin, dmc, ZCMP_GT(dmin.z, dmc.z));
+    dmin = mix(dmin, dmr, ZCMP_GT(dmin.z, dmr.z));
 
-    if (ZCMP_GT(dmin.z, dbl.z)) dmin = dbl;
-    if (ZCMP_GT(dmin.z, dbc.z)) dmin = dbc;
-    if (ZCMP_GT(dmin.z, dbr.z)) dmin = dbr;
+    dmin = mix(dmin, dbl, ZCMP_GT(dmin.z, dbl.z));
+    dmin = mix(dmin, dbc, ZCMP_GT(dmin.z, dbc.z));
+    dmin = mix(dmin, dbr, ZCMP_GT(dmin.z, dbr.z));
 
     return vec3(uv + dd.xy * dmin.xy, dmin.z);
 }
@@ -189,49 +185,46 @@ vec2 taa_fetchVelocityMapBest(vec2 uv) {
     vec2 dbc = taa_fetchVelocityMap(uv + dv);
     vec2 dbr = taa_fetchVelocityMap(uv + dv + du);
 
-    vec3 best = vec3(dtl, dot(dtl,dtl));
+    vec3 best = vec3(dtl, dot(dtl, dtl));
 
-    float testSpeed = dot(dtc,dtc);
-    if (testSpeed > best.z) { best = vec3(dtc, testSpeed); }
-    testSpeed = dot(dtr,dtr);
-    if (testSpeed > best.z) { best = vec3(dtr, testSpeed); }
+    float testSpeed = dot(dtc, dtc);
+    mix(best, vec3(dtc, testSpeed), float(testSpeed > best.z));
+    testSpeed = dot(dtr, dtr);
+    mix(best, vec3(dtr, testSpeed), float(testSpeed > best.z));
 
-    testSpeed = dot(dml,dml);
-    if (testSpeed > best.z) { best = vec3(dml, testSpeed); }
-    testSpeed = dot(dmc,dmc);
-    if (testSpeed > best.z) { best = vec3(dmc, testSpeed); }
-    testSpeed = dot(dmr,dmr);
-    if (testSpeed > best.z) { best = vec3(dmr, testSpeed); }
+    testSpeed = dot(dml, dml);
+    mix(best, vec3(dml, testSpeed), float(testSpeed > best.z));
+    testSpeed = dot(dmc, dmc);
+    mix(best, vec3(dmc, testSpeed), float(testSpeed > best.z));
+    testSpeed = dot(dmr, dmr);
+    mix(best, vec3(dmr, testSpeed), float(testSpeed > best.z));
 
-    testSpeed = dot(dbl,dbl);
-    if (testSpeed > best.z) { best = vec3(dbl, testSpeed); }
-    testSpeed = dot(dbc,dbc);
-    if (testSpeed > best.z) { best = vec3(dbc, testSpeed); }
-    testSpeed = dot(dbr,dbr);
-    if (testSpeed > best.z) { best = vec3(dbr, testSpeed); }
+    testSpeed = dot(dbl, dbl);
+    mix(best, vec3(dbl, testSpeed), float(testSpeed > best.z));
+    testSpeed = dot(dbc, dbc);
+    mix(best, vec3(dbc, testSpeed), float(testSpeed > best.z));
+    testSpeed = dot(dbr, dbr);
+    mix(best, vec3(dbr, testSpeed), float(testSpeed > best.z));
 
     return best.xy;
 }
 
 vec2 taa_fromFragUVToEyeUVAndSide(vec2 fragUV, out int stereoSide) {
     vec2 eyeUV = fragUV;
-    stereoSide = 0;
-    if (isStereo()) {
-        if (eyeUV.x > 0.5) {
-            eyeUV.x -= 0.5;
-            stereoSide = 1;
-        }
-        eyeUV.x *= 2.0;
-    }
+
+    float check = float(isStereo());
+    float check2 = float(eyeUV.x > 0.5);
+    eyeUV.x -= check * check2 * 0.5;
+    stereoSide = int(check * check2);
+    eyeUV.x *= 1.0 + check;
     return eyeUV;
 }
 
 vec2 taa_fromEyeUVToFragUV(vec2 eyeUV, int stereoSide) {
     vec2 fragUV = eyeUV;
-    if (isStereo()) {
-        fragUV.x *= 0.5;
-        fragUV.x += float(stereoSide)*0.5;
-    }
+    float check = float(isStereo());
+    fragUV.x *= 1.0 - 0.5 * check;
+    fragUV.x += check * float(stereoSide) * 0.5;
     return fragUV;
 }
 
@@ -247,10 +240,8 @@ vec2 taa_fetchSourceAndHistory(vec2 fragUV, vec2 fragVelocity, out vec3 sourceCo
     vec2 prevFragUV = taa_computePrevFragAndEyeUV(fragUV, fragVelocity, prevEyeUV);
     sourceColor = taa_fetchSourceMap(fragUV).xyz;
 
-    historyColor = sourceColor;
-    if (!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))) {
-        historyColor = taa_fetchHistoryMap(prevFragUV).xyz;
-    }
+    historyColor = mix(sourceColor, taa_fetchHistoryMap(prevFragUV).xyz, float(!(any(lessThan(prevEyeUV, vec2(0.0))) || any(greaterThan(prevEyeUV, vec2(1.0))))));
+
     return prevFragUV;
 }
 
@@ -405,10 +396,11 @@ vec3 taa_clampColor(vec3 colorMin, vec3 colorMax, vec3 colorSource, vec3 color) 
     vec3 a_unit = abs(v_unit);
     float ma_unit = max(a_unit.x, max(a_unit.y, a_unit.z));
 
-    if (ma_unit > 1.0)
+    if (ma_unit > 1.0) {
         return p_clip + v_clip / ma_unit;
-    else
-        return q;// point inside aabb        
+    } else {
+        return q;// point inside aabb
+    }
 }
 
 vec3 taa_evalConstrainColor(vec3 sourceColor, vec2 sourceUV, vec2 sourceVel, vec3 candidateColor) {
@@ -514,10 +506,6 @@ vec3 taa_evalFXAA(vec2 fragUV) {
 
     // compare luma of new samples to the luma range of the original neighborhood
     // if the new samples exceed this range, just use the first two samples instead of all four
-    if (lumaB < lumaMin || lumaB > lumaMax) {
-        return rgbA;
-    } else {
-        return rgbB;
-    }
+    return mix(rgbB, rgbA, float(lumaB < lumaMin || lumaB > lumaMax));
 }
 

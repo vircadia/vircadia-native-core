@@ -10,7 +10,7 @@ import "avatarapp"
 Rectangle {
     id: root
     width: 480
-	height: 706
+    height: 706
 
     property bool keyboardEnabled: true
     property bool keyboardRaised: false
@@ -254,7 +254,9 @@ Rectangle {
         onSaveClicked: function() {
             var avatarSettings = {
                 dominantHand : settings.dominantHandIsLeft ? 'left' : 'right',
-                collisionsEnabled : settings.avatarCollisionsOn,
+                hmdAvatarAlignmentType : settings.hmdAvatarAlignmentTypeIsEyes ? 'eyes' : 'head',
+                collisionsEnabled : settings.environmentCollisionsOn,
+                otherAvatarsCollisionsEnabled : settings.otherAvatarsCollisionsOn,
                 animGraphOverrideUrl : settings.avatarAnimationOverrideJSON,
                 collisionSoundUrl : settings.avatarCollisionSoundUrl
             };
@@ -415,7 +417,7 @@ Rectangle {
                 width: 21.2
                 height: 19.3
                 source: isAvatarInFavorites ? '../../images/FavoriteIconActive.svg' : '../../images/FavoriteIconInActive.svg'
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
 
             // TextStyle5
@@ -424,7 +426,7 @@ Rectangle {
                 Layout.fillWidth: true
                 text: isAvatarInFavorites ? avatarName : "Add to Favorites"
                 elide: Qt.ElideRight
-                anchors.verticalCenter: parent.verticalCenter
+                Layout.alignment: Qt.AlignVCenter
             }
         }
 

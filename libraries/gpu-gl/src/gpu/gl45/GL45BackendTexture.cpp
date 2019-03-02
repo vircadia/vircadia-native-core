@@ -24,6 +24,10 @@
 #include <gpu/TextureTable.h>
 #include <gpu/gl/GLTexelFormat.h>
 
+static const QString FORCE_MOBILE_TEXTURES_STRING{ "HIFI_FORCE_MOBILE_TEXTURES" };
+static bool FORCE_MOBILE_TEXTURES = QProcessEnvironment::systemEnvironment().contains(FORCE_MOBILE_TEXTURES_STRING);
+
+
 using namespace gpu;
 using namespace gpu::gl;
 using namespace gpu::gl45;
@@ -45,9 +49,10 @@ bool GL45Backend::supportedTextureFormat(const gpu::Element& format) {
         case gpu::Semantic::COMPRESSED_EAC_RED_SIGNED:
         case gpu::Semantic::COMPRESSED_EAC_XY:
         case gpu::Semantic::COMPRESSED_EAC_XY_SIGNED:
-            return false;
+            return FORCE_MOBILE_TEXTURES;
+
         default:
-            return true;
+            return FORCE_MOBILE_TEXTURES ? !format.isCompressed() : true;
     }
 }
 
@@ -375,11 +380,22 @@ void GL45FixedAllocationTexture::allocateStorage() const {
     const auto dimensions = _gpuObject.getDimensions();
     const auto mips = _gpuObject.getNumMips();
     const auto numSlices = _gpuObject.getNumSlices();
+    const auto numSamples = _gpuObject.getNumSamples();
 
-    if (!_gpuObject.isArray()) {
-        glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+
+    if (!_gpuObject.isMultisample()) {
+        if (!_gpuObject.isArray()) {
+            glTextureStorage2D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y);
+        } else {
+            glTextureStorage3D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices);
+        }
     } else {
-        glTextureStorage3D(_id, mips, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices);
+        if (!_gpuObject.isArray()) {
+            glTextureStorage2DMultisample(_id, numSamples, texelFormat.internalFormat, dimensions.x, dimensions.y, GL_FALSE);
+        }
+        else {
+            glTextureStorage3DMultisample(_id, numSamples, texelFormat.internalFormat, dimensions.x, dimensions.y, numSlices, GL_FALSE);
+        }
     }
 
     glTextureParameteri(_id, GL_TEXTURE_BASE_LEVEL, 0);

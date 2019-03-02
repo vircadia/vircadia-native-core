@@ -14,6 +14,11 @@
 #include <QtCore/QDebug>
 #include <QtCore/QPluginLoader>
 
+//#define HIFI_PLUGINMANAGER_DEBUG
+#if defined(HIFI_PLUGINMANAGER_DEBUG)
+#include <QJsonDocument>
+#endif
+
 #include <DependencyManager.h>
 #include <UserActivityLogger.h>
 
@@ -44,32 +49,23 @@ PluginManagerPointer PluginManager::getInstance() {
     return DependencyManager::get<PluginManager>();
 }
 
-QString getPluginNameFromMetaData(QJsonObject object) {
+QString getPluginNameFromMetaData(const QJsonObject& object) {
     static const char* METADATA_KEY = "MetaData";
     static const char* NAME_KEY = "name";
-
-    if (!object.contains(METADATA_KEY) || !object[METADATA_KEY].isObject()) {
-        return QString();
-    }
-
-    auto metaDataObject = object[METADATA_KEY].toObject();
-
-    if (!metaDataObject.contains(NAME_KEY) || !metaDataObject[NAME_KEY].isString()) {
-        return QString();
-    }
-
-    return metaDataObject[NAME_KEY].toString();
+    return object[METADATA_KEY][NAME_KEY].toString("");
 }
 
-QString getPluginIIDFromMetaData(QJsonObject object) {
+QString getPluginIIDFromMetaData(const QJsonObject& object) {
     static const char* IID_KEY = "IID";
-
-    if (!object.contains(IID_KEY) || !object[IID_KEY].isString()) {
-        return QString();
-    }
-
-    return object[IID_KEY].toString();
+    return object[IID_KEY].toString("");
 }
+
+int getPluginInterfaceVersionFromMetaData(const QJsonObject& object) {
+    static const QString METADATA_KEY = "MetaData";
+    static const QString NAME_KEY = "version";
+    return object[METADATA_KEY][NAME_KEY].toInt(0);
+}
+
 
 QStringList preferredDisplayPlugins;
 QStringList disabledDisplays;
@@ -88,10 +84,7 @@ bool isDisabled(QJsonObject metaData) {
     return false;
 }
 
-using Loader = QSharedPointer<QPluginLoader>;
-using LoaderList = QList<Loader>;
-
-const LoaderList& getLoadedPlugins() {
+ auto PluginManager::getLoadedPlugins() const -> const LoaderList& {
     static std::once_flag once;
     static LoaderList loadedPlugins;
     std::call_once(once, [&] {
@@ -115,10 +108,26 @@ const LoaderList& getLoadedPlugins() {
             for (auto plugin : candidates) {
                 qCDebug(plugins) << "Attempting plugin" << qPrintable(plugin);
                 QSharedPointer<QPluginLoader> loader(new QPluginLoader(pluginPath + plugin));
-
-                if (isDisabled(loader->metaData())) {
-                    qWarning() << "Plugin" << qPrintable(plugin) << "is disabled";
+                const QJsonObject pluginMetaData = loader->metaData();
+#if defined(HIFI_PLUGINMANAGER_DEBUG)
+                QJsonDocument metaDataDoc(pluginMetaData);
+                qCInfo(plugins) << "Metadata for " << qPrintable(plugin) << ": " << QString(metaDataDoc.toJson());
+#endif
+                if (isDisabled(pluginMetaData)) {
+                    qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "is disabled";
                     // Skip this one, it's disabled
+                    continue;
+                }
+
+                if (!_pluginFilter(pluginMetaData)) {
+                    qCDebug(plugins) << "Plugin" << qPrintable(plugin) << "doesn't pass provided filter";
+                    continue;
+                }
+
+                if (getPluginInterfaceVersionFromMetaData(pluginMetaData) != HIFI_PLUGIN_INTERFACE_VERSION) {
+                    qCWarning(plugins) << "Plugin" << qPrintable(plugin) << "interface version doesn't match, not loading:"
+                                       << getPluginInterfaceVersionFromMetaData(pluginMetaData)
+                                       << "doesn't match" << HIFI_PLUGIN_INTERFACE_VERSION;
                     continue;
                 }
 
@@ -177,6 +186,22 @@ const SteamClientPluginPointer PluginManager::getSteamClientPlugin() {
         }
     });
     return steamClientPlugin;
+}
+
+const OculusPlatformPluginPointer PluginManager::getOculusPlatformPlugin() {
+    static OculusPlatformPluginPointer oculusPlatformPlugin;
+    static std::once_flag once;
+    std::call_once(once, [&] {
+        // Now grab the dynamic plugins
+        for (auto loader : getLoadedPlugins()) {
+            OculusPlatformProvider* oculusPlatformProvider = qobject_cast<OculusPlatformProvider*>(loader->instance());
+            if (oculusPlatformProvider) {
+                oculusPlatformPlugin = oculusPlatformProvider->getOculusPlatformPlugin();
+                break;
+            }
+        }
+    });
+    return oculusPlatformPlugin;
 }
 
 const DisplayPluginList& PluginManager::getDisplayPlugins() {

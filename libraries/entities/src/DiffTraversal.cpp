@@ -193,7 +193,8 @@ DiffTraversal::DiffTraversal() {
     _path.reserve(MIN_PATH_DEPTH);
 }
 
-DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root) {
+DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View& view, EntityTreeElementPointer root,
+                                                       bool forceFirstPass) {
     assert(root);
     // there are three types of traversal:
     //
@@ -212,7 +213,7 @@ DiffTraversal::Type DiffTraversal::prepareNewTraversal(const DiffTraversal::View
 
     Type type;
     // If usesViewFrustum changes, treat it as a First traversal
-    if (_completedView.startTime == 0 || _currentView.usesViewFrustums() != _completedView.usesViewFrustums()) {
+    if (forceFirstPass || _completedView.startTime == 0 || _currentView.usesViewFrustums() != _completedView.usesViewFrustums()) {
         type = Type::First;
         _currentView.viewFrustums = view.viewFrustums;
         _currentView.lodScaleFactor = view.lodScaleFactor;

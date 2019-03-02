@@ -171,10 +171,10 @@ public:
 
     // Bind the pipeline and get the state to render static geometry
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true);
+                                          bool unlit = false, bool depthBias = false, bool isAntiAliased = true, bool forward = false);
     // Get the pipeline to render static geometry
     static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
-                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true);
+                                          bool unlit = false, bool depthBias = false, bool fading = false, bool isAntiAliased = true, bool forward = false);
 
     void bindWebBrowserProgram(gpu::Batch& batch, bool transparent = false);
     gpu::PipelinePointer getWebBrowserProgram(bool transparent);
@@ -183,6 +183,8 @@ public:
 
     render::ShapePipelinePointer getOpaqueShapePipeline() { assert(_simpleOpaquePipeline != nullptr); return _simpleOpaquePipeline; }
     render::ShapePipelinePointer getTransparentShapePipeline() { assert(_simpleTransparentPipeline != nullptr); return _simpleTransparentPipeline; }
+    render::ShapePipelinePointer getForwardOpaqueShapePipeline() { assert(_forwardSimpleOpaquePipeline != nullptr); return _forwardSimpleOpaquePipeline; }
+    render::ShapePipelinePointer getForwardTransparentShapePipeline() { assert(_forwardSimpleTransparentPipeline != nullptr); return _forwardSimpleTransparentPipeline; }
     render::ShapePipelinePointer getOpaqueFadeShapePipeline() { assert(_simpleOpaqueFadePipeline != nullptr); return _simpleOpaqueFadePipeline; }
     render::ShapePipelinePointer getTransparentFadeShapePipeline() { assert(_simpleTransparentFadePipeline != nullptr); return _simpleTransparentFadePipeline; }
     render::ShapePipelinePointer getOpaqueShapePipeline(bool isFading);
@@ -270,11 +272,7 @@ public:
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
         int majorRows, int majorCols, float majorEdge,
         int minorRows, int minorCols, float minorEdge,
-        const glm::vec4& color, bool isLayered, int id);
-    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
-        int rows, int cols, float edge, const glm::vec4& color, bool isLayered, int id) {
-        renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, isLayered, id);
-    }
+        const glm::vec4& color, int id);
 
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id);
 
@@ -414,9 +412,8 @@ private:
     };
     using GridBuffer = gpu::BufferView;
     void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered);
-    gpu::PipelinePointer _gridPipeline;
-    gpu::PipelinePointer _gridPipelineLayered;
-    int _gridSlot;
+    gpu::PipelinePointer _gridPipelineOpaque;
+    gpu::PipelinePointer _gridPipelineTransparent;
 
     class BatchItemDetails {
     public:
@@ -470,13 +467,19 @@ private:
     QHash<int, Vec2FloatPairPair> _lastRegisteredGridBuffer;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
+    // FIXME: clean these up
     static gpu::ShaderPointer _simpleShader;
     static gpu::ShaderPointer _transparentShader;
     static gpu::ShaderPointer _unlitShader;
+    static gpu::ShaderPointer _forwardSimpleShader;
+    static gpu::ShaderPointer _forwardTransparentShader;
+    static gpu::ShaderPointer _forwardUnlitShader;
     static gpu::ShaderPointer _simpleFadeShader;
     static gpu::ShaderPointer _unlitFadeShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
+    static render::ShapePipelinePointer _forwardSimpleOpaquePipeline;
+    static render::ShapePipelinePointer _forwardSimpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
@@ -490,7 +493,7 @@ private:
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false);
+        bool unlit = false, bool depthBias = false, bool forward = false);
     static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false);
 };

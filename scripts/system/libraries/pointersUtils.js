@@ -145,7 +145,7 @@ Pointer = function(hudLayer, pickType, pointerData) {
                 mode = "hold";
             } else if (triggerClicks[this.hand]) {
                 mode = "full";
-            } else if (triggerValues[this.hand] > TRIGGER_ON_VALUE || this.allwaysOn) {
+            } else if (triggerValues[this.hand] > TRIGGER_ON_VALUE || this.alwaysOn) {
                 mode = "half";
             }
         }
@@ -171,7 +171,7 @@ PointerManager = function() {
         var index = laserParams.hand;
         if (index < this.pointers.length && index >= 0) {
             this.pointers[index].makeVisible();
-            this.pointers[index].allwaysOn = laserParams.allwaysOn;
+            this.pointers[index].alwaysOn = laserParams.alwaysOn;
         }
     };
 

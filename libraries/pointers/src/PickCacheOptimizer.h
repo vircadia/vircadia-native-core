@@ -37,7 +37,7 @@ template<typename T>
 class PickCacheOptimizer {
 
 public:
-    QVector4D update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks, uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD);
+    QVector3D update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks, uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD);
 
 protected:
     typedef std::unordered_map<T, std::unordered_map<PickCacheKey, PickResultPointer>> PickCache;
@@ -67,9 +67,9 @@ void PickCacheOptimizer<T>::cacheResult(const bool needToCompareResults, const P
 }
 
 template<typename T>
-QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks,
+QVector3D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared_ptr<PickQuery>>& picks,
         uint32_t& nextToUpdate, uint64_t expiry, bool shouldPickHUD) {
-    QVector4D numIntersectionsComputed;
+    QVector3D numIntersectionsComputed;
     PickCache results;
     const uint32_t INVALID_PICK_ID = 0;
     auto itr = picks.begin();
@@ -85,10 +85,10 @@ QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared
         T mathematicalPick = pick->getMathematicalPick();
         PickResultPointer res = pick->getDefaultResult(mathematicalPick.toVariantMap());
 
-        if (!pick->isEnabled() || pick->getFilter().doesPickNothing() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
+        if (!pick->isEnabled() || pick->getMaxDistance() < 0.0f || !mathematicalPick) {
             pick->setPickResult(res);
         } else {
-            if (pick->getFilter().doesPickEntities()) {
+            if (pick->getFilter().doesPickDomainEntities() || pick->getFilter().doesPickAvatarEntities() || pick->getFilter().doesPickLocalEntities()) {
                 PickCacheKey entityKey = { pick->getFilter().getEntityFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, entityKey)) {
                     PickResultPointer entityRes = pick->getEntityIntersection(mathematicalPick);
@@ -99,22 +99,11 @@ QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared
                 }
             }
 
-            if (pick->getFilter().doesPickOverlays()) {
-                PickCacheKey overlayKey = { pick->getFilter().getOverlayFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
-                if (!checkAndCompareCachedResults(mathematicalPick, results, res, overlayKey)) {
-                    PickResultPointer overlayRes = pick->getOverlayIntersection(mathematicalPick);
-                    numIntersectionsComputed[1]++;
-                    if (overlayRes) {
-                        cacheResult(overlayRes->doesIntersect(), overlayRes, overlayKey, res, mathematicalPick, results, pick);
-                    }
-                }
-            }
-
             if (pick->getFilter().doesPickAvatars()) {
                 PickCacheKey avatarKey = { pick->getFilter().getAvatarFlags(), pick->getIncludeItems(), pick->getIgnoreItems() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, avatarKey)) {
                     PickResultPointer avatarRes = pick->getAvatarIntersection(mathematicalPick);
-                    numIntersectionsComputed[2]++;
+                    numIntersectionsComputed[1]++;
                     if (avatarRes) {
                         cacheResult(avatarRes->doesIntersect(), avatarRes, avatarKey, res, mathematicalPick, results, pick);
                     }
@@ -126,7 +115,7 @@ QVector4D PickCacheOptimizer<T>::update(std::unordered_map<uint32_t, std::shared
                 PickCacheKey hudKey = { pick->getFilter().getHUDFlags(), QVector<QUuid>(), QVector<QUuid>() };
                 if (!checkAndCompareCachedResults(mathematicalPick, results, res, hudKey)) {
                     PickResultPointer hudRes = pick->getHUDIntersection(mathematicalPick);
-                    numIntersectionsComputed[3]++;
+                    numIntersectionsComputed[2]++;
                     if (hudRes) {
                         cacheResult(true, hudRes, hudKey, res, mathematicalPick, results, pick);
                     }

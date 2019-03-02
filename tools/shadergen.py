@@ -49,11 +49,36 @@ def getCommonScribeArgs(scribefile, includeLibs):
     scribeArgs.append(scribefile)
     return scribeArgs
 
-def getDialectAndVariantHeaders(dialect, variant):
+extensionsHeaderMutex = Lock()
+
+def getExtensionsHeader(dialect, variant, extensions):
+    extensionHeader = '{}/extensions_{}_{}.glsl'.format(args.build_dir, dialect, variant)
+    global extensionsHeaderMutex
+    extensionsHeaderMutex.acquire()
+    if not os.path.exists(extensionHeader):
+        extensionsDefines = []
+        for extension in extensions:
+            extensionsDefines.append('#define HAVE_{}'.format(extension))
+        # make sure we end with a line feed
+        extensionsDefines.append("\r\n")
+        with open(extensionHeader, "w") as f:
+            f.write('\r\n'.join(extensionsDefines))
+    extensionsHeaderMutex.release()
+    return extensionHeader
+
+
+def getDialectAndVariantHeaders(dialect, variant, extensions=None):
+    result = []
     headerPath = args.source_dir + '/libraries/shaders/headers/'
-    variantHeader = headerPath + ('stereo.glsl' if (variant == 'stereo') else 'mono.glsl')
+    versionHeader = headerPath + dialect + '/version.glsl'
+    result.append(versionHeader)
+    if extensions is not None:
+        result.append(getExtensionsHeader(dialect, variant, extensions))
     dialectHeader = headerPath + dialect + '/header.glsl'
-    return [dialectHeader, variantHeader]
+    result.append(dialectHeader)
+    variantHeader = headerPath + ('stereo.glsl' if (variant == 'stereo') else 'mono.glsl')
+    result.append(variantHeader)
+    return result
 
 class ScribeDependenciesCache:
     cache = {}
@@ -170,7 +195,7 @@ def processCommand(line):
 
         scribeDepCache.gen(scribeFile, libs, dialect, variant)
         scribeArgs = getCommonScribeArgs(scribeFile, libs)
-        for header in getDialectAndVariantHeaders(dialect, variant):
+        for header in getDialectAndVariantHeaders(dialect, variant, args.extensions):
             scribeArgs.extend(['-H', header])
         scribeArgs.extend(['-o', unoptGlslFile])
         executeSubprocess(scribeArgs)
@@ -222,6 +247,7 @@ def main():
 
 
 parser = ArgumentParser(description='Generate shader artifacts.')
+parser.add_argument('--extensions', type=str, nargs='*', help='Available extensions for the shaders')
 parser.add_argument('--commands', type=argparse.FileType('r'), help='list of commands to execute')
 parser.add_argument('--tools-dir', type=str, help='location of the host compatible binaries')
 parser.add_argument('--build-dir', type=str, help='The build directory base path')
@@ -234,8 +260,8 @@ args = None
 if len(sys.argv) == 1:
     # for debugging
     sourceDir = expanduser('~/git/hifi')
-    toolsDir = os.path.join(expanduser('~/git/vcpkg'), 'installed', 'x64-windows', 'tools')
-    buildPath = sourceDir + '/build'
+    toolsDir = 'd:/hifi/vcpkg/android/fd82f0a8/installed/x64-windows/tools'
+    buildPath = sourceDir + '/build_android'
     commandsPath = buildPath + '/libraries/shaders/shadergen.txt'
     shaderDir = buildPath + '/libraries/shaders'
     testArgs = '--commands {} --tools-dir {} --build-dir {} --source-dir {}'.format(
@@ -243,6 +269,7 @@ if len(sys.argv) == 1:
     ).split()
     testArgs.append('--debug')
     testArgs.append('--force')
+    testArgs.extend('--extensions EXT_clip_cull_distance'.split())
     #testArgs.append('--dry-run')
     args = parser.parse_args(testArgs)
 else:

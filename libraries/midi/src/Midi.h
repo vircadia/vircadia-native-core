@@ -25,6 +25,7 @@
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  */
 
 class Midi : public QObject, public Dependency {

@@ -26,10 +26,10 @@ QScriptValue variantToScriptValue(QVariant& qValue, QScriptEngine& scriptEngine)
         case QVariant::Double:
             return qValue.toDouble();
             break;
-        case QVariant::String: {
+        case QVariant::String:
+        case QVariant::Url:
             return scriptEngine.newVariant(qValue);
             break;
-        }
         case QVariant::Map: {
             QVariantMap childMap = qValue.toMap();
             return variantMapToScriptValue(childMap, scriptEngine);
@@ -41,6 +41,9 @@ QScriptValue variantToScriptValue(QVariant& qValue, QScriptEngine& scriptEngine)
             break;
         }
         default:
+            if (qValue.canConvert<float>()) {
+                return qValue.toFloat();
+            }
             qCDebug(shared) << "unhandled QScript type" << qValue.type();
             break;
     }

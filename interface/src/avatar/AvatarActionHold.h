@@ -26,6 +26,8 @@ public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
+    virtual void removeFromOwner() override;
+
     virtual bool updateArguments(QVariantMap arguments) override;
     virtual QVariantMap getArguments() override;
 

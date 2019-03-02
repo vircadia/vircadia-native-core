@@ -18,9 +18,12 @@ public:
     AudioGate(int sampleRate, int numChannels);
     ~AudioGate();
 
-    // interleaved int16_t input/output (in-place is allowed)
-    void render(int16_t* input, int16_t* output, int numFrames);
-    void removeDC(int16_t* input, int16_t* output, int numFrames);
+    //
+    // Process interleaved int16_t input/output (in-place is allowed).
+    // Returns true when output is non-zero.
+    //
+    bool render(int16_t* input, int16_t* output, int numFrames);
+    bool removeDC(int16_t* input, int16_t* output, int numFrames);
 
     void setThreshold(float threshold);
     void setRelease(float release);

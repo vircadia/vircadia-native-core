@@ -7,6 +7,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 const DELTA_X_FOCUS_THRESHOLD = 1;
+const ENTER_KEY = 13;
 
 function DraggableNumber(min, max, step, decimals, dragStart, dragEnd) {
     this.min = min;
@@ -38,7 +39,7 @@ DraggableNumber.prototype = {
     },
 
     mouseDown: function(event) {
-        if (event.target === this.elText) {
+        if (event.target === this.elText && !this.isDisabled()) {
             this.initialMouseEvent = event;
             this.lastMouseEvent = event;
             document.addEventListener("mousemove", this.onDocumentMouseMove);
@@ -47,7 +48,7 @@ DraggableNumber.prototype = {
     },
     
     mouseUp: function(event) {
-        if (event.target === this.elText && this.initialMouseEvent) {
+        if (!this.dragging && event.target === this.elText && this.initialMouseEvent) {
             let dx = event.clientX - this.initialMouseEvent.clientX;
             if (Math.abs(dx) <= DELTA_X_FOCUS_THRESHOLD) {
                 this.showInput();
@@ -58,32 +59,33 @@ DraggableNumber.prototype = {
     },
     
     documentMouseMove: function(event) {
-        if (this.initialMouseEvent) {
+        if (!this.dragging && this.initialMouseEvent) {
             let dxFromInitial = event.clientX - this.initialMouseEvent.clientX;
-            if (Math.abs(dxFromInitial) > DELTA_X_FOCUS_THRESHOLD && this.lastMouseEvent) {
-                let initialValue = this.elInput.value;
-                let dx = event.clientX - this.lastMouseEvent.clientX;
-                let changeValue = dx !== 0;
-                if (changeValue) {
-                    while (dx !== 0) {
-                        if (dx > 0) {
-                            this.elInput.stepUp();
-                            --dx;
-                        } else {
-                            this.elInput.stepDown();
-                            ++dx;
-                        }
-                    }
-                    this.inputChange();
-                    if (this.valueChangeFunction) {
-                        this.valueChangeFunction();
+            if (Math.abs(dxFromInitial) > DELTA_X_FOCUS_THRESHOLD) {
+                if (this.dragStartFunction) {
+                    this.dragStartFunction();
+                }
+                this.dragging = true;
+            }
+            this.lastMouseEvent = event;
+        }
+        if (this.dragging && this.lastMouseEvent) {
+            let initialValue = this.elInput.value;
+            let dx = event.clientX - this.lastMouseEvent.clientX;
+            let changeValue = dx !== 0;
+            if (changeValue) {
+                while (dx !== 0) {
+                    if (dx > 0) {
+                        this.elInput.stepUp();
+                        --dx;
+                    } else {
+                        this.elInput.stepDown();
+                        ++dx;
                     }
                 }
-                if (!this.dragging) {
-                    if (this.dragStartFunction) {
-                        this.dragStartFunction();
-                    }
-                    this.dragging = true;
+                this.inputChange();
+                if (this.valueChangeFunction) {
+                    this.valueChangeFunction();
                 }
             }
             this.lastMouseEvent = event;
@@ -103,18 +105,22 @@ DraggableNumber.prototype = {
     },
     
     stepUp: function() {
-        this.elInput.stepUp();
-        this.inputChange();
-        if (this.valueChangeFunction) {
-            this.valueChangeFunction();
+        if (!this.isDisabled()) {
+            this.elInput.value = parseFloat(this.elInput.value) + this.step;
+            this.inputChange();
+            if (this.valueChangeFunction) {
+                this.valueChangeFunction();
+            }
         }
     },
     
     stepDown: function() {
-        this.elInput.stepDown();
-        this.inputChange();
-        if (this.valueChangeFunction) {
-            this.valueChangeFunction();
+        if (!this.isDisabled()) {
+            this.elInput.value = parseFloat(this.elInput.value) - this.step;
+            this.inputChange();
+            if (this.valueChangeFunction) {
+                this.valueChangeFunction();
+            }
         }
     },
     
@@ -128,19 +134,44 @@ DraggableNumber.prototype = {
     },
 
     setValueChangeFunction: function(valueChangeFunction) {
-        if (this.valueChangeFunction) {
-            this.elInput.removeEventListener("change", this.valueChangeFunction);
-        }
         this.valueChangeFunction = valueChangeFunction.bind(this.elInput);
         this.elInput.addEventListener("change", this.valueChangeFunction);
     },
     
     inputChange: function() {
-        this.setValue(this.elInput.value);
+        let value = this.elInput.value;
+        if (this.max !== undefined) {
+            value = Math.min(this.max, value);
+        }
+        if (this.min !== undefined) {
+            value = Math.max(this.min, value);
+        }
+        this.setValue(value);
     },
     
     inputBlur: function(ev) {
         this.hideInput();
+    },
+
+    keyPress: function(event) {
+        if (event.keyCode === ENTER_KEY) {
+            this.inputBlur();
+        }
+    },
+    
+    isDisabled: function() {
+        return this.elText.getAttribute("disabled") === "disabled";
+    },
+    
+    updateMinMax: function(min, max) {
+        this.min = min;
+        this.max = max;
+        if (this.min !== undefined) {
+            this.elInput.setAttribute("min", this.min);
+        }
+        if (this.max !== undefined) {
+            this.elInput.setAttribute("max", this.max);
+        }
     },
     
     initialize: function() {
@@ -152,12 +183,13 @@ DraggableNumber.prototype = {
         this.onStepDown = this.stepDown.bind(this);
         this.onInputChange = this.inputChange.bind(this);
         this.onInputBlur = this.inputBlur.bind(this);
+        this.onKeyPress = this.keyPress.bind(this);
         
         this.elDiv = document.createElement('div');
         this.elDiv.className = "draggable-number";
         
-        this.elText = document.createElement('label');
-        this.elText.className = "draggable-number text";
+        this.elText = document.createElement('span');
+        this.elText.className = "text";
         this.elText.innerText = " ";
         this.elText.style.visibility = "visible";
         this.elText.addEventListener("mousedown", this.onMouseDown);
@@ -165,33 +197,29 @@ DraggableNumber.prototype = {
         
         this.elLeftArrow = document.createElement('span');
         this.elRightArrow = document.createElement('span');
-        this.elLeftArrow.className = 'draggable-number left-arrow';
+        this.elLeftArrow.className = 'left-arrow';
         this.elLeftArrow.innerHTML = 'D';
         this.elLeftArrow.addEventListener("click", this.onStepDown);
-        this.elRightArrow.className = 'draggable-number right-arrow';
+        this.elRightArrow.className = 'right-arrow';
         this.elRightArrow.innerHTML = 'D';
         this.elRightArrow.addEventListener("click", this.onStepUp);
         
         this.elInput = document.createElement('input');
-        this.elInput.className = "draggable-number input";
+        this.elInput.className = "input";
         this.elInput.setAttribute("type", "number");
-        if (this.min !== undefined) {
-            this.elInput.setAttribute("min", this.min);
-        }
-        if (this.max !== undefined) {
-            this.elInput.setAttribute("max", this.max);
-        }
+        this.updateMinMax(this.min, this.max);
         if (this.step !== undefined) {
             this.elInput.setAttribute("step", this.step);
         }
         this.elInput.style.opacity = 0;
         this.elInput.addEventListener("change", this.onInputChange);
         this.elInput.addEventListener("blur", this.onInputBlur);
+        this.elInput.addEventListener("keypress", this.onKeyPress);
         this.elInput.addEventListener("focus", this.showInput.bind(this));
         
         this.elDiv.appendChild(this.elLeftArrow);
+        this.elDiv.appendChild(this.elText);
         this.elDiv.appendChild(this.elInput);
         this.elDiv.appendChild(this.elRightArrow);
-        this.elDiv.appendChild(this.elText);
     }
 };

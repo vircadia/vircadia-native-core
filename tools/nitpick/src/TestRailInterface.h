@@ -11,10 +11,10 @@
 #ifndef hifi_test_testrail_interface_h
 #define hifi_test_testrail_interface_h
 
-#include "ui/BusyWindow.h"
-#include "ui/TestRailTestCasesSelectorWindow.h"
-#include "ui/TestRailRunSelectorWindow.h"
-#include "ui/TestRailResultsSelectorWindow.h"
+#include "BusyWindow.h"
+#include "TestRailTestCasesSelectorWindow.h"
+#include "TestRailRunSelectorWindow.h"
+#include "TestRailResultsSelectorWindow.h"
 
 #include <QDirIterator>
 #include <QtXml/QDomDocument>

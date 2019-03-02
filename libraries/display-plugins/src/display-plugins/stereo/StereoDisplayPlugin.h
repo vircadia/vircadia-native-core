@@ -28,6 +28,8 @@ public:
     // to the HMD plugins.  
     //virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
 
+    virtual void pluginUpdate() override {};
+
 protected:
     virtual bool internalActivate() override;
     virtual void internalDeactivate() override;

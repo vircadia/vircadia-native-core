@@ -45,6 +45,7 @@ public:
  *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {boolean} running - <em>Read-only.</em>
  */

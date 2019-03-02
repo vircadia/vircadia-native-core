@@ -37,7 +37,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.getTargetProps = function (controllerData) {
             var targetEntity = controllerData.rayPicks[this.hand].objectID;
-            if (targetEntity) {
+            if (targetEntity && controllerData.rayPicks[this.hand].type === RayPick.INTERSECTED_ENTITY) {
                 var targetProperties = Entities.getEntityProperties(targetEntity, DISPATCHER_PROPERTIES);
                 if (entityWantsFarTrigger(targetProperties)) {
                     return targetProperties;

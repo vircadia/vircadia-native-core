@@ -43,6 +43,7 @@ void main(void) {
     } else {
         sideOcclusionSize = ivec2( getOcclusionSideSize() );
     }
+
     ivec4 side = getStereoSideInfoFromWidth(fragPixelPos.x, sideOcclusionSize.x);
     // From now on, fragUVPos is the UV pos in the side
     fragUVPos = getSideUVFromFramebufferUV(side, fragUVPos);

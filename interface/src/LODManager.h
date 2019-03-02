@@ -19,13 +19,19 @@
 #include <SimpleMovingAverage.h>
 #include <render/Args.h>
 
+
 #ifdef Q_OS_ANDROID
-const float LOD_DEFAULT_QUALITY_LEVEL = 0.75f; // default quality level setting is High (lower framerate)
+const float LOD_DEFAULT_QUALITY_LEVEL = 0.2f; // default quality level setting is High (lower framerate)
 #else
 const float LOD_DEFAULT_QUALITY_LEVEL = 0.5f; // default quality level setting is Mid
 #endif
 const float LOD_MAX_LIKELY_DESKTOP_FPS = 60.0f; // this is essentially, V-synch fps
+#ifdef Q_OS_ANDROID
+const float LOD_MAX_LIKELY_HMD_FPS = 36.0f; // this is essentially, V-synch fps
+#else
 const float LOD_MAX_LIKELY_HMD_FPS = 90.0f; // this is essentially, V-synch fps
+#endif
+
 const float LOD_OFFSET_FPS = 5.0f; // offset of FPS to add for computing the target framerate
 
 class AABox;
@@ -36,6 +42,7 @@ class AABox;
   *
  * @hifi-interface
  * @hifi-client-entity
+ * @hifi-avatar
  *
  * @property {number} presentTime <em>Read-only.</em>
  * @property {number} engineRunTime <em>Read-only.</em>

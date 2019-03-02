@@ -77,7 +77,7 @@ local packet_types = {
   [22] = "ICEServerPeerInformation",
   [23] = "ICEServerQuery",
   [24] = "OctreeStats",
-  [25] = "UNUSED_PACKET_TYPE_1",
+  [25] = "SetAvatarTraits",
   [26] = "AvatarIdentityRequest",
   [27] = "AssignmentClientStatus",
   [28] = "NoisyMute",
@@ -151,12 +151,15 @@ local packet_types = {
   [96] = "OctreeDataFileReply",
   [97] = "OctreeDataPersist",
   [98] = "EntityClone",
-  [99] = "EntityQueryInitialResultsComplete"
+  [99] = "EntityQueryInitialResultsComplete",
+  [100] = "BulkAvatarTraits"
 }
 
 local unsourced_packet_types = {
   ["DomainList"] = true
 }
+
+local fragments = {}
 
 function p_hfudt.dissector(buf, pinfo, tree)
 
@@ -229,11 +232,15 @@ function p_hfudt.dissector(buf, pinfo, tree)
     -- read the obfuscation level
     local obfuscation_bits = bit32.band(0x03, bit32.rshift(first_word, 27))
     subtree:add(f_obfuscation_level, obfuscation_bits)
-
+    
     -- read the sequence number
     subtree:add(f_sequence_number, bit32.band(first_word, SEQUENCE_NUMBER_MASK))
 
     local payload_offset = 4
+
+    local message_number = 0
+    local message_part_number = 0
+    local message_position = 0
 
     -- if the message bit is set, handle the second word
     if message_bit == 1 then
@@ -242,7 +249,7 @@ function p_hfudt.dissector(buf, pinfo, tree)
       local second_word = buf(4, 4):le_uint()
 
       -- read message position from upper 2 bits
-      local message_position = bit32.rshift(second_word, 30)
+      message_position = bit32.rshift(second_word, 30)
       local position = subtree:add(f_message_position, message_position)
 
       if message_positions[message_position] ~= nil then
@@ -251,10 +258,17 @@ function p_hfudt.dissector(buf, pinfo, tree)
       end
 
       -- read message number from lower 30 bits
-      subtree:add(f_message_number, bit32.band(second_word, 0x3FFFFFFF))
+      message_number = bit32.band(second_word, 0x3FFFFFFF)
+      subtree:add(f_message_number, message_number)
 
       -- read the message part number
-      subtree:add(f_message_part_number, buf(8, 4):le_uint())
+      message_part_number = buf(8, 4):le_uint()
+      subtree:add(f_message_part_number, message_part_number)
+    end
+
+    if obfuscation_bits ~= 0 then
+      local newbuf = deobfuscate(message_bit, buf, obfuscation_bits)
+      buf = newbuf:tvb("Unobfuscated")
     end
 
     -- read the type
@@ -283,25 +297,85 @@ function p_hfudt.dissector(buf, pinfo, tree)
       i = i + 16
     end
 
-    -- Domain packets
-    if packet_type_text == "DomainList" then
-      Dissector.get("hf-domain"):call(buf(i):tvb(), pinfo, tree)
+    local payload_to_dissect = nil
+
+    -- check if we have part of a message that we need to re-assemble
+    -- before it can be dissected
+    if obfuscation_bits == 0 then
+      if message_bit == 1 and message_position ~= 0 then
+        if fragments[message_number] == nil then
+          fragments[message_number] = {}
+        end
+
+        if fragments[message_number][message_part_number] == nil then
+          fragments[message_number][message_part_number] = {}
+        end
+
+        -- set the properties for this fragment
+        fragments[message_number][message_part_number] = {
+          payload = buf(i):bytes()
+        }
+
+        -- if this is the last part, set our maximum part number
+        if message_position == 1 then
+          fragments[message_number].last_part_number = message_part_number
+        end
+
+        -- if we have the last part
+        -- enumerate our parts for this message and see if everything is present
+        if fragments[message_number].last_part_number ~= nil then
+          local i = 0
+          local has_all = true
+
+          local finalMessage = ByteArray.new()
+          local message_complete = true
+
+          while i <= fragments[message_number].last_part_number do
+            if fragments[message_number][i] ~= nil then
+              finalMessage = finalMessage .. fragments[message_number][i].payload
+            else
+              -- missing this part, have to break until we have it
+              message_complete = false
+            end
+
+            i = i + 1
+          end
+
+          if message_complete then
+            debug("Message " .. message_number .. " is " .. finalMessage:len())
+            payload_to_dissect = ByteArray.tvb(finalMessage, message_number)
+          end
+        end
+
+      else
+        payload_to_dissect = buf(i):tvb()
+      end
     end
 
-    -- AvatarData or BulkAvatarDataPacket
-    if packet_type_text == "AvatarData" or packet_type_text == "BulkAvatarData" then
-      Dissector.get("hf-avatar"):call(buf(i):tvb(), pinfo, tree)
+    if payload_to_dissect ~= nil then
+      -- Domain packets
+      if packet_type_text == "DomainList" then
+        Dissector.get("hf-domain"):call(payload_to_dissect, pinfo, tree)
+      end
+
+      -- AvatarData or BulkAvatarDataPacket
+      if packet_type_text == "AvatarData" or
+         packet_type_text == "BulkAvatarData" or
+         packet_type_text == "BulkAvatarTraits" then
+        Dissector.get("hf-avatar"):call(payload_to_dissect, pinfo, tree)
+      end
+
+      if packet_type_text == "EntityEdit" then
+        Dissector.get("hf-entity"):call(payload_to_dissect, pinfo, tree)
+      end
+
+      if packet_types[packet_type] == "MicrophoneAudioNoEcho" or
+         packet_types[packet_type] == "MicrophoneAudioWithEcho" or
+         packet_types[packet_type] == "SilentAudioFrame" then
+        Dissector.get("hf-audio"):call(payload_to_dissect, pinfo, tree)
+      end
     end
 
-    if packet_type_text == "EntityEdit" then
-      Dissector.get("hf-entity"):call(buf(i):tvb(), pinfo, tree)
-    end
-
-    if packet_types[packet_type] == "MicrophoneAudioNoEcho" or
-       packet_types[packet_type] == "MicrophoneAudioWithEcho" or
-       packet_types[packet_type] == "SilentAudioFrame" then
-      Dissector.get("hf-audio"):call(buf(i):tvb(), pinfo, tree)
-    end
   end
 
   -- return the size of the header
@@ -315,4 +389,31 @@ function p_hfudt.init()
   for port=1000, 65000 do
     udp_dissector_table:add(port, p_hfudt)
   end
+end
+
+function deobfuscate(message_bit, buf, level)
+  local out = ByteArray.new()
+  out:set_size(buf:len())
+  if (level == 1) then
+    key = ByteArray.new("6362726973736574")
+  elseif level == 2 then
+    key = ByteArray.new("7362697261726461")
+  elseif level == 3 then
+    key = ByteArray.new("72687566666d616e")
+  else
+    return
+  end
+  
+  local start = 4
+  if message_bit == 1 then
+    local start = 12
+  end
+  
+  local p = 0
+  for i = start, buf:len() - 1 do
+    out:set_index(i, bit.bxor(buf(i, 1):le_uint(), key:get_index(7 - (p % 8))) )
+    p = p + 1
+  end
+
+  return out
 end

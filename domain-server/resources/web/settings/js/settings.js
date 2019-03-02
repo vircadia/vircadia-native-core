@@ -18,9 +18,6 @@ $(document).ready(function(){
   Settings.extraGroupsAtIndex = Settings.extraDomainGroupsAtIndex;
 
   Settings.afterReloadActions = function() {
-    // append the domain selection modal
-    appendDomainIDButtons();
-
     // call our method to setup the HF account button
     setupHFAccountButton();
 
@@ -52,6 +49,11 @@ $(document).ready(function(){
       if (cloudWizardExit != undefined) {
         $('#cloud-domains-alert').show();
       }
+
+      $(Settings.DOMAIN_ID_SELECTOR).siblings('span').append("</br><strong>Changing the domain ID for a Cloud Domain may result in an incorrect status for the domain on your Cloud Domains page.</strong>");
+    } else {
+      // append the domain selection modal
+      appendDomainIDButtons();
     }
 
     handleAction();
@@ -59,9 +61,9 @@ $(document).ready(function(){
 
   Settings.handlePostSettings = function(formJSON) {
       
-      if (!verifyAvatarHeights()) {
-          return false;
-      }
+    if (!verifyAvatarHeights()) {
+        return false;
+    }
 	  
     // check if we've set the basic http password
     if (formJSON["security"]) {

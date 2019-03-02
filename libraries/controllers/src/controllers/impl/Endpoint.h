@@ -16,6 +16,7 @@
 
 #include <QtCore/QObject>
 
+#include "../AxisValue.h"
 #include "../Input.h"
 #include "../Pose.h"
 
@@ -36,9 +37,9 @@ namespace controller {
         using WriteLambda = std::function<void(float)>;
 
         Endpoint(const Input& input) : _input(input) {}
-        virtual float value() { return peek(); }
-        virtual float peek() const = 0;
-        virtual void apply(float value, const Pointer& source) = 0;
+        virtual AxisValue value() { return peek(); }
+        virtual AxisValue peek() const = 0;
+        virtual void apply(AxisValue value, const Pointer& source) = 0;
         virtual Pose peekPose() const { return Pose(); };
         virtual Pose pose() { return peekPose(); }
         virtual void apply(const Pose& value, const Pointer& source) {}
@@ -59,8 +60,8 @@ namespace controller {
         LambdaEndpoint(ReadLambda readLambda, WriteLambda writeLambda = [](float) {})
             : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) { }
 
-        virtual float peek() const override { return _readLambda(); }
-        virtual void apply(float value, const Pointer& source) override { _writeLambda(value); }
+        virtual AxisValue peek() const override { return AxisValue(_readLambda(), 0); }
+        virtual void apply(AxisValue value, const Pointer& source) override { _writeLambda(value.value); }
 
     private:
         ReadLambda _readLambda;
@@ -76,8 +77,8 @@ namespace controller {
             : Endpoint(Input::INVALID_INPUT), _readLambda(readLambda), _writeLambda(writeLambda) {
         }
 
-        virtual float peek() const override { return _readLambda(); }
-        virtual void apply(float value, const Pointer& source) override { _writeLambda(value); }
+        virtual AxisValue peek() const override { return AxisValue(_readLambda(), 0); }
+        virtual void apply(AxisValue value, const Pointer& source) override { _writeLambda(value.value); }
 
     private:
         const ReadLambda& _readLambda;
@@ -91,15 +92,15 @@ namespace controller {
             : Endpoint(id) {
         }
 
-        virtual float peek() const override { return _currentValue; }
-        virtual void apply(float value, const Pointer& source) override { _currentValue = value; }
+        virtual AxisValue peek() const override { return _currentValue; }
+        virtual void apply(AxisValue value, const Pointer& source) override { _currentValue = value; }
 
         virtual Pose peekPose() const override { return _currentPose; }
         virtual void apply(const Pose& value, const Pointer& source) override {
             _currentPose = value;
         }
     protected:
-        float _currentValue { 0.0f };
+        AxisValue _currentValue { 0.0f, 0 };
         Pose _currentPose {};
     };
 

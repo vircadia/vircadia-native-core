@@ -16,7 +16,13 @@ import TabletScriptingInterface 1.0
 
 Rectangle {
     readonly property var level: AudioScriptingInterface.inputLevel;
-
+    
+    property bool gated: false;
+    Component.onCompleted: {
+        AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
+        AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+    }
+        
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -77,6 +83,7 @@ Rectangle {
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
+        readonly property string yellow: "#C0C000";
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
@@ -189,7 +196,7 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
-            width: parent.width * level;
+            width: gated ? 0 : parent.width * level;
             radius: 5;
             anchors {
                 bottom: parent.bottom;
@@ -212,17 +219,41 @@ Rectangle {
                     color: colors.greenStart;
                 }
                 GradientStop {
-                    position: 0.8;
+                    position: 0.5;
                     color: colors.greenEnd;
                 }
                 GradientStop {
-                    position: 0.81;
-                    color: colors.red;
-                }
-                GradientStop {
                     position: 1;
-                    color: colors.red;
+                    color: colors.yellow;
                 }
+            }
+        }
+        
+        Rectangle {
+            id: gatedIndicator;
+            visible: gated && !AudioScriptingInterface.clipping
+            
+            radius: 4;     
+            width: 2 * radius;
+            height: 2 * radius;
+            color: "#0080FF";
+            anchors {
+                right: parent.left;
+                verticalCenter: parent.verticalCenter;
+            }
+        }
+        
+        Rectangle {
+            id: clippingIndicator;
+            visible: AudioScriptingInterface.clipping
+            
+            radius: 4;     
+            width: 2 * radius;
+            height: 2 * radius;
+            color: colors.red;
+            anchors {
+                left: parent.right;
+                verticalCenter: parent.verticalCenter;
             }
         }
     }

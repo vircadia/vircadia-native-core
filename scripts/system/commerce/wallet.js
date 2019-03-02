@@ -377,27 +377,18 @@ function deleteSendMoneyParticleEffect() {
 }
 
 function onUsernameChanged() {
-    if (Account.username !== Settings.getValue("keepMeLoggedIn/savedUsername")) {
-        Settings.setValue("keepMeLoggedIn", false);
-        Settings.setValue("keepMeLoggedIn/savedUsername", "");
-    }
 }    
+
+var MARKETPLACE_QML_PATH = "hifi/commerce/marketplace/Marketplace.qml";
+function openMarketplace(optionalItem) {
+    ui.open(MARKETPLACE_QML_PATH);
     
-var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
-var METAVERSE_SERVER_URL = Account.metaverseServerURL;
-var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?"; // Append "?" to signal injected script that it's the initial page.
-function openMarketplace(optionalItemOrUrl) {
-    // This is a bit of a kluge, but so is the whole file.
-    // If given a whole path, use it with no cta.
-    // If given an id, build the appropriate url and use the id as the cta.
-    // Otherwise, use home and 'marketplace cta'.
-    // AND... if call onMarketplaceOpen to setupWallet if we need to.
-    var url = optionalItemOrUrl || MARKETPLACE_URL_INITIAL;
-    // If optionalItemOrUrl contains the metaverse base, then it's a url, not an item id.
-    if (optionalItemOrUrl && optionalItemOrUrl.indexOf(METAVERSE_SERVER_URL) === -1) {
-        url = MARKETPLACE_URL + '/items/' + optionalItemOrUrl;
+    if (optionalItem) {
+        ui.tablet.sendToQml({
+            method: 'updateMarketplaceQMLItem',
+            params: { itemId: optionalItem }
+        });
     }
-    ui.open(url, MARKETPLACES_INJECT_SCRIPT_URL);
 }
 
 function setCertificateInfo(itemCertificateId) {
@@ -429,15 +420,14 @@ function fromQml(message) {
         case 'purchases':
         case 'marketplace cta':
         case 'mainPage':
-            ui.open(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+            openMarketplace();
             break;
-        default: // User needs to return to an individual marketplace item URL
-            ui.open(MARKETPLACE_URL + '/items/' + message.referrer, MARKETPLACES_INJECT_SCRIPT_URL);
+        default:
+            openMarketplace();
             break;
         }
         break;
     case 'needsLogIn_loginClicked':
-        ui.close();
         openLoginWindow();
         break;
     case 'disableHmdPreview':
@@ -445,13 +435,13 @@ function fromQml(message) {
     case 'maybeEnableHmdPreview':
         break; // do nothing here, handled in marketplaces.js
     case 'transactionHistory_linkClicked':
-        ui.open(message.marketplaceLink, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.itemId);
         break;
     case 'goToMarketplaceMainPage':
-        ui.open(MARKETPLACE_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace();
         break;
     case 'goToMarketplaceItemPage':
-        ui.open(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+        openMarketplace(message.itemId);
         break;
     case 'refreshConnections':
         print('Refreshing Connections...');
@@ -536,6 +526,10 @@ function fromQml(message) {
         shouldShowDotHistory = false;
         ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
         break;
+    case 'clearShouldShowDotUpdates':
+        shouldShowDotUpdates = false;
+        ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
+        break;
     case 'http.request':
         // Handled elsewhere, don't log.
         break;
@@ -578,7 +572,7 @@ function notificationDataProcessPageHistory(data) {
 
 var shouldShowDotUpdates = false;
 function notificationPollCallbackUpdates(updatesArray) {
-    shouldShowDotUpdates = shouldShowDotUpdates || updatesArray.length > 0;
+    shouldShowDotUpdates = updatesArray.length > 0;
     ui.messagesWaiting(shouldShowDotUpdates || shouldShowDotHistory);
 
     if (updatesArray.length > 0) {

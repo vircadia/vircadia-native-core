@@ -19,20 +19,25 @@ const int MAX_TEXCOORDS = 2;
 struct TexMapArray { 
     mat4 _texcoordTransforms0;
     mat4 _texcoordTransforms1;
-    vec4 _lightmapParams;
+    vec2 _lightmapParams;
+    vec2 _materialParams;
 };
 
 <@func declareMaterialTexMapArrayBuffer()@>
 
-<@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, outTexcoord0)@>
+<@func evalTexMapArrayTexcoord0(texMapArray, inTexcoord0, worldPosition, outTexcoord0)@>
 {
-    <$outTexcoord0$> = (<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0)).st;
+    <$outTexcoord0$> = mix(<$texMapArray$>._texcoordTransforms0 * vec4(<$inTexcoord0$>.st, 0.0, 1.0),
+                           <$texMapArray$>._texcoordTransforms0 * <$worldPosition$> + vec4(0.5),
+                           <$texMapArray$>._materialParams.x).st;
 }
 <@endfunc@>
 
-<@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, outTexcoord1)@>
+<@func evalTexMapArrayTexcoord1(texMapArray, inTexcoord1, worldPosition, outTexcoord1)@>
 {
-    <$outTexcoord1$> = (<$texMapArray$>._texcoordTransforms1 * vec4(<$inTexcoord1$>.st, 0.0, 1.0)).st;
+    <$outTexcoord1$> = mix(<$texMapArray$>._texcoordTransforms1 * vec4(<$inTexcoord1$>.st, 0.0, 1.0),
+                           <$texMapArray$>._texcoordTransforms1 * <$worldPosition$> + vec4(0.5),
+                           <$texMapArray$>._materialParams.x).st;
 }
 <@endfunc@>
 

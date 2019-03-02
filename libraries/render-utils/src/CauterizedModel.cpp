@@ -137,7 +137,7 @@ void CauterizedModel::updateClusterMatrices() {
     // as an optimization, don't build cautrizedClusterMatrices if the boneSet is empty.
     if (!_cauterizeBoneSet.empty()) {
 
-        AnimPose cauterizePose = _rig.getJointPose(hfmModel.neckJointIndex);
+        AnimPose cauterizePose = _rig.getJointPose(_rig.indexOfJoint("Neck"));
         cauterizePose.scale() = glm::vec3(0.0001f, 0.0001f, 0.0001f);
 
         static const glm::mat4 zeroScale(
@@ -145,7 +145,7 @@ void CauterizedModel::updateClusterMatrices() {
             glm::vec4(0.0f, 0.0001f, 0.0f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0001f, 0.0f),
             glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        auto cauterizeMatrix = _rig.getJointTransform(hfmModel.neckJointIndex) * zeroScale;
+        auto cauterizeMatrix = _rig.getJointTransform(_rig.indexOfJoint("Neck")) * zeroScale;
 
         for (int i = 0; i < _cauterizeMeshStates.size(); i++) {
             Model::MeshState& state = _cauterizeMeshStates[i];
@@ -178,6 +178,7 @@ void CauterizedModel::updateClusterMatrices() {
             }
         }
     }
+    computeMeshPartLocalBounds();
 
     // post the blender if we're not currently waiting for one to finish
     auto modelBlender = DependencyManager::get<ModelBlender>();
@@ -215,7 +216,7 @@ void CauterizedModel::updateRenderItems() {
             modelTransform.setTranslation(self->getTranslation());
             modelTransform.setRotation(self->getRotation());
 
-            bool isWireframe = self->isWireframe();
+            PrimitiveMode primitiveMode = self->getPrimitiveMode();
             auto renderItemKeyGlobalFlags = self->getRenderItemKeyGlobalFlags();
             bool enableCauterization = self->getEnableCauterization();
 
@@ -232,7 +233,7 @@ void CauterizedModel::updateRenderItems() {
                 bool useDualQuaternionSkinning = self->getUseDualQuaternionSkinning();
 
                 transaction.updateItem<ModelMeshPartPayload>(itemID, [modelTransform, meshState, useDualQuaternionSkinning, cauterizedMeshState, invalidatePayloadShapeKey,
-                        isWireframe, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
+                        primitiveMode, renderItemKeyGlobalFlags, enableCauterization](ModelMeshPartPayload& mmppData) {
                     CauterizedMeshPartPayload& data = static_cast<CauterizedMeshPartPayload&>(mmppData);
                     if (useDualQuaternionSkinning) {
                         data.updateClusterBuffer(meshState.clusterDualQuaternions,
@@ -276,7 +277,7 @@ void CauterizedModel::updateRenderItems() {
 
                     data.setEnableCauterization(enableCauterization);
                     data.updateKey(renderItemKeyGlobalFlags);
-                    data.setShapeKey(invalidatePayloadShapeKey, isWireframe, useDualQuaternionSkinning);
+                    data.setShapeKey(invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning);
                 });
             }
 

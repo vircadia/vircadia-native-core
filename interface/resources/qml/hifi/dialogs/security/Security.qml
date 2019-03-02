@@ -328,7 +328,7 @@ Rectangle {
 
                 HifiStylesUit.RalewayRegular {
                     text: "Your wallet is not set up.\n" +
-                        "Open the ASSETS app to get started.";
+                        "Open the INVENTORY app to get started.";
                     // Anchors
                     anchors.fill: parent;
                     // Text size

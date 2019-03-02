@@ -186,7 +186,7 @@ function AttachedEntitiesManager() {
                     delete wearProps.actionData;
                     delete wearProps.sittingPoints;
                     delete wearProps.boundingBox;
-                    delete wearProps.clientOnly;
+                    delete wearProps.avatarEntity;
                     delete wearProps.owningAvatarID;
                     delete wearProps.localPosition;
                     delete wearProps.localRotation;

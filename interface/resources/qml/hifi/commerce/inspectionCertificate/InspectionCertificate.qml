@@ -22,7 +22,6 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string marketplaceUrl: "";
     property string entityId: "";
     property string certificateId: "";
     property string itemName: "--";
@@ -30,6 +29,7 @@ Rectangle {
     property string itemEdition: "--";
     property string dateAcquired: "--";
     property string itemCost: "--";
+    property string marketplace_item_id: "";
     property string certTitleTextColor: hifi.colors.darkGray;
     property string certTextColor: hifi.colors.white;
     property string infoTextColor: hifi.colors.blueAccent;
@@ -69,7 +69,7 @@ Rectangle {
                     errorText.text = "Information about this certificate is currently unavailable. Please try again later.";
                 }
             } else {
-                root.marketplaceUrl = result.data.marketplace_item_url;
+                root.marketplace_item_id = result.data.marketplace_item_id;
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
 
                 if (root.certInfoReplaceMode > 3) {
@@ -352,7 +352,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
+                    sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', itemId: root.marketplace_item_id});
                 }
                 onEntered: itemName.color = hifi.colors.blueHighlight;
                 onExited: itemName.color = root.certTextColor;
@@ -391,7 +391,7 @@ Rectangle {
         // "Show In Marketplace" button
         HifiControlsUit.Button {
             id: showInMarketplaceButton;
-            enabled: root.marketplaceUrl;
+            enabled: root.marketplace_item_id && marketplace_item_id !== "";
             color: hifi.buttons.blue;
             colorScheme: hifi.colorSchemes.light;
             anchors.bottom: parent.bottom;
@@ -401,7 +401,7 @@ Rectangle {
             height: 40;
             text: "View In Market"
             onClicked: {
-                sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', marketplaceUrl: root.marketplaceUrl});
+                sendToScript({method: 'inspectionCertificate_showInMarketplaceClicked', itemId: root.marketplace_item_id});
             }
         }
     }
@@ -620,7 +620,7 @@ Rectangle {
         root.itemOwner = "--";
         root.itemEdition = "--";
         root.dateAcquired = "--";
-        root.marketplaceUrl = "";
+        root.marketplace_item_id = "";
         root.itemCost = "--";
         root.isMyCert = false;
         errorText.text = "";

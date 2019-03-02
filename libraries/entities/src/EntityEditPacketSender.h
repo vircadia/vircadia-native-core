@@ -50,12 +50,11 @@ public slots:
     void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
-    void queueEditAvatarEntityMessage(PacketType type, EntityTreePointer entityTree,
+    void queueEditAvatarEntityMessage(EntityTreePointer entityTree,
                                       EntityItemID entityItemID, const EntityItemProperties& properties);
 
 private:
     std::mutex _mutex;
     AvatarData* _myAvatar { nullptr };
-    QScriptEngine _scriptEngine;
 };
 #endif // hifi_EntityEditPacketSender_h

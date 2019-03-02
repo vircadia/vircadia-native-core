@@ -10,8 +10,8 @@ include(vcpkg_common_functions)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO highfidelity/nvidia-texture-tools
-    REF 8c7e6b40ee5095f227b75880fabd89c99d6f34c0
-    SHA512 f107d19dbbd6651ef2126b1422a5db8db291bf70311ac4fb1dbacb5ceaa8752fee38becbd32964f57596f0b84e1223bb2c3ff9d9c4fdc65c3e77a47836657cef
+    REF 330c4d56274a0f602a5c70596e2eb670a4ed56c2
+    SHA512 4c0bc2f369120d696cc27710b6d33086b27eef55f537ec66b9a5c8b1839bc2426c0413670b0f65be52c5d353468f0126dfe024be1f0690611d4d7e33ac530127
     HEAD_REF master
 )
 

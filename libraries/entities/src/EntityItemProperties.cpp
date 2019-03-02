@@ -28,6 +28,7 @@
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <Extents.h>
+#include <VariantMapToScriptValue.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
@@ -41,6 +42,8 @@ BloomPropertyGroup EntityItemProperties::_staticBloom;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 AmbientLightPropertyGroup EntityItemProperties::_staticAmbientLight;
 GrabPropertyGroup EntityItemProperties::_staticGrab;
+PulsePropertyGroup EntityItemProperties::_staticPulse;
+RingGizmoPropertyGroup EntityItemProperties::_staticRing;
 
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
@@ -49,10 +52,6 @@ EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties
     _idSet(false),
     _lastEdited(0),
     _type(EntityTypes::Unknown),
-
-    _localRenderAlpha(1.0f),
-
-    _localRenderAlphaChanged(false),
 
     _defaultSettings(true),
     _naturalDimensions(1.0f, 1.0f, 1.0f),
@@ -65,10 +64,6 @@ EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties
 void EntityItemProperties::calculateNaturalPosition(const vec3& min, const vec3& max) {
     vec3 halfDimension = (max - min) / 2.0f;
     _naturalPosition = max - halfDimension;
-}
-
-void EntityItemProperties::setCreated(QDateTime &v) {
-    _created = v.toMSecsSinceEpoch() * 1000; // usec per msec
 }
 
 void EntityItemProperties::debugDump() const {
@@ -98,6 +93,16 @@ void EntityItemProperties::setLastEdited(quint64 usecTime) {
     _lastEdited = usecTime > _created ? usecTime : _created;
 }
 
+bool EntityItemProperties::constructFromBuffer(const unsigned char* data, int dataLength) {
+    ReadBitstreamToTreeParams args;
+    EntityItemPointer tempEntity = EntityTypes::constructEntityItem(data, dataLength);
+    if (!tempEntity) {
+        return false;
+    }
+    tempEntity->readEntityDataFromBuffer(data, dataLength, args);
+    (*this) = tempEntity->getProperties();
+    return true;
+}
 
 QHash<QString, ShapeType> stringToShapeTypeLookup;
 
@@ -121,6 +126,7 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_SIMPLE_HULL);
     addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     addShapeType(SHAPE_TYPE_STATIC_MESH);
+    addShapeType(SHAPE_TYPE_ELLIPSOID);
 }
 
 QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;
@@ -219,15 +225,6 @@ QString EntityItemProperties::getBloomModeAsString() const {
     return getComponentModeAsString(_bloomMode);
 }
 
-QString EntityItemProperties::getComponentModeString(uint32_t mode) {
-    // return "inherit" if mode is not valid
-    if (mode < COMPONENT_MODE_ITEM_COUNT) {
-        return COMPONENT_MODES[mode].second;
-    } else {
-        return COMPONENT_MODES[COMPONENT_MODE_INHERIT].second;
-    }
-}
-
 std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
     return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
         return (pair.second == mode);
@@ -306,61 +303,252 @@ void EntityItemProperties::setMaterialMappingModeFromString(const QString& mater
     }
 }
 
+QString EntityItemProperties::getEntityHostTypeAsString() const {
+    switch (_entityHostType) {
+        case entity::HostType::DOMAIN:
+            return "domain";
+        case entity::HostType::AVATAR:
+            return "avatar";
+        case entity::HostType::LOCAL:
+            return "local";
+        default:
+            return "";
+    }
+}
+
+void EntityItemProperties::setEntityHostTypeFromString(const QString& entityHostType) {
+    if (entityHostType == "domain") {
+        _entityHostType = entity::HostType::DOMAIN;
+    } else if (entityHostType == "avatar") {
+        _entityHostType = entity::HostType::AVATAR;
+    } else if (entityHostType == "local") {
+        _entityHostType = entity::HostType::LOCAL;
+    }
+}
+
+QHash<QString, BillboardMode> stringToBillboardModeLookup;
+
+void addBillboardMode(BillboardMode mode) {
+    stringToBillboardModeLookup[BillboardModeHelpers::getNameForBillboardMode(mode)] = mode;
+}
+
+void buildStringToBillboardModeLookup() {
+    addBillboardMode(BillboardMode::NONE);
+    addBillboardMode(BillboardMode::YAW);
+    addBillboardMode(BillboardMode::FULL);
+}
+
+QString EntityItemProperties::getBillboardModeAsString() const {
+    return BillboardModeHelpers::getNameForBillboardMode(_billboardMode);
+}
+
+void EntityItemProperties::setBillboardModeFromString(const QString& billboardMode) {
+    if (stringToBillboardModeLookup.empty()) {
+        buildStringToBillboardModeLookup();
+    }
+    auto billboardModeItr = stringToBillboardModeLookup.find(billboardMode.toLower());
+    if (billboardModeItr != stringToBillboardModeLookup.end()) {
+        _billboardMode = billboardModeItr.value();
+        _billboardModeChanged = true;
+    }
+}
+
+QHash<QString, RenderLayer> stringToRenderLayerLookup;
+
+void addRenderLayer(RenderLayer mode) {
+    stringToRenderLayerLookup[RenderLayerHelpers::getNameForRenderLayer(mode)] = mode;
+}
+
+void buildStringToRenderLayerLookup() {
+    addRenderLayer(RenderLayer::WORLD);
+    addRenderLayer(RenderLayer::FRONT);
+    addRenderLayer(RenderLayer::HUD);
+}
+
+QString EntityItemProperties::getRenderLayerAsString() const {
+    return RenderLayerHelpers::getNameForRenderLayer(_renderLayer);
+}
+
+void EntityItemProperties::setRenderLayerFromString(const QString& renderLayer) {
+    if (stringToRenderLayerLookup.empty()) {
+        buildStringToRenderLayerLookup();
+    }
+    auto renderLayerItr = stringToRenderLayerLookup.find(renderLayer.toLower());
+    if (renderLayerItr != stringToRenderLayerLookup.end()) {
+        _renderLayer = renderLayerItr.value();
+        _renderLayerChanged = true;
+    }
+}
+
+QHash<QString, PrimitiveMode> stringToPrimitiveModeLookup;
+
+void addPrimitiveMode(PrimitiveMode mode) {
+    stringToPrimitiveModeLookup[PrimitiveModeHelpers::getNameForPrimitiveMode(mode)] = mode;
+}
+
+void buildStringToPrimitiveModeLookup() {
+    addPrimitiveMode(PrimitiveMode::SOLID);
+    addPrimitiveMode(PrimitiveMode::LINES);
+}
+
+QString EntityItemProperties::getPrimitiveModeAsString() const {
+    return PrimitiveModeHelpers::getNameForPrimitiveMode(_primitiveMode);
+}
+
+void EntityItemProperties::setPrimitiveModeFromString(const QString& primitiveMode) {
+    if (stringToPrimitiveModeLookup.empty()) {
+        buildStringToPrimitiveModeLookup();
+    }
+    auto primitiveModeItr = stringToPrimitiveModeLookup.find(primitiveMode.toLower());
+    if (primitiveModeItr != stringToPrimitiveModeLookup.end()) {
+        _primitiveMode = primitiveModeItr.value();
+        _primitiveModeChanged = true;
+    }
+}
+
+QHash<QString, WebInputMode> stringToWebInputModeLookup;
+
+void addWebInputMode(WebInputMode mode) {
+    stringToWebInputModeLookup[WebInputModeHelpers::getNameForWebInputMode(mode)] = mode;
+}
+
+void buildStringToWebInputModeLookup() {
+    addWebInputMode(WebInputMode::TOUCH);
+    addWebInputMode(WebInputMode::MOUSE);
+}
+
+QString EntityItemProperties::getInputModeAsString() const {
+    return WebInputModeHelpers::getNameForWebInputMode(_inputMode);
+}
+
+void EntityItemProperties::setInputModeFromString(const QString& webInputMode) {
+    if (stringToWebInputModeLookup.empty()) {
+        buildStringToWebInputModeLookup();
+    }
+    auto webInputModeItr = stringToWebInputModeLookup.find(webInputMode.toLower());
+    if (webInputModeItr != stringToWebInputModeLookup.end()) {
+        _inputMode = webInputModeItr.value();
+        _inputModeChanged = true;
+    }
+}
+
+QHash<QString, GizmoType> stringToGizmoTypeLookup;
+
+void addGizmoType(GizmoType mode) {
+    stringToGizmoTypeLookup[GizmoTypeHelpers::getNameForGizmoType(mode)] = mode;
+}
+
+void buildStringToGizmoTypeLookup() {
+    addGizmoType(GizmoType::RING);
+}
+
+QString EntityItemProperties::getGizmoTypeAsString() const {
+    return GizmoTypeHelpers::getNameForGizmoType(_gizmoType);
+}
+
+void EntityItemProperties::setGizmoTypeFromString(const QString& gizmoType) {
+    if (stringToGizmoTypeLookup.empty()) {
+        buildStringToGizmoTypeLookup();
+    }
+    auto gizmoTypeItr = stringToGizmoTypeLookup.find(gizmoType.toLower());
+    if (gizmoTypeItr != stringToGizmoTypeLookup.end()) {
+        _gizmoType = gizmoTypeItr.value();
+        _gizmoTypeChanged = true;
+    }
+}
+
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
 
-    CHECK_PROPERTY_CHANGE(PROP_LAST_EDITED_BY, lastEditedBy);
+    // Core
+    CHECK_PROPERTY_CHANGE(PROP_SIMULATION_OWNER, simulationOwner);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_ID, parentID);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
+    CHECK_PROPERTY_CHANGE(PROP_NAME, name);
+    CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
+    CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
+    CHECK_PROPERTY_CHANGE(PROP_HREF, href);
+    CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
     CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
     CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
     CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
+    CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
+    CHECK_PROPERTY_CHANGE(PROP_CREATED, created);
+    CHECK_PROPERTY_CHANGE(PROP_LAST_EDITED_BY, lastEditedBy);
+    CHECK_PROPERTY_CHANGE(PROP_ENTITY_HOST_TYPE, entityHostType);
+    CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+    CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
+    CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_RENDER_LAYER, renderLayer);
+    CHECK_PROPERTY_CHANGE(PROP_PRIMITIVE_MODE, primitiveMode);
+    CHECK_PROPERTY_CHANGE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
+    changedProperties += _grab.getChangedProperties();
+
+    // Physics
     CHECK_PROPERTY_CHANGE(PROP_DENSITY, density);
     CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
+    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
     CHECK_PROPERTY_CHANGE(PROP_ACCELERATION, acceleration);
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
+    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
     CHECK_PROPERTY_CHANGE(PROP_RESTITUTION, restitution);
     CHECK_PROPERTY_CHANGE(PROP_FRICTION, friction);
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
-    CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
-    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
-    CHECK_PROPERTY_CHANGE(PROP_SERVER_SCRIPTS, serverScripts);
-    CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
-    CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
-    CHECK_PROPERTY_CHANGE(PROP_COLOR_SPREAD, colorSpread);
-    CHECK_PROPERTY_CHANGE(PROP_COLOR_START, colorStart);
-    CHECK_PROPERTY_CHANGE(PROP_COLOR_FINISH, colorFinish);
-    CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
-    CHECK_PROPERTY_CHANGE(PROP_ALPHA_SPREAD, alphaSpread);
-    CHECK_PROPERTY_CHANGE(PROP_ALPHA_START, alphaStart);
-    CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
-    CHECK_PROPERTY_CHANGE(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
-    CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
-    CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-    CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
-    CHECK_PROPERTY_CHANGE(PROP_CAN_CAST_SHADOW, canCastShadow);
-    CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
-    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
-    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
     CHECK_PROPERTY_CHANGE(PROP_COLLISIONLESS, collisionless);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_MASK, collisionMask);
     CHECK_PROPERTY_CHANGE(PROP_DYNAMIC, dynamic);
-    CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
-    CHECK_PROPERTY_CHANGE(PROP_INTENSITY, intensity);
-    CHECK_PROPERTY_CHANGE(PROP_FALLOFF_RADIUS, falloffRadius);
-    CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
-    CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
-    CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
-    CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
-    CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
-    CHECK_PROPERTY_CHANGE(PROP_SIMULATION_OWNER, simulationOwner);
-    CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
-    CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
-    CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
-    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
+    CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
+
+    // Cloning
+    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE, cloneable);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIFETIME, cloneLifetime);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIMIT, cloneLimit);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_DYNAMIC, cloneDynamic);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
+    CHECK_PROPERTY_CHANGE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
+
+    // Scripts
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
+    CHECK_PROPERTY_CHANGE(PROP_SERVER_SCRIPTS, serverScripts);
+
+    // Certifiable Properties
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_CATEGORIES, itemCategories);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_ARTIST, itemArtist);
+    CHECK_PROPERTY_CHANGE(PROP_ITEM_LICENSE, itemLicense);
+    CHECK_PROPERTY_CHANGE(PROP_LIMITED_RUN, limitedRun);
+    CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
+    CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
+    CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
+    CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
+    CHECK_PROPERTY_CHANGE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
+
+    // Location data for scripts
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_POSITION, localPosition);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_DIMENSIONS, localDimensions);
+
+    // Common
     CHECK_PROPERTY_CHANGE(PROP_SHAPE_TYPE, shapeType);
-    CHECK_PROPERTY_CHANGE(PROP_EMITTING_PARTICLES, isEmitting);
+    CHECK_PROPERTY_CHANGE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA, alpha);
+    changedProperties += _pulse.getChangedProperties();
+    CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
+    CHECK_PROPERTY_CHANGE(PROP_BILLBOARD_MODE, billboardMode);
+
+    // Particles
     CHECK_PROPERTY_CHANGE(PROP_MAX_PARTICLES, maxParticles);
     CHECK_PROPERTY_CHANGE(PROP_LIFESPAN, lifespan);
+    CHECK_PROPERTY_CHANGE(PROP_EMITTING_PARTICLES, isEmitting);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_RATE, emitRate);
     CHECK_PROPERTY_CHANGE(PROP_EMIT_SPEED, emitSpeed);
     CHECK_PROPERTY_CHANGE(PROP_SPEED_SPREAD, speedSpread);
@@ -377,56 +565,68 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_SPREAD, radiusSpread);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_START, radiusStart);
     CHECK_PROPERTY_CHANGE(PROP_RADIUS_FINISH, radiusFinish);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_MODE, materialMappingMode);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
-    CHECK_PROPERTY_CHANGE(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
-    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
-    CHECK_PROPERTY_CHANGE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_SPREAD, colorSpread);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_START, colorStart);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR_FINISH, colorFinish);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_SPREAD, alphaSpread);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_START, alphaStart);
+    CHECK_PROPERTY_CHANGE(PROP_ALPHA_FINISH, alphaFinish);
+    CHECK_PROPERTY_CHANGE(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_SPIN, particleSpin);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_SPREAD, spinSpread);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_START, spinStart);
     CHECK_PROPERTY_CHANGE(PROP_SPIN_FINISH, spinFinish);
     CHECK_PROPERTY_CHANGE(PROP_PARTICLE_ROTATE_WITH_ENTITY, rotateWithEntity);
 
-    // Certifiable Properties
-    CHECK_PROPERTY_CHANGE(PROP_ITEM_NAME, itemName);
-    CHECK_PROPERTY_CHANGE(PROP_ITEM_DESCRIPTION, itemDescription);
-    CHECK_PROPERTY_CHANGE(PROP_ITEM_CATEGORIES, itemCategories);
-    CHECK_PROPERTY_CHANGE(PROP_ITEM_ARTIST, itemArtist);
-    CHECK_PROPERTY_CHANGE(PROP_ITEM_LICENSE, itemLicense);
-    CHECK_PROPERTY_CHANGE(PROP_LIMITED_RUN, limitedRun);
-    CHECK_PROPERTY_CHANGE(PROP_MARKETPLACE_ID, marketplaceID);
-    CHECK_PROPERTY_CHANGE(PROP_EDITION_NUMBER, editionNumber);
-    CHECK_PROPERTY_CHANGE(PROP_ENTITY_INSTANCE_NUMBER, entityInstanceNumber);
-    CHECK_PROPERTY_CHANGE(PROP_CERTIFICATE_ID, certificateID);
-    CHECK_PROPERTY_CHANGE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
+    // Model
+    CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
+    CHECK_PROPERTY_CHANGE(PROP_MODEL_SCALE, modelScale);
+    CHECK_PROPERTY_CHANGE(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
+    CHECK_PROPERTY_CHANGE(PROP_JOINT_ROTATIONS, jointRotations);
+    CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
+    CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS, jointTranslations);
+    CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+    CHECK_PROPERTY_CHANGE(PROP_GROUP_CULLED, groupCulled);
+    changedProperties += _animation.getChangedProperties();
 
-    CHECK_PROPERTY_CHANGE(PROP_NAME, name);
+    // Light
+    CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
+    CHECK_PROPERTY_CHANGE(PROP_INTENSITY, intensity);
+    CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
+    CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
+    CHECK_PROPERTY_CHANGE(PROP_FALLOFF_RADIUS, falloffRadius);
 
-    CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
+    // Text
+    CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
+    CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_ALPHA, textAlpha);
+    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
+    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_ALPHA, backgroundAlpha);
+    CHECK_PROPERTY_CHANGE(PROP_LEFT_MARGIN, leftMargin);
+    CHECK_PROPERTY_CHANGE(PROP_RIGHT_MARGIN, rightMargin);
+    CHECK_PROPERTY_CHANGE(PROP_TOP_MARGIN, topMargin);
+    CHECK_PROPERTY_CHANGE(PROP_BOTTOM_MARGIN, bottomMargin);
+
+    // Zone
+    changedProperties += _keyLight.getChangedProperties();
+    changedProperties += _ambientLight.getChangedProperties();
+    changedProperties += _skybox.getChangedProperties();
+    changedProperties += _haze.getChangedProperties();
+    changedProperties += _bloom.getChangedProperties();
+    CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
+    CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
+    CHECK_PROPERTY_CHANGE(PROP_FILTER_URL, filterURL);
     CHECK_PROPERTY_CHANGE(PROP_KEY_LIGHT_MODE, keyLightMode);
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_LIGHT_MODE, ambientLightMode);
     CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
+    CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
 
-    CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
+    // Polyvox
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_DATA, voxelData);
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_SURFACE_STYLE, voxelSurfaceStyle);
-    CHECK_PROPERTY_CHANGE(PROP_LINE_WIDTH, lineWidth);
-    CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
-    CHECK_PROPERTY_CHANGE(PROP_HREF, href);
-    CHECK_PROPERTY_CHANGE(PROP_DESCRIPTION, description);
-    CHECK_PROPERTY_CHANGE(PROP_FACE_CAMERA, faceCamera);
-    CHECK_PROPERTY_CHANGE(PROP_ACTION_DATA, actionData);
-    CHECK_PROPERTY_CHANGE(PROP_NORMALS, normals);
-    CHECK_PROPERTY_CHANGE(PROP_STROKE_COLORS, strokeColors);
-    CHECK_PROPERTY_CHANGE(PROP_STROKE_WIDTHS, strokeWidths);
-    CHECK_PROPERTY_CHANGE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
     CHECK_PROPERTY_CHANGE(PROP_X_TEXTURE_URL, xTextureURL);
     CHECK_PROPERTY_CHANGE(PROP_Y_TEXTURE_URL, yTextureURL);
     CHECK_PROPERTY_CHANGE(PROP_Z_TEXTURE_URL, zTextureURL);
@@ -436,44 +636,52 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_X_P_NEIGHBOR_ID, xPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Y_P_NEIGHBOR_ID, yPNeighborID);
     CHECK_PROPERTY_CHANGE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
-    CHECK_PROPERTY_CHANGE(PROP_PARENT_ID, parentID);
-    CHECK_PROPERTY_CHANGE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
-    CHECK_PROPERTY_CHANGE(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
-    CHECK_PROPERTY_CHANGE(PROP_JOINT_ROTATIONS, jointRotations);
-    CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
-    CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS, jointTranslations);
-    CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
-    CHECK_PROPERTY_CHANGE(PROP_LOCAL_POSITION, localPosition);
-    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
-    CHECK_PROPERTY_CHANGE(PROP_LOCAL_VELOCITY, localVelocity);
-    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
-    CHECK_PROPERTY_CHANGE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
-    CHECK_PROPERTY_CHANGE(PROP_FLYING_ALLOWED, flyingAllowed);
-    CHECK_PROPERTY_CHANGE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
-    CHECK_PROPERTY_CHANGE(PROP_FILTER_URL, filterURL);
-
-    CHECK_PROPERTY_CHANGE(PROP_CLIENT_ONLY, clientOnly);
-    CHECK_PROPERTY_CHANGE(PROP_OWNING_AVATAR_ID, owningAvatarID);
-
-    CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
+    // Web
+    CHECK_PROPERTY_CHANGE(PROP_SOURCE_URL, sourceUrl);
     CHECK_PROPERTY_CHANGE(PROP_DPI, dpi);
-    CHECK_PROPERTY_CHANGE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT_URL, scriptURL);
+    CHECK_PROPERTY_CHANGE(PROP_MAX_FPS, maxFPS);
+    CHECK_PROPERTY_CHANGE(PROP_INPUT_MODE, inputMode);
+    CHECK_PROPERTY_CHANGE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
 
-    CHECK_PROPERTY_CHANGE(PROP_CLONEABLE, cloneable);
-    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIFETIME, cloneLifetime);
-    CHECK_PROPERTY_CHANGE(PROP_CLONE_LIMIT, cloneLimit);
-    CHECK_PROPERTY_CHANGE(PROP_CLONE_DYNAMIC, cloneDynamic);
-    CHECK_PROPERTY_CHANGE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
-    CHECK_PROPERTY_CHANGE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
+    // Polyline
+    CHECK_PROPERTY_CHANGE(PROP_LINE_POINTS, linePoints);
+    CHECK_PROPERTY_CHANGE(PROP_STROKE_WIDTHS, strokeWidths);
+    CHECK_PROPERTY_CHANGE(PROP_STROKE_NORMALS, normals);
+    CHECK_PROPERTY_CHANGE(PROP_STROKE_COLORS, strokeColors);
+    CHECK_PROPERTY_CHANGE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
+    CHECK_PROPERTY_CHANGE(PROP_LINE_GLOW, glow);
+    CHECK_PROPERTY_CHANGE(PROP_LINE_FACE_CAMERA, faceCamera);
 
-    changedProperties += _animation.getChangedProperties();
-    changedProperties += _keyLight.getChangedProperties();
-    changedProperties += _ambientLight.getChangedProperties();
-    changedProperties += _skybox.getChangedProperties();
-    changedProperties += _haze.getChangedProperties();
-    changedProperties += _bloom.getChangedProperties();
-    changedProperties += _grab.getChangedProperties();
+    // Shape
+    CHECK_PROPERTY_CHANGE(PROP_SHAPE, shape);
+
+    // Material
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_URL, materialURL);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_MODE, materialMappingMode);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_PRIORITY, priority);
+    CHECK_PROPERTY_CHANGE(PROP_PARENT_MATERIAL_NAME, parentMaterialName);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_POS, materialMappingPos);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_DATA, materialData);
+    CHECK_PROPERTY_CHANGE(PROP_MATERIAL_REPEAT, materialRepeat);
+
+    // Image
+    CHECK_PROPERTY_CHANGE(PROP_IMAGE_URL, imageURL);
+    CHECK_PROPERTY_CHANGE(PROP_EMISSIVE, emissive);
+    CHECK_PROPERTY_CHANGE(PROP_KEEP_ASPECT_RATIO, keepAspectRatio);
+    CHECK_PROPERTY_CHANGE(PROP_SUB_IMAGE, subImage);
+
+    // Grid
+    CHECK_PROPERTY_CHANGE(PROP_GRID_FOLLOW_CAMERA, followCamera);
+    CHECK_PROPERTY_CHANGE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
+    CHECK_PROPERTY_CHANGE(PROP_MINOR_GRID_EVERY, minorGridEvery);
+
+    // Gizmo
+    CHECK_PROPERTY_CHANGE(PROP_GIZMO_TYPE, gizmoType);
+    changedProperties += _ring.getChangedProperties();
 
     return changedProperties;
 }
@@ -489,12 +697,18 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.EntityType} type - The entity type. You cannot change the type of an entity after it's created. (Though 
  *     its value may switch among <code>"Box"</code>, <code>"Shape"</code>, and <code>"Sphere"</code> depending on changes to 
  *     the <code>shape</code> property set for entities of these types.) <em>Read-only.</em>
- * @property {boolean} clientOnly=false - If <code>true</code> then the entity is an avatar entity; otherwise it is a server
- *     entity. An avatar entity follows you to each domain you visit, rendering at the same world coordinates unless it's 
- *     parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
- *     The value can also be set at entity creation by using the <code>clientOnly</code> parameter in 
- *     {@link Entities.addEntity}.
- * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>clientOnly</code> is 
+ * @property {EntityHostType} entityHostType="domain" - How this entity will behave, including if and how it is sent to other people.
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
+ *     {@link Entities.addEntity}.  Read-only.
+ * @property {boolean} avatarEntity=false - If <code>true</code> then the entity is an avatar entity;  An avatar entity follows you to each domain you visit,
+ *     rendering at the same world coordinates unless it's parented to your avatar. <em>Value cannot be changed after the entity is created.</em><br />
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in 
+ *     {@link Entities.addEntity}.  <code>clientOnly</code> is an alias.  Read-only.
+ * @property {boolean} localEntity=false - If <code>true</code> then the entity is a local entity;  Local entities only render for you and are not sent over the wire.
+ *     <em>Value cannot be changed after the entity is created.</em><br />
+ *     The value can only be set at entity creation by using the <code>entityHostType</code> parameter in
+ *     {@link Entities.addEntity}.  Read-only.
+ * @property {Uuid} owningAvatarID=Uuid.NULL - The session ID of the owning avatar if <code>avatarEntity</code> is 
  *     <code>true</code>, otherwise {@link Uuid|Uuid.NULL}. <em>Read-only.</em>
  *
  * @property {string} created - The UTC date and time that the entity was created, in ISO 8601 format as
@@ -517,6 +731,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     {@link Entities.EntityType|Zone} entity with <code>castShadows</code> enabled in its 
  *     {@link Entities.EntityProperties-Zone|keyLight} property.
  * @property {boolean} isVisibleInSecondaryCamera=true - Whether or not the entity is rendered in the secondary camera. If <code>true</code> then the entity is rendered.
+ * @property {RenderLayer} renderLayer="world" - In which layer this entity renders.
+ * @property {PrimitiveMode} primitiveMode="solid" - How this entity's geometry is rendered.
+ * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the entity.
  *
  * @property {Vec3} position=0,0,0 - The position of the entity.
  * @property {Quat} rotation=0,0,0,1 - The orientation of the entity with respect to world coordinates.
@@ -562,16 +779,14 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     mass in the application of physics.
  *
  * @property {boolean} collisionless=false - Whether or not the entity should collide with items per its 
- *     <code>collisionMask<code> property. If <code>true</code> then the entity does not collide.
- * @property {boolean} ignoreForCollisions=false - Synonym for <code>collisionless</code>.
+ *     <code>collisionMask<code> property. If <code>true</code> then the entity does not collide. A synonym is <code>ignoreForCollisions</code>.
  * @property {Entities.CollisionMask} collisionMask=31 - What types of items the entity should collide with.
  * @property {string} collidesWith="static,dynamic,kinematic,myAvatar,otherAvatar," - Synonym for <code>collisionMask</code>,
  *     in text format.
  * @property {string} collisionSoundURL="" - The sound to play when the entity experiences a collision. Valid file formats are
  *     as per the {@link SoundCache} object.
  * @property {boolean} dynamic=false - Whether or not the entity should be affected by collisions. If <code>true</code> then 
- *     the entity's movement is affected by collisions.
- * @property {boolean} collisionsWillMove=false - Synonym for <code>dynamic</code>.
+ *     the entity's movement is affected by collisions. A synonym is <code>collisionsWillMove</code>.
  *
  * @property {string} href="" - A "hifi://" metaverse address that a user is taken to when they click on the entity.
  * @property {string} description="" - A description of the <code>href</code> property value.
@@ -594,7 +809,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} parentJointIndex=65535 - The joint of the entity or avatar that this entity is parented to. Use 
  *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a joint.
  * @property {Vec3} localPosition=0,0,0 - The position of the entity relative to its parent if the entity is parented, 
- *     otherwise the same value as <code>position</code>. If the entity is parented to an avatar and is <code>clientOnly</code> 
+ *     otherwise the same value as <code>position</code>. If the entity is parented to an avatar and is an <code>avatarEntity</code> 
  *     so that it scales with the avatar, this value remains the original local position value while the avatar scale changes.
  * @property {Quat} localRotation=0,0,0,1 - The rotation of the entity relative to its parent if the entity is parented, 
  *     otherwise the same value as <code>rotation</code>.
@@ -602,8 +817,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     otherwise the same value as <code>velocity</code>.
  * @property {Vec3} localAngularVelocity=0,0,0 - The angular velocity of the entity relative to its parent if the entity is 
  *     parented, otherwise the same value as <code>position</code>.
- * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is 
- *     <code>clientOnly</code> so that it scales with the avatar, this value remains the original dimensions value while the 
+ * @property {Vec3} localDimensions - The dimensions of the entity. If the entity is parented to an avatar and is an
+ *     <code>avatarEntity</code> so that it scales with the avatar, this value remains the original dimensions value while the 
  *     avatar scale changes.
  *
  * @property {Entities.BoundingBox} boundingBox - The axis-aligned bounding box that tightly encloses the entity. 
@@ -617,8 +832,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     is typically not used in scripts directly; rather, functions that manipulate an entity's actions update it.
  *     The size of this property increases with the number of actions. Because this property value has to fit within a High 
  *     Fidelity datagram packet there is a limit to the number of actions that an entity can have, and edits which would result 
- *     in overflow are rejected.
- *     <em>Read-only.</em>
+ *     in overflow are rejected. <em>Read-only.</em>
  * @property {Entities.RenderInfo} renderInfo - Information on the cost of rendering the entity. Currently information is only 
  *     provided for <code>Model</code> entities. <em>Read-only.</em>
  *
@@ -628,7 +842,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {boolean} cloneDynamic=false - If <code>true</code> then clones created from this entity will have their 
  *     <code>dynamic</code> property set to <code>true</code>.
  * @property {boolean} cloneAvatarEntity=false - If <code>true</code> then clones created from this entity will be created as 
- *     avatar entities: their <code>clientOnly</code> property will be set to <code>true</code>.
+ *     avatar entities: their <code>avatarEntity</code> property will be set to <code>true</code>.
  * @property {Uuid} cloneOriginID - The ID of the entity that this entity was cloned from.
  *
  * @property {Entities.Grab} grab - The grab-related properties.
@@ -651,18 +865,21 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *
  * @see The different entity types have additional properties as follows:
  * @see {@link Entities.EntityProperties-Box|EntityProperties-Box}
- * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
- * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
- * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
+ * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
+ * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
  * @see {@link Entities.EntityProperties-Model|EntityProperties-Model}
+ * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
+ * @see {@link Entities.EntityProperties-Image|EntityProperties-Image}
+ * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
  * @see {@link Entities.EntityProperties-ParticleEffect|EntityProperties-ParticleEffect}
+ * @see {@link Entities.EntityProperties-Line|EntityProperties-Line}
  * @see {@link Entities.EntityProperties-PolyLine|EntityProperties-PolyLine}
  * @see {@link Entities.EntityProperties-PolyVox|EntityProperties-PolyVox}
- * @see {@link Entities.EntityProperties-Shape|EntityProperties-Shape}
- * @see {@link Entities.EntityProperties-Sphere|EntityProperties-Sphere}
- * @see {@link Entities.EntityProperties-Text|EntityProperties-Text}
- * @see {@link Entities.EntityProperties-Web|EntityProperties-Web}
+ * @see {@link Entities.EntityProperties-Grid|EntityProperties-Grid}
+ * @see {@link Entities.EntityProperties-Gizmo|EntityProperties-Gizmo}
+ * @see {@link Entities.EntityProperties-Light|EntityProperties-Light}
  * @see {@link Entities.EntityProperties-Zone|EntityProperties-Zone}
+ * @see {@link Entities.EntityProperties-Material|EntityProperties-Material}
  */
 
 /**jsdoc
@@ -703,16 +920,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  */
 
 /**jsdoc
- * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more 
- * points.
+ * The <code>"Line"</code> {@link Entities.EntityType|EntityType} draws thin, straight lines between a sequence of two or more
+ * points.  Deprecated: Use PolyLines instead.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * @typedef {object} Entities.EntityProperties-Line
- * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Must be sufficient to contain all the 
+ * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. Must be sufficient to contain all the
  *     <code>linePoints</code>.
  * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
- *     position. A maximum of 70 points can be specified. The property's value is set only if all the <code>linePoints</code> 
+ *     position. A maximum of 70 points can be specified. The property's value is set only if all the <code>linePoints</code>
  *     lie within the entity's <code>dimensions</code>.
- * @property {number} lineWidth=2 - <em>Currently not used.</em>
  * @property {Color} color=255,255,255 - The color of the line.
  * @example <caption>Draw lines in a "V".</caption>
  * var entity = Entities.addEntity({
@@ -731,15 +947,12 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  */
 
 /**jsdoc
- * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on
- * {@link Entities.EntityType|Model} entities, {@link Entities.EntityType|Shape} entities (albedo only), 
- * {@link Overlays.OverlayType|model overlays}, and avatars.
+ * The <code>"Material"</code> {@link Entities.EntityType|EntityType} modifies the existing materials on entities and avatars.
  * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.<br />
- * To apply a material to an entity or overlay, set the material entity's <code>parentID</code> property to the entity or 
- * overlay's ID.
+ * To apply a material to an entity, set the material entity's <code>parentID</code> property to the entity ID.
  * To apply a material to an avatar, set the material entity's <code>parentID</code> property to the avatar's session UUID.
  * To apply a material to your avatar such that it persists across domains and log-ins, create the material as an avatar entity 
- * by setting the <code>clientOnly</code> parameter in {@link Entities.addEntity} to <code>true</code>.
+ * by setting the <code>entityHostType</code> parameter in {@link Entities.addEntity} to <code>"avatar"</code>.
  * Material entities render as non-scalable spheres if they don't have their parent set.
  * @typedef {object} Entities.EntityProperties-Material
  * @property {string} materialURL="" - URL to a {@link MaterialResource}. If you append <code>?name</code> to the URL, the 
@@ -749,12 +962,17 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {number} priority=0 - The priority for applying the material to its parent. Only the highest priority material is 
  *     applied, with materials of the same priority randomly assigned. Materials that come with the model have a priority of 
  *     <code>0</code>.
- * @property {string|number} parentMaterialName="0" - Selects the submesh or submeshes within the parent to apply the material 
- *     to. If in the format <code>"mat::string"</code>, all submeshes with material name <code>"string"</code> are replaced. 
- *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh index to modify. Invalid values are 
- *     parsed to <code>0</code>.
+ * @property {string} parentMaterialName="0" - Selects the mesh part or parts within the parent to which to apply the material.
+ *     If in the format <code>"mat::string"</code>, all mesh parts with material name <code>"string"</code> are replaced.
+ *     Otherwise the property value is parsed as an unsigned integer, specifying the mesh part index to modify.  If <code>"all"</code>,
+ *     all mesh parts will be replaced.  If an array (starts with <code>"["</code> and ends with <code>"]"</code>), the string will be
+ *     split at each <code>","</code> and each element will be parsed as either a number or a string if it starts with
+ *     <code>"mat::"</code>.  In other words, <code>"[0,1,mat::string,mat::string2]"</code> will replace mesh parts 0 and 1, and any
+ *     mesh parts with material <code>"string"</code> or <code>"string2"</code>.  Do not put spaces around the commas.  Invalid values
+ *     are parsed to <code>0</code>.
  * @property {string} materialMappingMode="uv" - How the material is mapped to the entity. Either <code>"uv"</code> or 
- *     <code>"projected"</code>. <em>Currently, only <code>"uv"</code> is supported.
+ *     <code>"projected"</code>. In "uv" mode, the material will be evaluated within the UV space of the mesh it is applied to.  In
+ *     "projected" mode, the 3D transform of the Material Entity will be used to evaluate the texture coordinates for the material.
  * @property {Vec2} materialMappingPos=0,0 - Offset position in UV-space of the top left of the material, range 
  *     <code>{ x: 0, y: 0 }</code> &ndash; <code>{ x: 1, y: 1 }</code>.
  * @property {Vec2} materialMappingScale=1,1 - How much to scale the material within the parent's UV-space.
@@ -762,6 +980,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} materialData="" - Used to store {@link MaterialResource} data as a JSON string. You can use 
  *     <code>JSON.parse()</code> to parse the string into a JavaScript object which you can manipulate the properties of, and 
  *     use <code>JSON.stringify()</code> to convert the object into a string to put in the property.
+ * @property {boolean} materialRepeat=true - If true, the material will repeat.  If false, fragments outside of texCoord 0 - 1 will be discarded.
+ *     Works in both "uv" and "projected" modes.
  * @example <caption>Color a sphere using a Material entity.</caption>
  * var entityID = Entities.addEntity({
  *     type: "Sphere",
@@ -779,7 +999,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     materialData: JSON.stringify({
  *         materialVersion: 1,
  *         materials: {
- *             // Can only set albedo on a Shape entity.
  *             // Value overrides entity's "color" property.
  *             albedo: [1.0, 1.0, 0]  // Yellow
  *         }
@@ -794,10 +1013,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity. When adding an entity, if no <code>dimensions</code> 
  *     value is specified then the model is automatically sized to its 
  *     <code>{@link Entities.EntityProperties|naturalDimensions}</code>.
+ * @property {Vec3} modelScale - The scale factor applied to the model's dimensions.  Deprecated.
  * @property {Color} color=255,255,255 - <em>Currently not used.</em>
  * @property {string} modelURL="" - The URL of the FBX of OBJ model. Baked FBX models' URLs end in ".baked.fbx".<br />
- *     Note: If the name ends with <code>"default-image-model.fbx"</code> then the entity is considered to be an "Image" 
- *     entity, in which case the <code>textures</code> property should be set per the example.
  * @property {string} textures="" - A JSON string of texture name, URL pairs used when rendering the model in place of the
  *     model's original textures. Use a texture name from the <code>originalTextures</code> property to override that texture. 
  *     Only the texture names and URLs to be overridden need be specified; original textures are used where there are no 
@@ -808,31 +1026,33 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     parse the JSON string into a JavaScript object of name, URL pairs. <em>Read-only.</em>
  *
  * @property {ShapeType} shapeType="none" - The shape of the collision hull used if collisions are enabled.
- * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is
+ * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is
  *     <code>"compound"</code>.
  *
  * @property {Entities.AnimationProperties} animation - An animation to play on the model.
  *
- * @property {Quat[]} jointRotations=[]] - Joint rotations applied to the model; <code>[]</code> if none are applied or the 
+ * @property {Quat[]} jointRotations=[] - Joint rotations applied to the model; <code>[]</code> if none are applied or the 
  *     model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative to 
  *     each joint's parent.<br />
  *     Joint rotations can be set by {@link Entities.setLocalJointRotation|setLocalJointRotation} and similar functions, or by
  *     setting the value of this property. If you set a joint rotation using this property you also need to set the 
  *     corresponding <code>jointRotationsSet</code> value to <code>true</code>.
- * @property {boolean[]} jointRotationsSet=[]] - <code>true</code> values for joints that have had rotations applied, 
+ * @property {boolean[]} jointRotationsSet=[] - <code>true</code> values for joints that have had rotations applied, 
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
  *     {@link Entities.getJointIndex|getJointIndex}.
- * @property {Vec3[]} jointTranslations=[]] - Joint translations applied to the model; <code>[]</code> if none are applied or 
+ * @property {Vec3[]} jointTranslations=[] - Joint translations applied to the model; <code>[]</code> if none are applied or 
  *     the model hasn't loaded. The array indexes are per {@link Entities.getJointIndex|getJointIndex}. Rotations are relative 
  *     to each joint's parent.<br />
  *     Joint translations can be set by {@link Entities.setLocalJointTranslation|setLocalJointTranslation} and similar 
  *     functions, or by setting the value of this property. If you set a joint translation using this property you also need to 
  *     set the corresponding <code>jointTranslationsSet</code> value to <code>true</code>.
- * @property {boolean[]} jointTranslationsSet=[]] - <code>true</code> values for joints that have had translations applied, 
+ * @property {boolean[]} jointTranslationsSet=[] - <code>true</code> values for joints that have had translations applied, 
  *     <code>false</code> otherwise; <code>[]</code> if none are applied or the model hasn't loaded. The array indexes are per 
  *     {@link Entities.getJointIndex|getJointIndex}.
  * @property {boolean} relayParentJoints=false - If <code>true</code> and the entity is parented to an avatar, then the 
  *     avatar's joint rotations are applied to the entity's joints.
+ * @property {boolean} groupCulled=false - If <code>true</code>, the mesh parts of the model are LOD culled as a group.
+ *     If <code>false</code>, separate mesh parts will be LOD culled individually.
  *
  * @example <caption>Rez a Vive tracker puck.</caption>
  * var entity = Entities.addEntity({
@@ -842,24 +1062,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     modelURL: "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj",
  *     dimensions: { x: 0.0945, y: 0.0921, z: 0.0423 },
  *     lifetime: 300  // Delete after 5 minutes.
- * });
- * @example <caption>Create an "Image" entity like you can in the Create app.</caption>
- * var IMAGE_MODEL = "https://hifi-content.s3.amazonaws.com/DomainContent/production/default-image-model.fbx";
- * var DEFAULT_IMAGE = "https://hifi-content.s3.amazonaws.com/DomainContent/production/no-image.jpg";
- * var entity = Entities.addEntity({
- *     type: "Model",
- *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.5, z: -3 })),
- *     rotation: MyAvatar.orientation,
- *     dimensions: {
- *         x: 0.5385,
- *         y: 0.2819,
- *         z: 0.0092
- *     },
- *     shapeType: "box",
- *     collisionless: true,
- *     modelURL: IMAGE_MODEL,
- *     textures: JSON.stringify({ "tex.picture": DEFAULT_IMAGE }),
- *     lifetime: 300  // Delete after 5 minutes
  * });
  */
 
@@ -946,6 +1148,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     and <code>spinSpread == PI/2</code>, each particle will have a spin in the range <code>PI/2</code> &ndash; <code>3*PI/2</code>.
  * @property {boolean} rotateWithEntity=false - Whether or not the particles' spin will rotate with the entity.  If false, when <code>particleSpin == 0</code>, the particles will point
  * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  *
  * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
  *
@@ -974,20 +1177,21 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @typedef {object} Entities.EntityProperties-PolyLine
  * @property {Vec3} dimensions=1,1,1 - The dimensions of the entity, i.e., the size of the bounding box that contains the 
  *     lines drawn.
- * @property {Vec3[]} linePoints=[]] - The sequence of points to draw lines between. The values are relative to the entity's
+ * @property {Vec3[]} linePoints=[] - The sequence of points to draw lines between. The values are relative to the entity's
  *     position. A maximum of 70 points can be specified. Must be specified in order for the entity to render.
- * @property {Vec3[]} normals=[]] - The normal vectors for the line's surface at the <code>linePoints</code>. The values are 
+ * @property {Vec3[]} normals=[] - The normal vectors for the line's surface at the <code>linePoints</code>. The values are 
  *     relative to the entity's orientation. Must be specified in order for the entity to render.
- * @property {number[]} strokeWidths=[]] - The widths, in m, of the line at the <code>linePoints</code>. Must be specified in 
+ * @property {number[]} strokeWidths=[] - The widths, in m, of the line at the <code>linePoints</code>. Must be specified in 
  *     order for the entity to render.
- * @property {number} lineWidth=2 - <em>Currently not used.</code>
- * @property {Vec3[]} strokeColors=[]] - <em>Currently not used.</em>
- * @property {Color} color=255,255,255 - The base color of the line, which is multiplied with the color of the texture for
- *     rendering.
+ * @property {Vec3[]} strokeColors=[] - The base colors of each point, which are multiplied with the color of the texture, going from 0-1.
+ *     If strokeColors.length < the number of points, <code>color</code> is used for the remaining points.
+ * @property {Color} color=255,255,255 - Used as the color for each point if <code>strokeColors</code> is too short.
  * @property {string} textures="" - The URL of a JPG or PNG texture to use for the lines. If you want transparency, use PNG
  *     format.
  * @property {boolean} isUVModeStretch=true - If <code>true</code>, the texture is stretched to fill the whole line, otherwise 
  *     the texture repeats along the line.
+ * @property {bool} glow=false - If <code>true</code>, the alpha of the strokes will drop off farther from the center.
+ * @property {bool} faceCamera=false - If <code>true</code>, each line segment will rotate to face the camera.
  * @example <caption>Draw a textured "V".</caption>
  * var entity = Entities.addEntity({
  *     type: "PolyLine",
@@ -1072,6 +1276,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.Shape} shape="Sphere" - The shape of the entity.
  * @property {Vec3} dimensions=0.1,0.1,0.1 - The dimensions of the entity.
  * @property {Color} color=255,255,255 - The color of the entity.
+ * @property {number} alpha=1 - The alpha of the shape.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a cylinder.</caption>
  * var shape = Entities.addEntity({
  *     type: "Shape",
@@ -1100,9 +1306,18 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     created using <code>\n</code>. Overflowing lines are not displayed.
  * @property {number} lineHeight=0.1 - The height of each line of text (thus determining the font size).
  * @property {Color} textColor=255,255,255 - The color of the text.
+ * @property {number} textAlpha=1.0 - The text alpha.
  * @property {Color} backgroundColor=0,0,0 - The color of the background rectangle.
- * @property {boolean} faceCamera=false - If <code>true</code>, the entity is oriented to face each user's camera (i.e., it
- *     differs for each user present).
+ * @property {number} backgroundAlpha=1.0 - The background alpha.
+ * @property {BillboardMode} billboardMode="none" - If <code>"none"</code>, the entity is not billboarded.  If <code>"yaw"</code>, the entity will be
+ *     oriented to follow your camera around the y-axis.  If <code>"full"</code> the entity will be oriented to face your camera.  The following deprecated
+ *     behavior is also supported: you can also set <code>"faceCamera"</code> to <code>true</code> to set <code>billboardMode</code> to "yaw", and you can set
+ *     <code>"isFacingAvatar"</code> to <code>true</code> to set <code>billboardMode</code> to "full".  Setting either to <code>false</code> sets the mode to "none"
+ * @property {number} leftMargin=0.0 - The left margin, in meters.
+ * @property {number} rightMargin=0.0 - The right margin, in meters.
+ * @property {number} topMargin=0.0 - The top margin, in meters.
+ * @property {number} bottomMargin=0.0 - The bottom margin, in meters.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  * @example <caption>Create a text entity.</caption>
  * var text = Entities.addEntity({
  *     type: "Text",
@@ -1110,7 +1325,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
  *     lineHeight: 0.12,
  *     text: "Hello\nthere!",
- *     faceCamera: true,
+ *     billboardMode: "yaw",
  *     lifetime: 300  // Delete after 5 minutes.
  * });
  */
@@ -1122,11 +1337,22 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * The entity has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
  * @typedef {object} Entities.EntityProperties-Web
  * @property {Vec3} dimensions=0.1,0.1,0.01 - The dimensions of the entity.
+ * @property {Color} color=255,255,255 - The color of the web surface.
+ * @property {number} alpha=1 - The alpha of the web surface.
+ * @property {BillboardMode} billboardMode="none" - If <code>"none"</code>, the entity is not billboarded.  If <code>"yaw"</code>, the entity will be
+ *     oriented to follow your camera around the y-axis.  If <code>"full"</code> the entity will be oriented to face your camera.  The following deprecated
+ *     behavior is also supported: you can also set <code>"faceCamera"</code> to <code>true</code> to set <code>billboardMode</code> to "yaw", and you can set
+ *     <code>"isFacingAvatar"</code> to <code>true</code> to set <code>billboardMode</code> to "full".  Setting either to <code>false</code> sets the mode to "none"
  * @property {string} sourceUrl="" - The URL of the Web page to display. This value does not change as you or others navigate 
  *     on the Web entity.
  * @property {number} dpi=30 - The resolution to display the page at, in dots per inch. If you convert this to dots per meter 
  *     (multiply by 1 / 0.0254 = 39.3701) then multiply <code>dimensions.x</code> and <code>dimensions.y</code> by that value 
  *     you get the resolution in pixels.
+ * @property {string} scriptURL="" - The URL of a JavaScript file to inject into the Web page.
+ * @property {number} maxFPS=10 - The maximum update rate for the Web content, in frames/second.
+ * @property {WebInputMode} inputMode="touch" - The user input mode to use.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
+ * @property {boolean} showKeyboardFocusHighlight - Whether or not to show the keyboard focus highlight when this entity has focus.
  * @example <caption>Create a Web entity displaying at 1920 x 1080 resolution.</caption>
  * var METERS_TO_INCHES = 39.3701;
  * var entity = Entities.addEntity({
@@ -1155,7 +1381,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {ShapeType} shapeType="box" - The shape of the volume in which the zone's lighting effects and avatar 
  *     permissions have effect. Reverts to the default value if set to <code>"none"</code>, or set to <code>"compound"</code> 
  *     and <code>compoundShapeURL</code> is <code>""</code>.
-  * @property {string} compoundShapeURL="" - The OBJ file to use for the compound shape if <code>shapeType</code> is 
+  * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is 
  *     <code>"compound"</code>.
  *
  * @property {string} keyLightMode="inherit" - Configures the key light in the zone. Possible values:<br />
@@ -1193,8 +1419,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {Entities.Bloom} bloom - The bloom properties of the zone.
  *
  * @property {boolean} flyingAllowed=true - If <code>true</code> then visitors can fly in the zone; otherwise they cannot.
+ *     Only works on domain entities.
  * @property {boolean} ghostingAllowed=true - If <code>true</code> then visitors with avatar collisions turned off will not 
- *     collide with content in the zone; otherwise visitors will always collide with content in the zone.
+ *     collide with content in the zone; otherwise visitors will always collide with content in the zone.  Only works on domain entities.
  
  * @property {string} filterURL="" - The URL of a JavaScript file that filters changes to properties of entities within the 
  *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
@@ -1219,6 +1446,66 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     },
  *     lifetime: 300  // Delete after 5 minutes.
  * });
+ */
+
+/**jsdoc
+ * The <code>"Image"</code> {@link Entities.EntityType|EntityType} displays an image on a 2D rectangle in the domain.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Image
+ * @property {string} imageURL="" - The URL of the image to use.
+ * @property {boolean} emissive=false - Whether or not the image should be emissive (unlit).
+ * @property {boolean} keepAspectRatio=true - Whether or not the image should maintain its aspect ratio.
+ * @property {BillboardMode} billboardMode="none" - If <code>"none"</code>, the entity is not billboarded.  If <code>"yaw"</code>, the entity will be
+ *     oriented to follow your camera around the y-axis.  If <code>"full"</code> the entity will be oriented to face your camera.  The following deprecated
+ *     behavior is also supported: you can also set <code>"faceCamera"</code> to <code>true</code> to set <code>billboardMode</code> to "yaw", and you can set
+ *     <code>"isFacingAvatar"</code> to <code>true</code> to set <code>billboardMode</code> to "full".  Setting either to <code>false</code> sets the mode to "none"
+ * @property {Rect} subImage={ x: 0, y: 0, width: -1, height: -1 } - The portion of the image to display. If width or height are -1, defaults to
+ *     the full image in that dimension.
+ * @property {Color} color=255,255,255 - The color of the image.
+ * @property {number} alpha=1 - The alpha of the image.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
+ * @example <caption>Create a image entity.</caption>
+ * var image = Entities.addEntity({
+ *     type: "Image",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 0.6, y: 0.3, z: 0.01 },
+ *     imageURL: "https://images.pexels.com/photos/1020315/pexels-photo-1020315.jpeg",
+ *     billboardMode: "yaw",
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Grid"</code> {@link Entities.EntityType|EntityType} displays a grid on a 2D plane.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Grid
+ * @property {Color} color=255,255,255 - The color of the grid.
+ * @property {number} alpha=1 - The alpha of the grid.
+ * @property {boolean} followCamera=true - If <code>true</code>, the grid is always visible even as the camera moves to another
+ *     position.
+ * @property {number} majorGridEvery=5 - Integer number of <code>minorGridEvery</code> intervals at which to draw a thick grid
+ *     line. Minimum value = <code>1</code>.
+ * @property {number} minorGridEvery=1 - Real number of meters at which to draw thin grid lines. Minimum value =
+ *     <code>0.001</code>.
+ * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
+ * @example <caption>Create a grid entity.</caption>
+ * var grid = Entities.addEntity({
+ *     type: "Grid",
+ *     position: Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0, z: -5 })),
+ *     dimensions: { x: 100.0, y: 100.0, z: 0.01 },
+ *     followCamera: false,
+ *     majorGridEvery: 4,
+ *     minorGridEvery: 0.5,
+ *     lifetime: 300  // Delete after 5 minutes.
+ * });
+ */
+
+/**jsdoc
+ * The <code>"Gizmo"</code> {@link Entities.EntityType|EntityType} displays an entity that could be used as UI.
+ * It has properties in addition to the common {@link Entities.EntityProperties|EntityProperties}.
+ * @typedef {object} Entities.EntityProperties-Gizmo
+ * @property {GizmoType} gizmoType="ring" - The gizmo type of the entity.
+ * @property {Entities.RingGizmo} ring - The ring gizmo properties.
  */
 
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults, bool allowUnknownCreateTime,
@@ -1246,12 +1533,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::Type)) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(type, EntityTypes::getEntityTypeName(_type));
     }
-    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::Created)) {
-        auto created = QDateTime::fromMSecsSinceEpoch(getCreated() / 1000.0f, Qt::UTC); // usec per msec
-        created.setTimeSpec(Qt::OffsetFromUTC);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(created, created.toString(Qt::ISODate));
-    }
-
     if ((!skipDefaults || _lifetime != defaultEntityProperties._lifetime) && !strictSemantics) {
         if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::Age)) {
             COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(age, getAge()); // gettable, but not settable
@@ -1260,48 +1541,72 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
             COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
         }
     }
-
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::LastEdited)) {
         properties.setProperty("lastEdited", convertScriptValue(engine, _lastEdited));
     }
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     if (!skipDefaults) {
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, naturalDimensions); // gettable, but not settable
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, naturalPosition);
     }
+
+    // Core properties
+    //COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SIMULATION_OWNER, simulationOwner); // not exposed yet
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POSITION, position);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DIMENSIONS, dimensions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ROTATION, rotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_REGISTRATION_POINT, registrationPoint);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CREATED, created);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LAST_EDITED_BY, lastEditedBy);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_ENTITY_HOST_TYPE, entityHostType, getEntityHostTypeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_RENDER_LAYER, renderLayer, getRenderLayerAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_PRIMITIVE_MODE, primitiveMode, getPrimitiveModeAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_PICK_INTERSECTION, ignorePickIntersection);
+    _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+    // Physics
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DENSITY, density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VELOCITY, velocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRAVITY, gravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACCELERATION, acceleration);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DAMPING, damping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RESTITUTION, restitution);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FRICTION, friction);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DENSITY, density);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFETIME, lifetime);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT, script);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SERVER_SCRIPTS, serverScripts);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_REGISTRATION_POINT, registrationPoint);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CAN_CAST_SHADOW, canCastShadow);  // Relevant to Shape and Model entities only.
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISION_MASK, collisionMask, collidesWith, getCollisionMaskAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DYNAMIC, dynamic);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_DYNAMIC, dynamic, collisionsWillMove, getDynamic()); // legacy support
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);  // Text only.
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACTION_DATA, actionData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCKED, locked);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_USER_DATA, userData);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE_IN_SECONDARY_CAMERA, isVisibleInSecondaryCamera);
+
+    // Cloning
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIFETIME, cloneLifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIMIT, cloneLimit);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_DYNAMIC, cloneDynamic);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
+
+    // Scripts
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT, script);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_TIMESTAMP, scriptTimestamp);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SERVER_SCRIPTS, serverScripts);
 
     // Certifiable Properties
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ITEM_NAME, itemName);
@@ -1316,38 +1621,55 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CERTIFICATE_ID, certificateID);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STATIC_CERTIFICATE_VERSION, staticCertificateVersion);
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NAME, name);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_SOUND_URL, collisionSoundURL);
+    // Local props for scripts
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
 
     // Particles only
     if (_type == EntityTypes::ParticleEffect) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTING_PARTICLES, isEmitting);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_PARTICLES, maxParticles);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LIFESPAN, lifespan);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTING_PARTICLES, isEmitting);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RATE, emitRate);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_SPEED, emitSpeed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPEED_SPREAD, speedSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_ORIENTATION, emitOrientation);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_DIMENSIONS, emitDimensions);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_RADIUS_START, emitRadiusStart);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POLAR_START, polarStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_POLAR_FINISH, polarFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_AZIMUTH_START, azimuthStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_AZIMUTH_FINISH, azimuthFinish);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMIT_ACCELERATION, emitAcceleration);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ACCELERATION_SPREAD, accelerationSpread);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_RADIUS, particleRadius);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_SPREAD, radiusSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_START, radiusStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RADIUS_FINISH, radiusFinish);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR_SPREAD, colorSpread, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR_START, colorStart, vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR_FINISH, colorFinish, vec3Color);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_SPREAD, alphaSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARTICLE_SPIN, particleSpin);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_SPREAD, spinSpread);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SPIN_START, spinStart);
@@ -1357,22 +1679,24 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     // Models only
     if (_type == EntityTypes::Model) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_URL, modelURL);
-        if (!psuedoPropertyFlagsButDesiredEmpty) {
-            _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        }
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MODEL_SCALE, modelScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS, jointRotations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RELAY_PARENT_JOINTS, relayParentJoints);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GROUP_CULLED, groupCulled);
+        if (!psuedoPropertyFlagsButDesiredEmpty) {
+            _animation.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        }
     }
 
-    if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
-    }
-    
     // FIXME: Shouldn't provide a shapeType property for Box and Sphere entities.
     if (_type == EntityTypes::Box) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Box"));
@@ -1382,18 +1706,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     }
 
     if (_type == EntityTypes::Box || _type == EntityTypes::Sphere || _type == EntityTypes::Shape) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
-    }
-
-    // FIXME - it seems like ParticleEffect should also support this
-    if (_type == EntityTypes::Model || _type == EntityTypes::Zone) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
-    }
-
-    // Models & Particles
-    if (_type == EntityTypes::Model || _type == EntityTypes::ParticleEffect) {
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHAPE, shape);
     }
 
     // Lights only
@@ -1401,48 +1717,65 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_SPOTLIGHT, isSpotlight);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_INTENSITY, intensity);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FALLOFF_RADIUS, falloffRadius);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EXPONENT, exponent);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CUTOFF, cutoff);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FALLOFF_RADIUS, falloffRadius);
     }
 
     // Text only
     if (_type == EntityTypes::Text) {
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT, text);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_HEIGHT, lineHeight);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_TEXT_COLOR, textColor, getTextColor(), u8vec3Color);
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, getBackgroundColor(), u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_TEXT_COLOR, textColor, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXT_ALPHA, textAlpha);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_BACKGROUND_COLOR, backgroundColor, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BACKGROUND_ALPHA, backgroundAlpha);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LEFT_MARGIN, leftMargin);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_RIGHT_MARGIN, rightMargin);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TOP_MARGIN, topMargin);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_BOTTOM_MARGIN, bottomMargin);
     }
 
     // Zones only
     if (_type == EntityTypes::Zone) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
+
         if (!psuedoPropertyFlagsButDesiredEmpty) {
             _keyLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
             _ambientLight.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-
             _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+            _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+            _bloom.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         }
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FLYING_ALLOWED, flyingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GHOSTING_ALLOWED, ghostingAllowed);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FILTER_URL, filterURL);
 
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
-        if (!psuedoPropertyFlagsButDesiredEmpty) {
-            _haze.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        }
-        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
-        if (!psuedoPropertyFlagsButDesiredEmpty) {
-            _bloom.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        }
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_KEY_LIGHT_MODE, keyLightMode, getKeyLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AMBIENT_LIGHT_MODE, ambientLightMode, getAmbientLightModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
     }
 
     // Web only
     if (_type == EntityTypes::Web) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SOURCE_URL, sourceUrl);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DPI, dpi);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SCRIPT_URL, scriptURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAX_FPS, maxFPS);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_INPUT_MODE, inputMode, getInputModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, showKeyboardFocusHighlight);
     }
 
     // PolyVoxel only
@@ -1463,16 +1796,25 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_Z_P_NEIGHBOR_ID, zPNeighborID);
     }
 
-    // Lines & PolyLines
-    if (_type == EntityTypes::Line || _type == EntityTypes::PolyLine) {
+    // Lines
+    if (_type == EntityTypes::Line) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_WIDTH, lineWidth);
+
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_NORMALS, normals);  // Polyline only.
-        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_STROKE_COLORS, strokeColors, qVectorVec3Color);  // Polyline only.
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);  // Polyline only.
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);  // Polyline only.
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);  // Polyline only.
+    }
+
+    // Polylines
+    if (_type == EntityTypes::PolyLine) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_TEXTURES, textures);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_POINTS, linePoints);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_WIDTHS, strokeWidths);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_STROKE_NORMALS, normals);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_STROKE_COLORS, strokeColors, qVectorVec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IS_UV_MODE_STRETCH, isUVModeStretch);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_GLOW, glow);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LINE_FACE_CAMERA, faceCamera);
     }
 
     // Materials
@@ -1485,6 +1827,45 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_SCALE, materialMappingScale);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_MAPPING_ROT, materialMappingRot);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_DATA, materialData);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MATERIAL_REPEAT, materialRepeat);
+    }
+
+    // Image only
+    if (_type == EntityTypes::Image) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BILLBOARD_MODE, billboardMode, getBillboardModeAsString());
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IMAGE_URL, imageURL);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMISSIVE, emissive);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_KEEP_ASPECT_RATIO, keepAspectRatio);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_SUB_IMAGE, subImage);
+
+        // Handle conversions to old 'textures' property from "imageURL"
+        if (((!psuedoPropertyFlagsButDesiredEmpty && _desiredProperties.isEmpty()) || _desiredProperties.getHasProperty(PROP_IMAGE_URL)) &&
+                (!skipDefaults || defaultEntityProperties._imageURL != _imageURL)) {
+            QScriptValue textures = engine->newObject();
+            textures.setProperty("tex.picture", _imageURL);
+            properties.setProperty("textures", textures);
+        }
+    }
+
+    // Grid only
+    if (_type == EntityTypes::Grid) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
+        _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
+
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_GRID_FOLLOW_CAMERA, followCamera);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MAJOR_GRID_EVERY, majorGridEvery);
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_MINOR_GRID_EVERY, minorGridEvery);
+    }
+
+    // Gizmo only
+    if (_type == EntityTypes::Gizmo) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_GIZMO_TYPE, gizmoType, getGizmoTypeAsString());
+        _ring.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
     /**jsdoc
@@ -1516,29 +1897,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(originalTextures, textureNamesStr); // gettable, but not settable
     }
 
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_ID, parentID);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_PARENT_JOINT_INDEX, parentJointIndex);
-
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_QUERY_AA_CUBE, queryAACube);
-
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_VELOCITY, localVelocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ANGULAR_VELOCITY, localAngularVelocity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_DIMENSIONS, localDimensions);
-
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLIENT_ONLY, clientOnly);  // Gettable but not settable except at entity creation
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_OWNING_AVATAR_ID, owningAvatarID);  // Gettable but not settable
-
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONEABLE, cloneable);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIFETIME, cloneLifetime);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_LIMIT, cloneLimit);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_DYNAMIC, cloneDynamic);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_AVATAR_ENTITY, cloneAvatarEntity);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_CLONE_ORIGIN_ID, cloneOriginID);
-
-    _grab.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-
     // Rendering info
     if (!skipDefaults && !strictSemantics &&
         (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::RenderInfo))) {
@@ -1567,16 +1925,22 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_NO_SKIP(renderInfo, renderInfo);  // Gettable but not settable
     }
 
-    // FIXME: These properties should already have been set above.
     if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::ClientOnly)) {
-        properties.setProperty("clientOnly", convertScriptValue(engine, getClientOnly()));
+        properties.setProperty("clientOnly", convertScriptValue(engine, getEntityHostType() == entity::HostType::AVATAR));
     }
-    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::OwningAvatarID)) {
-        properties.setProperty("owningAvatarID", convertScriptValue(engine, getOwningAvatarID()));
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::AvatarEntity)) {
+        properties.setProperty("avatarEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::AVATAR));
+    }
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::LocalEntity)) {
+        properties.setProperty("localEntity", convertScriptValue(engine, getEntityHostType() == entity::HostType::LOCAL));
     }
 
-    // FIXME - I don't think these properties are supported any more
-    //COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
+    if (_type != EntityTypes::PolyLine && (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::FaceCamera))) {
+        properties.setProperty("faceCamera", convertScriptValue(engine, getBillboardMode() == BillboardMode::YAW));
+    }
+    if (!psuedoPropertyFlagsActive || psueudoPropertyFlags.test(EntityPsuedoPropertyFlag::IsFacingAvatar)) {
+        properties.setProperty("isFacingAvatar", convertScriptValue(engine, getBillboardMode() == BillboardMode::FULL));
+    }
 
     return properties;
 }
@@ -1587,57 +1951,102 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
         setType(typeScriptValue.toVariant().toString());
     }
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
+    // Core
+    if (!honorReadOnly) {
+        // not handled yet
+        // COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, SimulationOwner, setSimulationOwner);
+    }
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentID, QUuid, setParentID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(position, vec3, setPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dimensions, vec3, setDimensions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(rotation, quat, setRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
+    if (!honorReadOnly) {
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(created, quint64, setCreated);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(lastEditedBy, QUuid, setLastEditedBy);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(entityHostType, EntityHostType);
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
+    }
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube); // TODO: should scripts be able to set this?
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(renderLayer, RenderLayer);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(primitiveMode, PrimitiveMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(ignorePickIntersection, bool, setIgnorePickIntersection);
+    _grab.copyFromScriptValue(object, _defaultSettings);
+
+    // Physics
     COPY_PROPERTY_FROM_QSCRIPTVALUE(density, float, setDensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(velocity, vec3, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, vec3, setAngularVelocity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(gravity, vec3, setGravity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(acceleration, vec3, setAcceleration);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(damping, float, setDamping);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(restitution, float, setRestitution);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(friction, float, setFriction);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifetime, float, setLifetime);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(registrationPoint, vec3, setRegistrationPoint);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularVelocity, vec3, setAngularVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(angularDamping, float, setAngularDamping);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(visible, bool, setVisible);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(canCastShadow, bool, setCanCastShadow);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(color, u8vec3Color, setColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, u8vec3Color, setColorSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, vec3Color, setColorStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, vec3Color, setColorFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitterShouldTrail , bool, setEmitterShouldTrail);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint16_t, setCollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(collidesWith, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(intensity, float, setIntensity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(falloffRadius, float, setFalloffRadius);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(exponent, float, setExponent);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cutoff, float, setCutoff);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(locked, bool, setLocked);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(userData, QString, setUserData);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, u8vec3Color, setTextColor);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, u8vec3Color, setBackgroundColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
+    if (!honorReadOnly) {
+        COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
+    }
+
+    // Cloning
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneable, bool, setCloneable);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLifetime, float, setCloneLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLimit, float, setCloneLimit);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneDynamic, bool, setCloneDynamic);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneAvatarEntity, bool, setCloneAvatarEntity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneOriginID, QUuid, setCloneOriginID);
+
+    // Scripts
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(script, QString, setScript);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptTimestamp, quint64, setScriptTimestamp);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(serverScripts, QString, setServerScripts);
+
+    // Certifiable Properties
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemDescription, QString, setItemDescription);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemCategories, QString, setItemCategories);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemArtist, QString, setItemArtist);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemLicense, QString, setItemLicense);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(limitedRun, quint32, setLimitedRun);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(staticCertificateVersion, quint32, setStaticCertificateVersion);
+
+    // Script location data
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, vec3, setLocalPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, quat, setLocalRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, vec3, setLocalVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, vec3, setLocalAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, vec3, setLocalDimensions);
+
+    // Common
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(shapeType, ShapeType);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(color, u8vec3Color, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alpha, float, setAlpha);
+    _pulse.copyFromScriptValue(object, _defaultSettings);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textures, QString, setTextures);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(billboardMode, BillboardMode);
+
+    // Particles
     COPY_PROPERTY_FROM_QSCRIPTVALUE(maxParticles, quint32, setMaxParticles);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(lifespan, float, setLifespan);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isEmitting, bool, setIsEmitting);
@@ -1657,7 +2066,99 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusSpread, float, setRadiusSpread);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusStart, float, setRadiusStart);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(radiusFinish, float, setRadiusFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorSpread, u8vec3Color, setColorSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorStart, vec3Color, setColorStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(colorFinish, vec3Color, setColorFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaSpread, float, setAlphaSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaStart, float, setAlphaStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(alphaFinish, float, setAlphaFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emitterShouldTrail, bool, setEmitterShouldTrail);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(particleSpin, float, setParticleSpin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinStart, float, setSpinStart);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinFinish, float, setSpinFinish);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotateWithEntity, bool, setRotateWithEntity);
+
+    // Model
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(modelURL, QString, setModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(modelScale, vec3, setModelScale);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(relayParentJoints, bool, setRelayParentJoints);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(groupCulled, bool, setGroupCulled);
+    _animation.copyFromScriptValue(object, _defaultSettings);
+
+    // Light
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(intensity, float, setIntensity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(exponent, float, setExponent);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(cutoff, float, setCutoff);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(falloffRadius, float, setFalloffRadius);
+
+    // Text
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(text, QString, setText);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(lineHeight, float, setLineHeight);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textColor, u8vec3Color, setTextColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(textAlpha, float, setTextAlpha);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundColor, u8vec3Color, setBackgroundColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(backgroundAlpha, float, setBackgroundAlpha);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(leftMargin, float, setLeftMargin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(rightMargin, float, setRightMargin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(topMargin, float, setTopMargin);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(bottomMargin, float, setBottomMargin);
+
+    // Zone
+    _keyLight.copyFromScriptValue(object, _defaultSettings);
+    _ambientLight.copyFromScriptValue(object, _defaultSettings);
+    _skybox.copyFromScriptValue(object, _defaultSettings);
+    _haze.copyFromScriptValue(object, _defaultSettings);
+    _bloom.copyFromScriptValue(object, _defaultSettings);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(flyingAllowed, bool, setFlyingAllowed);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(filterURL, QString, setFilterURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
+
+    // Polyvox
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(zTextureURL, QString, setZTextureURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(xNNeighborID, EntityItemID, setXNNeighborID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(yNNeighborID, EntityItemID, setYNNeighborID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(zNNeighborID, EntityItemID, setZNNeighborID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(xPNeighborID, EntityItemID, setXPNeighborID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(yPNeighborID, EntityItemID, setYPNeighborID);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(zPNeighborID, EntityItemID, setZPNeighborID);
+
+    // Web
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(scriptURL, QString, setScriptURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(maxFPS, uint8_t, setMaxFPS);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(inputMode, InputMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(showKeyboardFocusHighlight, bool, setShowKeyboardFocusHighlight);
+
+    // Polyline
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths, qVectorFloat, setStrokeWidths);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(glow, bool, setGlow);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
+
+    // Shape
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(shape, QString, setShape);
+
+    // Material
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialURL, QString, setMaterialURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(materialMappingMode, MaterialMappingMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(priority, quint16, setPriority);
@@ -1666,164 +2167,166 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingScale, vec2, setMaterialMappingScale);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialMappingRot, float, setMaterialMappingRot);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(materialData, QString, setMaterialData);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(isVisibleInSecondaryCamera, bool, setIsVisibleInSecondaryCamera);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(particleSpin, float, setParticleSpin);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinSpread, float, setSpinSpread);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinStart, float, setSpinStart);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(spinFinish, float, setSpinFinish);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(rotateWithEntity, bool, setRotateWithEntity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(materialRepeat, bool, setMaterialRepeat);
 
-    // Certifiable Properties
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemName, QString, setItemName);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemDescription, QString, setItemDescription);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemCategories, QString, setItemCategories);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemArtist, QString, setItemArtist);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(itemLicense, QString, setItemLicense);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(limitedRun, quint32, setLimitedRun);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(marketplaceID, QString, setMarketplaceID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(editionNumber, quint32, setEditionNumber);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(entityInstanceNumber, quint32, setEntityInstanceNumber);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(certificateID, QString, setCertificateID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(staticCertificateVersion, quint32, setStaticCertificateVersion);
+    // Image
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(imageURL, QString, setImageURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(emissive, bool, setEmissive);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(keepAspectRatio, bool, setKeepAspectRatio);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(subImage, QRect, setSubImage);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(name, QString, setName);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionSoundURL, QString, setCollisionSoundURL);
+    // Grid
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(followCamera, bool, setFollowCamera);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(majorGridEvery, uint32_t, setMajorGridEvery);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(minorGridEvery, float, setMinorGridEvery);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(keyLightMode, KeyLightMode);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(ambientLightMode, AmbientLightMode);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
+    // Gizmo
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(gizmoType, GizmoType);
+    _ring.copyFromScriptValue(object, _defaultSettings);
 
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(sourceUrl, QString, setSourceUrl);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelData, QByteArray, setVoxelData);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelSurfaceStyle, uint16_t, setVoxelSurfaceStyle);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(lineWidth, float, setLineWidth);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(linePoints, qVectorVec3, setLinePoints);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(href, QString, setHref);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(description, QString, setDescription);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(faceCamera, bool, setFaceCamera);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(actionData, QByteArray, setActionData);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(normals, qVectorVec3, setNormals);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeColors, qVectorVec3, setStrokeColors);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(strokeWidths,qVectorFloat, setStrokeWidths);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(isUVModeStretch, bool, setIsUVModeStretch);
-
-
-    if (!honorReadOnly) {
-        // this is used by the json reader to set things that we don't want javascript to able to affect.
-        COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(created, QDateTime, setCreated, [this]() {
-                auto result = QDateTime::fromMSecsSinceEpoch(_created / 1000, Qt::UTC); // usec per msec
-                return result;
-            });
-        // TODO: expose this to QScriptValue for JSON saves?
-        //COPY_PROPERTY_FROM_QSCRIPTVALUE(simulationOwner, ???, setSimulatorPriority);
+    // Handle conversions from old 'textures' property to "imageURL"
+    {
+        QScriptValue V = object.property("textures");
+        if (_type == EntityTypes::Image && V.isValid() && !object.property("imageURL").isValid()) {
+            bool isValid = false;
+            QString textures = QString_convertFromScriptValue(V, isValid);
+            if (isValid) {
+                QVariantMap texturesMap = parseTexturesToMap(textures, QVariantMap());
+                auto texPicture = texturesMap.find("tex.picture");
+                if (texPicture != texturesMap.end()) {
+                    auto imageURL = texPicture.value().toString();
+                    if (_defaultSettings || imageURL != _imageURL) {
+                        setImageURL(imageURL);
+                    }
+                }
+            }
+        }
     }
 
-    _animation.copyFromScriptValue(object, _defaultSettings);
-    _keyLight.copyFromScriptValue(object, _defaultSettings);
-    _ambientLight.copyFromScriptValue(object, _defaultSettings);
-    _skybox.copyFromScriptValue(object, _defaultSettings);
-    _haze.copyFromScriptValue(object, _defaultSettings);
-    _bloom.copyFromScriptValue(object, _defaultSettings);
-    _grab.copyFromScriptValue(object, _defaultSettings);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(xTextureURL, QString, setXTextureURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(yTextureURL, QString, setYTextureURL);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(zTextureURL, QString, setZTextureURL);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(xNNeighborID, EntityItemID, setXNNeighborID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(yNNeighborID, EntityItemID, setYNNeighborID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(zNNeighborID, EntityItemID, setZNNeighborID);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(xPNeighborID, EntityItemID, setXPNeighborID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(yPNeighborID, EntityItemID, setYPNeighborID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(zPNeighborID, EntityItemID, setZPNeighborID);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentID, QUuid, setParentID);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(parentJointIndex, quint16, setParentJointIndex);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(queryAACube, AACube, setQueryAACube);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, vec3, setLocalPosition);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, quat, setLocalRotation);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localVelocity, vec3, setLocalVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localAngularVelocity, vec3, setLocalAngularVelocity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(localDimensions, vec3, setLocalDimensions);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(shape, QString, setShape);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(flyingAllowed, bool, setFlyingAllowed);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(ghostingAllowed, bool, setGhostingAllowed);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(filterURL, QString, setFilterURL);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(clientOnly, bool, setClientOnly);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(owningAvatarID, QUuid, setOwningAvatarID);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(dpi, uint16_t, setDPI);
-
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneable, bool, setCloneable);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLifetime, float, setCloneLifetime);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneLimit, float, setCloneLimit);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneDynamic, bool, setCloneDynamic);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneAvatarEntity, bool, setCloneAvatarEntity);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(cloneOriginID, QUuid, setCloneOriginID);
+    // Handle old "faceCamera" and "isFacingAvatar" props
+    if (_type != EntityTypes::PolyLine) {
+        QScriptValue P = object.property("faceCamera");
+        if (P.isValid() && !object.property("billboardMode").isValid()) {
+            bool newValue = P.toVariant().toBool();
+            bool oldValue = getBillboardMode() == BillboardMode::YAW;
+            if (_defaultSettings || newValue != oldValue) {
+                setBillboardMode(newValue ? BillboardMode::YAW : BillboardMode::NONE);
+            }
+        }
+    }
+    {
+        QScriptValue P = object.property("isFacingAvatar");
+        if (P.isValid() && !object.property("billboardMode").isValid() && !object.property("faceCamera").isValid()) {
+            bool newValue = P.toVariant().toBool();
+            bool oldValue = getBillboardMode() == BillboardMode::FULL;
+            if (_defaultSettings || newValue != oldValue) {
+                setBillboardMode(newValue ? BillboardMode::FULL : BillboardMode::NONE);
+            }
+        }
+    }
 
     _lastEdited = usecTimestampNow();
 }
 
+void EntityItemProperties::copyFromJSONString(QScriptEngine& scriptEngine, const QString& jsonString) {
+    // DANGER: this method is expensive
+    QJsonDocument propertiesDoc = QJsonDocument::fromJson(jsonString.toUtf8());
+    QJsonObject propertiesObj = propertiesDoc.object();
+    QVariant propertiesVariant(propertiesObj);
+    QVariantMap propertiesMap = propertiesVariant.toMap();
+    QScriptValue propertiesScriptValue = variantMapToScriptValue(propertiesMap, scriptEngine);
+    bool honorReadOnly = true;
+    copyFromScriptValue(propertiesScriptValue, honorReadOnly);
+}
+
+
 void EntityItemProperties::merge(const EntityItemProperties& other) {
-    COPY_PROPERTY_IF_CHANGED(lastEditedBy);
+    // Core
+    COPY_PROPERTY_IF_CHANGED(simulationOwner);
+    COPY_PROPERTY_IF_CHANGED(parentID);
+    COPY_PROPERTY_IF_CHANGED(parentJointIndex);
+    COPY_PROPERTY_IF_CHANGED(visible);
+    COPY_PROPERTY_IF_CHANGED(name);
+    COPY_PROPERTY_IF_CHANGED(locked);
+    COPY_PROPERTY_IF_CHANGED(userData);
+    COPY_PROPERTY_IF_CHANGED(href);
+    COPY_PROPERTY_IF_CHANGED(description);
     COPY_PROPERTY_IF_CHANGED(position);
     COPY_PROPERTY_IF_CHANGED(dimensions);
     COPY_PROPERTY_IF_CHANGED(rotation);
+    COPY_PROPERTY_IF_CHANGED(registrationPoint);
+    COPY_PROPERTY_IF_CHANGED(created);
+    COPY_PROPERTY_IF_CHANGED(lastEditedBy);
+    COPY_PROPERTY_IF_CHANGED(entityHostType);
+    COPY_PROPERTY_IF_CHANGED(owningAvatarID);
+    COPY_PROPERTY_IF_CHANGED(queryAACube);
+    COPY_PROPERTY_IF_CHANGED(canCastShadow);
+    COPY_PROPERTY_IF_CHANGED(isVisibleInSecondaryCamera);
+    COPY_PROPERTY_IF_CHANGED(renderLayer);
+    COPY_PROPERTY_IF_CHANGED(primitiveMode);
+    COPY_PROPERTY_IF_CHANGED(ignorePickIntersection);
+    _grab.merge(other._grab);
+
+    // Physics
     COPY_PROPERTY_IF_CHANGED(density);
     COPY_PROPERTY_IF_CHANGED(velocity);
+    COPY_PROPERTY_IF_CHANGED(angularVelocity);
     COPY_PROPERTY_IF_CHANGED(gravity);
     COPY_PROPERTY_IF_CHANGED(acceleration);
     COPY_PROPERTY_IF_CHANGED(damping);
+    COPY_PROPERTY_IF_CHANGED(angularDamping);
     COPY_PROPERTY_IF_CHANGED(restitution);
     COPY_PROPERTY_IF_CHANGED(friction);
     COPY_PROPERTY_IF_CHANGED(lifetime);
-    COPY_PROPERTY_IF_CHANGED(script);
-    COPY_PROPERTY_IF_CHANGED(scriptTimestamp);
-    COPY_PROPERTY_IF_CHANGED(registrationPoint);
-    COPY_PROPERTY_IF_CHANGED(angularVelocity);
-    COPY_PROPERTY_IF_CHANGED(angularDamping);
-    COPY_PROPERTY_IF_CHANGED(visible);
-    COPY_PROPERTY_IF_CHANGED(canCastShadow);
-    COPY_PROPERTY_IF_CHANGED(color);
-    COPY_PROPERTY_IF_CHANGED(colorSpread);
-    COPY_PROPERTY_IF_CHANGED(colorStart);
-    COPY_PROPERTY_IF_CHANGED(colorFinish);
-    COPY_PROPERTY_IF_CHANGED(alpha);
-    COPY_PROPERTY_IF_CHANGED(alphaSpread);
-    COPY_PROPERTY_IF_CHANGED(alphaStart);
-    COPY_PROPERTY_IF_CHANGED(alphaFinish);
-    COPY_PROPERTY_IF_CHANGED(emitterShouldTrail);
-    COPY_PROPERTY_IF_CHANGED(modelURL);
-    COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
-    COPY_PROPERTY_IF_CHANGED(localRenderAlpha);
     COPY_PROPERTY_IF_CHANGED(collisionless);
     COPY_PROPERTY_IF_CHANGED(collisionMask);
     COPY_PROPERTY_IF_CHANGED(dynamic);
-    COPY_PROPERTY_IF_CHANGED(isSpotlight);
-    COPY_PROPERTY_IF_CHANGED(intensity);
-    COPY_PROPERTY_IF_CHANGED(falloffRadius);
-    COPY_PROPERTY_IF_CHANGED(exponent);
-    COPY_PROPERTY_IF_CHANGED(cutoff);
-    COPY_PROPERTY_IF_CHANGED(locked);
-    COPY_PROPERTY_IF_CHANGED(textures);
-    COPY_PROPERTY_IF_CHANGED(userData);
-    COPY_PROPERTY_IF_CHANGED(text);
-    COPY_PROPERTY_IF_CHANGED(lineHeight);
-    COPY_PROPERTY_IF_CHANGED(textColor);
-    COPY_PROPERTY_IF_CHANGED(backgroundColor);
+    COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
+    COPY_PROPERTY_IF_CHANGED(actionData);
+
+    // Cloning
+    COPY_PROPERTY_IF_CHANGED(cloneable);
+    COPY_PROPERTY_IF_CHANGED(cloneLifetime);
+    COPY_PROPERTY_IF_CHANGED(cloneLimit);
+    COPY_PROPERTY_IF_CHANGED(cloneDynamic);
+    COPY_PROPERTY_IF_CHANGED(cloneAvatarEntity);
+    COPY_PROPERTY_IF_CHANGED(cloneOriginID);
+
+    // Scripts
+    COPY_PROPERTY_IF_CHANGED(script);
+    COPY_PROPERTY_IF_CHANGED(scriptTimestamp);
+    COPY_PROPERTY_IF_CHANGED(serverScripts);
+
+    // Certifiable Properties
+    COPY_PROPERTY_IF_CHANGED(itemName);
+    COPY_PROPERTY_IF_CHANGED(itemDescription);
+    COPY_PROPERTY_IF_CHANGED(itemCategories);
+    COPY_PROPERTY_IF_CHANGED(itemArtist);
+    COPY_PROPERTY_IF_CHANGED(itemLicense);
+    COPY_PROPERTY_IF_CHANGED(limitedRun);
+    COPY_PROPERTY_IF_CHANGED(marketplaceID);
+    COPY_PROPERTY_IF_CHANGED(editionNumber);
+    COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
+    COPY_PROPERTY_IF_CHANGED(certificateID);
+    COPY_PROPERTY_IF_CHANGED(staticCertificateVersion);
+
+    // Local props for scripts
+    COPY_PROPERTY_IF_CHANGED(localPosition);
+    COPY_PROPERTY_IF_CHANGED(localRotation);
+    COPY_PROPERTY_IF_CHANGED(localVelocity);
+    COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
+    COPY_PROPERTY_IF_CHANGED(localDimensions);
+
+    // Common
     COPY_PROPERTY_IF_CHANGED(shapeType);
+    COPY_PROPERTY_IF_CHANGED(compoundShapeURL);
+    COPY_PROPERTY_IF_CHANGED(color);
+    COPY_PROPERTY_IF_CHANGED(alpha);
+    _pulse.merge(other._pulse);
+    COPY_PROPERTY_IF_CHANGED(textures);
+    COPY_PROPERTY_IF_CHANGED(billboardMode);
+
+    // Particles
     COPY_PROPERTY_IF_CHANGED(maxParticles);
     COPY_PROPERTY_IF_CHANGED(lifespan);
     COPY_PROPERTY_IF_CHANGED(isEmitting);
@@ -1843,101 +2346,123 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(radiusSpread);
     COPY_PROPERTY_IF_CHANGED(radiusStart);
     COPY_PROPERTY_IF_CHANGED(radiusFinish);
+    COPY_PROPERTY_IF_CHANGED(colorSpread);
+    COPY_PROPERTY_IF_CHANGED(colorStart);
+    COPY_PROPERTY_IF_CHANGED(colorFinish);
+    COPY_PROPERTY_IF_CHANGED(alphaSpread);
+    COPY_PROPERTY_IF_CHANGED(alphaStart);
+    COPY_PROPERTY_IF_CHANGED(alphaFinish);
+    COPY_PROPERTY_IF_CHANGED(emitterShouldTrail);
     COPY_PROPERTY_IF_CHANGED(particleSpin);
     COPY_PROPERTY_IF_CHANGED(spinSpread);
     COPY_PROPERTY_IF_CHANGED(spinStart);
     COPY_PROPERTY_IF_CHANGED(spinFinish);
     COPY_PROPERTY_IF_CHANGED(rotateWithEntity);
 
-    // Certifiable Properties
-    COPY_PROPERTY_IF_CHANGED(itemName);
-    COPY_PROPERTY_IF_CHANGED(itemDescription);
-    COPY_PROPERTY_IF_CHANGED(itemCategories);
-    COPY_PROPERTY_IF_CHANGED(itemArtist);
-    COPY_PROPERTY_IF_CHANGED(itemLicense);
-    COPY_PROPERTY_IF_CHANGED(limitedRun);
-    COPY_PROPERTY_IF_CHANGED(marketplaceID);
-    COPY_PROPERTY_IF_CHANGED(editionNumber);
-    COPY_PROPERTY_IF_CHANGED(entityInstanceNumber);
-    COPY_PROPERTY_IF_CHANGED(certificateID);
-    COPY_PROPERTY_IF_CHANGED(staticCertificateVersion);
-
-    COPY_PROPERTY_IF_CHANGED(name);
-    COPY_PROPERTY_IF_CHANGED(collisionSoundURL);
-
-    COPY_PROPERTY_IF_CHANGED(hazeMode);
-    COPY_PROPERTY_IF_CHANGED(keyLightMode);
-    COPY_PROPERTY_IF_CHANGED(ambientLightMode);
-    COPY_PROPERTY_IF_CHANGED(skyboxMode);
-    COPY_PROPERTY_IF_CHANGED(bloomMode);
-
-    COPY_PROPERTY_IF_CHANGED(sourceUrl);
-    COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
-    COPY_PROPERTY_IF_CHANGED(voxelData);
-    COPY_PROPERTY_IF_CHANGED(voxelSurfaceStyle);
-    COPY_PROPERTY_IF_CHANGED(lineWidth);
-    COPY_PROPERTY_IF_CHANGED(linePoints);
-    COPY_PROPERTY_IF_CHANGED(href);
-    COPY_PROPERTY_IF_CHANGED(description);
-    COPY_PROPERTY_IF_CHANGED(faceCamera);
-    COPY_PROPERTY_IF_CHANGED(actionData);
-    COPY_PROPERTY_IF_CHANGED(normals);
-    COPY_PROPERTY_IF_CHANGED(strokeColors);
-    COPY_PROPERTY_IF_CHANGED(strokeWidths);
-    COPY_PROPERTY_IF_CHANGED(isUVModeStretch);
-    COPY_PROPERTY_IF_CHANGED(created);
-
+    // Model
+    COPY_PROPERTY_IF_CHANGED(modelURL);
+    COPY_PROPERTY_IF_CHANGED(modelScale);
+    COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
+    COPY_PROPERTY_IF_CHANGED(jointRotations);
+    COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
+    COPY_PROPERTY_IF_CHANGED(jointTranslations);
+    COPY_PROPERTY_IF_CHANGED(relayParentJoints);
+    COPY_PROPERTY_IF_CHANGED(groupCulled);
     _animation.merge(other._animation);
+
+    // Light
+    COPY_PROPERTY_IF_CHANGED(isSpotlight);
+    COPY_PROPERTY_IF_CHANGED(intensity);
+    COPY_PROPERTY_IF_CHANGED(exponent);
+    COPY_PROPERTY_IF_CHANGED(cutoff);
+    COPY_PROPERTY_IF_CHANGED(falloffRadius);
+
+    // Text
+    COPY_PROPERTY_IF_CHANGED(text);
+    COPY_PROPERTY_IF_CHANGED(lineHeight);
+    COPY_PROPERTY_IF_CHANGED(textColor);
+    COPY_PROPERTY_IF_CHANGED(textAlpha);
+    COPY_PROPERTY_IF_CHANGED(backgroundColor);
+    COPY_PROPERTY_IF_CHANGED(backgroundAlpha);
+    COPY_PROPERTY_IF_CHANGED(leftMargin);
+    COPY_PROPERTY_IF_CHANGED(rightMargin);
+    COPY_PROPERTY_IF_CHANGED(topMargin);
+    COPY_PROPERTY_IF_CHANGED(bottomMargin);
+
+    // Zone
     _keyLight.merge(other._keyLight);
     _ambientLight.merge(other._ambientLight);
     _skybox.merge(other._skybox);
     _haze.merge(other._haze);
     _bloom.merge(other._bloom);
-    _grab.merge(other._grab);
+    COPY_PROPERTY_IF_CHANGED(flyingAllowed);
+    COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
+    COPY_PROPERTY_IF_CHANGED(filterURL);
+    COPY_PROPERTY_IF_CHANGED(keyLightMode);
+    COPY_PROPERTY_IF_CHANGED(ambientLightMode);
+    COPY_PROPERTY_IF_CHANGED(skyboxMode);
+    COPY_PROPERTY_IF_CHANGED(hazeMode);
+    COPY_PROPERTY_IF_CHANGED(bloomMode);
 
+    // Polyvox
+    COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
+    COPY_PROPERTY_IF_CHANGED(voxelData);
+    COPY_PROPERTY_IF_CHANGED(voxelSurfaceStyle);
     COPY_PROPERTY_IF_CHANGED(xTextureURL);
     COPY_PROPERTY_IF_CHANGED(yTextureURL);
     COPY_PROPERTY_IF_CHANGED(zTextureURL);
-
     COPY_PROPERTY_IF_CHANGED(xNNeighborID);
     COPY_PROPERTY_IF_CHANGED(yNNeighborID);
     COPY_PROPERTY_IF_CHANGED(zNNeighborID);
-
     COPY_PROPERTY_IF_CHANGED(xPNeighborID);
     COPY_PROPERTY_IF_CHANGED(yPNeighborID);
     COPY_PROPERTY_IF_CHANGED(zPNeighborID);
 
-    COPY_PROPERTY_IF_CHANGED(parentID);
-    COPY_PROPERTY_IF_CHANGED(parentJointIndex);
-    COPY_PROPERTY_IF_CHANGED(queryAACube);
+    // Web
+    COPY_PROPERTY_IF_CHANGED(sourceUrl);
+    COPY_PROPERTY_IF_CHANGED(dpi);
+    COPY_PROPERTY_IF_CHANGED(scriptURL);
+    COPY_PROPERTY_IF_CHANGED(maxFPS);
+    COPY_PROPERTY_IF_CHANGED(inputMode);
+    COPY_PROPERTY_IF_CHANGED(showKeyboardFocusHighlight);
 
-    COPY_PROPERTY_IF_CHANGED(localPosition);
-    COPY_PROPERTY_IF_CHANGED(localRotation);
-    COPY_PROPERTY_IF_CHANGED(localVelocity);
-    COPY_PROPERTY_IF_CHANGED(localAngularVelocity);
-    COPY_PROPERTY_IF_CHANGED(localDimensions);
+    // Polyline
+    COPY_PROPERTY_IF_CHANGED(linePoints);
+    COPY_PROPERTY_IF_CHANGED(strokeWidths);
+    COPY_PROPERTY_IF_CHANGED(normals);
+    COPY_PROPERTY_IF_CHANGED(strokeColors);
+    COPY_PROPERTY_IF_CHANGED(isUVModeStretch);
+    COPY_PROPERTY_IF_CHANGED(glow);
+    COPY_PROPERTY_IF_CHANGED(faceCamera);
 
-    COPY_PROPERTY_IF_CHANGED(jointRotationsSet);
-    COPY_PROPERTY_IF_CHANGED(jointRotations);
-    COPY_PROPERTY_IF_CHANGED(jointTranslationsSet);
-    COPY_PROPERTY_IF_CHANGED(jointTranslations);
+    // Shape
     COPY_PROPERTY_IF_CHANGED(shape);
 
-    COPY_PROPERTY_IF_CHANGED(flyingAllowed);
-    COPY_PROPERTY_IF_CHANGED(ghostingAllowed);
-    COPY_PROPERTY_IF_CHANGED(filterURL);
+    // Material
+    COPY_PROPERTY_IF_CHANGED(materialURL);
+    COPY_PROPERTY_IF_CHANGED(materialMappingMode);
+    COPY_PROPERTY_IF_CHANGED(priority);
+    COPY_PROPERTY_IF_CHANGED(parentMaterialName);
+    COPY_PROPERTY_IF_CHANGED(materialMappingPos);
+    COPY_PROPERTY_IF_CHANGED(materialMappingScale);
+    COPY_PROPERTY_IF_CHANGED(materialMappingRot);
+    COPY_PROPERTY_IF_CHANGED(materialData);
+    COPY_PROPERTY_IF_CHANGED(materialRepeat);
 
-    COPY_PROPERTY_IF_CHANGED(clientOnly);
-    COPY_PROPERTY_IF_CHANGED(owningAvatarID);
+    // Image
+    COPY_PROPERTY_IF_CHANGED(imageURL);
+    COPY_PROPERTY_IF_CHANGED(emissive);
+    COPY_PROPERTY_IF_CHANGED(keepAspectRatio);
+    COPY_PROPERTY_IF_CHANGED(subImage);
 
-    COPY_PROPERTY_IF_CHANGED(dpi);
+    // Grid
+    COPY_PROPERTY_IF_CHANGED(followCamera);
+    COPY_PROPERTY_IF_CHANGED(majorGridEvery);
+    COPY_PROPERTY_IF_CHANGED(minorGridEvery);
 
-    COPY_PROPERTY_IF_CHANGED(cloneable);
-    COPY_PROPERTY_IF_CHANGED(cloneLifetime);
-    COPY_PROPERTY_IF_CHANGED(cloneLimit);
-    COPY_PROPERTY_IF_CHANGED(cloneDynamic);
-    COPY_PROPERTY_IF_CHANGED(cloneAvatarEntity);
-    COPY_PROPERTY_IF_CHANGED(cloneOriginID);
+    // Gizmo
+    COPY_PROPERTY_IF_CHANGED(gizmoType);
+    _ring.merge(other._ring);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1958,11 +2483,8 @@ void EntityItemPropertiesFromScriptValueHonorReadOnly(const QScriptValue &object
     properties.copyFromScriptValue(object, true);
 }
 
-
 QScriptValue EntityPropertyFlagsToScriptValue(QScriptEngine* engine, const EntityPropertyFlags& flags) {
     return EntityItemProperties::entityPropertyFlagsToScriptValue(engine, flags);
-    QScriptValue result = engine->newObject();
-    return result;
 }
 
 void EntityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
@@ -1975,100 +2497,118 @@ QScriptValue EntityItemProperties::entityPropertyFlagsToScriptValue(QScriptEngin
     return result;
 }
 
-static QHash<QString, EntityPropertyList> _propertyStringsToEnums;
-
 void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue& object, EntityPropertyFlags& flags) {
+    if (object.isString()) {
+        EntityPropertyInfo propertyInfo;
+        if (getPropertyInfo(object.toString(), propertyInfo)) {
+            flags << propertyInfo.propertyEnum;
+        }
+    }
+    else if (object.isArray()) {
+        quint32 length = object.property("length").toInt32();
+        for (quint32 i = 0; i < length; i++) {
+            QString propertyName = object.property(i).toString();
+            EntityPropertyInfo propertyInfo;
+            if (getPropertyInfo(propertyName, propertyInfo)) {
+                flags << propertyInfo.propertyEnum;
+            }
+        }
+    }
+}
+
+static QHash<QString, EntityPropertyInfo> _propertyInfos;
+static QHash<EntityPropertyList, QString> _enumsToPropertyStrings;
+
+bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPropertyInfo& propertyInfo) {
 
     static std::once_flag initMap;
 
-    std::call_once(initMap, [](){
+    std::call_once(initMap, []() {
+        // Core
+        ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_ID, ParentID, parentID, QUuid);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, uint16_t);
         ADD_PROPERTY_TO_MAP(PROP_VISIBLE, Visible, visible, bool);
-        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
+        ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
+        ADD_PROPERTY_TO_MAP(PROP_LOCKED, Locked, locked, bool);
+        ADD_PROPERTY_TO_MAP(PROP_USER_DATA, UserData, userData, QString);
+        ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
+        ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
         ADD_PROPERTY_TO_MAP(PROP_POSITION, Position, position, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_DIMENSIONS, Dimensions, dimensions, vec3);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DIMENSIONS, Dimensions, dimensions, vec3, ENTITY_ITEM_MIN_DIMENSION, FLT_MAX);
         ADD_PROPERTY_TO_MAP(PROP_ROTATION, Rotation, rotation, quat);
-        ADD_PROPERTY_TO_MAP(PROP_DENSITY, Density, density, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3, 
+                                       ENTITY_ITEM_MIN_REGISTRATION_POINT, ENTITY_ITEM_MAX_REGISTRATION_POINT);
+        ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
+        ADD_PROPERTY_TO_MAP(PROP_LAST_EDITED_BY, LastEditedBy, lastEditedBy, QUuid);
+        ADD_PROPERTY_TO_MAP(PROP_ENTITY_HOST_TYPE, EntityHostType, entityHostType, entity::HostType);
+        ADD_PROPERTY_TO_MAP(PROP_OWNING_AVATAR_ID, OwningAvatarID, owningAvatarID, QUuid);
+        ADD_PROPERTY_TO_MAP(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube);
+        ADD_PROPERTY_TO_MAP(PROP_CAN_CAST_SHADOW, CanCastShadow, canCastShadow, bool);
+        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_RENDER_LAYER, RenderLayer, renderLayer, RenderLayer);
+        ADD_PROPERTY_TO_MAP(PROP_PRIMITIVE_MODE, PrimitiveMode, primitiveMode, PrimitiveMode);
+        ADD_PROPERTY_TO_MAP(PROP_IGNORE_PICK_INTERSECTION, IgnorePickIntersection, ignorePickIntersection, bool);
+        { // Grab
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_FOLLOWS_CONTROLLER, Grab, grab, GrabFollowsController, grabFollowsController);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_TRIGGERABLE, Grab, grab, Triggerable, triggerable);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE, Grab, grab, Equippable, equippable);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_DELEGATE_TO_PARENT, Grab, grab, GrabDelegateToParent, grabDelegateToParent);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
+                                      EquippableLeftPosition, equippableLeftPosition);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
+                                      EquippableLeftRotation, equippableLeftRotation);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
+                                      EquippableRightPosition, equippableRightPosition);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
+                                      EquippableRightRotation, equippableRightRotation);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_URL, Grab, grab,
+                                      EquippableIndicatorURL, equippableIndicatorURL);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE, Grab, grab,
+                                      EquippableIndicatorScale, equippableIndicatorScale);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET, Grab, grab,
+                                      EquippableIndicatorOffset, equippableIndicatorOffset);
+        }
+
+        // Physics
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DENSITY, Density, density, float, 
+                                       ENTITY_ITEM_MIN_DENSITY, ENTITY_ITEM_MAX_DENSITY);
         ADD_PROPERTY_TO_MAP(PROP_VELOCITY, Velocity, velocity, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_GRAVITY, Gravity, gravity, vec3);
         ADD_PROPERTY_TO_MAP(PROP_ACCELERATION, Acceleration, acceleration, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_DAMPING, Damping, damping, float);
-        ADD_PROPERTY_TO_MAP(PROP_RESTITUTION, Restitution, restitution, float);
-        ADD_PROPERTY_TO_MAP(PROP_FRICTION, Friction, friction, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_DAMPING, Damping, damping, float, 
+                                       ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, 
+                                       ENTITY_ITEM_MIN_DAMPING, ENTITY_ITEM_MAX_DAMPING);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RESTITUTION, Restitution, restitution, float, 
+                                       ENTITY_ITEM_MIN_RESTITUTION, ENTITY_ITEM_MAX_RESTITUTION);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_FRICTION, Friction, friction, float, 
+                                       ENTITY_ITEM_MIN_FRICTION, ENTITY_ITEM_MAX_FRICTION);
         ADD_PROPERTY_TO_MAP(PROP_LIFETIME, Lifetime, lifetime, float);
-        ADD_PROPERTY_TO_MAP(PROP_SCRIPT, Script, script, QString);
-        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
-        ADD_PROPERTY_TO_MAP(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, u8vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA, Alpha, alpha, float);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_START, AlphaStart, alphaStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool);
-        ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
         ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, unused, ignoreForCollisions, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, unused);
-        ADD_PROPERTY_TO_MAP(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
-        ADD_PROPERTY_TO_MAP(PROP_INTENSITY, Intensity, intensity, float);
-        ADD_PROPERTY_TO_MAP(PROP_FALLOFF_RADIUS, FalloffRadius, falloffRadius, float);
-        ADD_PROPERTY_TO_MAP(PROP_EXPONENT, Exponent, exponent, float);
-        ADD_PROPERTY_TO_MAP(PROP_CUTOFF, Cutoff, cutoff, float);
-        ADD_PROPERTY_TO_MAP(PROP_LOCKED, Locked, locked, bool);
-        ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
-        ADD_PROPERTY_TO_MAP(PROP_USER_DATA, UserData, userData, QString);
-        ADD_PROPERTY_TO_MAP(PROP_SIMULATION_OWNER, SimulationOwner, simulationOwner, SimulationOwner);
-        ADD_PROPERTY_TO_MAP(PROP_TEXT, Text, text, QString);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
-        ADD_PROPERTY_TO_MAP(PROP_TEXT_COLOR, TextColor, textColor, u8vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, u8vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
-        ADD_PROPERTY_TO_MAP(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32);
-        ADD_PROPERTY_TO_MAP(PROP_LIFESPAN, Lifespan, lifespan, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_RATE, EmitRate, emitRate, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, quat);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_POLAR_START, EmitPolarStart, polarStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_START, RadiusStart, radiusStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_SOUND_URL, CollisionSoundURL, collisionSoundURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
 
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
-        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+        // Cloning
+        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, Cloneable, cloneable, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool);
+        ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid);
 
-        ADD_PROPERTY_TO_MAP(PROP_VISIBLE_IN_SECONDARY_CAMERA, IsVisibleInSecondaryCamera, isVisibleInSecondaryCamera, bool);
-
-        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float);
-        ADD_PROPERTY_TO_MAP(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float);
-        ADD_PROPERTY_TO_MAP(PROP_SPIN_START, SpinStart, spinStart, float);
-        ADD_PROPERTY_TO_MAP(PROP_SPIN_FINISH, SpinFinish, spinFinish, float);
-        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, float);
+        // Scripts
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT, Script, script, QString);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_TIMESTAMP, ScriptTimestamp, scriptTimestamp, quint64);
+        ADD_PROPERTY_TO_MAP(PROP_SERVER_SCRIPTS, ServerScripts, serverScripts, QString);
 
         // Certifiable Properties
         ADD_PROPERTY_TO_MAP(PROP_ITEM_NAME, ItemName, itemName, QString);
@@ -2083,26 +2623,177 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_CERTIFICATE_ID, CertificateID, certificateID, QString);
         ADD_PROPERTY_TO_MAP(PROP_STATIC_CERTIFICATE_VERSION, StaticCertificateVersion, staticCertificateVersion, quint32);
 
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLightColor, keyLightColor, u8vec3Color);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLightIntensity, keyLightIntensity, float);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLightDirection, keyLightDirection, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLightCastShadows, keyLightCastShadows, bool);
+        // Local script props
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3, 
+                                       ENTITY_ITEM_MIN_DIMENSION, FLT_MAX);
 
+        // Common
+        ADD_PROPERTY_TO_MAP(PROP_SHAPE_TYPE, ShapeType, shapeType, ShapeType);
+        ADD_PROPERTY_TO_MAP(PROP_COMPOUND_SHAPE_URL, CompoundShapeURL, compoundShapeURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR, Color, color, u8vec3Color);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA, Alpha, alpha, float, particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        { // Pulse
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_MIN, Pulse, pulse, Min, min);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_MAX, Pulse, pulse, Max, max);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_PERIOD, Pulse, pulse, Period, period);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_COLOR_MODE, Pulse, pulse, ColorMode, colorMode);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_PULSE_ALPHA_MODE, Pulse, pulse, AlphaMode, alphaMode);
+        }
+        ADD_PROPERTY_TO_MAP(PROP_TEXTURES, Textures, textures, QString);
+        ADD_PROPERTY_TO_MAP(PROP_BILLBOARD_MODE, BillboardMode, billboardMode, BillboardMode);
+
+        // Particles
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_MAX_PARTICLES, MaxParticles, maxParticles, quint32, 
+                                       particle::MINIMUM_MAX_PARTICLES, particle::MAXIMUM_MAX_PARTICLES);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_LIFESPAN, Lifespan, lifespan, float, 
+                                       particle::MINIMUM_LIFESPAN, particle::MAXIMUM_LIFESPAN);
+        ADD_PROPERTY_TO_MAP(PROP_EMITTING_PARTICLES, IsEmitting, isEmitting, bool);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_RATE, EmitRate, emitRate, float, 
+                                       particle::MINIMUM_EMIT_RATE, particle::MAXIMUM_EMIT_RATE);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_SPEED, EmitSpeed, emitSpeed, vec3, 
+                                       particle::MINIMUM_EMIT_SPEED, particle::MAXIMUM_EMIT_SPEED);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPEED_SPREAD, SpeedSpread, speedSpread, vec3, 
+                                       particle::MINIMUM_EMIT_SPEED, particle::MAXIMUM_EMIT_SPEED);
+        ADD_PROPERTY_TO_MAP(PROP_EMIT_ORIENTATION, EmitOrientation, emitOrientation, quat);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_DIMENSIONS, EmitDimensions, emitDimensions, vec3, 
+                                       particle::MINIMUM_EMIT_DIMENSION, particle::MAXIMUM_EMIT_DIMENSION);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_RADIUS_START, EmitRadiusStart, emitRadiusStart, float, 
+                                       particle::MINIMUM_EMIT_RADIUS_START, particle::MAXIMUM_EMIT_RADIUS_START);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_POLAR_START, EmitPolarStart, polarStart, float, 
+                                       particle::MINIMUM_POLAR, particle::MAXIMUM_POLAR);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_POLAR_FINISH, EmitPolarFinish, polarFinish, float, 
+                                       particle::MINIMUM_POLAR, particle::MAXIMUM_POLAR);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_AZIMUTH_START, EmitAzimuthStart, azimuthStart, float, 
+                                       particle::MINIMUM_AZIMUTH, particle::MAXIMUM_AZIMUTH);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_AZIMUTH_FINISH, EmitAzimuthFinish, azimuthFinish, float, 
+                                       particle::MINIMUM_AZIMUTH, particle::MAXIMUM_AZIMUTH);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_EMIT_ACCELERATION, EmitAcceleration, emitAcceleration, vec3, 
+                                       particle::MINIMUM_EMIT_ACCELERATION, particle::MAXIMUM_EMIT_ACCELERATION);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ACCELERATION_SPREAD, AccelerationSpread, accelerationSpread, vec3, 
+                                       particle::MINIMUM_ACCELERATION_SPREAD, particle::MAXIMUM_ACCELERATION_SPREAD);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_PARTICLE_RADIUS, ParticleRadius, particleRadius, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RADIUS_SPREAD, RadiusSpread, radiusSpread, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RADIUS_START, RadiusStart, radiusStart, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, 
+                                       particle::MINIMUM_PARTICLE_RADIUS, particle::MAXIMUM_PARTICLE_RADIUS);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_SPREAD, ColorSpread, colorSpread, u8vec3Color);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_START, ColorStart, colorStart, vec3Color);
+        ADD_PROPERTY_TO_MAP(PROP_COLOR_FINISH, ColorFinish, colorFinish, vec3Color);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA_SPREAD, AlphaSpread, alphaSpread, float, 
+                                       particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA_START, AlphaStart, alphaStart, float, 
+                                       particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_ALPHA_FINISH, AlphaFinish, alphaFinish, float, 
+                                       particle::MINIMUM_ALPHA, particle::MAXIMUM_ALPHA);
+        ADD_PROPERTY_TO_MAP(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_PARTICLE_SPIN, ParticleSpin, particleSpin, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPIN_SPREAD, SpinSpread, spinSpread, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPIN_START, SpinStart, spinStart, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_SPIN_FINISH, SpinFinish, spinFinish, float, 
+                                       particle::MINIMUM_PARTICLE_SPIN, particle::MAXIMUM_PARTICLE_SPIN);
+        ADD_PROPERTY_TO_MAP(PROP_PARTICLE_ROTATE_WITH_ENTITY, RotateWithEntity, rotateWithEntity, float);
+
+        // Model
+        ADD_PROPERTY_TO_MAP(PROP_MODEL_URL, ModelURL, modelURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MODEL_SCALE, ModelScale, modelScale, vec3);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<quat>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
+        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GROUP_CULLED, GroupCulled, groupCulled, bool);
+        { // Animation
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
+        }
+
+        // Light
+        ADD_PROPERTY_TO_MAP(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
+        ADD_PROPERTY_TO_MAP(PROP_INTENSITY, Intensity, intensity, float);
+        ADD_PROPERTY_TO_MAP(PROP_EXPONENT, Exponent, exponent, float);
+        ADD_PROPERTY_TO_MAP_WITH_RANGE(PROP_CUTOFF, Cutoff, cutoff, float, 
+                                       LightEntityItem::MIN_CUTOFF, LightEntityItem::MAX_CUTOFF);
+        ADD_PROPERTY_TO_MAP(PROP_FALLOFF_RADIUS, FalloffRadius, falloffRadius, float);
+
+        // Text
+        ADD_PROPERTY_TO_MAP(PROP_TEXT, Text, text, QString);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_COLOR, TextColor, textColor, u8vec3Color);
+        ADD_PROPERTY_TO_MAP(PROP_TEXT_ALPHA, TextAlpha, textAlpha, float);
+        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, u8vec3Color);
+        ADD_PROPERTY_TO_MAP(PROP_BACKGROUND_ALPHA, BackgroundAlpha, backgroundAlpha, float);
+        ADD_PROPERTY_TO_MAP(PROP_LEFT_MARGIN, LeftMargin, leftMargin, float);
+        ADD_PROPERTY_TO_MAP(PROP_RIGHT_MARGIN, RightMargin, rightMargin, float);
+        ADD_PROPERTY_TO_MAP(PROP_TOP_MARGIN, TopMargin, topMargin, float);
+        ADD_PROPERTY_TO_MAP(PROP_BOTTOM_MARGIN, BottomMargin, bottomMargin, float);
+
+        // Zone
+        { // Keylight
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_COLOR, KeyLight, keyLight, Color, color);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_INTENSITY, KeyLight, keyLight, Intensity, intensity);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_DIRECTION, KeyLight, keylight, Direction, direction);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_KEYLIGHT_CAST_SHADOW, KeyLight, keyLight, CastShadows, castShadows);
+        }
+        { // Ambient light
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_INTENSITY, AmbientLight, ambientLight, Intensity, intensity);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_URL, AmbientLight, ambientLight, URL, url);
+        }
+        { // Skybox
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
+        }
+        { // Haze
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ENABLE_GLARE, Haze, haze, HazeEnableGlare, hazeEnableGlare);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_ANGLE, Haze, haze, HazeGlareAngle, hazeGlareAngle);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE_EFFECT, Haze, haze, HazeAltitudeEffect, hazeAltitudeEfect);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_CEILING, Haze, haze, HazeCeiling, hazeCeiling);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
+
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
+        }
+        { // Bloom
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_INTENSITY, Bloom, bloom, BloomIntensity, bloomIntensity);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_THRESHOLD, Bloom, bloom, BloomThreshold, bloomThreshold);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_SIZE, Bloom, bloom, BloomSize, bloomSize);
+        }
+        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
+        ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
+
+        // Polyvox
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, vec3);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray);
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_SURFACE_STYLE, VoxelSurfaceStyle, voxelSurfaceStyle, uint16_t);
-        ADD_PROPERTY_TO_MAP(PROP_NAME, Name, name, QString);
-        ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_WIDTH, LineWidth, lineWidth, float);
-        ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
-        ADD_PROPERTY_TO_MAP(PROP_HREF, Href, href, QString);
-        ADD_PROPERTY_TO_MAP(PROP_DESCRIPTION, Description, description, QString);
-        ADD_PROPERTY_TO_MAP(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool);
-        ADD_PROPERTY_TO_MAP(PROP_ACTION_DATA, ActionData, actionData, QByteArray);
-        ADD_PROPERTY_TO_MAP(PROP_NORMALS, Normals, normals, QVector<vec3>);
-        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<vec3>);
-        ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
-        ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
         ADD_PROPERTY_TO_MAP(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_Y_TEXTURE_URL, YTextureURL, yTextureURL, QString);
         ADD_PROPERTY_TO_MAP(PROP_Z_TEXTURE_URL, ZTextureURL, zTextureURL, QString);
@@ -2113,116 +2804,96 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID);
         ADD_PROPERTY_TO_MAP(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID);
 
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_ID, ParentID, parentID, QUuid);
-        ADD_PROPERTY_TO_MAP(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, uint16_t);
+        // Web
+        ADD_PROPERTY_TO_MAP(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString);
+        ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
+        ADD_PROPERTY_TO_MAP(PROP_SCRIPT_URL, ScriptURL, scriptURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MAX_FPS, MaxFPS, maxFPS, uint8_t);
+        ADD_PROPERTY_TO_MAP(PROP_INPUT_MODE, InputMode, inputMode, WebInputMode);
+        ADD_PROPERTY_TO_MAP(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, ShowKeyboardFocusHighlight, showKeyboardFocusHighlight, bool);
 
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, quat);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_VELOCITY, LocalVelocity, localVelocity, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ANGULAR_VELOCITY, LocalAngularVelocity, localAngularVelocity, vec3);
-        ADD_PROPERTY_TO_MAP(PROP_LOCAL_DIMENSIONS, LocalDimensions, localDimensions, vec3);
+        // Polyline
+        ADD_PROPERTY_TO_MAP(PROP_LINE_POINTS, LinePoints, linePoints, QVector<vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_NORMALS, Normals, normals, QVector<vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<vec3>);
+        ADD_PROPERTY_TO_MAP(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, QVector<float>);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_GLOW, Glow, glow, bool);
+        ADD_PROPERTY_TO_MAP(PROP_LINE_FACE_CAMERA, FaceCamera, faceCamera, bool);
 
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<quat>);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
-        ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<vec3>);
-        ADD_PROPERTY_TO_MAP(PROP_RELAY_PARENT_JOINTS, RelayParentJoints, relayParentJoints, bool);
-
+        // Shape
         ADD_PROPERTY_TO_MAP(PROP_SHAPE, Shape, shape, QString);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_URL, Animation, animation, URL, url);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FPS, Animation, animation, FPS, fps);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FRAME_INDEX, Animation, animation, CurrentFrame, currentFrame);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_PLAYING, Animation, animation, Running, running);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LOOP, Animation, animation, Loop, loop);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_ALLOW_TRANSLATION, Animation, animation, AllowTranslation, allowTranslation);
+        // Material
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_URL, MaterialURL, materialURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_MODE, MaterialMappingMode, materialMappingMode, MaterialMappingMode);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_PRIORITY, Priority, priority, quint16);
+        ADD_PROPERTY_TO_MAP(PROP_PARENT_MATERIAL_NAME, ParentMaterialName, parentMaterialName, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_POS, MaterialMappingPos, materialMappingPos, vec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_SCALE, MaterialMappingScale, materialMappingScale, vec2);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_MAPPING_ROT, MaterialMappingRot, materialMappingRot, float);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_DATA, MaterialData, materialData, QString);
+        ADD_PROPERTY_TO_MAP(PROP_MATERIAL_REPEAT, MaterialRepeat, materialRepeat, bool);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
+        // Image
+        ADD_PROPERTY_TO_MAP(PROP_IMAGE_URL, ImageURL, imageURL, QString);
+        ADD_PROPERTY_TO_MAP(PROP_EMISSIVE, Emissive, emissive, bool);
+        ADD_PROPERTY_TO_MAP(PROP_KEEP_ASPECT_RATIO, KeepAspectRatio, keepAspectRatio, bool);
+        ADD_PROPERTY_TO_MAP(PROP_SUB_IMAGE, SubImage, subImage, QRect);
 
-        ADD_PROPERTY_TO_MAP(PROP_FLYING_ALLOWED, FlyingAllowed, flyingAllowed, bool);
-        ADD_PROPERTY_TO_MAP(PROP_GHOSTING_ALLOWED, GhostingAllowed, ghostingAllowed, bool);
-        ADD_PROPERTY_TO_MAP(PROP_FILTER_URL, FilterURL, filterURL, QString);
+        // Grid
+        ADD_PROPERTY_TO_MAP(PROP_GRID_FOLLOW_CAMERA, FollowCamera, followCamera, bool);
+        ADD_PROPERTY_TO_MAP(PROP_MAJOR_GRID_EVERY, MajorGridEvery, majorGridEvery, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_MINOR_GRID_EVERY, MinorGridEvery, minorGridEvery, float);
 
-        ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
+        // Gizmo
+        ADD_PROPERTY_TO_MAP(PROP_GIZMO_TYPE, GizmoType, gizmoType, GizmoType);
+        { // RingGizmo
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_START_ANGLE, Ring, ring, StartAngle, startAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_END_ANGLE, Ring, ring, EndAngle, endAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_RADIUS, Ring, ring, InnerRadius, innerRadius, RingGizmoPropertyGroup::MIN_RADIUS, RingGizmoPropertyGroup::MAX_RADIUS);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_RANGE, Haze, haze, HazeRange, hazeRange);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_COLOR, Haze, haze, HazeColor, hazeColor);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_COLOR, Haze, haze, HazeGlareColor, hazeGlareColor);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ENABLE_GLARE, Haze, haze, HazeEnableGlare, hazeEnableGlare);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_GLARE_ANGLE, Haze, haze, HazeGlareAngle, hazeGlareAngle);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_INNER_START_COLOR, Ring, ring, InnerStartColor, innerStartColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_INNER_END_COLOR, Ring, ring, InnerEndColor, innerEndColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_OUTER_START_COLOR, Ring, ring, OuterStartColor, outerStartColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_OUTER_END_COLOR, Ring, ring, OuterEndColor, outerEndColor);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ALTITUDE_EFFECT, Haze, haze, HazeAltitudeEffect, hazeAltitudeEfect);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_CEILING, Haze, haze, HazeCeiling, hazeCeiling);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BASE_REF, Haze, haze, HazeBaseRef, hazeBaseRef);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_START_ALPHA, Ring, ring, InnerStartAlpha, innerStartAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_INNER_END_ALPHA, Ring, ring, InnerEndAlpha, innerEndAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_OUTER_START_ALPHA, Ring, ring, OuterStartAlpha, outerStartAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_OUTER_END_ALPHA, Ring, ring, OuterEndAlpha, outerEndAlpha, RingGizmoPropertyGroup::MIN_ALPHA, RingGizmoPropertyGroup::MAX_ALPHA);
 
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_BACKGROUND_BLEND, Haze, haze, HazeBackgroundBlend, hazeBackgroundBlend);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_ATTENUATE_KEYLIGHT, Haze, haze, HazeAttenuateKeyLight, hazeAttenuateKeyLight);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_RANGE, Haze, haze, HazeKeyLightRange, hazeKeyLightRange);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_HAZE_KEYLIGHT_ALTITUDE, Haze, haze, HazeKeyLightAltitude, hazeKeyLightAltitude);
-
-        ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_INTENSITY, Bloom, bloom, BloomIntensity, bloomIntensity);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_THRESHOLD, Bloom, bloom, BloomThreshold, bloomThreshold);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_BLOOM_SIZE, Bloom, bloom, BloomSize, bloomSize);
-
-        ADD_PROPERTY_TO_MAP(PROP_KEY_LIGHT_MODE, KeyLightMode, keyLightMode, uint32_t);
-        ADD_PROPERTY_TO_MAP(PROP_AMBIENT_LIGHT_MODE, AmbientLightMode, ambientLightMode, uint32_t);
-        ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
-
-        ADD_PROPERTY_TO_MAP(PROP_DPI, DPI, dpi, uint16_t);
-
-        ADD_PROPERTY_TO_MAP(PROP_CLONEABLE, Cloneable, cloneable, bool);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIFETIME, CloneLifetime, cloneLifetime, float);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_LIMIT, CloneLimit, cloneLimit, float);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_DYNAMIC, CloneDynamic, cloneDynamic, bool);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_AVATAR_ENTITY, CloneAvatarEntity, cloneAvatarEntity, bool);
-        ADD_PROPERTY_TO_MAP(PROP_CLONE_ORIGIN_ID, CloneOriginID, cloneOriginID, QUuid);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_GRABBABLE, Grab, grab, Grabbable, grabbable);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_KINEMATIC, Grab, grab, GrabKinematic, grabKinematic);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_FOLLOWS_CONTROLLER, Grab, grab, GrabFollowsController, grabFollowsController);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_TRIGGERABLE, Grab, grab, Triggerable, triggerable);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE, Grab, grab, Equippable, equippable);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
-                                  EquippableLeftPosition, equippableLeftPosition);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_LEFT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
-                                  EquippableLeftRotation, equippableLeftRotation);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_POSITION_OFFSET, Grab, grab,
-                                  EquippableRightPosition, equippableRightPosition);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_RIGHT_EQUIPPABLE_ROTATION_OFFSET, Grab, grab,
-                                  EquippableRightRotation, equippableRightRotation);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_URL, Grab, grab,
-                                  EquippableIndicatorURL, equippableIndicatorURL);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_SCALE, Grab, grab,
-                                  EquippableIndicatorScale, equippableIndicatorScale);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_GRAB_EQUIPPABLE_INDICATOR_OFFSET, Grab, grab,
-                                  EquippableIndicatorOffset, equippableIndicatorOffset);
-
-        // FIXME - these are not yet handled
-        //ADD_PROPERTY_TO_MAP(PROP_CREATED, Created, created, quint64);
-
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_HAS_TICK_MARKS, Ring, ring, HasTickMarks, hasTickMarks);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_MAJOR_TICK_MARKS_ANGLE, Ring, ring, MajorTickMarksAngle, majorTickMarksAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP_WITH_RANGE(PROP_MINOR_TICK_MARKS_ANGLE, Ring, ring, MinorTickMarksAngle, minorTickMarksAngle, RingGizmoPropertyGroup::MIN_ANGLE, RingGizmoPropertyGroup::MAX_ANGLE);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MAJOR_TICK_MARKS_LENGTH, Ring, ring, MajorTickMarksLength, majorTickMarksLength);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MINOR_TICK_MARKS_LENGTH, Ring, ring, MinorTickMarksLength, minorTickMarksLength);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MAJOR_TICK_MARKS_COLOR, Ring, ring, MajorTickMarksColor, majorTickMarksColor);
+            ADD_GROUP_PROPERTY_TO_MAP(PROP_MINOR_TICK_MARKS_COLOR, Ring, ring, MinorTickMarksColor, minorTickMarksColor);
+        }
     });
 
-    if (object.isString()) {
-        // TODO: figure out how to do this without a double lookup in the map
-        if (_propertyStringsToEnums.contains(object.toString())) {
-            flags << _propertyStringsToEnums[object.toString()];
-        }
-    } else if (object.isArray()) {
-        quint32 length = object.property("length").toInt32();
-        for (quint32 i = 0; i < length; i++) {
-            QString propertyName = object.property(i).toString();
-            // TODO: figure out how to do this without a double lookup in the map
-            if (_propertyStringsToEnums.contains(propertyName)) {
-                flags << _propertyStringsToEnums[propertyName];
-            }
-        }
+    auto iter = _propertyInfos.find(propertyName);
+    if (iter != _propertyInfos.end()) {
+        propertyInfo = *iter;
+        return true;
     }
+
+    return false;
+}
+
+QScriptValue EntityPropertyInfoToScriptValue(QScriptEngine* engine, const EntityPropertyInfo& propertyInfo) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("propertyEnum", propertyInfo.propertyEnum);
+    obj.setProperty("minimum", propertyInfo.minimum.toString());
+    obj.setProperty("maximum", propertyInfo.maximum.toString());
+    return obj;
+}
+
+void EntityPropertyInfoFromScriptValue(const QScriptValue& object, EntityPropertyInfo& propertyInfo) {
+    propertyInfo.propertyEnum = (EntityPropertyList)object.property("propertyEnum").toVariant().toUInt();
+    propertyInfo.minimum = object.property("minimum").toVariant();
+    propertyInfo.maximum = object.property("maximum").toVariant();
 }
 
 // TODO: Implement support for edit packets that can span an MTU sized buffer. We need to implement a mechanism for the
@@ -2312,8 +2983,8 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
         bool successPropertyFlagsFits = packetData->appendRawData(encodedPropertyFlags);
         int propertyCount = 0;
 
-        bool headerFits = successIDFits && successTypeFits && successLastEditedFits
-                && successLastUpdatedFits && successPropertyFlagsFits;
+        bool headerFits = successIDFits && successTypeFits && successLastEditedFits &&
+            successLastUpdatedFits && successPropertyFlagsFits;
 
         int startOfEntityItemData = packetData->getUncompressedByteOffset();
 
@@ -2325,80 +2996,89 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
 
+
             APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, properties._simulationOwner.toByteArray());
-            APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions());
-            APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
-            APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
-            APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
-            APPEND_ENTITY_PROPERTY(PROP_GRAVITY, properties.getGravity());
-            APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, properties.getAcceleration());
-            APPEND_ENTITY_PROPERTY(PROP_DAMPING, properties.getDamping());
-            APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, properties.getRestitution());
-            APPEND_ENTITY_PROPERTY(PROP_FRICTION, properties.getFriction());
-            APPEND_ENTITY_PROPERTY(PROP_LIFETIME, properties.getLifetime());
-            APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
-            APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, properties.getScriptTimestamp());
-            APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, properties.getServerScripts());
-            APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, properties.getRegistrationPoint());
-            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
-            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
+            APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, properties.getParentID());
+            APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, properties.getParentJointIndex());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
-            APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
-            APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
-            APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
-            APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
+            APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
             APPEND_ENTITY_PROPERTY(PROP_DESCRIPTION, properties.getDescription());
-            APPEND_ENTITY_PROPERTY(PROP_PARENT_ID, properties.getParentID());
-            APPEND_ENTITY_PROPERTY(PROP_PARENT_JOINT_INDEX, properties.getParentJointIndex());
+            APPEND_ENTITY_PROPERTY(PROP_POSITION, properties.getPosition());
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, properties.getDimensions());
+            APPEND_ENTITY_PROPERTY(PROP_ROTATION, properties.getRotation());
+            APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, properties.getRegistrationPoint());
+            APPEND_ENTITY_PROPERTY(PROP_CREATED, properties.getCreated());
+            APPEND_ENTITY_PROPERTY(PROP_LAST_EDITED_BY, properties.getLastEditedBy());
+            // APPEND_ENTITY_PROPERTY(PROP_ENTITY_HOST_TYPE, (uint32_t)properties.getEntityHostType());              // not sent over the wire
+            // APPEND_ENTITY_PROPERTY(PROP_OWNING_AVATAR_ID, properties.getOwningAvatarID());                        // not sent over the wire
             APPEND_ENTITY_PROPERTY(PROP_QUERY_AA_CUBE, properties.getQueryAACube());
+            APPEND_ENTITY_PROPERTY(PROP_CAN_CAST_SHADOW, properties.getCanCastShadow());
+            // APPEND_ENTITY_PROPERTY(PROP_VISIBLE_IN_SECONDARY_CAMERA, properties.getIsVisibleInSecondaryCamera()); // not sent over the wire
+            APPEND_ENTITY_PROPERTY(PROP_RENDER_LAYER, (uint32_t)properties.getRenderLayer());
+            APPEND_ENTITY_PROPERTY(PROP_PRIMITIVE_MODE, (uint32_t)properties.getPrimitiveMode());
+            APPEND_ENTITY_PROPERTY(PROP_IGNORE_PICK_INTERSECTION, properties.getIgnorePickIntersection());
+            _staticGrab.setProperties(properties);
+            _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                                           propertiesDidntFit, propertyCount, appendState);
 
-            if (properties.getType() == EntityTypes::Web) {
-                APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
-                APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
-            }
+            // Physics
+            APPEND_ENTITY_PROPERTY(PROP_DENSITY, properties.getDensity());
+            APPEND_ENTITY_PROPERTY(PROP_VELOCITY, properties.getVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_GRAVITY, properties.getGravity());
+            APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, properties.getAcceleration());
+            APPEND_ENTITY_PROPERTY(PROP_DAMPING, properties.getDamping());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
+            APPEND_ENTITY_PROPERTY(PROP_RESTITUTION, properties.getRestitution());
+            APPEND_ENTITY_PROPERTY(PROP_FRICTION, properties.getFriction());
+            APPEND_ENTITY_PROPERTY(PROP_LIFETIME, properties.getLifetime());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
+            APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
+            APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
 
-            if (properties.getType() == EntityTypes::Text) {
-                APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
-                APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
-                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, properties.getBackgroundColor());
-                APPEND_ENTITY_PROPERTY(PROP_FACE_CAMERA, properties.getFaceCamera());
-            }
+            // Cloning
+            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, properties.getCloneable());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, properties.getCloneLifetime());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, properties.getCloneLimit());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, properties.getCloneDynamic());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, properties.getCloneAvatarEntity());
+            APPEND_ENTITY_PROPERTY(PROP_CLONE_ORIGIN_ID, properties.getCloneOriginID());
 
-            if (properties.getType() == EntityTypes::Model) {
-                APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
-                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-                APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
-                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
-                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+            // Scripts
+            APPEND_ENTITY_PROPERTY(PROP_SCRIPT, properties.getScript());
+            APPEND_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, properties.getScriptTimestamp());
+            APPEND_ENTITY_PROPERTY(PROP_SERVER_SCRIPTS, properties.getServerScripts());
 
-                _staticAnimation.setProperties(properties);
-                _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
-                APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, properties.getJointRotationsSet());
-                APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, properties.getJointRotations());
-                APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
-                APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
-                APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
-            }
-
-            if (properties.getType() == EntityTypes::Light) {
-                APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, properties.getIsSpotlight());
-                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
-                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, properties.getIntensity());
-                APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, properties.getFalloffRadius());
-                APPEND_ENTITY_PROPERTY(PROP_EXPONENT, properties.getExponent());
-                APPEND_ENTITY_PROPERTY(PROP_CUTOFF, properties.getCutoff());
-            }
+            // Certifiable Properties
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, properties.getItemName());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, properties.getItemDescription());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, properties.getItemCategories());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, properties.getItemArtist());
+            APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, properties.getItemLicense());
+            APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, properties.getLimitedRun());
+            APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
+            APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
+            APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
+            APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
+            APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
+
                 APPEND_ENTITY_PROPERTY(PROP_MAX_PARTICLES, properties.getMaxParticles());
                 APPEND_ENTITY_PROPERTY(PROP_LIFESPAN, properties.getLifespan());
+
                 APPEND_ENTITY_PROPERTY(PROP_EMITTING_PARTICLES, properties.getIsEmitting());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RATE, properties.getEmitRate());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_SPEED, properties.getEmitSpeed());
@@ -2406,24 +3086,30 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ORIENTATION, properties.getEmitOrientation());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_DIMENSIONS, properties.getEmitDimensions());
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_RADIUS_START, properties.getEmitRadiusStart());
+
                 APPEND_ENTITY_PROPERTY(PROP_POLAR_START, properties.getPolarStart());
                 APPEND_ENTITY_PROPERTY(PROP_POLAR_FINISH, properties.getPolarFinish());
                 APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_START, properties.getAzimuthStart());
                 APPEND_ENTITY_PROPERTY(PROP_AZIMUTH_FINISH, properties.getAzimuthFinish());
+
                 APPEND_ENTITY_PROPERTY(PROP_EMIT_ACCELERATION, properties.getEmitAcceleration());
                 APPEND_ENTITY_PROPERTY(PROP_ACCELERATION_SPREAD, properties.getAccelerationSpread());
+
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_RADIUS, properties.getParticleRadius());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_SPREAD, properties.getRadiusSpread());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_START, properties.getRadiusStart());
                 APPEND_ENTITY_PROPERTY(PROP_RADIUS_FINISH, properties.getRadiusFinish());
-                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_SPREAD, properties.getColorSpread());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_START, properties.getColorStart());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR_FINISH, properties.getColorFinish());
+
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_SPREAD, properties.getAlphaSpread());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_START, properties.getAlphaStart());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA_FINISH, properties.getAlphaFinish());
+
                 APPEND_ENTITY_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, properties.getEmitterShouldTrail());
+
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_SPIN, properties.getParticleSpin());
                 APPEND_ENTITY_PROPERTY(PROP_SPIN_SPREAD, properties.getSpinSpread());
                 APPEND_ENTITY_PROPERTY(PROP_SPIN_START, properties.getSpinStart());
@@ -2431,34 +3117,80 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_PARTICLE_ROTATE_WITH_ENTITY, properties.getRotateWithEntity())
             }
 
+            if (properties.getType() == EntityTypes::Model) {
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
+
+                APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, properties.getModelURL());
+                APPEND_ENTITY_PROPERTY(PROP_MODEL_SCALE, properties.getModelScale());
+                APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, properties.getJointRotationsSet());
+                APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, properties.getJointRotations());
+                APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, properties.getJointTranslationsSet());
+                APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, properties.getJointTranslations());
+                APPEND_ENTITY_PROPERTY(PROP_RELAY_PARENT_JOINTS, properties.getRelayParentJoints());
+                APPEND_ENTITY_PROPERTY(PROP_GROUP_CULLED, properties.getGroupCulled());
+
+                _staticAnimation.setProperties(properties);
+                _staticAnimation.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+            }
+
+            if (properties.getType() == EntityTypes::Light) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, properties.getIsSpotlight());
+                APPEND_ENTITY_PROPERTY(PROP_INTENSITY, properties.getIntensity());
+                APPEND_ENTITY_PROPERTY(PROP_EXPONENT, properties.getExponent());
+                APPEND_ENTITY_PROPERTY(PROP_CUTOFF, properties.getCutoff());
+                APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, properties.getFalloffRadius());
+            }
+
+            if (properties.getType() == EntityTypes::Text) {
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
+
+                APPEND_ENTITY_PROPERTY(PROP_TEXT, properties.getText());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, properties.getLineHeight());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, properties.getTextColor());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_ALPHA, properties.getTextAlpha());
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, properties.getBackgroundColor());
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_ALPHA, properties.getBackgroundAlpha());
+                APPEND_ENTITY_PROPERTY(PROP_LEFT_MARGIN, properties.getLeftMargin());
+                APPEND_ENTITY_PROPERTY(PROP_RIGHT_MARGIN, properties.getRightMargin());
+                APPEND_ENTITY_PROPERTY(PROP_TOP_MARGIN, properties.getTopMargin());
+                APPEND_ENTITY_PROPERTY(PROP_BOTTOM_MARGIN, properties.getBottomMargin());
+            }
+
             if (properties.getType() == EntityTypes::Zone) {
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
+
                 _staticKeyLight.setProperties(properties);
                 _staticKeyLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 _staticAmbientLight.setProperties(properties);
                 _staticAmbientLight.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
-                APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)properties.getShapeType());
-                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
-
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                _staticHaze.setProperties(properties);
+                _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
+
+                _staticBloom.setProperties(properties);
+                _staticBloom.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 APPEND_ENTITY_PROPERTY(PROP_FLYING_ALLOWED, properties.getFlyingAllowed());
                 APPEND_ENTITY_PROPERTY(PROP_GHOSTING_ALLOWED, properties.getGhostingAllowed());
                 APPEND_ENTITY_PROPERTY(PROP_FILTER_URL, properties.getFilterURL());
 
-                APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
-                _staticHaze.setProperties(properties);
-                _staticHaze.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
-                APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
-                _staticBloom.setProperties(properties);
-                _staticBloom.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
                 APPEND_ENTITY_PROPERTY(PROP_KEY_LIGHT_MODE, (uint32_t)properties.getKeyLightMode());
                 APPEND_ENTITY_PROPERTY(PROP_AMBIENT_LIGHT_MODE, (uint32_t)properties.getAmbientLightMode());
                 APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)properties.getSkyboxMode());
+                APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
+                APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -2476,29 +3208,52 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_Z_P_NEIGHBOR_ID, properties.getZPNeighborID());
             }
 
+            if (properties.getType() == EntityTypes::Web) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
+
+                APPEND_ENTITY_PROPERTY(PROP_SOURCE_URL, properties.getSourceUrl());
+                APPEND_ENTITY_PROPERTY(PROP_DPI, properties.getDPI());
+                APPEND_ENTITY_PROPERTY(PROP_SCRIPT_URL, properties.getScriptURL());
+                APPEND_ENTITY_PROPERTY(PROP_MAX_FPS, properties.getMaxFPS());
+                APPEND_ENTITY_PROPERTY(PROP_INPUT_MODE, (uint32_t)properties.getInputMode());
+                APPEND_ENTITY_PROPERTY(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, properties.getShowKeyboardFocusHighlight());
+            }
+
             if (properties.getType() == EntityTypes::Line) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
+
                 APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
             }
 
             if (properties.getType() == EntityTypes::PolyLine) {
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_WIDTH, properties.getLineWidth());
-                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
-                APPEND_ENTITY_PROPERTY(PROP_NORMALS, properties.getPackedNormals());
-                APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getPackedStrokeColors());
-                APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
                 APPEND_ENTITY_PROPERTY(PROP_TEXTURES, properties.getTextures());
+
+                APPEND_ENTITY_PROPERTY(PROP_LINE_POINTS, properties.getLinePoints());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, properties.getStrokeWidths());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_NORMALS, properties.getPackedNormals());
+                APPEND_ENTITY_PROPERTY(PROP_STROKE_COLORS, properties.getPackedStrokeColors());
                 APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, properties.getIsUVModeStretch());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_GLOW, properties.getGlow());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_FACE_CAMERA, properties.getFaceCamera());
             }
+
             // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
             // when encoding/decoding edits because otherwise they can't polymorph to other shape types
             if (properties.getType() == EntityTypes::Shape ||
                 properties.getType() == EntityTypes::Box ||
                 properties.getType() == EntityTypes::Sphere) {
-                APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+                APPEND_ENTITY_PROPERTY(PROP_SHAPE, properties.getShape());
             }
 
             // Materials
@@ -2511,35 +3266,43 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_SCALE, properties.getMaterialMappingScale());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_MAPPING_ROT, properties.getMaterialMappingRot());
                 APPEND_ENTITY_PROPERTY(PROP_MATERIAL_DATA, properties.getMaterialData());
+                APPEND_ENTITY_PROPERTY(PROP_MATERIAL_REPEAT, properties.getMaterialRepeat());
             }
 
-            APPEND_ENTITY_PROPERTY(PROP_NAME, properties.getName());
-            APPEND_ENTITY_PROPERTY(PROP_COLLISION_SOUND_URL, properties.getCollisionSoundURL());
-            APPEND_ENTITY_PROPERTY(PROP_ACTION_DATA, properties.getActionData());
-            APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+            // Image
+            if (properties.getType() == EntityTypes::Image) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+                APPEND_ENTITY_PROPERTY(PROP_BILLBOARD_MODE, (uint32_t)properties.getBillboardMode());
 
-            // Certifiable Properties
-            APPEND_ENTITY_PROPERTY(PROP_ITEM_NAME, properties.getItemName());
-            APPEND_ENTITY_PROPERTY(PROP_ITEM_DESCRIPTION, properties.getItemDescription());
-            APPEND_ENTITY_PROPERTY(PROP_ITEM_CATEGORIES, properties.getItemCategories());
-            APPEND_ENTITY_PROPERTY(PROP_ITEM_ARTIST, properties.getItemArtist());
-            APPEND_ENTITY_PROPERTY(PROP_ITEM_LICENSE, properties.getItemLicense());
-            APPEND_ENTITY_PROPERTY(PROP_LIMITED_RUN, properties.getLimitedRun());
-            APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, properties.getMarketplaceID());
-            APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, properties.getEditionNumber());
-            APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, properties.getEntityInstanceNumber());
-            APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, properties.getCertificateID());
-            APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, properties.getStaticCertificateVersion());
+                APPEND_ENTITY_PROPERTY(PROP_IMAGE_URL, properties.getImageURL());
+                APPEND_ENTITY_PROPERTY(PROP_EMISSIVE, properties.getEmissive());
+                APPEND_ENTITY_PROPERTY(PROP_KEEP_ASPECT_RATIO, properties.getKeepAspectRatio());
+                APPEND_ENTITY_PROPERTY(PROP_SUB_IMAGE, properties.getSubImage());
+            }
 
-            APPEND_ENTITY_PROPERTY(PROP_CLONEABLE, properties.getCloneable());
-            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIFETIME, properties.getCloneLifetime());
-            APPEND_ENTITY_PROPERTY(PROP_CLONE_LIMIT, properties.getCloneLimit());
-            APPEND_ENTITY_PROPERTY(PROP_CLONE_DYNAMIC, properties.getCloneDynamic());
-            APPEND_ENTITY_PROPERTY(PROP_CLONE_AVATAR_ENTITY, properties.getCloneAvatarEntity());
+            // Grid
+            if (properties.getType() == EntityTypes::Grid) {
+                APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
+                APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
+                _staticPulse.setProperties(properties);
+                _staticPulse.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
 
-            _staticGrab.setProperties(properties);
-            _staticGrab.appendToEditPacket(packetData, requestedProperties, propertyFlags,
-                                           propertiesDidntFit, propertyCount, appendState);
+                APPEND_ENTITY_PROPERTY(PROP_GRID_FOLLOW_CAMERA, properties.getFollowCamera());
+                APPEND_ENTITY_PROPERTY(PROP_MAJOR_GRID_EVERY, properties.getMajorGridEvery());
+                APPEND_ENTITY_PROPERTY(PROP_MINOR_GRID_EVERY, properties.getMinorGridEvery());
+            }
+
+            if (properties.getType() == EntityTypes::Gizmo) {
+                APPEND_ENTITY_PROPERTY(PROP_GIZMO_TYPE, (uint32_t)properties.getGizmoType());
+                _staticRing.setProperties(properties);
+                _staticRing.appendToEditPacket(packetData, requestedProperties, propertyFlags,
+                    propertiesDidntFit, propertyCount, appendState);
+            }
         }
 
         if (propertyCount > 0) {
@@ -2547,8 +3310,8 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
 
             encodedPropertyFlags = propertyFlags;
             int newPropertyFlagsLength = encodedPropertyFlags.length();
-            packetData->updatePriorBytes(propertyFlagsOffset,
-                                         (const unsigned char*)encodedPropertyFlags.constData(), encodedPropertyFlags.length());
+            packetData->updatePriorBytes(propertyFlagsOffset, (const unsigned char*)encodedPropertyFlags.constData(),
+                                         encodedPropertyFlags.length());
 
             // if the size of the PropertyFlags shrunk, we need to shift everything down to front of packet.
             if (newPropertyFlagsLength < oldPropertyFlagsLength) {
@@ -2676,10 +3439,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += sizeof(lastEdited);
     properties.setLastEdited(lastEdited);
 
-    // NOTE: We intentionally do not send "created" times in edit messages. This is because:
-    //   1) if the edit is to an existing entity, the created time can not be changed
-    //   2) if the edit is to a new entity, the created time is the last edited time
-
     // encoded id
     QUuid editID = QUuid::fromRfc4122(QByteArray::fromRawData(reinterpret_cast<const char*>(dataAt), NUM_BYTES_RFC4122_UUID));
     dataAt += NUM_BYTES_RFC4122_UUID;
@@ -2719,78 +3478,83 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += propertyFlags.getEncodedLength();
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SIMULATION_OWNER, QByteArray, setSimulationOwner);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, vec3, setDimensions);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, quat, setRotation);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, vec3, setVelocity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, vec3, setGravity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, vec3, setAcceleration);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RESTITUTION, float, setRestitution);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FRICTION, float, setFriction);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT, QString, setScript);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SERVER_SCRIPTS, QString, setServerScripts);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, vec3, setRegistrationPoint);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, vec3, setAngularVelocity);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_ID, QUuid, setParentID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DESCRIPTION, QString, setDescription);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_ID, QUuid, setParentID);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARENT_JOINT_INDEX, quint16, setParentJointIndex);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, vec3, setPosition);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, vec3, setDimensions);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATION, quat, setRotation);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CREATED, quint64, setCreated);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LAST_EDITED_BY, QUuid, setLastEditedBy);
+    // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_HOST_TYPE, entity::HostType, setEntityHostType);            // not sent over the wire
+    // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_OWNING_AVATAR_ID, QUuid, setOwningAvatarID);                       // not sent over the wire
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUERY_AA_CUBE, AACube, setQueryAACube);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CAN_CAST_SHADOW, bool, setCanCastShadow);
+    // READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE_IN_SECONDARY_CAMERA, bool, setIsVisibleInSecondaryCamera); // not sent over the wire
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RENDER_LAYER, RenderLayer, setRenderLayer);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PRIMITIVE_MODE, PrimitiveMode, setPrimitiveMode);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_PICK_INTERSECTION, bool, setIgnorePickIntersection);
+    properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
-    if (properties.getType() == EntityTypes::Web) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
-    }
+    // Physics
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DENSITY, float, setDensity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, vec3, setVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, vec3, setAngularVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, vec3, setGravity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION, vec3, setAcceleration);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RESTITUTION, float, setRestitution);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FRICTION, float, setFriction);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint16_t, setCollisionMask);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
 
-    if (properties.getType() == EntityTypes::Text) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, u8vec3Color, setTextColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, u8vec3Color, setBackgroundColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FACE_CAMERA, bool, setFaceCamera);
-    }
+    // Cloning
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE, bool, setCloneable);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIFETIME, float, setCloneLifetime);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIMIT, float, setCloneLimit);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_ORIGIN_ID, QUuid, setCloneOriginID);
 
-    if (properties.getType() == EntityTypes::Model) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_URL, QString, setModelURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+    // Scripts
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT, QString, setScript);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SERVER_SCRIPTS, QString, setServerScripts);
 
-        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<quat>, setJointRotations);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<vec3>, setJointTranslations);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
-    }
-
-    if (properties.getType() == EntityTypes::Light) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FALLOFF_RADIUS, float, setFalloffRadius);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
-    }
+    // Certifiable Properties
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_NAME, QString, setItemName);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_CATEGORIES, QString, setItemCategories);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_ARTIST, QString, setItemArtist);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_LICENSE, QString, setItemLicense);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIMITED_RUN, quint32, setLimitedRun);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_PARTICLES, quint32, setMaxParticles);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFESPAN, float, setLifespan);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMITTING_PARTICLES, bool, setIsEmitting);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RATE, float, setEmitRate);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_SPEED, float, setEmitSpeed);
@@ -2798,24 +3562,30 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ORIENTATION, quat, setEmitOrientation);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_DIMENSIONS, vec3, setEmitDimensions);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_RADIUS_START, float, setEmitRadiusStart);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_START, float, setPolarStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POLAR_FINISH, float, setPolarFinish);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_START, float, setAzimuthStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AZIMUTH_FINISH, float, setAzimuthFinish);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMIT_ACCELERATION, vec3, setEmitAcceleration);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACCELERATION_SPREAD, vec3, setAccelerationSpread);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_RADIUS, float, setParticleRadius);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_SPREAD, float, setRadiusSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_START, float, setRadiusStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS_FINISH, float, setRadiusFinish);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_SPREAD, u8vec3Color, setColorSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_START, vec3Color, setColorStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR_FINISH, vec3Color, setColorFinish);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_SPREAD, float, setAlphaSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_START, float, setAlphaStart);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA_FINISH, float, setAlphaFinish);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMITTER_SHOULD_TRAIL, bool, setEmitterShouldTrail);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_SPIN, float, setParticleSpin);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_SPREAD, float, setSpinSpread);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SPIN_START, float, setSpinStart);
@@ -2823,27 +3593,69 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_PARTICLE_ROTATE_WITH_ENTITY, bool, setRotateWithEntity);
     }
 
-    if (properties.getType() == EntityTypes::Zone) {
-        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-        properties.getAmbientLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-
+    if (properties.getType() == EntityTypes::Model) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
-        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_URL, QString, setModelURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MODEL_SCALE, vec3, setModelScale);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_ROTATIONS, QVector<quat>, setJointRotations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_JOINT_TRANSLATIONS, QVector<vec3>, setJointTranslations);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RELAY_PARENT_JOINTS, bool, setRelayParentJoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GROUP_CULLED, bool, setGroupCulled);
+
+        properties.getAnimation().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+    }
+
+    if (properties.getType() == EntityTypes::Light) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INTENSITY, float, setIntensity);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FALLOFF_RADIUS, float, setFalloffRadius);
+    }
+
+    if (properties.getType() == EntityTypes::Text) {
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT, QString, setText);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_COLOR, u8vec3Color, setTextColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXT_ALPHA, float, setTextAlpha);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_COLOR, u8vec3Color, setBackgroundColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_ALPHA, float, setBackgroundAlpha);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LEFT_MARGIN, float, setLeftMargin);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RIGHT_MARGIN, float, setRightMargin);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TOP_MARGIN, float, setTopMargin);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BOTTOM_MARGIN, float, setBottomMargin);
+    }
+
+    if (properties.getType() == EntityTypes::Zone) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
+
+        properties.getKeyLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getAmbientLight().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        properties.getBloom().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FLYING_ALLOWED, bool, setFlyingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GHOSTING_ALLOWED, bool, setGhostingAllowed);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_FILTER_URL, QString, setFilterURL);
 
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
-        properties.getHaze().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
-        properties.getBloom().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
-
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEY_LIGHT_MODE, uint32_t, setKeyLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AMBIENT_LIGHT_MODE, uint32_t, setAmbientLightMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
@@ -2861,22 +3673,37 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_Z_P_NEIGHBOR_ID, EntityItemID, setZPNeighborID);
     }
 
+    if (properties.getType() == EntityTypes::Web) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SOURCE_URL, QString, setSourceUrl);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DPI, uint16_t, setDPI);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SCRIPT_URL, QString, setScriptURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAX_FPS, uint8_t, setMaxFPS);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_INPUT_MODE, WebInputMode, setInputMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHOW_KEYBOARD_FOCUS_HIGHLIGHT, bool, setShowKeyboardFocusHighlight);
+    }
+
     if (properties.getType() == EntityTypes::Line) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
+
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<vec3>, setLinePoints);
     }
 
-
     if (properties.getType() == EntityTypes::PolyLine) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_WIDTH, float, setLineWidth);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<vec3>, setLinePoints);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NORMALS, QByteArray, setPackedNormals);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_TEXTURES, QString, setTextures);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_POINTS, QVector<vec3>, setLinePoints);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_NORMALS, QByteArray, setPackedNormals);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STROKE_COLORS, QByteArray, setPackedStrokeColors);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_GLOW, bool, setGlow);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_FACE_CAMERA, bool, setFaceCamera);
     }
 
     // NOTE: Spheres and Boxes are just special cases of Shape, and they need to include their PROP_SHAPE
@@ -2884,8 +3711,11 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     if (properties.getType() == EntityTypes::Shape ||
         properties.getType() == EntityTypes::Box ||
         properties.getType() == EntityTypes::Sphere) {
-        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE, QString, setShape);
     }
 
     // Materials
@@ -2898,33 +3728,37 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_SCALE, vec2, setMaterialMappingScale);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_MAPPING_ROT, float, setMaterialMappingRot);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_DATA, QString, setMaterialData);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MATERIAL_REPEAT, bool, setMaterialRepeat);
     }
 
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_NAME, QString, setName);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_SOUND_URL, QString, setCollisionSoundURL);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ACTION_DATA, QByteArray, setActionData);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+    // Image
+    if (properties.getType() == EntityTypes::Image) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BILLBOARD_MODE, BillboardMode, setBillboardMode);
 
-    // Certifiable Properties
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_NAME, QString, setItemName);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_DESCRIPTION, QString, setItemDescription);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_CATEGORIES, QString, setItemCategories);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_ARTIST, QString, setItemArtist);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ITEM_LICENSE, QString, setItemLicense);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIMITED_RUN, quint32, setLimitedRun);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MARKETPLACE_ID, QString, setMarketplaceID);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EDITION_NUMBER, quint32, setEditionNumber);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CERTIFICATE_ID, QString, setCertificateID);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IMAGE_URL, QString, setImageURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EMISSIVE, bool, setEmissive);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_KEEP_ASPECT_RATIO, bool, setKeepAspectRatio);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SUB_IMAGE, QRect, setSubImage);
+    }
 
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONEABLE, bool, setCloneable);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIFETIME, float, setCloneLifetime);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_LIMIT, float, setCloneLimit);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_DYNAMIC, bool, setCloneDynamic);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CLONE_AVATAR_ENTITY, bool, setCloneAvatarEntity);
+    // Grid
+    if (properties.getType() == EntityTypes::Grid) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
+        properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
 
-    properties.getGrab().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRID_FOLLOW_CAMERA, bool, setFollowCamera);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MAJOR_GRID_EVERY, uint32_t, setMajorGridEvery);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MINOR_GRID_EVERY, float, setMinorGridEvery);
+    }
+
+    if (properties.getType() == EntityTypes::Gizmo) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GIZMO_TYPE, GizmoType, setGizmoType);
+        properties.getRing().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
+    }
 
     return valid;
 }
@@ -2946,7 +3780,7 @@ QVector<vec3> EntityItemProperties::unpackNormals(const QByteArray& normals) {
             j++;
         }
     } else {
-        qCDebug(entities) << "WARNING - Expected received size for normals does not match. Expected: " << (int)normals[0] 
+        qCDebug(entities) << "WARNING - Expected received size for normals does not match. Expected: " << (int)normals[0]
                           << " Received: " << (normals.size() / 6);
     }
     return unpackedNormals;
@@ -2959,7 +3793,7 @@ void EntityItemProperties::setPackedStrokeColors(const QByteArray& value) {
 QVector<vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeColors) {
     // the size of the vector is packed first
     QVector<vec3> unpackedStrokeColors = QVector<vec3>((int)strokeColors[0]);
-   
+
     if ((int)strokeColors[0] == strokeColors.size() / 3) {
         int j = 0;
         for (int i = 1; i < strokeColors.size();) {
@@ -2970,7 +3804,7 @@ QVector<vec3> EntityItemProperties::unpackStrokeColors(const QByteArray& strokeC
             unpackedStrokeColors[j++] = vec3(r, g, b);
         }
     } else {
-        qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: " 
+        qCDebug(entities) << "WARNING - Expected received size for stroke colors does not match. Expected: "
             << (int)strokeColors[0] << " Received: " << (strokeColors.size() / 3);
     }
 
@@ -2987,7 +3821,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 
     int outputLength = 0;
 
-    if (buffer.size() < (int) (sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID)) {
+    if (buffer.size() < (int)(sizeof(numberOfIds) + NUM_BYTES_RFC4122_UUID)) {
         qCDebug(entities) << "ERROR - encodeEraseEntityMessage() called with buffer that is too small!";
         return false;
     }
@@ -3050,93 +3884,61 @@ bool EntityItemProperties::decodeCloneEntityMessage(const QByteArray& buffer, in
 }
 
 void EntityItemProperties::markAllChanged() {
-    _lastEditedByChanged = true;
+    // Core
     _simulationOwnerChanged = true;
+    _parentIDChanged = true;
+    _parentJointIndexChanged = true;
+    _visibleChanged = true;
+    _nameChanged = true;
+    _lockedChanged = true;
+    _userDataChanged = true;
+    _hrefChanged = true;
+    _descriptionChanged = true;
     _positionChanged = true;
     _dimensionsChanged = true;
     _rotationChanged = true;
+    _registrationPointChanged = true;
+    _createdChanged = true;
+    _lastEditedByChanged = true;
+    _entityHostTypeChanged = true;
+    _owningAvatarIDChanged = true;
+    _queryAACubeChanged = true;
+    _canCastShadowChanged = true;
+    _isVisibleInSecondaryCameraChanged = true;
+    _renderLayerChanged = true;
+    _primitiveModeChanged = true;
+    _ignorePickIntersectionChanged = true;
+    _grab.markAllChanged();
+
+    // Physics
     _densityChanged = true;
     _velocityChanged = true;
+    _angularVelocityChanged = true;
     _gravityChanged = true;
     _accelerationChanged = true;
     _dampingChanged = true;
+    _angularDampingChanged = true;
     _restitutionChanged = true;
     _frictionChanged = true;
     _lifetimeChanged = true;
-    _userDataChanged = true;
-    _scriptChanged = true;
-    _scriptTimestampChanged = true;
-    _serverScriptsChanged = true;
-    _collisionSoundURLChanged = true;
-    _registrationPointChanged = true;
-    _angularVelocityChanged = true;
-    _angularDampingChanged = true;
-    _nameChanged = true;
-    _visibleChanged = true;
-    _canCastShadowChanged = true;
-    _colorChanged = true;
-    _alphaChanged = true;
-    _modelURLChanged = true;
-    _compoundShapeURLChanged = true;
-    _localRenderAlphaChanged = true;
-    _isSpotlightChanged = true;
     _collisionlessChanged = true;
     _collisionMaskChanged = true;
     _dynamicChanged = true;
+    _collisionSoundURLChanged = true;
+    _actionDataChanged = true;
 
-    _intensityChanged = true;
-    _falloffRadiusChanged = true;
-    _exponentChanged = true;
-    _cutoffChanged = true;
-    _lockedChanged = true;
-    _texturesChanged = true;
+    // Cloning
+    _cloneableChanged = true;
+    _cloneLifetimeChanged = true;
+    _cloneLimitChanged = true;
+    _cloneDynamicChanged = true;
+    _cloneAvatarEntityChanged = true;
+    _cloneOriginIDChanged = true;
 
-    _textChanged = true;
-    _lineHeightChanged = true;
-    _textColorChanged = true;
-    _backgroundColorChanged = true;
-    _shapeTypeChanged = true;
-
-    _isEmittingChanged = true;
-    _emitterShouldTrailChanged = true;
-    _maxParticlesChanged = true;
-    _lifespanChanged = true;
-    _emitRateChanged = true;
-    _emitSpeedChanged = true;
-    _speedSpreadChanged = true;
-    _emitOrientationChanged = true;
-    _emitDimensionsChanged = true;
-    _emitRadiusStartChanged = true;
-    _polarStartChanged = true;
-    _polarFinishChanged = true;
-    _azimuthStartChanged = true;
-    _azimuthFinishChanged = true;
-    _emitAccelerationChanged = true;
-    _accelerationSpreadChanged = true;
-    _particleRadiusChanged = true;
-    _radiusSpreadChanged = true;
-    _colorSpreadChanged = true;
-    _alphaSpreadChanged = true;
-    _radiusStartChanged = true;
-    _radiusFinishChanged = true;
-    _colorStartChanged = true;
-    _colorFinishChanged = true;
-    _alphaStartChanged = true;
-    _alphaFinishChanged = true;
-    _particleSpinChanged = true;
-    _spinStartChanged = true;
-    _spinFinishChanged = true;
-    _spinSpreadChanged = true;
-    _rotateWithEntityChanged = true;
-
-    _materialURLChanged = true;
-    _materialMappingModeChanged = true;
-    _priorityChanged = true;
-    _parentMaterialNameChanged = true;
-    _materialMappingPosChanged = true;
-    _materialMappingScaleChanged = true;
-    _materialMappingRotChanged = true;
-    _materialDataChanged = true;
+    // Scripts
+    _scriptChanged = true;
+    _scriptTimestampChanged = true;
+    _serverScriptsChanged = true;
 
     // Certifiable Properties
     _itemNameChanged = true;
@@ -3151,82 +3953,152 @@ void EntityItemProperties::markAllChanged() {
     _certificateIDChanged = true;
     _staticCertificateVersionChanged = true;
 
-    _keyLight.markAllChanged();
-    _ambientLight.markAllChanged();
-    _skybox.markAllChanged();
+    // Common
+    _shapeTypeChanged = true;
+    _compoundShapeURLChanged = true;
+    _colorChanged = true;
+    _alphaChanged = true;
+    _pulse.markAllChanged();
+    _texturesChanged = true;
+    _billboardModeChanged = true;
 
-    _keyLightModeChanged = true;
-    _skyboxModeChanged = true;
-    _ambientLightModeChanged = true;
-    _hazeModeChanged = true;
-    _bloomModeChanged = true;
+    // Particles
+    _maxParticlesChanged = true;
+    _lifespanChanged = true;
+    _isEmittingChanged = true;
+    _emitRateChanged = true;
+    _emitSpeedChanged = true;
+    _speedSpreadChanged = true;
+    _emitOrientationChanged = true;
+    _emitDimensionsChanged = true;
+    _emitRadiusStartChanged = true;
+    _polarStartChanged = true;
+    _polarFinishChanged = true;
+    _azimuthStartChanged = true;
+    _azimuthFinishChanged = true;
+    _emitAccelerationChanged = true;
+    _accelerationSpreadChanged = true;
+    _particleRadiusChanged = true;
+    _radiusSpreadChanged = true;
+    _radiusStartChanged = true;
+    _radiusFinishChanged = true;
+    _colorSpreadChanged = true;
+    _colorStartChanged = true;
+    _colorFinishChanged = true;
+    _alphaSpreadChanged = true;
+    _alphaStartChanged = true;
+    _alphaFinishChanged = true;
+    _emitterShouldTrailChanged = true;
+    _particleSpinChanged = true;
+    _spinStartChanged = true;
+    _spinFinishChanged = true;
+    _spinSpreadChanged = true;
+    _rotateWithEntityChanged = true;
 
-    _animation.markAllChanged();
-    _skybox.markAllChanged();
-    _haze.markAllChanged();
-    _bloom.markAllChanged();
-    _grab.markAllChanged();
-
-    _sourceUrlChanged = true;
-    _voxelVolumeSizeChanged = true;
-    _voxelDataChanged = true;
-    _voxelSurfaceStyleChanged = true;
-
-    _lineWidthChanged = true;
-    _linePointsChanged = true;
-
-    _hrefChanged = true;
-    _descriptionChanged = true;
-    _faceCameraChanged = true;
-    _actionDataChanged = true;
-
-    _normalsChanged = true;
-    _strokeColorsChanged = true;
-    _strokeWidthsChanged = true;
-    _isUVModeStretchChanged = true;
-
-    _xTextureURLChanged = true;
-    _yTextureURLChanged = true;
-    _zTextureURLChanged = true;
-
-    _xNNeighborIDChanged = true;
-    _yNNeighborIDChanged = true;
-    _zNNeighborIDChanged = true;
-
-    _xPNeighborIDChanged = true;
-    _yPNeighborIDChanged = true;
-    _zPNeighborIDChanged = true;
-
-    _parentIDChanged = true;
-    _parentJointIndexChanged = true;
-
+    // Model
+    _modelURLChanged = true;
+    _modelScaleChanged = true;
     _jointRotationsSetChanged = true;
     _jointRotationsChanged = true;
     _jointTranslationsSetChanged = true;
     _jointTranslationsChanged = true;
+    _relayParentJointsChanged = true;
+    _groupCulledChanged = true;
+    _animation.markAllChanged();
 
-    _queryAACubeChanged = true;
+    // Light
+    _isSpotlightChanged = true;
+    _intensityChanged = true;
+    _exponentChanged = true;
+    _cutoffChanged = true;
+    _falloffRadiusChanged = true;
 
-    _shapeChanged = true;
+    // Text
+    _textChanged = true;
+    _lineHeightChanged = true;
+    _textColorChanged = true;
+    _textAlphaChanged = true;
+    _backgroundColorChanged = true;
+    _backgroundAlphaChanged = true;
+    _leftMarginChanged = true;
+    _rightMarginChanged = true;
+    _topMarginChanged = true;
+    _bottomMarginChanged = true;
 
+    // Zone
+    _keyLight.markAllChanged();
+    _ambientLight.markAllChanged();
+    _skybox.markAllChanged();
+    _haze.markAllChanged();
+    _bloom.markAllChanged();
     _flyingAllowedChanged = true;
     _ghostingAllowedChanged = true;
     _filterURLChanged = true;
+    _keyLightModeChanged = true;
+    _ambientLightModeChanged = true;
+    _skyboxModeChanged = true;
+    _hazeModeChanged = true;
+    _bloomModeChanged = true;
 
-    _clientOnlyChanged = true;
-    _owningAvatarIDChanged = true;
+    // Polyvox
+    _voxelVolumeSizeChanged = true;
+    _voxelDataChanged = true;
+    _voxelSurfaceStyleChanged = true;
+    _xTextureURLChanged = true;
+    _yTextureURLChanged = true;
+    _zTextureURLChanged = true;
+    _xNNeighborIDChanged = true;
+    _yNNeighborIDChanged = true;
+    _zNNeighborIDChanged = true;
+    _xPNeighborIDChanged = true;
+    _yPNeighborIDChanged = true;
+    _zPNeighborIDChanged = true;
 
+    // Web
+    _sourceUrlChanged = true;
     _dpiChanged = true;
-    _relayParentJointsChanged = true;
+    _scriptURLChanged = true;
+    _maxFPSChanged = true;
+    _inputModeChanged = true;
+    _showKeyboardFocusHighlightChanged = true;
 
-    _cloneableChanged = true;
-    _cloneLifetimeChanged = true;
-    _cloneLimitChanged = true;
-    _cloneDynamicChanged = true;
-    _cloneAvatarEntityChanged = true;
-    _cloneOriginIDChanged = true;
+    // Polyline
+    _linePointsChanged = true;
+    _strokeWidthsChanged = true;
+    _normalsChanged = true;
+    _strokeColorsChanged = true;
+    _isUVModeStretchChanged = true;
+    _glowChanged = true;
+    _faceCameraChanged = true;
 
-    _isVisibleInSecondaryCameraChanged = true;
+    // Shape
+    _shapeChanged = true;
+
+    // Material
+    _materialURLChanged = true;
+    _materialMappingModeChanged = true;
+    _priorityChanged = true;
+    _parentMaterialNameChanged = true;
+    _materialMappingPosChanged = true;
+    _materialMappingScaleChanged = true;
+    _materialMappingRotChanged = true;
+    _materialDataChanged = true;
+    _materialRepeatChanged = true;
+
+    // Image
+    _imageURLChanged = true;
+    _emissiveChanged = true;
+    _keepAspectRatioChanged = true;
+    _subImageChanged = true;
+
+    // Grid
+    _followCameraChanged = true;
+    _majorGridEveryChanged = true;
+    _minorGridEveryChanged = true;
+
+    // Gizmo
+    _gizmoTypeChanged = true;
+    _ring.markAllChanged();
 }
 
 // The minimum bounding box for the entity.
@@ -3235,7 +4107,7 @@ AABox EntityItemProperties::getAABox() const {
     // _position represents the position of the registration point.
     vec3 registrationRemainder = vec3(1.0f) - _registrationPoint;
 
-    vec3 unrotatedMinRelativeToEntity = - (_dimensions * _registrationPoint);
+    vec3 unrotatedMinRelativeToEntity = -(_dimensions * _registrationPoint);
     vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
     Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
     Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(_rotation);
@@ -3247,11 +4119,23 @@ AABox EntityItemProperties::getAABox() const {
 }
 
 bool EntityItemProperties::hasTransformOrVelocityChanges() const {
-    return _positionChanged ||_localPositionChanged
+    return _positionChanged || _localPositionChanged
         || _rotationChanged || _localRotationChanged
         || _velocityChanged || _localVelocityChanged
         || _angularVelocityChanged || _localAngularVelocityChanged
         || _accelerationChanged;
+}
+
+void EntityItemProperties::clearTransformOrVelocityChanges() {
+    _positionChanged = false;
+    _localPositionChanged = false;
+    _rotationChanged = false;
+    _localRotationChanged = false;
+    _velocityChanged = false;
+    _localVelocityChanged = false;
+    _angularVelocityChanged = false;
+    _localAngularVelocityChanged = false;
+    _accelerationChanged = false;
 }
 
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
@@ -3264,6 +4148,7 @@ bool EntityItemProperties::hasSimulationRestrictedChanges() const {
     return _positionChanged || _localPositionChanged
         || _rotationChanged || _localRotationChanged
         || _velocityChanged || _localVelocityChanged
+        || _localDimensionsChanged || _dimensionsChanged
         || _angularVelocityChanged || _localAngularVelocityChanged
         || _accelerationChanged
         || _parentIDChanged || _parentJointIndexChanged;
@@ -3333,7 +4218,7 @@ uint8_t EntityItemProperties::computeSimulationBidPriority() const {
     if (_parentIDChanged || _parentJointIndexChanged) {
         // we need higher simulation ownership priority to chang parenting info
         priority = SCRIPT_GRAB_SIMULATION_PRIORITY;
-    } else if ( _positionChanged || _localPositionChanged
+    } else if (_positionChanged || _localPositionChanged
             || _rotationChanged || _localRotationChanged
             || _velocityChanged || _localVelocityChanged
             || _angularVelocityChanged || _localAngularVelocityChanged) {
@@ -3344,29 +4229,88 @@ uint8_t EntityItemProperties::computeSimulationBidPriority() const {
 
 QList<QString> EntityItemProperties::listChangedProperties() {
     QList<QString> out;
+
+    // Core
+    if (simulationOwnerChanged()) {
+        out += "simulationOwner";
+    }
+    if (parentIDChanged()) {
+        out += "parentID";
+    }
+    if (parentJointIndexChanged()) {
+        out += "parentJointIndex";
+    }
+    if (visibleChanged()) {
+        out += "visible";
+    }
+    if (nameChanged()) {
+        out += "name";
+    }
+    if (lockedChanged()) {
+        out += "locked";
+    }
+    if (userDataChanged()) {
+        out += "userData";
+    }
+    if (hrefChanged()) {
+        out += "href";
+    }
+    if (descriptionChanged()) {
+        out += "description";
+    }
     if (containsPositionChange()) {
         out += "position";
     }
     if (dimensionsChanged()) {
         out += "dimensions";
     }
-    if (velocityChanged()) {
-        out += "velocity";
+    if (rotationChanged()) {
+        out += "rotation";
     }
-    if (nameChanged()) {
-        out += "name";
+    if (registrationPointChanged()) {
+        out += "registrationPoint";
     }
-    if (visibleChanged()) {
-        out += "visible";
+    if (createdChanged()) {
+        out += "created";
+    }
+    if (lastEditedByChanged()) {
+        out += "lastEditedBy";
+    }
+    if (entityHostTypeChanged()) {
+        out += "entityHostType";
+    }
+    if (owningAvatarIDChanged()) {
+        out += "owningAvatarID";
+    }
+    if (queryAACubeChanged()) {
+        out += "queryAACube";
     }
     if (canCastShadowChanged()) {
         out += "canCastShadow";
     }
-    if (rotationChanged()) {
-        out += "rotation";
+    if (isVisibleInSecondaryCameraChanged()) {
+        out += "isVisibleInSecondaryCamera";
     }
+    if (renderLayerChanged()) {
+        out += "renderLayer";
+    }
+    if (primitiveModeChanged()) {
+        out += "primitiveMode";
+    }
+    if (ignorePickIntersectionChanged()) {
+        out += "ignorePickIntersection";
+    }
+    getGrab().listChangedProperties(out);
+
+    // Physics
     if (densityChanged()) {
         out += "density";
+    }
+    if (velocityChanged()) {
+        out += "velocity";
+    }
+    if (angularVelocityChanged()) {
+        out += "angularVelocity";
     }
     if (gravityChanged()) {
         out += "gravity";
@@ -3377,6 +4321,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (dampingChanged()) {
         out += "damping";
     }
+    if (angularDampingChanged()) {
+        out += "angularDamping";
+    }
     if (restitutionChanged()) {
         out += "restitution";
     }
@@ -3385,60 +4332,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (lifetimeChanged()) {
         out += "lifetime";
-    }
-    if (scriptChanged()) {
-        out += "script";
-    }
-    if (scriptTimestampChanged()) {
-        out += "scriptTimestamp";
-    }
-    if (serverScriptsChanged()) {
-        out += "serverScripts";
-    }
-    if (collisionSoundURLChanged()) {
-        out += "collisionSoundURL";
-    }
-    if (colorChanged()) {
-        out += "color";
-    }
-    if (colorSpreadChanged()) {
-        out += "colorSpread";
-    }
-    if (colorStartChanged()) {
-        out += "colorStart";
-    }
-    if (colorFinishChanged()) {
-        out += "colorFinish";
-    }
-    if (alphaChanged()) {
-        out += "alpha";
-    }
-    if (alphaSpreadChanged()) {
-        out += "alphaSpread";
-    }
-    if (alphaStartChanged()) {
-        out += "alphaStart";
-    }
-    if (alphaFinishChanged()) {
-        out += "alphaFinish";
-    }
-    if (emitterShouldTrailChanged()) {
-        out += "emitterShouldTrail";
-    }
-    if (modelURLChanged()) {
-        out += "modelURL";
-    }
-    if (compoundShapeURLChanged()) {
-        out += "compoundShapeURL";
-    }
-    if (registrationPointChanged()) {
-        out += "registrationPoint";
-    }
-    if (angularVelocityChanged()) {
-        out += "angularVelocity";
-    }
-    if (angularDampingChanged()) {
-        out += "angularDamping";
     }
     if (collisionlessChanged()) {
         out += "collisionless";
@@ -3449,48 +4342,101 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (dynamicChanged()) {
         out += "dynamic";
     }
-    if (isSpotlightChanged()) {
-        out += "isSpotlight";
+    if (collisionSoundURLChanged()) {
+        out += "collisionSoundURL";
     }
-    if (intensityChanged()) {
-        out += "intensity";
+    if (actionDataChanged()) {
+        out += "actionData";
     }
-    if (falloffRadiusChanged()) {
-        out += "falloffRadius";
+
+    // Cloning
+    if (cloneableChanged()) {
+        out += "cloneable";
     }
-    if (exponentChanged()) {
-        out += "exponent";
+    if (cloneLifetimeChanged()) {
+        out += "cloneLifetime";
     }
-    if (cutoffChanged()) {
-        out += "cutoff";
+    if (cloneLimitChanged()) {
+        out += "cloneLimit";
     }
-    if (lockedChanged()) {
-        out += "locked";
+    if (cloneDynamicChanged()) {
+        out += "cloneDynamic";
     }
-    if (texturesChanged()) {
-        out += "textures";
+    if (cloneAvatarEntityChanged()) {
+        out += "cloneAvatarEntity";
     }
-    if (userDataChanged()) {
-        out += "userData";
+    if (cloneOriginIDChanged()) {
+        out += "cloneOriginID";
     }
-    if (simulationOwnerChanged()) {
-        out += "simulationOwner";
+
+    // Scripts
+    if (scriptChanged()) {
+        out += "script";
     }
-    if (textChanged()) {
-        out += "text";
+    if (scriptTimestampChanged()) {
+        out += "scriptTimestamp";
     }
-    if (lineHeightChanged()) {
-        out += "lineHeight";
+    if (serverScriptsChanged()) {
+        out += "serverScripts";
     }
-    if (textColorChanged()) {
-        out += "textColor";
+
+    // Certifiable Properties
+    if (itemNameChanged()) {
+        out += "itemName";
     }
-    if (backgroundColorChanged()) {
-        out += "backgroundColor";
+    if (itemDescriptionChanged()) {
+        out += "itemDescription";
     }
+    if (itemCategoriesChanged()) {
+        out += "itemCategories";
+    }
+    if (itemArtistChanged()) {
+        out += "itemArtist";
+    }
+    if (itemLicenseChanged()) {
+        out += "itemLicense";
+    }
+    if (limitedRunChanged()) {
+        out += "limitedRun";
+    }
+    if (marketplaceIDChanged()) {
+        out += "marketplaceID";
+    }
+    if (editionNumberChanged()) {
+        out += "editionNumber";
+    }
+    if (entityInstanceNumberChanged()) {
+        out += "entityInstanceNumber";
+    }
+    if (certificateIDChanged()) {
+        out += "certificateID";
+    }
+    if (staticCertificateVersionChanged()) {
+        out += "staticCertificateVersion";
+    }
+
+    // Common
     if (shapeTypeChanged()) {
         out += "shapeType";
     }
+    if (compoundShapeURLChanged()) {
+        out += "compoundShapeURL";
+    }
+    if (colorChanged()) {
+        out += "color";
+    }
+    if (alphaChanged()) {
+        out += "alpha";
+    }
+    getPulse().listChangedProperties(out);
+    if (texturesChanged()) {
+        out += "textures";
+    }
+    if (billboardModeChanged()) {
+        out += "billboardMode";
+    }
+
+    // Particles
     if (maxParticlesChanged()) {
         out += "maxParticles";
     }
@@ -3548,6 +4494,27 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (radiusFinishChanged()) {
         out += "radiusFinish";
     }
+    if (colorSpreadChanged()) {
+        out += "colorSpread";
+    }
+    if (colorStartChanged()) {
+        out += "colorStart";
+    }
+    if (colorFinishChanged()) {
+        out += "colorFinish";
+    }
+    if (alphaSpreadChanged()) {
+        out += "alphaSpread";
+    }
+    if (alphaStartChanged()) {
+        out += "alphaStart";
+    }
+    if (alphaFinishChanged()) {
+        out += "alphaFinish";
+    }
+    if (emitterShouldTrailChanged()) {
+        out += "emitterShouldTrail";
+    }
     if (particleSpinChanged()) {
         out += "particleSpin";
     }
@@ -3563,74 +4530,97 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (rotateWithEntityChanged()) {
         out += "rotateWithEntity";
     }
-    if (materialURLChanged()) {
-        out += "materialURL";
+
+    // Model
+    if (modelURLChanged()) {
+        out += "modelURL";
     }
-    if (materialMappingModeChanged()) {
-        out += "materialMappingMode";
+    if (modelScaleChanged()) {
+        out += "scale";
     }
-    if (priorityChanged()) {
-        out += "priority";
+    if (jointRotationsSetChanged()) {
+        out += "jointRotationsSet";
     }
-    if (parentMaterialNameChanged()) {
-        out += "parentMaterialName";
+    if (jointRotationsChanged()) {
+        out += "jointRotations";
     }
-    if (materialMappingPosChanged()) {
-        out += "materialMappingPos";
+    if (jointTranslationsSetChanged()) {
+        out += "jointTranslationsSet";
     }
-    if (materialMappingScaleChanged()) {
-        out += "materialMappingScale";
+    if (jointTranslationsChanged()) {
+        out += "jointTranslations";
     }
-    if (materialMappingRotChanged()) {
-        out += "materialMappingRot";
+    if (relayParentJointsChanged()) {
+        out += "relayParentJoints";
     }
-    if (materialDataChanged()) {
-        out += "materialData";
+    if (groupCulledChanged()) {
+        out += "groupCulled";
     }
-    if (isVisibleInSecondaryCameraChanged()) {
-        out += "isVisibleInSecondaryCamera";
+    getAnimation().listChangedProperties(out);
+
+    // Light
+    if (isSpotlightChanged()) {
+        out += "isSpotlight";
+    }
+    if (intensityChanged()) {
+        out += "intensity";
+    }
+    if (exponentChanged()) {
+        out += "exponent";
+    }
+    if (cutoffChanged()) {
+        out += "cutoff";
+    }
+    if (falloffRadiusChanged()) {
+        out += "falloffRadius";
     }
 
-    // Certifiable Properties
-    if (itemNameChanged()) {
-        out += "itemName";
+    // Text
+    if (textChanged()) {
+        out += "text";
     }
-    if (itemDescriptionChanged()) {
-        out += "itemDescription";
+    if (lineHeightChanged()) {
+        out += "lineHeight";
     }
-    if (itemCategoriesChanged()) {
-        out += "itemCategories";
+    if (textColorChanged()) {
+        out += "textColor";
     }
-    if (itemArtistChanged()) {
-        out += "itemArtist";
+    if (textAlphaChanged()) {
+        out += "textAlpha";
     }
-    if (itemLicenseChanged()) {
-        out += "itemLicense";
+    if (backgroundColorChanged()) {
+        out += "backgroundColor";
     }
-    if (limitedRunChanged()) {
-        out += "limitedRun";
+    if (backgroundAlphaChanged()) {
+        out += "backgroundAlpha";
     }
-    if (marketplaceIDChanged()) {
-        out += "marketplaceID";
+    if (leftMarginChanged()) {
+        out += "leftMargin";
     }
-    if (editionNumberChanged()) {
-        out += "editionNumber";
+    if (rightMarginChanged()) {
+        out += "rightMargin";
     }
-    if (entityInstanceNumberChanged()) {
-        out += "entityInstanceNumber";
+    if (topMarginChanged()) {
+        out += "topMargin";
     }
-    if (certificateIDChanged()) {
-        out += "certificateID";
-    }
-    if (staticCertificateVersionChanged()) {
-        out += "staticCertificateVersion";
+    if (bottomMarginChanged()) {
+        out += "bottomMargin";
     }
 
-    if (hazeModeChanged()) {
-        out += "hazeMode";
+    // Zone
+    getKeyLight().listChangedProperties(out);
+    getAmbientLight().listChangedProperties(out);
+    getSkybox().listChangedProperties(out);
+    getHaze().listChangedProperties(out);
+    getBloom().listChangedProperties(out);
+    if (flyingAllowedChanged()) {
+        out += "flyingAllowed";
     }
-    if (bloomModeChanged()) {
-        out += "bloomMode";
+    if (ghostingAllowedChanged()) {
+        out += "ghostingAllowed";
+    }
+    if (filterURLChanged()) {
+        out += "filterURL";
     }
     if (keyLightModeChanged()) {
         out += "keyLightMode";
@@ -3641,7 +4631,14 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (skyboxModeChanged()) {
         out += "skyboxMode";
     }
+    if (hazeModeChanged()) {
+        out += "hazeMode";
+    }
+    if (bloomModeChanged()) {
+        out += "bloomMode";
+    }
 
+    // Polyvox
     if (voxelVolumeSizeChanged()) {
         out += "voxelVolumeSize";
     }
@@ -3650,15 +4647,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (voxelSurfaceStyleChanged()) {
         out += "voxelSurfaceStyle";
-    }
-    if (hrefChanged()) {
-        out += "href";
-    }
-    if (descriptionChanged()) {
-        out += "description";
-    }
-    if (actionDataChanged()) {
-        out += "actionData";
     }
     if (xTextureURLChanged()) {
         out += "xTextureURL";
@@ -3687,89 +4675,114 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (zPNeighborIDChanged()) {
         out += "zPNeighborID";
     }
-    if (parentIDChanged()) {
-        out += "parentID";
-    }
-    if (parentJointIndexChanged()) {
-        out += "parentJointIndex";
-    }
-    if (jointRotationsSetChanged()) {
-        out += "jointRotationsSet";
-    }
-    if (jointRotationsChanged()) {
-        out += "jointRotations";
-    }
-    if (jointTranslationsSetChanged()) {
-        out += "jointTranslationsSet";
-    }
-    if (jointTranslationsChanged()) {
-        out += "jointTranslations";
-    }
-    if (relayParentJointsChanged()) {
-        out += "relayParentJoints";
-    }
-    if (queryAACubeChanged()) {
-        out += "queryAACube";
-    }
 
-    if (clientOnlyChanged()) {
-        out += "clientOnly";
-    }
-    if (owningAvatarIDChanged()) {
-        out += "owningAvatarID";
-    }
-
-    if (flyingAllowedChanged()) {
-        out += "flyingAllowed";
-    }
-    if (ghostingAllowedChanged()) {
-        out += "ghostingAllowed";
-    }
-    if (filterURLChanged()) {
-        out += "filterURL";
+    // Web
+    if (sourceUrlChanged()) {
+        out += "sourceUrl";
     }
     if (dpiChanged()) {
         out += "dpi";
     }
+    if (scriptURLChanged()) {
+        out += "scriptURL";
+    }
+    if (maxFPSChanged()) {
+        out += "maxFPS";
+    }
+    if (inputModeChanged()) {
+        out += "inputMode";
+    }
 
+    // Polyline
+    if (linePointsChanged()) {
+        out += "linePoints";
+    }
+    if (strokeWidthsChanged()) {
+        out += "strokeWidths";
+    }
+    if (normalsChanged()) {
+        out += "normals";
+    }
+    if (strokeColorsChanged()) {
+        out += "strokeColors";
+    }
+    if (isUVModeStretchChanged()) {
+        out += "isUVModeStretch";
+    }
+    if (glowChanged()) {
+        out += "glow";
+    }
+    if (faceCameraChanged()) {
+        out += "faceCamera";
+    }
+    if (showKeyboardFocusHighlightChanged()) {
+        out += "showKeyboardFocusHighlight";
+    }
+
+    // Shape
     if (shapeChanged()) {
         out += "shape";
     }
 
-    if (strokeColorsChanged()) {
-        out += "strokeColors";
+    // Material
+    if (materialURLChanged()) {
+        out += "materialURL";
+    }
+    if (materialMappingModeChanged()) {
+        out += "materialMappingMode";
+    }
+    if (priorityChanged()) {
+        out += "priority";
+    }
+    if (parentMaterialNameChanged()) {
+        out += "parentMaterialName";
+    }
+    if (materialMappingPosChanged()) {
+        out += "materialMappingPos";
+    }
+    if (materialMappingScaleChanged()) {
+        out += "materialMappingScale";
+    }
+    if (materialMappingRotChanged()) {
+        out += "materialMappingRot";
+    }
+    if (materialDataChanged()) {
+        out += "materialData";
+    }
+    if (materialRepeatChanged()) {
+        out += "materialRepeat";
     }
 
-    if (isUVModeStretchChanged()) {
-        out += "isUVModeStretch";
+    // Image
+    if (imageURLChanged()) {
+        out += "imageURL";
+    }
+    if (emissiveChanged()) {
+        out += "emissive";
+    }
+    if (keepAspectRatioChanged()) {
+        out += "keepAspectRatio";
+    }
+    if (subImageChanged()) {
+        out += "subImage";
     }
 
-    if (cloneableChanged()) {
-        out += "cloneable";
+    // Grid
+    if (followCameraChanged()) {
+        out += "followCamera";
     }
-    if (cloneLifetimeChanged()) {
-        out += "cloneLifetime";
+    if (majorGridEveryChanged()) {
+        out += "majorGridEvery";
     }
-    if (cloneLimitChanged()) {
-        out += "cloneLimit";
-    }
-    if (cloneDynamicChanged()) {
-        out += "cloneDynamic";
-    }
-    if (cloneAvatarEntityChanged()) {
-        out += "cloneAvatarEntity";
-    }
-    if (cloneOriginIDChanged()) {
-        out += "cloneOriginID";
+    if (minorGridEveryChanged()) {
+        out += "minorGridEvery";
     }
 
-    getAnimation().listChangedProperties(out);
-    getKeyLight().listChangedProperties(out);
-    getAmbientLight().listChangedProperties(out);
-    getSkybox().listChangedProperties(out);
-    getHaze().listChangedProperties(out);
-    getBloom().listChangedProperties(out);
-    getGrab().listChangedProperties(out);
+    // Gizmo
+    if (gizmoTypeChanged()) {
+        out += "gizmoType";
+    }
+    getRing().listChangedProperties(out);
 
     return out;
 }
@@ -3788,7 +4801,7 @@ bool EntityItemProperties::getScalesWithParent() const {
         if (success && parent) {
             bool avatarAncestor = (parent->getNestableType() == NestableType::Avatar ||
                                    parent->hasAncestorOfType(NestableType::Avatar));
-            scalesWithParent = getClientOnly() && avatarAncestor;
+            scalesWithParent = getEntityHostType() == entity::HostType::AVATAR && avatarAncestor;
         }
     }
     return scalesWithParent;
@@ -3946,7 +4959,13 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setParentJointIndex(-1);
     setLifetime(getCloneLifetime());
     setDynamic(getCloneDynamic());
-    setClientOnly(getCloneAvatarEntity());
+    if (getEntityHostType() != entity::HostType::LOCAL) {
+        setEntityHostType(getCloneAvatarEntity() ? entity::HostType::AVATAR : entity::HostType::DOMAIN);
+    } else {
+        // Local Entities clone as local entities
+        setEntityHostType(entity::HostType::LOCAL);
+        setCollisionless(true);
+    }
     setCreated(usecTimestampNow());
     setLastEdited(usecTimestampNow());
     setCloneable(ENTITY_ITEM_DEFAULT_CLONEABLE);
@@ -3954,4 +4973,53 @@ void EntityItemProperties::convertToCloneProperties(const EntityItemID& entityID
     setCloneLimit(ENTITY_ITEM_DEFAULT_CLONE_LIMIT);
     setCloneDynamic(ENTITY_ITEM_DEFAULT_CLONE_DYNAMIC);
     setCloneAvatarEntity(ENTITY_ITEM_DEFAULT_CLONE_AVATAR_ENTITY);
+}
+
+bool EntityItemProperties::blobToProperties(QScriptEngine& scriptEngine, const QByteArray& blob, EntityItemProperties& properties) {
+    // DANGER: this method is NOT efficient.
+    // begin recipe for converting unfortunately-formatted-binary-blob to EntityItemProperties
+    QJsonDocument jsonProperties = QJsonDocument::fromBinaryData(blob);
+    if (jsonProperties.isEmpty() || jsonProperties.isNull() || !jsonProperties.isObject() || jsonProperties.object().isEmpty()) {
+        qCDebug(entities) << "bad avatarEntityData json" << QString(blob.toHex());
+        return false;
+    }
+    QVariant variant = jsonProperties.toVariant();
+    QVariantMap variantMap = variant.toMap();
+    QScriptValue scriptValue = variantMapToScriptValue(variantMap, scriptEngine);
+    EntityItemPropertiesFromScriptValueIgnoreReadOnly(scriptValue, properties);
+    // end recipe
+    return true;
+}
+
+void EntityItemProperties::propertiesToBlob(QScriptEngine& scriptEngine, const QUuid& myAvatarID, const EntityItemProperties& properties, QByteArray& blob) {
+    // DANGER: this method is NOT efficient.
+    // begin recipe for extracting unfortunately-formatted-binary-blob from EntityItem
+    QScriptValue scriptValue = EntityItemNonDefaultPropertiesToScriptValue(&scriptEngine, properties);
+    QVariant variantProperties = scriptValue.toVariant();
+    QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);
+    // the ID of the parent/avatar changes from session to session.  use a special UUID to indicate the avatar
+    QJsonObject jsonObject = jsonProperties.object();
+    if (jsonObject.contains("parentID")) {
+        if (QUuid(jsonObject["parentID"].toString()) == myAvatarID) {
+            jsonObject["parentID"] = AVATAR_SELF_ID.toString();
+        }
+    }
+    jsonProperties = QJsonDocument(jsonObject);
+    blob = jsonProperties.toBinaryData();
+    // end recipe
+}
+
+QDebug& operator<<(QDebug& dbg, const EntityPropertyFlags& f) {
+    QString result = "[ ";
+
+    for (int i = 0; i < PROP_AFTER_LAST_ITEM; i++) {
+        auto prop = EntityPropertyList(i);
+        if (f.getHasProperty(prop)) {
+            result = result + _enumsToPropertyStrings[prop] + " ";
+        }
+    }
+
+    result += "]";
+    dbg.nospace() << result;
+    return dbg;
 }

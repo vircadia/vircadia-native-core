@@ -18,6 +18,8 @@
         <script type="text/javascript" src="js/spinButtons.js"></script>
         <script type="text/javascript" src="js/listView.js"></script>
         <script type="text/javascript" src="js/entityListContextMenu.js"></script>
+        <script type="text/javascript" src="js/utils.js"></script>
+        <script type="text/javascript" src="js/includes.js"></script>
         <script type="text/javascript" src="js/entityList.js"></script>
     </head>
     <body onload='loaded();' id="entity-list-body">
@@ -42,6 +44,10 @@
                     </div>
                     <div id="filter-type-options" class="multiselect-options">
                         <!-- type options with checkbox, icon, and label are added at runtime in entityList -->
+                        <div id="filter-type-options-buttons">
+                            <input type="button" id="filter-type-select-all" value="Select All"/>
+                            <input type="button" id="filter-type-clear-all" value="Clear All"/>
+                        </div>
                     </div>
                 </div>
                 <div id="filter-search-and-icon">

@@ -94,6 +94,7 @@ public:
     // these are in the frame of this object (model space)
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual int getJointParent(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override;
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override;
 
@@ -112,16 +113,12 @@ public:
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;
 
-    void setAnimationURL(const QString& url) override;
-    bool needsAnimationReset() const;
-    QString getAnimationURLAndReset();
-
 private:
     bool needsUpdateModelBounds() const;
     void autoResizeJointArrays();
     void copyAnimationJointDataToModel();
     bool readyToAnimate() const;
-    void getCollisionGeometryResource();
+    void fetchCollisionGeometryResource();
 
     GeometryResource::Pointer _compoundShapeResource;
     std::vector<int> _jointMap;
@@ -130,7 +127,6 @@ private:
     bool _originalTexturesRead { false };
     bool _dimensionsInitialized { true };
     bool _needsJointSimulation { false };
-    bool _needsAnimationReset { false };
 };
 
 namespace render { namespace entities { 
@@ -168,6 +164,8 @@ protected:
     render::hifi::Tag getTagMask() const override;
 
     void setIsVisibleInSecondaryCamera(bool value) override;
+    void setRenderLayer(RenderLayer value) override;
+    void setPrimitiveMode(PrimitiveMode value) override;
 
 private:
     void animate(const TypedEntityPointer& entity);
@@ -178,8 +176,7 @@ private:
 
     bool _hasModel { false };
     ModelPointer _model;
-    GeometryResource::Pointer _compoundShapeResource;
-    QString _lastTextures;
+    QString _textures;
     bool _texturesLoaded { false };
     int _lastKnownCurrentFrame { -1 };
 #ifdef MODEL_ENTITY_USE_FADE_EFFECT
@@ -188,12 +185,12 @@ private:
 
     const void* _collisionMeshKey { nullptr };
 
-    // used on client side
+    QUrl _parsedModelURL;
     bool _jointMappingCompleted { false };
     QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     AnimationPointer _animation;
-    QUrl _parsedModelURL;
     bool _animating { false };
+    QString _animationURL;
     uint64_t _lastAnimated { 0 };
 
     render::ItemKey _itemKey { render::ItemKey::Builder().withTypeMeta() };

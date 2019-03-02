@@ -22,7 +22,9 @@
 #include <ui/TabletScriptingInterface.h>
 #include "scripting/HMDScriptingInterface.h"
 
-QmlCommerce::QmlCommerce() {
+QmlCommerce::QmlCommerce() :
+    _appsPath(PathUtils::getAppDataPath() + "Apps/")
+{
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     connect(ledger.data(), &Ledger::buyResult, this, &QmlCommerce::buyResult);
@@ -38,28 +40,24 @@ QmlCommerce::QmlCommerce() {
     connect(ledger.data(), &Ledger::updateCertificateStatus, this, &QmlCommerce::updateCertificateStatus);
     connect(ledger.data(), &Ledger::transferAssetToNodeResult, this, &QmlCommerce::transferAssetToNodeResult);
     connect(ledger.data(), &Ledger::transferAssetToUsernameResult, this, &QmlCommerce::transferAssetToUsernameResult);
+    connect(ledger.data(), &Ledger::authorizeAssetTransferResult, this, &QmlCommerce::authorizeAssetTransferResult);
     connect(ledger.data(), &Ledger::availableUpdatesResult, this, &QmlCommerce::availableUpdatesResult);
     connect(ledger.data(), &Ledger::updateItemResult, this, &QmlCommerce::updateItemResult);
 
     auto accountManager = DependencyManager::get<AccountManager>();
     connect(accountManager.data(), &AccountManager::usernameChanged, this, [&]() { setPassphrase(""); });
-
-    _appsPath = PathUtils::getAppDataPath() + "Apps/";
 }
 
 
-
-
 void QmlCommerce::openSystemApp(const QString& appName) {
-    static QMap<QString, QString> systemApps {
+    static const QMap<QString, QString> systemApps {
         {"GOTO",        "hifi/tablet/TabletAddressDialog.qml"},
         {"PEOPLE",      "hifi/Pal.qml"},
         {"WALLET",      "hifi/commerce/wallet/Wallet.qml"},
-        {"MARKET",      "/marketplace.html"}
+        {"MARKET",      "hifi/commerce/marketplace/Marketplace.qml"}
     };
 
-    static QMap<QString, QString> systemInject{
-        {"MARKET",      "/scripts/system/html/js/marketplacesInject.js"}
+    static const QMap<QString, QString> systemInject{
     };
 
 
@@ -244,6 +242,21 @@ void QmlCommerce::transferAssetToUsername(const QString& username,
     }
     QString key = keys[0];
     ledger->transferAssetToUsername(key, username, certificateID, amount, optionalMessage);
+}
+
+void QmlCommerce::authorizeAssetTransfer(const QString& couponID,
+    const QString& certificateID,
+    const int& amount,
+    const QString& optionalMessage) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count() == 0) {
+        QJsonObject result{ { "status", "fail" }, { "message", "Uninitialized Wallet." } };
+        return emit authorizeAssetTransferResult(result);
+    }
+    QString key = keys[0];
+    ledger->authorizeAssetTransfer(key, couponID, certificateID, amount, optionalMessage);
 }
 
 void QmlCommerce::replaceContentSet(const QString& itemHref, const QString& certificateID) {

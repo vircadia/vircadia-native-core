@@ -12,13 +12,13 @@
 #include <QtCore/QJsonArray>
 
 using namespace controller;
-float DeadZoneFilter::apply(float value) const {
-    float scale = ((value < 0.0f) ? -1.0f : 1.0f) / (1.0f - _min);
-    float magnitude = std::abs(value);
+AxisValue DeadZoneFilter::apply(AxisValue value) const {
+    float scale = ((value.value < 0.0f) ? -1.0f : 1.0f) / (1.0f - _min);
+    float magnitude = std::abs(value.value);
     if (magnitude < _min) {
-        return 0.0f;
+        return { 0.0f, value.timestamp };
     }
-    return (magnitude - _min) * scale;
+    return { (magnitude - _min) * scale, value.timestamp };
 }
 
 bool DeadZoneFilter::parseParameters(const QJsonValue& parameters) {

@@ -72,7 +72,7 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
         Locker lock(_lock);
         EntityItemPointer entity = _entityTree->findEntityByID(entityID);
 
-        if (entity && entity->getCreated() < _startTime) {
+        if (entity && !entity->isLocalEntity() && entity->getCreated() < _startTime) {
 
             _trackedEntities.emplace(entityID, entity);
             int trackedEntityCount = (int)_trackedEntities.size();
@@ -81,7 +81,7 @@ void SafeLanding::addTrackedEntity(const EntityItemID& entityID) {
                 _maxTrackedEntityCount = trackedEntityCount;
                 _trackedEntityStabilityCount = 0;
             }
-            qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
+            //qCDebug(interfaceapp) << "Safe Landing: Tracking entity " << entity->getItemName();
         }
     }
 }

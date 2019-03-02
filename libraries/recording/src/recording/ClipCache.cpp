@@ -48,8 +48,11 @@ NetworkClipLoaderPointer ClipCache::getClipLoader(const QUrl& url) {
     return getResource(url).staticCast<NetworkClipLoader>();
 }
 
-QSharedPointer<Resource> ClipCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback, const void* extra) {
+QSharedPointer<Resource> ClipCache::createResource(const QUrl& url) {
     qCDebug(recordingLog) << "Loading recording at" << url;
     return QSharedPointer<Resource>(new NetworkClipLoader(url), &Resource::deleter);
 }
 
+QSharedPointer<Resource> ClipCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
+    return QSharedPointer<Resource>(new NetworkClipLoader(*resource.staticCast<NetworkClipLoader>()), &Resource::deleter);
+}

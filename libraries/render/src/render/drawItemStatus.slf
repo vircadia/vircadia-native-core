@@ -22,10 +22,9 @@ vec2 getIconTexcoord(float icon, vec2 uv) {
 }
 
 void main(void) {
-    if (varTexcoord.z < 254.5) {
-        outFragColor = texture(_icons, getIconTexcoord(varTexcoord.z, varTexcoord.xy)) * varColor;
-    } else {
-        vec2 centerDir = varTexcoord.xy * 2.0f - 1.0f;
-        outFragColor = vec4(varColor.xyz, 1.0 - step(1.0f, dot(centerDir.xy, centerDir.xy)));
-    }
+    vec2 centerDir = varTexcoord.xy * 2.0f - 1.0f;
+    
+    outFragColor = mix(vec4(varColor.xyz, 1.0 - step(1.0f, dot(centerDir.xy, centerDir.xy))),
+                       texture(_icons, getIconTexcoord(varTexcoord.z, varTexcoord.xy)) * varColor,
+                       float(varTexcoord.z < 254.5));
 }

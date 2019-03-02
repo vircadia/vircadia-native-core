@@ -100,6 +100,9 @@ Rectangle {
                 console.log("Failed to get Available Updates", result.data.message);
             } else {
                 exchangeMoneyButtonContainer.messagesWaiting = result.data.updates.length > 0;
+                if (!exchangeMoneyButtonContainer.messagesWaiting) {
+                    sendToScript({method: 'clearShouldShowDotUpdates'});
+                }
             }
         }
     }

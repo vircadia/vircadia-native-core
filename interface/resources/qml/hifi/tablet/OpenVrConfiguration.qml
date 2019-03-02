@@ -70,7 +70,7 @@ Flickable {
             readonly property bool hmdDesktop: hmdInDesktop.checked
 
             property int state: buttonState.disabled
-            property var lastConfiguration: null
+            property var lastConfiguration:  null
 
             HifiConstants { id: hifi }
 
@@ -90,7 +90,6 @@ Flickable {
                 anchors.fill: parent
                 propagateComposedEvents: true
                 onPressed: {
-                    parent.forceActiveFocus()
                     mouse.accepted = false;
                 }
             }
@@ -169,9 +168,7 @@ Flickable {
                     boxRadius: 7
                     visible: viveInDesktop.checked
 
-                    anchors.top: viveInDesktop.bottom
                     anchors.topMargin: 5
-                    anchors.left: openVrConfiguration.left
                     anchors.leftMargin: leftMargin + 10
 
                     onClicked: {
@@ -207,32 +204,31 @@ Flickable {
                     width: 112
                     label: "Y Offset"
                     suffix: " cm"
-                    minimumValue: -10
+                    minimumValue: -50
+                    maximumValue: 50
                     realStepSize: 1
-                    realValue: -5
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
 
                 HifiControls.SpinBox {
                     id: headZOffset
+                    z: 10
                     width: 112
                     label: "Z Offset"
-                    minimumValue: -10
+                    minimumValue: -50
+                    maximumValue: 50
                     realStepSize: 1
                     decimals: 1
                     suffix: " cm"
-                    realValue: -5
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -319,13 +315,13 @@ Flickable {
                     width: 112
                     suffix: " cm"
                     label: "Y Offset"
-                    minimumValue: -10
+                    minimumValue: -30
+                    maximumValue: 30
                     realStepSize: 1
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -335,14 +331,14 @@ Flickable {
                     width: 112
                     label: "Z Offset"
                     suffix: " cm"
-                    minimumValue: -10
+                    minimumValue: -30
+                    maximumValue: 30
                     realStepSize: 1
                     decimals: 1
                     colorScheme: hifi.colorSchemes.dark
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -574,9 +570,8 @@ Flickable {
                     colorScheme: hifi.colorSchemes.dark
                     realValue: 33.0
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
 
@@ -592,9 +587,8 @@ Flickable {
                     colorScheme: hifi.colorSchemes.dark
                     realValue: 48
 
-                    onEditingFinished: {
+                    onRealValueChanged: {
                         sendConfigurationSettings();
-                        openVrConfiguration.forceActiveFocus();
                     }
                 }
             }
@@ -745,8 +739,8 @@ Flickable {
             }
 
             Component.onCompleted: {
-                InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
                 lastConfiguration = composeConfigurationSettings();
+                InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
             }
 
             Component.onDestruction: {
@@ -771,11 +765,10 @@ Flickable {
                 realStepSize: 1.0
                 colorScheme: hifi.colorSchemes.dark
 
-                onEditingFinished: {
+                onRealValueChanged: {
                     calibrationTimer.interval = realValue * 1000;
                     openVrConfiguration.countDown = realValue;
                     numberAnimation.duration = calibrationTimer.interval;
-                    openVrConfiguration.forceActiveFocus();
                 }
             }
 
@@ -867,11 +860,11 @@ Flickable {
                     id: outOfRangeDataStrategyComboBox
 
                     height: 25
-                    width: 100
+                    width: 150
 
                     editable: true
                     colorScheme: hifi.colorSchemes.dark
-                    model: ["None", "Freeze", "Drop"]
+                    model: ["None", "Freeze", "Drop", "DropAfterDelay"]
                     label: ""
 
                     onCurrentIndexChanged: {
@@ -977,6 +970,13 @@ Flickable {
                 var configurationType = settings["trackerConfiguration"];
                 displayTrackerConfiguration(configurationType);
 
+                // default offset for user wearing puck on the center of their forehead.
+                headYOffset.realValue = 4; // (cm), puck is above the head joint.
+                headZOffset.realValue = 8; // (cm), puck is in front of the head joint.
+
+                // defaults for user wearing the pucks on the backs of their palms.
+                handYOffset.realValue = 8; // (cm), puck is past the the hand joint.  (set this to zero if puck is on the wrist)
+                handZOffset.realValue = -4; // (cm), puck is on above hand joint.
 
                 var HmdHead = settings["HMDHead"];
                 var viveController = settings["handController"];
@@ -1039,6 +1039,9 @@ Flickable {
             }
 
             function updateButtonState() {
+                if (lastConfiguration === null) {
+                    lastConfiguration = composeConfigurationSettings();
+                }
                 var settings = composeConfigurationSettings();
                 var bodySetting = settings["bodyConfiguration"];
                 var headSetting = settings["headConfiguration"];

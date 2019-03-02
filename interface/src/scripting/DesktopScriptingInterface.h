@@ -24,7 +24,8 @@
  *
  * @hifi-interface
  * @hifi-client-entity
- * 
+ * @hifi-avatar
+ *
  * @property {number} width
  * @property {number} height
  * @property {number} ALWAYS_ON_TOP - InteractiveWindow flag for always showing a window on top

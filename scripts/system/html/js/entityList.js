@@ -11,7 +11,6 @@ const DESCENDING_SORT = -1;
 const ASCENDING_STRING = '&#x25B4;';
 const DESCENDING_STRING = '&#x25BE;';
 const BYTES_PER_MEGABYTE = 1024 * 1024;
-const IMAGE_MODEL_NAME = 'default-image-model.fbx';
 const COLLAPSE_EXTRA_INFO = "E";
 const EXPAND_EXTRA_INFO = "D";
 const FILTER_IN_VIEW_ATTRIBUTE = "pressed";
@@ -21,6 +20,22 @@ const MAX_LENGTH_RADIUS = 9;
 const MINIMUM_COLUMN_WIDTH = 24;
 const SCROLLBAR_WIDTH = 20;
 const RESIZER_WIDTH = 10;
+const DELTA_X_MOVE_COLUMNS_THRESHOLD = 2;
+const DELTA_X_COLUMN_SWAP_POSITION = 5;
+const CERTIFIED_PLACEHOLDER = "** Certified **";
+
+function decimalMegabytes(number) {
+    return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
+}
+
+function displayIfNonZero(number) {
+    return number ? number : "";
+}
+
+function getFilename(url) {
+    let urlParts = url.split('/');
+    return urlParts[urlParts.length - 1];
+}
 
 const COLUMNS = {
     type: {
@@ -29,6 +44,7 @@ const COLUMNS = {
         initialWidth: 0.16,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: ASCENDING_SORT,
     },
     name: {
         columnHeader: "Name",
@@ -36,6 +52,7 @@ const COLUMNS = {
         initialWidth: 0.34,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: ASCENDING_SORT,
     },
     url: {
         columnHeader: "File",
@@ -43,6 +60,7 @@ const COLUMNS = {
         propertyID: "url",
         initialWidth: 0.34,
         initiallyShown: true,
+        defaultSortOrder: ASCENDING_SORT,
     },
     locked: {
         columnHeader: "&#xe006;",
@@ -51,6 +69,7 @@ const COLUMNS = {
         initialWidth: 0.08,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: DESCENDING_SORT,
     },
     visible: {
         columnHeader: "&#xe007;",
@@ -59,24 +78,29 @@ const COLUMNS = {
         initialWidth: 0.08,
         initiallyShown: true,
         alwaysShown: true,
+        defaultSortOrder: DESCENDING_SORT,
     },
     verticesCount: {
         columnHeader: "Verts",
         dropdownLabel: "Vertices",
         propertyID: "verticesCount",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     texturesCount: {
         columnHeader: "Texts",
         dropdownLabel: "Textures",
         propertyID: "texturesCount",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     texturesSize: {
         columnHeader: "Text MB",
         dropdownLabel: "Texture Size",
         propertyID: "texturesSize",
         initialWidth: 0.10,
+        format: decimalMegabytes,
+        defaultSortOrder: DESCENDING_SORT,
     },
     hasTransparent: {
         columnHeader: "&#xe00b;",
@@ -84,6 +108,7 @@ const COLUMNS = {
         dropdownLabel: "Transparency",
         propertyID: "hasTransparent",
         initialWidth: 0.04,
+        defaultSortOrder: DESCENDING_SORT,
     },
     isBaked: {
         columnHeader: "&#xe01a;",
@@ -91,12 +116,14 @@ const COLUMNS = {
         dropdownLabel: "Baked",
         propertyID: "isBaked",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     drawCalls: {
         columnHeader: "Draws",
         dropdownLabel: "Draws",
         propertyID: "drawCalls",
         initialWidth: 0.08,
+        defaultSortOrder: DESCENDING_SORT,
     },
     hasScript: {
         columnHeader: "k",
@@ -104,25 +131,8 @@ const COLUMNS = {
         dropdownLabel: "Script",
         propertyID: "hasScript",
         initialWidth: 0.06,
+        defaultSortOrder: DESCENDING_SORT,
     },
-};
-
-const COMPARE_ASCENDING = function(a, b) {
-    let va = a[currentSortColumn];
-    let vb = b[currentSortColumn];
-
-    if (va < vb) {
-        return -1;
-    }  else if (va > vb) {
-        return 1;
-    } else if (a.id < b.id) {
-        return -1;
-    }
-
-    return 1;
-};
-const COMPARE_DESCENDING = function(a, b) {
-    return COMPARE_ASCENDING(b, a);
 };
 
 const FILTER_TYPES = [
@@ -137,21 +147,8 @@ const FILTER_TYPES = [
     "PolyLine",
     "PolyVox",
     "Text",
+    "Grid",
 ];
-
-const ICON_FOR_TYPE = {
-    Shape: "n",
-    Model: "&#xe008;",
-    Image: "&#xe02a;",
-    Light: "p",
-    Zone: "o",
-    Web: "q",
-    Material: "&#xe00b;",
-    ParticleEffect: "&#xe004;",
-    PolyLine: "&#xe01b;",
-    PolyVox: "&#xe005;",
-    Text: "l",
-};
 
 const DOUBLE_CLICK_TIMEOUT = 300; // ms
 const RENAME_COOLDOWN = 400; // ms
@@ -172,7 +169,7 @@ let entityList = null; // The ListView
  */
 let entityListContextMenu = null;
 
-let currentSortColumn = 'type';
+let currentSortColumnID = 'type';
 let currentSortOrder = ASCENDING_SORT;
 let elSortOrders = {};
 let typeFilters = [];
@@ -180,14 +177,18 @@ let isFilterInView = false;
 
 let columns = [];
 let columnsByID = {};
-let currentResizeEl = null;
-let startResizeEvent = null;
+let lastResizeEvent = null;
 let resizeColumnIndex = 0;
-let startThClick = null;
+let elTargetTh = null;
+let elTargetSpan = null;
+let targetColumnIndex = 0;
+let lastColumnSwapPosition = -1;
+let initialThEvent = null;
 let renameTimeout = null;
 let renameLastBlur = null;
 let renameLastEntityID = null;
 let isRenameFieldBeingMoved = false;
+let elFilterTypeInputs = {};
 
 let elEntityTable,
     elEntityTableHeader,
@@ -201,6 +202,9 @@ let elEntityTable,
     elFilterTypeMultiselectBox,
     elFilterTypeText,
     elFilterTypeOptions,
+    elFilterTypeOptionsButtons,
+    elFilterTypeSelectAll,
+    elFilterTypeClearAll,
     elFilterSearch,
     elFilterInView,
     elFilterRadius,
@@ -230,10 +234,6 @@ const PROFILE = !ENABLE_PROFILING ? PROFILE_NOOP : function(name, fn, args) {
     console.log("PROFILE-Web " + profileIndent + "(" + name + ") End " + delta + "ms");
 };
 
-debugPrint = function (message) {
-    console.log(message);
-};
-
 function loaded() {
     openEventBridge(function() {
         elEntityTable = document.getElementById("entity-table");
@@ -247,6 +247,9 @@ function loaded() {
         elFilterTypeMultiselectBox = document.getElementById("filter-type-multiselect-box");
         elFilterTypeText = document.getElementById("filter-type-text");
         elFilterTypeOptions = document.getElementById("filter-type-options");
+        elFilterTypeOptionsButtons = document.getElementById("filter-type-options-buttons");
+        elFilterTypeSelectAll = document.getElementById('filter-type-select-all');
+        elFilterTypeClearAll = document.getElementById('filter-type-clear-all');
         elFilterSearch = document.getElementById("filter-search");
         elFilterInView = document.getElementById("filter-in-view");
         elFilterRadius = document.getElementById("filter-radius");
@@ -280,6 +283,8 @@ function loaded() {
         };
         elRefresh.onclick = refreshEntities;
         elFilterTypeMultiselectBox.onclick = onToggleTypeDropdown;
+        elFilterTypeSelectAll.onclick = onSelectAllTypes;
+        elFilterTypeClearAll.onclick = onClearAllTypes;
         elFilterSearch.onkeyup = refreshEntityList;
         elFilterSearch.onsearch = refreshEntityList;
         elFilterInView.onclick = onToggleFilterInView;
@@ -294,13 +299,14 @@ function loaded() {
             
             let elDiv = document.createElement('div');
             elDiv.onclick = onToggleTypeFilter;
-            elFilterTypeOptions.appendChild(elDiv);
+            elFilterTypeOptions.insertBefore(elDiv, elFilterTypeOptionsButtons);
             
             let elInput = document.createElement('input');
             elInput.setAttribute("type", "checkbox");
             elInput.setAttribute("id", typeFilterID);
             elInput.setAttribute("filterType", type);
             elInput.checked = true; // all types are checked initially
+            elFilterTypeInputs[type] = elInput;
             elDiv.appendChild(elInput);
             
             let elLabel = document.createElement('label');
@@ -310,7 +316,7 @@ function loaded() {
             
             let elSpan = document.createElement('span');
             elSpan.setAttribute("class", "typeIcon");
-            elSpan.innerHTML = ICON_FOR_TYPE[type];
+            elSpan.innerHTML = ENTITY_TYPE_ICON[type];
 
             elLabel.insertBefore(elSpan, elLabel.childNodes[0]);
             
@@ -324,10 +330,11 @@ function loaded() {
         for (let columnID in COLUMNS) {
             let columnData = COLUMNS[columnID];
             
-            let thID = "entity-" + columnID;
             let elTh = document.createElement("th");
+            let thID = "entity-" + columnID;
             elTh.setAttribute("id", thID);
-            elTh.setAttribute("data-resizable-column-id", thID);
+            elTh.setAttribute("columnIndex", columnIndex);
+            elTh.setAttribute("columnID", columnID);
             if (columnData.glyph) {
                 let elGlyph = document.createElement("span");
                 elGlyph.className = "glyph";
@@ -336,20 +343,20 @@ function loaded() {
             } else {
                 elTh.innerText = columnData.columnHeader;
             }
-            elTh.onmousedown = function() {
-                startThClick = this;
-            };
-            elTh.onmouseup = function() {
-                if (startThClick === this) {
-                    setSortColumn(columnID);
+            elTh.onmousedown = function(event) {
+                if (event.target.nodeName === 'TH') {
+                    elTargetTh = event.target;
+                    targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
+                    lastColumnSwapPosition = event.clientX;
+                } else if (event.target.nodeName === 'SPAN') {
+                    elTargetSpan = event.target;
                 }
-                startThClick = null;
+                initialThEvent = event;
             };
 
             let elResizer = document.createElement("span");
             elResizer.className = "resizer";
             elResizer.innerHTML = "&nbsp;";
-            elResizer.setAttribute("columnIndex", columnIndex);
             elResizer.onmousedown = onStartResize;
             elTh.appendChild(elResizer);
 
@@ -603,19 +610,6 @@ function loaded() {
             }));
         }
         
-        function decimalMegabytes(number) {
-            return number ? (number / BYTES_PER_MEGABYTE).toFixed(1) : "";
-        }
-
-        function displayIfNonZero(number) {
-            return number ? number : "";
-        }
-
-        function getFilename(url) {
-            let urlParts = url.split('/');
-            return urlParts[urlParts.length - 1];
-        }
-        
         function updateEntityData(entityData) {
             entities = [];
             entitiesByID = {};
@@ -625,21 +619,19 @@ function loaded() {
                 entityData.forEach(function(entity) {
                     let type = entity.type;
                     let filename = getFilename(entity.url);
-                    if (filename === IMAGE_MODEL_NAME) {
-                        type = "Image";
-                    }
             
                     let entityData = {
                         id: entity.id,
                         name: entity.name,
                         type: type,
-                        url: filename,
-                        fullUrl: entity.url,
+                        url: entity.certificateID === "" ? filename : "<i>" + CERTIFIED_PLACEHOLDER + "</i>",
+                        fullUrl: entity.certificateID === "" ? filename : CERTIFIED_PLACEHOLDER,
                         locked: entity.locked,
                         visible: entity.visible,
+                        certificateID: entity.certificateID,
                         verticesCount: displayIfNonZero(entity.verticesCount),
                         texturesCount: displayIfNonZero(entity.texturesCount),
-                        texturesSize: decimalMegabytes(entity.texturesSize),
+                        texturesSize: entity.texturesSize,
                         hasTransparent: entity.hasTransparent,
                         isBaked: entity.isBaked,
                         drawCalls: displayIfNonZero(entity.drawCalls),
@@ -655,6 +647,10 @@ function loaded() {
             
             refreshEntityList();
         }
+
+        const isNullOrEmpty = function(value) {
+            return value === undefined || value === null || value === "";
+        };
         
         function refreshEntityList() {
             PROFILE("refresh-entity-list", function() {
@@ -672,8 +668,34 @@ function loaded() {
                 });
                 
                 PROFILE("sort", function() {
-                    let cmp = currentSortOrder === ASCENDING_SORT ? COMPARE_ASCENDING : COMPARE_DESCENDING;
-                    visibleEntities.sort(cmp);
+                    let isAscendingSort = currentSortOrder === ASCENDING_SORT;
+                    let isDefaultSort = currentSortOrder === COLUMNS[currentSortColumnID].defaultSortOrder;
+                    visibleEntities.sort((entityA, entityB) => {
+                        /**
+                         * If the default sort is ascending, empty should be considered largest.
+                         * If the default sort is descending, empty should be considered smallest.
+                         */
+                        if (!isAscendingSort) {
+                            [entityA, entityB] = [entityB, entityA];
+                        }
+                        let valueA = entityA[currentSortColumnID];
+                        let valueB = entityB[currentSortColumnID];
+
+                        if (valueA === valueB) {
+                            return entityA.id < entityB.id ? -1 : 1;
+                        }
+
+                        if (isNullOrEmpty(valueA)) {
+                            return (isDefaultSort ? 1 : -1) * (isAscendingSort ? 1 : -1);
+                        }
+                        if (isNullOrEmpty(valueB)) {
+                            return (isDefaultSort ? -1 : 1) * (isAscendingSort ? 1 : -1);
+                        }
+                        if (typeof(valueA) === "string") {
+                            return valueA.localeCompare(valueB);
+                        }
+                        return valueA < valueB ? -1 : 1;
+                    });
                 });
 
                 PROFILE("update-dom", function() {
@@ -762,14 +784,14 @@ function loaded() {
             refreshNoEntitiesMessage();
         }
 
-        function setSortColumn(column) {
+        function setSortColumn(columnID) {
             PROFILE("set-sort-column", function() {
-                if (currentSortColumn === column) {
+                if (currentSortColumnID === columnID) {
                     currentSortOrder *= -1;
                 } else {
-                    elSortOrders[currentSortColumn].innerHTML = "";
-                    currentSortColumn = column;
-                    currentSortOrder = ASCENDING_SORT;
+                    elSortOrders[currentSortColumnID].innerHTML = "";
+                    currentSortColumnID = columnID;
+                    currentSortOrder = COLUMNS[currentSortColumnID].defaultSortOrder;
                 }
                 refreshSortOrder();
                 refreshEntityList();
@@ -777,7 +799,7 @@ function loaded() {
         }
         
         function refreshSortOrder() {
-            elSortOrders[currentSortColumn].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
+            elSortOrders[currentSortColumnID].innerHTML = currentSortOrder === ASCENDING_SORT ? ASCENDING_STRING : DESCENDING_STRING;
         }
         
         function refreshEntities() {
@@ -874,7 +896,11 @@ function loaded() {
                 if (column.data.glyph) {
                     elCell.innerHTML = itemData[column.data.propertyID] ? column.data.columnHeader : null;
                 } else {
-                    elCell.innerText = itemData[column.data.propertyID];
+                    let value = itemData[column.data.propertyID];
+                    if (column.data.format) {
+                        value = column.data.format(value);
+                    }
+                    elCell.innerHTML = value;
                 }
                 elCell.style = "min-width:" + column.widthPx + "px;" + "max-width:" + column.widthPx + "px;";
                 elCell.className = createColumnClassName(column.columnID);
@@ -1049,7 +1075,21 @@ function loaded() {
             event.stopPropagation();
         }
         
-        function toggleTypeFilter(elInput, refresh) {
+        function refreshTypeFilter(refreshList) {
+            if (typeFilters.length === 0) {
+                elFilterTypeText.innerText = "No Types";
+            } else if (typeFilters.length === FILTER_TYPES.length) {
+                elFilterTypeText.innerText = "All Types";
+            } else {
+                elFilterTypeText.innerText = "Types...";
+            }
+            
+            if (refreshList) {
+                refreshEntityList();
+            }
+        }
+        
+        function toggleTypeFilter(elInput, refreshList) {
             let type = elInput.getAttribute("filterType");
             let typeChecked = elInput.checked;
             
@@ -1060,17 +1100,7 @@ function loaded() {
                 typeFilters.push(type);
             }
             
-            if (typeFilters.length === 0) {
-                elFilterTypeText.innerText = "No Types";
-            } else if (typeFilters.length === FILTER_TYPES.length) {
-                elFilterTypeText.innerText = "All Types";
-            } else {
-                elFilterTypeText.innerText = "Types...";
-            }
-            
-            if (refresh) {
-                refreshEntityList();
-            }
+            refreshTypeFilter(refreshList);
         }
         
         function onToggleTypeFilter(event) {
@@ -1078,6 +1108,24 @@ function loaded() {
             if (elTarget instanceof HTMLInputElement) {
                 toggleTypeFilter(elTarget, true);
             }
+            event.stopPropagation();
+        }
+        
+        function onSelectAllTypes(event) {
+            for (let type in elFilterTypeInputs) {
+                elFilterTypeInputs[type].checked = true;
+            }
+            typeFilters = FILTER_TYPES;
+            refreshTypeFilter(true);
+            event.stopPropagation();
+        }
+        
+        function onClearAllTypes(event) {
+            for (let type in elFilterTypeInputs) {
+                elFilterTypeInputs[type].checked = false;
+            }
+            typeFilters = [];
+            refreshTypeFilter(true);
             event.stopPropagation();
         }
         
@@ -1093,8 +1141,8 @@ function loaded() {
         }
         
         function onStartResize(event) {
-            startResizeEvent = event;
-            resizeColumnIndex = parseInt(this.getAttribute("columnIndex"));
+            lastResizeEvent = event;
+            resizeColumnIndex = parseInt(this.parentNode.getAttribute("columnIndex"));
             event.stopPropagation();
         }
         
@@ -1137,8 +1185,37 @@ function loaded() {
             entityList.refresh();
         }
         
-        document.onmousemove = function(ev) {
-            if (startResizeEvent) {
+        function swapColumns(columnAIndex, columnBIndex) {
+            let columnA = columns[columnAIndex];
+            let columnB = columns[columnBIndex];
+            let columnATh = columns[columnAIndex].elTh;
+            let columnBTh = columns[columnBIndex].elTh;
+            let columnThParent = columnATh.parentNode;
+            columnThParent.removeChild(columnBTh);
+            columnThParent.insertBefore(columnBTh, columnATh);
+            columnATh.setAttribute("columnIndex", columnBIndex);
+            columnBTh.setAttribute("columnIndex", columnAIndex);
+            columnA.elResizer.setAttribute("columnIndex", columnBIndex);
+            columnB.elResizer.setAttribute("columnIndex", columnAIndex);
+            
+            for (let i = 0; i < visibleEntities.length; ++i) {
+                let elRow = visibleEntities[i].elRow;
+                if (elRow) {
+                    let columnACell = elRow.childNodes[columnAIndex];
+                    let columnBCell = elRow.childNodes[columnBIndex];
+                    elRow.removeChild(columnBCell);
+                    elRow.insertBefore(columnBCell, columnACell);
+                }
+            }
+            
+            columns[columnAIndex] = columnB;
+            columns[columnBIndex] = columnA;
+            
+            updateColumnWidths();
+        }
+        
+        document.onmousemove = function(event) {
+            if (lastResizeEvent) {
                 startTh = null;
                 
                 let column = columns[resizeColumnIndex];
@@ -1150,7 +1227,7 @@ function loaded() {
                 }
 
                 let fullWidth = elEntityTableBody.offsetWidth;
-                let dx = ev.clientX - startResizeEvent.clientX;
+                let dx = event.clientX - lastResizeEvent.clientX;
                 let dPct = dx / fullWidth;
                 
                 let newColWidth = column.width + dPct;
@@ -1160,14 +1237,60 @@ function loaded() {
                     column.width += dPct;
                     nextColumn.width -= dPct;
                     updateColumnWidths();
-                    startResizeEvent = ev;
+                    lastResizeEvent = event;
+                }
+            } else if (elTargetTh) {
+                let dxFromInitial = event.clientX - initialThEvent.clientX;
+                if (Math.abs(dxFromInitial) >= DELTA_X_MOVE_COLUMNS_THRESHOLD) {
+                    elTargetTh.className = "dragging";
+                }
+                if (targetColumnIndex < columns.length - 1) {
+                    let nextColumnIndex = targetColumnIndex + 1;
+                    let nextColumnTh = columns[nextColumnIndex].elTh;
+                    let nextColumnStartX = nextColumnTh.getBoundingClientRect().left;
+                    if (event.clientX >= nextColumnStartX && event.clientX - lastColumnSwapPosition >= DELTA_X_COLUMN_SWAP_POSITION) {
+                        swapColumns(targetColumnIndex, nextColumnIndex);
+                        targetColumnIndex = nextColumnIndex;
+                        lastColumnSwapPosition = event.clientX;
+                    }
+                }
+                if (targetColumnIndex >= 1) {
+                    let prevColumnIndex = targetColumnIndex - 1;
+                    let prevColumnTh = columns[prevColumnIndex].elTh;
+                    let prevColumnEndX = prevColumnTh.getBoundingClientRect().right;
+                    if (event.clientX <= prevColumnEndX && lastColumnSwapPosition - event.clientX >= DELTA_X_COLUMN_SWAP_POSITION) {
+                        swapColumns(prevColumnIndex, targetColumnIndex);
+                        targetColumnIndex = prevColumnIndex;
+                        lastColumnSwapPosition = event.clientX;
+                    }
+                }
+            } else if (elTargetSpan) {
+                let dxFromInitial = event.clientX - initialThEvent.clientX;
+                if (Math.abs(dxFromInitial) >= DELTA_X_MOVE_COLUMNS_THRESHOLD) {
+                    elTargetTh = elTargetSpan.parentNode;
+                    elTargetTh.className = "dragging";
+                    targetColumnIndex = parseInt(elTargetTh.getAttribute("columnIndex"));
+                    lastColumnSwapPosition = event.clientX;
+                    elTargetSpan = null;
                 }
             }
         };
         
-        document.onmouseup = function(ev) {
-            startResizeEvent = null;
-            ev.stopPropagation();
+        document.onmouseup = function(event) {
+            if (elTargetTh) {
+                if (elTargetTh.className !== "dragging" && elTargetTh === event.target) {
+                    let columnID = elTargetTh.getAttribute("columnID");
+                    setSortColumn(columnID);
+                }
+                elTargetTh.className = "";
+            } else if (elTargetSpan) {
+                let columnID = elTargetSpan.parentNode.getAttribute("columnID");
+                setSortColumn(columnID);
+            }
+            lastResizeEvent = null;
+            elTargetTh = null;
+            elTargetSpan = null;
+            initialThEvent = null;
         };
 
         function setSpaceMode(spaceMode) {
@@ -1186,7 +1309,8 @@ function loaded() {
         };
     
         document.addEventListener("keyup", function (keyUpEvent) {
-            if (keyUpEvent.target.nodeName === "INPUT") {
+            const FILTERED_NODE_NAMES = ["INPUT", "TEXTAREA"];
+            if (FILTERED_NODE_NAMES.includes(keyUpEvent.target.nodeName)) {
                 return;
             }
 
@@ -1286,8 +1410,9 @@ function loaded() {
     });
     
     augmentSpinButtons();
+    disableDragDrop();
 
-    document.addEventListener("contextmenu", function (event) {
+    document.addEventListener("contextmenu", function(event) {
         entityListContextMenu.close();
 
         // Disable default right-click context menu which is not visible in the HMD and makes it seem like the app has locked

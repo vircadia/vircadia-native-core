@@ -43,7 +43,10 @@ public:
     // get post transform which might include FBX offset transformations
     const AnimPose& getPostRotationPose(int jointIndex) const;
 
-    int getParentIndex(int jointIndex) const;
+    int getParentIndex(int jointIndex) const {
+        return _parentIndices[jointIndex];
+    }
+
     std::vector<int> getChildrenOfJoint(int jointIndex) const;
 
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const;
@@ -51,6 +54,7 @@ public:
     void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
     void convertAbsolutePosesToRelative(AnimPoseVec& poses) const;
 
+    void convertRelativeRotationsToAbsolute(std::vector<glm::quat>& rotations) const;
     void convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const;
 
     void saveNonMirroredPoses(const AnimPoseVec& poses) const;
@@ -69,6 +73,7 @@ protected:
     void buildSkeletonFromJoints(const std::vector<HFMJoint>& joints, const QMap<int, glm::quat> jointOffsets);
 
     std::vector<HFMJoint> _joints;
+    std::vector<int> _parentIndices;
     int _jointsSize { 0 };
     AnimPoseVec _relativeDefaultPoses;
     AnimPoseVec _absoluteDefaultPoses;

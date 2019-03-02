@@ -15,6 +15,7 @@
 
 #include "Application.h"
 #include "AudioClient.h"
+#include "AudioHelpers.h"
 #include "ui/AvatarInputs.h"
 
 using namespace scripting;
@@ -26,26 +27,10 @@ QString Audio::HMD { "VR" };
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
 
 float Audio::loudnessToLevel(float loudness) {
-    const float LOG2 = log(2.0f);
-    const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
-    const float LOG2_LOUDNESS_FLOOR = 11.0f;
-
-    float level = 0.0f;
-
-    loudness += 1.0f;
-    float log2loudness = logf(loudness) / LOG2;
-
-    if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
-        level = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE;
-    } else {
-        level = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE;
-    }
-
-    if (level > 1.0f) {
-        level = 1.0;
-    }
-
-    return level;
+    float level = loudness * (1/32768.0f);  // level in [0, 1]
+    level = 6.02059991f * fastLog2f(level); // convert to dBFS
+    level = (level + 48.0f) * (1/42.0f);    // map [-48, -6] dBFS to [0, 1]
+    return glm::clamp(level, 0.0f, 1.0f);
 }
 
 Audio::Audio() : _devices(_contextIsHMD) {
@@ -150,17 +135,32 @@ float Audio::getInputLevel() const {
     });
 }
 
-void Audio::onInputLoudnessChanged(float loudness) {
+bool Audio::isClipping() const {
+    return resultWithReadLock<bool>([&] {
+        return _isClipping;
+    });
+}
+
+void Audio::onInputLoudnessChanged(float loudness, bool isClipping) {
     float level = loudnessToLevel(loudness);
-    bool changed = false;
+    bool levelChanged = false;
+    bool isClippingChanged = false;
+
     withWriteLock([&] {
         if (_inputLevel != level) {
             _inputLevel = level;
-            changed = true;
+            levelChanged = true;
+        }
+        if (_isClipping != isClipping) {
+            _isClipping = isClipping;
+            isClippingChanged = true;
         }
     });
-    if (changed) {
+    if (levelChanged) {
         emit inputLevelChanged(level);
+    }
+    if (isClippingChanged) {
+        emit clippingChanged(isClipping);
     }
 }
 
