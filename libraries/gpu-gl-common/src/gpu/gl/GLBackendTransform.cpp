@@ -47,6 +47,9 @@ void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) 
 
         // Mono
         leftRight[0] = vp;
+        // adding this here as im doing Layered, force the first viewport here to be half of it
+        leftRight[0].x = 0; 
+        leftRight[0].z = sideWidth;
 
         // Left side
         leftRight[1] = vp;
