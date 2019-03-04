@@ -30,6 +30,20 @@
             100,
             makeLaserParams((this.hand + HUD_LASER_OFFSET), false));
 
+        this.getFarGrab = function () {
+            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("RightFarGrabEntity") : ("LeftFarGrabEntity"));
+        }
+
+        this.farGrabActive = function () {
+            var farGrab = this.getFarGrab();
+            // farGrab will be null if module isn't loaded.
+            if (farGrab) {
+                return farGrab.targetIsNull();
+            } else {
+                return false;
+            }
+        };
+
         this.getOtherHandController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.LeftHand : Controller.Standard.RightHand;
         };
@@ -79,7 +93,7 @@
 
         this.isReady = function (controllerData) {
             var otherModuleRunning = this.getOtherModule().running;
-            if (!otherModuleRunning && HMD.active) {
+            if (!otherModuleRunning && HMD.active && !this.farGrabActive()) {
                 if (this.processLaser(controllerData)) {
                     this.running = true;
                     return ControllerDispatcherUtils.makeRunningValues(true, [], []);
