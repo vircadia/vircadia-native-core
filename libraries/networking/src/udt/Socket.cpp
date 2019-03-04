@@ -251,7 +251,10 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr, bool fi
             auto congestionControl = _ccFactory->create();
             congestionControl->setMaxBandwidth(_maxBandwidth);
             auto connection = std::unique_ptr<Connection>(new Connection(this, sockAddr, std::move(congestionControl)));
-
+            if (QThread::currentThread() != thread()) {
+                qCDebug(networking) << "Moving new Connection to NodeList thread";
+                connection->moveToThread(thread());
+            }
             // allow higher-level classes to find out when connections have completed a handshake
             QObject::connect(connection.get(), &Connection::receiverHandshakeRequestComplete,
                              this, &Socket::clientHandshakeRequestComplete);
