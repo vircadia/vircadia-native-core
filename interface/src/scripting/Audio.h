@@ -58,7 +58,6 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
 
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
-    Q_PROPERTY(bool warnWhenMuted READ warnWhenMutedEnabled WRITE enableWarnWhenMuted NOTIFY warnWhenMutedChanged)
     Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY inputVolumeChanged)
     Q_PROPERTY(float inputLevel READ getInputLevel NOTIFY inputLevelChanged)
     Q_PROPERTY(bool clipping READ isClipping NOTIFY clippingChanged)
@@ -76,7 +75,6 @@ public:
 
     bool isMuted() const;
     bool noiseReductionEnabled() const;
-    bool warnWhenMutedEnabled() const;
     float getInputVolume() const;
     float getInputLevel() const;
     bool isClipping() const;
@@ -204,14 +202,6 @@ signals:
     void noiseReductionChanged(bool isEnabled);
 
     /**jsdoc
-     * Triggered when "warn when muted" is enabled or disabled.
-     * @function Audio.warnWhenMutedChanged
-     * @param {boolean} isEnabled - <code>true</code> if "warn when muted" is enabled, otherwise <code>false</code>.
-     * @returns {Signal}
-     */
-    void warnWhenMutedChanged(bool isEnabled);
-
-    /**jsdoc
      * Triggered when the input audio volume changes.
      * @function Audio.inputVolumeChanged
      * @param {number} volume - The requested volume to be applied to the audio input, range <code>0.0</code> &ndash; 
@@ -258,7 +248,6 @@ public slots:
 private slots:
     void setMuted(bool muted);
     void enableNoiseReduction(bool enable);
-    void enableWarnWhenMuted(bool enable);
     void setInputVolume(float volume);
     void onInputLoudnessChanged(float loudness, bool isClipping);
 
@@ -273,7 +262,6 @@ private:
     bool _isClipping { false };
     bool _isMuted { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
-    bool _enableWarnWhenMuted { true };
     bool _contextIsHMD { false };
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;

@@ -1531,15 +1531,6 @@ void AudioClient::setNoiseReduction(bool enable, bool emitSignal) {
     }
 }
 
-void AudioClient::setWarnWhenMuted(bool enable, bool emitSignal) {
-    if (_warnWhenMuted != enable) {
-        _warnWhenMuted = enable;
-        if (emitSignal) {
-            emit warnWhenMutedChanged(_warnWhenMuted);
-        }
-    }
-}
-
 bool AudioClient::setIsStereoInput(bool isStereoInput) {
     bool stereoInputChanged = false;
     if (isStereoInput != _isStereoInput && _inputDeviceInfo.supportedChannelCounts().contains(2)) {

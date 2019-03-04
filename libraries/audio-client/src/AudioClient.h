@@ -210,9 +210,6 @@ public slots:
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
-    void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
-    bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
-
     virtual bool getLocalEcho() override { return _shouldEchoLocally; }
     virtual void setLocalEcho(bool localEcho) override { _shouldEchoLocally = localEcho; }
     virtual void toggleLocalEcho() override { _shouldEchoLocally = !_shouldEchoLocally; }
@@ -249,7 +246,6 @@ signals:
     void inputVolumeChanged(float volume);
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
-    void warnWhenMutedChanged(bool warnWhenMutedEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness, bool isClipping);
@@ -369,7 +365,6 @@ private:
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
-    bool _warnWhenMuted;
 
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
