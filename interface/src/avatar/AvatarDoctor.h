@@ -16,7 +16,7 @@
 #include <QUrl>
 #include <QVector>
 #include <QVariantMap>
-#include <avatars-renderer/Avatar.h>
+#include "GeometryCache.h"
 
 struct AvatarDiagnosticResult {
     QString message;
@@ -24,21 +24,6 @@ struct AvatarDiagnosticResult {
 };
 Q_DECLARE_METATYPE(AvatarDiagnosticResult)
 Q_DECLARE_METATYPE(QVector<AvatarDiagnosticResult>)
-
-
-class DiagnosableAvatar: public Avatar {
-public:
-    explicit DiagnosableAvatar(QThread* thread);
-    virtual ~DiagnosableAvatar();
-
-    void simulate(float deltaTime, bool inView) override {
-        
-    }
-    void rebuildCollisionShape() override {
-        
-    }
-    virtual void instantiableAvatar() override { };
-};
 
 class AvatarDoctor : public QObject {
     Q_OBJECT
@@ -65,8 +50,6 @@ private:
 
     int _materialMappingCount = 0;
     int _materialMappingLoadedCount = 0;
-
-    DiagnosableAvatar* _avatar { nullptr };
 
     GeometryResource::Pointer _model;
 

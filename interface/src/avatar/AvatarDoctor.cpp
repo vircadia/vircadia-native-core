@@ -12,8 +12,9 @@
 #include "AvatarDoctor.h"
 #include <model-networking/ModelCache.h>
 #include <AvatarConstants.h>
+#include <Rig.h>
 #include <ResourceManager.h>
-
+#include <QDir>
 #include <FSTReader.h>
 
 const int NETWORKED_JOINTS_LIMIT = 256;
@@ -55,18 +56,6 @@ static QStringList HAND_MAPPING_SUFFIXES = {
 };
 
 const QUrl DEFAULT_URL = QUrl("https://docs.highfidelity.com/create/avatars/create-avatars.html#create-your-own-avatar");
-
-DiagnosableAvatar::DiagnosableAvatar(QThread* thread) : Avatar(thread) {
-    // give the pointer to our head to inherited _headData variable from AvatarData
-    _headData = new Head(this);
-    _skeletonModel = std::make_shared<SkeletonModel>(this, nullptr);
-    _skeletonModel->setLoadingPriority(MYAVATAR_LOADING_PRIORITY);
-    connect(_skeletonModel.get(), &Model::setURLFinished, this, &Avatar::setModelURLFinished);
-    connect(_skeletonModel.get(), &Model::rigReady, this, &Avatar::rigReady);
-    connect(_skeletonModel.get(), &Model::rigReset, this, &Avatar::rigReset);
-}
-
-DiagnosableAvatar::~DiagnosableAvatar() = default;
 
 AvatarDoctor::AvatarDoctor(const QUrl& avatarFSTFileUrl) :
     _avatarFSTFileUrl(avatarFSTFileUrl) {
@@ -178,59 +167,61 @@ void AvatarDoctor::startDiagnosing() {
             if (checkJointAsymmetry(LEG_MAPPING_SUFFIXES)) {
                 _errors.push_back({ "Asymmetrical leg bones.", DEFAULT_URL });
             }
-            _avatar = new DiagnosableAvatar(QThread::currentThread());
 
-            _avatar->setSkeletonModelURL(_avatarFSTFileUrl);
-            if (_avatar->getSkeletonModel()->updateGeometry()) {
-                // Rig has been fully loaded
 
-                // SCALE
-                const float RECOMMENDED_MIN_HEIGHT = DEFAULT_AVATAR_HEIGHT * 0.25f;
-                const float RECOMMENDED_MAX_HEIGHT = DEFAULT_AVATAR_HEIGHT * 1.5f;
 
-                const float avatarHeight = _avatar->getHeight();
-                if (avatarHeight < RECOMMENDED_MIN_HEIGHT) {
-                    _errors.push_back({ "Avatar is possibly too short.", DEFAULT_URL });
-                } else if (avatarHeight > RECOMMENDED_MAX_HEIGHT) {
-                    _errors.push_back({ "Avatar is possibly too tall.", DEFAULT_URL });
                 }
 
-                auto rig = &_avatar->getSkeletonModel()->getRig();
 
-                // HipsNotOnGround
-                auto hipsIndex = rig->indexOfJoint("Hips");
-                if (hipsIndex >= 0) {
-                    glm::vec3 hipsPosition;
-                    if (rig->getJointPosition(hipsIndex, hipsPosition)) {
-                        const auto hipJoint = avatarModel.joints.at(avatarModel.getJointIndex("Hips"));
+            const auto rig = new Rig();
+            rig->reset(avatarModel);
+            const float eyeHeight = rig->getUnscaledEyeHeight();
+            const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
+            const float avatarHeight = eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+            qDebug() << "avatarHeight  = " << avatarHeight;
 
-                        if (hipsPosition.y < HIPS_GROUND_MIN_Y) {
-                            _errors.push_back({ "Hips are on ground.", DEFAULT_URL });
-                        }
-                    }
-                }
+            // SCALE
+            const float RECOMMENDED_MIN_HEIGHT = DEFAULT_AVATAR_HEIGHT * 0.25f;
+            const float RECOMMENDED_MAX_HEIGHT = DEFAULT_AVATAR_HEIGHT * 1.5f;
 
-                // HipsSpineChestNotCoincident
-                auto spineIndex = rig->indexOfJoint("Spine");
-                auto chestIndex = rig->indexOfJoint("Spine1");
-                if (hipsIndex >= 0 && spineIndex >= 0 && chestIndex >= 0) {
-                    glm::vec3 hipsPosition;
-                    glm::vec3 spinePosition;
-                    glm::vec3 chestPosition;
-                    if (rig->getJointPosition(hipsIndex, hipsPosition) &&
-                        rig->getJointPosition(spineIndex, spinePosition) &&
-                        rig->getJointPosition(chestIndex, chestPosition)) {
+            if (avatarHeight < RECOMMENDED_MIN_HEIGHT) {
+                _errors.push_back({ "Avatar is possibly too short.", DEFAULT_URL });
+            } else if (avatarHeight > RECOMMENDED_MAX_HEIGHT) {
+                _errors.push_back({ "Avatar is possibly too tall.", DEFAULT_URL });
+            }
 
-                        const auto hipsToSpine = glm::length(hipsPosition - spinePosition);
-                        const auto spineToChest = glm::length(spinePosition - chestPosition);
-                        if (hipsToSpine < HIPS_SPINE_CHEST_MIN_SEPARATION && spineToChest < HIPS_SPINE_CHEST_MIN_SEPARATION) {
-                            _errors.push_back({ "Hips/Spine/Chest overlap.", DEFAULT_URL });
-                        }
+            // HipsNotOnGround
+            auto hipsIndex = rig->indexOfJoint("Hips");
+            if (hipsIndex >= 0) {
+                glm::vec3 hipsPosition;
+                if (rig->getJointPosition(hipsIndex, hipsPosition)) {
+                    const auto hipJoint = avatarModel.joints.at(avatarModel.getJointIndex("Hips"));
+
+                    if (hipsPosition.y < HIPS_GROUND_MIN_Y) {
+                        _errors.push_back({ "Hips are on ground.", DEFAULT_URL });
                     }
                 }
             }
-            _avatar->deleteLater();
-            _avatar = nullptr;
+
+            // HipsSpineChestNotCoincident
+            auto spineIndex = rig->indexOfJoint("Spine");
+            auto chestIndex = rig->indexOfJoint("Spine1");
+            if (hipsIndex >= 0 && spineIndex >= 0 && chestIndex >= 0) {
+                glm::vec3 hipsPosition;
+                glm::vec3 spinePosition;
+                glm::vec3 chestPosition;
+                if (rig->getJointPosition(hipsIndex, hipsPosition) &&
+                    rig->getJointPosition(spineIndex, spinePosition) &&
+                    rig->getJointPosition(chestIndex, chestPosition)) {
+
+                    const auto hipsToSpine = glm::length(hipsPosition - spinePosition);
+                    const auto spineToChest = glm::length(spinePosition - chestPosition);
+                    if (hipsToSpine < HIPS_SPINE_CHEST_MIN_SEPARATION && spineToChest < HIPS_SPINE_CHEST_MIN_SEPARATION) {
+                        _errors.push_back({ "Hips/Spine/Chest overlap.", DEFAULT_URL });
+                    }
+                }
+            }
+            rig->deleteLater();
 
             auto mapping = resource->getMapping();
 
