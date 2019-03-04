@@ -43,7 +43,7 @@
         if (HMD.active) {
             warningOverlayID = Overlays.addOverlay("text3d", {
                 name: "Muted-Warning",
-                localPosition: { x: 0, y: 0, z: -1.0 },
+                localPosition: { x: 0.0, y: -0.5, z: -1.0 },
                 localOrientation: Quat.fromVec3Degrees({ x: 0.0, y: 0.0, z: 0.0, w: 1.0 }),
                 text: warningText,
                 textAlpha: 1,
@@ -64,8 +64,8 @@
                 name: "Muted-Warning",
                 font: { size: 36 },
                 text: warningText,
-                x: Window.innerWidth / 2 - textDimensions.x / 2,
-                y: Window.innerHeight / 2 - textDimensions.y / 2,
+                x: (Window.innerWidth - textDimensions.x) / 2,
+                y: (Window.innerHeight - textDimensions.y),
                 width: textDimensions.x,
                 height: textDimensions.y,
                 textColor: { red: 226, green: 51, blue: 77 },
