@@ -53,6 +53,8 @@ using ColorType = glm::vec3;
 
 const int MAX_NUM_PIXELS_FOR_FBX_TEXTURE = 2048 * 2048;
 
+using ShapeVertices = std::vector<glm::vec3>;
+
 // High Fidelity Model namespace
 namespace hfm {
 
@@ -319,6 +321,8 @@ public:
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
+    std::vector<ShapeVertices> shapeVertices;
+    void computeKdops();
 };
 
 };

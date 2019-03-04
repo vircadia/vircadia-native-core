@@ -111,6 +111,7 @@ namespace baker {
             hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
+            hfmModelOut->computeKdops();
             output = hfmModelOut;
         }
     };

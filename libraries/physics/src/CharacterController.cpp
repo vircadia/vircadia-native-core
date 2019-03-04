@@ -436,7 +436,7 @@ void CharacterController::setLocalBoundingBox(const glm::vec3& minCorner, const 
     float z = scale.z;
     float radius = 0.5f * sqrtf(0.5f * (x * x + z * z));
     float halfHeight = 0.5f * scale.y - radius;
-    float MIN_HALF_HEIGHT = 0.1f;
+    float MIN_HALF_HEIGHT = 0.0f;
     if (halfHeight < MIN_HALF_HEIGHT) {
         halfHeight = MIN_HALF_HEIGHT;
     }
