@@ -418,13 +418,11 @@ resizeTablet = function (width, newParentJointIndex, sensorToWorldScaleOverride)
     var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleOffsetOverride;
     Entities.editEntity(HMD.homeButtonID, {
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 
     Entities.editEntity(HMD.homeButtonHighlightID, {
         localPosition: { x: -HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 };
@@ -482,13 +480,11 @@ reparentAndScaleTablet = function(width, reparentProps) {
     var HOME_BUTTON_Z_OFFSET = (tabletDepth / 1.9) * sensorScaleOffsetOverride;
     Entities.editEntity(HMD.homeButtonID, {
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 
     Entities.editEntity(HMD.homeButtonHighlightID, {
         localPosition: { x: -HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0 },
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim }
     });
 }
