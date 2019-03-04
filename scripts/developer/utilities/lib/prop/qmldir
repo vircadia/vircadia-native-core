@@ -1,0 +1,8 @@
+PropGlobal 1.0 PropGlobal.qml
+PropText 1.0 PropText.qml
+PropLabel 1.0 PropLabel.qml
+PropSplitter 1.0 PropSplitter.qml
+PropItem  1.0 PropItem.qml
+PropScalar 1.0 PropScalar.qml
+PropEnum 1.0 PropEnum.qml
+PropColor 1.0 PropColor.qml
