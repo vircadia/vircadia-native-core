@@ -1346,14 +1346,18 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 }
 
 void Model::computeMeshPartLocalBounds() {
-    for (auto& part : _modelMeshRenderItems) {
-        const Model::MeshState& state = _meshStates.at(part->_meshIndex);
-        if (_useDualQuaternionSkinning) {
-            part->computeAdjustedLocalBound(state.clusterDualQuaternions);
-        } else {
-            part->computeAdjustedLocalBound(state.clusterMatrices);
-        }
+    render::Transaction transaction;
+    for (auto renderItem : _modelMeshRenderItemIDs) {
+        transaction.updateItem<ModelMeshPartPayload>(renderItem, [&](ModelMeshPartPayload& data) {
+            const Model::MeshState& state = _meshStates.at(data._meshIndex);
+            if (_useDualQuaternionSkinning) {
+                data.computeAdjustedLocalBound(state.clusterDualQuaternions);
+            } else {
+                data.computeAdjustedLocalBound(state.clusterMatrices);
+            }
+        });
     }
+    AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
 }
 
 // virtual
