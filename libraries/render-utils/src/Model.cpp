@@ -1347,9 +1347,10 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
 void Model::computeMeshPartLocalBounds() {
     render::Transaction transaction;
+    auto meshStates = _meshStates;
     for (auto renderItem : _modelMeshRenderItemIDs) {
-        transaction.updateItem<ModelMeshPartPayload>(renderItem, [&](ModelMeshPartPayload& data) {
-            const Model::MeshState& state = _meshStates.at(data._meshIndex);
+        transaction.updateItem<ModelMeshPartPayload>(renderItem, [this, meshStates](ModelMeshPartPayload& data) {
+            const Model::MeshState& state = meshStates.at(data._meshIndex);
             if (_useDualQuaternionSkinning) {
                 data.computeAdjustedLocalBound(state.clusterDualQuaternions);
             } else {
