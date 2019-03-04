@@ -375,6 +375,12 @@ void Keyboard::scaleKeyboard(float sensorToWorldScale) {
 
     {
         EntityItemProperties properties;
+        properties.setDimensions(_anchor.originalDimensions * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_anchor.entityID, properties);
+    }
+
+    {
+        EntityItemProperties properties;
         properties.setLocalPosition(_backPlate.localPosition * sensorToWorldScale);
         properties.setDimensions(_backPlate.dimensions * sensorToWorldScale);
         entityScriptingInterface->editEntity(_backPlate.entityID, properties);
