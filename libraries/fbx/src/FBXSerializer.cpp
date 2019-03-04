@@ -1281,8 +1281,9 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         joint.geometricScaling = fbxModel.geometricScaling;
         joint.isSkeletonJoint = fbxModel.isLimbNode;
         hfmModel.hasSkeletonJoints = (hfmModel.hasSkeletonJoints || joint.isSkeletonJoint);
-        if (applyUpAxisZRotation && joint.parentIndex == -1 && !joint.isSkeletonJoint) {
+        if (applyUpAxisZRotation && joint.parentIndex == -1) {
             joint.rotation *= upAxisZRotation;
+            joint.translation = upAxisZRotation * joint.translation;
         }
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
         if (joint.parentIndex == -1) {
@@ -1678,8 +1679,12 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     }
 
     if (applyUpAxisZRotation) {
-        hfmModelPtr->meshExtents.rotate(upAxisZRotation);
-        hfmModelPtr->bindExtents.rotate(upAxisZRotation);
+        hfmModelPtr->meshExtents.transform(glm::mat4_cast(upAxisZRotation));
+        hfmModelPtr->bindExtents.transform(glm::mat4_cast(upAxisZRotation));
+        for (auto &mesh : hfmModelPtr->meshes) {
+            mesh.modelTransform *= glm::mat4_cast(upAxisZRotation);
+            mesh.meshExtents.transform(glm::mat4_cast(upAxisZRotation));
+        }
     }
     return hfmModelPtr;
 }
