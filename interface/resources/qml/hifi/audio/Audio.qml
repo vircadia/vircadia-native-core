@@ -313,12 +313,5 @@ Rectangle {
                      (bar.currentIndex === 0 && !isVR);
             anchors { left: parent.left; leftMargin: margins.paddings }
         }
-        LoopbackAudio {
-            x: margins.paddings
-
-            visible: (bar.currentIndex === 1 && isVR) ||
-                (bar.currentIndex === 0 && !isVR);
-            anchors { left: parent.left; leftMargin: margins.paddings }
-        }
     }
 }

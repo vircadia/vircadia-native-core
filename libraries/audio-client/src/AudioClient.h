@@ -213,13 +213,13 @@ public slots:
     void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
 
-    virtual bool getLocalEcho() override { return _shouldEchoLocally; }
-    virtual void setLocalEcho(bool localEcho) override { _shouldEchoLocally = localEcho; }
-    virtual void toggleLocalEcho() override { _shouldEchoLocally = !_shouldEchoLocally; }
+    bool getLocalEcho() { return _shouldEchoLocally; }
+    void setLocalEcho(bool localEcho) { _shouldEchoLocally = localEcho; }
+    void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
 
-    virtual bool getServerEcho() override { return _shouldEchoToServer; }
-    virtual void setServerEcho(bool serverEcho) override { _shouldEchoToServer = serverEcho; }
-    virtual void toggleServerEcho() override { _shouldEchoToServer = !_shouldEchoToServer; }
+    bool getServerEcho() { return _shouldEchoToServer; }
+    void setServerEcho(bool serverEcho) { _shouldEchoToServer = serverEcho; }
+    void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
 
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();

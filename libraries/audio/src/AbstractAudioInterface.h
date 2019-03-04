@@ -47,14 +47,6 @@ public slots:
     virtual bool setIsStereoInput(bool stereo) = 0;
     virtual bool isStereoInput() = 0;
 
-    virtual bool getLocalEcho() = 0;
-    virtual void setLocalEcho(bool localEcho) = 0;
-    virtual void toggleLocalEcho() = 0;
-
-    virtual bool getServerEcho() = 0;
-    virtual void setServerEcho(bool serverEcho) = 0;
-    virtual void toggleServerEcho() = 0;
-
 signals:
     void isStereoInputChanged(bool isStereo);
 };
