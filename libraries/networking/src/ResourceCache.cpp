@@ -353,16 +353,19 @@ QSharedPointer<Resource> ResourceCache::getResource(const QUrl& url, const QUrl&
             // We've seen this extra info before
             resource = resourcesWithExtraHashIter.value().lock();
         } else if (resourcesWithExtraHash.size() > 0.0f) {
-            // We haven't seen this extra info before, but we've already downloaded the resource.  We need a new copy of this object (with any old hash).
-            resource = createResourceCopy(resourcesWithExtraHash.begin().value().lock());
-            resource->setExtra(extra);
-            resource->setExtraHash(extraHash);
-            resource->setSelf(resource);
-            resource->setCache(this);
-            resource->moveToThread(qApp->thread());
-            connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
-            resourcesWithExtraHash.insert(extraHash, resource);
-            resource->ensureLoading();
+            auto oldResource = resourcesWithExtraHash.begin().value().lock();
+            if (oldResource) {
+                // We haven't seen this extra info before, but we've already downloaded the resource.  We need a new copy of this object (with any old hash).
+                resource = createResourceCopy(oldResource);
+                resource->setExtra(extra);
+                resource->setExtraHash(extraHash);
+                resource->setSelf(resource);
+                resource->setCache(this);
+                resource->moveToThread(qApp->thread());
+                connect(resource.data(), &Resource::updateSize, this, &ResourceCache::updateTotalSize);
+                resourcesWithExtraHash.insert(extraHash, resource);
+                resource->ensureLoading();
+            }
         }
     }
     if (resource) {
