@@ -16,7 +16,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import controlsUit 1.0 as HifiControlsUit
 import "../../windows"
 import "./" as AudioControls
 
@@ -27,6 +27,8 @@ Rectangle {
 
     property var eventBridge;
     property string title: "Audio Settings"
+    property int switchHeight: 16
+    property int switchWidth: 40
     signal sendToScript(var message);
 
     color: hifi.colors.baseGray;
@@ -38,7 +40,7 @@ Rectangle {
 
 
     property bool isVR: AudioScriptingInterface.context === "VR"
-    property real rightMostInputLevelPos: 0
+    property real rightMostInputLevelPos: 450
     //placeholder for control sizes and paddings
     //recalculates dynamically in case of UI size is changed
     QtObject {
@@ -98,58 +100,68 @@ Rectangle {
 
         Separator { }
 
-        ColumnLayout {
-            x: margins.paddings;
-            spacing: 16;
+        RowLayout {
+            x: 2 * margins.paddings;
+            spacing: columnOne.width;
             width: parent.width;
 
             // mute is in its own row
-            RowLayout {
-                spacing: (margins.sizeCheckBox - 10.5) * 3;
-                AudioControls.CheckBox {
-                    id: muteMic
-                    text: qsTr("Mute microphone");
-                    spacing: margins.sizeCheckBox - boxSize
-                    isRedCheck: true;
+            ColumnLayout {
+                id: columnOne
+                spacing: 12;
+                x: margins.paddings
+                HifiControlsUit.Switch {
+                    id: muteMic;
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn: "Mute microphone";
+                    backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.muted;
-                    onClicked: {
+                    onCheckedChanged: {
                         AudioScriptingInterface.muted = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
                     }
                 }
 
-                AudioControls.CheckBox {
-                    id: stereoMic
-                    spacing: muteMic.spacing;
-                    text: qsTr("Enable stereo input");
+                HifiControlsUit.Switch {
+                    id: stereoInput;
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn:  qsTr("Stereo input");
+                    backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.isStereoInput;
-                    onClicked: {
+                    onCheckedChanged: {
                         AudioScriptingInterface.isStereoInput = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
                     }
                 }
             }
 
-            RowLayout {
-                spacing: muteMic.spacing*2; //make it visually distinguish
-                AudioControls.CheckBox {
-                    spacing: muteMic.spacing
-                    text: qsTr("Enable noise reduction");
+            ColumnLayout {
+                spacing: 12;
+                HifiControlsUit.Switch {
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn: "Noise Reduction";
+                    backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.noiseReduction;
-                    onClicked: {
+                    onCheckedChanged: {
                         AudioScriptingInterface.noiseReduction = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
                     }
                 }
-                AudioControls.CheckBox {
-                    spacing: muteMic.spacing
-                    text: qsTr("Show audio level meter");
+
+                HifiControlsUit.Switch {
+                    id: audioLevelSwitch
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn: qsTr("Audio Level Meter");
+                    backgroundOnColor: "#E3E3E3";
                     checked: AvatarInputs.showAudioTools;
-                    onClicked: {
+                    onCheckedChanged: {
                         AvatarInputs.showAudioTools = checked;
                         checked = Qt.binding(function() { return AvatarInputs.showAudioTools; }); // restore binding
                     }
-                    onXChanged: rightMostInputLevelPos = x + width
                 }
             }
         }
@@ -203,7 +215,7 @@ Rectangle {
                     width: parent.width - inputLevel.width
                     clip: true
                     checkable: !checked
-                    checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
+                    checked: bar.currentIndex === 0 ? selectedDesktop : selectedHMD;
                     boxSize: margins.sizeCheckBox / 2
                     isRound: true
                     text: devicename
@@ -215,7 +227,7 @@ Rectangle {
                         }
                     }
                 }
-                InputPeak {
+                AudioControls.InputPeak {
                     id: inputLevel
                     anchors.right: parent.right
                     peak: model.peak;
@@ -225,8 +237,11 @@ Rectangle {
                              AudioScriptingInterface.devices.input.peakValuesAvailable;
                 }
             }
+            Component.onCompleted: {
+                console.log("width " + rightMostInputLevelPos);
+            }
         }
-        LoopbackAudio {
+        AudioControls.LoopbackAudio {
             x: margins.paddings
 
             visible: (bar.currentIndex === 1 && isVR) ||
@@ -293,7 +308,7 @@ Rectangle {
                 }
             }
         }
-        PlaySampleSound {
+        AudioControls.PlaySampleSound {
             x: margins.paddings
 
             visible: (bar.currentIndex === 1 && isVR) ||

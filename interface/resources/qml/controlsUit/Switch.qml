@@ -27,6 +27,7 @@ Item {
     property string labelGlyphOnText: "";
     property int labelGlyphOnSize: 32;
     property alias checked: originalSwitch.checked;
+    property string backgroundOnColor: "#252525";
     signal onCheckedChanged;
     signal clicked;
 
@@ -54,7 +55,7 @@ Item {
         }
 
         background: Rectangle {
-            color: "#252525";
+            color: checked ? backgroundOnColor : "#252525";
             implicitWidth: rootSwitch.switchWidth;
             implicitHeight: rootSwitch.height;
             radius: rootSwitch.switchRadius;

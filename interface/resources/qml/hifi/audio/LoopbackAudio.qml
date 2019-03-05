@@ -14,7 +14,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import controlsUit 1.0 as HifiControlsUit
 
 RowLayout {
     property bool audioLoopedBack: AudioScriptingInterface.getServerEcho();
@@ -43,29 +43,9 @@ RowLayout {
         }
     }
 
-    Button {
-        id: control
-        background: Rectangle {
-            implicitWidth: 20;
-            implicitHeight: 20;
-            radius: hifi.buttons.radius;
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.2;
-                    color: audioLoopedBack ? hifi.buttons.colorStart[hifi.buttons.blue] : "#FFFFFF";
-                }
-                GradientStop {
-                    position: 1.0;
-                    color: audioLoopedBack ? hifi.buttons.colorFinish[hifi.buttons.blue] : "#AFAFAF";
-                }
-            }
-        }
-        contentItem: HiFiGlyphs {
-            size: 14;
-            color: (control.pressed || control.hovered) ? (audioLoopedBack ? "black" : hifi.colors.primaryHighlight) : "#404040";
-            text: audioLoopedBack ? hifi.glyphs.stop_square : hifi.glyphs.mic;
-        }
-
+    HifiControlsUit.Button {
+        text: audioLoopedBack ? qsTr("STOP TESTING YOUR VOICE") : qsTr("TEST YOUR VOICE");
+        color: audioLoopedBack ? hifi.buttons.red : hifi.buttons.blue;
         onClicked: {
             if (audioLoopedBack) {
                 loopbackTimer.stop();
@@ -81,6 +61,7 @@ RowLayout {
         Layout.leftMargin: 2;
         size: 14;
         color: "white";
-        text: audioLoopedBack ? qsTr("Stop testing your voice") : qsTr("Test your voice");
+        font.italic: true
+        text: audioLoopedBack ? qsTr("Speak in your input") : "";
     }
 }

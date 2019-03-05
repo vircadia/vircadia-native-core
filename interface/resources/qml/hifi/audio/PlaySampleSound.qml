@@ -14,7 +14,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import controlsUit 1.0 as HifiControlsUit
 
 RowLayout {
     property var sound: null;
@@ -55,32 +55,9 @@ RowLayout {
 
     HifiConstants { id: hifi; }
 
-    Button {
-        id: control
-        background: Rectangle {
-            implicitWidth: 20;
-            implicitHeight: 20;
-            radius: hifi.buttons.radius;
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.2;
-                    color: isPlaying ? hifi.buttons.colorStart[hifi.buttons.blue] : "#FFFFFF";
-                }
-                GradientStop {
-                    position: 1.0;
-                    color: isPlaying ? hifi.buttons.colorFinish[hifi.buttons.blue] : "#AFAFAF";
-                }
-            }
-        }
-        contentItem: HiFiGlyphs {
-            // absolutely position due to asymmetry in glyph
-//            x: isPlaying ? 0 : 1;
-//            y: 1;
-            size: 14;
-            color: (control.pressed || control.hovered) ? (isPlaying ? "black" : hifi.colors.primaryHighlight) : "#404040";
-            text: isPlaying ? hifi.glyphs.stop_square : hifi.glyphs.playback_play;
-        }
-
+    HifiControlsUit.Button {
+        text: isPlaying ? qsTr("STOP TESTING YOUR SOUND") : qsTr("TEST YOUR SOUND");
+        color: isPlaying ? hifi.buttons.red : hifi.buttons.blue;
         onClicked: isPlaying ? stopSound() : playSound();
     }
 
@@ -88,7 +65,7 @@ RowLayout {
         Layout.leftMargin: 2;
         size: 14;
         color: "white";
-        text: isPlaying ? qsTr("Stop sample sound") : qsTr("Play sample sound");
+        font.italic: true
+        text: isPlaying ? qsTr("Listen to your output") : "";
     }
-
 }
