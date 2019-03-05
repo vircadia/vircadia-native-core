@@ -102,6 +102,11 @@ void ThreadedAssignment::addPacketStatsAndSendStatsPacket(QJsonObject statsObjec
 
     statsObject["io_stats"] = ioStats;
 
+    QJsonObject assignmentStats;
+    assignmentStats["numQueuedCheckIns"] = _numQueuedCheckIns;
+
+    statsObject["assignmentStats"] = assignmentStats;
+
     nodeList->sendStatsToDomainServer(statsObject);
 }
 
@@ -119,7 +124,10 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
         stop();
     } else {
         auto nodeList = DependencyManager::get<NodeList>();
-        QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn");
+        // Call sendDomainServerCheckIn directly instead of putting it on
+        // the event queue.  Under high load, the event queue can back up
+        // longer than the total timeout period and cause a restart
+        nodeList->sendDomainServerCheckIn();
 
         // increase the number of queued check ins
         _numQueuedCheckIns++;
