@@ -19,11 +19,11 @@
 
 class MixerAvatar : public AvatarData {
 public:
-    bool getPriorityAvatar() const { return  _bPriorityAvatar; }
-    void setPriorityAvatar(bool bPriorityAvatar) { _bPriorityAvatar = bPriorityAvatar; }
+    bool getHasPriority() const { return  _hasPriority; }
+    void setHasPriority(bool hasPriority) { _hasPriority = hasPriority; }
 
 private:
-    bool _bPriorityAvatar { false };
+    bool _hasPriority { false };
 };
 
 using MixerAvatarSharedPointer = std::shared_ptr<MixerAvatar>;

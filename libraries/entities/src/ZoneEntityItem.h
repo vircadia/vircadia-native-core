@@ -98,8 +98,8 @@ public:
     QString getFilterURL() const;
     void setFilterURL(const QString url); 
 
-    bool getAvatarPriority() const { return _avatarPriority; }
-    void setAvatarPriority(bool value) { _avatarPriority = value; }
+    uint32_t getAvatarPriority() const { return _avatarPriority; }
+    void setAvatarPriority(uint32_t value) { _avatarPriority = value; }
 
     bool keyLightPropertiesChanged() const { return _keyLightPropertiesChanged; }
     bool ambientLightPropertiesChanged() const { return _ambientLightPropertiesChanged; }
@@ -128,7 +128,6 @@ public:
     static const bool DEFAULT_FLYING_ALLOWED;
     static const bool DEFAULT_GHOSTING_ALLOWED;
     static const QString DEFAULT_FILTER_URL;
-    static const bool DEFAULT_AVATAR_PRIORITY = false;
 
 protected:
     KeyLightPropertyGroup _keyLightProperties;
@@ -154,7 +153,7 @@ protected:
     QString _filterURL { DEFAULT_FILTER_URL };
 
     // Avatar-updates priority
-    bool _avatarPriority { DEFAULT_AVATAR_PRIORITY };
+    uint32_t _avatarPriority { COMPONENT_MODE_INHERIT };
 
     // Dirty flags turn true when either keylight properties is changing values.
     bool _keyLightPropertiesChanged { false };

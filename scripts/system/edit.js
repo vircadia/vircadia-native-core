@@ -383,7 +383,7 @@ const DEFAULT_ENTITY_PROPERTIES = {
         },
         shapeType: "box",
         bloomMode: "inherit",
-        avatarPriority: false
+        avatarPriority: "inherit"
     },
     Model: {
         collisionShape: "none",
