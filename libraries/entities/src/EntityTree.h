@@ -268,6 +268,9 @@ public:
     static void setTextSizeOperator(std::function<QSizeF(const QUuid&, const QString&)> textSizeOperator) { _textSizeOperator = textSizeOperator; }
     static QSizeF textSize(const QUuid& id, const QString& text);
 
+    static void setEntityClicksCapturedOperator(std::function<bool()> areEntityClicksCapturedOperator) { _areEntityClicksCapturedOperator = areEntityClicksCapturedOperator; }
+    static bool areEntityClicksCaptured();
+
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
@@ -378,6 +381,7 @@ private:
 
     static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
     static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
+    static std::function<bool()> _areEntityClicksCapturedOperator;
 
     std::vector<int32_t> _staleProxies;
 

@@ -924,7 +924,11 @@ var toolBar = (function () {
     that.setActive = function (active) {
         ContextOverlay.enabled = !active;
         Settings.setValue(EDIT_SETTING, active);
-        if (!active) {
+        if (active) {
+            Controller.captureEntityClickEvents();
+        } else {
+            Controller.releaseEntityClickEvents();
+
             closeExistingDialogWindow();
         }
         if (active === isActive) {

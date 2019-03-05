@@ -1061,6 +1061,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(PluginManager::getInstance().data(), &PluginManager::inputDeviceRunningChanged,
         controllerScriptingInterface, &controller::ScriptingInterface::updateRunningInputDevices);
 
+    EntityTree::setEntityClicksCapturedOperator([this] {
+        return _controllerScriptingInterface->areEntityClicksCaptured();
+    });
+
     _entityClipboard->createRootElement();
 
 #ifdef Q_OS_WIN
@@ -4425,10 +4429,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
 #endif
 
     QMouseEvent mappedEvent(event->type(), transformedPos, event->screenPos(), event->button(), event->buttons(), event->modifiers());
-    if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-        QUuid result = getEntities()->mousePressEvent(&mappedEvent);
-        setKeyboardFocusEntity(getEntities()->wantsKeyboardFocus(result) ? result : UNKNOWN_ENTITY_ID);
-    }
+    QUuid result = getEntities()->mousePressEvent(&mappedEvent);
+    setKeyboardFocusEntity(getEntities()->wantsKeyboardFocus(result) ? result : UNKNOWN_ENTITY_ID);
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
@@ -4467,10 +4469,7 @@ void Application::mouseDoublePressEvent(QMouseEvent* event) {
         transformedPos,
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
-
-    if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-        getEntities()->mouseDoublePressEvent(&mappedEvent);
-    }
+    getEntities()->mouseDoublePressEvent(&mappedEvent);
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {

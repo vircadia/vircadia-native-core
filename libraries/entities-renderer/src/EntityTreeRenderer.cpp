@@ -805,11 +805,13 @@ QUuid EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     EntityItemPointer entity;
     if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
-        auto properties = entity->getProperties();
-        QString urlString = properties.getHref();
-        QUrl url = QUrl(urlString, QUrl::StrictMode);
-        if (url.isValid() && !url.isEmpty()){
-            DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+        if (!EntityTree::areEntityClicksCaptured()) {
+            auto properties = entity->getProperties();
+            QString urlString = properties.getHref();
+            QUrl url = QUrl(urlString, QUrl::StrictMode);
+            if (url.isValid() && !url.isEmpty()) {
+                DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+            }
         }
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
