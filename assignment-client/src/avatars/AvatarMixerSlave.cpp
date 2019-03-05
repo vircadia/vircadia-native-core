@@ -459,13 +459,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 ++numAvatarsWithSkippedFrames;
             }
         }
-        {
-            if (sourceAvatarNodeData->getConstAvatarData()->getHasPriority() && !sendAvatar) {
-                qCWarning(avatars) << "Hero avatar dropped:" << sourceAvatarNodeData->getConstAvatarData()->getSessionDisplayName()
-                    << "lastSeqToReceiver =" << destinationNodeData->getLastBroadcastSequenceNumber(sourceAvatarNode->getLocalID())
-                    << "lastSeqFromSender = " << sourceAvatarNodeData->getLastReceivedSequenceNumber();
-            }
-        }
+
         quint64 endIgnoreCalculation = usecTimestampNow();
         _stats.ignoreCalculationElapsedTime += (endIgnoreCalculation - startIgnoreCalculation);
 
