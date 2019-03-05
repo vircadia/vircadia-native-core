@@ -227,9 +227,6 @@ void ModelBaker::handleModelNetworkReply() {
     }
 }
 
-// TODO: Remove after testing
-#include <model-baker/BuildDracoMeshTask.h>
-
 void ModelBaker::bakeSourceCopy() {
     QFile modelFile(_originalModelFilePath);
     if (!modelFile.open(QIODevice::ReadOnly)) {
@@ -258,13 +255,6 @@ void ModelBaker::bakeSourceCopy() {
         config->getJobConfig("BuildDracoMesh")->setEnabled(true);
         // Do not permit potentially lossy modification of joint data meant for runtime
         ((PrepareJointsConfig*)config->getJobConfig("PrepareJoints"))->passthrough = true;
-
-        // TODO: Remove after testing
-        {
-            auto* dracoConfig = ((BuildDracoMeshConfig*)config->getJobConfig("BuildDracoMesh"));
-            dracoConfig->encodeSpeed = 10;
-            dracoConfig->decodeSpeed = -1;
-        }
     
         // Begin hfm baking
         baker.run();

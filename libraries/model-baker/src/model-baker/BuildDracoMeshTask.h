@@ -21,8 +21,13 @@
 // BuildDracoMeshTask is disabled by default
 class BuildDracoMeshConfig : public baker::JobConfig {
     Q_OBJECT
+    Q_PROPERTY(int encodeSpeed MEMBER encodeSpeed)
+    Q_PROPERTY(int decodeSpeed MEMBER decodeSpeed)
 public:
     BuildDracoMeshConfig() : baker::JobConfig(false) {}
+
+    int encodeSpeed { 0 };
+    int decodeSpeed { 5 };
 };
 
 class BuildDracoMeshTask {
@@ -34,6 +39,10 @@ public:
 
     void configure(const Config& config);
     void run(const baker::BakeContextPointer& context, const Input& input, Output& output);
+
+protected:
+    int _encodeSpeed { 0 };
+    int _decodeSpeed { 5 };
 };
 
 #endif // hifi_BuildDracoMeshTask_h

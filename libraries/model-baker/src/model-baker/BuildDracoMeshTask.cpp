@@ -193,7 +193,8 @@ std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::v
 }
 
 void BuildDracoMeshTask::configure(const Config& config) {
-    // Nothing to configure yet
+    _encodeSpeed = config.encodeSpeed;
+    _decodeSpeed = config.decodeSpeed;
 }
 
 void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
@@ -222,7 +223,7 @@ void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Inp
             encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION, 14);
             encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD, 12);
             encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL, 10);
-            encoder.SetSpeedOptions(0, 5);
+            encoder.SetSpeedOptions(_encodeSpeed, _decodeSpeed);
 
             draco::EncoderBuffer buffer;
             encoder.EncodeMeshToBuffer(*dracoMesh, &buffer);
