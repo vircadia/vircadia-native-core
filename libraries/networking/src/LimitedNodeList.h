@@ -207,7 +207,10 @@ public:
                     int* lockWaitOut = nullptr,
                     int* nodeTransformOut = nullptr,
                     int* functorOut = nullptr) {
-        auto start = usecTimestampNow();
+        quint64 start, endTransform, endFunctor;
+
+        start = usecTimestampNow();
+        std::vector<SharedNodePointer> nodes;
         {
             QReadLocker readLock(&_nodeMutex);
             auto endLock = usecTimestampNow();
@@ -218,21 +221,21 @@ public:
             // Size of _nodeHash could change at any time,
             // so reserve enough memory for the current size
             // and then back insert all the nodes found
-            std::vector<SharedNodePointer> nodes;
             nodes.reserve(_nodeHash.size());
             std::transform(_nodeHash.cbegin(), _nodeHash.cend(), std::back_inserter(nodes), [&](const NodeHash::value_type& it) {
                 return it.second;
             });
-            auto endTransform = usecTimestampNow();
+
+            endTransform = usecTimestampNow();
             if (nodeTransformOut) {
                 *nodeTransformOut = (endTransform - endLock);
             }
+        }
 
-            functor(nodes.cbegin(), nodes.cend());
-            auto endFunctor = usecTimestampNow();
-            if (functorOut) {
-                *functorOut = (endFunctor - endTransform);
-            }
+        functor(nodes.cbegin(), nodes.cend());
+        endFunctor = usecTimestampNow();
+        if (functorOut) {
+            *functorOut = (endFunctor - endTransform);
         }
     }
 
