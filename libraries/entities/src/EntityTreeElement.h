@@ -190,7 +190,7 @@ public:
     EntityItemPointer getEntityWithEntityItemID(const EntityItemID& id) const;
     void getEntitiesInside(const AACube& box, QVector<EntityItemPointer>& foundEntities);
 
-    void cleanupNonLocalEntities();
+    void cleanupDomainAndNonOwnedEntities();
     void cleanupEntities(); /// called by EntityTree on cleanup this will free all entities
     bool removeEntityItem(EntityItemPointer entity, bool deletion = false);
 
