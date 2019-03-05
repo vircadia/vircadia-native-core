@@ -180,7 +180,7 @@ Rectangle {
 
         onUpdateItemResult: {
             if (result.status !== 'success') {
-                failureErrorText.text = result.message;
+                failureErrorText.text = result.data ? (result.data.message || "Unknown Error") : JSON.stringify(result);
                 root.activeView = "checkoutFailure";
             } else {
                 root.itemHref = result.data.download_url;
