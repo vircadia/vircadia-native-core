@@ -134,6 +134,9 @@
     "bloom.bloomSize": {
         "tooltip": "The radius of bloom. The higher the value, the larger the bloom."
     },
+    "avatarPriority": {
+        "tooltip":  "Avatars in this zone will have a higher update priority."
+    },
     "modelURL": {
         "tooltip": "A mesh model from an FBX or OBJ file."
     },

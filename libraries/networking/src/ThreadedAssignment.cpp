@@ -123,6 +123,9 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 
         // increase the number of queued check ins
         _numQueuedCheckIns++;
+        if (_numQueuedCheckIns > 1) {
+            qCDebug(networking) << "Number of queued checkins = " << _numQueuedCheckIns;
+        }
     }
 }
 

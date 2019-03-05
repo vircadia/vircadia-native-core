@@ -23,6 +23,7 @@
 #include <QtCore/QRegularExpression>
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
+#include <QtCore/QJsonDocument>
 
 #include <AABox.h>
 #include <AvatarLogging.h>
@@ -32,6 +33,8 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 #include <TryLocker.h>
+#include "../AssignmentDynamicFactory.h"
+#include "../entities/AssignmentParentFinder.h"
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
@@ -55,6 +58,9 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _slavePool(&_slaveSharedData)
 {
+    DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
+    DependencyManager::set<AssignmentDynamicFactory>();
+
     // make sure we hear about node kills so we can tell the other nodes
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::handleAvatarKilled);
 
@@ -69,6 +75,8 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::RequestsDomainListData, this, "handleRequestsDomainListDataPacket");
     packetReceiver.registerListener(PacketType::SetAvatarTraits, this, "queueIncomingPacket");
     packetReceiver.registerListener(PacketType::BulkAvatarTraitsAck, this, "queueIncomingPacket");
+    packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
+        this, "handleOctreePacket");
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
@@ -239,6 +247,10 @@ void AvatarMixer::start() {
         throttle(frameDuration, frame); // determines _throttlingRatio for upcoming mix frame
 
         int lockWait, nodeTransform, functor;
+
+        {
+            _entityViewer.queryOctree();
+        }
 
         // Allow nodes to process any pending/queued packets across our worker threads
         {
@@ -775,6 +787,7 @@ void AvatarMixer::sendStatsPacket() {
     slavesAggregatObject["sent_4_averageDataBytes"] = TIGHT_LOOP_STAT(aggregateStats.numDataBytesSent);
     slavesAggregatObject["sent_5_averageTraitsBytes"] = TIGHT_LOOP_STAT(aggregateStats.numTraitsBytesSent);
     slavesAggregatObject["sent_6_averageIdentityBytes"] = TIGHT_LOOP_STAT(aggregateStats.numIdentityBytesSent);
+    slavesAggregatObject["sent_7_averageHeroAvatars"] = TIGHT_LOOP_STAT(aggregateStats.numHeroesIncluded);
 
     slavesAggregatObject["timing_1_processIncomingPackets"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.processIncomingPacketsElapsedTime);
     slavesAggregatObject["timing_2_ignoreCalculation"] = TIGHT_LOOP_STAT_UINT64(aggregateStats.ignoreCalculationElapsedTime);
@@ -882,12 +895,14 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addSetOfNodeTypesToNodeInterestSet({
-        NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::Agent, NodeType::EntityScriptServer, NodeType::EntityServer,
         NodeType::UpstreamAvatarMixer, NodeType::DownstreamAvatarMixer
     });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
+
+    setupEntityQuery();
 
     // start our tight loop...
     start();
@@ -975,4 +990,46 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     } else {
         qCDebug(avatars) << "Avatars other than" << _slaveSharedData.skeletonURLWhitelist << "will be replaced by" << (_slaveSharedData.skeletonReplacementURL.isEmpty() ? "default" : _slaveSharedData.skeletonReplacementURL.toString());
     }
+}
+
+void AvatarMixer::setupEntityQuery() {
+    _entityViewer.init();
+    DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
+    DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
+    _slaveSharedData.entityTree = _entityViewer.getTree();
+
+    // ES query: {"avatarPriority": true, "type": "Zone"}
+    QJsonObject priorityZoneQuery;
+    priorityZoneQuery["avatarPriority"] = true;
+    priorityZoneQuery["type"] = "Zone";
+
+    _entityViewer.getOctreeQuery().setJSONParameters(priorityZoneQuery);
+}
+
+void AvatarMixer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    PacketType packetType = message->getType();
+
+    switch (packetType) {
+    case PacketType::OctreeStats:
+        break;
+
+    case PacketType::EntityData:
+        _entityViewer.processDatagram(*message, senderNode);
+        break;
+
+    case PacketType::EntityErase:
+        _entityViewer.processEraseMessage(*message, senderNode);
+        break;
+
+    default:
+        qCDebug(avatars) << "Unexpected packet type:" << packetType;
+        break;
+    }
+}
+
+void AvatarMixer::aboutToFinish() {
+    DependencyManager::destroy<AssignmentDynamicFactory>();
+    DependencyManager::destroy<AssignmentParentFinder>();
+
+    ThreadedAssignment::aboutToFinish();
 }
