@@ -954,6 +954,14 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
         qCDebug(avatars) << "Avatar mixer will automatically determine number of threads to use. Using:" << _slavePool.numThreads() << "threads.";
     }
 
+    {
+        const QString CONNECTION_RATE = "connection_rate";
+        auto nodeList = DependencyManager::get<NodeList>();
+        auto defaultConnectionRate = nodeList->getMaxConnectionRate();
+        int connectionRate = avatarMixerGroupObject[CONNECTION_RATE].toInt((int)defaultConnectionRate);
+        nodeList->setMaxConnectionRate(connectionRate);
+    }
+
     const QString AVATARS_SETTINGS_KEY = "avatars";
 
     static const QString MIN_HEIGHT_OPTION = "min_avatar_height";

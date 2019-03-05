@@ -40,6 +40,9 @@
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
+using namespace std::chrono_literals;
+static const std::chrono::milliseconds CONNECTION_RATE_INTERVAL_MS = 1s;
+
 const std::set<NodeType_t> SOLO_NODE_TYPES = {
     NodeType::AvatarMixer,
     NodeType::AudioMixer,
@@ -87,6 +90,11 @@ LimitedNodeList::LimitedNodeList(int socketListenPort, int dtlsListenPort) :
     QTimer* statsSampleTimer = new QTimer(this);
     connect(statsSampleTimer, &QTimer::timeout, this, &LimitedNodeList::sampleConnectionStats);
     statsSampleTimer->start(CONNECTION_STATS_SAMPLE_INTERVAL_MSECS);
+
+    // Flush delayed adds every second
+    QTimer* delayedAddsFlushTimer = new QTimer(this);
+    connect(delayedAddsFlushTimer, &QTimer::timeout, this, &NodeList::processDelayedAdds);
+    delayedAddsFlushTimer->start(CONNECTION_RATE_INTERVAL_MS.count());
 
     // check the local socket right now
     updateLocalSocket();
@@ -367,7 +375,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
 
             return true;
 
-        } else {
+        } else if (!isDelayedNode(sourceID)){
             HIFI_FCDEBUG(networking(),
                 "Packet of type" << headerType << "received from unknown node with Local ID" << sourceLocalID);
         }
@@ -736,6 +744,53 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     return newNodePointer;
 }
 
+void LimitedNodeList::addNewNode(NewNodeInfo info) {
+    // Throttle connection of new agents.
+    if (info.type == NodeType::Agent && _nodesAddedInCurrentTimeSlice >= _maxConnectionRate) {
+        delayNodeAdd(info);
+        return;
+    }
+
+    SharedNodePointer node = addOrUpdateNode(info.uuid, info.type, info.publicSocket, info.localSocket,
+                                             info.sessionLocalID, info.isReplicated, false,
+                                             info.connectionSecretUUID, info.permissions);
+
+    ++_nodesAddedInCurrentTimeSlice;
+}
+
+void LimitedNodeList::delayNodeAdd(NewNodeInfo info) {
+    _delayedNodeAdds.push_back(info);
+}
+
+void LimitedNodeList::removeDelayedAdd(QUuid nodeUUID) {
+    auto it = std::find_if(_delayedNodeAdds.begin(), _delayedNodeAdds.end(), [&](auto info) {
+        return info.uuid == nodeUUID;
+    });
+    if (it != _delayedNodeAdds.end()) {
+        _delayedNodeAdds.erase(it);
+    }
+}
+
+bool LimitedNodeList::isDelayedNode(QUuid nodeUUID) {
+    auto it = std::find_if(_delayedNodeAdds.begin(), _delayedNodeAdds.end(), [&](auto info) {
+        return info.uuid == nodeUUID;
+    });
+    return it != _delayedNodeAdds.end();
+}
+
+void LimitedNodeList::processDelayedAdds() {
+    _nodesAddedInCurrentTimeSlice = 0;
+
+    auto nodesToAdd = glm::min(_delayedNodeAdds.size(), _maxConnectionRate);
+    auto firstNodeToAdd = _delayedNodeAdds.begin();
+    auto lastNodeToAdd = firstNodeToAdd + nodesToAdd;
+
+    for (auto it = firstNodeToAdd; it != lastNodeToAdd; ++it) {
+        addNewNode(*it);
+    }
+    _delayedNodeAdds.erase(firstNodeToAdd, lastNodeToAdd);
+}
+
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(const QUuid& nodeId, PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64) + sizeof(int64_t);
 
@@ -793,13 +848,13 @@ unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet,
 
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
-			if (packet->isReliable()) {
-				auto packetCopy = NLPacket::createCopy(*packet);
-				sendPacket(std::move(packetCopy), *node);
-			} else {
-				sendUnreliablePacket(*packet, *node);
-			}
-			++n;
+            if (packet->isReliable()) {
+                auto packetCopy = NLPacket::createCopy(*packet);
+                sendPacket(std::move(packetCopy), *node);
+            } else {
+                sendUnreliablePacket(*packet, *node);
+            }
+            ++n;
         }
     });
 

@@ -200,7 +200,6 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 }
 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
@@ -708,37 +707,28 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     qCDebug(networking) << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
     killNodeWithUUID(nodeUUID);
+    removeDelayedAdd(nodeUUID);
 }
 
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
-    // setup variables to read into from QDataStream
-    qint8 nodeType;
-    QUuid nodeUUID, connectionSecretUUID;
-    HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    NodePermissions permissions;
-    bool isReplicated;
-    Node::LocalID sessionLocalID;
+    NewNodeInfo info;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions
-        >> isReplicated >> sessionLocalID;
+    packetStream >> info.type
+                 >> info.uuid
+                 >> info.publicSocket
+                 >> info.localSocket
+                 >> info.permissions
+                 >> info.isReplicated
+                 >> info.sessionLocalID
+                 >> info.connectionSecretUUID;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
-    if (nodePublicSocket.getAddress().isNull()) {
-        nodePublicSocket.setAddress(_domainHandler.getIP());
+    if (info.publicSocket.getAddress().isNull()) {
+        info.publicSocket.setAddress(_domainHandler.getIP());
     }
 
-    packetStream >> connectionSecretUUID;
-
-    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket,
-                                             sessionLocalID, isReplicated, false, connectionSecretUUID, permissions);
-
-    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
-    // and always have their public socket as their active socket
-    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
-        node->setLastHeardMicrostamp(usecTimestampNow());
-        node->activatePublicSocket();
-    }
+    addNewNode(info);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -785,7 +775,6 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
-
     // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
     // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
 
@@ -799,6 +788,14 @@ void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
         // ping this node immediately
         pingPunchForInactiveNode(node);
     }
+
+    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
+    // and always have their public socket as their active socket
+    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+        node->activatePublicSocket();
+    }
+
 }
 
 void NodeList::handleNodePingTimeout() {
