@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
@@ -26,6 +26,8 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     property var eventBridge;
+    // leave as blank, this is user's volume for the avatar mixer
+    property var myAvatarUuid: ""
     property string title: "Audio Settings"
     property int switchHeight: 16
     property int switchWidth: 40
@@ -82,16 +84,16 @@ Rectangle {
         });
     }
 
-    function disablePeakValues() {
-        root.showPeaks = false;
-        AudioScriptingInterface.devices.input.peakValuesEnabled = false;
+    function updateMyAvatarGainFromQML(sliderValue, isReleased) {
+        if (Users.getAvatarGain(myAvatarUuid) != sliderValue) {
+            Users.setAvatarGain(myAvatarUuid, sliderValue);
+        }
     }
 
     Component.onCompleted: enablePeakValues();
-    Component.onDestruction: disablePeakValues();
-    onVisibleChanged: visible ? enablePeakValues() : disablePeakValues();
 
     Column {
+        id: column
         spacing: 12;
         anchors.top: bar.bottom
         anchors.bottom: parent.bottom
@@ -305,6 +307,67 @@ Rectangle {
                 }
             }
         }
+
+        Item {
+            id: gainContainer
+            x: margins.paddings;
+            width: parent.width - margins.paddings*2
+            height: gainSliderTextMetrics.height
+
+            HifiControlsUit.Slider {
+                id: gainSlider
+                anchors.right: parent.right
+                height: parent.height
+                width: 200
+                minimumValue: -60.0
+                maximumValue: 20.0
+                stepSize: 5
+                value: Users.getAvatarGain(myAvatarUuid)
+                onValueChanged: {
+                    updateMyAvatarGainFromQML(value, false);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateMyAvatarGainFromQML(value, false);
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onWheel: {
+                        // Do nothing.
+                    }
+                    onDoubleClicked: {
+                        gainSlider.value = 0.0
+                    }
+                    onPressed: {
+                        // Pass through to Slider
+                        mouse.accepted = false
+                    }
+                    onReleased: {
+                        // the above mouse.accepted seems to make this
+                        // never get called, nonetheless...
+                        mouse.accepted = false
+                    }
+                }
+            }
+            TextMetrics {
+                id: gainSliderTextMetrics
+                text: gainSliderText.text
+                font: gainSliderText.font
+            }
+            RalewayRegular {
+                // The slider for my card is special, it controls the master gain
+                id: gainSliderText;
+                text: "Avatar volume";
+                size: 16;
+                anchors.left: parent.left;
+                color: hifi.colors.white;
+                horizontalAlignment: Text.AlignLeft;
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+
         AudioControls.PlaySampleSound {
             x: margins.paddings
 
