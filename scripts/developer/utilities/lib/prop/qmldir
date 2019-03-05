@@ -1,7 +1,10 @@
-PropGlobal 1.0 PropGlobal.qml
-PropText 1.0 PropText.qml
-PropLabel 1.0 PropLabel.qml
-PropSplitter 1.0 PropSplitter.qml
+Module Prop
+Global 1.0 style/Global.qml
+PropText 1.0 style/PiText.qml
+PropLabel 1.0 style/PiLabel.qml
+PropSplitter 1.0 style/PiSplitter.qml
+PropComboBox 1.0 style/PiComboBox.qml
+
 PropItem  1.0 PropItem.qml
 PropScalar 1.0 PropScalar.qml
 PropEnum 1.0 PropEnum.qml

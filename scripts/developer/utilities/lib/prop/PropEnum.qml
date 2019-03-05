@@ -18,7 +18,11 @@ PropItem {
     property alias valueVar : valueCombo.currentIndex
     property alias enums : valueCombo.model
 
-    ComboBox {
+    Component.onCompleted: {
+        valueVar = root.valueVarGetter();
+    }
+
+    PropComboBox {
         id: valueCombo
 
         flat: true
@@ -28,83 +32,6 @@ PropItem {
         anchors.verticalCenter: root.verticalCenter
         height: global.slimHeight
 
-        currentIndex: root.valueVarGetter()
         onCurrentIndexChanged: { root.valueVarSetter(currentIndex); }
-
-        delegate: ItemDelegate {
-            width: valueCombo.width
-            height: valueCombo.height
-            contentItem: PropText {
-                text: modelData
-                horizontalAlignment: global.valueTextAlign
-            }
-            background: Rectangle {
-                color:highlighted?global.colorBackHighlight:global.color;
-            }
-            highlighted: valueCombo.highlightedIndex === index
-        }
-
-        indicator: Canvas {
-            id: canvas
-            x: valueCombo.width - width - valueCombo.rightPadding
-            y: valueCombo.topPadding + (valueCombo.availableHeight - height) / 2
-            width: 12
-            height: 8
-            contextType: "2d"
-
-            Connections {
-                target: valueCombo
-                onPressedChanged: canvas.requestPaint()
-            }
-
-            onPaint: {
-                context.reset();
-                context.moveTo(0, 0);
-                context.lineTo(width, 0);
-                context.lineTo(width / 2, height);
-                context.closePath();
-                context.fillStyle = (valueCombo.pressed) ? global.colorBorderHighight : global.colorBorderLight;
-                context.fill();
-            }
-        }
-
-        contentItem: PropText {
-            leftPadding: 0
-            rightPadding: valueCombo.indicator.width + valueCombo.spacing
-
-            text: valueCombo.displayText
-            horizontalAlignment: global.valueTextAlign
-        }
-
-        background: Rectangle {
-            implicitWidth: 120
-            implicitHeight: 40
-            color: global.color
-            border.color: valueCombo.popup.visible ? global.colorBorderHighight : global.colorBorderLight
-            border.width: global.valueBorderWidth
-            radius: global.valueBorderRadius
-        }
-
-        popup: Popup {
-            y: valueCombo.height - 1
-            width: valueCombo.width
-            implicitHeight: contentItem.implicitHeight + 2
-            padding: 1
-
-            contentItem: ListView {
-                clip: true
-                implicitHeight: contentHeight
-                model: valueCombo.popup.visible ? valueCombo.delegateModel : null
-                currentIndex: valueCombo.highlightedIndex
-
-                ScrollIndicator.vertical: ScrollIndicator { }
-            }
-
-            background: Rectangle {
-                color: global.color
-                border.color: global.colorBorderHighight
-                radius: global.valueBorderRadius
-            }
-        }
     }    
 }

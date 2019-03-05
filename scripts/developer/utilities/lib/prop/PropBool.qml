@@ -29,7 +29,6 @@ PropItem {
         width: root.width * global.valueAreaWidthScale
         height: global.slimHeight
 
-        checked: root.valueVar
         onCheckedChanged: { root.valueVarSetter(checked); }
     }
 }

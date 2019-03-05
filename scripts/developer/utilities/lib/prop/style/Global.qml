@@ -21,6 +21,8 @@ Item {
     property real lineHeight: 32
     property real slimHeight: 24  
 
+    property real horizontalMargin: 2
+
     property var color: hifi.colors.baseGray
     property var colorBackHighlight: hifi.colors.baseGrayHighlight
     property var colorBorderLight: hifi.colors.lightGray

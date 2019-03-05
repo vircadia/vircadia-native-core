@@ -25,6 +25,19 @@ Item {
 
     property var label: "group"
 
+      /*  Component.onCompleted: {
+            var component1 = Qt.createComponent("PropBool.qml");
+                    component1.label = "Test";
+            for (var i=0; i<root.propItems.length; i++) {
+
+            //  if (propItems[i]["type"] == "PropBool") {
+                    var component = Qt.createComponent("PropBool.qml");
+                    component.label = propItems[i]["property"];
+
+            // }
+            }
+        }*/
+
     Column {
         id: column
         anchors.left: parent.left
@@ -34,27 +47,20 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             text: root.label
+            horizontalAlignment: Text.AlignHCenter
         }
 
-        
-        Component.onCompleted: {
-            var component = Qt.createComponent("PropBool.qml");
-                    component.label = "Test";
-            for (var i=0; i<propItems.length; i++) {
-            //  if (propItems[i]["type"] == "PropBool") {
-                    var component = Qt.createComponent("PropBool.qml");
-                    component.label = propItems[i]["property"];
-
-            // }
+        Repeater {
+            model: root.propItems
+            PropBool {
+                    label: qsTr(modelData["property"])
+                    object: modelData["object"]
+                    property: modelData["property"]
+                    anchors.left: parent.left
+                    anchors.right: parent.right 
             }
-        }
-        
-        // PropItem is stretching horizontally accross its parent
-        // Fixed height
-        //anchors.left: parent.left
-        //anchors.right: parent.right    
-     //   height: global.lineHeight * propItems.length + 1
+        }   
     }
 
-
+    height: column.height
 }

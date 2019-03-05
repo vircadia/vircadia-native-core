@@ -1,5 +1,5 @@
 //
-//  Prop/style/PsComboBox.qml
+//  Prop/style/PiComboBox.qml
 //
 //  Created by Sam Gateau on 3/2/2019
 //  Copyright 2019 High Fidelity, Inc.

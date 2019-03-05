@@ -55,5 +55,22 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right 
         }
+        Prop.PropBool {
+            label: "Background"
+            object: render.mainViewTask.getConfig("LightingModel")
+            property: "enableBackground"
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
+        Prop.PropGroup {
+            label: "My group"
+            propItems: [
+                {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableBackground"},
+                {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableDiffuse"},
+                {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableEmissive"},
+            ]
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
     }
 }

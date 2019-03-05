@@ -32,7 +32,8 @@ Item {
     anchors.left: parent.left
     anchors.right: parent.right    
     height: global.lineHeight
-
+    anchors.leftMargin: global.horizontalMargin
+    anchors.rightMargin: global.horizontalMargin
 
     // LabelControl And SplitterControl are on the left side of the PropItem
     property bool showLabel: true  
