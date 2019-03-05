@@ -355,9 +355,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     // about avatars they've ignored or that are out of view
     bool PALIsOpen = destinationNodeData->getRequestsDomainListData();
     bool PALWasOpen = destinationNodeData->getPrevRequestsDomainListData();
-    if (PALIsOpen) {
-        qCWarning(avatars) << "PAL is open:" << avatar.getSessionDisplayName();
-    }
 
     // When this is true, the AvatarMixer will send Avatar data to a client about avatars that have ignored them
     bool getsAnyIgnored = PALIsOpen && destinationNode->getCanKick();
@@ -526,9 +523,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                     _stats.overBudgetAvatars++;
                     detail = AvatarData::PALMinimum;
                 } else {
-                    if (currentVariant == kHero) {
-                        qCWarning(avatars) << "Overbudget break with hero avatars!" << destinationNode->getUUID().toString();
-                    }
                     _stats.overBudgetAvatars += remainingAvatars;
                     break;
                 }
