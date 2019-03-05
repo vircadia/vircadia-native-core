@@ -40,6 +40,7 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _type = EntityTypes::Model;
     _lastKnownCurrentFrame = -1;
     _visuallyReady = false;
+    _modelScale=glm::vec3(1.0f);
 }
 
 const QString ModelEntityItem::getTextures() const {
