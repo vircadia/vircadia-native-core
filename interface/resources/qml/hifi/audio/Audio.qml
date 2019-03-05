@@ -98,13 +98,6 @@ Rectangle {
 
         Separator { }
 
-        RalewayRegular {
-            x: margins.paddings + muteMic.boxSize + muteMic.spacing;
-            size: 16;
-            color: "white";
-            text: qsTr("Input Device Settings")
-        }
-
         ColumnLayout {
             x: margins.paddings;
             spacing: 16;
@@ -171,7 +164,7 @@ Rectangle {
             HiFiGlyphs {
                 width: margins.sizeCheckBox
                 text: hifi.glyphs.mic;
-                color: hifi.colors.primaryHighlight;
+                color: hifi.colors.white;
                 anchors.left: parent.left
                 anchors.leftMargin: -size/4 //the glyph has empty space at left about 25%
                 anchors.verticalCenter: parent.verticalCenter;
@@ -183,8 +176,8 @@ Rectangle {
                 anchors.left: parent.left
                 anchors.leftMargin: margins.sizeCheckBox
                 size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("CHOOSE INPUT DEVICE");
+                color: hifi.colors.white;
+                text: qsTr("Choose input device");
             }
         }
 
@@ -233,6 +226,13 @@ Rectangle {
                 }
             }
         }
+        LoopbackAudio {
+            x: margins.paddings
+
+            visible: (bar.currentIndex === 1 && isVR) ||
+                (bar.currentIndex === 0 && !isVR);
+            anchors { left: parent.left; leftMargin: margins.paddings }
+        }
 
         Separator {}
 
@@ -247,7 +247,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter;
                 width: margins.sizeCheckBox
                 text: hifi.glyphs.unmuted;
-                color: hifi.colors.primaryHighlight;
+                color: hifi.colors.white;
                 size: 36;
             }
 
@@ -257,8 +257,8 @@ Rectangle {
                 anchors.leftMargin: margins.sizeCheckBox
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("CHOOSE OUTPUT DEVICE");
+                color: hifi.colors.white;
+                text: qsTr("Choose output device");
             }
         }
 
@@ -298,13 +298,6 @@ Rectangle {
 
             visible: (bar.currentIndex === 1 && isVR) ||
                      (bar.currentIndex === 0 && !isVR);
-            anchors { left: parent.left; leftMargin: margins.paddings }
-        }
-        LoopbackAudio {
-            x: margins.paddings
-
-            visible: (bar.currentIndex === 1 && isVR) ||
-                (bar.currentIndex === 0 && !isVR);
             anchors { left: parent.left; leftMargin: margins.paddings }
         }
     }

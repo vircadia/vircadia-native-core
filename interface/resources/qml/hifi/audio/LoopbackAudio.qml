@@ -24,7 +24,7 @@ RowLayout {
             AudioScriptingInterface.setServerEcho(true);
         }
     }
-    function stopAudioLoopback () {
+    function stopAudioLoopback() {
         if (audioLoopedBack) {
             audioLoopedBack = false;
             AudioScriptingInterface.setServerEcho(false);
@@ -32,6 +32,16 @@ RowLayout {
     }
 
     HifiConstants { id: hifi; }
+
+    Timer {
+        id: loopbackTimer
+        interval: 8000;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            stopAudioLoopback();
+        }
+    }
 
     Button {
         id: control
@@ -42,27 +52,35 @@ RowLayout {
             gradient: Gradient {
                 GradientStop {
                     position: 0.2;
-                    color: audioLoopedBack ? hifi.buttons.colorStart[hifi.buttons.blue] : hifi.buttons.colorStart[hifi.buttons.black];
+                    color: audioLoopedBack ? hifi.buttons.colorStart[hifi.buttons.blue] : "#FFFFFF";
                 }
                 GradientStop {
                     position: 1.0;
-                    color: audioLoopedBack ? hifi.buttons.colorFinish[hifi.buttons.blue] : hifi.buttons.colorFinish[hifi.buttons.black];
+                    color: audioLoopedBack ? hifi.buttons.colorFinish[hifi.buttons.blue] : "#AFAFAF";
                 }
             }
         }
         contentItem: HiFiGlyphs {
             size: 14;
-            color: (control.pressed || control.hovered) ? (audioLoopedBack ? "black" : hifi.colors.primaryHighlight) : "white";
-            text: audioLoopedBack ? hifi.glyphs.stop_square : hifi.glyphs.playback_play;
+            color: (control.pressed || control.hovered) ? (audioLoopedBack ? "black" : hifi.colors.primaryHighlight) : "#404040";
+            text: audioLoopedBack ? hifi.glyphs.stop_square : hifi.glyphs.mic;
         }
 
-        onClicked: audioLoopedBack ? stopAudioLoopback() : startAudioLoopback();
+        onClicked: {
+            if (audioLoopedBack) {
+                loopbackTimer.stop();
+                stopAudioLoopback();
+            } else {
+                loopbackTimer.restart();
+                startAudioLoopback();
+            }
+        }
     }
 
     RalewayRegular {
         Layout.leftMargin: 2;
         size: 14;
         color: "white";
-        text: audioLoopedBack ? qsTr("Disable Audio Loopback") : qsTr("Enable Audio Loopback");
+        text: audioLoopedBack ? qsTr("Stop testing your voice") : qsTr("Test your voice");
     }
 }

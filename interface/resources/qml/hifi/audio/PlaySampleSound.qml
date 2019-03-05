@@ -64,11 +64,11 @@ RowLayout {
             gradient: Gradient {
                 GradientStop {
                     position: 0.2;
-                    color: isPlaying ? hifi.buttons.colorStart[hifi.buttons.blue] : hifi.buttons.colorStart[hifi.buttons.black];
+                    color: isPlaying ? hifi.buttons.colorStart[hifi.buttons.blue] : "#FFFFFF";
                 }
                 GradientStop {
                     position: 1.0;
-                    color: isPlaying ? hifi.buttons.colorFinish[hifi.buttons.blue] : hifi.buttons.colorFinish[hifi.buttons.black];
+                    color: isPlaying ? hifi.buttons.colorFinish[hifi.buttons.blue] : "#AFAFAF";
                 }
             }
         }
@@ -77,7 +77,7 @@ RowLayout {
 //            x: isPlaying ? 0 : 1;
 //            y: 1;
             size: 14;
-            color: (control.pressed || control.hovered) ? (isPlaying ? "black" : hifi.colors.primaryHighlight) : "white";
+            color: (control.pressed || control.hovered) ? (isPlaying ? "black" : hifi.colors.primaryHighlight) : "#404040";
             text: isPlaying ? hifi.glyphs.stop_square : hifi.glyphs.playback_play;
         }
 
