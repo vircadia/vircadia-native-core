@@ -17,7 +17,7 @@ Item {
     // Prop Group is designed to author an array of ProItems, they are defined with an array of the tuplets describing each individual item:
     // [ ..., PropItemInfo, ...]
     // PropItemInfo {
-    //    "type": "PropXXXX", "object": object, "property": "propName"      
+    //    type: "PropXXXX", object: JSobject, property: "propName"      
     // }
     //
     property var propItems: []
@@ -25,18 +25,6 @@ Item {
 
     property var label: "group"
 
-      /*  Component.onCompleted: {
-            var component1 = Qt.createComponent("PropBool.qml");
-                    component1.label = "Test";
-            for (var i=0; i<root.propItems.length; i++) {
-
-            //  if (propItems[i]["type"] == "PropBool") {
-                    var component = Qt.createComponent("PropBool.qml");
-                    component.label = propItems[i]["property"];
-
-            // }
-            }
-        }*/
 
     Column {
         id: column
@@ -49,18 +37,44 @@ Item {
             text: root.label
             horizontalAlignment: Text.AlignHCenter
         }
+      
 
-        Repeater {
-            model: root.propItems
-            PropBool {
-                    label: qsTr(modelData["property"])
-                    object: modelData["object"]
-                    property: modelData["property"]
-                    anchors.left: parent.left
-                    anchors.right: parent.right 
-            }
-        }   
     }
-
     height: column.height
+
+    Component.onCompleted: {
+        for (var i = 0; i < root.propItems.length; i++) {
+            var proItem = root.propItems[i];
+            switch(proItem.type) {
+                case 'PropBool': {
+                    var component = Qt.createComponent("PropBool.qml");
+                    component.createObject(column, {
+                        "label": proItem.property,
+                        "object": proItem.object,
+                        "property": proItem.property
+                    })
+                } break;
+                case 'PropScalar': {
+                    var component = Qt.createComponent("PropScalar.qml");
+                    component.createObject(column, {
+                        "label": proItem.property,
+                        "object": proItem.object,
+                        "property": proItem.property,
+                        "min": (proItem["min"] !== undefined ? proItem.min : 0.0),                   
+                        "max": (proItem["max"] !== undefined ? proItem.max : 1.0),                                       
+                        "integer": (proItem["integral"] !== undefined ? proItem.integral : false),
+                    })
+                } break;
+                case 'PropEnum': {
+                    var component = Qt.createComponent("PropEnum.qml");
+                    component.createObject(column, {
+                        "label": proItem.property,
+                        "object": proItem.object,
+                        "property": proItem.property,
+                        "enums": (proItem["enums"] !== undefined ? proItem.enums : ["Undefined Enums !!!"]), 
+                    })
+                } break;
+            }      
+        }
+    }
 }

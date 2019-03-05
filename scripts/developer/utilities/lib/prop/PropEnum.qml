@@ -19,7 +19,7 @@ PropItem {
     property alias enums : valueCombo.model
 
     Component.onCompleted: {
-        valueVar = root.valueVarGetter();
+      //  valueVar = root.valueVarGetter();
     }
 
     PropComboBox {
@@ -32,6 +32,7 @@ PropItem {
         anchors.verticalCenter: root.verticalCenter
         height: global.slimHeight
 
+        currentIndex: root.valueVarGetter()
         onCurrentIndexChanged: { root.valueVarSetter(currentIndex); }
     }    
 }

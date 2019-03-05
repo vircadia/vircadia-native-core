@@ -26,7 +26,7 @@ Rectangle {
     Column {
         anchors.left: parent.left
         anchors.right: parent.right       
-        Repeater {
+      /*  Repeater {
             model: [ "Tone mapping exposure:ToneMapping:exposure:5.0:-5.0",
                      "Tone:ToneMapping:exposure:5.0:-5.0"
                         ]
@@ -61,13 +61,19 @@ Rectangle {
             property: "enableBackground"
             anchors.left: parent.left
             anchors.right: parent.right 
-        }
+        }*/
         Prop.PropGroup {
             label: "My group"
             propItems: [
                 {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableBackground"},
-                {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableDiffuse"},
+                {"type": "PropScalar", "object": render.mainViewTask.getConfig("ToneMapping"), "property": "exposure"},
                 {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableEmissive"},
+                {"type": "PropEnum", "object": render.mainViewTask.getConfig("ToneMapping"), "property": "curve", enums: [
+                        "RGB",
+                        "SRGB",
+                        "Reinhard",
+                        "Filmic",
+                    ]},
             ]
             anchors.left: parent.left
             anchors.right: parent.right 
