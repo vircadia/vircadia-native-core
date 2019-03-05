@@ -108,7 +108,7 @@ Rectangle {
             // mute is in its own row
             ColumnLayout {
                 id: columnOne
-                spacing: 12;
+                spacing: 24;
                 x: margins.paddings
                 HifiControlsUit.Switch {
                     id: muteMic;
@@ -138,7 +138,7 @@ Rectangle {
             }
 
             ColumnLayout {
-                spacing: 12;
+                spacing: 24;
                 HifiControlsUit.Switch {
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
@@ -236,9 +236,6 @@ Rectangle {
                              (bar.currentIndex === 0 && !isVR)) &&
                              AudioScriptingInterface.devices.input.peakValuesAvailable;
                 }
-            }
-            Component.onCompleted: {
-                console.log("width " + rightMostInputLevelPos);
             }
         }
         AudioControls.LoopbackAudio {

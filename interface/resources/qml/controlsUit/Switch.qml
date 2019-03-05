@@ -41,10 +41,10 @@ Item {
         onClicked: rootSwitch.clicked();
         hoverEnabled: true
 
-        topPadding: 3;
+        topPadding: 1;
         leftPadding: 3;
         rightPadding: 3;
-        bottomPadding: 3;
+        bottomPadding: 1;
 
         onHoveredChanged: {
             if (hovered) {
