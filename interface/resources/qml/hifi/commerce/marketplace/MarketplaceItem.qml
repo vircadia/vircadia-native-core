@@ -52,7 +52,7 @@ Rectangle {
     }
     
     onDescriptionChanged: {
-    
+
         if(root.supports3DHTML) {
             descriptionTextModel.clear();
             descriptionTextModel.append({text: description});
@@ -271,7 +271,7 @@ Rectangle {
             buttonGlyph: (enabled && !isUpdate && (price > 0)) ? hifi.glyphs.hfc : ""
             text: isUpdate ? "UPDATE FOR FREE" : (isStocking ? "FREE STOCK" : (enabled ? (price || "FREE") : availability))
             color: hifi.buttons.blue
-            
+
             onClicked: root.buy();
         }
         
