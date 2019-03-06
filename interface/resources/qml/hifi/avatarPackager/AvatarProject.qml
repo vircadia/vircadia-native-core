@@ -318,6 +318,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: infoMessage.bottom
+        anchors.topMargin: 10
 
         anchors.bottomMargin: 24
 
@@ -338,8 +339,8 @@ Item {
         visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.hasErrors
 
         anchors {
-            top: infoMessage.bottom
-            topMargin: 28
+            top: notForSaleMessage.bottom
+            topMargin: 16
             horizontalCenter: parent.horizontalCenter
         }
 
