@@ -11,9 +11,7 @@
 #include "AnimPose.h"
 #include <GLMHelpers.h>
 #include <algorithm>
-#include <glm/gtc/matrix_transform.hpp>
 #include "AnimUtil.h"
-#include <glm/gtx/matrix_decompose.hpp>
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::quat(),
@@ -22,39 +20,6 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
 #define NEW_VERSION
 
 AnimPose::AnimPose(const glm::mat4& mat) {
-#if defined(ORIGINAL_VERSION)
-    static const float EPSILON = 0.0001f;
-    _scale = extractScale(mat);
-    // quat_cast doesn't work so well with scaled matrices, so cancel it out.
-    glm::mat4 tmp = glm::scale(mat, 1.0f / _scale);
-    _rot = glm::quat_cast(tmp);
-    float lengthSquared = glm::length2(_rot);
-    if (glm::abs(lengthSquared - 1.0f) > EPSILON) {
-        float oneOverLength = 1.0f / sqrtf(lengthSquared);
-        _rot = glm::quat(_rot.w * oneOverLength, _rot.x * oneOverLength, _rot.y * oneOverLength, _rot.z * oneOverLength);
-    }
-    _trans = extractTranslation(mat);
-#elif defined(DECOMPOSE_VERSION)
-    // glm::decompose code
-    glm::vec3 scale;
-    glm::quat rotation;
-    glm::vec3 translation;
-    glm::vec3 skew;
-    glm::vec4 perspective;
-    bool result = glm::decompose(mat, scale, rotation, translation, skew, perspective);
-    _scale = scale;
-    _rot = rotation;
-    _trans = translation;
-    if (!result) {
-        // hack
-        const float HACK_FACTOR = 1000.0f;
-        glm::mat4 tmp = glm::scale(mat, HACK_FACTOR);
-        glm::decompose(tmp, scale, rotation, translation, skew, perspective);
-        _scale = scale / HACK_FACTOR;
-        _rot = rotation;
-        _trans = translation;
-    }
-#elif defined(NEW_VERSION)
     glm::mat3 m(mat);
     _scale = glm::vec3(glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
     float det = glm::determinant(m);
@@ -79,7 +44,6 @@ AnimPose::AnimPose(const glm::mat4& mat) {
     }
 
     _trans = extractTranslation(mat);
-#endif
 }
 
 glm::vec3 AnimPose::operator*(const glm::vec3& rhs) const {
