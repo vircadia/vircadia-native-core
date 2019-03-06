@@ -200,7 +200,6 @@ void NodeList::timePingReply(ReceivedMessage& message, const SharedNodePointer& 
 }
 
 void NodeList::processPingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
-
     // send back a reply
     auto replyPacket = constructPingReplyPacket(*message);
     const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
@@ -291,13 +290,14 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
 
 void NodeList::sendDomainServerCheckIn() {
 
+    // This function is called by the server check-in timer thread
+    // not the NodeList thread.  Calling it on the NodeList thread
+    // resulted in starvation of the server check-in function.
+    // be VERY CAREFUL modifying this code as members of NodeList
+    // may be called by multiple threads.
+
     if (!_sendDomainServerCheckInEnabled) {
         qCDebug(networking) << "Refusing to send a domain-server check in while it is disabled.";
-        return;
-    }
-
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "sendDomainServerCheckIn", Qt::QueuedConnection);
         return;
     }
 
@@ -306,26 +306,31 @@ void NodeList::sendDomainServerCheckIn() {
         return;
     }
 
-    if (_publicSockAddr.isNull()) {
+    auto publicSockAddr = _publicSockAddr;
+    auto domainHandlerIp = _domainHandler.getIP();
+
+    if (publicSockAddr.isNull()) {
         // we don't know our public socket and we need to send it to the domain server
         qCDebug(networking) << "Waiting for inital public socket from STUN. Will not send domain-server check in.";
-    } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
+    } else if (domainHandlerIp.isNull() && _domainHandler.requiresICE()) {
         qCDebug(networking) << "Waiting for ICE discovered domain-server socket. Will not send domain-server check in.";
         handleICEConnectionToDomainServer();
         // let the domain handler know we are due to send a checkin packet
-    } else if (!_domainHandler.getIP().isNull() && !_domainHandler.checkInPacketTimeout()) {
-
-        PacketType domainPacketType = !_domainHandler.isConnected()
+    } else if (!domainHandlerIp.isNull() && !_domainHandler.checkInPacketTimeout()) {
+        bool domainIsConnected = _domainHandler.isConnected();
+        HifiSockAddr domainSockAddr = _domainHandler.getSockAddr();
+        PacketType domainPacketType = !domainIsConnected
             ? PacketType::DomainConnectRequest : PacketType::DomainListRequest;
 
-        if (!_domainHandler.isConnected()) {
-            qCDebug(networking) << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+        if (!domainIsConnected) {
+            auto hostname = _domainHandler.getHostname();
+            qCDebug(networking) << "Sending connect request to domain-server at" << hostname;
 
             // is this our localhost domain-server?
             // if so we need to make sure we have an up-to-date local port in case it restarted
 
-            if (_domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
-                || _domainHandler.getHostname() == "localhost") {
+            if (domainSockAddr.getAddress() == QHostAddress::LocalHost
+                || hostname == "localhost") {
 
                 quint16 domainPort = DEFAULT_DOMAIN_SERVER_PORT;
                 getLocalServerPortFromSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, domainPort);
@@ -338,7 +343,7 @@ void NodeList::sendDomainServerCheckIn() {
         auto accountManager = DependencyManager::get<AccountManager>();
         const QUuid& connectionToken = _domainHandler.getConnectionToken();
 
-        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull();
+        bool requiresUsernameSignature = !domainIsConnected && !connectionToken.isNull();
 
         if (requiresUsernameSignature && !accountManager->getAccountInfo().hasPrivateKey()) {
             qWarning() << "A keypair is required to present a username signature to the domain-server"
@@ -353,6 +358,7 @@ void NodeList::sendDomainServerCheckIn() {
 
         QDataStream packetStream(domainPacket.get());
 
+        HifiSockAddr localSockAddr = _localSockAddr;
         if (domainPacketType == PacketType::DomainConnectRequest) {
 
 #if (PR_BUILD || DEV_BUILD)
@@ -361,13 +367,9 @@ void NodeList::sendDomainServerCheckIn() {
             }
 #endif
 
-            QUuid connectUUID;
+            QUuid connectUUID = _domainHandler.getAssignmentUUID();
 
-            if (!_domainHandler.getAssignmentUUID().isNull()) {
-                // this is a connect request and we're an assigned node
-                // so set our packetUUID as the assignment UUID
-                connectUUID = _domainHandler.getAssignmentUUID();
-            } else if (_domainHandler.requiresICE()) {
+            if (connectUUID.isNull() && _domainHandler.requiresICE()) {
                 // this is a connect request and we're an interface client
                 // that used ice to discover the DS
                 // so send our ICE client UUID with the connect request
@@ -383,10 +385,9 @@ void NodeList::sendDomainServerCheckIn() {
 
             // if possible, include the MAC address for the current interface in our connect request
             QString hardwareAddress;
-
             for (auto networkInterface : QNetworkInterface::allInterfaces()) {
                 for (auto interfaceAddress : networkInterface.addressEntries()) {
-                    if (interfaceAddress.ip() == _localSockAddr.getAddress()) {
+                    if (interfaceAddress.ip() == localSockAddr.getAddress()) {
                         // this is the interface whose local IP matches what we've detected the current IP to be
                         hardwareAddress = networkInterface.hardwareAddress();
 
@@ -410,10 +411,10 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server including
         // the hostname information (so the domain-server can see which place name we came in on)
-        packetStream << _ownerType.load() << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
+        packetStream << _ownerType.load() << publicSockAddr << localSockAddr << _nodeTypesOfInterest.toList();
         packetStream << DependencyManager::get<AddressManager>()->getPlaceName();
 
-        if (!_domainHandler.isConnected()) {
+        if (!domainIsConnected) {
             DataServerAccountInfo& accountInfo = accountManager->getAccountInfo();
             packetStream << accountInfo.getUsername();
 
@@ -433,9 +434,9 @@ void NodeList::sendDomainServerCheckIn() {
         checkinCount = std::min(checkinCount, MAX_CHECKINS_TOGETHER);
         for (int i = 1; i < checkinCount; ++i) {
             auto packetCopy = domainPacket->createCopy(*domainPacket);
-            sendPacket(std::move(packetCopy), _domainHandler.getSockAddr());
+            sendPacket(std::move(packetCopy), domainSockAddr);
         }
-        sendPacket(std::move(domainPacket), _domainHandler.getSockAddr());
+        sendPacket(std::move(domainPacket), domainSockAddr);
         
     }
 }
@@ -708,37 +709,28 @@ void NodeList::processDomainServerRemovedNode(QSharedPointer<ReceivedMessage> me
     QUuid nodeUUID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
     qCDebug(networking) << "Received packet from domain-server to remove node with UUID" << uuidStringWithoutCurlyBraces(nodeUUID);
     killNodeWithUUID(nodeUUID);
+    removeDelayedAdd(nodeUUID);
 }
 
 void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
-    // setup variables to read into from QDataStream
-    qint8 nodeType;
-    QUuid nodeUUID, connectionSecretUUID;
-    HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    NodePermissions permissions;
-    bool isReplicated;
-    Node::LocalID sessionLocalID;
+    NewNodeInfo info;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions
-        >> isReplicated >> sessionLocalID;
+    packetStream >> info.type
+                 >> info.uuid
+                 >> info.publicSocket
+                 >> info.localSocket
+                 >> info.permissions
+                 >> info.isReplicated
+                 >> info.sessionLocalID
+                 >> info.connectionSecretUUID;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
-    if (nodePublicSocket.getAddress().isNull()) {
-        nodePublicSocket.setAddress(_domainHandler.getIP());
+    if (info.publicSocket.getAddress().isNull()) {
+        info.publicSocket.setAddress(_domainHandler.getIP());
     }
 
-    packetStream >> connectionSecretUUID;
-
-    SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket, nodeLocalSocket,
-                                             sessionLocalID, isReplicated, false, connectionSecretUUID, permissions);
-
-    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
-    // and always have their public socket as their active socket
-    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
-        node->setLastHeardMicrostamp(usecTimestampNow());
-        node->activatePublicSocket();
-    }
+    addNewNode(info);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -785,7 +777,6 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
-
     // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
     // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
 
@@ -799,6 +790,14 @@ void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
         // ping this node immediately
         pingPunchForInactiveNode(node);
     }
+
+    // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
+    // and always have their public socket as their active socket
+    if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+        node->activatePublicSocket();
+    }
+
 }
 
 void NodeList::handleNodePingTimeout() {
