@@ -273,6 +273,13 @@ public:
     {}
 };
 
+class FlowData {
+public:
+    FlowData() {};
+    std::vector<QByteArray> _physicsData;
+    std::vector<QByteArray> _collisionsData;
+};
+
 /// The runtime model format.
 class Model {
 public:
@@ -319,6 +326,7 @@ public:
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
+    FlowData flowData;
 };
 
 };
@@ -343,6 +351,7 @@ typedef hfm::Mesh HFMMesh;
 typedef hfm::AnimationFrame HFMAnimationFrame;
 typedef hfm::Light HFMLight;
 typedef hfm::Model HFMModel;
+typedef hfm::FlowData FlowData;
 
 Q_DECLARE_METATYPE(HFMAnimationFrame)
 Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)

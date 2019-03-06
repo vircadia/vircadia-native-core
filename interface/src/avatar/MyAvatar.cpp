@@ -2337,6 +2337,7 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
            _skeletonModel->setCauterizeBoneSet(_headBoneSet);
            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
            initAnimGraph();
+           initFlow();
            _skeletonModelLoaded = true;
        }
        QObject::disconnect(*skeletonConnection);
@@ -5379,6 +5380,37 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
                 }
                 collisionSystem.addCollisionSphere(jointIndex, collisionsSettings);
             }
+        }
+    }
+}
+
+void MyAvatar::initFlow() {
+    auto &flowData = _skeletonModel->getHFMModel().flowData;
+    if (flowData._physicsData.size() > 0) {
+        QVariantMap physicsConfig;
+        QVariantMap collisionsConfig;
+        for (auto &data : flowData._physicsData) {
+            QJsonObject map = QJsonDocument::fromJson(data).object();
+            if (!map.isEmpty() && map.keys().size() == 1) {
+                QString group = map.keys()[0];
+                if (map[group].isObject()) {
+                    physicsConfig.insert(group, map[group].toObject().toVariantMap());
+                }
+            }
+        }
+        for (auto &data : flowData._collisionsData) {
+            QJsonObject map = QJsonDocument::fromJson(data).object();
+            if (!map.isEmpty() && map.keys().size() == 1) {
+                QString jointName = map.keys()[0];
+                if (map[jointName].isObject()) {
+                    collisionsConfig.insert(jointName, map[jointName].toObject().toVariantMap());
+                }
+            }
+        }
+        if (collisionsConfig.size() > 0) {
+            useFlow(true, true, physicsConfig, collisionsConfig);
+        } else {
+            useFlow(true, false, physicsConfig);
         }
     }
 }
