@@ -78,13 +78,14 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
-void EntityTree::eraseNonLocalEntities() {
+void EntityTree::eraseDomainAndNonOwnedEntities() {
     emit clearingEntities();
 
     if (_simulation) {
         // local entities are not in the simulation, so we clear ALL
         _simulation->clearEntities();
     }
+
     this->withWriteLock([&] {
         QHash<EntityItemID, EntityItemPointer> savedEntities;
         // NOTE: lock the Tree first, then lock the _entityMap.
@@ -93,10 +94,10 @@ void EntityTree::eraseNonLocalEntities() {
         foreach(EntityItemPointer entity, _entityMap) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
-                element->cleanupNonLocalEntities();
+                element->cleanupDomainAndNonOwnedEntities();
             }
 
-            if (entity->isLocalEntity()) {
+            if (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID())) {
                 savedEntities[entity->getEntityItemID()] = entity;
             } else {
                 int32_t spaceIndex = entity->getSpaceIndex();
@@ -114,15 +115,16 @@ void EntityTree::eraseNonLocalEntities() {
 
     {
         QWriteLocker locker(&_needsParentFixupLock);
-        QVector<EntityItemWeakPointer> localEntitiesNeedsParentFixup;
+        QVector<EntityItemWeakPointer> needParentFixup;
 
         foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
-            if (!entityItem.expired() && entityItem.lock()->isLocalEntity()) {
-                localEntitiesNeedsParentFixup.push_back(entityItem);
+            auto entity = entityItem.lock();
+            if (entity && (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID()))) {
+                needParentFixup.push_back(entityItem);
             }
         }
 
-        _needsParentFixup = localEntitiesNeedsParentFixup;
+        _needsParentFixup = needParentFixup;
     }
 }
 
@@ -2972,6 +2974,7 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
 
 std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
+std::function<bool()> EntityTree::_areEntityClicksCapturedOperator = nullptr;
 
 QObject* EntityTree::getEntityObject(const QUuid& id) {
     if (_getEntityObjectOperator) {
@@ -2985,6 +2988,13 @@ QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
         return _textSizeOperator(id, text);
     }
     return QSizeF(0.0f, 0.0f);
+}
+
+bool EntityTree::areEntityClicksCaptured() {
+    if (_areEntityClicksCapturedOperator) {
+        return _areEntityClicksCapturedOperator();
+    }
+    return false;
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

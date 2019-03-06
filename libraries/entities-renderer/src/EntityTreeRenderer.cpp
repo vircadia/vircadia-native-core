@@ -73,14 +73,14 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
     _currentHoverOverEntityID = UNKNOWN_ENTITY_ID;
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
 
-    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginEntity, entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity);
-    connect(pointerManager.data(), &PointerManager::hoverContinueEntity, entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity);
-    connect(pointerManager.data(), &PointerManager::hoverEndEntity, entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity);
-    connect(pointerManager.data(), &PointerManager::triggerBeginEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity);
-    connect(pointerManager.data(), &PointerManager::triggerContinueEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(pointerManager.data(), &PointerManager::triggerEndEntity, entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity);
+    connect(pointerManager.data(), &PointerManager::hoverBeginEntity, entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity);
+    connect(pointerManager.data(), &PointerManager::hoverContinueEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
+    connect(pointerManager.data(), &PointerManager::hoverEndEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+    connect(pointerManager.data(), &PointerManager::triggerBeginEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerContinueEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(pointerManager.data(), &PointerManager::triggerEndEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
 
     // Forward mouse events to web entities
     auto handlePointerEvent = [&](const QUuid& entityID, const PointerEvent& event) {
@@ -93,10 +93,10 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
             QMetaObject::invokeMethod(thisEntity.get(), "handlePointerEvent", Q_ARG(const PointerEvent&, event));
         }
     };
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mousePressOnEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseMoveOnEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::mouseReleaseOnEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, handlePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity, this, handlePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, handlePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
         if (entity && entity->isVisible() && entity->getType() == EntityTypes::Web) {
@@ -106,8 +106,8 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts, AbstractViewStateInterf
             QMetaObject::invokeMethod(thisEntity.get(), "hoverEnterEntity", Q_ARG(const PointerEvent&, event));
         }
     });
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverOverEntity, this, handlePointerEvent);
-    connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverLeaveEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity, this, handlePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, [&](const QUuid& entityID, const PointerEvent& event) {
         std::shared_ptr<render::entities::WebEntityRenderer> thisEntity;
         auto entity = getEntity(entityID);
         if (entity && entity->isVisible() && entity->getType() == EntityTypes::Web) {
@@ -196,8 +196,8 @@ void EntityTreeRenderer::resetEntitiesScriptEngine() {
     });
 }
 
-void EntityTreeRenderer::stopNonLocalEntityScripts() {
-    leaveNonLocalEntities();
+void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
+    leaveDomainAndNonOwnedEntities();
     // unload and stop the engine
     if (_entitiesScriptEngine) {
         QList<EntityItemID> entitiesWithEntityScripts = _entitiesScriptEngine->getListOfEntityScriptIDs();
@@ -206,7 +206,7 @@ void EntityTreeRenderer::stopNonLocalEntityScripts() {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
 
             if (entityItem) {
-                if (!entityItem->isLocalEntity()) {
+                if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                     _entitiesScriptEngine->unloadEntityScript(entityID, true);
                 }
             }
@@ -214,8 +214,8 @@ void EntityTreeRenderer::stopNonLocalEntityScripts() {
     }
 }
 
-void EntityTreeRenderer::clearNonLocalEntities() {
-    stopNonLocalEntityScripts();
+void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
+    stopDomainAndNonOwnedEntities();
 
     std::unordered_map<EntityItemID, EntityRendererPointer> savedEntities;
     // remove all entities from the scene
@@ -225,7 +225,7 @@ void EntityTreeRenderer::clearNonLocalEntities() {
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
-            if (!entityItem->isLocalEntity()) {
+            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 renderer->removeFromScene(scene, transaction);
             } else {
                 savedEntities[entry.first] = entry.second;
@@ -239,7 +239,7 @@ void EntityTreeRenderer::clearNonLocalEntities() {
 
     _layeredZones.clearNonLocalLayeredZones();
 
-    OctreeProcessor::clearNonLocalEntities();
+    OctreeProcessor::clearDomainAndNonOwnedEntities();
 }
 
 void EntityTreeRenderer::clear() {
@@ -655,22 +655,22 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
     return didUpdate;
 }
 
-void EntityTreeRenderer::leaveNonLocalEntities() {
+void EntityTreeRenderer::leaveDomainAndNonOwnedEntities() {
     if (_tree && !_shuttingDown) {
-        QVector<EntityItemID> currentLocalEntitiesInside;
+        QVector<EntityItemID> currentEntitiesInsideToSave;
         foreach (const EntityItemID& entityID, _currentEntitiesInside) {
             EntityItemPointer entityItem = getTree()->findEntityByEntityItemID(entityID);
-            if (!entityItem->isLocalEntity()) {
+            if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 emit leaveEntity(entityID);
                 if (_entitiesScriptEngine) {
                     _entitiesScriptEngine->callEntityScriptMethod(entityID, "leaveEntity");
                 }
             } else {
-                currentLocalEntitiesInside.push_back(entityID);
+                currentEntitiesInsideToSave.push_back(entityID);
             }
         }
 
-        _currentEntitiesInside = currentLocalEntitiesInside;
+        _currentEntitiesInside = currentEntitiesInsideToSave;
         forceRecheckEntities();
     }
 }
@@ -792,11 +792,11 @@ static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
     }
 }
 
-std::pair<float, QUuid> EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
+QUuid EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
-        return { FLT_MAX, UNKNOWN_ENTITY_ID };
+        return UNKNOWN_ENTITY_ID;
     }
 
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
@@ -805,11 +805,13 @@ std::pair<float, QUuid> EntityTreeRenderer::mousePressEvent(QMouseEvent* event) 
     RayToEntityIntersectionResult rayPickResult = _getPrevRayPickResultOperator(_mouseRayPickID);
     EntityItemPointer entity;
     if (rayPickResult.intersects && (entity = getTree()->findEntityByID(rayPickResult.entityID))) {
-        auto properties = entity->getProperties();
-        QString urlString = properties.getHref();
-        QUrl url = QUrl(urlString, QUrl::StrictMode);
-        if (url.isValid() && !url.isEmpty()){
-            DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+        if (!EntityTree::areEntityClicksCaptured()) {
+            auto properties = entity->getProperties();
+            QString urlString = properties.getHref();
+            QUrl url = QUrl(urlString, QUrl::StrictMode);
+            if (url.isValid() && !url.isEmpty()) {
+                DependencyManager::get<AddressManager>()->handleLookupString(urlString);
+            }
         }
 
         glm::vec2 pos2D = projectOntoEntityXYPlane(entity, ray, rayPickResult);
@@ -827,10 +829,10 @@ std::pair<float, QUuid> EntityTreeRenderer::mousePressEvent(QMouseEvent* event) 
         _lastPointerEvent = pointerEvent;
         _lastPointerEventValid = true;
 
-        return { rayPickResult.distance, rayPickResult.entityID };
+        return rayPickResult.entityID;
     }
     emit entityScriptingInterface->mousePressOffEntity();
-    return { FLT_MAX, UNKNOWN_ENTITY_ID };
+    return UNKNOWN_ENTITY_ID;
 }
 
 void EntityTreeRenderer::mouseDoublePressEvent(QMouseEvent* event) {
