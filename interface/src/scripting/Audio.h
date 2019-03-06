@@ -72,7 +72,7 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool pushToTalk READ getPTT WRITE setPTT NOTIFY pushToTalkChanged);
     Q_PROPERTY(bool pushToTalkDesktop READ getPTTDesktop WRITE setPTTDesktop NOTIFY pushToTalkDesktopChanged)
     Q_PROPERTY(bool pushToTalkHMD READ getPTTHMD WRITE setPTTHMD NOTIFY pushToTalkHMDChanged)
-    Q_PROPERTY(bool pushingToTalk READ getPushingToTalk NOTIFY pushingToTalkChanged)
+    Q_PROPERTY(bool pushingToTalk READ getPushingToTalk WRITE setPushingToTalk NOTIFY pushingToTalkChanged)
 
 public:
     static QString AUDIO;
