@@ -168,11 +168,6 @@ void AvatarDoctor::startDiagnosing() {
                 _errors.push_back({ "Asymmetrical leg bones.", DEFAULT_URL });
             }
 
-
-
-                }
-
-
             const auto rig = new Rig();
             rig->reset(avatarModel);
             const float eyeHeight = rig->getUnscaledEyeHeight();
@@ -241,15 +236,15 @@ void AvatarDoctor::startDiagnosing() {
             }
 
             if (!isDescendantOfJointWhenJointsExist("Spine", "Hips")) {
-                _errors.push_back({ "Spine is no child of Hips.", DEFAULT_URL });
+                _errors.push_back({ "Spine is not a child of Hips.", DEFAULT_URL });
             }
 
             if (!isDescendantOfJointWhenJointsExist("Spine1", "Spine")) {
-                _errors.push_back({ "Spine1 is no child of Spine.", DEFAULT_URL });
+                _errors.push_back({ "Spine1 is not a child of Spine.", DEFAULT_URL });
             }
 
             if (!isDescendantOfJointWhenJointsExist("Head", "Spine1")) {
-                _errors.push_back({ "Head is no child of Spine1.", DEFAULT_URL });
+                _errors.push_back({ "Head is not a child of Spine1.", DEFAULT_URL });
             }
         }
 
@@ -272,7 +267,9 @@ void AvatarDoctor::startDiagnosing() {
                 if (materialMappingResource->isLoaded()) {
                     materialMappingHandled();
                 } else {
-                    connect(materialMappingResource.data(), &NetworkTexture::finished, this, [materialMappingHandled](bool success) mutable {
+                    connect(materialMappingResource.data(), &NetworkTexture::finished, this,
+                        [materialMappingHandled](bool success) mutable {
+                        
                         materialMappingHandled();
                     });
                 }
@@ -330,24 +327,14 @@ void AvatarDoctor::diagnoseTextures() {
 
     foreach(const auto& materialMapping, model->getMaterialMapping()) {
         foreach(const auto& networkMaterial, materialMapping.second.data()->parsedMaterials.networkMaterials) {
-            foreach(const auto& textureMap, networkMaterial.second->getTextureMaps()) {
-                texturesFound++;
-            }
+            texturesFound += (int)networkMaterial.second->getTextureMaps().size();
         }
     }
 
     auto normalizedURL = DependencyManager::get<ResourceManager>()->normalizeURL(
         QUrl(avatarModel.originalURL)).resolved(QUrl("textures"));
 
-    bool isTextureFolderEmpty = true;
-    if (normalizedURL.isLocalFile()) {
-        QDir texturesFolder(normalizedURL.toLocalFile());
-        if (texturesFolder.exists()) {
-            isTextureFolderEmpty = texturesFolder.isEmpty();
-        }
-    }
-
-    if (texturesFound == 0 && !isTextureFolderEmpty) {
+    if (texturesFound == 0) {
         _errors.push_back({ tr("No textures assigned."), DEFAULT_URL });
     }
 
