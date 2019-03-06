@@ -204,7 +204,8 @@ QString Overlays::overlayToEntityType(const QString& type) {
 #define RENAME_PROP(o, e)                                   \
     {                                                       \
         auto iter = overlayProps.find(#o);                  \
-        if (iter != overlayProps.end()) {                   \
+        if (iter != overlayProps.end() &&                   \
+                !overlayProps.contains(#e)) {               \
             overlayProps[#e] = iter.value();                \
         }                                                   \
     }
