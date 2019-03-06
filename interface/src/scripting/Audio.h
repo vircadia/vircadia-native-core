@@ -12,12 +12,16 @@
 #ifndef hifi_scripting_Audio_h
 #define hifi_scripting_Audio_h
 
+#include <functional>
 #include "AudioScriptingInterface.h"
 #include "AudioDevices.h"
 #include "AudioEffectOptions.h"
 #include "SettingHandle.h"
 #include "AudioFileWav.h"
 #include <shared/ReadWriteLockable.h>
+
+using MutedGetter = std::function<bool()>;
+using MutedSetter = std::function<void(bool)>;
 
 namespace scripting {
 
@@ -63,6 +67,12 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
     Q_PROPERTY(bool clipping READ isClipping NOTIFY clippingChanged)
     Q_PROPERTY(QString context READ getContext NOTIFY contextChanged)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
+    Q_PROPERTY(bool desktopMuted READ getMutedDesktop WRITE setMutedDesktop NOTIFY desktopMutedChanged)
+    Q_PROPERTY(bool hmdMuted READ getMutedHMD WRITE setMutedHMD NOTIFY hmdMutedChanged)
+    Q_PROPERTY(bool pushToTalk READ getPTT WRITE setPTT NOTIFY pushToTalkChanged);
+    Q_PROPERTY(bool pushToTalkDesktop READ getPTTDesktop WRITE setPTTDesktop NOTIFY pushToTalkDesktopChanged)
+    Q_PROPERTY(bool pushToTalkHMD READ getPTTHMD WRITE setPTTHMD NOTIFY pushToTalkHMDChanged)
+    Q_PROPERTY(bool pushingToTalk READ getPushingToTalk NOTIFY pushingToTalkChanged)
 
 public:
     static QString AUDIO;
@@ -81,6 +91,25 @@ public:
     QString getContext() const;
 
     void showMicMeter(bool show);
+
+    // Mute setting setters and getters
+    void setMutedDesktop(bool isMuted);
+    bool getMutedDesktop() const;
+    void setMutedHMD(bool isMuted);
+    bool getMutedHMD() const;
+    void setPTT(bool enabled);
+    bool getPTT();
+    bool getPushingToTalk() const;
+
+    // Push-To-Talk setters and getters
+    void setPTTDesktop(bool enabled);
+    bool getPTTDesktop() const;
+    void setPTTHMD(bool enabled);
+    bool getPTTHMD() const;
+
+    // Settings handlers
+    void saveData();
+    void loadData();
 
     /**jsdoc
      * @function Audio.setInputDevice
@@ -194,6 +223,46 @@ signals:
     void mutedChanged(bool isMuted);
     
     /**jsdoc
+    * Triggered when desktop audio input is muted or unmuted.
+    * @function Audio.desktopMutedChanged
+    * @param {boolean} isMuted - <code>true</code> if the audio input is muted for desktop mode, otherwise <code>false</code>.
+    * @returns {Signal}
+    */
+    void desktopMutedChanged(bool isMuted);
+
+    /**jsdoc
+    * Triggered when HMD audio input is muted or unmuted.
+    * @function Audio.hmdMutedChanged
+    * @param {boolean} isMuted - <code>true</code> if the audio input is muted for HMD mode, otherwise <code>false</code>.
+    * @returns {Signal}
+    */
+    void hmdMutedChanged(bool isMuted);
+
+    /**
+    * Triggered when Push-to-Talk has been enabled or disabled.
+    * @function Audio.pushToTalkChanged
+    * @param {boolean} enabled - <code>true</code> if Push-to-Talk is enabled, otherwise <code>false</code>.
+    * @returns {Signal}
+    */
+    void pushToTalkChanged(bool enabled);
+
+    /**
+    * Triggered when Push-to-Talk has been enabled or disabled for desktop mode.
+    * @function Audio.pushToTalkDesktopChanged
+    * @param {boolean} enabled - <code>true</code> if Push-to-Talk is emabled for Desktop mode, otherwise <code>false</code>.
+    * @returns {Signal}
+    */
+    void pushToTalkDesktopChanged(bool enabled);
+
+    /**
+    * Triggered when Push-to-Talk has been enabled or disabled for HMD mode.
+    * @function Audio.pushToTalkHMDChanged
+    * @param {boolean} enabled - <code>true</code> if Push-to-Talk is emabled for HMD mode, otherwise <code>false</code>.
+    * @returns {Signal}
+    */
+    void pushToTalkHMDChanged(bool enabled);
+
+    /**jsdoc
      * Triggered when the audio input noise reduction is enabled or disabled.
      * @function Audio.noiseReductionChanged
      * @param {boolean} isEnabled - <code>true</code> if audio input noise reduction is enabled, otherwise <code>false</code>.
@@ -237,6 +306,14 @@ signals:
      */
     void contextChanged(const QString& context);
 
+    /**jsdoc
+    * Triggered when pushing to talk.
+    * @function Audio.pushingToTalkChanged
+    * @param {boolean} talking - <code>true</code> if broadcasting with PTT, <code>false</code> otherwise.
+    * @returns {Signal}
+    */
+    void pushingToTalkChanged(bool talking);
+
 public slots:
 
     /**jsdoc
@@ -244,6 +321,8 @@ public slots:
      * @deprecated This function is deprecated and will be removed.
      */
     void onContextChanged();
+
+    void handlePushedToTalk(bool enabled);
 
 private slots:
     void setMuted(bool muted);
@@ -260,11 +339,19 @@ private:
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
     bool _isClipping { false };
-    bool _isMuted { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _contextIsHMD { false };
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
+    Setting::Handle<bool> _desktopMutedSetting{ QStringList { Audio::AUDIO, "desktopMuted" }, true };
+    Setting::Handle<bool> _hmdMutedSetting{ QStringList { Audio::AUDIO, "hmdMuted" }, true };
+    Setting::Handle<bool> _pttDesktopSetting{ QStringList { Audio::AUDIO, "pushToTalkDesktop" }, false };
+    Setting::Handle<bool> _pttHMDSetting{ QStringList { Audio::AUDIO, "pushToTalkHMD" }, false };
+    bool _desktopMuted{ true };
+    bool _hmdMuted{ false };
+    bool _pttDesktop{ false };
+    bool _pttHMD{ false };
+    bool _pushingToTalk{ false };
 };
 
 };

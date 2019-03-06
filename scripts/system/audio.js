@@ -28,6 +28,9 @@ var UNMUTE_ICONS = {
 };
 
 function onMuteToggled() {
+    if (Audio.pushingToTalk) {
+        return;
+    }
     if (Audio.muted) {
         button.editProperties(MUTE_ICONS);
     } else {

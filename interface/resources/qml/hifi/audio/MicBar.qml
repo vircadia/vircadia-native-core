@@ -11,10 +11,13 @@
 
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+import stylesUit 1.0
 
 import TabletScriptingInterface 1.0
 
 Rectangle {
+    HifiConstants { id: hifi; }
+
     readonly property var level: AudioScriptingInterface.inputLevel;
     
     property bool gated: false;
@@ -131,9 +134,9 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
+        readonly property string color: (AudioScriptingInterface.pushingToTalk && AudioScriptingInterface.muted) ? hifi.colors.blueHighlight : AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
 
-        visible: AudioScriptingInterface.muted;
+        visible: AudioScriptingInterface.pushingToTalk || AudioScriptingInterface.muted;
 
         anchors {
             left: parent.left;
@@ -152,7 +155,7 @@ Rectangle {
 
             color: parent.color;
 
-            text: AudioScriptingInterface.muted ? "MUTED" : "MUTE";
+            text: AudioScriptingInterface.pushToTalk ? (AudioScriptingInterface.pushingToTalk ? "SPEAKING" : "PUSH TO TALK") : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
