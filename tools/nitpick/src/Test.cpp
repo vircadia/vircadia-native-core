@@ -89,23 +89,25 @@ int Test::compareImageLists() {
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
             similarityIndex = -100.0;
         } else {
-            similarityIndex = _imageComparer.compareImages(resultImage, expectedImage);
+            _imageComparer.compareImages(resultImage, expectedImage);
+            similarityIndex = _imageComparer.getSSIMValue();
         }
 
         TestResult testResult = TestResult{
             (float)similarityIndex,
             _expectedImagesFullFilenames[i].left(_expectedImagesFullFilenames[i].lastIndexOf("/") + 1),  // path to the test (including trailing /)
             QFileInfo(_expectedImagesFullFilenames[i].toStdString().c_str()).fileName(),                 // filename of expected image
-            QFileInfo(_resultImagesFullFilenames[i].toStdString().c_str()).fileName()                    // filename of result image
+            QFileInfo(_resultImagesFullFilenames[i].toStdString().c_str()).fileName(),                   // filename of result image
+            _imageComparer.getSSIMResults()                                                              // results of SSIM algoritm
         };
 
         _mismatchWindow.setTestResult(testResult);
-
+        
         if (similarityIndex < THRESHOLD) {
             ++numberOfFailures;
 
             if (!isInteractiveMode) {
-                appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), true);
+                appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), _mismatchWindow.getSSIMResultsImage(testResult._ssimResults), true);
             } else {
                 _mismatchWindow.exec();
 
@@ -113,7 +115,7 @@ int Test::compareImageLists() {
                     case USER_RESPONSE_PASS:
                         break;
                     case USE_RESPONSE_FAIL:
-                        appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), true);
+                        appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), _mismatchWindow.getSSIMResultsImage(testResult._ssimResults), true);
                         break;
                     case USER_RESPONSE_ABORT:
                         keepOn = false;
@@ -124,7 +126,7 @@ int Test::compareImageLists() {
                 }
             }
         } else {
-            appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), false);
+            appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), _mismatchWindow.getSSIMResultsImage(testResult._ssimResults), false);
         }
 
         _progressBar->setValue(i);
@@ -156,7 +158,7 @@ int Test::checkTextResults() {
     return testsFailed.length();
 }
 
-void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImage, bool hasFailed) {
+void Test::appendTestResultsToFile(const TestResult& testResult, const QPixmap& comparisonImage, const QPixmap& ssimResultsImage, bool hasFailed) {
     // Critical error if Test Results folder does not exist
     if (!QDir().exists(_testResultsFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + _testResultsFolderPath + " not found");
@@ -217,6 +219,9 @@ void Test::appendTestResultsToFile(TestResult testResult, QPixmap comparisonImag
     }
 
     comparisonImage.save(resultFolderPath + "/" + "Difference Image.png");
+
+    // Save the SSIM results image
+    ssimResultsImage.save(resultFolderPath + "/" + "SSIM Image.png");
 }
 
 void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) {
@@ -1095,7 +1100,12 @@ void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
     _testRailCreateMode = testRailCreateMode;
 }
 
-void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
+void Test::createWebPage(
+    QCheckBox* updateAWSCheckBox, 
+    QRadioButton* diffImageRadioButton,
+    QRadioButton* ssimImageRadionButton,
+    QLineEdit* urlLineEdit
+) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
                                                        "Zipped Test Results (TestResults--*.zip)");
     if (testResults.isNull()) {
@@ -1112,5 +1122,12 @@ void Test::createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit) {
         _awsInterface = new AWSInterface;
     }
 
-    _awsInterface->createWebPageFromResults(testResults, workingDirectory, updateAWSCheckBox, urlLineEdit);
+    _awsInterface->createWebPageFromResults(
+        testResults, 
+        workingDirectory, 
+        updateAWSCheckBox, 
+        diffImageRadioButton,
+        ssimImageRadionButton,
+        urlLineEdit
+    );
 }
