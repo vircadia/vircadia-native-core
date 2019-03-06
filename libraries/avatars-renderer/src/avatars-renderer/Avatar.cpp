@@ -1983,6 +1983,7 @@ float Avatar::getUnscaledEyeHeight() const {
 
 void Avatar::buildUnscaledEyeHeightCache() {
     float skeletonHeight = getUnscaledEyeHeightFromSkeleton();
+    qCDebug(avatars_renderer) << "unscaled eye height " << skeletonHeight;
 
     // Sanity check by looking at the model extents.
     Extents meshExtents = _skeletonModel->getUnscaledMeshExtents();

@@ -134,6 +134,7 @@ void AnimClip::copyFromNetworkAnim() {
     const float animationUnitScale = extractScale(animModel.offset).y;
     const float avatarHeightInMeters = avatarUnitScale * avatarHipsAbsoluteDefaultPose.trans().y;
     const float animHeightInMeters = animationUnitScale * animHipsAbsoluteDefaultPose.trans().y;
+    qCDebug(animation) << "meters per unit, avatar: " << avatarUnitScale << " and height of avatar " << avatarHeightInMeters;
 
     // get the parent scales for the avatar and the animation
     float avatarHipsParentScale = 1.0f;
@@ -154,7 +155,7 @@ void AnimClip::copyFromNetworkAnim() {
         const float avatarToAnimationHeightRatio = avatarHeightInMeters / animHeightInMeters;
         const float unitsRatio = 1.0f / (avatarUnitScale / animationUnitScale);
         const float parentScaleRatio = 1.0f / (avatarHipsParentScale / animHipsParentScale);
-
+        qCDebug(animation) << "height ratio: " << avatarToAnimationHeightRatio << " units ratio " << unitsRatio << " parent Scale Ratio " << parentScaleRatio;
         boneLengthScale = avatarToAnimationHeightRatio * unitsRatio * parentScaleRatio;
     }
 
