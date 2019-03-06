@@ -1064,17 +1064,18 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         t += deltaTime;
 
-        if (_enableInverseKinematics) {
-            _animVars.set("ikOverlayAlpha", 1.0f);
-            _animVars.set("splineIKEnabled", true);
-            _animVars.set("leftHandIKEnabled", true);
-            _animVars.set("rightHandIKEnabled", true);
-            _animVars.set("leftFootIKEnabled", true);
-            _animVars.set("rightFootIKEnabled", true);
-            _animVars.set("leftFootPoleVectorEnabled", true);
-            _animVars.set("rightFootPoleVectorEnabled", true);
-        } else {
-            _animVars.set("ikOverlayAlpha", 0.0f);
+        if (_enableInverseKinematics != _lastEnableInverseKinematics) {
+            if (_enableInverseKinematics) {
+                _animVars.set("ikOverlayAlpha", 1.0f);
+            } else {
+                _animVars.set("ikOverlayAlpha", 0.0f);
+            }
+        }
+        _lastEnableInverseKinematics = _enableInverseKinematics;
+
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
+
+        if (!_enableInverseKinematics) {
             _animVars.set("splineIKEnabled", false);
             _animVars.set("leftHandIKEnabled", false);
             _animVars.set("rightHandIKEnabled", false);
@@ -1085,7 +1086,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("leftFootPoleVectorEnabled", false);
             _animVars.set("rightFootPoleVectorEnabled", false);
         }
-        _lastEnableInverseKinematics = _enableInverseKinematics;
+
+#endif
+
     }
     _lastForward = forward;
     _lastPosition = worldPosition;
