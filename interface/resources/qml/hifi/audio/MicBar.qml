@@ -138,7 +138,7 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.pushToTalk ? hifi.colors.blueHighlight : AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
+        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
 
         visible: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) || AudioScriptingInterface.muted;
 
