@@ -358,6 +358,8 @@ signals:
 
     void miniTabletEnabledChanged(bool enabled);
 
+    void pushedToTalk(bool enabled);
+
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<QUuid>& entityIDs, const glm::vec3* givenOffset = nullptr);
