@@ -274,7 +274,6 @@ class AvatarExporter : MonoBehaviour {
         public double roughness;
         public string roughnessMap;
         public string normalMap;
-        public string heightMap;
         public string occlusionMap;
         public Color emissive;
         public string emissiveMap;
@@ -295,9 +294,6 @@ class AvatarExporter : MonoBehaviour {
             }
             if (!string.IsNullOrEmpty(normalMap)) {
                 json += "\"normalMap\": \"" + normalMap + "\", ";
-            }
-            if (!string.IsNullOrEmpty(heightMap)) {
-                json += "\"heightMap\": \"" + heightMap + "\", ";
             }
             if (!string.IsNullOrEmpty(occlusionMap)) {
                 json += "\"occlusionMap\": \"" + occlusionMap + "\", ";
@@ -326,7 +322,6 @@ class AvatarExporter : MonoBehaviour {
     static Dictionary<string, MaterialData> materialDatas = new Dictionary<string, MaterialData>();
     static List<string> materialAlternateStandardShader = new List<string>();
     static Dictionary<string, string> materialUnsupportedShader = new Dictionary<string, string>();
-    static List<string> normalMapAndHeightMapNotBoth = new List<string>();
 
     [MenuItem("High Fidelity/Export New Avatar")]
     static void ExportNewAvatar() {
@@ -395,9 +390,6 @@ class AvatarExporter : MonoBehaviour {
         foreach (var material in materialUnsupportedShader) {
             warnings += "The material " + material.Key + " is using an unsupported shader " + material.Value + 
                         ". Please change it to a Standard shader type.\n\n";
-        }
-        foreach (string materialName in normalMapAndHeightMapNotBoth) {
-            warnings += "The material " + materialName + " has both a normal map and a height map assigned but can only use 1.\n\n";
         }
         warnings += textureWarnings;
         if (!string.IsNullOrEmpty(boneErrors)) {
@@ -664,7 +656,7 @@ class AvatarExporter : MonoBehaviour {
                     materialMappings[materialName] == DEFAULT_MATERIAL_NAME) {
                     materialJson += "\"all\": ";
                 } else {
-                    materialJson += "\"[mat::" + materialName + "]\": ";
+                    materialJson += "\"mat::" + materialName + "\": ";
                 }
                 materialJson += materialData.Value.getJSON();
                 materialJson += ", ";
@@ -688,7 +680,6 @@ class AvatarExporter : MonoBehaviour {
         materialDatas.Clear();
         materialAlternateStandardShader.Clear();
         materialUnsupportedShader.Clear();
-        normalMapAndHeightMapNotBoth.Clear();
         
         SetMaterialMappings();
         
@@ -1057,8 +1048,6 @@ class AvatarExporter : MonoBehaviour {
             string materialName = material.name;
             string shaderName = material.shader.name;
             
-            Debug.Log("material1 " + materialName);
-            
             // don't store any material data for unsupported shader types
             if (Array.IndexOf(SUPPORTED_SHADERS, shaderName) == -1) {
                 if (!materialUnsupportedShader.ContainsKey(materialName)) {
@@ -1073,7 +1062,6 @@ class AvatarExporter : MonoBehaviour {
             materialData.roughness = material.GetFloat("_Glossiness");
             materialData.roughnessMap = GetMaterialTexture(material, "_SpecGlossMap");
             materialData.normalMap = GetMaterialTexture(material, "_BumpMap");
-            materialData.heightMap = GetMaterialTexture(material, "_ParallaxMap");
             materialData.occlusionMap = GetMaterialTexture(material, "_OcclusionMap");
             materialData.emissive = material.GetColor("_EmissionColor");
             materialData.emissiveMap = GetMaterialTexture(material, "_EmissionMap");
@@ -1095,12 +1083,7 @@ class AvatarExporter : MonoBehaviour {
                 }
                 materialData.roughness = 1.0f - materialData.roughness;
             }
-            
-            // materials can not have both a normal map and a height map set
-            if (!string.IsNullOrEmpty(materialData.normalMap) && !string.IsNullOrEmpty(materialData.heightMap) && !normalMapAndHeightMapNotBoth.Contains(materialName)) {
-                normalMapAndHeightMapNotBoth.Add(materialName);
-            }
-            
+
             // remap the material name from the Unity material name to the fbx material name that it overrides
             if (materialMappings.ContainsKey(materialName)) {
                 materialName = materialMappings[materialName];
@@ -1137,7 +1120,6 @@ class AvatarExporter : MonoBehaviour {
             var material = mapping.Value as UnityEngine.Material;
             if (material != null) {
                 materialMappings.Add(material.name, mapping.Key.name);
-                //Debug.Log("materialMapping " + material.name + " " + mapping.Key.name);
             }
         }
     }
