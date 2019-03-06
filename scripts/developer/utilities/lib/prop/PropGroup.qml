@@ -42,8 +42,8 @@ Item {
     }
     height: column.height
 
-    Component.onCompleted: {
-        for (var i = 0; i < root.propItems.length; i++) {
+    function updatePropItems() {
+         for (var i = 0; i < root.propItems.length; i++) {
             var proItem = root.propItems[i];
             switch(proItem.type) {
                 case 'PropBool': {
@@ -76,5 +76,8 @@ Item {
                 } break;
             }      
         }
+    }
+    Component.onCompleted: {
+        updatePropItems();
     }
 }

@@ -14,6 +14,7 @@ import QtQuick.Layouts 1.3
 import controlsUit 1.0 as HifiControls
 
 import "../lib/prop" as Prop
+import "../lib/jet/qml" as Jet
 
 Rectangle {
     Prop.Global { id: prop;}
@@ -62,7 +63,7 @@ Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right 
         }*/
-        Prop.PropGroup {
+     /*   Prop.PropGroup {
             label: "My group"
             propItems: [
                 {"type": "PropBool", "object": render.mainViewTask.getConfig("LightingModel"), "property": "enableBackground"},
@@ -75,6 +76,14 @@ Rectangle {
                         "Filmic",
                     ]},
             ]
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }*/
+
+        Jet.TaskPropView {
+            jobPath: "RenderMainView.LightingModel"
+            label: "Le tone mapping Job"
+
             anchors.left: parent.left
             anchors.right: parent.right 
         }
