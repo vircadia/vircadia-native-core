@@ -1064,18 +1064,10 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         t += deltaTime;
 
-        if (_enableInverseKinematics != _lastEnableInverseKinematics) {
-            if (_enableInverseKinematics) {
-                _animVars.set("ikOverlayAlpha", 1.0f);
-            } else {
-                _animVars.set("ikOverlayAlpha", 0.0f);
-            }
-        }
-        _lastEnableInverseKinematics = _enableInverseKinematics;
-
-#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
-
-        if (!_enableInverseKinematics) {
+        if (_enableInverseKinematics) {
+            _animVars.set("ikOverlayAlpha", 1.0f);
+        } else {
+            _animVars.set("ikOverlayAlpha", 0.0f);
             _animVars.set("splineIKEnabled", false);
             _animVars.set("leftHandIKEnabled", false);
             _animVars.set("rightHandIKEnabled", false);
@@ -1086,8 +1078,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("leftFootPoleVectorEnabled", false);
             _animVars.set("rightFootPoleVectorEnabled", false);
         }
-
-#endif
+        _lastEnableInverseKinematics = _enableInverseKinematics;
 
     }
     _lastForward = forward;
