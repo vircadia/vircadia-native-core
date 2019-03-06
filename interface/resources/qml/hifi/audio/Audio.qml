@@ -154,6 +154,25 @@ Rectangle {
                 }
                 AudioControls.CheckBox {
                     spacing: muteMic.spacing
+                    text: qsTr("Push To Talk");
+                    checked: isVR ? AudioScriptingInterface.pushToTalkHMD : AudioScriptingInterface.pushToTalkDesktop;
+                    onClicked: {
+                        if (isVR) {
+                            AudioScriptingInterface.pushToTalkHMD = checked;
+                        } else {
+                            AudioScriptingInterface.pushToTalkDesktop = checked;
+                        }
+                        checked = Qt.binding(function() {
+                            if (isVR) {
+                                return AudioScriptingInterface.pushToTalkHMD;
+                            } else {
+                                return AudioScriptingInterface.pushToTalkDesktop;
+                            }
+                        }); // restore binding
+                    }
+                }
+                AudioControls.CheckBox {
+                    spacing: muteMic.spacing
                     text: qsTr("Show audio level meter");
                     checked: AvatarInputs.showAudioTools;
                     onClicked: {
