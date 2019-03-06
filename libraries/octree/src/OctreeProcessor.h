@@ -43,7 +43,7 @@ public:
     virtual void init();
 
     /// clears the tree
-    virtual void clearNonLocalEntities();
+    virtual void clearDomainAndNonOwnedEntities();
     virtual void clear();
 
     float getAverageElementsPerPacket() const { return _elementsPerPacket.getAverage(); }

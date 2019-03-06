@@ -164,7 +164,7 @@ protected:
     int _lastKnownCurrentFrame{-1};
 
     glm::u8vec3 _color;
-    glm::vec3 _modelScale;
+    glm::vec3 _modelScale { 1.0f };
     QString _modelURL;
     bool _relayParentJoints;
     bool _groupCulled { false };
