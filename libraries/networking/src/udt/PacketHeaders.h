@@ -260,6 +260,7 @@ enum class EntityVersion : PacketVersion {
     MissingWebEntityProperties,
     PulseProperties,
     RingGizmoEntities,
+    AvatarPriorityZone,
     ShowKeyboardFocusHighlight,
     WebBillboardMode,
     ModelScale,

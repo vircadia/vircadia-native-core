@@ -87,7 +87,7 @@ public:
 
     void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void appendTestResultsToFile(TestResult testResult, QPixmap comparisonImage, bool hasFailed);
+    void appendTestResultsToFile(const TestResult& testResult, const QPixmap& comparisonImage, const QPixmap& ssimResultsImage, bool hasFailed);
     void appendTestResultsToFile(QString testResultFilename, bool hasFailed);
 
     bool createTestResultsFolderPath(const QString& directory);
@@ -102,7 +102,11 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
-    void createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit);
+    void createWebPage(
+        QCheckBox* updateAWSCheckBox, 
+        QRadioButton* diffImageRadioButton,
+        QRadioButton* ssimImageRadionButton,
+        QLineEdit* urlLineEdit);
 
 private:
     QProgressBar* _progressBar;
@@ -116,7 +120,7 @@ private:
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    const double THRESHOLD{ 0.935 };
+    const double THRESHOLD{ 0.98 };
 
     QDir _imageDirectory;
 

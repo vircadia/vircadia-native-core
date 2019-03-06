@@ -428,6 +428,13 @@ const GROUPS = [
                 propertyID: "bloom.bloomSize",
                 showPropertyRule: { "bloomMode": "enabled" },
             },
+            {
+                label: "Avatar Priority",
+                type: "dropdown",
+                options: { inherit: "Inherit", crowd: "Crowd", hero: "Hero" },
+                propertyID: "avatarPriority",
+            },
+
         ]
     },
     {

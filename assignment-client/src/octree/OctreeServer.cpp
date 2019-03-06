@@ -1203,7 +1203,8 @@ void OctreeServer::beginRunning() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::AvatarMixer });
 
     beforeRun(); // after payload has been processed
 
