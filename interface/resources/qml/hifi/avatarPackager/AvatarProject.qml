@@ -256,7 +256,7 @@ Item {
                 name: "errors"
                 PropertyChanges {
                     target: doctorStatusMessage
-                    text: "It seems your project has a few issues that will affect how it works in High Fidelity. "
+                    text: "Your avatar has a few issues."
                 }
             }
         ]
@@ -304,6 +304,29 @@ Item {
         wrapMode: Text.Wrap
 
         text: "You can upload your files to our servers to always access them, and to make your avatar visible to other users."
+    }
+
+    RalewayRegular {
+        id: notForSaleMessage
+
+        visible: root.hasSuccessfullyUploaded
+
+        color: 'white'
+        linkColor: '#00B4EF'
+        size: 20
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: infoMessage.bottom
+
+        anchors.bottomMargin: 24
+
+        wrapMode: Text.Wrap
+        text: "This item is not for sale yet, <a href='#'>learn more</a>."
+
+        onLinkActivated: {
+            Qt.openUrlExternally("https://docs.highfidelity.com/sell/add-item/upload-avatar.html");
+        }
     }
 
     RalewayRegular {
