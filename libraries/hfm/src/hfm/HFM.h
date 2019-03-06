@@ -276,8 +276,10 @@ public:
 class FlowData {
 public:
     FlowData() {};
-    std::vector<QByteArray> _physicsData;
-    std::vector<QByteArray> _collisionsData;
+    QVariantMap _physicsConfig;
+    QVariantMap _collisionsConfig;
+    bool shouldInitFlow() const { return _physicsConfig.size() > 0; }
+    bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
 };
 
 /// The runtime model format.

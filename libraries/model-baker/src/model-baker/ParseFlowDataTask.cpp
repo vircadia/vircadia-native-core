@@ -12,13 +12,20 @@ void ParseFlowDataTask::run(const baker::BakeContextPointer& context, const Inpu
     FlowData flowData;
     static const QString FLOW_PHYSICS_FIELD = "flowPhysicsData";
     static const QString FLOW_COLLISIONS_FIELD = "flowCollisionsData";
-    for (auto &mappingIter = mapping.begin(); mappingIter != mapping.end(); mappingIter++) {
+    for (auto mappingIter = mapping.begin(); mappingIter != mapping.end(); mappingIter++) {
         if (mappingIter.key() == FLOW_PHYSICS_FIELD || mappingIter.key() == FLOW_COLLISIONS_FIELD) {
-            QByteArray flowDataValue = mappingIter.value().toByteArray();
-            if (mappingIter.key() == FLOW_PHYSICS_FIELD) {
-                flowData._physicsData.push_back(flowDataValue);
-            } else {
-                flowData._collisionsData.push_back(flowDataValue);
+            QByteArray data = mappingIter.value().toByteArray();
+            QJsonObject dataObject = QJsonDocument::fromJson(data).object();
+            if (!dataObject.isEmpty() && dataObject.keys().size() == 1) {
+                QString key = dataObject.keys()[0];
+                if (dataObject[key].isObject()) {
+                    QVariantMap dataMap = dataObject[key].toObject().toVariantMap();
+                    if (mappingIter.key() == FLOW_PHYSICS_FIELD) {
+                        flowData._physicsConfig.insert(key, dataMap);
+                    } else {
+                        flowData._collisionsConfig.insert(key, dataMap);
+                    }
+                }
             }
         }
     }
