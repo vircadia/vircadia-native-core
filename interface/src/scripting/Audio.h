@@ -99,6 +99,7 @@ public:
     bool getMutedHMD() const;
     void setPTT(bool enabled);
     bool getPTT();
+    void setPushingToTalk(bool pushingToTalk);
     bool getPushingToTalk() const;
 
     // Push-To-Talk setters and getters

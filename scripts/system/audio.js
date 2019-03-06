@@ -26,12 +26,15 @@ var UNMUTE_ICONS = {
     icon: "icons/tablet-icons/mic-unmute-i.svg",
     activeIcon: "icons/tablet-icons/mic-unmute-a.svg"
 };
+var PTT_ICONS = {
+    icon: "icons/tablet-icons/mic-unmute-i.svg",
+    activeIcon: "icons/tablet-icons/mic-unmute-a.svg"
+};
 
 function onMuteToggled() {
     if (Audio.pushingToTalk) {
-        return;
-    }
-    if (Audio.muted) {
+        button.editProperties(PTT_ICONS);
+    } else if (Audio.muted) {
         button.editProperties(MUTE_ICONS);
     } else {
         button.editProperties(UNMUTE_ICONS);
@@ -71,6 +74,7 @@ onMuteToggled();
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
 Audio.mutedChanged.connect(onMuteToggled);
+Audio.pushingToTalkChanged.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     if (onAudioScreen) {
@@ -79,6 +83,7 @@ Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     tablet.screenChanged.disconnect(onScreenChanged);
     Audio.mutedChanged.disconnect(onMuteToggled);
+    Audio.pushingToTalkChanged.disconnect(onMuteToggled);
     tablet.removeButton(button);
 });
 

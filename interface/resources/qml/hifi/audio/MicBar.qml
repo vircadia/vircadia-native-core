@@ -134,7 +134,7 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: (AudioScriptingInterface.pushingToTalk && AudioScriptingInterface.muted) ? hifi.colors.blueHighlight : AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
+        readonly property string color: AudioScriptingInterface.pushToTalk ? hifi.colors.blueHighlight : AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
 
         visible: AudioScriptingInterface.pushingToTalk || AudioScriptingInterface.muted;
 
@@ -165,7 +165,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: 50;
+            width: AudioScriptingInterface.pushToTalk ? (AudioScriptingInterface.pushingToTalk ? 45: 30) : 50;
             height: 4;
             color: parent.color;
         }
@@ -176,7 +176,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: 50;
+            width: AudioScriptingInterface.pushToTalk ? (AudioScriptingInterface.pushingToTalk ? 45: 30) : 50;
             height: 4;
             color: parent.color;
         }
