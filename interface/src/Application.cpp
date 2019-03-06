@@ -1431,6 +1431,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         });
         connect(this, &Application::activeDisplayPluginChanged,
             reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
+        connect(this, &Application::pushedToTalk,
+            reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::handlePushedToTalk);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -4195,6 +4197,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
+            case Qt::Key_T:
+                emit pushedToTalk(true);
+                break;
+
             case Qt::Key_P: {
                 if (!isShifted && !isMeta && !isOption && !event->isAutoRepeat()) {
                     AudioInjectorOptions options;
@@ -4299,6 +4305,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
+    }
+
+    switch (event->key()) {
+    case Qt::Key_T:
+        emit pushedToTalk(false);
+        break;
     }
 }
 
@@ -5243,6 +5255,9 @@ void Application::loadSettings() {
         }
     }
 
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->loadData();
+
     getMyAvatar()->loadData();
     _settingsLoaded = true;
 }
@@ -5251,6 +5266,9 @@ void Application::saveSettings() const {
     sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SECOND);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
+
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->saveData();
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
