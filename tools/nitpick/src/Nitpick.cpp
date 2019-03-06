@@ -150,10 +150,6 @@ void Nitpick::on_tabWidget_currentChanged(int index) {
     }
 }
 
-void Nitpick::on_evaluateTestsPushbutton_clicked() {
-    _testCreator->startTestsEvaluation(false, false);
-}
-
 void Nitpick::on_createRecursiveScriptPushbutton_clicked() {
     _testCreator->createRecursiveScript();
 }
@@ -253,6 +249,10 @@ void Nitpick::on_showTaskbarPushbutton_clicked() {
 #endif
 }
 
+void Nitpick::on_evaluateTestsPushbutton_clicked() {
+    _testCreator->startTestsEvaluation(false, false);
+}
+
 void Nitpick::on_closePushbutton_clicked() {
     exit(0);
 }
@@ -266,7 +266,7 @@ void Nitpick::on_createXMLScriptRadioButton_clicked() {
 }
 
 void Nitpick::on_createWebPagePushbutton_clicked() {
-    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.awsURLLineEdit);
+    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit);
 }
 
 void Nitpick::about() {

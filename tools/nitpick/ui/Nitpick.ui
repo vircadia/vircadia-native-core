@@ -46,7 +46,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>5</number>
     </property>
     <widget class="QWidget" name="tab_1">
      <attribute name="title">
@@ -910,7 +910,7 @@
       <property name="geometry">
        <rect>
         <x>190</x>
-        <y>180</y>
+        <y>200</y>
         <width>131</width>
         <height>20</height>
        </rect>
@@ -926,7 +926,7 @@
       <property name="geometry">
        <rect>
         <x>330</x>
-        <y>170</y>
+        <y>190</y>
         <width>181</width>
         <height>51</height>
        </rect>
@@ -1039,8 +1039,8 @@
        </property>
        <property name="geometry">
         <rect>
-         <x>270</x>
-         <y>30</y>
+         <x>370</x>
+         <y>20</y>
          <width>160</width>
          <height>51</height>
         </rect>
@@ -1072,6 +1072,38 @@
         </rect>
        </property>
        <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="diffImageRadioButton">
+       <property name="geometry">
+        <rect>
+         <x>260</x>
+         <y>50</y>
+         <width>95</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>Diff Image</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
+       </property>
+      </widget>
+      <widget class="QRadioButton" name="ssimImageRadioButton">
+       <property name="geometry">
+        <rect>
+         <x>260</x>
+         <y>30</y>
+         <width>95</width>
+         <height>20</height>
+        </rect>
+       </property>
+       <property name="text">
+        <string>SSIM Image</string>
+       </property>
+       <property name="checked">
         <bool>true</bool>
        </property>
       </widget>

@@ -1061,6 +1061,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(PluginManager::getInstance().data(), &PluginManager::inputDeviceRunningChanged,
         controllerScriptingInterface, &controller::ScriptingInterface::updateRunningInputDevices);
 
+    EntityTree::setEntityClicksCapturedOperator([this] {
+        return _controllerScriptingInterface->areEntityClicksCaptured();
+    });
+
     _entityClipboard->createRootElement();
 
 #ifdef Q_OS_WIN
@@ -1075,6 +1079,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/FiraSans-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Light.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Regular.ttf");
+    QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/rawline-500.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-Bold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Raleway-SemiBold.ttf");
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "fonts/Cairo-SemiBold.ttf");
@@ -1756,6 +1761,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 #endif
     });
 
+
     // Setup the _keyboardMouseDevice, _touchscreenDevice, _touchscreenVirtualPadDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
     // if the _touchscreenDevice is not supported it will not be registered
@@ -2411,6 +2417,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&AndroidHelper::instance(), &AndroidHelper::beforeEnterBackground, this, &Application::beforeEnterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterBackground, this, &Application::enterBackground);
     connect(&AndroidHelper::instance(), &AndroidHelper::enterForeground, this, &Application::enterForeground);
+    connect(&AndroidHelper::instance(), &AndroidHelper::toggleAwayMode, this, &Application::toggleAwayMode);
     AndroidHelper::instance().notifyLoadComplete();
 #endif
     pauseUntilLoginDetermined();
@@ -3661,8 +3668,8 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     // If this is a first run we short-circuit the address passed in
     if (_firstRun.get()) {
 #if !defined(Q_OS_ANDROID)
-        DependencyManager::get<AddressManager>()->goToEntry();
-        sentTo = SENT_TO_ENTRY;
+       DependencyManager::get<AddressManager>()->goToEntry();
+       sentTo = SENT_TO_ENTRY;
 #endif
         _firstRun.set(false);
 
@@ -4389,7 +4396,6 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (compositor.getReticleVisible() || !isHMDMode() || !compositor.getReticleOverDesktop() ||
         getOverlays().getOverlayAtPoint(glm::vec2(transformedPos.x(), transformedPos.y())) != UNKNOWN_ENTITY_ID) {
         getEntities()->mouseMoveEvent(&mappedEvent);
-        getOverlays().mouseMoveEvent(&mappedEvent);
     }
 
     _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
@@ -4423,14 +4429,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
 #endif
 
     QMouseEvent mappedEvent(event->type(), transformedPos, event->screenPos(), event->button(), event->buttons(), event->modifiers());
-    std::pair<float, QUuid> entityResult;
-    if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-        entityResult = getEntities()->mousePressEvent(&mappedEvent);
-    }
-    std::pair<float, QUuid> overlayResult = getOverlays().mousePressEvent(&mappedEvent);
-
-    QUuid focusedEntity = entityResult.first < overlayResult.first ? entityResult.second : overlayResult.second;
-    setKeyboardFocusEntity(getEntities()->wantsKeyboardFocus(focusedEntity) ? focusedEntity : UNKNOWN_ENTITY_ID);
+    QUuid result = getEntities()->mousePressEvent(&mappedEvent);
+    setKeyboardFocusEntity(getEntities()->wantsKeyboardFocus(result) ? result : UNKNOWN_ENTITY_ID);
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
 
@@ -4469,11 +4469,7 @@ void Application::mouseDoublePressEvent(QMouseEvent* event) {
         transformedPos,
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
-
-    if (!_controllerScriptingInterface->areEntityClicksCaptured()) {
-        getEntities()->mouseDoublePressEvent(&mappedEvent);
-    }
-    getOverlays().mouseDoublePressEvent(&mappedEvent);
+    getEntities()->mouseDoublePressEvent(&mappedEvent);
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
@@ -4498,7 +4494,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
         event->buttons(), event->modifiers());
 
     getEntities()->mouseReleaseEvent(&mappedEvent);
-    getOverlays().mouseReleaseEvent(&mappedEvent);
 
     _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
 
@@ -4984,9 +4979,9 @@ void Application::idle() {
 
     {
         if (_keyboardFocusWaitingOnRenderable && getEntities()->renderableForEntityId(_keyboardFocusedEntity.get())) {
-            _keyboardFocusWaitingOnRenderable = false;
             QUuid entityId = _keyboardFocusedEntity.get();
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            _keyboardFocusWaitingOnRenderable = false;
             setKeyboardFocusEntity(entityId);
         }
     }
@@ -6948,7 +6943,7 @@ void Application::clearDomainOctreeDetails(bool clearAll) {
     });
 
     // reset the model renderer
-    clearAll ? getEntities()->clear() : getEntities()->clearNonLocalEntities();
+    clearAll ? getEntities()->clear() : getEntities()->clearDomainAndNonOwnedEntities();
 
     auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
 
@@ -9155,6 +9150,8 @@ void Application::beforeEnterBackground() {
     clearDomainOctreeDetails();
 }
 
+
+
 void Application::enterBackground() {
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
                               "stop", Qt::BlockingQueuedConnection);
@@ -9178,6 +9175,15 @@ void Application::enterForeground() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setSendDomainServerCheckInEnabled(true);
 }
+
+
+void Application::toggleAwayMode(){
+    QKeyEvent event = QKeyEvent (QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
+    QCoreApplication::sendEvent (this, &event);
+}
+
+
 #endif
+
 
 #include "Application.moc"

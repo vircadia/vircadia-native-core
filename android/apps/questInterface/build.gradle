@@ -44,10 +44,10 @@ android {
         }
         signingConfigs {
             release {
-                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : null
-                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : ''
-                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : ''
-                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : ''
+                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : file('../keystore.jks')
+                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : 'password'
+                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : 'key0'
+                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : 'password'
                 v2SigningEnabled false
             }
         }
@@ -131,12 +131,6 @@ android {
             new File(outputDir, 'cache_assets.txt').withWriter { out ->
                 out.println(Long.toString(youngestLastModified))
                 assetList.each { file -> out.println(file) }
-            }
-        }
-
-        variant.outputs.all {
-            if (RELEASE_NUMBER != '0') {
-                outputFileName = "app_" + RELEASE_NUMBER + "_" + RELEASE_TYPE + ".apk"
             }
         }
     }

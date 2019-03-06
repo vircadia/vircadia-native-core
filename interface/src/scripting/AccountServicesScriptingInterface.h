@@ -38,19 +38,19 @@ class AccountServicesScriptingInterface : public QObject {
     Q_OBJECT
 
     /**jsdoc
-     * The <code>AccountServices</code> API provides functions related to user connectivity, visibility, and asset download 
-     * progress.
+     * The <code>AccountServices</code> API provides functions that give information on user connectivity, visibility, and 
+     * asset download progress.
      * 
      * @hifi-interface
      * @hifi-client-entity
      * @hifi-avatar
      *
      * @namespace AccountServices
-     * @property {string} username - The user name if the user is logged in, otherwise <code>"Unknown user"</code>.
-     *     <em>Read-only.</em>
+     * @property {string} username - The user name of the user logged in. If there is no user logged in, it is
+     *     <code>"Unknown user"</code>. <em>Read-only.</em>
      * @property {boolean} loggedIn - <code>true</code> if the user is logged in, otherwise <code>false</code>. 
      *     <em>Read-only.</em>
-     * @property {string} findableBy - The user's visibility to other people:<br />
+     * @property {string} findableBy - The user's visibility to other users:<br />
      *     <code>"none"</code> - user appears offline.<br />
      *     <code>"friends"</code> - user is visible only to friends.<br />
      *     <code>"connections"</code> - user is visible to friends and connections.<br />
@@ -74,23 +74,23 @@ public:
 public slots:
 
     /**jsdoc
-     * Get information on the progress of downloading assets in the domain.
+     * Gets information on the download progress of assets in the domain.
      * @function AccountServices.getDownloadInfo
-     * @returns {AccountServices.DownloadInfoResult} Information on the progress of assets download.
+     * @returns {AccountServices.DownloadInfoResult} Information on the download progress of assets.
      */
     DownloadInfoResult getDownloadInfo();
 
     /**jsdoc
-     * Cause a {@link AccountServices.downloadInfoChanged|downloadInfoChanged} signal to be triggered with information on the 
-     * current progress of the download of assets in the domain.
+     * Triggers a {@link AccountServices.downloadInfoChanged|downloadInfoChanged} signal with information on the current 
+     * download progress of the assets in the domain.
      * @function AccountServices.updateDownloadInfo
      */
     void updateDownloadInfo();
 
     /**jsdoc
-     * Check whether the user is logged in.
+     * Checks whether the user is logged in.
      * @function AccountServices.isLoggedIn
-     * @returns {boolean} <code>true</code> if the user is logged in, <code>false</code> otherwise.
+     * @returns {boolean} <code>true</code> if the user is logged in, <code>false</code> if not.
      * @example <caption>Report whether you are logged in.</caption>
      * var isLoggedIn = AccountServices.isLoggedIn();
      * print("You are logged in: " + isLoggedIn);  // true or false
@@ -98,9 +98,9 @@ public slots:
     bool isLoggedIn();
 
     /**jsdoc
-     * Prompts the user to log in (the login dialog is displayed) if they're not already logged in.
+     * The function returns the login status of the user and prompts the user to log in (with a login dialog) if they're not already logged in.
      * @function AccountServices.checkAndSignalForAccessToken
-     * @returns {boolean} <code>true</code> if the user is already logged in, <code>false</code> otherwise.
+     * @returns {boolean} <code>true</code> if the user is logged in, <code>false</code> if not.
      */
     bool checkAndSignalForAccessToken();
 
@@ -140,7 +140,7 @@ signals:
     /**jsdoc
      * Triggered when the username logged in with changes, i.e., when the user logs in or out.
      * @function AccountServices.myUsernameChanged
-     * @param {string} username - The username logged in with if the user is logged in, otherwise <code>""</code>.
+     * @param {string} username - The user name of the user logged in. If there is no user logged in, it is <code>""</code>.
      * @returns {Signal}
      * @example <caption>Report when your username changes.</caption>
      * AccountServices.myUsernameChanged.connect(function (username) {
@@ -150,9 +150,9 @@ signals:
     void myUsernameChanged(const QString& username);
 
     /**jsdoc
-     * Triggered when the progress of the download of assets for the domain changes.
+     * Triggered when the download progress of the assets in the domain changes.
      * @function AccountServices.downloadInfoChanged
-     * @param {AccountServices.DownloadInfoResult} downloadInfo - Information on the progress of assets download.
+     * @param {AccountServices.DownloadInfoResult} downloadInfo - Information on the download progress of assets.
      * @returns {Signal}
      */
     void downloadInfoChanged(DownloadInfoResult info);
@@ -186,7 +186,7 @@ signals:
     /**jsdoc
      * Triggered when the login status of the user changes.
      * @function AccountServices.loggedInChanged
-     * @param {boolean} loggedIn - <code>true</code> if the user is logged in, otherwise <code>false</code>.
+     * @param {boolean} loggedIn - <code>true</code> if the user is logged in, <code>false</code> if not.
      * @returns {Signal}
      * @example <caption>Report when your login status changes.</caption>
      * AccountServices.loggedInChanged.connect(function(loggedIn) {

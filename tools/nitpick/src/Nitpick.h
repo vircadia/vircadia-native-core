@@ -51,7 +51,6 @@ private slots:
 
     void on_tabWidget_currentChanged(int index);
 
-    void on_evaluateTestsPushbutton_clicked();
     void on_createRecursiveScriptPushbutton_clicked();
     void on_createAllRecursiveScriptsPushbutton_clicked();
     void on_createTestsPushbutton_clicked();
@@ -78,6 +77,8 @@ private slots:
 
     void on_hideTaskbarPushbutton_clicked();
     void on_showTaskbarPushbutton_clicked();
+
+    void on_evaluateTestsPushbutton_clicked();
 
     void on_createPythonScriptRadioButton_clicked();
     void on_createXMLScriptRadioButton_clicked();

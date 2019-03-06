@@ -32,18 +32,19 @@ void Framebuffer::create(const glm::uvec2& size) {
     _validTexture = false;
 
     // Depth renderbuffer
-    glGenRenderbuffers(1, &_depth);
+  /*  glGenRenderbuffers(1, &_depth);
     glBindRenderbuffer(GL_RENDERBUFFER, _depth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, _size.x, _size.y);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
+*/
     // Framebuffer
     glGenFramebuffers(1, &_fbo);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
-    glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  //  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo);
+  //  glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, _depth);
+  //  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     _swapChain = vrapi_CreateTextureSwapChain3(VRAPI_TEXTURE_TYPE_2D, GL_RGBA8, _size.x, _size.y, 1, 3);
+
     _length = vrapi_GetTextureSwapChainLength(_swapChain);
     if (!_length) {
         __android_log_write(ANDROID_LOG_WARN, "QQQ_OVR", "Unable to count swap chain textures");
