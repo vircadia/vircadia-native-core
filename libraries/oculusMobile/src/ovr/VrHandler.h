@@ -21,7 +21,7 @@ public:
     using HandlerTask = std::function<void(VrHandler*)>;
     using OvrMobileTask = std::function<void(ovrMobile*)>;
     using OvrJavaTask = std::function<void(const ovrJava*)>;
-    static void setHandler(VrHandler* handler);
+    static void setHandler(VrHandler* handler, bool noError = false);
     static bool withOvrMobile(const OvrMobileTask& task);
 
 protected:
