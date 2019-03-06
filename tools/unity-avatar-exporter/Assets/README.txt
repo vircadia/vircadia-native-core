@@ -1,6 +1,6 @@
 High Fidelity, Inc.
 Avatar Exporter
-Version 0.2
+Version 0.3.1
 
 
 Note: It is recommended to use Unity versions between 2017.4.17f1 and 2018.2.12f1 for this Avatar Exporter.
