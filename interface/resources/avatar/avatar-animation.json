@@ -1016,8 +1016,8 @@
                                                                                                 "type": "clip",
                                                                                                 "data": {
                                                                                                     "url": "qrc:///avatar/animations/run_fwd.fbx",
-                                                                                                    "startFrame": 0.0,
-                                                                                                    "endFrame": 21.0,
+                                                                                                    "startFrame": 1.0,
+                                                                                                    "endFrame": 22.0,
                                                                                                     "timeScale": 1.0,
                                                                                                     "loopFlag": true
                                                                                                 },
