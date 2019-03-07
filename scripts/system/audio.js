@@ -27,12 +27,12 @@ var UNMUTE_ICONS = {
     activeIcon: "icons/tablet-icons/mic-unmute-a.svg"
 };
 var PTT_ICONS = {
-    icon: "icons/tablet-icons/mic-unmute-i.svg",
-    activeIcon: "icons/tablet-icons/mic-unmute-a.svg"
+    icon: "icons/tablet-icons/mic-ptt-i.svg",
+    activeIcon: "icons/tablet-icons/mic-ptt-a.svg"
 };
 
 function onMuteToggled() {
-    if (Audio.pushingToTalk) {
+    if (Audio.pushToTalk) {
         button.editProperties(PTT_ICONS);
     } else if (Audio.muted) {
         button.editProperties(MUTE_ICONS);
@@ -63,8 +63,8 @@ function onScreenChanged(type, url) {
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
-    icon: Audio.muted ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
-    activeIcon: Audio.muted ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
+    icon: Audio.pushToTalk ? PTT_ICONS.icon : Audio.muted ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
+    activeIcon: Audio.pushToTalk ? PTT_ICONS.activeIcon : Audio.muted ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
     text: TABLET_BUTTON_NAME,
     sortOrder: 1
 });
@@ -74,7 +74,7 @@ onMuteToggled();
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
 Audio.mutedChanged.connect(onMuteToggled);
-Audio.pushingToTalkChanged.connect(onMuteToggled);
+Audio.pushToTalkChanged.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     if (onAudioScreen) {
@@ -83,7 +83,7 @@ Script.scriptEnding.connect(function () {
     button.clicked.disconnect(onClicked);
     tablet.screenChanged.disconnect(onScreenChanged);
     Audio.mutedChanged.disconnect(onMuteToggled);
-    Audio.pushingToTalkChanged.disconnect(onMuteToggled);
+    Audio.pushToTalkChanged.disconnect(onMuteToggled);
     tablet.removeButton(button);
 });
 
