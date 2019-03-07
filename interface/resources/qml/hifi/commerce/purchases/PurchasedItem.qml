@@ -380,7 +380,7 @@ Item {
                         if (updateButton.visible && uninstallButton.visible) {
                             item.itemButtonText = "";
                             item.glyphSize = 20;
-                        } else {
+                        } else if (item) {
                             item.itemButtonText = "Send to Trash";
                             item.glyphSize = 30;
                         }
