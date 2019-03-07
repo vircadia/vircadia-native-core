@@ -176,10 +176,10 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
     this.homeButtonID = Overlays.addOverlay("circle3d", {
         name: "homeButton",
         localPosition: { x: HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0},
+        localRotation: Quat.fromVec3Degrees({ x: 180, y: 180, z: 0}),
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         solid: true,
-        alpha: 0.0,
+        alpha: 1.0,
         visible: visible,
         drawInFront: false,
         parentID: this.tabletEntityID,
@@ -189,7 +189,7 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
     this.homeButtonHighlightID = Overlays.addOverlay("circle3d", {
         name: "homeButtonHighlight",
         localPosition: { x: -HOME_BUTTON_X_OFFSET, y: HOME_BUTTON_Y_OFFSET, z: -HOME_BUTTON_Z_OFFSET },
-        localRotation: { x: 0, y: 1, z: 0, w: 0},
+        localRotation: { x: 0, y: -1, z: 0, w: 0},
         dimensions: { x: homeButtonDim, y: homeButtonDim, z: homeButtonDim },
         color: {red: 255, green: 255, blue: 255},
         solid: true,

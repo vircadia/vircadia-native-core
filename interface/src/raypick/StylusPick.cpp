@@ -160,7 +160,7 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
 
         // TODO: Use the xz projection method for Sphere and Quad.
         if (entityType == EntityTypes::Gizmo) {
-            normal = entityRotation * Vectors::UNIT_NEG_Y;
+            normal = entityRotation * Vectors::UNIT_Y;
         } else {
             normal = entityRotation * Vectors::UNIT_Z;
         }
