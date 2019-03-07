@@ -17,8 +17,6 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::quat(),
                                              glm::vec3(0.0f));
 
-#define NEW_VERSION
-
 AnimPose::AnimPose(const glm::mat4& mat) {
     glm::mat3 m(mat);
     _scale = glm::vec3(glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
