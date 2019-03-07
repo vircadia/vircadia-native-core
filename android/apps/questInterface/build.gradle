@@ -18,12 +18,11 @@ task renameHifiACTaskRelease(type: Copy) {
 
 android {
     compileSdkVersion 28
-
     defaultConfig {
         applicationId "io.highfidelity.questInterface"
         minSdkVersion 24
         targetSdkVersion 28
-        versionCode 1
+        versionCode appVersionCode
         versionName appVersionName
         ndk { abiFilters 'arm64-v8a' }
         externalNativeBuild {

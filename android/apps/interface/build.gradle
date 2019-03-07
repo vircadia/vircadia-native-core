@@ -36,11 +36,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    //buildToolsVersion '27.0.3'
-
-    def appVersionCode = Integer.valueOf(VERSION_CODE ?: 1)
-    def appVersionName = RELEASE_NUMBER ?: "1.0"
-
     defaultConfig {
         applicationId "io.highfidelity.hifiinterface"
         minSdkVersion 24
