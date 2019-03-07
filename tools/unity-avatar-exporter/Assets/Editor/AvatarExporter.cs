@@ -14,7 +14,7 @@ using System.Collections.Generic;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.2";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.3";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
@@ -264,7 +264,7 @@ class AvatarExporter : MonoBehaviour {
     static string assetName = "";
     static HumanDescription humanDescription;
     static Dictionary<string, string> dependencyTextures = new Dictionary<string, string>();
-
+    
     [MenuItem("High Fidelity/Export New Avatar")]
     static void ExportNewAvatar() {
         ExportSelectedAvatar(false);
@@ -302,11 +302,11 @@ class AvatarExporter : MonoBehaviour {
                                                  " the Rig section of it's Inspector window.", "Ok");
             return;
         }
-
+        
         humanDescription = modelImporter.humanDescription;
         SetUserBoneInformation();
         string textureWarnings = SetTextureDependencies();
-        
+
         // check if we should be substituting a bone for a missing UpperChest mapping
         AdjustUpperChestMapping();
 
@@ -334,7 +334,7 @@ class AvatarExporter : MonoBehaviour {
             EditorUtility.DisplayDialog("Error", boneErrors, "Ok");
             return;
         }
-
+        
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
         string hifiFolder = documentsFolder + "\\High Fidelity Projects";
         if (updateAvatar) { // Update Existing Avatar menu option
@@ -630,12 +630,14 @@ class AvatarExporter : MonoBehaviour {
             string boneName = modelBone.name;
             if (modelBone.parent == null) {
                 // if no parent then this is actual root bone node of the user avatar, so consider it's parent as "root"
+                boneName = GetRootBoneName(); // ensure we use the root bone name from the skeleton list for consistency
                 userBoneTree = new BoneTreeNode(boneName); // initialize root of tree
                 userBoneInfo.parentName = "root";
                 userBoneInfo.boneTreeNode = userBoneTree;
             } else {
                 // otherwise add this bone node as a child to it's parent's children list
-                string parentName = modelBone.parent.name;
+                // if its a child of the root bone, use the root bone name from the skeleton list as the parent for consistency
+                string parentName = modelBone.parent.parent == null ? GetRootBoneName() : modelBone.parent.name;
                 BoneTreeNode boneTreeNode = new BoneTreeNode(boneName);
                 userBoneInfos[parentName].boneTreeNode.children.Add(boneTreeNode);
                 userBoneInfo.parentName = parentName;
@@ -658,7 +660,7 @@ class AvatarExporter : MonoBehaviour {
         }
         return result;
     }
-    
+
     static void AdjustUpperChestMapping() {
         if (!humanoidToUserBoneMappings.ContainsKey("UpperChest")) {
             // if parent of Neck is not Chest then map the parent to UpperChest
@@ -680,6 +682,14 @@ class AvatarExporter : MonoBehaviour {
                 humanoidToUserBoneMappings.Add("UpperChest", chestUserBone);
             }
         }
+    }
+    
+    static string GetRootBoneName() {
+        // the "root" bone is the first element in the human skeleton bone list
+        if (humanDescription.skeleton.Length > 0) {
+            return humanDescription.skeleton[0].name;
+        }
+        return "";
     }
     
     static void SetFailedBoneRules() {
@@ -901,7 +911,7 @@ class AvatarExporter : MonoBehaviour {
         textureDirectory = textureDirectory.Replace("\\\\", "\\");
         return textureDirectory;
     }
-    
+
     static string SetTextureDependencies() {
         string textureWarnings = "";
         dependencyTextures.Clear();
