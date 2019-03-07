@@ -46,30 +46,6 @@ namespace buffer_helpers {
     gpu::BufferView clone(const gpu::BufferView& input);
     gpu::BufferView resized(const gpu::BufferView& input, glm::uint32 numElements);
 
-    inline void packNormalAndTangent(glm::vec3 normal, glm::vec3 tangent, glm::uint32& packedNormal, glm::uint32& packedTangent) {
-        auto absNormal = glm::abs(normal);
-        auto absTangent = glm::abs(tangent);
-        normal /= glm::max(1e-6f, glm::max(glm::max(absNormal.x, absNormal.y), absNormal.z));
-        tangent /= glm::max(1e-6f, glm::max(glm::max(absTangent.x, absTangent.y), absTangent.z));
-        normal = glm::clamp(normal, -1.0f, 1.0f);
-        tangent = glm::clamp(tangent, -1.0f, 1.0f);
-        normal *= 511.0f;
-        tangent *= 511.0f;
-
-        glm::detail::i10i10i10i2 normalStruct;
-        glm::detail::i10i10i10i2 tangentStruct;
-        normalStruct.data.x = fastLrintf(normal.x);
-        normalStruct.data.y = fastLrintf(normal.y);
-        normalStruct.data.z = fastLrintf(normal.z);
-        normalStruct.data.w = 0;
-        tangentStruct.data.x = fastLrintf(tangent.x);
-        tangentStruct.data.y = fastLrintf(tangent.y);
-        tangentStruct.data.z = fastLrintf(tangent.z);
-        tangentStruct.data.w = 0;
-        packedNormal = normalStruct.pack;
-        packedTangent = tangentStruct.pack;
-    }
-
     namespace mesh {
         glm::uint32 forEachVertex(const graphics::MeshPointer& mesh, std::function<bool(glm::uint32 index, const QVariantMap& attributes)> func);
         bool setVertexAttributes(const graphics::MeshPointer& mesh, glm::uint32 index, const QVariantMap& attributes);
