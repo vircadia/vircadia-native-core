@@ -81,8 +81,15 @@ Rectangle {
         }*/
 
         Jet.TaskPropView {
-            jobPath: "RenderMainView.LightingModel"
-            label: "Le tone mapping Job"
+            jobPath: "RenderMainView.ToneMapping"
+            label: "Le ToneMapping Job"
+
+            anchors.left: parent.left
+            anchors.right: parent.right 
+        }
+        Jet.TaskPropView {
+            jobPath: "RenderMainView.Antialiasing"
+            label: "Le Antialiasing Job"
 
             anchors.left: parent.left
             anchors.right: parent.right 

@@ -25,13 +25,13 @@ Prop.PropGroup {
     
     property var rootConfig : Render
     property var jobPath: ""
-    property alias jobName: root.label
+    property alias label: root.label
 
     Component.onCompleted: {
         var props = Jet.job_propKeys(rootConfig.getConfig(jobPath));
-        //console.log(JSON.stringify(props));
+        console.log(JSON.stringify(props));
         for (var p in props) {
-            root.propItems.push({"type": "PropBool", "object": rootConfig.getConfig(jobPath), "property":props[p] })
+            root.propItems.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
         }
         root.updatePropItems();
     }

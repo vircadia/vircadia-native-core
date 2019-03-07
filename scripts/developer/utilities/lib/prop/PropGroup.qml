@@ -25,56 +25,102 @@ Item {
 
     property var label: "group"
 
-
-    Column {
-        id: column
-        anchors.left: parent.left
-        anchors.right: parent.right   
+    Item {
+        id: header
+        height: global.slimHeight
+        anchors.left: parent.left           
+        anchors.right: parent.right
     
         PropLabel {
-            anchors.left: parent.left
-            anchors.right: parent.right
+            id: labelControl
+            anchors.left: header.left
+            width: 0.8 * header.width
+            anchors.verticalCenter: header.verticalCenter
             text: root.label
             horizontalAlignment: Text.AlignHCenter
         }
-      
-
+        Rectangle {
+            id: headerRect
+            color: global.color
+            border.color: global.colorBorderLight
+            border.width: global.valueBorderWidth
+            radius: global.valueBorderRadius
+           
+            anchors.left: labelControl.right
+            anchors.right: header.right
+            anchors.verticalCenter: header.verticalCenter
+            height: parent.height
+        }
     }
-    height: column.height
+    
+    Column {
+        id: column
+        anchors.top: header.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right   
+        clip: true
+
+        // Where the propItems are added
+    }
+    height: header.height + column.height
 
     function updatePropItems() {
          for (var i = 0; i < root.propItems.length; i++) {
             var proItem = root.propItems[i];
-            switch(proItem.type) {
-                case 'PropBool': {
-                    var component = Qt.createComponent("PropBool.qml");
-                    component.createObject(column, {
-                        "label": proItem.property,
-                        "object": proItem.object,
-                        "property": proItem.property
-                    })
-                } break;
-                case 'PropScalar': {
-                    var component = Qt.createComponent("PropScalar.qml");
-                    component.createObject(column, {
-                        "label": proItem.property,
-                        "object": proItem.object,
-                        "property": proItem.property,
-                        "min": (proItem["min"] !== undefined ? proItem.min : 0.0),                   
-                        "max": (proItem["max"] !== undefined ? proItem.max : 1.0),                                       
-                        "integer": (proItem["integral"] !== undefined ? proItem.integral : false),
-                    })
-                } break;
-                case 'PropEnum': {
-                    var component = Qt.createComponent("PropEnum.qml");
-                    component.createObject(column, {
-                        "label": proItem.property,
-                        "object": proItem.object,
-                        "property": proItem.property,
-                        "enums": (proItem["enums"] !== undefined ? proItem.enums : ["Undefined Enums !!!"]), 
-                    })
-                } break;
-            }      
+            // valid object
+            if (proItem['object'] !== undefined && proItem['object'] !== null ) {
+                // valid property
+                if (proItem['property'] !== undefined && proItem.object[proItem.property] !== undefined) {
+                    // check type
+                    if (proItem['type'] === undefined) {
+                        proItem['type'] = typeof(proItem.object[proItem.property])
+                    }
+                    switch(proItem.type) {
+                        case 'boolean':
+                        case 'PropBool': {
+                            var component = Qt.createComponent("PropBool.qml");
+                            component.createObject(column, {
+                                "label": proItem.property,
+                                "object": proItem.object,
+                                "property": proItem.property
+                            })
+                        } break;
+                        case 'number':
+                        case 'PropScalar': {
+                            var component = Qt.createComponent("PropScalar.qml");
+                            component.createObject(column, {
+                                "label": proItem.property,
+                                "object": proItem.object,
+                                "property": proItem.property,
+                                "min": (proItem["min"] !== undefined ? proItem.min : 0.0),                   
+                                "max": (proItem["max"] !== undefined ? proItem.max : 1.0),                                       
+                                "integer": (proItem["integral"] !== undefined ? proItem.integral : false),
+                            })
+                        } break;
+                        case 'PropEnum': {
+                            var component = Qt.createComponent("PropEnum.qml");
+                            component.createObject(column, {
+                                "label": proItem.property,
+                                "object": proItem.object,
+                                "property": proItem.property,
+                                "enums": (proItem["enums"] !== undefined ? proItem.enums : ["Undefined Enums !!!"]), 
+                            })
+                        } break;
+                        case 'object': {
+                            var component = Qt.createComponent("PropItem.qml");
+                            component.createObject(column, {
+                                "label": proItem.property,
+                                "object": proItem.object,
+                                "property": proItem.property,
+                             })
+                        } break;
+                    }
+                } else {
+                    console.log('Invalid property: ' + JSON.stringify(proItem));
+                }
+            } else {
+                console.log('Invalid object: ' + JSON.stringify(proItem));
+            }
         }
     }
     Component.onCompleted: {
