@@ -67,6 +67,9 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
+            if (AudioScriptingInterface.pushToTalk) {
+                return;
+            }
             AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
             Tablet.playSound(TabletEnums.ButtonClick);
         }
@@ -109,9 +112,10 @@ Rectangle {
             Image {
                 readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
                 readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
+                readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
 
                 id: image;
-                source: AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
+                source: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? pushToTalkIcon : AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -155,7 +159,7 @@ Rectangle {
 
             color: parent.color;
 
-            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? "MUTED-PTT (T)" : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
+            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? "MUTED PTT-(T)" : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
