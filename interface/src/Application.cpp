@@ -1610,7 +1610,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             switch (actionEnum) {
                 case Action::TOGGLE_PUSHTOTALK:
                     if (audioScriptingInterface->getPTT()) {
-                        qDebug() << "State is " << state;
                         if (state > 0.0f) {
                             audioScriptingInterface->setPushingToTalk(false);
                         } else if (state < 0.0f) {
