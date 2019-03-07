@@ -20,6 +20,7 @@
 #include <PortableHighResolutionClock.h>
 
 #include <ThreadedAssignment.h>
+#include "../entities/EntityTreeHeadlessViewer.h"
 #include "AvatarMixerClientData.h"
 
 #include "AvatarMixerSlavePool.h"
@@ -29,6 +30,7 @@ class AvatarMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AvatarMixer(ReceivedMessage& message);
+    virtual void aboutToFinish() override;
 
     static bool shouldReplicateTo(const Node& from, const Node& to) {
         return to.getType() == NodeType::DownstreamAvatarMixer &&
@@ -57,6 +59,7 @@ private slots:
     void handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
+    void handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void start();
 
 private:
@@ -71,7 +74,12 @@ private:
 
     void optionallyReplicatePacket(ReceivedMessage& message, const Node& node);
 
+    void setupEntityQuery();
+
     p_high_resolution_clock::time_point _lastFrameTimestamp;
+
+    // Attach to entity tree for avatar-priority zone info.
+    EntityTreeHeadlessViewer _entityViewer;
 
     // FIXME - new throttling - use these values somehow
     float _trailingMixRatio { 0.0f };

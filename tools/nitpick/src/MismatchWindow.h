@@ -20,12 +20,14 @@ class MismatchWindow : public QDialog, public Ui::MismatchWindow {
 public:
     MismatchWindow(QWidget *parent = Q_NULLPTR);
 
-    void setTestResult(TestResult testResult);
+    void setTestResult(const TestResult& testResult);
 
     UserResponse getUserResponse() { return _userResponse; }
 
-    QPixmap computeDiffPixmap(QImage expectedImage, QImage resultImage);
+    QPixmap computeDiffPixmap(const QImage& expectedImage, const QImage& resultImage);
+
     QPixmap getComparisonImage();
+    QPixmap getSSIMResultsImage(const SSIMResults& ssimResults);
 
 private slots:
     void on_passTestButton_clicked();

@@ -514,7 +514,7 @@ public:
     QUuid getLastEditedBy() const { return _lastEditedBy; }
     void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
 
-    bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
+    virtual bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
