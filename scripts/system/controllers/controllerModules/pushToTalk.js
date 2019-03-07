@@ -35,7 +35,7 @@ Script.include("/~/system/libraries/controllers.js");
 		};
 		
 		this.isReady = function (controllerData, deltaTime) {
-			if (HMD.active() && Audio.pushToTalk && this.shouldTalk(controllerData)) {
+			if (HMD.active && Audio.pushToTalk && this.shouldTalk(controllerData)) {
 				Audio.pushingToTalk = true;
 				returnMakeRunningValues(true, [], []);
 			}
