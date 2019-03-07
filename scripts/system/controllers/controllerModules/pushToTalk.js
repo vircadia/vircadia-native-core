@@ -25,12 +25,12 @@ Script.include("/~/system/libraries/controllers.js");
 		
 		this.shouldTalk = function (controllerData) {
 			// Set up test against controllerData here...
-			var gripVal = controllerData.secondaryValues[this.hand];
+			var gripVal = controllerData.secondaryValues[LEFT_HAND] && controllerData.secondaryValues[RIGHT_HAND];
 			return (gripVal) ? true : false;
 		};
 		
 		this.shouldStopTalking = function (controllerData) {
-			var gripVal = controllerData.secondaryValues[this.hand];
+		    var gripVal = controllerData.secondaryValues[LEFT_HAND] && controllerData.secondaryValues[RIGHT_HAND];
 			return (gripVal) ? false : true;			
 		};
 		
