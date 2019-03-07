@@ -30,6 +30,7 @@ Script.include("/~/system/libraries/controllers.js");
 		};
 		
 		this.shouldStopTalking = function (controllerData) {
+			var gripVal = controllerData.secondaryValues[this.hand];
 		    var gripVal = controllerData.secondaryValues[LEFT_HAND] && controllerData.secondaryValues[RIGHT_HAND];
 			return (gripVal) ? false : true;			
 		};

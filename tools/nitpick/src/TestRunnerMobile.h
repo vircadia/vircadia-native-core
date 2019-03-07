@@ -12,7 +12,6 @@
 #define hifi_testRunnerMobile_h
 
 #include <QMap>
-#include <QLabel>
 #include <QObject>
 #include <QPushButton>
 
@@ -31,8 +30,11 @@ public:
         QPushButton* downloadAPKPushbutton,
         QPushButton* installAPKPushbutton,
         QPushButton* runInterfacePushbutton,
+        QCheckBox* usePreviousInstallationOnMobileCheckBox,
         QCheckBox* runLatest,
         QLineEdit* url,
+        QCheckBox* runFullSuite,
+        QLineEdit* scriptURL,
         QLabel* statusLabel,
 
         QObject* parent = 0

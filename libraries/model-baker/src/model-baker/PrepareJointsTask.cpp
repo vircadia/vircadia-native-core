@@ -58,7 +58,7 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     auto& jointIndices = output.edit2();
 
     // Get joint renames
-    auto jointNameMapping = getJointNameMapping(mapping);
+    auto jointNameMapping = getJointNameMapping(mapping.second);
     // Apply joint metadata from FST file mappings
     for (const auto& jointIn : jointsIn) {
         jointsOut.push_back(jointIn);
@@ -73,7 +73,7 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     }
 
     // Get joint rotation offsets from FST file mappings
-    auto offsets = getJointRotationOffsets(mapping);
+    auto offsets = getJointRotationOffsets(mapping.second);
     for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
         QString jointName = itr.key();
         int jointIndex = jointIndices.value(jointName) - 1;

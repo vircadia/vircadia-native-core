@@ -225,6 +225,15 @@ QString EntityItemProperties::getBloomModeAsString() const {
     return getComponentModeAsString(_bloomMode);
 }
 
+namespace {
+    const QStringList AVATAR_PRIORITIES_AS_STRING
+        { "inherit", "crowd", "hero" };
+}
+
+QString EntityItemProperties::getAvatarPriorityAsString() const {
+    return AVATAR_PRIORITIES_AS_STRING.value(_avatarPriority);
+}
+
 std::array<ComponentPair, COMPONENT_MODE_ITEM_COUNT>::const_iterator EntityItemProperties::findComponent(const QString& mode) {
     return std::find_if(COMPONENT_MODES.begin(), COMPONENT_MODES.end(), [&](const ComponentPair& pair) { 
         return (pair.second == mode);
@@ -246,6 +255,15 @@ void EntityItemProperties::setBloomModeFromString(const QString& bloomMode) {
     if (result != COMPONENT_MODES.end()) {
         _bloomMode = result->first;
         _bloomModeChanged = true;
+    }
+}
+
+void EntityItemProperties::setAvatarPriorityFromString(QString const& avatarPriority) {
+    auto result = AVATAR_PRIORITIES_AS_STRING.indexOf(avatarPriority);
+
+    if (result != -1) {
+        _avatarPriority = result;
+        _avatarPriorityChanged = true;
     }
 }
 
@@ -622,6 +640,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_SKYBOX_MODE, skyboxMode);
     CHECK_PROPERTY_CHANGE(PROP_HAZE_MODE, hazeMode);
     CHECK_PROPERTY_CHANGE(PROP_BLOOM_MODE, bloomMode);
+    CHECK_PROPERTY_CHANGE(PROP_AVATAR_PRIORITY, avatarPriority);
 
     // Polyvox
     CHECK_PROPERTY_CHANGE(PROP_VOXEL_VOLUME_SIZE, voxelVolumeSize);
@@ -1426,7 +1445,13 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * @property {string} filterURL="" - The URL of a JavaScript file that filters changes to properties of entities within the 
  *     zone. It is periodically executed for each entity in the zone. It can, for example, be used to not allow changes to 
  *     certain properties.<br />
+ *
+ * @property {string} avatarPriority="inherit" - Configures the update priority of contained avatars to other clients.<br />
+ *     <code>"inherit"</code>: Priority from enclosing zones is unchanged.<br />
+ *     <code>"crowd"</code>: Priority in this zone is the normal priority.<br />
+ *     <code>"hero"</code>: Avatars in this zone will have an increased update priority
  * <pre>
+ *
  * function filter(properties) {
  *     // Test and edit properties object values,
  *     // e.g., properties.modelURL, as required.
@@ -1761,6 +1786,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SKYBOX_MODE, skyboxMode, getSkyboxModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_HAZE_MODE, hazeMode, getHazeModeAsString());
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BLOOM_MODE, bloomMode, getBloomModeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_AVATAR_PRIORITY, avatarPriority, getAvatarPriorityAsString());
     }
 
     // Web only
@@ -2123,6 +2149,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(skyboxMode, SkyboxMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(hazeMode, HazeMode);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(bloomMode, BloomMode);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_ENUM(avatarPriority, AvatarPriority);
 
     // Polyvox
     COPY_PROPERTY_FROM_QSCRIPTVALUE(voxelVolumeSize, vec3, setVoxelVolumeSize);
@@ -2403,6 +2430,7 @@ void EntityItemProperties::merge(const EntityItemProperties& other) {
     COPY_PROPERTY_IF_CHANGED(skyboxMode);
     COPY_PROPERTY_IF_CHANGED(hazeMode);
     COPY_PROPERTY_IF_CHANGED(bloomMode);
+    COPY_PROPERTY_IF_CHANGED(avatarPriority);
 
     // Polyvox
     COPY_PROPERTY_IF_CHANGED(voxelVolumeSize);
@@ -2789,6 +2817,7 @@ bool EntityItemProperties::getPropertyInfo(const QString& propertyName, EntityPr
         ADD_PROPERTY_TO_MAP(PROP_SKYBOX_MODE, SkyboxMode, skyboxMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_HAZE_MODE, HazeMode, hazeMode, uint32_t);
         ADD_PROPERTY_TO_MAP(PROP_BLOOM_MODE, BloomMode, bloomMode, uint32_t);
+        ADD_PROPERTY_TO_MAP(PROP_AVATAR_PRIORITY, AvatarPriority, avatarPriority, uint32_t);
 
         // Polyvox
         ADD_PROPERTY_TO_MAP(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, vec3);
@@ -3191,6 +3220,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
                 APPEND_ENTITY_PROPERTY(PROP_SKYBOX_MODE, (uint32_t)properties.getSkyboxMode());
                 APPEND_ENTITY_PROPERTY(PROP_HAZE_MODE, (uint32_t)properties.getHazeMode());
                 APPEND_ENTITY_PROPERTY(PROP_BLOOM_MODE, (uint32_t)properties.getBloomMode());
+                APPEND_ENTITY_PROPERTY(PROP_AVATAR_PRIORITY, (uint32_t)properties.getAvatarPriority());
             }
 
             if (properties.getType() == EntityTypes::PolyVox) {
@@ -3656,6 +3686,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SKYBOX_MODE, uint32_t, setSkyboxMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HAZE_MODE, uint32_t, setHazeMode);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BLOOM_MODE, uint32_t, setBloomMode);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_AVATAR_PRIORITY, uint32_t, setAvatarPriority);
     }
 
     if (properties.getType() == EntityTypes::PolyVox) {
@@ -4039,6 +4070,7 @@ void EntityItemProperties::markAllChanged() {
     _skyboxModeChanged = true;
     _hazeModeChanged = true;
     _bloomModeChanged = true;
+    _avatarPriorityChanged = true;
 
     // Polyvox
     _voxelVolumeSizeChanged = true;
@@ -4177,7 +4209,7 @@ void EntityItemProperties::copySimulationRestrictedProperties(const EntityItemPo
         setAcceleration(entity->getAcceleration());
     }
     if (!_localDimensionsChanged && !_dimensionsChanged) {
-        setDimensions(entity->getScaledDimensions());
+        setLocalDimensions(entity->getScaledDimensions());
     }
 }
 
@@ -4636,6 +4668,9 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     }
     if (bloomModeChanged()) {
         out += "bloomMode";
+    }
+    if (avatarPriorityChanged()) {
+        out += "avatarPriority";
     }
 
     // Polyvox

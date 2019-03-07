@@ -112,7 +112,7 @@ Rectangle {
                 marketplaceItem.image_url = result.data.thumbnail_url;
                 marketplaceItem.name = result.data.title;
                 marketplaceItem.likes = result.data.likes;
-                if(result.data.has_liked !== undefined) {
+                if (result.data.has_liked !== undefined) {
                     marketplaceItem.liked = result.data.has_liked;
                 }
                 marketplaceItem.creator = result.data.creator;
@@ -122,6 +122,7 @@ Rectangle {
                 marketplaceItem.attributions = result.data.attributions;
                 marketplaceItem.license = result.data.license;
                 marketplaceItem.availability = result.data.availability;
+                marketplaceItem.updated_item_id = result.data.updated_item_id || "";
                 marketplaceItem.created_at = result.data.created_at;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
@@ -979,7 +980,6 @@ Rectangle {
                         xhr.open("GET", url);
                         xhr.onreadystatechange = function() {
                             if (xhr.readyState == XMLHttpRequest.DONE) {
-                                console.log(xhr.responseText);
                                 licenseText.text = xhr.responseText;
                                 licenseInfo.visible = true;
                             }

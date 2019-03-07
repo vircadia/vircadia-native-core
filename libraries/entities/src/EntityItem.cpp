@@ -41,6 +41,7 @@
 #include "EntitySimulation.h"
 #include "EntityDynamicFactoryInterface.h"
 
+//#define WANT_DEBUG
 
 Q_DECLARE_METATYPE(EntityItemPointer);
 int entityItemPointernMetaTypeId = qRegisterMetaType<EntityItemPointer>();
@@ -95,6 +96,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LAST_EDITED_BY;
     requestedProperties += PROP_ENTITY_HOST_TYPE;
     requestedProperties += PROP_OWNING_AVATAR_ID;
+    requestedProperties += PROP_PARENT_ID;
+    requestedProperties += PROP_PARENT_JOINT_INDEX;
     requestedProperties += PROP_QUERY_AA_CUBE;
     requestedProperties += PROP_CAN_CAST_SHADOW;
     requestedProperties += PROP_VISIBLE_IN_SECONDARY_CAMERA;
@@ -502,6 +505,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     }
 
     #ifdef WANT_DEBUG
+    {
         quint64 lastEdited = getLastEdited();
         float editedAgo = getEditedAgo();
         QString agoAsString = formatSecondsElapsed(editedAgo);
@@ -515,6 +519,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         qCDebug(entities) << "    age=" << getAge() << "seconds - " << ageAsString;
         qCDebug(entities) << "    lastEdited =" << lastEdited;
         qCDebug(entities) << "    ago=" << editedAgo << "seconds - " << agoAsString;
+    }
     #endif
 
     quint64 lastEditedFromBuffer = 0;
@@ -1099,7 +1104,7 @@ void EntityItem::simulate(const quint64& now) {
         qCDebug(entities) << "    hasGravity=" << hasGravity();
         qCDebug(entities) << "    hasAcceleration=" << hasAcceleration();
         qCDebug(entities) << "    hasAngularVelocity=" << hasAngularVelocity();
-        qCDebug(entities) << "    getAngularVelocity=" << getAngularVelocity();
+        qCDebug(entities) << "    getAngularVelocity=" << getLocalAngularVelocity();
         qCDebug(entities) << "    isMortal=" << isMortal();
         qCDebug(entities) << "    getAge()=" << getAge();
         qCDebug(entities) << "    getLifetime()=" << getLifetime();
@@ -1111,12 +1116,12 @@ void EntityItem::simulate(const quint64& now) {
             qCDebug(entities) << "        hasGravity=" << hasGravity();
             qCDebug(entities) << "        hasAcceleration=" << hasAcceleration();
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
-            qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
+            qCDebug(entities) << "        getAngularVelocity=" << getLocalAngularVelocity();
         }
         if (hasAngularVelocity()) {
             qCDebug(entities) << "    CHANGING...=";
             qCDebug(entities) << "        hasAngularVelocity=" << hasAngularVelocity();
-            qCDebug(entities) << "        getAngularVelocity=" << getAngularVelocity();
+            qCDebug(entities) << "        getAngularVelocity=" << getLocalAngularVelocity();
         }
         if (isMortal()) {
             qCDebug(entities) << "    MORTAL...=";
@@ -1738,7 +1743,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
         // the above cases not yet supported --> fall through to BOX case
         case SHAPE_TYPE_BOX: {
             localPoint = glm::abs(localPoint);
-            return glm::any(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
+            return glm::all(glm::lessThanEqual(localPoint, glm::vec3(NORMALIZED_HALF_SIDE)));
         }
         case SHAPE_TYPE_ELLIPSOID: {
             // since we've transformed into the normalized space this is just a sphere-point intersection test
@@ -1868,7 +1873,7 @@ void EntityItem::setParentID(const QUuid& value) {
 
 glm::vec3 EntityItem::getScaledDimensions() const {
     glm::vec3 scale = getSNScale();
-    return _unscaledDimensions * scale;
+    return getUnscaledDimensions() * scale;
 }
 
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
@@ -2588,7 +2593,7 @@ QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeT
     return result;
 }
 
-void EntityItem::locationChanged(bool tellPhysics) {
+void EntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     requiresRecalcBoxes();
     if (tellPhysics) {
         _flags |= Simulation::DIRTY_TRANSFORM;
@@ -2597,7 +2602,7 @@ void EntityItem::locationChanged(bool tellPhysics) {
             tree->entityChanged(getThisPointer());
         }
     }
-    SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    SpatiallyNestable::locationChanged(tellPhysics, tellChildren);
     std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
     emit spaceUpdate(data);
     somethingChangedNotification();
@@ -2652,13 +2657,23 @@ bool EntityItem::matchesJSONFilters(const QJsonObject& jsonFilters) const {
     // ALL entity properties. Some work will need to be done to the property system so that it can be more flexible
     // (to grab the value and default value of a property given the string representation of that property, for example)
 
-    // currently the only property filter we handle is '+' for serverScripts
+    // currently the only property filter we handle in EntityItem is '+' for serverScripts
     // which means that we only handle a filtered query asking for entities where the serverScripts property is non-default
 
     static const QString SERVER_SCRIPTS_PROPERTY = "serverScripts";
+    static const QString ENTITY_TYPE_PROPERTY = "type";
 
-    if (jsonFilters[SERVER_SCRIPTS_PROPERTY] == EntityQueryFilterSymbol::NonDefault) {
-        return _serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS;
+    foreach(const auto& property, jsonFilters.keys()) {
+        if (property == SERVER_SCRIPTS_PROPERTY && jsonFilters[property] == EntityQueryFilterSymbol::NonDefault) {
+            // check if this entity has a non-default value for serverScripts
+            if (_serverScripts != ENTITY_ITEM_DEFAULT_SERVER_SCRIPTS) {
+                return true;
+            } else {
+                return false;
+            }
+        } else if (property == ENTITY_TYPE_PROPERTY) {
+            return (jsonFilters[property] == EntityTypes::getEntityTypeName(getType()) );
+        }
     }
 
     // the json filter syntax did not match what we expected, return a match

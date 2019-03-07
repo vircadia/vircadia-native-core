@@ -14,6 +14,26 @@
 #include "Nitpick.h"
 extern Nitpick* nitpick;
 
+TestRunner::TestRunner(
+    QLabel* workingFolderLabel,
+    QLabel* statusLabel,
+    QCheckBox* usePreviousInstallationCheckBox,
+    QCheckBox* runLatest,
+    QLineEdit* url,
+    QCheckBox* runFullSuite,
+    QLineEdit* scriptURL
+) {
+    _workingFolderLabel = workingFolderLabel;
+    _statusLabel = statusLabel;
+    _usePreviousInstallationCheckBox = usePreviousInstallationCheckBox;
+    _runLatest = runLatest;
+    _url = url;
+    _runFullSuite = runFullSuite;
+    _scriptURL = scriptURL;
+
+    _downloader = new Downloader();
+}
+
 void TestRunner::setWorkingFolder(QLabel* workingFolderLabel) {
     // Everything will be written to this folder
     QString previousSelection = _workingFolder;
@@ -49,7 +69,7 @@ void TestRunner::downloadBuildXml(void* caller) {
     urls << DEV_BUILD_XML_URL;
     filenames << DEV_BUILD_XML_FILENAME;
 
-    nitpick->downloadFiles(urls, _workingFolder, filenames, caller);
+    _downloader->downloadFiles(urls, _workingFolder, filenames, caller);
 }
 
 void TestRunner::parseBuildInformation() {

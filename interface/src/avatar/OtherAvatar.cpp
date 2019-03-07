@@ -503,6 +503,7 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 // then set the the original ID for the changes to take effect
                 // TODO: This is a horrible hack and once properties.constructFromBuffer no longer causes
                 // side effects...remove the following three lines
+
                 const QUuid NULL_ID = QUuid("{00000000-0000-0000-0000-000000000005}");
                 entity->setParentID(NULL_ID);
                 entity->setParentID(oldParentID);
