@@ -1873,7 +1873,7 @@ void EntityItem::setParentID(const QUuid& value) {
 
 glm::vec3 EntityItem::getScaledDimensions() const {
     glm::vec3 scale = getSNScale();
-    return _unscaledDimensions * scale;
+    return getUnscaledDimensions() * scale;
 }
 
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
