@@ -172,7 +172,10 @@ void LaserPointer::RenderState::update(const glm::vec3& origin, const glm::vec3&
         properties.setVisible(true);
         properties.setIgnorePickIntersection(doesPathIgnorePicks());
         QVector<float> widths;
-        widths.append(getLineWidth() * parentScale);
+        float width = getLineWidth() * parentScale;
+        widths.append(width);
+        widths.append(width);
+        properties.setStrokeWidths(widths);
         DependencyManager::get<EntityScriptingInterface>()->editEntity(getPathID(), properties);
     }
 }

@@ -159,7 +159,7 @@ WebTablet = function (url, width, dpi, hand, location, visible) {
         url: url,
         localPosition: { x: 0, y: WEB_ENTITY_Y_OFFSET, z: -WEB_ENTITY_Z_OFFSET },
         localRotation: Quat.angleAxis(180, Y_AXIS),
-        dimensions: {x: screenWidth, y: screenHeight, z: 0.1},
+        dimensions: {x: screenWidth, y: screenHeight, z: 1.0},
         dpi: tabletDpi,
         color: { red: 255, green: 255, blue: 255 },
         alpha: 1.0,

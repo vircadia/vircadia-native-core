@@ -197,7 +197,7 @@ public:
     void setDescription(const QString& value);
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
-    glm::vec3 getScaledDimensions() const;
+    virtual glm::vec3 getScaledDimensions() const;
     virtual void setScaledDimensions(const glm::vec3& value);
     virtual glm::vec3 getRaycastDimensions() const { return getScaledDimensions(); }
 
@@ -514,7 +514,7 @@ public:
     QUuid getLastEditedBy() const { return _lastEditedBy; }
     void setLastEditedBy(QUuid value) { _lastEditedBy = value; }
 
-    bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
+    virtual bool matchesJSONFilters(const QJsonObject& jsonFilters) const;
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 

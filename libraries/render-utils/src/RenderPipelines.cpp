@@ -382,11 +382,6 @@ void RenderPipelines::bindMaterial(graphics::MaterialPointer& material, gpu::Bat
 void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial) {
     auto& schemaBuffer = multiMaterial.getSchemaBuffer();
 
-    if (multiMaterial.size() == 0) {
-        schemaBuffer.edit<graphics::MultiMaterial::Schema>() = graphics::MultiMaterial::Schema();
-        return;
-    }
-
     auto& drawMaterialTextures = multiMaterial.getTextureTable();
     multiMaterial.setTexturesLoading(false);
 
@@ -732,14 +727,11 @@ void RenderPipelines::updateMultiMaterial(graphics::MultiMaterial& multiMaterial
     schema._key = (uint32_t)schemaKey._flags.to_ulong();
     schemaBuffer.edit<graphics::MultiMaterial::Schema>() = schema;
     multiMaterial.setNeedsUpdate(false);
+    multiMaterial.setInitialized();
 }
 
 void RenderPipelines::bindMaterials(graphics::MultiMaterial& multiMaterial, gpu::Batch& batch, bool enableTextures) {
-    if (multiMaterial.size() == 0) {
-        return;
-    }
-
-    if (multiMaterial.needsUpdate() || multiMaterial.areTexturesLoading()) {
+    if (multiMaterial.shouldUpdate()) {
         updateMultiMaterial(multiMaterial);
     }
 

@@ -43,14 +43,6 @@ std::unordered_map<QString, QString> Overlays::_entityToOverlayTypes;
 std::unordered_map<QString, QString> Overlays::_overlayToEntityTypes;
 
 Overlays::Overlays() {
-    auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, this, &Overlays::hoverEnterPointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverContinueOverlay, this, &Overlays::hoverOverPointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, this, &Overlays::hoverLeavePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, this, &Overlays::mousePressPointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, this, &Overlays::mouseMovePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerEndOverlay, this, &Overlays::mouseReleasePointerEvent);
-
     ADD_TYPE_MAP(Box, cube);
     ADD_TYPE_MAP(Sphere, sphere);
     _overlayToEntityTypes["rectangle3d"] = "Shape";
@@ -81,13 +73,23 @@ void Overlays::cleanupAllOverlays() {
 
 void Overlays::init() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
-    auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, entityScriptingInterface , &EntityScriptingInterface::hoverEnterEntity);
-    connect(pointerManager.data(), &PointerManager::hoverContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
-    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
-    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
-    connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(pointerManager.data(), &PointerManager::triggerEndOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+    auto pointerManager = DependencyManager::get<PointerManager>().data();
+    connect(pointerManager, &PointerManager::hoverBeginOverlay, entityScriptingInterface , &EntityScriptingInterface::hoverEnterEntity);
+    connect(pointerManager, &PointerManager::hoverContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
+    connect(pointerManager, &PointerManager::hoverEndOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+    connect(pointerManager, &PointerManager::triggerBeginOverlay, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
+    connect(pointerManager, &PointerManager::triggerContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(pointerManager, &PointerManager::triggerEndOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &Overlays::mousePressOnPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOffEntity, this, &Overlays::mousePressOffPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseDoublePressOnEntity, this, &Overlays::mouseDoublePressOnPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseDoublePressOffEntity, this, &Overlays::mouseDoublePressOffPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, &Overlays::mouseReleasePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity, this, &Overlays::mouseMovePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity , this, &Overlays::hoverEnterPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity, this, &Overlays::hoverOverPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, &Overlays::hoverLeavePointerEvent);
 }
 
 void Overlays::update(float deltatime) {
@@ -295,14 +297,14 @@ QString Overlays::overlayToEntityType(const QString& type) {
         }                                                   \
     }
 
-static QHash<QUuid, glm::quat> savedRotations = QHash<QUuid, glm::quat>();
+static QHash<QUuid, std::pair<glm::quat, bool>> savedRotations = QHash<QUuid, std::pair<glm::quat, bool>>();
 
 EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
-    glm::quat rotation;
+    std::pair<glm::quat, bool> rotation;
     return convertOverlayToEntityProperties(overlayProps, rotation, type, add, id);
 }
 
-EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, glm::quat& rotationToSave, const QString& type, bool add, const QUuid& id) {
+EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, std::pair<glm::quat, bool>& rotationToSave, const QString& type, bool add, const QUuid& id) {
     overlayProps["type"] = type;
 
     SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
@@ -413,32 +415,13 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             overlayProps["dimensions"] = vec3toVariant(ratio * dimensions);
         }
 
-        if (add || overlayProps.contains("rotation")) {
-            glm::quat rotation;
-            {
-                auto iter = overlayProps.find("rotation");
-                if (iter != overlayProps.end()) {
-                    rotation = quatFromVariant(iter.value());
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_ROTATION;
-                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getRotation();
-                }
-            }
+        if (add && !overlayProps.contains("rotation") && !overlayProps.contains("localRotation")) {
+            overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT));
+        } else if (overlayProps.contains("rotation")) {
+            glm::quat rotation = quatFromVariant(overlayProps["rotation"]);
             overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
-        }
-        if (add || overlayProps.contains("localRotation")) {
-            glm::quat rotation;
-            {
-                auto iter = overlayProps.find("localRotation");
-                if (iter != overlayProps.end()) {
-                    rotation = quatFromVariant(iter.value());
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_LOCAL_ROTATION;
-                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getLocalRotation();
-                }
-            }
+        } else if (overlayProps.contains("localRotation")) {
+            glm::quat rotation = quatFromVariant(overlayProps["localRotation"]);
             overlayProps["localRotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
         }
 
@@ -563,65 +546,33 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         SET_OVERLAY_PROP_DEFAULT(textures, PathUtils::resourcesUrl() + "images/whitePixel.png");
     }
 
-    { // Overlays did this conversion for rotation
-        auto iter = overlayProps.find("rotation");
-        if (iter != overlayProps.end() && !overlayProps.contains("localRotation")) {
-            QUuid parentID;
-            {
-                auto iter = overlayProps.find("parentID");
-                if (iter != overlayProps.end()) {
-                    parentID = iter.value().toUuid();
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_PARENT_ID;
-                    parentID = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentID();
-                }
-            }
-
-            int parentJointIndex = -1;
-            {
-                auto iter = overlayProps.find("parentJointIndex");
-                if (iter != overlayProps.end()) {
-                    parentJointIndex = iter.value().toInt();
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_PARENT_JOINT_INDEX;
-                    parentJointIndex = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getParentJointIndex();
-                }
-            }
-
-            glm::quat rotation = quatFromVariant(iter.value());
-            bool success = false;
-            glm::quat localRotation = SpatiallyNestable::worldToLocal(rotation, parentID, parentJointIndex, false, success);
-            if (success) {
-                overlayProps["rotation"] = quatToVariant(localRotation);
-            }
-        }
-    }
-
     if (type == "Text" || type == "Image" || type == "Grid" || type == "Web") {
         glm::quat originalRotation = ENTITY_ITEM_DEFAULT_ROTATION;
+        bool local = false;
         {
             auto iter = overlayProps.find("rotation");
             if (iter != overlayProps.end()) {
                 originalRotation = quatFromVariant(iter.value());
+                local = false;
             } else {
                 iter = overlayProps.find("localRotation");
                 if (iter != overlayProps.end()) {
                     originalRotation = quatFromVariant(iter.value());
+                    local = true;
                 } else if (!add) {
                     auto iter2 = savedRotations.find(id);
                     if (iter2 != savedRotations.end()) {
-                        originalRotation = iter2.value();
+                        originalRotation = iter2.value().first;
+                        local = iter2.value().second;
                     }
                 }
             }
         }
 
         if (!add) {
-            savedRotations[id] = originalRotation;
+            savedRotations[id] = { originalRotation, local };
         } else {
-            rotationToSave = originalRotation;
+            rotationToSave = { originalRotation, local };
         }
 
         glm::vec3 dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
@@ -652,7 +603,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                 rotation = glm::angleAxis((float)M_PI, rotation * Vectors::UP) * rotation;
             }
 
-            overlayProps["localRotation"] = quatToVariant(rotation);
+            if (local) {
+                overlayProps["localRotation"] = quatToVariant(rotation);
+            } else {
+                overlayProps["rotation"] = quatToVariant(rotation);
+            }
             overlayProps["dimensions"] = vec3toVariant(glm::abs(dimensions));
         }
     }
@@ -800,29 +755,29 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
         return UNKNOWN_ENTITY_ID;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QUuid result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
-        return result;
-    }
-
-    Overlay::Pointer overlay;
-    if (type == ImageOverlay::TYPE) {
+    if (type == ImageOverlay::TYPE || type == TextOverlay::TYPE || type == RectangleOverlay::TYPE) {
 #if !defined(DISABLE_QML)
-        overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-#endif
-    } else if (type == TextOverlay::TYPE) {
-#if !defined(DISABLE_QML)
-        overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-#endif
-    } else if (type == RectangleOverlay::TYPE) {
-        overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    }
+        if (QThread::currentThread() != thread()) {
+            QUuid result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
+            return result;
+        }
 
-    if (overlay) {
-        overlay->setProperties(properties.toMap());
-        return add2DOverlay(overlay);
+        Overlay::Pointer overlay;
+        if (type == ImageOverlay::TYPE) {
+            overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        } else if (type == TextOverlay::TYPE) {
+            overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        } else if (type == RectangleOverlay::TYPE) {
+            overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        }
+        if (overlay) {
+            overlay->setProperties(properties.toMap());
+            return add2DOverlay(overlay);
+        }
+#endif
+        return QUuid();
     }
 
     QString entityType = overlayToEntityType(type);
@@ -834,7 +789,7 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (type == "rectangle3d") {
         propertyMap["shape"] = "Quad";
     }
-    glm::quat rotationToSave;
+    std::pair<glm::quat, bool> rotationToSave;
     QUuid id = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(convertOverlayToEntityProperties(propertyMap, rotationToSave, entityType, true), entity::HostType::LOCAL);
     if (entityType == "Text" || entityType == "Image" || entityType == "Grid" || entityType == "Web") {
         savedRotations[id] = rotationToSave;
@@ -863,15 +818,14 @@ QUuid Overlays::cloneOverlay(const QUuid& id) {
         return UNKNOWN_ENTITY_ID;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QUuid result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QUuid result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return add2DOverlay(Overlay::Pointer(overlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
     }
 
@@ -947,6 +901,11 @@ void Overlays::deleteOverlay(const QUuid& id) {
 
     Overlay::Pointer overlay = take2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(const QUuid&, id));
+            return;
+        }
+
         _overlaysToDelete.push_back(overlay);
         emit overlayDeleted(id);
         return;
@@ -961,15 +920,14 @@ QString Overlays::getOverlayType(const QUuid& id) {
         return "";
     }
 
-    if (QThread::currentThread() != thread()) {
-        QString result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QString result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return overlay->getType();
     }
 
@@ -977,15 +935,14 @@ QString Overlays::getOverlayType(const QUuid& id) {
 }
 
 QObject* Overlays::getOverlayObject(const QUuid& id) {
-    if (QThread::currentThread() != thread()) {
-        QObject* result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QObject* result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return qobject_cast<QObject*>(&(*overlay));
     }
 
@@ -997,6 +954,12 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
         return UNKNOWN_ENTITY_ID;
     }
 
+    if (QThread::currentThread() != thread()) {
+        QUuid result;
+        BLOCKING_INVOKE_METHOD(this, "getOverlayAtPoint", Q_RETURN_ARG(QUuid, result), Q_ARG(const glm::vec2&, point));
+        return result;
+    }
+
     QMutexLocker locker(&_mutex);
     QMapIterator<QUuid, Overlay::Pointer> i(_overlays);
     unsigned int bestStackOrder = 0;
@@ -1004,8 +967,7 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
     while (i.hasNext()) {
         i.next();
         auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
-        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-            thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
+        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
             if (thisOverlay->getStackOrder() > bestStackOrder) {
                 bestID = i.key();
                 bestStackOrder = thisOverlay->getStackOrder();
@@ -1019,9 +981,7 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
 QVariant Overlays::getProperty(const QUuid& id, const QString& property) {
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
-        if (overlay->supportsGetProperty()) {
-            return overlay->getProperty(property);
-        }
+        // We don't support getting properties from QML Overlays right now
         return QVariant();
     }
 
@@ -1037,12 +997,8 @@ QVariantMap Overlays::getProperties(const QUuid& id, const QStringList& properti
     Overlay::Pointer overlay = get2DOverlay(id);
     QVariantMap result;
     if (overlay) {
-        if (overlay->supportsGetProperty()) {
-            for (const auto& property : properties) {
-                result.insert(property, overlay->getProperty(property));
-            }
-        }
-        return result;
+        // We don't support getting properties from QML Overlays right now
+        return QVariantMap();
     }
 
     QVariantMap overlayProperties = convertEntityToOverlayProperties(DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id));
@@ -1169,38 +1125,30 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 }
 
 bool Overlays::isLoaded(const QUuid& id) {
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
-        return overlay->isLoaded();
+        return true;
     }
 
     return DependencyManager::get<EntityScriptingInterface>()->isLoaded(id);
 }
 
 QSizeF Overlays::textSize(const QUuid& id, const QString& text) {
-    if (QThread::currentThread() != thread()) {
-        QSizeF result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(const QUuid&, id), Q_ARG(QString, text));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QSizeF result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(const QUuid&, id), Q_ARG(QString, text));
+            return result;
+        }
         if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(overlay)) {
             return textOverlay->textSize(text);
         }
         return QSizeF(0.0f, 0.0f);
-    } else {
-        return DependencyManager::get<EntityScriptingInterface>()->textSize(id, text);
     }
+
+    return DependencyManager::get<EntityScriptingInterface>()->textSize(id, text);
 }
 
 bool Overlays::isAddedOverlay(const QUuid& id) {
@@ -1213,7 +1161,7 @@ bool Overlays::isAddedOverlay(const QUuid& id) {
 }
 
 void Overlays::sendMousePressOnOverlay(const QUuid& id, const PointerEvent& event) {
-    mousePressPointerEvent(id, event);
+    mousePressOnPointerEvent(id, event);
 }
 
 void Overlays::sendMouseReleaseOnOverlay(const QUuid& id, const PointerEvent& event) {
@@ -1260,57 +1208,66 @@ float Overlays::height() {
     return offscreenUi->getWindow()->size().height();
 }
 
-static uint32_t toPointerButtons(const QMouseEvent& event) {
-    uint32_t buttons = 0;
-    buttons |= event.buttons().testFlag(Qt::LeftButton) ? PointerEvent::PrimaryButton : 0;
-    buttons |= event.buttons().testFlag(Qt::RightButton) ? PointerEvent::SecondaryButton : 0;
-    buttons |= event.buttons().testFlag(Qt::MiddleButton) ? PointerEvent::TertiaryButton : 0;
-    return buttons;
-}
-
-static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
-    switch (event.button()) {
-        case Qt::LeftButton:
-            return PointerEvent::PrimaryButton;
-        case Qt::RightButton:
-            return PointerEvent::SecondaryButton;
-        case Qt::MiddleButton:
-            return PointerEvent::TertiaryButton;
-        default:
-            return PointerEvent::NoButtons;
-    }
-}
-
-RayToOverlayIntersectionResult getPrevPickResult() {
-    RayToOverlayIntersectionResult overlayResult;
-    overlayResult.intersects = false;
-    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(DependencyManager::get<EntityTreeRenderer>()->getMouseRayPickID());
-    if (pickResult) {
-        overlayResult.intersects = pickResult->type == IntersectionType::LOCAL_ENTITY;
-        if (overlayResult.intersects) {
-            overlayResult.intersection = pickResult->intersection;
-            overlayResult.distance = pickResult->distance;
-            overlayResult.surfaceNormal = pickResult->surfaceNormal;
-            overlayResult.overlayID = pickResult->objectID;
-            overlayResult.extraInfo = pickResult->extraInfo;
+void Overlays::mousePressOnPointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mousePressOnOverlay(id, event);
         }
     }
-    return overlayResult;
 }
 
-PointerEvent Overlays::calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray,
-                                                    const RayToOverlayIntersectionResult& rayPickResult, QMouseEvent* event,
-                                                    PointerEvent::EventType eventType) {
-    glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(id, rayPickResult.intersection);
-    return PointerEvent(eventType, PointerManager::MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
-                        ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
+void Overlays::mousePressOffPointerEvent() {
+    emit mousePressOffOverlay();
+}
+
+void Overlays::mouseDoublePressOnPointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mouseDoublePressOnOverlay(id, event);
+        }
+    }
+}
+
+void Overlays::mouseDoublePressOffPointerEvent() {
+    emit mouseDoublePressOffOverlay();
+}
+
+void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mouseReleaseOnOverlay(id, event);
+        }
+    }
+}
+
+void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mouseMoveOnOverlay(id, event);
+        }
+    }
 }
 
 void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeyIDs().contains(id)) {
-        emit hoverEnterOverlay(id, event);
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit hoverEnterOverlay(id, event);
+        }
     }
 }
 
@@ -1318,7 +1275,10 @@ void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event)
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeyIDs().contains(id)) {
-        emit hoverOverOverlay(id, event);
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit hoverOverOverlay(id, event);
+        }
     }
 }
 
@@ -1326,113 +1286,10 @@ void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeyIDs().contains(id)) {
-        emit hoverLeaveOverlay(id, event);
-    }
-}
-
-std::pair<float, QUuid> Overlays::mousePressEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mousePressEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        _currentClickingOnOverlayID = rayPickResult.overlayID;
-
-        PointerEvent pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        mousePressPointerEvent(_currentClickingOnOverlayID, pointerEvent);
-        return { rayPickResult.distance, rayPickResult.overlayID };
-    }
-    emit mousePressOffOverlay();
-    return { FLT_MAX, UNKNOWN_ENTITY_ID };
-}
-
-void Overlays::mousePressPointerEvent(const QUuid& id, const PointerEvent& event) {
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeyIDs().contains(id)) {
-        emit mousePressOnOverlay(id, event);
-    }
-}
-
-bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        _currentClickingOnOverlayID = rayPickResult.overlayID;
-
-        auto pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-        return true;
-    }
-    emit mouseDoublePressOffOverlay();
-    return false;
-}
-
-bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
-        mouseReleasePointerEvent(rayPickResult.overlayID, pointerEvent);
-    }
-
-    _currentClickingOnOverlayID = UNKNOWN_ENTITY_ID;
-    return false;
-}
-
-void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeyIDs().contains(id)) {
-        emit mouseReleaseOnOverlay(id, event);
-    }
-}
-
-bool Overlays::mouseMoveEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
-        mouseMovePointerEvent(rayPickResult.overlayID, pointerEvent);
-
-        // If previously hovering over a different overlay then leave hover on that overlay.
-        if (_currentHoverOverOverlayID != UNKNOWN_ENTITY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
-            auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
-            hoverLeavePointerEvent(_currentHoverOverOverlayID, pointerEvent);
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit hoverLeaveOverlay(id, event);
         }
-
-        // If hovering over a new overlay then enter hover on that overlay.
-        if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
-            hoverEnterPointerEvent(rayPickResult.overlayID, pointerEvent);
-        }
-
-        // Hover over current overlay.
-        hoverOverPointerEvent(rayPickResult.overlayID, pointerEvent);
-
-        _currentHoverOverOverlayID = rayPickResult.overlayID;
-    } else {
-        // If previously hovering an overlay then leave hover.
-        if (_currentHoverOverOverlayID != UNKNOWN_ENTITY_ID) {
-            auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
-            hoverLeavePointerEvent(_currentHoverOverOverlayID, pointerEvent);
-
-            _currentHoverOverOverlayID = UNKNOWN_ENTITY_ID;
-        }
-    }
-    return false;
-}
-
-void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeyIDs().contains(id)) {
-        emit mouseMoveOnOverlay(id, event);
     }
 }
 

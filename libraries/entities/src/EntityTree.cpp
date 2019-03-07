@@ -52,7 +52,15 @@ EntityTree::EntityTree(bool shouldReaverage) :
 }
 
 EntityTree::~EntityTree() {
-    eraseAllOctreeElements(false);
+    // NOTE: to eraseAllOctreeElements() in this context is useless because
+    // any OctreeElements in the tree still have shared backpointers to this Tree
+    // which means the dtor never would have been called in the first place!
+    //
+    // I'm keeping this useless commented-out line to remind us:
+    // we don't need shared pointer overhead for EntityTrees.
+    // TODO: EntityTreeElement::_tree should be raw back pointer.
+    // AND: EntityItem::_element should be a raw back pointer.
+    //eraseAllOctreeElements(false); // KEEP THIS
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -70,56 +78,62 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
-void EntityTree::eraseNonLocalEntities() {
+void EntityTree::eraseDomainAndNonOwnedEntities() {
     emit clearingEntities();
 
     if (_simulation) {
-        // This will clear all entities host types including local entities, because local entities
-        // are not in the physics simulation
+        // local entities are not in the simulation, so we clear ALL
         _simulation->clearEntities();
     }
-    _staleProxies.clear();
-    QHash<EntityItemID, EntityItemPointer> localMap;
-    localMap.swap(_entityMap);
-    QHash<EntityItemID, EntityItemPointer> savedEntities;
+
     this->withWriteLock([&] {
-        foreach(EntityItemPointer entity, localMap) {
+        QHash<EntityItemID, EntityItemPointer> savedEntities;
+        // NOTE: lock the Tree first, then lock the _entityMap.
+        // It should never be done the other way around.
+        QReadLocker locker(&_entityMapLock);
+        foreach(EntityItemPointer entity, _entityMap) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
-                element->cleanupNonLocalEntities();
+                element->cleanupDomainAndNonOwnedEntities();
             }
 
-            if (entity->isLocalEntity()) {
+            if (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID())) {
                 savedEntities[entity->getEntityItemID()] = entity;
+            } else {
+                int32_t spaceIndex = entity->getSpaceIndex();
+                if (spaceIndex != -1) {
+                    // stale spaceIndices will be freed later
+                    _staleProxies.push_back(spaceIndex);
+                }
             }
         }
+        _entityMap.swap(savedEntities);
     });
-    localMap.clear();
-    _entityMap = savedEntities;
 
     resetClientEditStats();
     clearDeletedEntities();
 
     {
         QWriteLocker locker(&_needsParentFixupLock);
-        QVector<EntityItemWeakPointer> localEntitiesNeedsParentFixup;
+        QVector<EntityItemWeakPointer> needParentFixup;
 
         foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
-            if (!entityItem.expired() && entityItem.lock()->isLocalEntity()) {
-                localEntitiesNeedsParentFixup.push_back(entityItem);
+            auto entity = entityItem.lock();
+            if (entity && (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID()))) {
+                needParentFixup.push_back(entityItem);
             }
         }
 
-        _needsParentFixup = localEntitiesNeedsParentFixup;
+        _needsParentFixup = needParentFixup;
     }
 }
+
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
     if (_simulation) {
         _simulation->clearEntities();
     }
-    _staleProxies.clear();
     QHash<EntityItemID, EntityItemPointer> localMap;
     localMap.swap(_entityMap);
     this->withWriteLock([&] {
@@ -127,6 +141,11 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
                 element->cleanupEntities();
+            }
+            int32_t spaceIndex = entity->getSpaceIndex();
+            if (spaceIndex != -1) {
+                // assume stale spaceIndices will be freed later
+                _staleProxies.push_back(spaceIndex);
             }
         }
     });
@@ -764,9 +783,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _simulation->prepareEntityForDelete(theEntity);
         }
 
-        // keep a record of valid stale spaceIndices so they can be removed from the Space
         int32_t spaceIndex = theEntity->getSpaceIndex();
         if (spaceIndex != -1) {
+            // stale spaceIndices will be freed later
             _staleProxies.push_back(spaceIndex);
         }
     }
@@ -2955,6 +2974,7 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
 
 std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
+std::function<bool()> EntityTree::_areEntityClicksCapturedOperator = nullptr;
 
 QObject* EntityTree::getEntityObject(const QUuid& id) {
     if (_getEntityObjectOperator) {
@@ -2968,6 +2988,13 @@ QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
         return _textSizeOperator(id, text);
     }
     return QSizeF(0.0f, 0.0f);
+}
+
+bool EntityTree::areEntityClicksCaptured() {
+    if (_areEntityClicksCapturedOperator) {
+        return _areEntityClicksCapturedOperator();
+    }
+    return false;
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

@@ -458,6 +458,11 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 }
 
 void TabletProxy::onTabletShown() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "onTabletShown");
+        return;
+    }
+
     if (_tabletShown) {
         Setting::Handle<bool> notificationSounds{ QStringLiteral("play_notification_sounds"), true};
         Setting::Handle<bool> notificationSoundTablet{ QStringLiteral("play_notification_sounds_tablet"), true};
@@ -485,7 +490,11 @@ bool TabletProxy::isPathLoaded(const QVariant& path) {
 }
 
 void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
-    Q_ASSERT(QThread::currentThread() == qApp->thread());
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setQmlTabletRoot", Q_ARG(OffscreenQmlSurface*, qmlOffscreenSurface));
+        return;
+    }
+
     _qmlOffscreenSurface = qmlOffscreenSurface;
     _qmlTabletRoot = qmlOffscreenSurface ? qmlOffscreenSurface->getRootItem() : nullptr;
     if (_qmlTabletRoot && _qmlOffscreenSurface) {
@@ -654,6 +663,11 @@ void TabletProxy::loadQMLSource(const QVariant& path, bool resizable) {
 }
 
 void TabletProxy::stopQMLSource() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "stopQMLSource");
+        return;
+    }
+
     // For desktop toolbar mode dialogs.
     if (!_toolbarMode || !_desktopWindow) {
         qCDebug(uiLogging) << "tablet cannot clear QML because not desktop toolbar mode";
@@ -879,6 +893,12 @@ void TabletProxy::sendToQml(const QVariant& msg) {
 
 
 OffscreenQmlSurface* TabletProxy::getTabletSurface() {
+    if (QThread::currentThread() != thread()) {
+        OffscreenQmlSurface* result = nullptr;
+        BLOCKING_INVOKE_METHOD(this, "getTabletSurface", Q_RETURN_ARG(OffscreenQmlSurface*, result));
+        return result;
+    }
+
     return _qmlOffscreenSurface;
 }
 
@@ -888,6 +908,11 @@ void TabletProxy::desktopWindowClosed() {
 }
 
 void TabletProxy::unfocus() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "unfocus");
+        return;
+    }
+
     if (_qmlOffscreenSurface) {
         _qmlOffscreenSurface->lowerKeyboard();
     }
