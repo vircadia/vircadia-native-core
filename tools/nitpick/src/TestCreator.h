@@ -1,5 +1,5 @@
 //
-//  Test.h
+//  TestCreator.h
 //
 //  Created by Nissim Hadar on 2 Nov 2017.
 //  Copyright 2013 High Fidelity, Inc.
@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_test_h
-#define hifi_test_h
+#ifndef hifi_testCreator_h
+#define hifi_testCreator_h
 
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QMessageBox>
@@ -18,6 +18,7 @@
 
 #include "AWSInterface.h"
 #include "ImageComparer.h"
+#include "Downloader.h"
 #include "MismatchWindow.h"
 #include "TestRailInterface.h"
 
@@ -40,9 +41,9 @@ enum TestRailCreateMode {
     XML
 };
 
-class Test {
+class TestCreator {
 public: 
-    Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode);
+    TestCreator(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode);
 
     void startTestsEvaluation(const bool isRunningFromCommandLine,
                               const bool isRunningInAutomaticTestRun, 
@@ -87,7 +88,7 @@ public:
 
     void includeTest(QTextStream& textStream, const QString& testPathname);
 
-    void appendTestResultsToFile(TestResult testResult, QPixmap comparisonImage, bool hasFailed);
+    void appendTestResultsToFile(const TestResult& testResult, const QPixmap& comparisonImage, const QPixmap& ssimResultsImage, bool hasFailed);
     void appendTestResultsToFile(QString testResultFilename, bool hasFailed);
 
     bool createTestResultsFolderPath(const QString& directory);
@@ -102,7 +103,11 @@ public:
 
     void setTestRailCreateMode(TestRailCreateMode testRailCreateMode);
 
-    void createWebPage(QCheckBox* updateAWSCheckBox, QLineEdit* urlLineEdit);
+    void createWebPage(
+        QCheckBox* updateAWSCheckBox, 
+        QRadioButton* diffImageRadioButton,
+        QRadioButton* ssimImageRadionButton,
+        QLineEdit* urlLineEdit);
 
 private:
     QProgressBar* _progressBar;
@@ -116,7 +121,7 @@ private:
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    const double THRESHOLD{ 0.990 };
+    const double THRESHOLD{ 0.995 };
 
     QDir _imageDirectory;
 
@@ -163,6 +168,7 @@ private:
     TestRailCreateMode _testRailCreateMode { PYTHON };
 
     AWSInterface* _awsInterface;
+    Downloader* _downloader;
 };
 
-#endif // hifi_test_h
+#endif

@@ -17,10 +17,11 @@
 #include <hfm/HFM.h>
 
 #include "Engine.h"
+#include "BakerTypes.h"
 
 class PrepareJointsTask {
 public:
-    using Input = baker::VaryingSet2<std::vector<hfm::Joint>, QVariantHash /*mapping*/>;
+    using Input = baker::VaryingSet2<std::vector<hfm::Joint>, baker::GeometryMappingPair /*mapping*/>;
     using Output = baker::VaryingSet3<std::vector<hfm::Joint>, QMap<int, glm::quat> /*jointRotationOffsets*/, QHash<QString, int> /*jointIndices*/>;
     using JobModel = baker::Job::ModelIO<PrepareJointsTask, Input, Output>;
 
