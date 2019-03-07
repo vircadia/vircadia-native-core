@@ -273,6 +273,15 @@ public:
     {}
 };
 
+class FlowData {
+public:
+    FlowData() {};
+    QVariantMap _physicsConfig;
+    QVariantMap _collisionsConfig;
+    bool shouldInitFlow() const { return _physicsConfig.size() > 0; }
+    bool shouldInitCollisions() const { return _collisionsConfig.size() > 0; }
+};
+
 /// The runtime model format.
 class Model {
 public:
@@ -319,6 +328,7 @@ public:
     QList<QString> blendshapeChannelNames;
 
     QMap<int, glm::quat> jointRotationOffsets;
+    FlowData flowData;
 };
 
 };
@@ -343,6 +353,7 @@ typedef hfm::Mesh HFMMesh;
 typedef hfm::AnimationFrame HFMAnimationFrame;
 typedef hfm::Light HFMLight;
 typedef hfm::Model HFMModel;
+typedef hfm::FlowData FlowData;
 
 Q_DECLARE_METATYPE(HFMAnimationFrame)
 Q_DECLARE_METATYPE(QVector<HFMAnimationFrame>)

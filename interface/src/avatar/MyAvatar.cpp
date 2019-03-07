@@ -2325,23 +2325,25 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
-       if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+        if (skeletonModelChangeCount == _skeletonModelChangeCount) {
 
-           if (_fullAvatarModelName.isEmpty()) {
-               // Store the FST file name into preferences
-               const auto& mapping = _skeletonModel->getGeometry()->getMapping();
-               if (mapping.value("name").isValid()) {
-                   _fullAvatarModelName = mapping.value("name").toString();
-               }
-           }
+            if (_fullAvatarModelName.isEmpty()) {
+                // Store the FST file name into preferences
+                const auto& mapping = _skeletonModel->getGeometry()->getMapping();
+                if (mapping.value("name").isValid()) {
+                    _fullAvatarModelName = mapping.value("name").toString();
+                }
+            }
 
-           initHeadBones();
-           _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-           _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-           initAnimGraph();
-           _skeletonModelLoaded = true;
-       }
-       QObject::disconnect(*skeletonConnection);
+            initHeadBones();
+            _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+            initAnimGraph();
+            initFlowFromFST();
+
+            _skeletonModelLoaded = true;
+        }
+        QObject::disconnect(*skeletonConnection);
     });
     
     saveAvatarUrl();
@@ -5381,6 +5383,15 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
                 }
                 collisionSystem.addCollisionSphere(jointIndex, collisionsSettings);
             }
+        }
+    }
+}
+
+void MyAvatar::initFlowFromFST() {
+    if (_skeletonModel->isLoaded()) {
+        auto &flowData = _skeletonModel->getHFMModel().flowData;
+        if (flowData.shouldInitFlow()) {
+            useFlow(true, flowData.shouldInitCollisions(), flowData._physicsConfig, flowData._collisionsConfig);
         }
     }
 }
