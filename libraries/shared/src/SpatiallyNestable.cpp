@@ -1100,10 +1100,12 @@ void SpatiallyNestable::forEachDescendantTest(const ChildLambdaTest& actor) cons
     }
 }
 
-void SpatiallyNestable::locationChanged(bool tellPhysics) {
-    forEachChild([&](SpatiallyNestablePointer object) {
-        object->locationChanged(tellPhysics);
-    });
+void SpatiallyNestable::locationChanged(bool tellPhysics, bool tellChildren) {
+    if (tellChildren) {
+        forEachChild([&](SpatiallyNestablePointer object) {
+            object->locationChanged(tellPhysics, tellChildren);
+        });
+    }
 }
 
 AACube SpatiallyNestable::getMaximumAACube(bool& success) const {

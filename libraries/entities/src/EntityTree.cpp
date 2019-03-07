@@ -2039,6 +2039,8 @@ void EntityTree::fixupNeedsParentFixups() {
                                    Simulation::DIRTY_COLLISION_GROUP |
                                    Simulation::DIRTY_TRANSFORM);
             entityChanged(entity);
+            entity->locationChanged(true, false);
+
             entity->forEachDescendant([&](SpatiallyNestablePointer object) {
                 if (object->getNestableType() == NestableType::Entity) {
                     EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
@@ -2047,8 +2049,8 @@ void EntityTree::fixupNeedsParentFixups() {
                                                      Simulation::DIRTY_TRANSFORM);
                     entityChanged(descendantEntity);
                 }
+                object->locationChanged(true, false);
             });
-            entity->locationChanged(true);
 
             // Update our parent's bounding box
             bool success = false;
@@ -3002,8 +3004,19 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
-        // NOTE: we rely on side-effects of the entity->updateQueryAACube() call in the following if() conditional:
-        if (entity->updateQueryAACube() || force) {
+        bool queryAACubeChanged = false;
+        if (!entity->hasChildren()) {
+            // updateQueryAACube will also update all ancestors' AACubes, so we only need to call this for leaf nodes
+            queryAACubeChanged = entity->updateQueryAACube();
+        } else {
+            AACube oldCube = entity->getQueryAACube();
+            object->forEachChild([&](SpatiallyNestablePointer descendant) {
+                updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+            });
+            queryAACubeChanged = oldCube != entity->getQueryAACube();
+        }
+
+        if (queryAACubeChanged || force) {
             bool success;
             AACube newCube = entity->getQueryAACube(success);
             if (success) {
@@ -3027,10 +3040,6 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             entityChanged(entity);
         }
     }
-
-    object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
-    });
 }
 
 void EntityTree::updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
