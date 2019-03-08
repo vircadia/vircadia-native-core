@@ -5424,7 +5424,6 @@ QVariantMap MyAvatar::getFlowData() {
             QString jointName = jointNames.size() > collision._jointIndex ? jointNames[collision._jointIndex] : "unknown";
             collisionsData.insert(jointName, collisionObject);
         }
-        int count = 0;
         for (auto &thread : flow.getThreads()) {
             QVariantList indices;
             for (int index : thread._joints) {
