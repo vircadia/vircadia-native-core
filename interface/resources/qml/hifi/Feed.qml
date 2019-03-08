@@ -189,4 +189,13 @@ Column {
             }
         }
     }
+    function isStandalone(address) {
+    
+        for (var i=0; i < suggestions.count; i++) {
+            if (suggestions.get(i).place_name.toLowerCase() === address.toLowerCase()) {
+                return suggestions.get(i).standalone_optimized;
+            }
+        }
+        return false;
+    }
 }

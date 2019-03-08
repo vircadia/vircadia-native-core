@@ -230,7 +230,7 @@ StackView {
                     updateLocationText(text.length > 0);
                 }
                 onAccepted: {
-                    toggleOrGo();
+                    toggleOrGo(addressLine.text, false, places.isStandalone(addressLine.text));
                 }
 
                 // unfortunately TextField from Quick Controls 2 disallow customization of placeHolderText color without creation of new style
