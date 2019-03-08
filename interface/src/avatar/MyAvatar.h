@@ -1204,6 +1204,13 @@ public:
     */
     Q_INVOKABLE QVariantMap getFlowData();
 
+    /**jsdoc
+    * returns the indices of every colliding flow joint
+    * @function MyAvatar.getCollidingFlowJoints
+    * @returns {int[]}
+    */
+    Q_INVOKABLE QVariantList getCollidingFlowJoints();
+
 public slots:
 
     /**jsdoc

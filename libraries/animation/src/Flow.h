@@ -222,6 +222,7 @@ public:
     const glm::quat& getCurrentRotation() const { return _currentRotation; }
     const glm::vec3& getCurrentTranslation() const { return _initialTranslation; }
     const glm::vec3& getInitialPosition() const { return _initialPosition; }
+    bool isColliding() const { return _colliding; }
 
 protected:
 

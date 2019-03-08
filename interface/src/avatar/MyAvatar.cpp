@@ -5404,7 +5404,18 @@ QVariantMap MyAvatar::getFlowData() {
         QVariantMap physicsData;
         QVariantMap collisionsData;
         QVariantMap threadData;
+        std::map<QString, QVariantList> groupJointsMap;
+        QVariantList jointCollisionData;
         auto &groups = flow.getGroupSettings();
+        for (auto &joint : flow.getJoints()) {
+            auto &groupName = joint.second.getGroup();
+            if (groups.find(groupName) != groups.end()) {
+                if (groupJointsMap.find(groupName) == groupJointsMap.end()) {
+                    groupJointsMap.insert(std::pair<QString, QVariantList>(groupName, QVariantList()));
+                }
+                groupJointsMap[groupName].push_back(joint.second.getIndex());
+            }
+        }        
         for (auto &group : groups) {
             QVariantMap settingsObject;
             QString groupName = group.first;
@@ -5416,8 +5427,10 @@ QVariantMap MyAvatar::getFlowData() {
             settingsObject.insert("inertia", groupSettings._inertia);
             settingsObject.insert("radius", groupSettings._radius);
             settingsObject.insert("stiffness", groupSettings._stiffness);
+            settingsObject.insert("jointIndices", groupJointsMap[groupName]);
             physicsData.insert(groupName, settingsObject);
         }
+
         auto &collisions = collisionSystem.getCollisions();
         for (auto &collision : collisions) {
             QVariantMap collisionObject;
@@ -5439,6 +5452,19 @@ QVariantMap MyAvatar::getFlowData() {
         flowData.insert("threads", threadData);
     }
     return flowData;
+}
+
+QVariantList MyAvatar::getCollidingFlowJoints() {
+    QVariantList collidingFlowJoints;
+    if (_skeletonModel->isLoaded()) {
+        auto& flow = _skeletonModel->getRig().getFlow();
+        for (auto &joint : flow.getJoints()) {
+            if (joint.second.isColliding()) {
+                collidingFlowJoints.append(joint.second.getIndex());
+            }
+        }
+    }
+    return collidingFlowJoints;
 }
 
 void MyAvatar::initFlowFromFST() {
