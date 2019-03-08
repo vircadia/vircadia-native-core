@@ -131,7 +131,7 @@ const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
  *   </tbody>
  * </table>
  * <p>The values for the hand states are added together to give the <code>HandState</code> value. For example, if the left
- * hand's finger is pointing, the value is <code>1 + 4 == 5</ccode>.
+ * hand's finger is pointing, the value is <code>1 + 4 == 5</code>.
  * @typedef {number} HandState
  */
 const char HAND_STATE_NULL = 0;
@@ -705,8 +705,9 @@ public:
     Q_INVOKABLE void setRawJointData(QVector<JointData> data);
 
     /**jsdoc
-     * Sets a specific joint's rotation and position relative to its parent.
-     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * Sets a specific joint's rotation and position relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse
      * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
      * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
      * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
@@ -714,7 +715,7 @@ public:
      * @function Avatar.setJointData
      * @param {number} index - The index of the joint.
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
-     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Set your avatar to it's default T-pose for a while.<br />
      * <img alt="Avatar in T-pose" src="https://docs.highfidelity.com/images/t-pose.png" /></caption>
      * // Set all joint translations and rotations to defaults.
@@ -748,15 +749,16 @@ public:
     Q_INVOKABLE virtual void setJointRotation(int index, const glm::quat& rotation);
 
     /**jsdoc
-     * Sets a specific joint's translation relative to its parent.
-     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * Sets a specific joint's translation relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse
      * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
      * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
      * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
      * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
      * @function Avatar.setJointTranslation
      * @param {number} index - The index of the joint.
-     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      */
     Q_INVOKABLE virtual void setJointTranslation(int index, const glm::vec3& translation);
 
@@ -773,7 +775,7 @@ public:
      * Checks that the data for a joint are valid.
      * @function Avatar.isJointDataValid
      * @param {number} index - The index of the joint.
-     * @returns {boolean} <code>true</code> if the joint data is valid, <code>false</code> if not.
+     * @returns {boolean} <code>true</code> if the joint data are valid, <code>false</code> if not.
      */
     Q_INVOKABLE bool isJointDataValid(int index) const;
 
@@ -787,17 +789,20 @@ public:
     Q_INVOKABLE virtual glm::quat getJointRotation(int index) const;
 
     /**jsdoc
-     * Gets the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
+     * Gets the translation of a joint relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>For information on the joint hierarchy used, see 
+     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} index - The index of the joint.
-     * @returns {Vec3} The translation of the joint relative to its parent.
+     * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
      */
     Q_INVOKABLE virtual glm::vec3 getJointTranslation(int index) const;
 
     /**jsdoc
-     * Sets a specific joint's rotation and position relative to its parent.
-     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * Sets a specific joint's rotation and position relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse
      * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
      * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
      * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
@@ -805,7 +810,7 @@ public:
      * @function Avatar.setJointData
      * @param {string} name - The name of the joint.
      * @param {Quat} rotation - The rotation of the joint relative to its parent.
-     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      */
     Q_INVOKABLE virtual void setJointData(const QString& name, const glm::quat& rotation, const glm::vec3& translation);
 
@@ -843,20 +848,21 @@ public:
     Q_INVOKABLE virtual void setJointRotation(const QString& name, const glm::quat& rotation);
 
     /**jsdoc
-     * Sets a specific joint's translation relative to its parent.
-     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse 
+     * Sets a specific joint's translation relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse
      * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints, 
      * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate 
      * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set 
      * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
      * @function Avatar.setJointTranslation
      * @param {string} name - The name of the joint.
-     * @param {Vec3} translation - The translation of the joint relative to its parent.
+     * @param {Vec3} translation - The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Stretch your avatar's neck. Depending on the avatar you are using, you will either see a gap between 
      * the head and body or you will see the neck stretched.<br />
      * <img alt="Avatar with neck stretched" src="https://docs.highfidelity.com/images/stretched-neck.png" /></caption>
      * // Stretch your avatar's neck.
-     * MyAvatar.setJointTranslation("Neck", { x: 0, y: 25, z: 0 });
+     * MyAvatar.setJointTranslation("Neck", Vec3.multiply(2, MyAvatar.getJointTranslation("Neck")));
      * 
      * // Restore your avatar's neck after 5s.
      * Script.setTimeout(function () {
@@ -874,10 +880,10 @@ public:
      * @function Avatar.clearJointData
      * @param {string} name - The name of the joint.
      * @example <caption>Offset and restore the position of your avatar's head.</caption>
-     * // Move your avatar's head up by 25cm from where it should be.
-     * MyAvatar.setJointTranslation("Neck", { x: 0, y: 0.25, z: 0 });
+     * // Stretch your avatar's neck.
+     * MyAvatar.setJointTranslation("Neck", Vec3.multiply(2, MyAvatar.getJointTranslation("Neck")));
      *
-     * // Restore your avatar's head to its default position after 5s.
+     * // Restore your avatar's neck after 5s.
      * Script.setTimeout(function () {
      *     MyAvatar.clearJointData("Neck");
      * }, 5000);
@@ -890,7 +896,7 @@ public:
      * Checks that the data for a joint are valid.
      * @function Avatar.isJointDataValid
      * @param {string} name - The name of the joint.
-     * @returns {boolean} <code>true</code> if the joint data is valid, <code>false</code> if not.
+     * @returns {boolean} <code>true</code> if the joint data are valid, <code>false</code> if not.
      */
     Q_INVOKABLE virtual bool isJointDataValid(const QString& name) const;
 
@@ -908,11 +914,13 @@ public:
     Q_INVOKABLE virtual glm::quat getJointRotation(const QString& name) const;
 
     /**jsdoc
-     * Gets the translation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
+     * Gets the translation of a joint relative to its parent, in model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
+     * <p>For information on the joint hierarchy used, see
+     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} name - The name of the joint.
-     * @returns {Vec3} The translation of the joint relative to its parent.
+     * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
      * @example <caption>Report the translation of your avatar's hips joint.</caption>
      * print(JSON.stringify(MyAvatar.getJointRotation("Hips")));
      *
@@ -933,10 +941,13 @@ public:
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
 
     /**jsdoc
-     * Gets the translations of all joints in the current avatar. Each joint's rotation is relative to its parent joint.
+     * Gets the translations of all joints in the current avatar. Each joint's translation is relative to its parent joint, in
+     * model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * @function Avatar.getJointTranslations
-     * @returns {Vec3[]} The translations of all joints relative to each's parent. The values are in the same order as the array 
-     * returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
+     * @returns {Vec3[]} The translations of all joints relative to each's parent, in model coordinates. The values are in the 
+     *     same order as the array returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the 
+     *     <code>Avatar</code> API.
      */
     Q_INVOKABLE virtual QVector<glm::vec3> getJointTranslations() const;
 
@@ -979,15 +990,18 @@ public:
     Q_INVOKABLE virtual void setJointRotations(const QVector<glm::quat>& jointRotations);
     
     /**jsdoc
-     * Sets the translations of all joints in the current avatar. Each joint's translation is relative to its parent joint.
+     * Sets the translations of all joints in the current avatar. Each joint's translation is relative to its parent joint, in 
+     * model coordinates.
+     * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>Setting joint data completely overrides/replaces all motion from the default animation system including inverse
      * kinematics, but just for the specified joint. So for example, if you were to procedurally manipulate the finger joints,
      * the avatar's hand and head would still do inverse kinematics properly. However, as soon as you start to manipulate
      * joints in the inverse kinematics chain, the inverse kinematics might not function as you expect. For example, if you set
      * the rotation of the elbow, the hand inverse kinematics position won't end up in the right place.</p>
      * @function Avatar.setJointTranslations
-     * @param {Vec3[]} translations - The translations for all joints in the avatar. The values are in the same order as the 
-     * array returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the <code>Avatar</code> API.
+     * @param {Vec3[]} translations - The translations for all joints in the avatar, in model coordinates. The values are in 
+     *     the same order as the array returned by {@link MyAvatar.getJointNames}, or {@link Avatar.getJointNames} if using the 
+     *     <code>Avatar</code> API.
      */
     Q_INVOKABLE virtual void setJointTranslations(const QVector<glm::vec3>& jointTranslations);
 
@@ -1271,12 +1285,12 @@ public:
     AABox getDefaultBubbleBox() const;
 
     /**jsdoc
-     * @comment Documented in derived classes' JSDoc.
+     * @comment Documented in derived classes' JSDoc because implementations are different.
      */
     Q_INVOKABLE virtual AvatarEntityMap getAvatarEntityData() const;
 
     /**jsdoc
-     * @comment Documented in derived classes' JSDoc.
+     * @comment Documented in derived classes' JSDoc because implementations are different.
      */
     Q_INVOKABLE virtual void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
 
@@ -1383,14 +1397,14 @@ signals:
     void displayNameChanged();
 
     /**jsdoc
-     * Triggered when the avattr's <code>sessionDisplayName</code> property value changes.
+     * Triggered when the avatar's <code>sessionDisplayName</code> property value changes.
      * @function Avatar.sessionDisplayNameChanged
      * @returns {Signal}
      */
     void sessionDisplayNameChanged();
 
     /**jsdoc
-     * Triggered when the avatar's <code>skeletonModelURL</code> property value changes.
+     * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) is changed.
      * @function Avatar.skeletonModelURLChanged
      * @returns {Signal}
      */

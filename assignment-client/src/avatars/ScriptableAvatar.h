@@ -149,7 +149,7 @@ public:
      * Gets the avatar entities as binary data.
      * <p><strong>Warning:</strong> Potentially a very expensive call. Do not use if possible.</p>
      * @function Avatar.getAvatarEntityData
-     * @returns {AvatarEntityMap}
+     * @returns {AvatarEntityMap} The avatar entities as binary data.
      */
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
 
@@ -157,7 +157,7 @@ public:
      * Sets the avatar entities from binary data.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.setAvatarEntityData
-     * @param {AvatarEntityMap} avatarEntityData
+     * @param {AvatarEntityMap} avatarEntityData - The avatar entities as binary data.
      */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
 
