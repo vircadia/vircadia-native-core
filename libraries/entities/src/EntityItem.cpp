@@ -1873,7 +1873,7 @@ void EntityItem::setParentID(const QUuid& value) {
 
 glm::vec3 EntityItem::getScaledDimensions() const {
     glm::vec3 scale = getSNScale();
-    return _unscaledDimensions * scale;
+    return getUnscaledDimensions() * scale;
 }
 
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
@@ -2593,7 +2593,7 @@ QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeT
     return result;
 }
 
-void EntityItem::locationChanged(bool tellPhysics) {
+void EntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     requiresRecalcBoxes();
     if (tellPhysics) {
         _flags |= Simulation::DIRTY_TRANSFORM;
@@ -2602,7 +2602,7 @@ void EntityItem::locationChanged(bool tellPhysics) {
             tree->entityChanged(getThisPointer());
         }
     }
-    SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    SpatiallyNestable::locationChanged(tellPhysics, tellChildren);
     std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
     emit spaceUpdate(data);
     somethingChangedNotification();

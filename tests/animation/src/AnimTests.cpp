@@ -443,6 +443,28 @@ void AnimTests::testAnimPose() {
             }
         }
     }
+
+
+    // test matrix that has a negative determiant.
+    glm::vec4 col0(-9.91782e-05f, -5.40349e-05f, 0.000724383f, 0.0f);
+    glm::vec4 col1(-0.000155237f, 0.00071579f, 3.21398e-05f, 0.0f);
+    glm::vec4 col2(0.000709614f, 0.000149036f, 0.000108273f, 0.0f);
+    glm::vec4 col3(0.117922f, 0.250457f, 0.102155f, 1.0f);
+    glm::mat4 m(col0, col1, col2, col3);
+    AnimPose p(m);
+
+    glm::vec3 resultTrans = glm::vec3(col3);
+    glm::quat resultRot = glm::quat(0.0530394f, 0.751549f, 0.0949531f, -0.650649f);
+    glm::vec3 resultScale = glm::vec3(-0.000733135f, -0.000733135f, -0.000733135f);
+
+    const float TEST_EPSILON2 = 0.00001f;
+    QCOMPARE_WITH_ABS_ERROR(p.trans(), resultTrans, TEST_EPSILON2);
+
+    if (glm::dot(p.rot(), resultRot) < 0.0f) {
+        resultRot = -resultRot;
+    }
+    QCOMPARE_WITH_ABS_ERROR(p.rot(), resultRot, TEST_EPSILON2);
+    QCOMPARE_WITH_ABS_ERROR(p.scale(), resultScale, TEST_EPSILON2);
 }
 
 void AnimTests::testExpressionTokenizer() {

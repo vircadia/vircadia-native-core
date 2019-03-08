@@ -168,11 +168,7 @@ ModalWindow {
             shortcut: "Esc"
             onTriggered: {
                 root.canceled();
-                // FIXME we are leaking memory to avoid a crash
-                // root.destroy();
-
-                root.disableFade = true
-                visible = false;
+                root.destroy();
             }
         }
 
@@ -183,11 +179,7 @@ ModalWindow {
             onTriggered: {
                 root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
-                // FIXME we are leaking memory to avoid a crash
-                // root.destroy();
-
-                root.disableFade = true
-                visible = false;
+                root.destroy();
             }
         }
     }

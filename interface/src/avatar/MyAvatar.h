@@ -1753,6 +1753,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
     void initAnimGraph();
+    void initFlowFromFST();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
