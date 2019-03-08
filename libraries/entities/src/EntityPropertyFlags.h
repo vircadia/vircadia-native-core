@@ -98,6 +98,7 @@ enum EntityPropertyList {
     PROP_EDITION_NUMBER,
     PROP_ENTITY_INSTANCE_NUMBER,
     PROP_CERTIFICATE_ID,
+    PROP_CERTIFICATE_TYPE,
     PROP_STATIC_CERTIFICATE_VERSION,
 
     // Used to convert values to and from scripts
