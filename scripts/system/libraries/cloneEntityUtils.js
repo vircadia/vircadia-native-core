@@ -48,10 +48,11 @@ propsAreCloneDynamic = function(props) {
 
 cloneEntity = function(props) {
     var entityToClone = props.id;
-    var certificateID = Entities.getEntityProperties(entityToClone, ['certificateID']).certificateID;
+    var props = Entities.getEntityProperties(entityToClone, ['certificateID', 'certificateType'])
+    var certificateID = props.certificateID;
     // ensure entity is cloneable and does not have a certificate ID, whereas cloneable limits
     // will now be handled by the server where the entity add will fail if limit reached
-    if (entityIsCloneable(props) && (certificateID === undefined || certificateID.length === 0)) {
+    if (entityIsCloneable(props) && (!!certificateID || props.certificateType.indexOf('domainUnlimited') >= 0)) {
         var cloneID = Entities.cloneEntity(entityToClone);
         return cloneID;
     }

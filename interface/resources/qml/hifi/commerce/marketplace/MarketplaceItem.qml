@@ -2,7 +2,7 @@
 //  MarketplaceListItem.qml
 //  qml/hifi/commerce/marketplace
 //
-//  MarketplaceListItem
+//  MarketplaceItem
 //
 //  Created by Roxanne Skelly on 2019-01-22
 //  Copyright 2019 High Fidelity, Inc.
@@ -35,6 +35,7 @@ Rectangle {
     property var categories: []
     property int price: 0
     property string availability: "unknown"
+    property string updated_item_id: ""
     property var attributions: []
     property string description: ""
     property string license: ""
@@ -45,13 +46,16 @@ Rectangle {
     property bool supports3DHTML: false
     property bool standaloneVisible: false
     property bool standaloneOptimized: false
-
     
     onCategoriesChanged: {
         categoriesListModel.clear();
         categories.forEach(function(category) {
             categoriesListModel.append({"category":category});
         });
+    }
+    
+    onDescriptionChanged: {
+        descriptionText.text = description;
     }
 
     onAttributionsChanged: {
@@ -289,17 +293,17 @@ Rectangle {
             height: 50
             width: 180
 
-            property bool isNFS: availability === "not for sale" // Note: server will say "sold out" or "invalidated" before it says NFS
-            property bool isMine: creator === Account.username
-            property bool isUpgrade: root.edition >= 0
-            property int costToMe: ((isMine && isNFS) || isUpgrade) ? 0 : price
-            property bool isAvailable: costToMe >= 0
-
-            text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : availability)
-            enabled: isAvailable
-            buttonGlyph: isAvailable ? (costToMe ? hifi.glyphs.hfc : "") : ""
+            property bool isUpdate: root.edition >= 0  // Special case of updating from a specific older item
+            property bool isStocking: (creator === Account.username) && (availability === "not for sale") && !updated_item_id // Note: server will say "sold out" or "invalidated" before it says NFS
+            property bool isFreeSpecial: isStocking || isUpdate
+            enabled: isFreeSpecial || (availability === 'available')
+            buttonGlyph: (enabled && !isUpdate && (price > 0)) ? hifi.glyphs.hfc : ""
+            text: isUpdate ? "UPDATE FOR FREE" : (isStocking ? "FREE STOCK" : (enabled ? (price || "FREE") : availability))
             color: hifi.buttons.blue
-            
+
+            buttonGlyphSize: 24
+            fontSize: 24
+
             onClicked: root.buy();
         }
         

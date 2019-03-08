@@ -42,6 +42,7 @@
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
+static const QString DOMAIN_UNLIMITED = "domainUnlimited";
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
@@ -300,7 +301,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 
         // Delete an already-existing entity from the tree if it has the same
         //     CertificateID as the entity we're trying to add.
-        if (!existingEntityItemID.isNull()) {
+        if (!existingEntityItemID.isNull() && !entity->getCertificateType().contains(DOMAIN_UNLIMITED)) {
             qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
                 << existingEntityItemID << ". Deleting existing entity.";
             deleteEntity(existingEntityItemID, true);
@@ -1870,7 +1871,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         failedAdd = true;
                         qCDebug(entities) << "User without 'certified rez rights' [" << senderNode->getUUID()
                             << "] attempted to add a certified entity with ID:" << entityItemID;
-                    } else if (isClone && isCertified) {
+                    } else if (isClone && isCertified && !properties.getCertificateType().contains(DOMAIN_UNLIMITED)) {
                         failedAdd = true;
                         qCDebug(entities) << "User attempted to clone certified entity from entity ID:" << entityIDToClone;
                     } else if (isClone && !isCloneable) {
@@ -2039,6 +2040,8 @@ void EntityTree::fixupNeedsParentFixups() {
                                    Simulation::DIRTY_COLLISION_GROUP |
                                    Simulation::DIRTY_TRANSFORM);
             entityChanged(entity);
+            entity->locationChanged(true, false);
+
             entity->forEachDescendant([&](SpatiallyNestablePointer object) {
                 if (object->getNestableType() == NestableType::Entity) {
                     EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
@@ -2047,8 +2050,8 @@ void EntityTree::fixupNeedsParentFixups() {
                                                      Simulation::DIRTY_TRANSFORM);
                     entityChanged(descendantEntity);
                 }
+                object->locationChanged(true, false);
             });
-            entity->locationChanged(true);
 
             // Update our parent's bounding box
             bool success = false;
@@ -3002,8 +3005,19 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
-        // NOTE: we rely on side-effects of the entity->updateQueryAACube() call in the following if() conditional:
-        if (entity->updateQueryAACube() || force) {
+        bool queryAACubeChanged = false;
+        if (!entity->hasChildren()) {
+            // updateQueryAACube will also update all ancestors' AACubes, so we only need to call this for leaf nodes
+            queryAACubeChanged = entity->updateQueryAACube();
+        } else {
+            AACube oldCube = entity->getQueryAACube();
+            object->forEachChild([&](SpatiallyNestablePointer descendant) {
+                updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+            });
+            queryAACubeChanged = oldCube != entity->getQueryAACube();
+        }
+
+        if (queryAACubeChanged || force) {
             bool success;
             AACube newCube = entity->getQueryAACube(success);
             if (success) {
@@ -3027,10 +3041,6 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             entityChanged(entity);
         }
     }
-
-    object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
-    });
 }
 
 void EntityTree::updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

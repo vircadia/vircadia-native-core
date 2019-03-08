@@ -204,7 +204,8 @@ QString Overlays::overlayToEntityType(const QString& type) {
 #define RENAME_PROP(o, e)                                   \
     {                                                       \
         auto iter = overlayProps.find(#o);                  \
-        if (iter != overlayProps.end()) {                   \
+        if (iter != overlayProps.end() &&                   \
+                !overlayProps.contains(#e)) {               \
             overlayProps[#e] = iter.value();                \
         }                                                   \
     }
@@ -493,15 +494,34 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP_CONVERT(p1, p1, [](const QVariant& v) { return vec3toVariant(glm::vec3(0.0f)); });
         RENAME_PROP_CONVERT(p2, p2, [=](const QVariant& v) {
             glm::vec3 position;
+            bool hasPosition = false;
+            glm::quat rotation;
+            bool hasRotation = false;
+
             auto iter2 = overlayProps.find("position");
             if (iter2 != overlayProps.end()) {
                 position = vec3FromVariant(iter2.value());
-            } else if (!add) {
-                EntityPropertyFlags desiredProperties;
-                desiredProperties += PROP_POSITION;
-                position = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getPosition();
+                hasPosition = true;
             }
-            return vec3toVariant(vec3FromVariant(v) - position);
+            iter2 = overlayProps.find("rotation");
+            if (iter2 != overlayProps.end()) {
+                rotation = quatFromVariant(iter2.value());
+                hasRotation = true;
+            }
+
+            if (!add && !(hasPosition && hasRotation)) {
+                auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+                if (entity) {
+                    if (!hasPosition) {
+                        position = entity->getWorldPosition();
+                    }
+                    if (!hasRotation) {
+                        rotation = entity->getWorldOrientation();
+                    }
+                }
+            }
+
+            return vec3toVariant(glm::inverse(rotation) * (vec3FromVariant(v) - position));
         });
 
         RENAME_PROP(localStart, p1);

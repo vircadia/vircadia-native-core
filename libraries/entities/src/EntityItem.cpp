@@ -147,6 +147,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_EDITION_NUMBER;
     requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
+    requestedProperties += PROP_CERTIFICATE_TYPE;
     requestedProperties += PROP_STATIC_CERTIFICATE_VERSION;
 
     return requestedProperties;
@@ -337,6 +338,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
         APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+        APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_TYPE, getCertificateType());
         APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
@@ -942,6 +944,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY(PROP_CERTIFICATE_TYPE, QString, setCertificateType);
     READ_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
@@ -1381,6 +1384,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateType, getCertificateType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(staticCertificateVersion, getStaticCertificateVersion);
 
     // Script local data
@@ -1529,6 +1533,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateType, setCertificateType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(staticCertificateVersion, setStaticCertificateVersion);
 
     if (updateQueryAACube()) {
@@ -1873,7 +1878,7 @@ void EntityItem::setParentID(const QUuid& value) {
 
 glm::vec3 EntityItem::getScaledDimensions() const {
     glm::vec3 scale = getSNScale();
-    return _unscaledDimensions * scale;
+    return getUnscaledDimensions() * scale;
 }
 
 void EntityItem::setScaledDimensions(const glm::vec3& value) {
@@ -2593,7 +2598,7 @@ QList<EntityDynamicPointer> EntityItem::getActionsOfType(EntityDynamicType typeT
     return result;
 }
 
-void EntityItem::locationChanged(bool tellPhysics) {
+void EntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     requiresRecalcBoxes();
     if (tellPhysics) {
         _flags |= Simulation::DIRTY_TRANSFORM;
@@ -2602,7 +2607,7 @@ void EntityItem::locationChanged(bool tellPhysics) {
             tree->entityChanged(getThisPointer());
         }
     }
-    SpatiallyNestable::locationChanged(tellPhysics); // tell all the children, also
+    SpatiallyNestable::locationChanged(tellPhysics, tellChildren);
     std::pair<int32_t, glm::vec4> data(_spaceIndex, glm::vec4(getWorldPosition(), _boundingRadius));
     emit spaceUpdate(data);
     somethingChangedNotification();
@@ -3150,6 +3155,7 @@ DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
 DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
 DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
 DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
+DEFINE_PROPERTY_ACCESSOR(QString, CertificateType, certificateType)
 DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVersion)
 
 uint32_t EntityItem::getDirtyFlags() const {

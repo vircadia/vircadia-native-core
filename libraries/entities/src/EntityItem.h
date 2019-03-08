@@ -369,6 +369,8 @@ public:
     void setEntityInstanceNumber(const quint32&);
     QString getCertificateID() const;
     void setCertificateID(const QString& value);
+    QString getCertificateType() const;
+    void setCertificateType(const QString& value);
     quint32 getStaticCertificateVersion() const;
     void setStaticCertificateVersion(const quint32&);
 
@@ -518,7 +520,7 @@ public:
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
-    virtual void locationChanged(bool tellPhysics = true) override;
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true) override;
 
     virtual bool getScalesWithParent() const override;
 
@@ -653,6 +655,7 @@ protected:
     QString _itemLicense { ENTITY_ITEM_DEFAULT_ITEM_LICENSE };
     quint32 _limitedRun { ENTITY_ITEM_DEFAULT_LIMITED_RUN };
     QString _certificateID { ENTITY_ITEM_DEFAULT_CERTIFICATE_ID };
+    QString _certificateType { ENTITY_ITEM_DEFAULT_CERTIFICATE_TYPE };
     quint32 _editionNumber { ENTITY_ITEM_DEFAULT_EDITION_NUMBER };
     quint32 _entityInstanceNumber { ENTITY_ITEM_DEFAULT_ENTITY_INSTANCE_NUMBER };
     QString _marketplaceID { ENTITY_ITEM_DEFAULT_MARKETPLACE_ID };
