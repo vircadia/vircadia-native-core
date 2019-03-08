@@ -422,7 +422,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
 
                     onLinkActivated: {
-                        if(link == "#standaloneIncompatible") {
+                        if (link === "#standaloneIncompatible") {
                             sendToPurchases({method: 'showStandaloneIncompatibleExplanation'});                            
                         } else {
                             sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});

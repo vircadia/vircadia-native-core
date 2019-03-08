@@ -114,7 +114,6 @@ Rectangle {
 
     Component.onCompleted: {
         isStandalone = PlatformInfo.isStandalone();
-        console.log(isStandalone ? "IS STANDALONE" : "ISN'T STANDALONE");
     }
     
     HifiCommerceCommon.CommerceLightbox {
