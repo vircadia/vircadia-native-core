@@ -91,6 +91,7 @@ int TestCreator::compareImageLists() {
         if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
             similarityIndex = -100.0;
+            worstTileValue = 0.0;
         } else {
             _imageComparer.compareImages(resultImage, expectedImage);
             similarityIndex = _imageComparer.getSSIMValue();
