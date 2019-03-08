@@ -30,7 +30,6 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/teleport.js",
     "controllerModules/hudOverlayPointer.js",
     "controllerModules/mouseHMD.js",
-    "controllerModules/scaleEntity.js",
     "controllerModules/nearGrabHyperLinkEntity.js",
     "controllerModules/nearTabletHighlight.js",
     "controllerModules/nearGrabEntity.js",

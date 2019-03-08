@@ -1,0 +1,41 @@
+<?js
+var data = obj;
+var self = this;
+?>
+
+<table>
+    <thead>
+        <tr>
+            <th>
+                <span id="<?js= id ?>" class="member"><?js= data.attribs + name + (data.signature ? data.signature : '') ?></span><br />
+                Type: <?js= self.partial('type.tmpl', data.type.names) ?>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+                <?js if (data.description) { ?>
+                    <p><?js= data.description ?></p>
+                <?js } else { ?>
+                    <p style="color:red;">&nbsp;</p>
+                <?js } ?>                    
+
+                <?js= self.partial('details.tmpl', data) ?>
+                <?js if (data.examples && examples.length) { ?>
+                    <h5>Example<?js= examples.length > 1? 's':'' ?></h5>
+                    <?js= this.partial('examples.tmpl', examples) ?>
+                <?js } ?>
+                
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<?js if (data.fires && fires.length) { ?>
+    <h5>Fires:</h5>
+    <ul><?js fires.forEach(function(f) { ?>
+        <li><?js= self.linkto(f) ?></li>
+    <?js }); ?></ul>
+<?js } ?>
+

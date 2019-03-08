@@ -8,10 +8,11 @@
 
 #include "ParseFlowDataTask.h"
 
-void ParseFlowDataTask::run(const baker::BakeContextPointer& context, const Input& mapping, Output& output) {
+void ParseFlowDataTask::run(const baker::BakeContextPointer& context, const Input& mappingPair, Output& output) {
     FlowData flowData;
     static const QString FLOW_PHYSICS_FIELD = "flowPhysicsData";
     static const QString FLOW_COLLISIONS_FIELD = "flowCollisionsData";
+    auto mapping = mappingPair.second;
     for (auto mappingIter = mapping.begin(); mappingIter != mapping.end(); mappingIter++) {
         if (mappingIter.key() == FLOW_PHYSICS_FIELD || mappingIter.key() == FLOW_COLLISIONS_FIELD) {
             QByteArray data = mappingIter.value().toByteArray();
