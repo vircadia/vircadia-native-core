@@ -11,7 +11,6 @@
 #include "AnimPose.h"
 #include <GLMHelpers.h>
 #include <algorithm>
-#include <glm/gtc/matrix_transform.hpp>
 #include "AnimUtil.h"
 
 const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
@@ -19,16 +18,29 @@ const AnimPose AnimPose::identity = AnimPose(glm::vec3(1.0f),
                                              glm::vec3(0.0f));
 
 AnimPose::AnimPose(const glm::mat4& mat) {
-    static const float EPSILON = 0.0001f;
-    _scale = extractScale(mat);
-    // quat_cast doesn't work so well with scaled matrices, so cancel it out.
-    glm::mat4 tmp = glm::scale(mat, 1.0f / _scale);
+    glm::mat3 m(mat);
+    _scale = glm::vec3(glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    float det = glm::determinant(m);
+
+    glm::mat3 tmp;
+    if (det < 0.0f) {
+        _scale *= -1.0f;
+    }
+
+    // quat_cast doesn't work so well with scaled matrices, so cancel out scale.
+    // also, as a side effect, multiply mirrored matrices by -1 to get the right rotation out.
+    tmp[0] = m[0] * (1.0f / _scale[0]);
+    tmp[1] = m[1] * (1.0f / _scale[1]);
+    tmp[2] = m[2] * (1.0f / _scale[2]);
     _rot = glm::quat_cast(tmp);
+
+    // normalize quat if necessary
     float lengthSquared = glm::length2(_rot);
     if (glm::abs(lengthSquared - 1.0f) > EPSILON) {
         float oneOverLength = 1.0f / sqrtf(lengthSquared);
         _rot = glm::quat(_rot.w * oneOverLength, _rot.x * oneOverLength, _rot.y * oneOverLength, _rot.z * oneOverLength);
     }
+
     _trans = extractTranslation(mat);
 }
 

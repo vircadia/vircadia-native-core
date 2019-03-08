@@ -247,8 +247,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function(controllerData, deltaTime) {
             this.addObjectToIgnoreList(controllerData);
-            var type = this.getInteractableType(controllerData, isTriggerPressed, false);
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
+            var type = this.getInteractableType(controllerData, isTriggerPressed, false);
             var laserOn = isTriggerPressed || this.parameters.handLaser.alwaysOn;
             this.addObjectToIgnoreList(controllerData);
 
