@@ -786,7 +786,7 @@ Flow& Flow::operator=(const Flow& otherFlow) {
 }
 
 void Flow::updateGroupSettings(const QString& group, const FlowPhysicsSettings& settings) {
-    if (_groupSettings.find(group) != _groupSettings.end()) {
+    if (_groupSettings.find(group) == _groupSettings.end()) {
         _groupSettings.insert(std::pair<QString, FlowPhysicsSettings>(group, settings));
     } else {
         _groupSettings[group] = settings;
