@@ -91,6 +91,14 @@ Rectangle {
                     id: -1,
                     name: "Everything"
                 });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Stand-alone Optimized"
+                });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Stand-alone Compatible"
+                });
                 result.data.items.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,
@@ -127,6 +135,8 @@ Rectangle {
                 marketplaceItem.availability = result.data.availability;
                 marketplaceItem.updated_item_id = result.data.updated_item_id || "";
                 marketplaceItem.created_at = result.data.created_at;
+                marketplaceItem.standaloneOptimized = result.data.standalone_optimized;
+                marketplaceItem.standaloneVisible = result.data.standalone_optimized || result.data.standalone_incompatible;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
@@ -191,16 +201,16 @@ Rectangle {
             visible: true
 
             Image {
-                id: marketplaceHeaderImage;
-                source: "../common/images/marketplaceHeaderImage.png";
-                anchors.top: parent.top;
-                anchors.topMargin: 2;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 0;
-                anchors.left: parent.left;
-                anchors.leftMargin: 8;
-                width: 140;
-                fillMode: Image.PreserveAspectFit;
+                id: marketplaceHeaderImage
+                source: "../common/images/marketplaceHeaderImage.png"
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                width: 140
+                fillMode: Image.PreserveAspectFit
 
                 MouseArea {
                     anchors.fill: parent;
@@ -546,7 +556,8 @@ Rectangle {
                 price: model.cost
                 availability: model.availability
                 isLoggedIn: root.isLoggedIn;
-
+                standaloneOptimized: model.standalone_optimized
+    
                 onShowItem: {
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }
