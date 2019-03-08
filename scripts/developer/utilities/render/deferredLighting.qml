@@ -47,7 +47,7 @@ Rectangle {
                          "Lightmap:LightingModel:enableLightmap",
                          "Background:LightingModel:enableBackground",      
                          "Haze:LightingModel:enableHaze",                        
-                         "ssao:LightingModel:enableAmbientOcclusion",
+                         "AO:LightingModel:enableAmbientOcclusion",
                          "Textures:LightingModel:enableMaterialTexturing"                     
                     ]
                     HifiControls.CheckBox {
@@ -144,6 +144,27 @@ Rectangle {
                     ]
                     width: 200
                     onCurrentIndexChanged: { render.mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex; }
+                }
+            }
+        }
+        Separator {}          
+        Column {
+            anchors.left: parent.left
+            anchors.right: parent.right 
+            spacing: 5 
+            Repeater {
+                model: [ "MSAA:PrepareFramebuffer:numSamples:4:1"
+                              ]
+                ConfigSlider {
+                        label: qsTr(modelData.split(":")[0])
+                        integral: true
+                        config: render.mainViewTask.getConfig(modelData.split(":")[1])
+                        property: modelData.split(":")[2]
+                        max: modelData.split(":")[3]
+                        min: modelData.split(":")[4]
+
+                        anchors.left: parent.left
+                        anchors.right: parent.right 
                 }
             }
         }

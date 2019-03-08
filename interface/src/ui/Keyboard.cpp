@@ -65,7 +65,7 @@ static const glm::vec3 KEYBOARD_TABLET_OFFSET{0.30f, -0.38f, -0.04f};
 static const glm::vec3 KEYBOARD_TABLET_DEGREES_OFFSET{-45.0f, 0.0f, 0.0f};
 static const glm::vec3 KEYBOARD_TABLET_LANDSCAPE_OFFSET{-0.2f, -0.27f, -0.05f};
 static const glm::vec3 KEYBOARD_TABLET_LANDSCAPE_DEGREES_OFFSET{-45.0f, 0.0f, -90.0f};
-static const glm::vec3 KEYBOARD_AVATAR_OFFSET{-0.6f, 0.3f, -0.7f};
+static const glm::vec3 KEYBOARD_AVATAR_OFFSET{-0.3f, 0.0f, -0.7f};
 static const glm::vec3 KEYBOARD_AVATAR_DEGREES_OFFSET{0.0f, 180.0f, 0.0f};
 
 static const QString SOUND_FILE = PathUtils::resourcesUrl() + "sounds/keyboardPress.mp3";
@@ -259,6 +259,12 @@ void Keyboard::setUse3DKeyboard(bool use) {
 void Keyboard::createKeyboard() {
     auto pointerManager = DependencyManager::get<PointerManager>();
 
+    if (_created) {
+        pointerManager->removePointer(_leftHandStylus);
+        pointerManager->removePointer(_rightHandStylus);
+        clearKeyboardKeys();
+    }
+
     QVariantMap modelProperties {
         { "url", MALLET_MODEL_URL }
     };
@@ -289,6 +295,8 @@ void Keyboard::createKeyboard() {
     loadKeyboardFile(keyboardSvg);
 
     _keySound = DependencyManager::get<SoundCache>()->getSound(SOUND_FILE);
+
+    _created = true;
 }
 
 bool Keyboard::isRaised() const {
@@ -309,9 +317,19 @@ void Keyboard::setRaised(bool raised) {
             _layerIndex = 0;
             _capsEnabled = false;
             _typedCharacters.clear();
+            addIncludeItemsToMallets();
         });
 
         updateTextDisplay();
+    }
+}
+
+void Keyboard::addIncludeItemsToMallets() {
+    if (_layerIndex >= 0 && _layerIndex < (int)_keyboardLayers.size()) {
+        QVector<QUuid> includeItems = _keyboardLayers[_layerIndex].keys().toVector();
+        auto pointerManager = DependencyManager::get<PointerManager>();
+        pointerManager->setIncludeItems(_leftHandStylus, includeItems);
+        pointerManager->setIncludeItems(_rightHandStylus, includeItems);
     }
 }
 
@@ -354,6 +372,12 @@ void Keyboard::raiseKeyboardAnchor(bool raise) const {
 
 void Keyboard::scaleKeyboard(float sensorToWorldScale) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
+    {
+        EntityItemProperties properties;
+        properties.setDimensions(_anchor.originalDimensions * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_anchor.entityID, properties);
+    }
 
     {
         EntityItemProperties properties;
@@ -462,6 +486,8 @@ void Keyboard::switchToLayer(int layerIndex) {
          properties.setPosition(currentPosition);
          properties.setRotation(currentOrientation);
          entityScriptingInterface->editEntity(_anchor.entityID, properties);
+
+         addIncludeItemsToMallets();
 
          startLayerSwitchTimer();
     }
@@ -718,8 +744,6 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
         clearKeyboardKeys();
         auto requestData = request->getData();
 
-        QVector<QUuid> includeItems;
-
         QJsonParseError parseError;
         QJsonDocument jsonDoc = QJsonDocument::fromJson(requestData, &parseError);
 
@@ -840,7 +864,6 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
                 key.setKeyString(keyString);
                 key.saveDimensionsAndLocalPosition();
 
-                includeItems.append(key.getID());
                 _itemsToIgnore.insert(key.getID());
                 keyboardLayerKeys.insert(id, key);
             }
@@ -886,9 +909,7 @@ void Keyboard::loadKeyboardFile(const QString& keyboardFile) {
             _itemsToIgnore.insert(_anchor.entityID);
         });
         _layerIndex = 0;
-        auto pointerManager = DependencyManager::get<PointerManager>();
-        pointerManager->setIncludeItems(_leftHandStylus, includeItems);
-        pointerManager->setIncludeItems(_rightHandStylus, includeItems);
+        addIncludeItemsToMallets();
     });
 
     request->send();

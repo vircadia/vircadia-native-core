@@ -25,14 +25,16 @@ TestRunnerMobile::TestRunnerMobile(
     QPushButton* downloadAPKPushbutton,
     QPushButton* installAPKPushbutton,
     QPushButton* runInterfacePushbutton,
+    QCheckBox* usePreviousInstallationOnMobileCheckBox,
     QCheckBox* runLatest,
     QLineEdit* url,
+    QCheckBox* runFullSuite,
+    QLineEdit* scriptURL,
     QLabel* statusLabel,
 
     QObject* parent
-) : QObject(parent), _adbInterface(NULL)
+) : QObject(parent), TestRunner(workingFolderLabel, statusLabel, usePreviousInstallationOnMobileCheckBox, runLatest, url, runFullSuite, scriptURL)
 {
-    _workingFolderLabel = workingFolderLabel;
     _connectDeviceButton = connectDeviceButton;
     _pullFolderButton = pullFolderButton;
     _detectedDeviceLabel = detectedDeviceLabel;
@@ -40,13 +42,15 @@ TestRunnerMobile::TestRunnerMobile(
     _downloadAPKPushbutton = downloadAPKPushbutton;
     _installAPKPushbutton = installAPKPushbutton;
     _runInterfacePushbutton = runInterfacePushbutton;
-    _runLatest = runLatest;
-    _url = url;
-    _statusLabel = statusLabel;
 
     folderLineEdit->setText("/sdcard/DCIM/TEST");
 
     modelNames["SM_G955U1"] = "Samsung S8+ unlocked";
+    modelNames["SM_N960U1"] = "Samsung Note 9 unlocked";
+    modelNames["SM_T380"] = "Samsung Tab A";
+    modelNames["Quest"] = "Quest";
+
+    _adbInterface = NULL;
 }
 
 TestRunnerMobile::~TestRunnerMobile() {
@@ -66,6 +70,7 @@ void TestRunnerMobile::connectDevice() {
     
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbInterface->getAdbCommand() + " devices -l > " + devicesFullFilename;
+    appendLog(command);
     system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
@@ -93,7 +98,7 @@ void TestRunnerMobile::connectDevice() {
             QString deviceID = tokens[0];
             
             QString modelID = tokens[3].split(':')[1];
-            QString modelName = "UKNOWN";
+            QString modelName = "UNKNOWN";
             if (modelNames.count(modelID) == 1) {
                 modelName = modelNames[modelID];
             }
@@ -102,6 +107,8 @@ void TestRunnerMobile::connectDevice() {
             _pullFolderButton->setEnabled(true);
             _folderLineEdit->setEnabled(true);
             _downloadAPKPushbutton->setEnabled(true);
+            _installAPKPushbutton->setEnabled(true);
+            _runInterfacePushbutton->setEnabled(true);
         }
     }
 #endif
@@ -109,6 +116,8 @@ void TestRunnerMobile::connectDevice() {
 
 void TestRunnerMobile::downloadAPK() {
     downloadBuildXml((void*)this);
+
+    downloadComplete();
 }
 
 
@@ -141,11 +150,12 @@ void TestRunnerMobile::downloadComplete() {
 
        _statusLabel->setText("Downloading installer");
 
-        nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+       _downloader->downloadFiles(urls, _workingFolder, filenames, (void*)this);
     } else {
         _statusLabel->setText("Installer download complete");
-        _installAPKPushbutton->setEnabled(true);
     }
+
+    _installAPKPushbutton->setEnabled(true);
 }
 
 void TestRunnerMobile::installAPK() {
@@ -154,11 +164,25 @@ void TestRunnerMobile::installAPK() {
         _adbInterface = new AdbInterface();
     }
 
+    if (_installerFilename.isNull()) {
+        QString installerPathname = QFileDialog::getOpenFileName(nullptr, "Please select the APK", _workingFolder,
+            "Available APKs (*.apk)"
+        );
+
+        if (installerPathname.isNull()) {
+            return;
+        }
+
+        // Remove the path
+        QStringList parts = installerPathname.split('/');
+        _installerFilename = parts[parts.length() - 1];
+    }
+
     _statusLabel->setText("Installing");
     QString command = _adbInterface->getAdbCommand() + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
+    appendLog(command);
     system(command.toStdString().c_str());
     _statusLabel->setText("Installation complete");
-    _runInterfacePushbutton->setEnabled(true);
 #endif
 }
 
@@ -169,7 +193,22 @@ void TestRunnerMobile::runInterface() {
     }
 
     _statusLabel->setText("Starting Interface");
-    QString command = _adbInterface->getAdbCommand() + " shell monkey -p io.highfidelity.hifiinterface -v 1";
+
+    QString testScript = (_runFullSuite->isChecked())
+        ? QString("https://raw.githubusercontent.com/") + nitpick->getSelectedUser() + "/hifi_tests/" + nitpick->getSelectedBranch() + "/tests/testRecursive.js"
+        : _scriptURL->text();
+ 
+    QString command = _adbInterface->getAdbCommand() +
+        " shell am start -n io.highfidelity.hifiinterface/.PermissionChecker" + 
+        " --es args \\\"" + 
+            " --url file:///~/serverless/tutorial.json" + 
+            " --no-updater" + 
+            " --no-login-suggestion" + 
+            " --testScript " + testScript + " quitWhenFinished" + 
+            " --testResultsLocation /sdcard/snapshots" + 
+        "\\\"";
+
+    appendLog(command);
     system(command.toStdString().c_str());
     _statusLabel->setText("Interface started");
 #endif
@@ -182,7 +221,8 @@ void TestRunnerMobile::pullFolder() {
     }
 
     _statusLabel->setText("Pulling folder");
-    QString command = _adbInterface->getAdbCommand() + " pull " + _folderLineEdit->text() + " " + _workingFolder + _installerFilename;
+    QString command = _adbInterface->getAdbCommand() + " pull " + _folderLineEdit->text() + " " + _workingFolder;
+    appendLog(command);
     system(command.toStdString().c_str());
     _statusLabel->setText("Pull complete");
 #endif

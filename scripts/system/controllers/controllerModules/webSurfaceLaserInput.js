@@ -37,6 +37,20 @@ Script.include("/~/system/libraries/controllers.js");
             100,
             makeLaserParams(hand, true));
 
+        this.getFarGrab = function () {
+            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("RightFarGrabEntity") : ("LeftFarGrabEntity"));
+        };
+
+        this.farGrabActive = function () {
+            var farGrab = this.getFarGrab();
+            // farGrab will be null if module isn't loaded.
+            if (farGrab) {
+                return farGrab.targetIsNull();
+            } else {
+                return false;
+            }
+        };
+
         this.grabModuleWantsNearbyOverlay = function(controllerData) {
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE || controllerData.secondaryValues[this.hand] > BUMPER_ON_VALUE) {
                 var nearGrabName = this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay";
@@ -184,7 +198,12 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.dominantHandOverride = false;
 
-        this.isReady = function(controllerData) {
+        this.isReady = function (controllerData) {
+            // Trivial rejection for when FarGrab is active.
+            if (this.farGrabActive()) {
+                return makeRunningValues(false, [], []);
+            }
+
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE &&
                                    controllerData.triggerValues[this.otherHand] <= TRIGGER_OFF_VALUE;
             var type = this.getInteractableType(controllerData, isTriggerPressed, false);
@@ -228,8 +247,8 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function(controllerData, deltaTime) {
             this.addObjectToIgnoreList(controllerData);
-            var type = this.getInteractableType(controllerData, isTriggerPressed, false);
             var isTriggerPressed = controllerData.triggerValues[this.hand] > TRIGGER_OFF_VALUE;
+            var type = this.getInteractableType(controllerData, isTriggerPressed, false);
             var laserOn = isTriggerPressed || this.parameters.handLaser.alwaysOn;
             this.addObjectToIgnoreList(controllerData);
 

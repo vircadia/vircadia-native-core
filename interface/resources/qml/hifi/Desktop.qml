@@ -18,8 +18,8 @@ OriginalDesktop.Desktop {
         hoverEnabled: true
         propagateComposedEvents: true
         scrollGestureEnabled: false // we don't need/want these
-        onEntered: ApplicationCompositor.reticleOverDesktop = true
-        onExited: ApplicationCompositor.reticleOverDesktop = false
+        onEntered: if (typeof ApplicationCompositor !== "undefined") ApplicationCompositor.reticleOverDesktop = true
+        onExited: if (typeof ApplicationCompositor !== "undefined") ApplicationCompositor.reticleOverDesktop = false
         acceptedButtons: Qt.NoButton
     }
 

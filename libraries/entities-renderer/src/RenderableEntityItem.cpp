@@ -146,7 +146,6 @@ EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entit
         _needsRenderUpdate = true;
         emit requestRenderUpdate();
     });
-    _materials = entity->getMaterials();
 }
 
 EntityRenderer::~EntityRenderer() { }
@@ -321,6 +320,7 @@ bool EntityRenderer::addToScene(const ScenePointer& scene, Transaction& transact
     transaction.resetItem(_renderItemID, renderPayload);
     onAddToScene(_entity);
     updateInScene(scene, transaction);
+    _entity->bumpAncestorChainRenderableVersion();
     return true;
 }
 
@@ -328,6 +328,7 @@ void EntityRenderer::removeFromScene(const ScenePointer& scene, Transaction& tra
     onRemoveFromScene(_entity);
     transaction.removeItem(_renderItemID);
     Item::clearID(_renderItemID);
+    _entity->bumpAncestorChainRenderableVersion();
 }
 
 void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& transaction) {
@@ -351,14 +352,6 @@ void EntityRenderer::updateInScene(const ScenePointer& scene, Transaction& trans
         doRenderUpdateAsynchronous(_entity);
         _renderUpdateQueued = false;
     });
-}
-
-void EntityRenderer::clearSubRenderItemIDs() {
-    _subRenderItemIDs.clear();
-}
-
-void EntityRenderer::setSubRenderItemIDs(const render::ItemIDs& ids) {
-    _subRenderItemIDs = ids;
 }
 
 //

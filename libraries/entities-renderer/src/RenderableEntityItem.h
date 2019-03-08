@@ -52,9 +52,6 @@ public:
     virtual bool addToScene(const ScenePointer& scene, Transaction& transaction) final;
     virtual void removeFromScene(const ScenePointer& scene, Transaction& transaction);
 
-    void clearSubRenderItemIDs();
-    void setSubRenderItemIDs(const render::ItemIDs& ids);
-
     const uint64_t& getUpdateTime() const { return _updateTime; }
 
     virtual void addMaterial(graphics::MaterialLayer material, const std::string& parentMaterialName);
@@ -63,6 +60,9 @@ public:
     virtual scriptable::ScriptableModelBase getScriptableModel() override { return scriptable::ScriptableModelBase(); }
 
     static glm::vec4 calculatePulseColor(const glm::vec4& color, const PulsePropertyGroup& pulseProperties, quint64 start);
+
+    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
+    virtual Item::Bound getBound() override;
 
 protected:
     virtual bool needsRenderUpdateFromEntity() const final { return needsRenderUpdateFromEntity(_entity); }
@@ -75,9 +75,7 @@ protected:
     // Implementing the PayloadProxyInterface methods
     virtual ItemKey getKey() override;
     virtual ShapeKey getShapeKey() override;
-    virtual Item::Bound getBound() override;
     virtual void render(RenderArgs* args) override final;
-    virtual uint32_t metaFetchMetaSubItems(ItemIDs& subItems) override;
     virtual render::hifi::Tag getTagMask() const;
     virtual render::hifi::Layer getHifiRenderLayer() const;
 
@@ -133,7 +131,6 @@ protected:
     SharedSoundPointer _collisionSound;
     QUuid _changeHandlerId;
     ItemID _renderItemID{ Item::INVALID_ITEM_ID };
-    ItemIDs _subRenderItemIDs;
     uint64_t _fadeStartTime{ usecTimestampNow() };
     uint64_t _updateTime{ usecTimestampNow() }; // used when sorting/throttling render updates
     bool _isFading { EntityTreeRenderer::getEntitiesShouldFadeFunction()() };

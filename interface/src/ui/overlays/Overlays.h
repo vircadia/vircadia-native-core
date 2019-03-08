@@ -112,11 +112,6 @@ public:
         const QVector<EntityItemID>& discard,
         bool visibleOnly = false, bool collidableOnly = false);
 
-    std::pair<float, QUuid> mousePressEvent(QMouseEvent* event);
-    bool mouseDoublePressEvent(QMouseEvent* event);
-    bool mouseReleaseEvent(QMouseEvent* event);
-    bool mouseMoveEvent(QMouseEvent* event);
-
     void cleanupAllOverlays();
 
     mutable QScriptEngine _scriptEngine;
@@ -719,10 +714,6 @@ private:
     PointerEvent calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray, const RayToOverlayIntersectionResult& rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
-    unsigned int _mouseRayPickID;
-    QUuid _currentClickingOnOverlayID;
-    QUuid _currentHoverOverOverlayID;
-
     static QString entityToOverlayType(const QString& type);
     static QString overlayToEntityType(const QString& type);
     static std::unordered_map<QString, QString> _entityToOverlayTypes;
@@ -730,15 +721,20 @@ private:
 
     QVariantMap convertEntityToOverlayProperties(const EntityItemProperties& entityProps);
     EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id);
-    EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps, glm::quat& rotationToSave, const QString& type, bool add, const QUuid& id = QUuid());
+    EntityItemProperties convertOverlayToEntityProperties(QVariantMap& overlayProps, std::pair<glm::quat, bool>& rotationToSave, const QString& type, bool add, const QUuid& id = QUuid());
 
 private slots:
-    void mousePressPointerEvent(const QUuid& id, const PointerEvent& event);
-    void mouseMovePointerEvent(const QUuid& id, const PointerEvent& event);
+    void mousePressOnPointerEvent(const QUuid& id, const PointerEvent& event);
+    void mousePressOffPointerEvent();
+    void mouseDoublePressOnPointerEvent(const QUuid& id, const PointerEvent& event);
+    void mouseDoublePressOffPointerEvent();
     void mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event);
+    void mouseMovePointerEvent(const QUuid& id, const PointerEvent& event);
     void hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event);
     void hoverOverPointerEvent(const QUuid& id, const PointerEvent& event);
     void hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event);
+
+
 };
 
 #define ADD_TYPE_MAP(entity, overlay) \

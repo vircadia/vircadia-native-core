@@ -910,7 +910,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
-    locationChanged();
+    locationChanged(true, false);
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
@@ -920,6 +920,7 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
             zoneInteractionProperties = entityTreeRenderer->getZoneInteractionProperties();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             forEachDescendant([&](SpatiallyNestablePointer object) {
+                locationChanged(true, false);
                 // we need to update attached queryAACubes in our own local tree so point-select always works
                 // however we don't want to flood the update pipeline with AvatarEntity updates, so we assume
                 // others have all info required to properly update queryAACube of AvatarEntities on their end
@@ -932,7 +933,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         bool zoneAllowsFlying = zoneInteractionProperties.first;
         bool collisionlessAllowed = zoneInteractionProperties.second;
-        _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
+        _characterController.setZoneFlyingAllowed(zoneAllowsFlying || !isPhysicsEnabled);
+        _characterController.setComfortFlyingAllowed(_enableFlying);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
@@ -2323,23 +2325,25 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     std::shared_ptr<QMetaObject::Connection> skeletonConnection = std::make_shared<QMetaObject::Connection>();
     *skeletonConnection = QObject::connect(_skeletonModel.get(), &SkeletonModel::skeletonLoaded, [this, skeletonModelChangeCount, skeletonConnection]() {
-       if (skeletonModelChangeCount == _skeletonModelChangeCount) {
+        if (skeletonModelChangeCount == _skeletonModelChangeCount) {
 
-           if (_fullAvatarModelName.isEmpty()) {
-               // Store the FST file name into preferences
-               const auto& mapping = _skeletonModel->getGeometry()->getMapping();
-               if (mapping.value("name").isValid()) {
-                   _fullAvatarModelName = mapping.value("name").toString();
-               }
-           }
+            if (_fullAvatarModelName.isEmpty()) {
+                // Store the FST file name into preferences
+                const auto& mapping = _skeletonModel->getGeometry()->getMapping();
+                if (mapping.value("name").isValid()) {
+                    _fullAvatarModelName = mapping.value("name").toString();
+                }
+            }
 
-           initHeadBones();
-           _skeletonModel->setCauterizeBoneSet(_headBoneSet);
-           _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
-           initAnimGraph();
-           _skeletonModelLoaded = true;
-       }
-       QObject::disconnect(*skeletonConnection);
+            initHeadBones();
+            _skeletonModel->setCauterizeBoneSet(_headBoneSet);
+            _fstAnimGraphOverrideUrl = _skeletonModel->getGeometry()->getAnimGraphOverrideUrl();
+            initAnimGraph();
+            initFlowFromFST();
+
+            _skeletonModelLoaded = true;
+        }
+        QObject::disconnect(*skeletonConnection);
     });
     
     saveAvatarUrl();
@@ -2963,6 +2967,10 @@ void MyAvatar::initAnimGraph() {
         graphUrl = _fstAnimGraphOverrideUrl;
     } else {
         graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation.json");
+
+#if defined(Q_OS_ANDROID) || defined(HIFI_USE_OPTIMIZED_IK)
+        graphUrl = PathUtils::resourcesUrl("avatar/avatar-animation_withSplineIKNode.json");
+#endif
     }
 
     emit animGraphUrlChanged(graphUrl);
@@ -5336,6 +5344,81 @@ void MyAvatar::releaseGrab(const QUuid& grabID) {
     if (tellHandler && _clientTraitsHandler) {
         // indicate the deletion of the data to the mixer
         _clientTraitsHandler->markInstancedTraitDeleted(AvatarTraits::Grab, grabID);
+    }
+}
+
+void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) {
+    auto &flow = _skeletonModel->getRig().getFlow();
+    for (auto &handJointName : HAND_COLLISION_JOINTS) {
+        int jointIndex = otherAvatar->getJointIndex(handJointName);
+        if (jointIndex != -1) {
+            glm::vec3 position = otherAvatar->getJointPosition(jointIndex);
+            flow.setOthersCollision(otherAvatar->getID(), jointIndex, position);
+        }
+    }
+}
+
+void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
+    if (_skeletonModel->isLoaded()) {
+        _skeletonModel->getRig().initFlow(isActive);
+        auto &flow = _skeletonModel->getRig().getFlow();
+        auto &collisionSystem = flow.getCollisionSystem();
+        collisionSystem.setActive(isCollidable);
+        auto physicsGroups = physicsConfig.keys();
+        if (physicsGroups.size() > 0) {
+            for (auto &groupName : physicsGroups) {
+                auto settings = physicsConfig[groupName].toMap();
+                FlowPhysicsSettings physicsSettings;
+                if (settings.contains("active")) {
+                    physicsSettings._active = settings["active"].toBool();
+                }
+                if (settings.contains("damping")) {
+                    physicsSettings._damping = settings["damping"].toFloat();
+                }
+                if (settings.contains("delta")) {
+                    physicsSettings._delta = settings["delta"].toFloat();
+                }
+                if (settings.contains("gravity")) {
+                    physicsSettings._gravity = settings["gravity"].toFloat();
+                }
+                if (settings.contains("inertia")) {
+                    physicsSettings._inertia = settings["inertia"].toFloat();
+                }
+                if (settings.contains("radius")) {
+                    physicsSettings._radius = settings["radius"].toFloat();
+                }
+                if (settings.contains("stiffness")) {
+                    physicsSettings._stiffness = settings["stiffness"].toFloat();
+                }
+                flow.setPhysicsSettingsForGroup(groupName, physicsSettings);
+            }
+        }
+        auto collisionJoints = collisionsConfig.keys();
+        if (collisionJoints.size() > 0) {
+            collisionSystem.resetCollisions();
+            for (auto &jointName : collisionJoints) {
+                int jointIndex = getJointIndex(jointName);
+                FlowCollisionSettings collisionsSettings;
+                auto settings = collisionsConfig[jointName].toMap();
+                collisionsSettings._entityID = getID();
+                if (settings.contains("radius")) {
+                    collisionsSettings._radius = settings["radius"].toFloat();
+                }
+                if (settings.contains("offset")) {
+                    collisionsSettings._offset = vec3FromVariant(settings["offset"]);
+                }
+                collisionSystem.addCollisionSphere(jointIndex, collisionsSettings);
+            }
+        }
+    }
+}
+
+void MyAvatar::initFlowFromFST() {
+    if (_skeletonModel->isLoaded()) {
+        auto &flowData = _skeletonModel->getHFMModel().flowData;
+        if (flowData.shouldInitFlow()) {
+            useFlow(true, flowData.shouldInitCollisions(), flowData._physicsConfig, flowData._collisionsConfig);
+        }
     }
 }
 

@@ -45,7 +45,8 @@ var OVERLAY_DATA_HMD = {
     emissive: true,
     drawInFront: true,
     parentID: MyAvatar.SELF_ID,
-    parentJointIndex: CAMERA_MATRIX
+    parentJointIndex: CAMERA_MATRIX,
+    ignorePickIntersection: true
 };
 
 var AWAY_INTRO = {
@@ -64,7 +65,7 @@ var eventMappingName = "io.highfidelity.away"; // goActive on hand controller bu
 var eventMapping = Controller.newMapping(eventMappingName);
 var avatarPosition = MyAvatar.position;
 var wasHmdMounted = HMD.mounted;
-
+var previousBubbleState = Users.getIgnoreRadiusEnabled();
 
 // some intervals we may create/delete
 var avatarMovedInterval;
@@ -153,7 +154,7 @@ function goAway(fromStartup) {
     if (!isEnabled || isAway) {
         return;
     }
-    
+ 
     // If we're entering away mode from some other state than startup, then we create our move timer immediately.
     // However if we're just stating up, we need to delay this process so that we don't think the initial teleport
     // is actually a move.
@@ -165,7 +166,12 @@ function goAway(fromStartup) {
             avatarMovedInterval = Script.setInterval(ifAvatarMovedGoActive, BASIC_TIMER_INTERVAL);
         }, WAIT_FOR_MOVE_ON_STARTUP);
     }
-    
+
+    previousBubbleState = Users.getIgnoreRadiusEnabled();
+    if (!previousBubbleState) {
+        Users.toggleIgnoreRadius();
+    }
+    UserActivityLogger.bubbleToggled(Users.getIgnoreRadiusEnabled());
     UserActivityLogger.toggledAway(true);
     MyAvatar.isAway = true;
 }
@@ -177,6 +183,11 @@ function goActive() {
 
     UserActivityLogger.toggledAway(false);
     MyAvatar.isAway = false;
+
+    if (Users.getIgnoreRadiusEnabled() !== previousBubbleState) {
+        Users.toggleIgnoreRadius();
+        UserActivityLogger.bubbleToggled(Users.getIgnoreRadiusEnabled());
+    }
 
     if (!Window.hasFocus()) {
         Window.setFocus();

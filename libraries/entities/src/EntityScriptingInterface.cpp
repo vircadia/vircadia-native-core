@@ -941,7 +941,7 @@ QUuid EntityScriptingInterface::editEntity(const QUuid& id, const EntityItemProp
                 auto nestable = nestableWP.lock();
                 if (nestable) {
                     NestableType nestableType = nestable->getNestableType();
-                    if (nestableType == NestableType::Overlay || nestableType == NestableType::Avatar) {
+                    if (nestableType == NestableType::Avatar) {
                         qCWarning(entities) << "attempted edit on non-entity: " << id << nestable->getName();
                         return QUuid(); // null script value to indicate failure
                     }

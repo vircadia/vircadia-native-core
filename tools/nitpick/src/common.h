@@ -10,21 +10,38 @@
 #ifndef hifi_common_h
 #define hifi_common_h
 
+#include <vector>
 #include <QtCore/QString>
+
+class SSIMResults {
+public:
+    int width;
+    int height;
+    std::vector<double> results;
+    double ssim;
+
+    // Used for scaling
+    double min;
+    double max;
+};
 
 class TestResult {
 public:
-    TestResult(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) :
+    TestResult(float error, const QString& pathname, const QString& expectedImageFilename, const QString& actualImageFilename, const SSIMResults& ssimResults) :
         _error(error),
         _pathname(pathname),
         _expectedImageFilename(expectedImageFilename),
-        _actualImageFilename(actualImageFilename)
+        _actualImageFilename(actualImageFilename),
+        _ssimResults(ssimResults)
     {}
 
     double _error;
+
     QString _pathname;
     QString _expectedImageFilename;
     QString _actualImageFilename;
+
+    SSIMResults _ssimResults;
 };
 
 enum UserResponse {

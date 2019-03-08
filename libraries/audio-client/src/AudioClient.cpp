@@ -175,7 +175,7 @@ static float computeLoudness(int16_t* samples, int numSamples, int numChannels, 
     const int32_t CLIPPING_THRESHOLD = 32392;   // -0.1 dBFS
     const int32_t CLIPPING_DETECTION = 3;       // consecutive samples over threshold
 
-    float scale = numSamples ? 1.0f / (numSamples * 32768.0f) : 0.0f;
+    float scale = numSamples ? 1.0f / numSamples : 0.0f;
 
     int32_t loudness = 0;
     isClipping = false;
@@ -249,6 +249,8 @@ AudioClient::AudioClient() :
     _outputBufferSizeFrames("audioOutputBufferFrames", DEFAULT_BUFFER_FRAMES),
     _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
     _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled", DEFAULT_STARVE_DETECTION_ENABLED),
+    _lastRawInputLoudness(0.0f),
+    _lastSmoothedRawInputLoudness(0.0f),
     _lastInputLoudness(0.0f),
     _timeSinceLastClip(-1.0f),
     _muted(false),
@@ -1144,6 +1146,9 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
             emit inputReceived(audioBuffer);
         }
 
+        // loudness after mute/gate
+        _lastInputLoudness = (_muted || !audioGateOpen) ? 0.0f : _lastRawInputLoudness;
+
         // detect gate opening and closing
         bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
         bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
@@ -1222,12 +1227,15 @@ void AudioClient::handleMicAudioInput() {
 
         // detect loudness and clipping on the raw input
         bool isClipping = false;
-        float inputLoudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
+        float loudness = computeLoudness(inputAudioSamples.get(), inputSamplesRequired, _inputFormat.channelCount(), isClipping);
+        _lastRawInputLoudness = loudness;
 
-        float tc = (inputLoudness > _lastInputLoudness) ? 0.378f : 0.967f;  // 10ms attack, 300ms release @ 100Hz
-        inputLoudness += tc * (_lastInputLoudness - inputLoudness);
-        _lastInputLoudness = inputLoudness;
+        // envelope detection
+        float tc = (loudness > _lastSmoothedRawInputLoudness) ? 0.378f : 0.967f;  // 10ms attack, 300ms release @ 100Hz
+        loudness += tc * (_lastSmoothedRawInputLoudness - loudness);
+        _lastSmoothedRawInputLoudness = loudness;
 
+        // clipping indicator
         if (isClipping) {
             _timeSinceLastClip = 0.0f;
         } else if (_timeSinceLastClip >= 0.0f) {
@@ -1235,7 +1243,7 @@ void AudioClient::handleMicAudioInput() {
         }
         isClipping = (_timeSinceLastClip >= 0.0f) && (_timeSinceLastClip < 2.0f);   // 2 second hold time
 
-        emit inputLoudnessChanged(_lastInputLoudness, isClipping);
+        emit inputLoudnessChanged(_lastSmoothedRawInputLoudness, isClipping);
 
         if (!_muted) {
             possibleResampling(_inputToNetworkResampler,

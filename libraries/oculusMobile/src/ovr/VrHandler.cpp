@@ -140,7 +140,11 @@ struct VrSurface : public TaskQueue {
         if (vrReady != vrRunning) {
             if (vrRunning) {
                 __android_log_write(ANDROID_LOG_WARN, "QQQ_OVR", "vrapi_LeaveVrMode");
+                vrapi_SetClockLevels(session, 1, 1);
+                vrapi_SetExtraLatencyMode(session, VRAPI_EXTRA_LATENCY_MODE_OFF);
+                vrapi_SetDisplayRefreshRate(session, 60);
                 vrapi_LeaveVrMode(session);
+
                 session = nullptr;
                 oculusActivity = nullptr;
             } else {
@@ -313,10 +317,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *, void *) {
 JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnCreate(JNIEnv* env, jobject obj) {
     __android_log_write(ANDROID_LOG_WARN, "QQQ_JNI", __FUNCTION__);
     SURFACE.onCreate(env, obj);
-}
-
-JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnDestroy(JNIEnv*, jclass) {
-    __android_log_write(ANDROID_LOG_WARN, "QQQ_JNI", __FUNCTION__);
 }
 
 JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnResume(JNIEnv*, jclass) {

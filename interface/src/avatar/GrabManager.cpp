@@ -32,6 +32,17 @@ void GrabManager::simulateGrabs() {
             bool success;
             SpatiallyNestablePointer grabbedThing = SpatiallyNestable::findByID(grabbedThingID, success);
             if (success && grabbedThing) {
+                auto entity = std::dynamic_pointer_cast<EntityItem>(grabbedThing);
+                if (entity) {
+                    if (entity->getLocked()) {
+                        continue; // even if someone else claims to be grabbing it, don't move a locked thing
+                    }
+                    const GrabPropertyGroup& grabProps = entity->getGrabProperties();
+                    if (!grabProps.getGrabbable()) {
+                        continue; // even if someone else claims to be grabbing it, don't move non-grabbable
+                    }
+                }
+
                 glm::vec3 finalPosition = acc.finalizePosition();
                 glm::quat finalOrientation = acc.finalizeOrientation();
                 grabbedThing->setTransform(createMatFromQuatAndPos(finalOrientation, finalPosition));

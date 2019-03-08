@@ -41,8 +41,8 @@ public:
  *
  * @property {WalletScriptingInterface.WalletStatus} walletStatus - The status of the user's wallet. <em>Read-only.</em>
  * @property {boolean} limitedCommerce - <code>true</code> if Interface is running in limited commerce mode. In limited commerce 
- *     mode, certain Interface functionality is disabled, e.g., users can't buy non-free items from the Marketplace. The Oculus 
- *     Store version of Interface runs in limited commerce mode. <em>Read-only.</em>
+ *     mode, certain Interface functionalities are disabled, e.g., users can't buy items that are not free from the Marketplace. 
+ *     The Oculus Store version of Interface runs in limited commerce mode. <em>Read-only.</em>
  */
 class WalletScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -55,16 +55,16 @@ public:
     WalletScriptingInterface();
 
     /**jsdoc
-     * Check and update the user's wallet status.
+     * Checks and updates the user's wallet status.
      * @function WalletScriptingInterface.refreshWalletStatus
      */
     Q_INVOKABLE void refreshWalletStatus();
 
     /**jsdoc
-     * Get the current status of the user's wallet.
+     * Gets the current status of the user's wallet.
      * @function WalletScriptingInterface.getWalletStatus
      * @returns {WalletScriptingInterface.WalletStatus}
-     * @example <caption>Two ways to report your wallet status.</caption>
+     * @example <caption>Use two methods to report your wallet's status.</caption>
      * print("Wallet status: " + WalletScriptingInterface.walletStatus);  // Same value as next line.
      * print("Wallet status: " + WalletScriptingInterface.getWalletStatus());
      */
@@ -74,11 +74,11 @@ public:
      * Check that a certified avatar entity is owned by the avatar whose entity it is. The result of the check is provided via 
      * the {@link WalletScriptingInterface.ownershipVerificationSuccess|ownershipVerificationSuccess} and 
      * {@link WalletScriptingInterface.ownershipVerificationFailed|ownershipVerificationFailed} signals.<br />
-     * <strong>Warning:</strong> Neither of these signals fire if the entity is not an avatar entity or it's not a certified 
-     * entity.
+     * <strong>Warning:</strong> Neither of these signals are triggered if the entity is not an avatar entity or is not 
+     * certified.
      * @function WalletScriptingInterface.proveAvatarEntityOwnershipVerification
-     * @param {Uuid} entityID - The ID of the avatar entity to check.
-     * @example <caption>Check ownership of all nearby certified avatar entities.</caption>
+     * @param {Uuid} entityID - The avatar entity's ID.
+     * @example <caption>Check the ownership of all nearby certified avatar entities.</caption>
      * // Set up response handling.
      * function ownershipSuccess(entityID) {
      *     print("Ownership test succeeded for: " + entityID);
@@ -118,7 +118,7 @@ public:
 signals:
 
     /**jsdoc
-     * Triggered when the status of the user's wallet changes.
+     * Triggered when the user's wallet status changes.
      * @function WalletScriptingInterface.walletStatusChanged
      * @returns {Signal}
      * @example <caption>Report when your wallet status changes, e.g., when you log in and out.</caption>
@@ -136,7 +136,7 @@ signals:
     void limitedCommerceChanged();
 
     /**jsdoc
-     * Triggered when the user rezzes a certified entity but the user's wallet is not ready and so the certified location of the 
+     * Triggered when the user rezzes a certified entity but the user's wallet is not ready. So the certified location of the
      * entity cannot be updated in the metaverse.
      * @function WalletScriptingInterface.walletNotSetup
      * @returns {Signal}

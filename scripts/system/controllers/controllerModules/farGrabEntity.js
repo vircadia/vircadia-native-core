@@ -60,6 +60,14 @@ Script.include("/~/system/libraries/controllers.js");
         this.reticleMaxY = 0;
         this.endedGrab = 0;
         this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
+        this.disabled = false;
+        var _this = this;
+        this.leftTrigger = 0.0;
+        this.rightTrigger = 0.0;
+        this.initialControllerRotation = Quat.IDENTITY;
+        this.currentControllerRotation = Quat.IDENTITY;
+        this.manipulating = false;
+        this.wasManipulating = false;
 
         var FAR_GRAB_JOINTS = [65527, 65528]; // FARGRAB_LEFTHAND_INDEX, FARGRAB_RIGHTHAND_INDEX
 
@@ -75,6 +83,45 @@ Script.include("/~/system/libraries/controllers.js");
             100,
             makeLaserParams(this.hand, false));
 
+        this.getOtherModule = function () {
+            return getEnabledModuleByName(this.hand === RIGHT_HAND ? ("LeftFarGrabEntity") : ("RightFarGrabEntity"));
+        };
+
+        // Get the rotation of the fargrabbed entity.
+        this.getTargetRotation = function () {
+            if (this.targetIsNull()) {
+                return null;
+            } else {
+                var props = Entities.getEntityProperties(this.targetEntityID, ["rotation"]);
+                return props.rotation;
+            }
+        };
+
+        this.getOffhand = function () {
+            return (this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND);
+        }
+
+        this.getOffhandTrigger = function () {
+            return (_this.hand === RIGHT_HAND ? _this.leftTrigger : _this.rightTrigger);
+        }
+
+        // Activation criteria for rotating a fargrabbed entity. If we're changing the mapping, this is where to do it.
+        this.shouldManipulateTarget = function () {
+            return (_this.getOffhandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        };
+
+        // Get the delta between the current rotation and where the controller was when manipulation started.
+        this.calculateEntityRotationManipulation = function (controllerRotation) {
+            return Quat.multiply(controllerRotation, Quat.inverse(this.initialControllerRotation));
+        };
+
+        this.setJointTranslation = function (newTargetPosLocal) {
+            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
+        };
+
+        this.setJointRotation = function (newTargetRotLocal) {
+            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], newTargetRotLocal);
+        };
 
         this.handToController = function() {
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -142,8 +189,9 @@ Script.include("/~/system/libraries/controllers.js");
             Messages.sendLocalMessage('Hifi-unhighlight-entity', JSON.stringify(message));
 
             var newTargetPosLocal = MyAvatar.worldToJointPoint(targetProps.position);
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
+            var newTargetRotLocal = targetProps.rotation;
+            this.setJointTranslation(newTargetPosLocal);
+            this.setJointRotation(newTargetRotLocal);
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(targetProps.id, "startDistanceGrab", args);
@@ -227,12 +275,44 @@ Script.include("/~/system/libraries/controllers.js");
             newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
             newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
 
-            // MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], MyAvatar.worldToJointPoint(newTargetPosition));
-
-            // var newTargetPosLocal = Mat4.transformPoint(MyAvatar.getSensorToWorldMatrix(), newTargetPosition);
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
-            MyAvatar.setJointTranslation(FAR_GRAB_JOINTS[this.hand], newTargetPosLocal);
-            MyAvatar.setJointRotation(FAR_GRAB_JOINTS[this.hand], { x: 0, y: 0, z: 0, w: 1 });
+
+            // This block handles the user's ability to rotate the object they're FarGrabbing
+            if (this.shouldManipulateTarget()) {
+                // Get the pose of the controller that is not grabbing.
+                var pose = Controller.getPoseValue((this.getOffhand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
+                if (pose.valid) {
+                    // If we weren't manipulating the object yet, initialize the entity's original position.
+                    if (!this.manipulating) {
+                        // This will only be triggered if we've let go of the off-hand trigger and pulled it again without ending a grab.
+                        // Need to poll the entity's rotation again here.
+                        if (!this.wasManipulating) {
+                            this.initialEntityRotation = this.getTargetRotation();
+                        }
+                        // Save the original controller orientation, we only care about the delta between this rotation and wherever
+                        // the controller rotates, so that we can apply it to the entity's rotation.
+                        this.initialControllerRotation = Quat.multiply(pose.rotation, MyAvatar.orientation);
+                        this.manipulating = true;
+                    }
+                }
+
+                var rot = Quat.multiply(pose.rotation, MyAvatar.orientation);
+                var rotBetween = this.calculateEntityRotationManipulation(rot);
+                var doubleRot = Quat.multiply(rotBetween, rotBetween);
+                this.lastJointRotation = Quat.multiply(doubleRot, this.initialEntityRotation);
+                this.setJointRotation(this.lastJointRotation);
+            } else {
+                // If we were manipulating but the user isn't currently expressing this intent, we want to know so we preserve the rotation
+                // between manipulations without ending the fargrab.
+                if (this.manipulating) {
+                    this.initialEntityRotation = this.lastJointRotation;
+                    this.wasManipulating = true;
+                }
+                this.manipulating = false;
+                // Reset the inital controller position.
+                this.initialControllerRotation = Quat.IDENTITY;
+            }
+            this.setJointTranslation(newTargetPosLocal);
 
             this.previousRoomControllerPosition = roomControllerPosition;
         };
@@ -254,9 +334,15 @@ Script.include("/~/system/libraries/controllers.js");
             }));
             unhighlightTargetEntity(this.targetEntityID);
             this.grabbing = false;
-            this.targetEntityID = null;
             this.potentialEntityWithContextOverlay = false;
             MyAvatar.clearJointData(FAR_GRAB_JOINTS[this.hand]);
+            this.initialEntityRotation = Quat.IDENTITY;
+            this.initialControllerRotation = Quat.IDENTITY;
+            this.targetEntityID = null;
+            this.manipulating = false;
+            this.wasManipulating = false;
+            var otherModule = this.getOtherModule();
+            otherModule.disabled = false;
         };
 
         this.updateRecommendedArea = function() {
@@ -326,7 +412,9 @@ Script.include("/~/system/libraries/controllers.js");
 
                 this.distanceHolding = false;
 
-                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
+                if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE && !this.disabled) {
+                    var otherModule = this.getOtherModule();
+                    otherModule.disabled = true;
                     return makeRunningValues(true, [], []);
                 } else {
                     this.destroyContextOverlay();
@@ -336,6 +424,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
+            this.leftTrigger = controllerData.triggerValues[LEFT_HAND];
+            this.rightTrigger = controllerData.triggerValues[RIGHT_HAND];
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);

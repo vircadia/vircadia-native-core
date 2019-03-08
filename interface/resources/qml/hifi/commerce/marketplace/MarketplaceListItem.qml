@@ -34,7 +34,7 @@ Rectangle {
     property string creator: ""
     property string category: ""
     property int price: 0
-    property bool available: false
+    property string availability: "unknown"
     property bool isLoggedIn: false;
 
     signal buy()
@@ -226,6 +226,7 @@ Rectangle {
                     top: parent.top
                     left: parent.left
                     leftMargin: 15
+                    topMargin: 10
                 }
                 width: paintedWidth
                 
@@ -241,7 +242,7 @@ Rectangle {
                 anchors {
                     top: creatorLabel.top;
                     left: creatorLabel.right;
-                    leftMargin: 15;
+                    leftMargin: 10;
                 }
                 width: paintedWidth;
 
@@ -273,7 +274,7 @@ Rectangle {
                 anchors {
                     top: categoryLabel.top
                     left: categoryLabel.right
-                    leftMargin: 15
+                    leftMargin: 10
                 }
                 width: paintedWidth
 
@@ -298,11 +299,21 @@ Rectangle {
                     topMargin:10
                     bottomMargin: 10
                 }
+                width: 180
 
-                text: root.price ? root.price : "FREE"
-                buttonGlyph: root.price ? hifi.glyphs.hfc : ""
+                property bool isNFS: availability === "not for sale" // Note: server will say "sold out" or "invalidated" before it says NFS
+                property bool isMine: creator === Account.username
+                property bool isUpgrade: root.edition >= 0
+                property int costToMe: ((isMine && isNFS) || isUpgrade) ? 0 : price
+                property bool isAvailable: availability === "available"
+
+                text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : availability)
+                enabled: isAvailable
+                buttonGlyph: isAvailable ? (costToMe ? hifi.glyphs.hfc : "") : ""
+
                 color: hifi.buttons.blue;
-
+                buttonGlyphSize: 24
+                fontSize: 24
                 onClicked: root.buy();
             }
         }

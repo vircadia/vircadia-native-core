@@ -1,5 +1,3 @@
-#version 450 core
-#define GPU_GL450
 #define GPU_SSBO_TRANSFORM_OBJECT
 #define BITFIELD int
 #define LAYOUT(X) layout(X)

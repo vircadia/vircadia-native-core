@@ -66,6 +66,12 @@ public:
     static const QString DEFAULT_MODEL_URL;
     QString getModelURL() const;
 
+    virtual glm::vec3 getScaledDimensions() const override;
+    virtual void setScaledDimensions(const glm::vec3& value) override;
+
+    virtual const Transform getTransform(bool& success, int depth = 0) const override;
+    virtual const Transform getTransform() const override;
+
     static const QString DEFAULT_COMPOUND_SHAPE_URL;
     QString getCompoundShapeURL() const;
 
@@ -126,6 +132,9 @@ public:
     QVector<glm::vec3> getJointTranslations() const;
     QVector<bool> getJointTranslationsSet() const;
 
+    glm::vec3 getModelScale() const;
+    void setModelScale(const glm::vec3& modelScale);
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
     bool applyNewAnimationProperties(AnimationPropertyGroup newProperties);
@@ -155,6 +164,7 @@ protected:
     int _lastKnownCurrentFrame{-1};
 
     glm::u8vec3 _color;
+    glm::vec3 _modelScale { 1.0f };
     QString _modelURL;
     bool _relayParentJoints;
     bool _groupCulled { false };

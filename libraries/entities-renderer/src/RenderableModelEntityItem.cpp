@@ -928,9 +928,9 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
     _needsJointSimulation = true;
 }
 
-void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
+void RenderableModelEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     DETAILED_PERFORMANCE_TIMER("locationChanged");
-    EntityItem::locationChanged(tellPhysics);
+    EntityItem::locationChanged(tellPhysics, tellChildren);
     auto model = getModel();
     if (model && model->isLoaded()) {
         model->updateRenderItems();
@@ -1032,9 +1032,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     });
 
     if (changed) {
-        forEachChild([&](SpatiallyNestablePointer object) {
-            object->locationChanged(false);
-        });
+        locationChanged(false, true);
     }
 }
 
@@ -1079,7 +1077,7 @@ render::hifi::Tag ModelEntityRenderer::getTagMask() const {
 
 uint32_t ModelEntityRenderer::metaFetchMetaSubItems(ItemIDs& subItems) { 
     if (_model) {
-        auto metaSubItems = _subRenderItemIDs;
+        auto metaSubItems = _model->fetchRenderItemIDs();
         subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
         return (uint32_t)metaSubItems.size();
     }
@@ -1321,11 +1319,8 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
     if (!_hasModel) {
         if (model) {
             model->removeFromScene(scene, transaction);
+            entity->bumpAncestorChainRenderableVersion();
             withWriteLock([&] { _model.reset(); });
-            transaction.updateItem<PayloadProxyInterface>(getRenderItemID(), [](PayloadProxyInterface& data) {
-                auto entityRenderer = static_cast<EntityRenderer*>(&data);
-                entityRenderer->clearSubRenderItemIDs();
-            });
             emit DependencyManager::get<scriptable::ModelProviderFactory>()->
                 modelRemovedFromScene(entity->getEntityItemID(), NestableType::Entity, _model);
         }
@@ -1442,12 +1437,7 @@ void ModelEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePointer& sce
             render::Item::Status::Getters statusGetters;
             makeStatusGetters(entity, statusGetters);
             model->addToScene(scene, transaction, statusGetters);
-
-            auto newRenderItemIDs{ model->fetchRenderItemIDs() };
-            transaction.updateItem<PayloadProxyInterface>(getRenderItemID(), [newRenderItemIDs](PayloadProxyInterface& data) {
-                auto entityRenderer = static_cast<EntityRenderer*>(&data);
-                entityRenderer->setSubRenderItemIDs(newRenderItemIDs);
-            });
+            entity->bumpAncestorChainRenderableVersion();
             processMaterials();
         }
     }
