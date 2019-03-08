@@ -59,6 +59,47 @@ public:
 
     float getMaxErrorOnLastSolve() { return _maxErrorOnLastSolve; }
 
+    /**jsdoc
+     * <p>Specifies the initial conditions of the IK solver.</p>
+     * <table>
+     *   <thead>
+     *     <tr><th>Value</th><th>Name</p><th>Description</th>
+     *   </thead>
+     *   <tbody>
+     *     <tr><td><code>0</code></td><td>RelaxToUnderPoses</td><td>This is a blend between <code>PreviousSolution</code> and 
+     *       <code>UnderPoses</code>: it is 15/16 <code>PreviousSolution</code> and 1/16 <code>UnderPoses</code>. This 
+     *       provides some of the benefits of using <code>UnderPoses</code> so that the underlying animation is still visible, 
+     *       while at the same time converging faster then using the <code>UnderPoses</code> only initial solution.</td></tr>
+     *     <tr><td><code>1</code></td><td>RelaxToLimitCenterPoses</td><td>This is a blend between 
+     *       <code>Previous Solution</code> and <code>LimitCenterPoses</code>: it is 15/16 <code>PreviousSolution</code> and 
+     *       1/16 <code>LimitCenterPoses</code>. This should converge quickly because it is close to the previous solution, but 
+     *       still provides the benefits of avoiding limb locking.</td></tr>
+     *     <tr><td><code>2</code></td><td>PreviousSolution</td><td>The IK system will begin to solve from the same position and 
+     *       orientations for each joint that was the result from the previous frame.<br />
+     *       Pros: because the end effectors typically do not move much from frame to frame, this is likely to converge quickly 
+     *       to a valid solution.<br />
+     *       Cons: If the previous solution resulted in an awkward or uncomfortable posture, the next frame will also be 
+     *       awkward and uncomfortable. It can also result in locked elbows and knees.</td></tr>
+     *     <tr><td><code>3</code></td><td>UnderPoses</td><td>The IK occurs at one of the top-most layers, it has access to the 
+     *       full posture that was computed via canned animations and blends. We call this animated set of poses the "under 
+     *       pose". The under poses are what would be visible if IK was completely disabled. Using the under poses as the 
+     *       initial conditions of the CCD solve will cause some of the animated motion to be blended in to the result of the 
+     *       IK. This can result in very natural results, especially if there are only a few IK targets enabled. On the other 
+     *       hand, because the under poses might be quite far from the desired end effector, it can converge slowly in some 
+     *       cases, causing it to never reach the IK target in the allotted number of iterations. Also, in situations where all 
+     *       of the IK targets are being controlled by external sensors, sometimes starting from the under poses can cause 
+     *       awkward motions from the underlying animations to leak into the IK result.</td></tr>
+     *     <tr><td><code>4</code></td><td>LimitCenterPoses</td><td>This pose is taken to be the center of all the joint 
+     *       constraints. This can prevent the IK solution from getting locked or stuck at a particular constraint. For 
+     *       example, if the arm is pointing straight outward from the body, as the end effector moves towards the body, at 
+     *       some point the elbow should bend to accommodate. However, because the CCD solver is stuck at a local maximum, it 
+     *       will not rotate the elbow, unless the initial conditions already has the elbow bent, which is the case for 
+     *       <code>LimitCenterPoses</code>. When all the IK targets are enabled, this result will provide a consistent starting 
+     *       point for each IK solve, hopefully resulting in a consistent, natural result.</td></tr>
+     *   </tbody>
+     * </table>
+     * @typedef {number} MyAvatar.AnimIKSolutionSource
+     */
     enum class SolutionSource {
         RelaxToUnderPoses = 0,
         RelaxToLimitCenterPoses,
