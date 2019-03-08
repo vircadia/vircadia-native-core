@@ -527,6 +527,7 @@ Rectangle {
         ListView {
             id: purchasesContentsList;
             visible: purchasesModel.count !== 0;
+            interactive: !lightboxPopup.visible;
             clip: true;
             model: purchasesModel;
             snapMode: ListView.NoSnap;
