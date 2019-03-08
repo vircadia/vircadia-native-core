@@ -26,6 +26,7 @@
 #include "SimpleMovingAverage.h"
 #include "AnimUtil.h"
 #include "Flow.h"
+#include "AvatarConstants.h"
 
 class Rig;
 class AnimInverseKinematics;
@@ -236,6 +237,8 @@ public:
     const AnimContext::DebugStateMachineMap& getStateMachineMap() const { return _lastContext.getStateMachineMap(); }
     void initFlow(bool isActive);
     Flow& getFlow() { return _internalFlow; }
+
+    float getUnscaledEyeHeight() const;
 
 
 signals:
