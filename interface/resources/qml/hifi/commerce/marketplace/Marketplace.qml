@@ -92,11 +92,11 @@ Rectangle {
                 });
                 categoriesModel.append({
                     id: -1,
-                    name: "Standalone Optimized"
+                    name: "Stand-alone Optimized"
                 });
                 categoriesModel.append({
                     id: -1,
-                    name: "Standalone Compatible"
+                    name: "Stand-alone Compatible"
                 });
                 result.data.items.forEach(function(category) {
                     categoriesModel.append({

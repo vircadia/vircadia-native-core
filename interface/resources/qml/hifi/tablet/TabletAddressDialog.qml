@@ -73,7 +73,7 @@ StackView {
     function resetAfterTeleport() {
         //storyCardFrame.shown = root.shown = false;
     }
-    function goCard(targetString) {
+    function goCard(targetString, standaloneOptimized) {
         if (0 !== targetString.indexOf('hifi://')) {
             var card = tabletWebView.createObject();
             card.url = addressBarDialog.metaverseServerUrl + targetString;
@@ -82,7 +82,7 @@ StackView {
             return;
         }
         location.text = targetString;
-        toggleOrGo(targetString, true);
+        toggleOrGo(targetString, true, standaloneOptimized);
         clearAddressLineTimer.start();
     }
 
@@ -392,7 +392,18 @@ StackView {
                 right: parent.right
             }
         }
+    }
 
+    TADLightbox {
+        id: unoptimizedDomain
+        titleText: "Unoptimized Domain"
+        bodyText:  "You're trying to access a place that hasn't been optimized for your device. Are you sure you want to continue."
+        button1text: "CANCEL"
+        button2text: "YES CONTINUE"
+        visible: false
+        button1method: function() {
+            visible = false;
+        }
     }
 
     function updateLocationText(enteringAddress) {
@@ -407,14 +418,30 @@ StackView {
         }
     }
 
-    function toggleOrGo(address, fromSuggestions) {
-        if (address !== undefined && address !== "") {
-            addressBarDialog.loadAddress(address, fromSuggestions);
-            clearAddressLineTimer.start();
-        } else if (addressLine.text !== "") {
-            addressBarDialog.loadAddress(addressLine.text, fromSuggestions);
-            clearAddressLineTimer.start();
+    function toggleOrGo(address, fromSuggestions, standaloneOptimized) {
+
+        var goTarget = function () {
+            if (address !== undefined && address !== "") {
+                addressBarDialog.loadAddress(address, fromSuggestions);
+                clearAddressLineTimer.start();
+            } else if (addressLine.text !== "") {
+                addressBarDialog.loadAddress(addressLine.text, fromSuggestions);
+                clearAddressLineTimer.start();
+            }
+            DialogsManager.hideAddressBar();
         }
-        DialogsManager.hideAddressBar();
+
+        unoptimizedDomain.button2method = function() {
+            Settings.setValue("ShowUnoptimizedDomainWarning", false);
+            goTarget();
+        }
+
+        var showPopup = PlatformInfo.isStandalone() && !standaloneOptimized && Settings.getValue("ShowUnoptimizedDomainWarning", true);
+
+        if(!showPopup) {
+            goTarget();
+        } else {
+            unoptimizedDomain.visible = true;
+        }
     }
 }

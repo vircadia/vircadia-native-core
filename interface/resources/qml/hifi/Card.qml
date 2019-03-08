@@ -269,7 +269,7 @@ Item {
         hoverEnabled: false
         onClicked: {
             Tablet.playSound(TabletEnums.ButtonClick);
-            goFunction("hifi://" + hifiUrl);
+            goFunction("hifi://" + hifiUrl, standaloneOptimized);
         }
     }
 
