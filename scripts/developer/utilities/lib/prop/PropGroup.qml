@@ -25,6 +25,8 @@ Item {
 
     property var label: "group"
 
+    property var isUnfold: false
+
     Item {
         id: header
         height: global.slimHeight
@@ -39,6 +41,7 @@ Item {
             text: root.label
             horizontalAlignment: Text.AlignHCenter
         }
+
         Rectangle {
             id: headerRect
             color: global.color
@@ -50,11 +53,20 @@ Item {
             anchors.right: header.right
             anchors.verticalCenter: header.verticalCenter
             height: parent.height
+
+            MouseArea{
+                id: mousearea
+                anchors.fill: parent
+                onDoubleClicked: {
+                    root.isUnfold = !root.isUnfold
+                }
+            }
         }
     }
     
     Column {
         id: column
+        visible: root.isUnfold
         anchors.top: header.bottom
         anchors.left: parent.left
         anchors.right: parent.right   
@@ -62,7 +74,7 @@ Item {
 
         // Where the propItems are added
     }
-    height: header.height + column.height
+    height: header.height + isUnfold * column.height
 
     function updatePropItems() {
          for (var i = 0; i < root.propItems.length; i++) {
