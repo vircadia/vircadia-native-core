@@ -14,7 +14,7 @@ using System.Collections.Generic;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.3.2";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.3.3";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
@@ -364,7 +364,14 @@ class AvatarExporter : MonoBehaviour {
                                                  " the Rig section of it's Inspector window.", "Ok");
             return;
         }
-        
+
+        // if the rig is optimized we should de-optimize it during the export process
+        bool shouldDeoptimizeGameObjects = modelImporter.optimizeGameObjects;
+        if (shouldDeoptimizeGameObjects) {
+            modelImporter.optimizeGameObjects = false;
+            modelImporter.SaveAndReimport();
+        }
+
         humanDescription = modelImporter.humanDescription;
         string textureWarnings = SetTextureDependencies();
         SetBoneAndMaterialInformation();
@@ -375,6 +382,15 @@ class AvatarExporter : MonoBehaviour {
         // format resulting avatar rule failure strings
         // consider export-blocking avatar rules to be errors and show them in an error dialog,
         // and also include any other avatar rule failures plus texture warnings as warnings in the dialog
+        if (shouldDeoptimizeGameObjects) {
+            // switch back to optimized game object in case it was originally optimized
+            modelImporter.optimizeGameObjects = true;
+            modelImporter.SaveAndReimport();
+        }
+
+        // format resulting bone rule failure strings
+        // consider export-blocking bone rules to be errors and show them in an error dialog,
+        // and also include any other bone rule failures plus texture warnings as warnings in the dialog
         string boneErrors = "";
         string warnings = "";
         foreach (var failedAvatarRule in failedAvatarRules) {
