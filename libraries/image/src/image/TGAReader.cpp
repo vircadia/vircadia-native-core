@@ -26,10 +26,6 @@ QImage image::readTGA(QIODevice& content) {
         RunLengthEncodedTrueColor = 10,
         RunLengthEncodedBlackWhite = 11,
     };
-    enum class TGAOrientation : uint8_t {
-        BottomLeft = 0,
-        TopLeft = 1,
-    };
 
     struct TGAHeader {
         uint8_t idLength;
@@ -48,13 +44,15 @@ QImage image::readTGA(QIODevice& content) {
         struct {
             uint8_t attributeBitsPerPixel : 4;
             uint8_t reserved : 1;
-            TGAOrientation orientation : 1;
+            uint8_t orientation : 1;
             uint8_t padding : 2;
         } imageDescriptor;
     };
 
     constexpr bool WANT_DEBUG { false };
     constexpr size_t TGA_HEADER_SIZE_BYTES { 18 };
+    constexpr uint8_t ORIENTATION_BOTTOM_LEFT { 0 };
+    constexpr uint8_t ORIENTATION_TOP_LEFT { 1 };
 
     TGAHeader header;
 
@@ -119,7 +117,7 @@ QImage image::readTGA(QIODevice& content) {
         QImage image{ header.width, header.height, QImage::Format_ARGB32 };
         char* line;
         for (int y = 0; y < header.height; ++y) {
-            if (header.imageDescriptor.orientation == TGAOrientation::BottomLeft) {
+            if (header.imageDescriptor.orientation == ORIENTATION_BOTTOM_LEFT) {
                 line = (char*)image.scanLine(header.height - y - 1);
             } else {
                 line = (char*)image.scanLine(y);
@@ -137,7 +135,7 @@ QImage image::readTGA(QIODevice& content) {
 
         for (int y = 0; y < header.height; ++y) {
             char* line;
-            if (header.imageDescriptor.orientation == TGAOrientation::BottomLeft) {
+            if (header.imageDescriptor.orientation == ORIENTATION_BOTTOM_LEFT) {
                 line = (char*)image.scanLine(header.height - y - 1);
             } else {
                 line = (char*)image.scanLine(y);
