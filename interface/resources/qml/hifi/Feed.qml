@@ -189,4 +189,14 @@ Column {
             }
         }
     }
+    function isStandalone(address) {
+        var lowerAddress = address.toLowerCase();
+
+        for (var i=0; i < suggestions.count; i++) {
+            if (suggestions.get(i).place_name.toLowerCase() === lowerAddress) {
+                return suggestions.get(i).standalone_optimized;
+            }
+        }
+        return false;
+    }
 }
