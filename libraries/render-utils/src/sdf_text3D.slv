@@ -19,6 +19,7 @@
 // the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) out vec4 _texCoord01;
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) out vec4 _positionES;
 
 void main() {
     _texCoord01.xy = inTexCoord0.xy;
@@ -26,7 +27,7 @@ void main() {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
-    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _positionES, gl_Position)$>
     const vec3 normal = vec3(0, 0, 1);
     <$transformModelToWorldDir(cam, obj, normal, _normalWS)$>
 }

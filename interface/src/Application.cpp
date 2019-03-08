@@ -246,6 +246,8 @@
 
 #include "AboutUtil.h"
 
+#include <DisableDeferred.h>
+
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
@@ -287,13 +289,6 @@ static bool DISABLE_WATCHDOG = true;
 #else
 static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
-#endif
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
 #if !defined(Q_OS_ANDROID)

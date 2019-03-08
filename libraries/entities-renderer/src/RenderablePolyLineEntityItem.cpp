@@ -19,6 +19,8 @@
 #include <PerfStat.h>
 #include <shaders/Shaders.h>
 
+#include <DisableDeferred.h>
+
 #include "paintStroke_Shared.slh"
 
 using namespace render;
@@ -28,13 +30,6 @@ gpu::PipelinePointer PolyLineEntityRenderer::_pipeline = nullptr;
 gpu::PipelinePointer PolyLineEntityRenderer::_glowPipeline = nullptr;
 
 static const QUrl DEFAULT_POLYLINE_TEXTURE = PathUtils::resourcesUrl("images/paintStroke.png");
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#endif
 
 PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) : Parent(entity) {
     _texture = DependencyManager::get<TextureCache>()->getTexture(DEFAULT_POLYLINE_TEXTURE);
