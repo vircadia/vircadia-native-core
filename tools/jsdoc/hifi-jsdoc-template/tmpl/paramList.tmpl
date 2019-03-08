@@ -1,0 +1,67 @@
+<?js
+    var params = obj;
+
+    /* sort subparams under their parent params (like opts.classname) */
+    var parentParam = null;
+    params.forEach(function(param, i) {
+        var paramRegExp;
+
+        if (!param) {
+            return;
+        }
+
+        if (parentParam && parentParam.name && param.name) {
+            try {
+                paramRegExp = new RegExp('^(?:' + parentParam.name + '(?:\\[\\])*)\\.(.+)$');
+            }
+            catch (e) {
+                // there's probably a typo in the JSDoc comment that resulted in a weird
+                // parameter name
+                return;
+            }
+
+            if ( paramRegExp.test(param.name) ) {
+                param.name = RegExp.$1;
+                parentParam.subparams = parentParam.subparams || [];
+                parentParam.subparams.push(param);
+                params[i] = null;
+            }
+            else {
+                parentParam = param;
+            }
+        }
+        else {
+            parentParam = param;
+        }
+    });
+
+    /* determine if we need extra columns, "attributes" and "default" */
+    params.hasAttributes = false;
+    params.hasDefault = false;
+    params.hasName = false;
+
+    params.forEach(function(param) {
+        if (!param) { return; }
+
+        if (param.optional || param.nullable || param.variable) {
+            params.hasAttributes = true;
+        }
+
+        if (param.name) {
+            params.hasName = true;
+        }
+
+        if (typeof param.defaultvalue !== 'undefined') {
+            params.hasDefault = true;
+        }
+    });
+?>
+
+<?js params.forEach(function(param, i, arr) { ?>
+        <?js if (i === arr.length - 1) { ?>
+            <?js= param.name ?>
+        <?js } else { ?>
+            <span><?js= param.name ?>, </span>
+
+        <?js } ?>
+<?js }); ?>

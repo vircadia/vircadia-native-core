@@ -312,6 +312,7 @@ class AvatarExporter : MonoBehaviour {
     
     static ModelImporter modelImporter;
     static HumanDescription humanDescription;
+
     static Dictionary<string, UserBoneInformation> userBoneInfos = new Dictionary<string, UserBoneInformation>();
     static Dictionary<string, string> humanoidToUserBoneMappings = new Dictionary<string, string>();
     static BoneTreeNode userBoneTree = new BoneTreeNode();
@@ -403,7 +404,7 @@ class AvatarExporter : MonoBehaviour {
             EditorUtility.DisplayDialog("Error", boneErrors, "Ok");
             return;
         }
-
+        
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
         string hifiFolder = documentsFolder + "\\High Fidelity Projects";
         if (updateAvatar) { // Update Existing Avatar menu option
@@ -732,12 +733,14 @@ class AvatarExporter : MonoBehaviour {
             string boneName = modelBone.name;
             if (modelBone.parent == null) {
                 // if no parent then this is actual root bone node of the user avatar, so consider it's parent as "root"
+                boneName = GetRootBoneName(); // ensure we use the root bone name from the skeleton list for consistency
                 userBoneTree = new BoneTreeNode(boneName); // initialize root of tree
                 userBoneInfo.parentName = "root";
                 userBoneInfo.boneTreeNode = userBoneTree;
             } else {
                 // otherwise add this bone node as a child to it's parent's children list
-                string parentName = modelBone.parent.name;
+                // if its a child of the root bone, use the root bone name from the skeleton list as the parent for consistency
+                string parentName = modelBone.parent.parent == null ? GetRootBoneName() : modelBone.parent.name;
                 BoneTreeNode boneTreeNode = new BoneTreeNode(boneName);
                 userBoneInfos[parentName].boneTreeNode.children.Add(boneTreeNode);
                 userBoneInfo.parentName = parentName;
@@ -760,7 +763,7 @@ class AvatarExporter : MonoBehaviour {
         }
         return result;
     }
-    
+
     static void AdjustUpperChestMapping() {
         if (!humanoidToUserBoneMappings.ContainsKey("UpperChest")) {
             // if parent of Neck is not Chest then map the parent to UpperChest
@@ -782,6 +785,14 @@ class AvatarExporter : MonoBehaviour {
                 humanoidToUserBoneMappings.Add("UpperChest", chestUserBone);
             }
         }
+    }
+    
+    static string GetRootBoneName() {
+        // the "root" bone is the first element in the human skeleton bone list
+        if (humanDescription.skeleton.Length > 0) {
+            return humanDescription.skeleton[0].name;
+        }
+        return "";
     }
     
     static void SetFailedAvatarRules() {
@@ -1003,7 +1014,7 @@ class AvatarExporter : MonoBehaviour {
         textureDirectory = textureDirectory.Replace("\\\\", "\\");
         return textureDirectory;
     }
-    
+
     static string SetTextureDependencies() {
         string textureWarnings = "";
         textureDependencies.Clear();

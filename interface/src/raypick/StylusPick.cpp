@@ -155,15 +155,33 @@ PickResultPointer StylusPick::getEntityIntersection(const StylusTip& pick) {
 
         const auto entityRotation = entity->getWorldOrientation();
         const auto entityPosition = entity->getWorldPosition();
+        const auto entityType = entity->getType();
+        glm::vec3 normal;
 
-        glm::vec3 normal = entityRotation * Vectors::UNIT_Z;
+        // TODO: Use the xz projection method for Sphere and Quad.
+        if (entityType == EntityTypes::Gizmo) {
+            normal = entityRotation * Vectors::UNIT_Y;
+        } else {
+            normal = entityRotation * Vectors::UNIT_Z;
+        }
         float distance = glm::dot(pick.position - entityPosition, normal);
         if (distance < nearestTarget.distance) {
             const auto entityDimensions = entity->getScaledDimensions();
             const auto entityRegistrationPoint = entity->getRegistrationPoint();
             glm::vec3 intersection = pick.position - (normal * distance);
-            glm::vec2 pos2D = RayPick::projectOntoXYPlane(intersection, entityPosition, entityRotation,
-                                                          entityDimensions, entityRegistrationPoint, false);
+            glm::vec2 pos2D;
+
+
+            auto entityType = entity->getType();
+
+            if (entityType == EntityTypes::Gizmo) {
+                pos2D = RayPick::projectOntoXZPlane(intersection, entityPosition, entityRotation,
+                                                    entityDimensions, entityRegistrationPoint, false);
+            } else {
+                pos2D = RayPick::projectOntoXYPlane(intersection, entityPosition, entityRotation,
+                                                    entityDimensions, entityRegistrationPoint, false);
+            }
+
             if (pos2D == glm::clamp(pos2D, glm::vec2(0), glm::vec2(1))) {
                 IntersectionType type = IntersectionType::ENTITY;
                 if (getFilter().doesPickLocalEntities()) {

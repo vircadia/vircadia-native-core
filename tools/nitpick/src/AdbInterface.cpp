@@ -16,12 +16,13 @@
 QString AdbInterface::getAdbCommand() {
 #ifdef Q_OS_WIN
     if (_adbCommand.isNull()) {
-        QString adbPath = PathUtils::getPathToExecutable("adb.exe");
+        QString adbExe{ "adb.exe" };
+        QString adbPath = PathUtils::getPathToExecutable(adbExe);
         if (!adbPath.isNull()) {
-            _adbCommand = adbPath + _adbExe;
+            _adbCommand = adbExe;
         } else {
-            QMessageBox::critical(0, "python.exe not found",
-                "Please verify that pyton.exe is in the PATH");
+            QMessageBox::critical(0, "adb.exe not found",
+                "Please verify that adb.exe is in the PATH");
             exit(-1);
         }
     }

@@ -12,7 +12,6 @@
 #define hifi_testRunnerDesktop_h
 
 #include <QDir>
-#include <QLabel>
 #include <QObject>
 #include <QPushButton>
 #include <QThread>
@@ -32,8 +31,11 @@ public:
         std::vector<QTimeEdit*> timeEdits,
         QLabel* workingFolderLabel,
         QCheckBox* runServerless,
+        QCheckBox* usePreviousInstallationOnMobileCheckBox,
         QCheckBox* runLatest,
         QLineEdit* url,
+        QCheckBox* runFullSuite,
+        QLineEdit* scriptURL,
         QPushButton* runNow,
         QLabel* statusLabel,
 
@@ -99,7 +101,6 @@ private:
     std::vector<QCheckBox*> _dayCheckboxes;
     std::vector<QCheckBox*> _timeEditCheckboxes;
     std::vector<QTimeEdit*> _timeEdits;
-    QLabel* _workingFolderLabel;
     QCheckBox* _runServerless;
     QPushButton* _runNow;
     QTimer* _timer;

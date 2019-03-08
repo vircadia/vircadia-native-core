@@ -211,7 +211,7 @@ public:
 
     void dump(const QString& prefix = "") const;
 
-    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
     virtual void parentDeleted() { } // called on children of a deleted parent
 
