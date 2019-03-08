@@ -11,6 +11,7 @@
 
 #include "BakerLibrary.h"
 
+#include "FSTBaker.h"
 #include "../FBXBaker.h"
 #include "../OBJBaker.h"
 
@@ -51,21 +52,23 @@ std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureB
     QString bakedOutputDirectory = contentOutputPath + subDirName + "/baked";
     QString originalOutputDirectory = contentOutputPath + subDirName + "/original";
 
+    return getModelBakerWithOutputDirectories(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
+}
+
+std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& bakedOutputDirectory, const QString& originalOutputDirectory) {
+    auto filename = bakeableModelURL.fileName();
+
     std::unique_ptr<ModelBaker> baker;
     if (filename.endsWith(FST_EXTENSION, Qt::CaseInsensitive)) {
-        //baker = std::make_unique<FSTBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
+        baker = std::make_unique<FSTBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive)) {
         baker = std::make_unique<FBXBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
         baker = std::make_unique<OBJBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
-    } else if (filename.endsWith(GLTF_EXTENSION, Qt::CaseInsensitive)) {
+    //} else if (filename.endsWith(GLTF_EXTENSION, Qt::CaseInsensitive)) {
         //baker = std::make_unique<GLTFBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
     } else {
         qDebug() << "Could not create ModelBaker for url" << bakeableModelURL;
-    }
-
-    if (baker) {
-        QDir(contentOutputPath).mkpath(subDirName);
     }
 
     return baker;

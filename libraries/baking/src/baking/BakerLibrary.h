@@ -16,13 +16,14 @@
 
 #include "../ModelBaker.h"
 
-// Returns either the given model URL, or, if the model is baked and shouldRebakeOriginals is true,
-// the guessed location of the original model
-// Returns an empty URL if no bakeable URL found
+// Returns either the given model URL if valid, or an empty URL
 QUrl getBakeableModelURL(const QUrl& url);
 
 // Assuming the URL is valid, gets the appropriate baker for the given URL, and creates the base directory where the baker's output will later be stored
 // Returns an empty pointer if a baker could not be created
 std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& contentOutputPath);
 
-#endif hifi_BakerLibrary_h
+// Similar to getModelBaker, but gives control over where the output folders will be
+std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& bakedOutputDirectory, const QString& originalOutputDirectory);
+
+#endif // hifi_BakerLibrary_h

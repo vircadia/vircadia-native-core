@@ -152,8 +152,11 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, QJs
             auto getWorkerThreadCallback = []() -> QThread* {
                 return Oven::instance().getNextWorkerThread();
             };
-            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, getWorkerThreadCallback, _contentOutputPath).release(), &ModelBaker::deleteLater);
+            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, getWorkerThreadCallback, _contentOutputPath).release(), &Baker::deleteLater);
             if (baker) {
+                // Hold on to the old url userinfo/query/fragment data so ModelBaker::getFullOutputMappingURL retains that data from the original model URL
+                baker->setOutputURLSuffix(url);
+
                 // make sure our handler is called when the baker is done
                 connect(baker.data(), &Baker::finished, this, &DomainBaker::handleFinishedModelBaker);
 
@@ -332,6 +335,7 @@ void DomainBaker::enumerateEntities() {
                 addModelBaker(MODEL_URL_KEY, entity[MODEL_URL_KEY].toString(), *it);
             }
             if (entity.contains(COMPOUND_SHAPE_URL_KEY)) {
+                // TODO: Do not combine mesh parts, otherwise the collision behavior will be different
                 // TODO: this could be optimized so that we don't do the full baking pass for collision shapes,
                 // but we have to handle the case where it's also used as a modelURL somewhere
                 addModelBaker(COMPOUND_SHAPE_URL_KEY, entity[COMPOUND_SHAPE_URL_KEY].toString(), *it);
@@ -415,11 +419,11 @@ void DomainBaker::handleFinishedModelBaker() {
             qDebug() << "Re-writing entity references to" << baker->getModelURL();
 
             // setup a new URL using the prefix we were passed
-            auto relativeFBXFilePath = baker->getBakedModelFilePath().remove(_contentOutputPath);
-            if (relativeFBXFilePath.startsWith("/")) {
-                relativeFBXFilePath = relativeFBXFilePath.right(relativeFBXFilePath.length() - 1);
+            auto relativeMappingFilePath = baker->getFullOutputMappingURL().toString().remove(_contentOutputPath);
+            if (relativeMappingFilePath.startsWith("/")) {
+                relativeMappingFilePath = relativeMappingFilePath.right(relativeMappingFilePath.length() - 1);
             }
-            QUrl newURL = _destinationPath.resolved(relativeFBXFilePath);
+            QUrl newURL = _destinationPath.resolved(relativeMappingFilePath);
 
             // enumerate the QJsonRef values for the URL of this model from our multi hash of
             // entity objects needing a URL re-write
@@ -432,12 +436,8 @@ void DomainBaker::handleFinishedModelBaker() {
                     // grab the old URL
                     QUrl oldURL = entity[property].toString();
 
-                    // copy the fragment and query, and user info from the old model URL
-                    newURL.setQuery(oldURL.query());
-                    newURL.setFragment(oldURL.fragment());
-                    newURL.setUserInfo(oldURL.userInfo());
-
                     // set the new URL as the value in our temp QJsonObject
+                    // The fragment, query, and user info from the original model URL should now be present on the filename in the FST file
                     entity[property] = newURL.toString();
                 } else {
                     // Group property

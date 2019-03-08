@@ -45,6 +45,10 @@ public:
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
     virtual ~ModelBaker();
 
+    void setOutputURLSuffix(const QUrl& urlSuffix);
+    void setMappingURL(const QUrl& mappingURL);
+    void setMapping(const hifi::VariantHash& mapping);
+
     void initializeOutputDirs();
 
     bool buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
@@ -52,7 +56,8 @@ public:
     virtual void setWasAborted(bool wasAborted) override;
 
     QUrl getModelURL() const { return _modelURL; }
-    QString getBakedModelFilePath() const { return _bakedModelFilePath; }
+    virtual QUrl getFullOutputMappingURL() const;
+    QUrl getBakedModelURL() const { return _bakedModelURL; }
 
 signals:
     void modelLoaded();
@@ -72,9 +77,14 @@ protected:
     FBXNode _rootNode;
     QHash<QByteArray, QByteArray> _textureContentMap;
     QUrl _modelURL;
+    QUrl _outputURLSuffix;
+    QUrl _mappingURL;
+    hifi::VariantHash _mapping;
     QString _bakedOutputDir;
     QString _originalOutputDir;
-    QString _bakedModelFilePath;
+    TextureBakerThreadGetter _textureThreadGetter;
+    QString _outputMappingURL;
+    QUrl _bakedModelURL;
     QDir _modelTempDir;
     QString _originalModelFilePath;
 
@@ -93,7 +103,6 @@ private:
                      const QString & bakedFilename, const QByteArray & textureContent);
     QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);
 
-    TextureBakerThreadGetter _textureThreadGetter;
     QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
     QHash<QUrl, QString> _remappedTexturePaths;

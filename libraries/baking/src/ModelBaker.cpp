@@ -21,6 +21,7 @@
 #include <model-baker/PrepareJointsTask.h>
 
 #include <FBXWriter.h>
+#include <FSTReader.h>
 
 #ifdef _WIN32
 #pragma warning( push )
@@ -61,17 +62,45 @@ ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter input
     qDebug() << "Made temporary dir " << _modelTempDir;
     qDebug() << "Origin file path: " << _originalModelFilePath;
 
+    {
+        auto bakedFilename = _modelURL.fileName();
+        if (!hasBeenBaked) {
+            bakedFilename = bakedFilename.left(bakedFilename.lastIndexOf('.'));
+            bakedFilename += BAKED_FBX_EXTENSION;
+        }
+        _bakedModelURL = _bakedOutputDir + "/" + bakedFilename;
+    }
 }
 
 ModelBaker::~ModelBaker() {
     if (_modelTempDir.exists()) {
         if (!_modelTempDir.remove(_originalModelFilePath)) {
-            qCWarning(model_baking) << "Failed to remove temporary copy of fbx file:" << _originalModelFilePath;
+            qCWarning(model_baking) << "Failed to remove temporary copy of model file:" << _originalModelFilePath;
         }
         if (!_modelTempDir.rmdir(".")) {
             qCWarning(model_baking) << "Failed to remove temporary directory:" << _modelTempDir;
         }
     }
+}
+
+void ModelBaker::setOutputURLSuffix(const QUrl& outputURLSuffix) {
+    _outputURLSuffix = outputURLSuffix;
+}
+
+void ModelBaker::setMappingURL(const QUrl& mappingURL) {
+    _mappingURL = mappingURL;
+}
+
+void ModelBaker::setMapping(const hifi::VariantHash& mapping) {
+    _mapping = mapping;
+}
+
+QUrl ModelBaker::getFullOutputMappingURL() const {
+    QUrl appendedURL = _outputMappingURL;
+    appendedURL.setFragment(_outputURLSuffix.fragment());
+    appendedURL.setQuery(_outputURLSuffix.query());
+    appendedURL.setUserInfo(_outputURLSuffix.userInfo());
+    return appendedURL;
 }
 
 void ModelBaker::bake() {
@@ -92,19 +121,24 @@ void ModelBaker::bake() {
 
 void ModelBaker::initializeOutputDirs() {
     // Attempt to make the output folders
-    // Warn if there is an output directory using the same name
+    // Warn if there is an output directory using the same name, unless we know a parent FST baker created them already
 
     if (QDir(_bakedOutputDir).exists()) {
-        qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
+        if (_mappingURL.isEmpty()) {
+            qWarning() << "Output path" << _bakedOutputDir << "already exists. Continuing.";
+        }
     } else {
         qCDebug(model_baking) << "Creating baked output folder" << _bakedOutputDir;
         if (!QDir().mkpath(_bakedOutputDir)) {
             handleError("Failed to create baked output folder " + _bakedOutputDir);
+            return;
         }
     }
 
     if (QDir(_originalOutputDir).exists()) {
-        qWarning() << "Output path" << _originalOutputDir << "already exists. Continuing.";
+        if (_mappingURL.isEmpty()) {
+            qWarning() << "Output path" << _originalOutputDir << "already exists. Continuing.";
+        }
     } else {
         qCDebug(model_baking) << "Creating original output folder" << _originalOutputDir;
         if (!QDir().mkpath(_originalOutputDir)) {
@@ -122,7 +156,7 @@ void ModelBaker::saveSourceModel() {
         qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalModelFilePath;
 
         if (!localModelURL.exists()) {
-            //QMessageBox::warning(this, "Could not find " + _fbxURL.toString(), "");
+            //QMessageBox::warning(this, "Could not find " + _modelURL.toString(), "");
             handleError("Could not find " + _modelURL.toString());
             return;
         }
@@ -135,7 +169,7 @@ void ModelBaker::saveSourceModel() {
 
         localModelURL.copy(_originalModelFilePath);
 
-        // emit our signal to start the import of the FBX source copy
+        // emit our signal to start the import of the model source copy
         emit modelLoaded();
     } else {
         // remote file, kick off a download
@@ -214,11 +248,11 @@ void ModelBaker::bakeSourceCopy() {
             handleError("Could not recognize file type of model file " + _originalModelFilePath);
             return;
         }
-        hifi::VariantHash mapping;
-        mapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
-        hfm::Model::Pointer loadedModel = serializer->read(modelData, mapping, _modelURL);
+        hifi::VariantHash serializerMapping = _mapping;
+        serializerMapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
+        hfm::Model::Pointer loadedModel = serializer->read(modelData, serializerMapping, _modelURL);
 
-        baker::Baker baker(loadedModel, mapping);
+        baker::Baker baker(loadedModel, serializerMapping);
         auto config = baker.getConfiguration();
         // Enable compressed draco mesh generation
         config->getJobConfig("BuildDracoMesh")->setEnabled(true);
@@ -268,6 +302,32 @@ void ModelBaker::bakeSourceCopy() {
     if (shouldStop()) {
         return;
     }
+
+    // Output FST file, copying over input mappings if available
+    QString outputFSTFilename = !_mappingURL.isEmpty() ? _mappingURL.fileName() : _modelURL.fileName();
+    auto extensionStart = outputFSTFilename.indexOf(".");
+    if (extensionStart != -1) {
+        outputFSTFilename.resize(extensionStart);
+    }
+    outputFSTFilename += ".baked.fst";
+    QString outputFSTURL = _bakedOutputDir + "/" + outputFSTFilename;
+
+    auto outputMapping = _mapping;
+    outputMapping[FST_VERSION_FIELD] = FST_VERSION;
+    outputMapping[FILENAME_FIELD] = _bakedModelURL.fileName();
+    hifi::ByteArray fstOut = FSTReader::writeMapping(outputMapping);
+
+    QFile fstOutputFile { outputFSTURL };
+    if (!fstOutputFile.open(QIODevice::WriteOnly)) {
+        handleError("Failed to open file '" + outputFSTURL + "' for writing");
+        return;
+    }
+    if (fstOutputFile.write(fstOut) == -1) {
+        handleError("Failed to write to file '" + outputFSTURL + "'");
+        return;
+    }
+    _outputFiles.push_back(outputFSTURL);
+    _outputMappingURL = outputFSTURL;
 
     // check if we're already done with textures (in case we had none to re-write)
     checkIfTexturesFinished();
@@ -657,31 +717,25 @@ void ModelBaker::embedTextureMetaData() {
 }
 
 void ModelBaker::exportScene() {
-    // save the relative path to this FBX inside our passed output folder
-    auto fileName = _modelURL.fileName();
-    auto baseName = fileName.left(fileName.lastIndexOf('.'));
-    auto bakedFilename = baseName + BAKED_FBX_EXTENSION;
-
-    _bakedModelFilePath = _bakedOutputDir + "/" + bakedFilename;
-
     auto fbxData = FBXWriter::encodeFBX(_rootNode);
 
-    QFile bakedFile(_bakedModelFilePath);
+    QString bakedModelURL = _bakedModelURL.toString();
+    QFile bakedFile(bakedModelURL);
 
     if (!bakedFile.open(QIODevice::WriteOnly)) {
-        handleError("Error opening " + _bakedModelFilePath + " for writing");
+        handleError("Error opening " + bakedModelURL + " for writing");
         return;
     }
 
     bakedFile.write(fbxData);
 
-    _outputFiles.push_back(_bakedModelFilePath);
+    _outputFiles.push_back(bakedModelURL);
 
 #ifdef HIFI_DUMP_FBX
     {
         FBXToJSON fbxToJSON;
         fbxToJSON << _rootNode;
-        QFileInfo modelFile(_bakedModelFilePath);
+        QFileInfo modelFile(_bakedModelURL.toString());
         QString outFilename(modelFile.dir().absolutePath() + "/" + modelFile.completeBaseName() + "_FBX.json");
         QFile jsonFile(outFilename);
         if (jsonFile.open(QIODevice::WriteOnly)) {
@@ -691,5 +745,5 @@ void ModelBaker::exportScene() {
     }
 #endif
 
-    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << _bakedModelFilePath;
+    qCDebug(model_baking) << "Exported" << _modelURL << "with re-written paths to" << bakedModelURL;
 }

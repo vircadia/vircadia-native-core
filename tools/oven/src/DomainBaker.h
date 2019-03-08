@@ -17,7 +17,6 @@
 #include <QtCore/QUrl>
 #include <QtCore/QThread>
 
-#include "Baker.h"
 #include "ModelBaker.h"
 #include "TextureBaker.h"
 #include "JSBaker.h"

@@ -37,6 +37,17 @@
 #include "FBXToJSON.h"
 #endif
 
+FBXBaker::FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
+        const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+        ModelBaker(inputModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
+    if (hasBeenBaked) {
+        // Look for the original model file one directory higher. Perhaps this is an oven output directory.
+        QUrl originalRelativePath = QUrl("../original/" + inputModelURL.fileName().replace(BAKED_FBX_EXTENSION, FBX_EXTENSION));
+        QUrl newInputModelURL = inputModelURL.adjusted(QUrl::RemoveFilename).resolved(originalRelativePath);
+        _modelURL = newInputModelURL;
+    }
+}
+
 void FBXBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     _hfmModel = hfmModel;
     // Load the root node from the FBX file

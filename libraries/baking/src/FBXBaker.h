@@ -31,7 +31,8 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 class FBXBaker : public ModelBaker {
     Q_OBJECT
 public:
-    using ModelBaker::ModelBaker;
+    FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
+        const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
 protected:
     virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) override;
