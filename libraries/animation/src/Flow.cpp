@@ -463,6 +463,7 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
     auto flowPrefix = FLOW_JOINT_PREFIX.toUpper();
     auto simPrefix = SIM_JOINT_PREFIX.toUpper();
     std::vector<int> handsIndices;
+    _groupSettings.clear();
 
     for (int i = 0; i < skeleton->getNumJoints(); i++) {
         auto name = skeleton->getJointName(i);
