@@ -3531,6 +3531,12 @@ void MyAvatar::clearScaleRestriction() {
     _haveReceivedHeightLimitsFromDomain = false;
 }
 
+/**jsdoc
+ * A teleport target.
+ * @typedef {object} MyAvatar.GoToProperties
+ * @property {Vec3} position - The new position for the avatar, in world coordinates.
+ * @property {Quat} [orientation] - The new orientation for the avatar.
+ */
 void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     qCDebug(interfaceapp, "MyAvatar QML goToLocation");
     auto properties = propertiesVar.toMap();
@@ -3887,6 +3893,14 @@ void MyAvatar::setCollisionWithOtherAvatarsFlags() {
     _characterController.setPendingFlagsUpdateCollisionMask();
 }
 
+/**jsdoc
+ * A collision capsule is a cylinder with hemispherical ends. It is used, in particular, to approximate the extents of an 
+ * avatar.
+ * @typedef {object} MyAvatar.CollisionCapsule
+ * @property {Vec3} start - The bottom end of the cylinder, excluding the bottom hemisphere.
+ * @property {Vec3} end - The top end of the cylinder, excluding the top hemisphere.
+ * @property {number} radius - The radius of the cylinder and the hemispheres.
+ */
 void MyAvatar::updateCollisionCapsuleCache() {
     glm::vec3 start, end;
     float radius;

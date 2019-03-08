@@ -1069,13 +1069,14 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
 }
 
 /**jsdoc
+ * Details of a collision between avatars and entities.
  * @typedef {object} Collision
  * @property {ContactEventType} type - The contact type of the collision event.
- * @property {Uuid} idA - The ID of one of the entities in the collision.
- * @property {Uuid} idB - The ID of the other of the entities in the collision.
- * @property {Vec3} penetration - The amount of penetration between the two entities.
+ * @property {Uuid} idA - The ID of one of the avatars or entities in the collision.
+ * @property {Uuid} idB - The ID of the other of the avatars or entities in the collision.
+ * @property {Vec3} penetration - The amount of penetration between the two items.
  * @property {Vec3} contactPoint - The point of contact.
- * @property {Vec3} velocityChange - The change in relative velocity of the two entities, in m/s.
+ * @property {Vec3} velocityChange - The change in relative velocity of the two items, in m/s.
  */
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
