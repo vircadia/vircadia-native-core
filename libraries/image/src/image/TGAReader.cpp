@@ -24,6 +24,10 @@ QImage image::readTGA(QIODevice& content) {
         RunLengthEncodedTrueColor = 10,
         RunLengthEncodedBlackWhite = 11,
     };
+    enum class TGAOrientation : uint8_t {
+        BottomLeft = 0,
+        TopLeft = 1,
+    };
 
     struct TGAHeader {
         uint8_t idLength;
@@ -41,7 +45,8 @@ QImage image::readTGA(QIODevice& content) {
         uint8_t pixelDepth;
         struct {
             uint8_t attributeBitsPerPixel : 4;
-            uint8_t orientation : 2;
+            uint8_t reserved : 1;
+            TGAOrientation orientation : 1;
             uint8_t padding : 2;
         } imageDescriptor;
     };
@@ -80,7 +85,7 @@ QImage image::readTGA(QIODevice& content) {
         qDebug() << "Origin: " << header.xOrigin << header.yOrigin;
         qDebug() << "Size: " << header.width << header.height;
         qDebug() << "Depth: " << header.pixelDepth;
-        qDebug() << "Image desc: " << header.imageDescriptor.attributeBitsPerPixel << header.imageDescriptor.orientation;
+        qDebug() << "Image desc: " << header.imageDescriptor.attributeBitsPerPixel << (int)header.imageDescriptor.orientation;
     }
 
     if (header.xOrigin != 0 || header.yOrigin != 0) {
@@ -110,8 +115,13 @@ QImage image::readTGA(QIODevice& content) {
         }
 
         QImage image{ header.width, header.height, QImage::Format_ARGB32 };
+        char* line;
         for (int y = 0; y < header.height; ++y) {
-            char* line = (char*)image.scanLine(y);
+            if (header.imageDescriptor.orientation == TGAOrientation::BottomLeft) {
+                line = (char*)image.scanLine(header.height - y - 1);
+            } else {
+                line = (char*)image.scanLine(y);
+            }
             for (int x = 0; x < header.width; ++x) {
                 content.read(line, bytesPerPixel);
                 *(line + 3) |= alphaMask;
@@ -124,7 +134,12 @@ QImage image::readTGA(QIODevice& content) {
         QImage image{ header.width, header.height, QImage::Format_ARGB32 };
 
         for (int y = 0; y < header.height; ++y) {
-            char* line = (char*)image.scanLine(y);
+            char* line;
+            if (header.imageDescriptor.orientation == TGAOrientation::BottomLeft) {
+                line = (char*)image.scanLine(header.height - y - 1);
+            } else {
+                line = (char*)image.scanLine(y);
+            }
             int col = 0;
             while (col < header.width) {
                 constexpr char IS_REPETITION_MASK{ (char)0x80 };

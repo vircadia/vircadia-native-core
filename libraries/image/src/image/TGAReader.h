@@ -16,6 +16,7 @@
 
 namespace image {
 
+// TODO Move this into a plugin that QImageReader can use
 QImage readTGA(QIODevice& contents);
 
 }
