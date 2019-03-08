@@ -121,7 +121,7 @@ private:
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    const double THRESHOLD{ 0.98 };
+    const double THRESHOLD{ 0.9999 };
 
     QDir _imageDirectory;
 
