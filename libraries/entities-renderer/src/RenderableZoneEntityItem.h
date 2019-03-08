@@ -150,7 +150,7 @@ public:
     virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
     virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 private:
-    virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true) override { EntityItem::locationChanged(tellPhysics, tellChildren); notifyBoundChanged(); }
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
     void notifyBoundChanged();
     void notifyChangedRenderItem();

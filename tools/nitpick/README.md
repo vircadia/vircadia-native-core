@@ -47,24 +47,30 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
 ### Windows
 1.  (First time) download and install Python 3 from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/python-3.7.0-amd64.exe (also located at https://www.python.org/downloads/)
     1. Click the "add python to path" checkbox on the python installer  
-    1. After installation - add the path to python.exe to the Windows PATH environment variable.
+    1. After installation:  
+        1. Open a new terminal
+        1. Enter `python` and hit enter
+        1. Verify that python is available (the prompt will change to `>>>`)
+        1. Type `exit()` and hit enter to close python
+    1.  Install requests (a python library to download files from URLs)
+        `pip3 install requests`
 1.  (First time) download and install AWS CLI from https://hifi-qa.s3.amazonaws.com/nitpick/Windows/AWSCLI64PY3.msi (also available at https://aws.amazon.com/cli/
     1.  Open a new command prompt and run  
         `aws configure`
     1.  Enter the AWS account number
     1.  Enter the secret key
     1.  Leave region name and ouput format as default [None]
-    1.  Install the latest release of Boto3 via pip:  
+    1.  Install the latest release of Boto3 via pip (from a terminal):  
         `pip install boto3`
 
 1.  (First time) Download adb (Android Debug Bridge) from *https://dl.google.com/android/repository/platform-tools-latest-windows.zip*
     1.  Copy the downloaded file to (for example) **C:\adb** and extract in place.  
         Verify you see *adb.exe* in **C:\adb\platform-tools\\**.
     1.  After installation - add the path to adb.exe to the Windows PATH environment variable (note that it is in *adb\platform-tools*).
-1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
+1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from (change X.X.X to correct version):  
 [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Windows/nitpick-installer-vX.X.X.dmg>).* 
 ### Mac
-1.  (first time) Install brew
+1.  (First time) Install brew
     In a terminal:  
   `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`  
     Note that you will need to press RETURN again, and will then be asked for your password.
@@ -76,11 +82,13 @@ These steps assume the hifi repository has been cloned to `~/hifi`.
       `open "/Applications/Python 3.7/Install Certificates.command"`.  
 This is needed because the Mac Python supplied no longer links with the deprecated Apple-supplied system OpenSSL libraries but rather supplies a private copy of OpenSSL 1.0.2 which does not automatically access the system default root certificates.  
     1. Verify that `/usr/local/bin/python3` exists.  
-1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
     In a terminal:  
     `curl -O https://bootstrap.pypa.io/get-pip.py`  
     In a terminal:  
     `python3 get-pip.py --user`  
+    1.  Install requests (a python library to download files from URLs)  
+        `pip3 install requests`
+1.  (First time - AWS interface) Install pip with the script provided by the Python Packaging Authority:  
     1.  Use pip to install the AWS CLI.  
         `pip3 install awscli --upgrade --user`  
         This will install aws in your user.  For user XXX, aws will be located in ~/Library/Python/3.7/bin  
@@ -92,6 +100,16 @@ This is needed because the Mac Python supplied no longer links with the deprecat
     1.  Install the latest release of Boto3 via pip:  pip3 install boto3  
 1.  (First time)Install adb (the Android Debug Bridge) - in a terminal:  
     `brew cask install android-platform-tools`
+1.  (First time) Set terminal privileges
+    1.  Click on Apple icon (top left)
+    1.  Select System Preferences...
+    1.  Select Security & Privacy
+    1.  Select Accessibility
+    1.  Click on "Click the lock to make changes" and enter passsword if requested
+    1.  Set Checkbox near *Terminal* to checked.
+    1.  Click on "Click the lock to prevent furthur changes"
+    1.  Close window
+
 1.  `nitpick` is included in the High Fidelity installer but can also be downloaded from:  
 [here](<https://hifi-qa.s3.amazonaws.com/nitpick/Mac/nitpick-installer-vX.X.X.dmg>).* 
 # Usage

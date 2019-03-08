@@ -480,7 +480,7 @@ void AWSInterface::updateAWS() {
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'addTestCases.py'");
+                              "Could not create 'updateAWS.py'");
         exit(-1);
     }
 
@@ -589,6 +589,7 @@ void AWSInterface::updateAWS() {
 
     QProcess* process = new QProcess();
 
+    _busyWindow.setWindowTitle("Updating AWS");
     connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
     connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,

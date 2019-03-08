@@ -14,12 +14,14 @@ using System.Collections.Generic;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.2";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.3.1";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
     static readonly int MAXIMUM_USER_BONE_COUNT = 256;
     static readonly string EMPTY_WARNING_TEXT = "None";
+    static readonly string TEXTURES_DIRECTORY = "textures";
+    static readonly string DEFAULT_MATERIAL_NAME = "No Name";
     
     // TODO: use regex
     static readonly string[] RECOMMENDED_UNITY_VERSIONS = new string[] {
@@ -195,8 +197,17 @@ class AvatarExporter : MonoBehaviour {
         " Thumb Intermediate",
         " Thumb Proximal",
     };
+    
+    static readonly string STANDARD_SHADER = "Standard";
+    static readonly string STANDARD_ROUGHNESS_SHADER = "Standard (Roughness setup)";
+    static readonly string STANDARD_SPECULAR_SHADER = "Standard (Specular setup)";
+    static readonly string[] SUPPORTED_SHADERS = new string[] {
+        STANDARD_SHADER,
+        STANDARD_ROUGHNESS_SHADER,
+        STANDARD_SPECULAR_SHADER,
+    };
 
-    enum BoneRule {
+    enum AvatarRule {
         RecommendedUnityVersion,
         SingleRoot,
         NoDuplicateMapping,
@@ -215,14 +226,14 @@ class AvatarExporter : MonoBehaviour {
         HipsNotOnGround,
         HipsSpineChestNotCoincident,
         TotalBoneCountUnderLimit,
-        BoneRuleEnd,
+        AvatarRuleEnd,
     };
     // rules that are treated as errors and prevent exporting, otherwise rules will show as warnings
-    static readonly BoneRule[] EXPORT_BLOCKING_BONE_RULES = new BoneRule[] {
-        BoneRule.HipsMapped,
-        BoneRule.SpineMapped,
-        BoneRule.ChestMapped,
-        BoneRule.HeadMapped,
+    static readonly AvatarRule[] EXPORT_BLOCKING_AVATAR_RULES = new AvatarRule[] {
+        AvatarRule.HipsMapped,
+        AvatarRule.SpineMapped,
+        AvatarRule.ChestMapped,
+        AvatarRule.HeadMapped,
     };
     
     class UserBoneInformation {
@@ -255,15 +266,63 @@ class AvatarExporter : MonoBehaviour {
         }
     }
     
-    static Dictionary<string, UserBoneInformation> userBoneInfos = new Dictionary<string, UserBoneInformation>();
-    static Dictionary<string, string> humanoidToUserBoneMappings = new Dictionary<string, string>();
-    static BoneTreeNode userBoneTree = new BoneTreeNode();
-    static Dictionary<BoneRule, string> failedBoneRules = new Dictionary<BoneRule, string>();
+    class MaterialData {
+        public Color albedo;
+        public string albedoMap;
+        public double metallic;
+        public string metallicMap;
+        public double roughness;
+        public string roughnessMap;
+        public string normalMap;
+        public string occlusionMap;
+        public Color emissive;
+        public string emissiveMap;
+        
+        public string getJSON() {
+            string json = "{ \"materialVersion\": 1, \"materials\": { ";
+            json += "\"albedo\": [" + albedo.r + ", " + albedo.g + ", " + albedo.b + "], ";
+            if (!string.IsNullOrEmpty(albedoMap)) {
+                json += "\"albedoMap\": \"" + albedoMap + "\", ";
+            }
+            json += "\"metallic\": " + metallic + ", ";
+            if (!string.IsNullOrEmpty(metallicMap)) {
+                json += "\"metallicMap\": \"" + metallicMap + "\", ";
+            }
+            json += "\"roughness\": " + roughness + ", ";
+            if (!string.IsNullOrEmpty(roughnessMap)) {
+                json += "\"roughnessMap\": \"" + roughnessMap + "\", ";
+            }
+            if (!string.IsNullOrEmpty(normalMap)) {
+                json += "\"normalMap\": \"" + normalMap + "\", ";
+            }
+            if (!string.IsNullOrEmpty(occlusionMap)) {
+                json += "\"occlusionMap\": \"" + occlusionMap + "\", ";
+            }
+            json += "\"emissive\": [" + emissive.r + ", " + emissive.g + ", " + emissive.b + "] ";
+            if (!string.IsNullOrEmpty(emissiveMap)) {
+                json += "\", emissiveMap\": \"" + emissiveMap + "\"";
+            }
+            json += "} }";
+            return json;
+        }
+    }
     
     static string assetPath = "";
     static string assetName = "";
+    
+    static ModelImporter modelImporter;
     static HumanDescription humanDescription;
-    static Dictionary<string, string> dependencyTextures = new Dictionary<string, string>();
+
+    static Dictionary<string, UserBoneInformation> userBoneInfos = new Dictionary<string, UserBoneInformation>();
+    static Dictionary<string, string> humanoidToUserBoneMappings = new Dictionary<string, string>();
+    static BoneTreeNode userBoneTree = new BoneTreeNode();
+    static Dictionary<AvatarRule, string> failedAvatarRules = new Dictionary<AvatarRule, string>();
+    
+    static Dictionary<string, string> textureDependencies = new Dictionary<string, string>();
+    static Dictionary<string, string> materialMappings = new Dictionary<string, string>();
+    static Dictionary<string, MaterialData> materialDatas = new Dictionary<string, MaterialData>();
+    static List<string> materialAlternateStandardShader = new List<string>();
+    static Dictionary<string, string> materialUnsupportedShader = new Dictionary<string, string>();
 
     [MenuItem("High Fidelity/Export New Avatar")]
     static void ExportNewAvatar() {
@@ -280,7 +339,10 @@ class AvatarExporter : MonoBehaviour {
         EditorUtility.DisplayDialog("About", "High Fidelity, Inc.\nAvatar Exporter\nVersion " + AVATAR_EXPORTER_VERSION, "Ok");
     }
 
-    static void ExportSelectedAvatar(bool updateAvatar) {     
+    static void ExportSelectedAvatar(bool updateAvatar) {
+        // ensure everything is saved to file before exporting
+        AssetDatabase.SaveAssets();
+        
         string[] guids = Selection.assetGUIDs;
         if (guids.Length != 1) {
             if (guids.Length == 0) {
@@ -292,7 +354,7 @@ class AvatarExporter : MonoBehaviour {
         }
         assetPath = AssetDatabase.GUIDToAssetPath(Selection.assetGUIDs[0]);
         assetName = Path.GetFileNameWithoutExtension(assetPath);
-        ModelImporter modelImporter = ModelImporter.GetAtPath(assetPath) as ModelImporter;
+        modelImporter = ModelImporter.GetAtPath(assetPath) as ModelImporter;
         if (Path.GetExtension(assetPath).ToLower() != ".fbx" || modelImporter == null) {
             EditorUtility.DisplayDialog("Error", "Please select an .fbx model asset to export.", "Ok");
             return;
@@ -302,25 +364,33 @@ class AvatarExporter : MonoBehaviour {
                                                  " the Rig section of it's Inspector window.", "Ok");
             return;
         }
-
+        
         humanDescription = modelImporter.humanDescription;
-        SetUserBoneInformation();
         string textureWarnings = SetTextureDependencies();
+        SetBoneAndMaterialInformation();
         
         // check if we should be substituting a bone for a missing UpperChest mapping
         AdjustUpperChestMapping();
 
-        // format resulting bone rule failure strings
-        // consider export-blocking bone rules to be errors and show them in an error dialog,
-        // and also include any other bone rule failures plus texture warnings as warnings in the dialog
+        // format resulting avatar rule failure strings
+        // consider export-blocking avatar rules to be errors and show them in an error dialog,
+        // and also include any other avatar rule failures plus texture warnings as warnings in the dialog
         string boneErrors = "";
         string warnings = "";
-        foreach (var failedBoneRule in failedBoneRules) {
-            if (Array.IndexOf(EXPORT_BLOCKING_BONE_RULES, failedBoneRule.Key) >= 0) {
-                boneErrors += failedBoneRule.Value + "\n\n";
+        foreach (var failedAvatarRule in failedAvatarRules) {
+            if (Array.IndexOf(EXPORT_BLOCKING_AVATAR_RULES, failedAvatarRule.Key) >= 0) {
+                boneErrors += failedAvatarRule.Value + "\n\n";
             } else {
-                warnings += failedBoneRule.Value + "\n\n";
+                warnings += failedAvatarRule.Value + "\n\n";
             }           
+        }
+        foreach (string materialName in materialAlternateStandardShader) {
+            warnings += "The material " + materialName + " is not using the recommended variation of the Standard shader. " +
+                        "We recommend you change it to Standard (Roughness setup) shader for improved performance.\n\n";
+        }
+        foreach (var material in materialUnsupportedShader) {
+            warnings += "The material " + material.Key + " is using an unsupported shader " + material.Value + 
+                        ". Please change it to a Standard shader type.\n\n";
         }
         warnings += textureWarnings;
         if (!string.IsNullOrEmpty(boneErrors)) {
@@ -334,7 +404,7 @@ class AvatarExporter : MonoBehaviour {
             EditorUtility.DisplayDialog("Error", boneErrors, "Ok");
             return;
         }
-
+        
         string documentsFolder = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
         string hifiFolder = documentsFolder + "\\High Fidelity Projects";
         if (updateAvatar) { // Update Existing Avatar menu option
@@ -408,9 +478,9 @@ class AvatarExporter : MonoBehaviour {
                         modelImporter.SaveAndReimport(); 
                         
                         // redo parent names, joint mappings, and user bone positions due to the fbx change
-                        // as well as re-check the bone rules for failures
+                        // as well as re-check the avatar rules for failures
                         humanDescription = modelImporter.humanDescription;
-                        SetUserBoneInformation();
+                        SetBoneAndMaterialInformation();
                     }
                 }
             } else {
@@ -456,7 +526,7 @@ class AvatarExporter : MonoBehaviour {
                 return;
             }
             
-            // display success dialog with any bone rule warnings
+            // display success dialog with any avatar rule warnings
             string successDialog = "Avatar successfully updated!";
             if (!string.IsNullOrEmpty(warnings)) {
                 successDialog += "\n\nWarnings:\n" + warnings;
@@ -575,6 +645,27 @@ class AvatarExporter : MonoBehaviour {
                                                   jointOffset.y + ", " + jointOffset.z + ", " + jointOffset.w + ")\n");
             }
         }
+        
+        // if there is any material data to save then write out all materials in JSON material format to the materialMap field
+        if (materialDatas.Count > 0) {
+            string materialJson = "{ ";
+            foreach (var materialData in materialDatas) {
+                // if this is the only material in the mapping and it is the default name No Name mapped to No Name, 
+                // then the avatar has no embedded materials and this material should be applied to all meshes
+                string materialName = materialData.Key;
+                if (materialMappings.Count == 1 && materialName == DEFAULT_MATERIAL_NAME && 
+                    materialMappings[materialName] == DEFAULT_MATERIAL_NAME) {
+                    materialJson += "\"all\": ";
+                } else {
+                    materialJson += "\"mat::" + materialName + "\": ";
+                }
+                materialJson += materialData.Value.getJSON();
+                materialJson += ", ";
+            }
+            materialJson = materialJson.Substring(0, materialJson.LastIndexOf(", "));
+            materialJson += " }";
+            File.AppendAllText(exportFstPath, "materialMap = " + materialJson);
+        }
              
         // open File Explorer to the project directory once finished
         System.Diagnostics.Process.Start("explorer.exe", "/select," + exportFstPath);
@@ -582,10 +673,16 @@ class AvatarExporter : MonoBehaviour {
         return true;
     }
     
-    static void SetUserBoneInformation() {
+    static void SetBoneAndMaterialInformation() {
         userBoneInfos.Clear();
         humanoidToUserBoneMappings.Clear();
         userBoneTree = new BoneTreeNode();
+        
+        materialDatas.Clear();
+        materialAlternateStandardShader.Clear();
+        materialUnsupportedShader.Clear();
+        
+        SetMaterialMappings();
         
         // instantiate a game object of the user avatar to traverse the bone tree to gather  
         // bone parents and positions as well as build a bone tree, then destroy it
@@ -610,32 +707,40 @@ class AvatarExporter : MonoBehaviour {
             }
         }
         
-        // generate the list of bone rule failure strings for any bone rules that are not satisfied by this avatar
-        SetFailedBoneRules();
+        // generate the list of avatar rule failure strings for any avatar rules that are not satisfied by this avatar
+        SetFailedAvatarRules();
     }
 
     static void TraverseUserBoneTree(Transform modelBone) {
         GameObject gameObject = modelBone.gameObject;
 
         // check if this transform is a node containing mesh, light, or camera instead of a bone
-        bool mesh = gameObject.GetComponent<MeshRenderer>() != null || gameObject.GetComponent<SkinnedMeshRenderer>() != null;
+        MeshRenderer meshRenderer = gameObject.GetComponent<MeshRenderer>();
+        SkinnedMeshRenderer skinnedMeshRenderer = gameObject.GetComponent<SkinnedMeshRenderer>();
+        bool mesh = meshRenderer != null || skinnedMeshRenderer != null;
         bool light = gameObject.GetComponent<Light>() != null;
         bool camera = gameObject.GetComponent<Camera>() != null;
         
-        // if it is in fact a bone, add it to the bone tree as well as user bone infos list with position and parent name
-        if (!mesh && !light && !camera) {
+        // if this is a mesh and the model is using external materials then store its material data to be exported
+        if (mesh && modelImporter.materialLocation == ModelImporterMaterialLocation.External) {
+            Material[] materials = skinnedMeshRenderer != null ? skinnedMeshRenderer.sharedMaterials : meshRenderer.sharedMaterials;
+            StoreMaterialData(materials);
+        } else if (!light && !camera) { 
+            // if it is in fact a bone, add it to the bone tree as well as user bone infos list with position and parent name
             UserBoneInformation userBoneInfo = new UserBoneInformation();
             userBoneInfo.position = modelBone.position; // bone's absolute position
             
             string boneName = modelBone.name;
             if (modelBone.parent == null) {
                 // if no parent then this is actual root bone node of the user avatar, so consider it's parent as "root"
+                boneName = GetRootBoneName(); // ensure we use the root bone name from the skeleton list for consistency
                 userBoneTree = new BoneTreeNode(boneName); // initialize root of tree
                 userBoneInfo.parentName = "root";
                 userBoneInfo.boneTreeNode = userBoneTree;
             } else {
                 // otherwise add this bone node as a child to it's parent's children list
-                string parentName = modelBone.parent.name;
+                // if its a child of the root bone, use the root bone name from the skeleton list as the parent for consistency
+                string parentName = modelBone.parent.parent == null ? GetRootBoneName() : modelBone.parent.name;
                 BoneTreeNode boneTreeNode = new BoneTreeNode(boneName);
                 userBoneInfos[parentName].boneTreeNode.children.Add(boneTreeNode);
                 userBoneInfo.parentName = parentName;
@@ -658,7 +763,7 @@ class AvatarExporter : MonoBehaviour {
         }
         return result;
     }
-    
+
     static void AdjustUpperChestMapping() {
         if (!humanoidToUserBoneMappings.ContainsKey("UpperChest")) {
             // if parent of Neck is not Chest then map the parent to UpperChest
@@ -682,8 +787,16 @@ class AvatarExporter : MonoBehaviour {
         }
     }
     
-    static void SetFailedBoneRules() {
-        failedBoneRules.Clear();
+    static string GetRootBoneName() {
+        // the "root" bone is the first element in the human skeleton bone list
+        if (humanDescription.skeleton.Length > 0) {
+            return humanDescription.skeleton[0].name;
+        }
+        return "";
+    }
+    
+    static void SetFailedAvatarRules() {
+        failedAvatarRules.Clear();
         
         string hipsUserBone = "";
         string spineUserBone = "";
@@ -692,60 +805,60 @@ class AvatarExporter : MonoBehaviour {
         
         Vector3 hipsPosition = new Vector3();
         
-        // iterate over all bone rules in order and add any rules that fail 
-        // to the failed bone rules map with appropriate error or warning text
-        for (BoneRule boneRule = 0; boneRule < BoneRule.BoneRuleEnd; ++boneRule) { 
-            switch (boneRule) {
-                case BoneRule.RecommendedUnityVersion:
+        // iterate over all avatar rules in order and add any rules that fail 
+        // to the failed avatar rules map with appropriate error or warning text
+        for (AvatarRule avatarRule = 0; avatarRule < AvatarRule.AvatarRuleEnd; ++avatarRule) { 
+            switch (avatarRule) {
+                case AvatarRule.RecommendedUnityVersion:
                     if (Array.IndexOf(RECOMMENDED_UNITY_VERSIONS, Application.unityVersion) == -1) {
-                        failedBoneRules.Add(boneRule, "The current version of Unity is not one of the recommended Unity " +
-                                                      "versions. If you are using a version of Unity later than 2018.2.12f1, " +
-                                                      "it is recommended to apply Enforce T-Pose under the Pose dropdown " +
-                                                      "in Humanoid configuration.");
+                        failedAvatarRules.Add(avatarRule, "The current version of Unity is not one of the recommended Unity " +
+                                                          "versions. If you are using a version of Unity later than 2018.2.12f1, " +
+                                                          "it is recommended to apply Enforce T-Pose under the Pose dropdown " +
+                                                          "in Humanoid configuration.");
                     }
                     break;
-                case BoneRule.SingleRoot:
-                    // bone rule fails if the root bone node has more than one child bone
+                case AvatarRule.SingleRoot:
+                    // avatar rule fails if the root bone node has more than one child bone
                     if (userBoneTree.children.Count > 1) {
-                        failedBoneRules.Add(boneRule, "There is more than one bone at the top level of the selected avatar's " +
-                                                      "bone hierarchy. Please ensure all bones for Humanoid mappings are " +
-                                                      "under the same bone hierarchy.");
+                        failedAvatarRules.Add(avatarRule, "There is more than one bone at the top level of the selected avatar's " +
+                                                          "bone hierarchy. Please ensure all bones for Humanoid mappings are " +
+                                                          "under the same bone hierarchy.");
                     }
                     break;
-                case BoneRule.NoDuplicateMapping:
-                    // bone rule fails if any user bone is mapped to more than one Humanoid bone
+                case AvatarRule.NoDuplicateMapping:
+                    // avatar rule fails if any user bone is mapped to more than one Humanoid bone
                     foreach (var userBoneInfo in userBoneInfos) {
                         string boneName = userBoneInfo.Key;
                         int mappingCount = userBoneInfo.Value.mappingCount;
                         if (mappingCount > 1) {
                             string text = "The " + boneName + " bone is mapped to more than one bone in Humanoid.";
-                            if (failedBoneRules.ContainsKey(boneRule)) {
-                                failedBoneRules[boneRule] += "\n" + text;
+                            if (failedAvatarRules.ContainsKey(avatarRule)) {
+                                failedAvatarRules[avatarRule] += "\n" + text;
                             } else {
-                                failedBoneRules.Add(boneRule, text);
+                                failedAvatarRules.Add(avatarRule, text);
                             }
                         }
                     }
                     break;
-                case BoneRule.NoAsymmetricalLegMapping:
-                    CheckAsymmetricalMappingRule(boneRule, LEG_MAPPING_SUFFIXES, "leg");
+                case AvatarRule.NoAsymmetricalLegMapping:
+                    CheckAsymmetricalMappingRule(avatarRule, LEG_MAPPING_SUFFIXES, "leg");
                     break;
-                case BoneRule.NoAsymmetricalArmMapping:
-                    CheckAsymmetricalMappingRule(boneRule, ARM_MAPPING_SUFFIXES, "arm");
+                case AvatarRule.NoAsymmetricalArmMapping:
+                    CheckAsymmetricalMappingRule(avatarRule, ARM_MAPPING_SUFFIXES, "arm");
                     break;
-                case BoneRule.NoAsymmetricalHandMapping:
-                    CheckAsymmetricalMappingRule(boneRule, HAND_MAPPING_SUFFIXES, "hand");
+                case AvatarRule.NoAsymmetricalHandMapping:
+                    CheckAsymmetricalMappingRule(avatarRule, HAND_MAPPING_SUFFIXES, "hand");
                     break;
-                case BoneRule.HipsMapped:
-                    hipsUserBone = CheckHumanBoneMappingRule(boneRule, "Hips");
+                case AvatarRule.HipsMapped:
+                    hipsUserBone = CheckHumanBoneMappingRule(avatarRule, "Hips");
                     break;
-                case BoneRule.SpineMapped:
-                    spineUserBone = CheckHumanBoneMappingRule(boneRule, "Spine");
+                case AvatarRule.SpineMapped:
+                    spineUserBone = CheckHumanBoneMappingRule(avatarRule, "Spine");
                     break;
-                case BoneRule.SpineDescendantOfHips:
-                    CheckUserBoneDescendantOfHumanRule(boneRule, spineUserBone, "Hips");
+                case AvatarRule.SpineDescendantOfHips:
+                    CheckUserBoneDescendantOfHumanRule(avatarRule, spineUserBone, "Hips");
                     break;
-                case BoneRule.ChestMapped:
+                case AvatarRule.ChestMapped:
                     if (!humanoidToUserBoneMappings.TryGetValue("Chest", out chestUserBone)) {
                         // check to see if there is a child of Spine that we can suggest to be mapped to Chest
                         string spineChild = "";
@@ -755,54 +868,54 @@ class AvatarExporter : MonoBehaviour {
                                 spineChild = spineTreeNode.children[0].boneName;
                             }
                         }
-                        failedBoneRules.Add(boneRule, "There is no Chest bone mapped in Humanoid for the selected avatar.");
+                        failedAvatarRules.Add(avatarRule, "There is no Chest bone mapped in Humanoid for the selected avatar.");
                         // if the only found child of Spine is not yet mapped then add it as a suggestion for Chest mapping 
                         if (!string.IsNullOrEmpty(spineChild) && !userBoneInfos[spineChild].HasHumanMapping()) {
-                            failedBoneRules[boneRule] += " It is suggested that you map bone " + spineChild + 
-                                                         " to Chest in Humanoid.";
+                            failedAvatarRules[avatarRule] += " It is suggested that you map bone " + spineChild + 
+                                                             " to Chest in Humanoid.";
                         }
                     }
                     break;
-                case BoneRule.ChestDescendantOfSpine:
-                    CheckUserBoneDescendantOfHumanRule(boneRule, chestUserBone, "Spine");
+                case AvatarRule.ChestDescendantOfSpine:
+                    CheckUserBoneDescendantOfHumanRule(avatarRule, chestUserBone, "Spine");
                     break;
-                case BoneRule.NeckMapped:
-                    CheckHumanBoneMappingRule(boneRule, "Neck");
+                case AvatarRule.NeckMapped:
+                    CheckHumanBoneMappingRule(avatarRule, "Neck");
                     break;
-                case BoneRule.HeadMapped:
-                    headUserBone = CheckHumanBoneMappingRule(boneRule, "Head");
+                case AvatarRule.HeadMapped:
+                    headUserBone = CheckHumanBoneMappingRule(avatarRule, "Head");
                     break;
-                case BoneRule.HeadDescendantOfChest:
-                    CheckUserBoneDescendantOfHumanRule(boneRule, headUserBone, "Chest");
+                case AvatarRule.HeadDescendantOfChest:
+                    CheckUserBoneDescendantOfHumanRule(avatarRule, headUserBone, "Chest");
                     break;
-                case BoneRule.EyesMapped:
+                case AvatarRule.EyesMapped:
                     bool leftEyeMapped = humanoidToUserBoneMappings.ContainsKey("LeftEye");
                     bool rightEyeMapped = humanoidToUserBoneMappings.ContainsKey("RightEye");
                     if (!leftEyeMapped || !rightEyeMapped) {
                         if (leftEyeMapped && !rightEyeMapped) {
-                            failedBoneRules.Add(boneRule, "There is no RightEye bone mapped in Humanoid " + 
-                                                          "for the selected avatar.");
+                            failedAvatarRules.Add(avatarRule, "There is no RightEye bone mapped in Humanoid " + 
+                                                              "for the selected avatar.");
                         } else if (!leftEyeMapped && rightEyeMapped) {
-                            failedBoneRules.Add(boneRule, "There is no LeftEye bone mapped in Humanoid " + 
-                                                          "for the selected avatar.");
+                            failedAvatarRules.Add(avatarRule, "There is no LeftEye bone mapped in Humanoid " + 
+                                                              "for the selected avatar.");
                         } else {
-                            failedBoneRules.Add(boneRule, "There is no LeftEye or RightEye bone mapped in Humanoid " + 
-                                                          "for the selected avatar.");
+                            failedAvatarRules.Add(avatarRule, "There is no LeftEye or RightEye bone mapped in Humanoid " + 
+                                                              "for the selected avatar.");
                         }
                     }
                     break;
-                case BoneRule.HipsNotOnGround:
+                case AvatarRule.HipsNotOnGround:
                     // ensure the absolute Y position for the bone mapped to Hips (if its mapped) is at least HIPS_GROUND_MIN_Y
                     if (!string.IsNullOrEmpty(hipsUserBone)) {
                         UserBoneInformation hipsBoneInfo = userBoneInfos[hipsUserBone];
                         hipsPosition = hipsBoneInfo.position;
                         if (hipsPosition.y < HIPS_GROUND_MIN_Y) {
-                            failedBoneRules.Add(boneRule, "The bone mapped to Hips in Humanoid (" + hipsUserBone + 
-                                                          ") should not be at ground level.");
+                            failedAvatarRules.Add(avatarRule, "The bone mapped to Hips in Humanoid (" + hipsUserBone + 
+                                                              ") should not be at ground level.");
                         }
                     }
                     break;
-                case BoneRule.HipsSpineChestNotCoincident:
+                case AvatarRule.HipsSpineChestNotCoincident:
                     // ensure the bones mapped to Hips, Spine, and Chest are all not in the same position,
                     // check Hips to Spine and Spine to Chest lengths are within HIPS_SPINE_CHEST_MIN_SEPARATION
                     if (!string.IsNullOrEmpty(spineUserBone) && !string.IsNullOrEmpty(chestUserBone) && 
@@ -813,34 +926,34 @@ class AvatarExporter : MonoBehaviour {
                         Vector3 spineToChest = spineBoneInfo.position - chestBoneInfo.position;
                         if (hipsToSpine.magnitude < HIPS_SPINE_CHEST_MIN_SEPARATION && 
                             spineToChest.magnitude < HIPS_SPINE_CHEST_MIN_SEPARATION) {
-                            failedBoneRules.Add(boneRule, "The bone mapped to Hips in Humanoid (" + hipsUserBone + 
-                                                          "), the bone mapped to Spine in Humanoid (" + spineUserBone + 
-                                                          "), and the bone mapped to Chest in Humanoid (" + chestUserBone + 
-                                                          ") should not be coincidental.");
+                            failedAvatarRules.Add(avatarRule, "The bone mapped to Hips in Humanoid (" + hipsUserBone + 
+                                                              "), the bone mapped to Spine in Humanoid (" + spineUserBone + 
+                                                              "), and the bone mapped to Chest in Humanoid (" + chestUserBone + 
+                                                              ") should not be coincidental.");
                         }
                     }
                     break;
-                case BoneRule.TotalBoneCountUnderLimit:
+                case AvatarRule.TotalBoneCountUnderLimit:
                     int userBoneCount = userBoneInfos.Count;
                     if (userBoneCount > MAXIMUM_USER_BONE_COUNT) {
-                        failedBoneRules.Add(boneRule, "The total number of bones in the avatar (" + userBoneCount + 
-                                                      ") exceeds the maximum bone limit (" + MAXIMUM_USER_BONE_COUNT + ").");
+                        failedAvatarRules.Add(avatarRule, "The total number of bones in the avatar (" + userBoneCount + 
+                                                          ") exceeds the maximum bone limit (" + MAXIMUM_USER_BONE_COUNT + ").");
                     }
                     break;
             }
         }
     }
     
-    static string CheckHumanBoneMappingRule(BoneRule boneRule, string humanBoneName) {
+    static string CheckHumanBoneMappingRule(AvatarRule avatarRule, string humanBoneName) {
         string userBoneName = "";
-        // bone rule fails if bone is not mapped in Humanoid
+        // avatar rule fails if bone is not mapped in Humanoid
         if (!humanoidToUserBoneMappings.TryGetValue(humanBoneName, out userBoneName)) {
-            failedBoneRules.Add(boneRule, "There is no " + humanBoneName + " bone mapped in Humanoid for the selected avatar.");
+            failedAvatarRules.Add(avatarRule, "There is no " + humanBoneName + " bone mapped in Humanoid for the selected avatar.");
         }
         return userBoneName;
     }
     
-    static void CheckUserBoneDescendantOfHumanRule(BoneRule boneRule, string userBoneName, string descendantOfHumanName) {
+    static void CheckUserBoneDescendantOfHumanRule(AvatarRule avatarRule, string userBoneName, string descendantOfHumanName) {
         if (string.IsNullOrEmpty(userBoneName)) {
             return;
         }
@@ -867,13 +980,13 @@ class AvatarExporter : MonoBehaviour {
             }
         }
         
-        // bone rule fails if no ancestor of given user bone matched the descendant of name (no early return)
-        failedBoneRules.Add(boneRule, "The bone mapped to " + userBoneInfo.humanName + " in Humanoid (" + userBoneName + 
-                                      ") is not a child of the bone mapped to " + descendantOfHumanName + " in Humanoid (" + 
-                                      descendantOfUserBoneName + ").");
+        // avatar rule fails if no ancestor of given user bone matched the descendant of name (no early return)
+        failedAvatarRules.Add(avatarRule, "The bone mapped to " + userBoneInfo.humanName + " in Humanoid (" + userBoneName + 
+                                          ") is not a child of the bone mapped to " + descendantOfHumanName + " in Humanoid (" + 
+                                          descendantOfUserBoneName + ").");
     }
     
-    static void CheckAsymmetricalMappingRule(BoneRule boneRule, string[] mappingSuffixes, string appendage) {
+    static void CheckAsymmetricalMappingRule(AvatarRule avatarRule, string[] mappingSuffixes, string appendage) {
         int leftCount = 0;
         int rightCount = 0;
         // add Left/Right to each mapping suffix to make Humanoid mapping names, 
@@ -888,23 +1001,23 @@ class AvatarExporter : MonoBehaviour {
                 ++rightCount;
             }
         }
-        // bone rule fails if number of left appendage mappings doesn't match number of right appendage mappings 
+        // avatar rule fails if number of left appendage mappings doesn't match number of right appendage mappings 
         if (leftCount != rightCount) {
-            failedBoneRules.Add(boneRule, "The number of bones mapped in Humanoid for the left " + appendage + " (" +
-                                          leftCount + ") does not match the number of bones mapped in Humanoid for the right " +
-                                          appendage + " (" + rightCount + ").");
+            failedAvatarRules.Add(avatarRule, "The number of bones mapped in Humanoid for the left " + appendage + " (" +
+                                              leftCount + ") does not match the number of bones mapped in Humanoid for the right " +
+                                              appendage + " (" + rightCount + ").");
         }
     }
     
     static string GetTextureDirectory(string basePath) {
-        string textureDirectory = Path.GetDirectoryName(basePath) + "\\textures";
+        string textureDirectory = Path.GetDirectoryName(basePath) + "\\" + TEXTURES_DIRECTORY;
         textureDirectory = textureDirectory.Replace("\\\\", "\\");
         return textureDirectory;
     }
-    
+
     static string SetTextureDependencies() {
         string textureWarnings = "";
-        dependencyTextures.Clear();
+        textureDependencies.Clear();
         
         // build the list of all local asset paths for textures that Unity considers dependencies of the model
         // for any textures that have duplicate names, return a string of duplicate name warnings
@@ -913,11 +1026,11 @@ class AvatarExporter : MonoBehaviour {
             UnityEngine.Object textureObject = AssetDatabase.LoadAssetAtPath(dependencyPath, typeof(Texture2D));
             if (textureObject != null) {
                 string textureName = Path.GetFileName(dependencyPath);
-                if (dependencyTextures.ContainsKey(textureName)) {
+                if (textureDependencies.ContainsKey(textureName)) {
                     textureWarnings += "There is more than one texture with the name " + textureName + 
                                        " referenced in the selected avatar.\n\n";
                 } else {
-                    dependencyTextures.Add(textureName, dependencyPath);
+                    textureDependencies.Add(textureName, dependencyPath);
                 }
             }
         }
@@ -927,7 +1040,7 @@ class AvatarExporter : MonoBehaviour {
     
     static bool CopyExternalTextures(string texturesDirectory) {
         // copy the found dependency textures from the local asset folder to the textures folder in the target export project
-        foreach (var texture in dependencyTextures) {
+        foreach (var texture in textureDependencies) {
             string targetPath = texturesDirectory + "\\" + texture.Key;
             try {
                 File.Copy(texture.Value, targetPath, true);
@@ -938,6 +1051,88 @@ class AvatarExporter : MonoBehaviour {
             }
         }
         return true;
+    }
+    
+    static void StoreMaterialData(Material[] materials) {
+        // store each material's info in the materialDatas list to be written out later to the FST if it is a supported shader
+        foreach (Material material in materials) {          
+            string materialName = material.name;
+            string shaderName = material.shader.name;
+            
+            // don't store any material data for unsupported shader types
+            if (Array.IndexOf(SUPPORTED_SHADERS, shaderName) == -1) {
+                if (!materialUnsupportedShader.ContainsKey(materialName)) {
+                    materialUnsupportedShader.Add(materialName, shaderName);
+                }
+                continue;
+            }
+
+            MaterialData materialData = new MaterialData();
+            materialData.albedo = material.GetColor("_Color");
+            materialData.albedoMap = GetMaterialTexture(material, "_MainTex");
+            materialData.roughness = material.GetFloat("_Glossiness");
+            materialData.roughnessMap = GetMaterialTexture(material, "_SpecGlossMap");
+            materialData.normalMap = GetMaterialTexture(material, "_BumpMap");
+            materialData.occlusionMap = GetMaterialTexture(material, "_OcclusionMap");
+            materialData.emissive = material.GetColor("_EmissionColor");
+            materialData.emissiveMap = GetMaterialTexture(material, "_EmissionMap");
+            
+            // for specular setups we will treat the metallic value as the average of the specular RGB intensities
+            if (shaderName == STANDARD_SPECULAR_SHADER) {
+                Color specular = material.GetColor("_SpecColor");
+                materialData.metallic = (specular.r + specular.g + specular.b) / 3.0f;
+            } else {
+                materialData.metallic = material.GetFloat("_Metallic");
+                materialData.metallicMap = GetMaterialTexture(material, "_MetallicGlossMap");
+            }
+            
+            // for non-roughness Standard shaders give a warning that is not the recommended Standard shader, 
+            // and invert smoothness for roughness
+            if (shaderName == STANDARD_SHADER || shaderName == STANDARD_SPECULAR_SHADER) {
+                if (!materialAlternateStandardShader.Contains(materialName)) {
+                    materialAlternateStandardShader.Add(materialName);
+                }
+                materialData.roughness = 1.0f - materialData.roughness;
+            }
+
+            // remap the material name from the Unity material name to the fbx material name that it overrides
+            if (materialMappings.ContainsKey(materialName)) {
+                materialName = materialMappings[materialName];
+            }
+            if (!materialDatas.ContainsKey(materialName)) {
+                materialDatas.Add(materialName, materialData);
+            }
+        }
+    }
+    
+    static string GetMaterialTexture(Material material, string textureProperty) {
+        // ensure the texture property name exists in this material and return its texture directory path if so
+        string[] textureNames = material.GetTexturePropertyNames();
+        if (Array.IndexOf(textureNames, textureProperty) >= 0) {
+            Texture texture = material.GetTexture(textureProperty);
+            if (texture) {
+                foreach (var textureDependency in textureDependencies) {
+                    string textureFile = textureDependency.Key;
+                    if (Path.GetFileNameWithoutExtension(textureFile) == texture.name) {
+                        return TEXTURES_DIRECTORY + "/" + textureFile;
+                    }
+                }
+            }
+        }
+        return "";
+    }
+    
+    static void SetMaterialMappings() {
+        materialMappings.Clear();
+        
+        // store the mappings from fbx material name to the Unity material name overriding it using external fbx mapping
+        var objectMap = modelImporter.GetExternalObjectMap();
+        foreach (var mapping in objectMap) {
+            var material = mapping.Value as UnityEngine.Material;
+            if (material != null) {
+                materialMappings.Add(material.name, mapping.Key.name);
+            }
+        }
     }
 }
 

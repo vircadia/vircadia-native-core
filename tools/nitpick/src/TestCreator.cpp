@@ -1,5 +1,5 @@
 //
-//  Test.cpp
+//  TestCreator.cpp
 //
 //  Created by Nissim Hadar on 2 Nov 2017.
 //  Copyright 2013 High Fidelity, Inc.
@@ -7,7 +7,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "Test.h"
+#include "TestCreator.h"
 
 #include <assert.h>
 #include <QtCore/QTextStream>
@@ -24,7 +24,9 @@ extern Nitpick* nitpick;
 
 #include <math.h>
 
-Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) : _awsInterface(NULL) {
+TestCreator::TestCreator(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) : _awsInterface(NULL) {
+    _downloader = new Downloader();
+
     _progressBar = progressBar;
     _checkBoxInteractiveMode = checkBoxInteractiveMode;
 
@@ -36,7 +38,7 @@ Test::Test(QProgressBar* progressBar, QCheckBox* checkBoxInteractiveMode) : _aws
     }
 }
 
-bool Test::createTestResultsFolderPath(const QString& directory) {
+bool TestCreator::createTestResultsFolderPath(const QString& directory) {
     QDateTime now = QDateTime::currentDateTime();
     _testResultsFolderPath =  directory + "/" + TEST_RESULTS_FOLDER + "--" + now.toString(DATETIME_FORMAT) + "(local)[" + QHostInfo::localHostName() + "]";
     QDir testResultsFolder(_testResultsFolderPath);
@@ -45,7 +47,7 @@ bool Test::createTestResultsFolderPath(const QString& directory) {
     return QDir().mkdir(_testResultsFolderPath);
 }
 
-QString Test::zipAndDeleteTestResultsFolder() {
+QString TestCreator::zipAndDeleteTestResultsFolder() {
     QString zippedResultsFileName { _testResultsFolderPath + ".zip" };
     QFileInfo fileInfo(zippedResultsFileName);
     if (fileInfo.exists()) {
@@ -65,7 +67,7 @@ QString Test::zipAndDeleteTestResultsFolder() {
     return zippedResultsFileName;
 }
 
-int Test::compareImageLists() {
+int TestCreator::compareImageLists() {
     _progressBar->setMinimum(0);
     _progressBar->setMaximum(_expectedImagesFullFilenames.length() - 1);
     _progressBar->setValue(0);
@@ -136,7 +138,7 @@ int Test::compareImageLists() {
     return numberOfFailures;
 }
 
-int Test::checkTextResults() {
+int TestCreator::checkTextResults() {
     // Create lists of failed and passed tests
     QStringList nameFilterFailed;
     nameFilterFailed << "*.failed.txt";
@@ -146,7 +148,7 @@ int Test::checkTextResults() {
     nameFilterPassed << "*.passed.txt";
     QStringList testsPassed = QDir(_snapshotDirectory).entryList(nameFilterPassed, QDir::Files, QDir::Name);
 
-    // Add results to Test Results folder
+    // Add results to TestCreator Results folder
     foreach(QString currentFilename, testsFailed) {
         appendTestResultsToFile(currentFilename, true);
     }
@@ -158,7 +160,7 @@ int Test::checkTextResults() {
     return testsFailed.length();
 }
 
-void Test::appendTestResultsToFile(const TestResult& testResult, const QPixmap& comparisonImage, const QPixmap& ssimResultsImage, bool hasFailed) {
+void TestCreator::appendTestResultsToFile(const TestResult& testResult, const QPixmap& comparisonImage, const QPixmap& ssimResultsImage, bool hasFailed) {
     // Critical error if Test Results folder does not exist
     if (!QDir().exists(_testResultsFolderPath)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Folder " + _testResultsFolderPath + " not found");
@@ -193,7 +195,7 @@ void Test::appendTestResultsToFile(const TestResult& testResult, const QPixmap& 
 
     // Create text file describing the failure
     QTextStream stream(&descriptionFile);
-    stream << "Test in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
+    stream << "TestCreator in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
     stream << "Expected image was    " << testResult._expectedImageFilename << endl;
     stream << "Actual image was      " << testResult._actualImageFilename << endl;
     stream << "Similarity index was  " << testResult._error << endl;
@@ -224,7 +226,7 @@ void Test::appendTestResultsToFile(const TestResult& testResult, const QPixmap& 
     ssimResultsImage.save(resultFolderPath + "/" + "SSIM Image.png");
 }
 
-void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) {
+void::TestCreator::appendTestResultsToFile(QString testResultFilename, bool hasFailed) {
     // The test name includes everything until the penultimate period
     QString testNameTemp = testResultFilename.left(testResultFilename.lastIndexOf('.'));
     QString testName = testResultFilename.left(testNameTemp.lastIndexOf('.'));
@@ -251,7 +253,7 @@ void::Test::appendTestResultsToFile(QString testResultFilename, bool hasFailed) 
     }
 }
 
-void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
+void TestCreator::startTestsEvaluation(const bool isRunningFromCommandLine,
                                 const bool isRunningInAutomaticTestRun, 
                                 const QString& snapshotDirectory,
                                 const QString& branchFromCommandLine,
@@ -324,10 +326,11 @@ void Test::startTestsEvaluation(const bool isRunningFromCommandLine,
         }
     }
 
-    nitpick->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
+    _downloader->downloadFiles(expectedImagesURLs, _snapshotDirectory, _expectedImagesFilenames, (void *)this);
+    finishTestsEvaluation();
 }
 
-void Test::finishTestsEvaluation() {
+void TestCreator::finishTestsEvaluation() {
     // First - compare the pairs of images
     int numberOfFailures = compareImageLists();
  
@@ -337,8 +340,10 @@ void Test::finishTestsEvaluation() {
     if (!_isRunningFromCommandLine && !_isRunningInAutomaticTestRun) {
         if (numberOfFailures == 0) {
             QMessageBox::information(0, "Success", "All images are as expected");
+        } else if (numberOfFailures == 1) {
+            QMessageBox::information(0, "Failure", "One image is not as expected");
         } else {
-            QMessageBox::information(0, "Failure", "One or more images are not as expected");
+            QMessageBox::information(0, "Failure", QString::number(numberOfFailures) + " images are not as expected");
         }
     }
 
@@ -353,7 +358,7 @@ void Test::finishTestsEvaluation() {
     }
 }
 
-bool Test::isAValidDirectory(const QString& pathname) {
+bool TestCreator::isAValidDirectory(const QString& pathname) {
     // Only process directories
     QDir dir(pathname);
     if (!dir.exists()) {
@@ -368,7 +373,7 @@ bool Test::isAValidDirectory(const QString& pathname) {
     return true;
 }
 
-QString Test::extractPathFromTestsDown(const QString& fullPath) {
+QString TestCreator::extractPathFromTestsDown(const QString& fullPath) {
     // `fullPath` includes the full path to the test.  We need the portion below (and including) `tests`
     QStringList pathParts = fullPath.split('/');
     int i{ 0 };
@@ -389,14 +394,14 @@ QString Test::extractPathFromTestsDown(const QString& fullPath) {
     return partialPath;
 }
 
-void Test::includeTest(QTextStream& textStream, const QString& testPathname) {
+void TestCreator::includeTest(QTextStream& textStream, const QString& testPathname) {
     QString partialPath = extractPathFromTestsDown(testPathname);
     QString partialPathWithoutTests = partialPath.right(partialPath.length() - 7);
 
     textStream << "Script.include(testsRootPath + \"" << partialPathWithoutTests + "\");" << endl;
 }
 
-void Test::createTests(const QString& clientProfile) {
+void TestCreator::createTests(const QString& clientProfile) {
     // Rename files sequentially, as ExpectedResult_00000.png, ExpectedResult_00001.png and so on
     // Any existing expected result images will be deleted
     QString previousSelection = _snapshotDirectory;
@@ -474,7 +479,7 @@ void Test::createTests(const QString& clientProfile) {
     QMessageBox::information(0, "Success", "Test images have been created");
 }
 
-ExtractedText Test::getTestScriptLines(QString testFileName) {
+ExtractedText TestCreator::getTestScriptLines(QString testFileName) {
     ExtractedText relevantTextFromTest;
 
     QFile inputFile(testFileName);
@@ -539,7 +544,7 @@ ExtractedText Test::getTestScriptLines(QString testFileName) {
     return relevantTextFromTest;
 }
 
-bool Test::createFileSetup() {
+bool TestCreator::createFileSetup() {
     // Folder selection
     QString previousSelection = _testDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -559,7 +564,7 @@ bool Test::createFileSetup() {
     return true;
 }
 
-bool Test::createAllFilesSetup() {
+bool TestCreator::createAllFilesSetup() {
     // Select folder to start recursing from
     QString previousSelection = _testsRootDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
@@ -581,7 +586,7 @@ bool Test::createAllFilesSetup() {
 
 // Create an MD file for a user-selected test.
 // The folder selected must contain a script named "test.js", the file produced is named "test.md"
-void Test::createMDFile() {
+void TestCreator::createMDFile() {
     if (!createFileSetup()) {
         return;
     } 
@@ -591,7 +596,7 @@ void Test::createMDFile() {
     }
 }
 
-void Test::createAllMDFiles() {
+void TestCreator::createAllMDFiles() {
     if (!createAllFilesSetup()) {
         return;
     }
@@ -623,7 +628,7 @@ void Test::createAllMDFiles() {
     QMessageBox::information(0, "Success", "MD files have been created");
 }
 
-bool Test::createMDFile(const QString& directory) {
+bool TestCreator::createMDFile(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
@@ -643,7 +648,7 @@ bool Test::createMDFile(const QString& directory) {
 
     QTextStream stream(&mdFile);
 
-    //Test title
+    //TestCreator title
     QString testName = testScriptLines.title;
     stream << "# " << testName << "\n";
 
@@ -675,7 +680,7 @@ bool Test::createMDFile(const QString& directory) {
     return true;
 }
 
-void Test::createTestAutoScript() {
+void TestCreator::createTestAutoScript() {
     if (!createFileSetup()) {
         return;
     } 
@@ -685,7 +690,7 @@ void Test::createTestAutoScript() {
     }
 }
 
-void Test::createAllTestAutoScripts() {
+void TestCreator::createAllTestAutoScripts() {
     if (!createAllFilesSetup()) {
         return;
     }
@@ -717,7 +722,7 @@ void Test::createAllTestAutoScripts() {
     QMessageBox::information(0, "Success", "All 'testAuto.js' scripts have been created");
 }
 
-bool Test::createTestAutoScript(const QString& directory) {
+bool TestCreator::createTestAutoScript(const QString& directory) {
     // Verify folder contains test.js file
     QString testFileName(directory + "/" + TEST_FILENAME);
     QFileInfo testFileInfo(testFileName);
@@ -748,7 +753,7 @@ bool Test::createTestAutoScript(const QString& directory) {
 
 // Creates a single script in a user-selected folder.
 // This script will run all text.js scripts in every applicable sub-folder
-void Test::createRecursiveScript() {
+void TestCreator::createRecursiveScript() {
     if (!createFileSetup()) {
         return;
     }
@@ -758,7 +763,7 @@ void Test::createRecursiveScript() {
 }
 
 // This method creates a `testRecursive.js` script in every sub-folder.
-void Test::createAllRecursiveScripts() {
+void TestCreator::createAllRecursiveScripts() {
     if (!createAllFilesSetup()) {
         return;
     }
@@ -768,7 +773,7 @@ void Test::createAllRecursiveScripts() {
     QMessageBox::information(0, "Success", "Scripts have been created");
 }
 
-void Test::createAllRecursiveScripts(const QString& directory) {
+void TestCreator::createAllRecursiveScripts(const QString& directory) {
     QDirIterator it(directory, QDirIterator::Subdirectories);
 
     while (it.hasNext()) {
@@ -780,7 +785,7 @@ void Test::createAllRecursiveScripts(const QString& directory) {
     }
 }
 
-void Test::createRecursiveScript(const QString& directory, bool interactiveMode) {
+void TestCreator::createRecursiveScript(const QString& directory, bool interactiveMode) {
     // If folder contains a test, then we are at a leaf
     const QString testPathname{ directory + "/" + TEST_FILENAME };
     if (QFileInfo(testPathname).exists()) {
@@ -846,7 +851,10 @@ void Test::createRecursiveScript(const QString& directory, bool interactiveMode)
     textStream << "   nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
     textStream << "   testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
     textStream << "   nitpick.enableRecursive();" << endl;
-    textStream << "   nitpick.enableAuto();" << endl;
+    textStream << "   nitpick.enableAuto();" << endl << endl;
+    textStream << "   if (typeof Test !== 'undefined') {" << endl;
+    textStream << "       Test.wait(10000);" << endl;
+    textStream << "   }" << endl;
     textStream << "} else {" << endl;
     textStream << "   depth++" << endl;
     textStream << "}" << endl << endl;
@@ -866,7 +874,7 @@ void Test::createRecursiveScript(const QString& directory, bool interactiveMode)
     recursiveTestsFile.close();
 }
 
-void Test::createTestsOutline() {
+void TestCreator::createTestsOutline() {
     QString previousSelection = _testDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
     if (!parent.isNull() && parent.right(1) != "/") {
@@ -892,7 +900,7 @@ void Test::createTestsOutline() {
 
     QTextStream stream(&mdFile);
 
-    //Test title
+    //TestCreator title
     stream << "# Outline of all tests\n";
     stream << "Directories with an appended (*) have an automatic test\n\n";
 
@@ -950,10 +958,10 @@ void Test::createTestsOutline() {
 
     mdFile.close();
 
-    QMessageBox::information(0, "Success", "Test outline file " + testsOutlineFilename + " has been created");
+    QMessageBox::information(0, "Success", "TestCreator outline file " + testsOutlineFilename + " has been created");
 }
 
-void Test::createTestRailTestCases() {
+void TestCreator::createTestRailTestCases() {
     QString previousSelection = _testDirectory;
     QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
     if (!parent.isNull() && parent.right(1) != "/") {
@@ -990,7 +998,7 @@ void Test::createTestRailTestCases() {
     }
 }
 
-void Test::createTestRailRun() {
+void TestCreator::createTestRailRun() {
     QString outputDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select a folder to store generated files in",
                                                                 nullptr, QFileDialog::ShowDirsOnly);
 
@@ -1006,9 +1014,9 @@ void Test::createTestRailRun() {
     _testRailInterface->createTestRailRun(outputDirectory);
 }
 
-void Test::updateTestRailRunResult() {
+void TestCreator::updateTestRailRunResult() {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
-                                                       "Zipped Test Results (*.zip)");   
+                                                       "Zipped TestCreator Results (*.zip)");   
     if (testResults.isNull()) {
         return;
     }
@@ -1027,7 +1035,7 @@ void Test::updateTestRailRunResult() {
     _testRailInterface->updateTestRailRunResults(testResults, tempDirectory);
 }
 
-QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
+QStringList TestCreator::createListOfAll_imagesInDirectory(const QString& imageFormat, const QString& pathToImageDirectory) {
     _imageDirectory = QDir(pathToImageDirectory);
     QStringList nameFilters;
     nameFilters << "*." + imageFormat;
@@ -1039,7 +1047,7 @@ QStringList Test::createListOfAll_imagesInDirectory(const QString& imageFormat, 
 //      Filename (i.e. without extension) contains tests (this is based on all test scripts being within the tests folder)
 //      Last 5 characters in filename are digits (after removing the extension)
 //      Extension is 'imageFormat'
-bool Test::isInSnapshotFilenameFormat(const QString& imageFormat, const QString& filename) {
+bool TestCreator::isInSnapshotFilenameFormat(const QString& imageFormat, const QString& filename) {
     bool contains_tests = filename.contains("tests" + PATH_SEPARATOR);
 
     QString filenameWithoutExtension = filename.left(filename.lastIndexOf('.'));
@@ -1054,7 +1062,7 @@ bool Test::isInSnapshotFilenameFormat(const QString& imageFormat, const QString&
 // For a file named "D_GitHub_hifi-tests_tests_content_entity_zone_create_0.jpg", the test directory is
 // D:/GitHub/hifi-tests/tests/content/entity/zone/create
 // This method assumes the filename is in the correct format
-QString Test::getExpectedImageDestinationDirectory(const QString& filename) {
+QString TestCreator::getExpectedImageDestinationDirectory(const QString& filename) {
     QString filenameWithoutExtension = filename.left(filename.length() - 4);
     QStringList filenameParts = filenameWithoutExtension.split(PATH_SEPARATOR);
 
@@ -1071,7 +1079,7 @@ QString Test::getExpectedImageDestinationDirectory(const QString& filename) {
 // is ...tests/content/entity/zone/create
 // This is used to create the full URL
 // This method assumes the filename is in the correct format
-QString Test::getExpectedImagePartialSourceDirectory(const QString& filename) {
+QString TestCreator::getExpectedImagePartialSourceDirectory(const QString& filename) {
     QString filenameWithoutExtension = filename.left(filename.length() - 4);
     QStringList filenameParts = filenameWithoutExtension.split(PATH_SEPARATOR);
 
@@ -1096,18 +1104,18 @@ QString Test::getExpectedImagePartialSourceDirectory(const QString& filename) {
     return result;
 }
 
-void Test::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
+void TestCreator::setTestRailCreateMode(TestRailCreateMode testRailCreateMode) {
     _testRailCreateMode = testRailCreateMode;
 }
 
-void Test::createWebPage(
+void TestCreator::createWebPage(
     QCheckBox* updateAWSCheckBox, 
     QRadioButton* diffImageRadioButton,
     QRadioButton* ssimImageRadionButton,
     QLineEdit* urlLineEdit
 ) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
-                                                       "Zipped Test Results (TestResults--*.zip)");
+                                                       "Zipped TestCreator Results (TestResults--*.zip)");
     if (testResults.isNull()) {
         return;
     }
