@@ -12,9 +12,11 @@
 #include <hfm/HFM.h>
 #include "Engine.h"
 
+#include "BakerTypes.h"
+
 class ParseFlowDataTask {
 public:
-    using Input = QVariantHash;
+    using Input = baker::GeometryMappingPair;
     using Output = FlowData;
     using JobModel = baker::Job::ModelIO<ParseFlowDataTask, Input, Output>;
 
