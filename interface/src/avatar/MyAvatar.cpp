@@ -5358,6 +5358,24 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
     }
 }
 
+/**jsdoc
+ * Physics options to use in the flow simulation of a joint.
+ * @typedef {object} MyAvatar.FlowPhysicsOptions
+ * @property {boolean} [active=true] - <code>true</code> to enable flow on the joint, <code>false</code> if it isn't.,
+ * @property {number} [radius=0.01] - The thickness of segments and knots. (Needed for collisions.)
+ * @property {number} [gravity=-0.0096] - Y-value of the gravity vector.
+ * @property {number} [inertia=0.8] - Rotational inertia multiplier.
+ * @property {number} [damping=0.85] - The amount of damping on joint oscillation.
+ * @property {number} [stiffness=0.0] - How stiff each thread is.
+ * @property {number} [delta=0.55] - Delta time for every integration step.
+ */
+/**jsdoc
+ * Collision options to use in the flow simulation of a joint.
+ * @typedef {object} MyAvatar.FlowCollisionsOptions
+ * @property {string} [type="sphere"] - Currently, only <code>"sphere"</code> is supported.
+ * @property {number} [radius=0.05] - Collision sphere radius.
+ * @property {number} [offset=Vec3.ZERO] - Offset of the collision sphere from the joint.
+ */
 void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
     if (_skeletonModel->isLoaded()) {
         _skeletonModel->getRig().initFlow(isActive);
