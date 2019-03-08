@@ -50,9 +50,10 @@ QImage image::readTGA(QIODevice& content) {
     };
 
     constexpr bool WANT_DEBUG { false };
-    constexpr size_t TGA_HEADER_SIZE_BYTES { 18 };
+    constexpr qint64 TGA_HEADER_SIZE_BYTES { 18 };
+
+    // BottomLeft: 0, TopLeft: 1
     constexpr uint8_t ORIENTATION_BOTTOM_LEFT { 0 };
-    constexpr uint8_t ORIENTATION_TOP_LEFT { 1 };
 
     TGAHeader header;
 
