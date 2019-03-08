@@ -518,7 +518,7 @@ public:
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
-    virtual void locationChanged(bool tellPhysics = true) override;
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true) override;
 
     virtual bool getScalesWithParent() const override;
 

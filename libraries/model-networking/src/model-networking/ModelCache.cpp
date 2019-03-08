@@ -396,7 +396,11 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
+    if (resource->getURL().path().toLower().endsWith(".fst")) {
+        return QSharedPointer<Resource>(new GeometryMappingResource(*resource.staticCast<GeometryMappingResource>()), &Resource::deleter);
+    } else {
+        return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
+    }
 }
 
 GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,

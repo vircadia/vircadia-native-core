@@ -928,9 +928,9 @@ void RenderableModelEntityItem::setJointTranslationsSet(const QVector<bool>& tra
     _needsJointSimulation = true;
 }
 
-void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
+void RenderableModelEntityItem::locationChanged(bool tellPhysics, bool tellChildren) {
     DETAILED_PERFORMANCE_TIMER("locationChanged");
-    EntityItem::locationChanged(tellPhysics);
+    EntityItem::locationChanged(tellPhysics, tellChildren);
     auto model = getModel();
     if (model && model->isLoaded()) {
         model->updateRenderItems();
@@ -1032,9 +1032,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     });
 
     if (changed) {
-        forEachChild([&](SpatiallyNestablePointer object) {
-            object->locationChanged(false);
-        });
+        locationChanged(false, true);
     }
 }
 
