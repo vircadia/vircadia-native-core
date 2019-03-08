@@ -168,12 +168,23 @@ void AvatarDoctor::startDiagnosing() {
                 _errors.push_back({ "Asymmetrical leg bones.", DEFAULT_URL });
             }
 
+            // Multiple skeleton root joints checkup
+            int skeletonRootJoints = 0;
+            foreach(const HFMJoint& joint, avatarModel.joints) {
+                if (joint.parentIndex == -1 && joint.isSkeletonJoint) {
+                    skeletonRootJoints++;
+                }
+            }
+
+            if (skeletonRootJoints > 1) {
+                _errors.push_back({ "Multiple root joints found.", DEFAULT_URL });
+            }
+
             const auto rig = new Rig();
             rig->reset(avatarModel);
             const float eyeHeight = rig->getUnscaledEyeHeight();
             const float ratio = eyeHeight / DEFAULT_AVATAR_HEIGHT;
             const float avatarHeight = eyeHeight + ratio * DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
-            qDebug() << "avatarHeight  = " << avatarHeight;
 
             // SCALE
             const float RECOMMENDED_MIN_HEIGHT = DEFAULT_AVATAR_HEIGHT * 0.25f;
