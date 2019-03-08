@@ -5333,7 +5333,6 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
 }
 
 void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
-    QVariantList result;
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "useFlow",
             Q_ARG(bool, isActive),
