@@ -1198,6 +1198,8 @@ public:
     */
     Q_INVOKABLE void useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
 
+    Q_INVOKABLE QVariantMap getFlowData();
+
 public slots:
 
     /**jsdoc

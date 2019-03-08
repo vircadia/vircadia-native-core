@@ -149,6 +149,7 @@ public:
     void setCollisionSettingsByJoint(int jointIndex, const FlowCollisionSettings& settings);
     void setActive(bool active) { _active = active; }
     bool getActive() const { return _active; }
+    const std::vector<FlowCollisionSphere>& getCollisions() const { return _selfCollisions; }
 protected:
     std::vector<FlowCollisionSphere> _selfCollisions;
     std::vector<FlowCollisionSphere> _othersCollisions;
@@ -293,6 +294,7 @@ public:
     void setOthersCollision(const QUuid& otherId, int jointIndex, const glm::vec3& position);
     FlowCollisionSystem& getCollisionSystem() { return _collisionSystem; }
     void setPhysicsSettingsForGroup(const QString& group, const FlowPhysicsSettings& settings);
+    const std::map<QString, FlowPhysicsSettings>& getGroupSettings() const { return _groupSettings; }
     void cleanUp();
 
 signals:
@@ -309,6 +311,7 @@ private:
     void setJoints(AnimPoseVec& relativePoses, const std::vector<bool>& overrideFlags);
     void updateJoints(AnimPoseVec& relativePoses, AnimPoseVec& absolutePoses);
     bool updateRootFramePositions(const AnimPoseVec& absolutePoses, size_t threadIndex);
+    void updateGroupSettings(const QString& group, const FlowPhysicsSettings& settings);
     void setScale(float scale);
     
     float _scale { 1.0f };
@@ -316,6 +319,7 @@ private:
     glm::vec3 _entityPosition;
     glm::quat _entityRotation;
     std::map<int, FlowJoint> _flowJointData;
+    std::map<QString, FlowPhysicsSettings> _groupSettings;
     std::vector<FlowThread> _jointThreads;
     std::vector<QString> _flowJointKeywords;
     FlowCollisionSystem _collisionSystem;

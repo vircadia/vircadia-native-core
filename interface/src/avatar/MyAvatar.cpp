@@ -5331,9 +5331,13 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
 
 void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
     if (_skeletonModel->isLoaded()) {
-        _skeletonModel->getRig().initFlow(isActive);
         auto &flow = _skeletonModel->getRig().getFlow();
         auto &collisionSystem = flow.getCollisionSystem();
+        if (!flow.isInitialized() && isActive) {
+            _skeletonModel->getRig().initFlow(true);
+        } else {
+            flow.setActive(isActive);
+        }
         collisionSystem.setActive(isCollidable);
         auto physicsGroups = physicsConfig.keys();
         if (physicsGroups.size() > 0) {
@@ -5382,6 +5386,57 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
             }
         }
     }
+}
+
+QVariantMap MyAvatar::getFlowData() {
+    QVariantMap flowData;
+    if (_skeletonModel->isLoaded()) {
+        auto jointNames = getJointNames();
+        auto &flow = _skeletonModel->getRig().getFlow();
+        auto &collisionSystem = flow.getCollisionSystem();
+        bool initialized = flow.isInitialized();
+        flowData.insert("initialized", initialized);
+        flowData.insert("active", flow.getActive());
+        flowData.insert("colliding", collisionSystem.getActive());
+        QVariantMap physicsData;
+        QVariantMap collisionsData;
+        QVariantMap threadData;
+        auto &groups = flow.getGroupSettings();
+        for (auto &group : groups) {
+            QVariantMap settingsObject;
+            QString groupName = group.first;
+            FlowPhysicsSettings groupSettings = group.second;
+            settingsObject.insert("active", groupSettings._active);
+            settingsObject.insert("damping", groupSettings._damping);
+            settingsObject.insert("delta", groupSettings._delta);
+            settingsObject.insert("gravity", groupSettings._gravity);
+            settingsObject.insert("inertia", groupSettings._inertia);
+            settingsObject.insert("radius", groupSettings._radius);
+            settingsObject.insert("stiffness", groupSettings._stiffness);
+            physicsData.insert(groupName, settingsObject);
+        }
+        auto &collisions = collisionSystem.getCollisions();
+        for (auto &collision : collisions) {
+            QVariantMap collisionObject;
+            collisionObject.insert("offset", vec3toVariant(collision._offset));
+            collisionObject.insert("radius", collision._radius);
+            collisionObject.insert("jointIndex", collision._jointIndex);
+            QString jointName = jointNames.size() > collision._jointIndex ? jointNames[collision._jointIndex] : "unknown";
+            collisionsData.insert(jointName, collisionObject);
+        }
+        int count = 0;
+        for (auto &thread : flow.getThreads()) {
+            QVariantList indices;
+            for (int index : thread._joints) {
+                indices.append(index);
+            }
+            threadData.insert(thread._jointsPointer->at(thread._joints[0]).getName(), indices);
+        }
+        flowData.insert("physics", physicsData);
+        flowData.insert("collisions", collisionsData);
+        flowData.insert("threads", threadData);
+    }
+    return flowData;
 }
 
 void MyAvatar::sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const {
