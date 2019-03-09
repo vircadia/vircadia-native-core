@@ -16,14 +16,17 @@ import controlsUit 1.0 as HifiControls
 import "../lib/prop" as Prop
 import "../lib/jet/qml" as Jet
 
-Rectangle {
+ Original.ScrollView {
     Prop.Global { id: prop;}
     id: render;   
-    anchors.fill: parent
-    color: prop.color;
+    anchors.fill: parent 
+ 
+   // color: prop.color;
+
+
 
     property var mainViewTask: Render.getConfig("RenderMainView")
-   
+    
     Column {
         anchors.left: parent.left
         anchors.right: parent.right       

@@ -36,7 +36,7 @@ Item {
         PropLabel {
             id: labelControl
             anchors.left: header.left
-            width: 0.8 * header.width
+            width: 0.9 * header.width
             anchors.verticalCenter: header.verticalCenter
             text: root.label
             horizontalAlignment: Text.AlignHCenter
@@ -57,7 +57,7 @@ Item {
             MouseArea{
                 id: mousearea
                 anchors.fill: parent
-                onDoubleClicked: {
+                onClicked: {
                     root.isUnfold = !root.isUnfold
                 }
             }
