@@ -1034,7 +1034,7 @@ public:
      * @param {string} name - The name of the joint.
      * @returns {number} The index of the joint if valid, otherwise <code>-1</code>.
      * @example <caption>Report the index of your avatar's left arm joint.</caption>
-     * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm"));
+     * print(JSON.stringify(MyAvatar.getJointIndex("LeftArm")));
      *
      * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
