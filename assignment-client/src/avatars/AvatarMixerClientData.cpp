@@ -130,11 +130,15 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
     }
     _lastReceivedSequenceNumber = sequenceNumber;
     glm::vec3 oldPosition = getPosition();
+    bool oldHasPriority = _avatar->getHasPriority();
 
     // compute the offset to the data payload
     if (!_avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()))) {
         return false;
     }
+
+    // Regardless of what the client says, restore the priority as we know it without triggering any update.
+    _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
 
     auto newPosition = getPosition();
     if (newPosition != oldPosition) {
