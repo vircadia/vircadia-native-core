@@ -14,7 +14,7 @@ using System.Collections.Generic;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.3.1";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.3.3";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
@@ -364,7 +364,14 @@ class AvatarExporter : MonoBehaviour {
                                                  " the Rig section of it's Inspector window.", "Ok");
             return;
         }
-        
+
+        // if the rig is optimized we should de-optimize it during the export process
+        bool shouldDeoptimizeGameObjects = modelImporter.optimizeGameObjects;
+        if (shouldDeoptimizeGameObjects) {
+            modelImporter.optimizeGameObjects = false;
+            modelImporter.SaveAndReimport();
+        }
+
         humanDescription = modelImporter.humanDescription;
         string textureWarnings = SetTextureDependencies();
         SetBoneAndMaterialInformation();
@@ -375,6 +382,15 @@ class AvatarExporter : MonoBehaviour {
         // format resulting avatar rule failure strings
         // consider export-blocking avatar rules to be errors and show them in an error dialog,
         // and also include any other avatar rule failures plus texture warnings as warnings in the dialog
+        if (shouldDeoptimizeGameObjects) {
+            // switch back to optimized game object in case it was originally optimized
+            modelImporter.optimizeGameObjects = true;
+            modelImporter.SaveAndReimport();
+        }
+
+        // format resulting bone rule failure strings
+        // consider export-blocking bone rules to be errors and show them in an error dialog,
+        // and also include any other bone rule failures plus texture warnings as warnings in the dialog
         string boneErrors = "";
         string warnings = "";
         foreach (var failedAvatarRule in failedAvatarRules) {
@@ -621,13 +637,10 @@ class AvatarExporter : MonoBehaviour {
             
             // generate joint rotation offsets for both humanoid-mapped bones as well as extra unmapped bones
             Quaternion jointOffset = new Quaternion();
-            string outputJointName = "";
             if (userBoneInfo.HasHumanMapping()) {
-                outputJointName = HUMANOID_TO_HIFI_JOINT_NAME[userBoneInfo.humanName];
                 Quaternion rotation = REFERENCE_ROTATIONS[userBoneInfo.humanName];
                 jointOffset = Quaternion.Inverse(userBoneInfo.rotation) * rotation;
             } else {
-                outputJointName = userBoneName;
                 jointOffset = Quaternion.Inverse(userBoneInfo.rotation);
                 string lastRequiredParent = FindLastRequiredAncestorBone(userBoneName);
                 if (lastRequiredParent != "root") {
@@ -639,11 +652,9 @@ class AvatarExporter : MonoBehaviour {
             }
             
             // swap from left-handed (Unity) to right-handed (HiFi) coordinates and write out joint rotation offset to fst
-            if (!string.IsNullOrEmpty(outputJointName)) {
-                jointOffset = new Quaternion(-jointOffset.x, jointOffset.y, jointOffset.z, -jointOffset.w);
-                File.AppendAllText(exportFstPath, "jointRotationOffset = " + outputJointName + " = (" + jointOffset.x + ", " +
-                                                  jointOffset.y + ", " + jointOffset.z + ", " + jointOffset.w + ")\n");
-            }
+            jointOffset = new Quaternion(-jointOffset.x, jointOffset.y, jointOffset.z, -jointOffset.w);
+            File.AppendAllText(exportFstPath, "jointRotationOffset2 = " + userBoneName + " = (" + jointOffset.x + ", " +
+                                              jointOffset.y + ", " + jointOffset.z + ", " + jointOffset.w + ")\n");
         }
         
         // if there is any material data to save then write out all materials in JSON material format to the materialMap field

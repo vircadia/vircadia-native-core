@@ -343,7 +343,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds) {
+                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool forwardRendered) {
     if (str == "") {
         return;
     }
@@ -370,7 +370,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
     }
     // need the gamma corrected color here
 
-    batch.setPipeline((color.a < 1.0f) ? _transparentPipeline : _pipeline);
+    batch.setPipeline(forwardRendered || (color.a < 1.0f) ? _transparentPipeline : _pipeline);
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);

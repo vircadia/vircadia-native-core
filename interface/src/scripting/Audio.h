@@ -192,7 +192,7 @@ signals:
      * });
      */
     void mutedChanged(bool isMuted);
-    
+
     /**jsdoc
      * Triggered when the audio input noise reduction is enabled or disabled.
      * @function Audio.noiseReductionChanged
