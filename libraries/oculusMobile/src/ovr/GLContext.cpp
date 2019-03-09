@@ -13,10 +13,7 @@
 #include <mutex>
 
 #include <android/log.h>
-
-#if !defined(EGL_OPENGL_ES3_BIT_KHR)
-#define EGL_OPENGL_ES3_BIT_KHR 0x0040
-#endif
+#include <EGL/eglext.h>
 
 using namespace ovr;
 
@@ -129,7 +126,7 @@ void GLContext::doneCurrent() {
     eglMakeCurrent(display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 }
 
-bool GLContext::create(EGLDisplay display, EGLContext shareContext) {
+bool GLContext::create(EGLDisplay display, EGLContext shareContext, bool noError) {
     this->display = display;
 
     auto config = findConfig(display);
@@ -139,7 +136,9 @@ bool GLContext::create(EGLDisplay display, EGLContext shareContext) {
         return false;
     }
 
-    EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE };
+    EGLint contextAttribs[] = { EGL_CONTEXT_CLIENT_VERSION, 3,
+                                noError ? EGL_CONTEXT_OPENGL_NO_ERROR_KHR : EGL_NONE, EGL_TRUE,
+                                EGL_NONE };
 
     context = eglCreateContext(display, config, shareContext, contextAttribs);
     if (context == EGL_NO_CONTEXT) {
