@@ -264,46 +264,6 @@ signals:
     void pushToTalkHMDChanged(bool enabled);
 
     /**jsdoc
-    * Triggered when desktop audio input is muted or unmuted.
-    * @function Audio.desktopMutedChanged
-    * @param {boolean} isMuted - <code>true</code> if the audio input is muted for desktop mode, otherwise <code>false</code>.
-    * @returns {Signal}
-    */
-    void desktopMutedChanged(bool isMuted);
-
-    /**jsdoc
-    * Triggered when HMD audio input is muted or unmuted.
-    * @function Audio.hmdMutedChanged
-    * @param {boolean} isMuted - <code>true</code> if the audio input is muted for HMD mode, otherwise <code>false</code>.
-    * @returns {Signal}
-    */
-    void hmdMutedChanged(bool isMuted);
-
-    /**
-    * Triggered when Push-to-Talk has been enabled or disabled.
-    * @function Audio.pushToTalkChanged
-    * @param {boolean} enabled - <code>true</code> if Push-to-Talk is enabled, otherwise <code>false</code>.
-    * @returns {Signal}
-    */
-    void pushToTalkChanged(bool enabled);
-
-    /**
-    * Triggered when Push-to-Talk has been enabled or disabled for desktop mode.
-    * @function Audio.pushToTalkDesktopChanged
-    * @param {boolean} enabled - <code>true</code> if Push-to-Talk is emabled for Desktop mode, otherwise <code>false</code>.
-    * @returns {Signal}
-    */
-    void pushToTalkDesktopChanged(bool enabled);
-
-    /**
-    * Triggered when Push-to-Talk has been enabled or disabled for HMD mode.
-    * @function Audio.pushToTalkHMDChanged
-    * @param {boolean} enabled - <code>true</code> if Push-to-Talk is emabled for HMD mode, otherwise <code>false</code>.
-    * @returns {Signal}
-    */
-    void pushToTalkHMDChanged(bool enabled);
-
-    /**jsdoc
      * Triggered when the audio input noise reduction is enabled or disabled.
      * @function Audio.noiseReductionChanged
      * @param {boolean} isEnabled - <code>true</code> if audio input noise reduction is enabled, otherwise <code>false</code>.
