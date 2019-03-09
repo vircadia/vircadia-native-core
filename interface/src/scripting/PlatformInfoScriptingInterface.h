@@ -68,9 +68,15 @@ public slots:
 
     /**jsdoc
     * Returns true if device supports 3d HTML
-    * @function Window.hasRift
+    * @function Window.has3DHTML
     * @returns {boolean} <code>true</code> if device supports 3d HTML, otherwise <code>false</code>.*/
     bool has3DHTML();
+
+    /**jsdoc
+    * Returns true if device is standalone
+    * @function Window.hasRift
+    * @returns {boolean} <code>true</code> if device is a standalone device, otherwise <code>false</code>.*/
+    bool isStandalone();
 };
 
 #endif  // hifi_PlatformInfoScriptingInterface_h

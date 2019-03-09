@@ -134,7 +134,7 @@ Script.include("/~/system/libraries/controllers.js");
 
             var scaleModuleName = this.hand === RIGHT_HAND ? "RightScaleEntity" : "LeftScaleEntity";
             var scaleModule = getEnabledModuleByName(scaleModuleName);
-            if (scaleModule.grabbedThingID || scaleModule.isReady(controllerData).active) {
+            if (scaleModule && (scaleModule.grabbedThingID || scaleModule.isReady(controllerData).active)) {
                 // we're rescaling -- don't start a grab.
                 return makeRunningValues(false, [], []);
             }

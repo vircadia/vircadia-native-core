@@ -41,6 +41,7 @@ Rectangle {
     property string searchScopeString: "Featured"
     property bool isLoggedIn: false
     property bool supports3DHTML: true
+    property bool pendingGetMarketplaceItemCall: false
 
     anchors.fill: (typeof parent === undefined) ? undefined : parent
 
@@ -90,6 +91,14 @@ Rectangle {
                     id: -1,
                     name: "Everything"
                 });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Stand-alone Optimized"
+                });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Stand-alone Compatible"
+                });
                 result.data.items.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,
@@ -100,7 +109,9 @@ Rectangle {
             getMarketplaceItems();
         }
         onGetMarketplaceItemsResult: {
-            marketBrowseModel.handlePage(result.status !== "success" && result.message, result);
+            if (!pendingGetMarketplaceItemCall) {
+                marketBrowseModel.handlePage(result.status !== "success" && result.message, result);
+            }
         }
         
         onGetMarketplaceItemResult: {
@@ -124,9 +135,12 @@ Rectangle {
                 marketplaceItem.availability = result.data.availability;
                 marketplaceItem.updated_item_id = result.data.updated_item_id || "";
                 marketplaceItem.created_at = result.data.created_at;
+                marketplaceItem.standaloneOptimized = result.data.standalone_optimized;
+                marketplaceItem.standaloneVisible = result.data.standalone_optimized || result.data.standalone_incompatible;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
+                pendingGetMarketplaceItemCall = false;
             }
         }
     }
@@ -187,16 +201,16 @@ Rectangle {
             visible: true
 
             Image {
-                id: marketplaceHeaderImage;
-                source: "../common/images/marketplaceHeaderImage.png";
-                anchors.top: parent.top;
-                anchors.topMargin: 2;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 0;
-                anchors.left: parent.left;
-                anchors.leftMargin: 8;
-                width: 140;
-                fillMode: Image.PreserveAspectFit;
+                id: marketplaceHeaderImage
+                source: "../common/images/marketplaceHeaderImage.png"
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                width: 140
+                fillMode: Image.PreserveAspectFit
 
                 MouseArea {
                     anchors.fill: parent;
@@ -542,7 +556,8 @@ Rectangle {
                 price: model.cost
                 availability: model.availability
                 isLoggedIn: root.isLoggedIn;
-
+                standaloneOptimized: model.standalone_optimized
+    
                 onShowItem: {
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }
@@ -1224,6 +1239,7 @@ Rectangle {
                     console.log("A message with method 'updateMarketplaceQMLItem' was sent without an itemId!");
                     return;
                 }
+                pendingGetMarketplaceItemCall = true;
                 marketplaceItem.edition = message.params.edition ? message.params.edition : -1;
                 MarketplaceScriptingInterface.getMarketplaceItem(message.params.itemId);
                 break;

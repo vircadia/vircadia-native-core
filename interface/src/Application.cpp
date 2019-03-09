@@ -246,6 +246,8 @@
 
 #include "AboutUtil.h"
 
+#include <DisableDeferred.h>
+
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
@@ -287,13 +289,6 @@ static bool DISABLE_WATCHDOG = true;
 #else
 static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
-#endif
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
 #if !defined(Q_OS_ANDROID)
@@ -754,6 +749,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     static const auto OCULUS_STORE_ARG = "--oculus-store";
     bool isStore = cmdOptionExists(argc, const_cast<const char**>(argv), OCULUS_STORE_ARG);
     qApp->setProperty(hifi::properties::OCULUS_STORE, isStore);
+
+    // emulate standalone device
+    static const auto STANDALONE_ARG = "--standalone";
+    bool isStandalone = cmdOptionExists(argc, const_cast<const char**>(argv), STANDALONE_ARG);
+    qApp->setProperty(hifi::properties::STANDALONE, isStandalone);
 
     // Ignore any previous crashes if running from command line with a test script.
     bool inTestMode { false };
@@ -2358,6 +2358,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             } else {
                 QObject::connect(webSurface.data(), &hifi::qml::OffscreenSurface::rootContextCreated, rootItemLoadedFunctor);
             }
+            auto surfaceContext = webSurface->getSurfaceContext();
+            surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
         } else {
             // FIXME: the tablet should use the OffscreenQmlSurfaceCache
             webSurface = QSharedPointer<OffscreenQmlSurface>(new OffscreenQmlSurface(), [](OffscreenQmlSurface* webSurface) {
@@ -3040,6 +3042,10 @@ void Application::initializeUi() {
     };
     OffscreenQmlSurface::addWhitelistContextHandler({
         QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
+        QUrl{ "hifi/commerce/purchases/Purchases.qml" },
+        QUrl{ "hifi/commerce/wallet/Wallet.qml" },
+        QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
+        QUrl{ "hifi/tablet/TabletAddressDialog.qml" },
         }, platformInfoCallback);
 
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
@@ -3294,6 +3300,7 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
     surfaceContext->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
     surfaceContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
+    surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
     if (setAdditionalContextProperties) {
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -3304,7 +3311,6 @@ void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditiona
 
         surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
         surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-        surfaceContext->setContextProperty("KeyboardScriptingInterface", DependencyManager::get<KeyboardScriptingInterface>().data());
 
         surfaceContext->setContextProperty("Account", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED
         surfaceContext->setContextProperty("GlobalServices", AccountServicesScriptingInterface::getInstance()); // DEPRECATED - TO BE REMOVED

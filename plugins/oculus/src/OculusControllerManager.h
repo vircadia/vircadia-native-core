@@ -15,6 +15,7 @@
 
 #include <GLMHelpers.h>
 
+#include <SettingHandle.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
 
@@ -28,7 +29,11 @@ public:
     const QString getName() const override { return NAME; }
     bool isHandController() const override { return _touch != nullptr; }
     bool isHeadController() const override { return true; }
+    bool configurable() override { return true; }
+    QString configurationLayout() override;
     QStringList getSubdeviceNames() override;
+    void setConfigurationSettings(const QJsonObject configurationSetting) override;
+    QJsonObject configurationSettings() override;
 
     bool activate() override;
     void deactivate() override;
@@ -93,6 +98,7 @@ private:
         float _leftHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
+        Setting::Handle<bool> _trackControllersInOculusHome { "trackControllersInOculusHome", false };
         mutable std::recursive_mutex _lock;
         std::map<int, bool> _lostTracking;
         std::map<int, quint64> _regainTrackingDeadline;

@@ -340,8 +340,10 @@ void TestCreator::finishTestsEvaluation() {
     if (!_isRunningFromCommandLine && !_isRunningInAutomaticTestRun) {
         if (numberOfFailures == 0) {
             QMessageBox::information(0, "Success", "All images are as expected");
+        } else if (numberOfFailures == 1) {
+            QMessageBox::information(0, "Failure", "One image is not as expected");
         } else {
-            QMessageBox::information(0, "Failure", "One or more images are not as expected");
+            QMessageBox::information(0, "Failure", QString::number(numberOfFailures) + " images are not as expected");
         }
     }
 

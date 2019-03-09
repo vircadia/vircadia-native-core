@@ -16,6 +16,7 @@
 #include <QUrl>
 #include <QVector>
 #include <QVariantMap>
+#include "GeometryCache.h"
 
 struct AvatarDiagnosticResult {
     QString message;
@@ -27,7 +28,7 @@ Q_DECLARE_METATYPE(QVector<AvatarDiagnosticResult>)
 class AvatarDoctor : public QObject {
     Q_OBJECT
 public:
-    AvatarDoctor(QUrl avatarFSTFileUrl);
+    AvatarDoctor(const QUrl& avatarFSTFileUrl);
 
     Q_INVOKABLE void startDiagnosing();
 
@@ -37,6 +38,8 @@ signals:
     void complete(QVariantList errors);
 
 private:
+    void diagnoseTextures();
+
     QUrl _avatarFSTFileUrl;
     QVector<AvatarDiagnosticResult> _errors;
 
@@ -44,6 +47,11 @@ private:
     int _checkedTextureCount = 0;
     int _missingTextureCount = 0;
     int _unsupportedTextureCount = 0;
+
+    int _materialMappingCount = 0;
+    int _materialMappingLoadedCount = 0;
+
+    GeometryResource::Pointer _model;
 
     bool _isDiagnosing = false;
 };

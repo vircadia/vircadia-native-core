@@ -19,13 +19,13 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     readonly property var level: AudioScriptingInterface.inputLevel;
-    
+
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
     }
-        
+
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -235,12 +235,12 @@ Rectangle {
                 }
             }
         }
-        
+
         Rectangle {
             id: gatedIndicator;
             visible: gated && !AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: "#0080FF";
@@ -249,12 +249,12 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
         }
-        
+
         Rectangle {
             id: clippingIndicator;
             visible: AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: colors.red;

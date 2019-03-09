@@ -35,6 +35,8 @@
 #include <TryLocker.h>
 #include "../AssignmentDynamicFactory.h"
 #include "../entities/AssignmentParentFinder.h"
+#include <model-networking/ModelCache.h>
+#include <hfm/ModelFormatRegistry.h>
 
 const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 
@@ -60,7 +62,10 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 {
     DependencyManager::registerInheritance<EntityDynamicFactoryInterface, AssignmentDynamicFactory>();
     DependencyManager::set<AssignmentDynamicFactory>();
-
+    DependencyManager::set<ModelFormatRegistry>();
+    DependencyManager::set<ModelCache>();
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<ResourceManager>();
     // make sure we hear about node kills so we can tell the other nodes
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &AvatarMixer::handleAvatarKilled);
 
@@ -1060,6 +1065,10 @@ void AvatarMixer::handleOctreePacket(QSharedPointer<ReceivedMessage> message, Sh
 }
 
 void AvatarMixer::aboutToFinish() {
+    DependencyManager::destroy<ResourceManager>();
+    DependencyManager::destroy<ResourceCacheSharedItems>();
+    DependencyManager::destroy<ModelCache>();
+    DependencyManager::destroy<ModelFormatRegistry>();
     DependencyManager::destroy<AssignmentDynamicFactory>();
     DependencyManager::destroy<AssignmentParentFinder>();
 
