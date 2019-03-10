@@ -5414,13 +5414,6 @@ void Application::pauseUntilLoginDetermined() {
         return;
     }
 
-    if (_resumeAfterLoginDialogActionTakenWasCalled) {
-        // This happens occasionally (though not often): resumeAfterLoginDialogActionTaken() has already been called.
-        // We must abort this method, otherwise Interface will remain in the "Paused" state permanently.
-        // E.g., the menus "Edit", "View", etc. will not appear.
-        return;
-    }
-
     auto myAvatar = getMyAvatar();
     _previousAvatarTargetScale = myAvatar->getTargetScale();
     _previousAvatarSkeletonModel = myAvatar->getSkeletonModelURL().toString();
@@ -5459,11 +5452,23 @@ void Application::pauseUntilLoginDetermined() {
     // disconnect domain handler.
     nodeList->getDomainHandler().disconnect();
 
+    // From now on, it's permissible to call resumeAfterLoginDialogActionTaken()
+    _resumeAfterLoginDialogActionTaken_SafeToRun = true;
+
+    if (_resumeAfterLoginDialogActionTaken_WasPostponed) {
+        // resumeAfterLoginDialogActionTaken() was already called, but it aborted. Now it's safe to call it again.
+        resumeAfterLoginDialogActionTaken();
+    }
 }
 
 void Application::resumeAfterLoginDialogActionTaken() {
     if (QThread::currentThread() != qApp->thread()) {
         QMetaObject::invokeMethod(this, "resumeAfterLoginDialogActionTaken");
+        return;
+    }
+
+    if (!_resumeAfterLoginDialogActionTaken_SafeToRun) {
+        _resumeAfterLoginDialogActionTaken_WasPostponed = true;
         return;
     }
 
@@ -5535,8 +5540,6 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("Developer")->setVisible(_developerMenuVisible);
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
-
-    _resumeAfterLoginDialogActionTakenWasCalled = true;
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
