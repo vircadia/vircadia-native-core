@@ -211,12 +211,6 @@ void Audio::setPTTHMD(bool enabled) {
     }
 }
 
-bool Audio::getPTTHMD() const {
-    return resultWithReadLock<bool>([&] {
-        return _pttHMD;
-    });
-}
-
 void Audio::saveData() {
     _desktopMutedSetting.set(getMutedDesktop());
     _hmdMutedSetting.set(getMutedHMD());
@@ -235,40 +229,6 @@ bool Audio::getPTTHMD() const {
     return resultWithReadLock<bool>([&] {
         return _pttHMD;
     });
-}
-
-void Audio::saveData() {
-    _desktopMutedSetting.set(getMutedDesktop());
-    _hmdMutedSetting.set(getMutedHMD());
-    _pttDesktopSetting.set(getPTTDesktop());
-    _pttHMDSetting.set(getPTTHMD());
-}
-
-void Audio::loadData() {
-    _desktopMuted = _desktopMutedSetting.get();
-    _hmdMuted = _hmdMutedSetting.get();
-    _pttDesktop = _pttDesktopSetting.get();
-    _pttHMD = _pttHMDSetting.get();
-}
-
-bool Audio::getPTTHMD() const {
-    return resultWithReadLock<bool>([&] {
-        return _pttHMD;
-    });
-}
-
-void Audio::saveData() {
-    _desktopMutedSetting.set(getMutedDesktop());
-    _hmdMutedSetting.set(getMutedHMD());
-    _pttDesktopSetting.set(getPTTDesktop());
-    _pttHMDSetting.set(getPTTHMD());
-}
-
-void Audio::loadData() {
-    _desktopMuted = _desktopMutedSetting.get();
-    _hmdMuted = _hmdMutedSetting.get();
-    _pttDesktop = _pttDesktopSetting.get();
-    _pttHMD = _pttHMDSetting.get();
 }
 
 bool Audio::noiseReductionEnabled() const {
