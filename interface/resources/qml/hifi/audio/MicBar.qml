@@ -159,7 +159,7 @@ Rectangle {
 
             color: parent.color;
 
-            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? "MUTED PTT-(T)" : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
+            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
@@ -169,7 +169,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? 25 : 50;
+            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
             color: parent.color;
         }
@@ -180,7 +180,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? 25 : 50;
+            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
             color: parent.color;
         }

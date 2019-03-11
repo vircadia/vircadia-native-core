@@ -140,6 +140,29 @@ Rectangle {
                         checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
                     }
                 }
+
+                HifiControlsUit.Switch {
+                    id: pttSwitch
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn: qsTr("Push To Talk (T)");
+                    backgroundOnColor: "#E3E3E3";
+                    checked: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
+                    onCheckedChanged: {
+                        if (bar.currentIndex === 0) {
+                            AudioScriptingInterface.pushToTalkDesktop = checked;
+                        } else {
+                            AudioScriptingInterface.pushToTalkHMD = checked;
+                        }
+                        checked = Qt.binding(function() {
+                            if (bar.currentIndex === 0) {
+                                return AudioScriptingInterface.pushToTalkDesktop;
+                            } else {
+                                return AudioScriptingInterface.pushToTalkHMD;
+                            }
+                        }); // restore binding
+                    }
+                }
             }
 
             ColumnLayout {
@@ -171,53 +194,26 @@ Rectangle {
             }
         }
 
-        Separator { id: pttStartSeparator; }
         Item {
+            anchors.left: parent.left
             width: rightMostInputLevelPos;
-            height: pttSwitch.height + pttText.height + 24;
-            HifiControlsUit.Switch {
-                id: pttSwitch
-                x: 2 * margins.paddings;
-                anchors.top: parent.top;
-                height: root.switchHeight;
-                switchWidth: root.switchWidth;
-                labelTextOn: qsTr("Push To Talk (T)");
-                backgroundOnColor: "#E3E3E3";
-                checked: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
-                onCheckedChanged: {
-                    if (bar.currentIndex === 0) {
-                        AudioScriptingInterface.pushToTalkDesktop = checked;
-                    } else {
-                        AudioScriptingInterface.pushToTalkHMD = checked;
-                    }
-                    checked = Qt.binding(function() {
-                        if (bar.currentIndex === 0) {
-                            return AudioScriptingInterface.pushToTalkDesktop;
-                        } else {
-                            return AudioScriptingInterface.pushToTalkHMD;
-                        }
-                    }); // restore binding
-                }
-            }
+            height: pttText.height;
             RalewayRegular {
                 id: pttText
-                x: 2 * margins.paddings;
+                x: margins.paddings;
                 color: hifi.colors.white;
-                anchors.bottom: parent.bottom;
                 width: rightMostInputLevelPos;
                 height: paintedHeight;
                 wrapMode: Text.WordWrap;
                 font.italic: true
                 size: 16;
 
-                text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to unmute.") :
-                                qsTr("Press and hold grip triggers on both of your controllers to unmute.");
+                text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
+                                qsTr("Press and hold grip triggers on both of your controllers to talk.");
             }
         }
 
-        Separator { 
-            id: pttEndSeparator;
-        }
+        Separator { }
 
 
         Item {
