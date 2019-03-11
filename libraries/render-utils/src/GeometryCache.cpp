@@ -35,9 +35,9 @@
 #include "StencilMaskPass.h"
 #include "FadeEffect.h"
 
-
-
 #include "DeferredLightingEffect.h"
+
+#include <DisableDeferred.h>
 
 namespace gr {
     using graphics::slot::texture::Texture;
@@ -48,13 +48,6 @@ namespace ru {
     using render_utils::slot::texture::Texture;
     using render_utils::slot::buffer::Buffer;
 }
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#endif
 
 //#define WANT_DEBUG
 

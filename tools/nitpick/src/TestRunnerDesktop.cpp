@@ -27,23 +27,22 @@ TestRunnerDesktop::TestRunnerDesktop(
     std::vector<QTimeEdit*> timeEdits,
     QLabel* workingFolderLabel,
     QCheckBox* runServerless,
+    QCheckBox* usePreviousInstallationOnMobileCheckBox,
     QCheckBox* runLatest,
     QLineEdit* url,
+    QCheckBox* runFullSuite,
+    QLineEdit* scriptURL,
     QPushButton* runNow,
     QLabel* statusLabel,
 
     QObject* parent
-) : QObject(parent) 
+) : QObject(parent), TestRunner(workingFolderLabel, statusLabel, usePreviousInstallationOnMobileCheckBox, runLatest, url, runFullSuite, scriptURL)
 {
     _dayCheckboxes = dayCheckboxes;
     _timeEditCheckboxes = timeEditCheckboxes;
     _timeEdits = timeEdits;
-    _workingFolderLabel = workingFolderLabel;
     _runServerless = runServerless;
-    _runLatest = runLatest;
-    _url = url;
     _runNow = runNow;
-    _statusLabel = statusLabel;
 
     _installerThread = new QThread();
     _installerWorker = new InstallerWorker();
@@ -179,10 +178,14 @@ void TestRunnerDesktop::run() {
     // This will be restored at the end of the tests
     saveExistingHighFidelityAppDataFolder();
 
-    _statusLabel->setText("Downloading Build XML");
-    downloadBuildXml((void*)this);
+    if (_usePreviousInstallationCheckBox->isChecked()) {
+        installationComplete();
+    } else {
+        _statusLabel->setText("Downloading Build XML");
+        downloadBuildXml((void*)this);
 
-    // `downloadComplete` will run after download has completed
+        downloadComplete();
+    }
 }
 
 void TestRunnerDesktop::downloadComplete() {
@@ -209,9 +212,9 @@ void TestRunnerDesktop::downloadComplete() {
 
         _statusLabel->setText("Downloading installer");
 
-        nitpick->downloadFiles(urls, _workingFolder, filenames, (void*)this);
+        _downloader->downloadFiles(urls, _workingFolder, filenames, (void*)this);
 
-        // `downloadComplete` will run again after download has completed
+        downloadComplete();
 
     } else {
         // Download of Installer has completed
@@ -292,15 +295,19 @@ void TestRunnerDesktop::installationComplete() {
 
 void TestRunnerDesktop::verifyInstallationSucceeded() {
     // Exit if the executables are missing.
-    // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
 #ifdef Q_OS_WIN
     QFileInfo interfaceExe(QDir::toNativeSeparators(_installationFolder) + "\\interface.exe");
     QFileInfo assignmentClientExe(QDir::toNativeSeparators(_installationFolder) + "\\assignment-client.exe");
     QFileInfo domainServerExe(QDir::toNativeSeparators(_installationFolder) + "\\domain-server.exe");
 
     if (!interfaceExe.exists() || !assignmentClientExe.exists() || !domainServerExe.exists()) {
-        QMessageBox::critical(0, "Installation of High Fidelity has failed", "Please verify that UAC has been disabled");
-        exit(-1);
+        if (_runLatest->isChecked()) {
+            // On Windows, the reason is probably that UAC has blocked the installation.  This is treated as a critical error
+            QMessageBox::critical(0, "Installation of High Fidelity has failed", "Please verify that UAC has been disabled");
+            exit(-1);
+        } else {
+            QMessageBox::critical(0, "Installation of High Fidelity not found", "Please verify that working folder contains a proper installation");
+        }
     }
 #endif
 }
@@ -457,8 +464,9 @@ void TestRunnerDesktop::runInterfaceWithTestScript() {
     QString deleteScript =
         QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/utils/deleteNearbyEntities.js";
 
-    QString testScript =
-        QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js";
+    QString testScript = (_runFullSuite->isChecked())
+        ? QString("https://raw.githubusercontent.com/") + _user + "/hifi_tests/" + _branch + "/tests/testRecursive.js"
+        : _scriptURL->text();
 
     QString commandLine;
 #ifdef Q_OS_WIN
@@ -537,15 +545,16 @@ void TestRunnerDesktop::runInterfaceWithTestScript() {
 }
 
 void TestRunnerDesktop::interfaceExecutionComplete() {
+    QThread::msleep(500);
     QFileInfo testCompleted(QDir::toNativeSeparators(_snapshotFolder) +"/tests_completed.txt");
     if (!testCompleted.exists()) {
         QMessageBox::critical(0, "Tests not completed", "Interface seems to have crashed before completion of the test scripts\nExisting images will be evaluated");
     }
 
+    killProcesses();
+
     evaluateResults();
 
-    killProcesses();
-    
     // The High Fidelity AppData folder will be restored after evaluation has completed
 }
 
@@ -591,7 +600,6 @@ void TestRunnerDesktop::addBuildNumberToResults(const QString& zippedFolderName)
     if (!QFile::rename(zippedFolderName, augmentedFilename)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Could not rename '" + zippedFolderName + "' to '" + augmentedFilename);
         exit(-1);
-    
     }
 }
 
@@ -667,6 +675,13 @@ void TestRunnerDesktop::checkTime() {
 QString TestRunnerDesktop::getPRNumberFromURL(const QString& url) {
     try {
         QStringList urlParts = url.split("/");
+        if (urlParts.size() <= 2) {
+#ifdef Q_OS_WIN
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.exe`";
+#elif defined Q_OS_MAC
+            throw "URL not in expected format, should look like `https://deployment.highfidelity.com/jobs/pr-build/label%3Dwindows/13023/HighFidelity-Beta-Interface-PR14006-be76c43.dmg`";
+#endif
+        }
         QStringList filenameParts = urlParts[urlParts.size() - 1].split("-");
         if (filenameParts.size() <= 3) {
 #ifdef Q_OS_WIN

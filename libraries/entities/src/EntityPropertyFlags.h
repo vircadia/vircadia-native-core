@@ -98,6 +98,7 @@ enum EntityPropertyList {
     PROP_EDITION_NUMBER,
     PROP_ENTITY_INSTANCE_NUMBER,
     PROP_CERTIFICATE_ID,
+    PROP_CERTIFICATE_TYPE,
     PROP_STATIC_CERTIFICATE_VERSION,
 
     // Used to convert values to and from scripts
@@ -156,6 +157,7 @@ enum EntityPropertyList {
     PROP_DERIVED_28,
     PROP_DERIVED_29,
     PROP_DERIVED_30,
+    PROP_DERIVED_31,
 
     PROP_AFTER_LAST_ITEM,
 
@@ -276,6 +278,8 @@ enum EntityPropertyList {
     PROP_SKYBOX_MODE = PROP_DERIVED_28,
     PROP_HAZE_MODE = PROP_DERIVED_29,
     PROP_BLOOM_MODE = PROP_DERIVED_30,
+    // Avatar priority
+    PROP_AVATAR_PRIORITY = PROP_DERIVED_31,
 
     // Polyvox
     PROP_VOXEL_VOLUME_SIZE = PROP_DERIVED_0,

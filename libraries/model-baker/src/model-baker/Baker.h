@@ -17,13 +17,14 @@
 #include <hfm/HFM.h>
 
 #include "Engine.h"
+#include "BakerTypes.h"
 
 #include "ParseMaterialMappingTask.h"
 
 namespace baker {
     class Baker {
     public:
-        Baker(const hfm::Model::Pointer& hfmModel, const QVariantHash& mapping);
+        Baker(const hfm::Model::Pointer& hfmModel, const GeometryMappingPair& mapping);
 
         void run();
 

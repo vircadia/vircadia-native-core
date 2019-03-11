@@ -97,10 +97,11 @@ Rectangle {
             textFormat: Text.StyledText
             linkColor: "#00B4EF"
             color: "white"
-            text: "Blockchain technology from <a href=\"https://elementsproject.org/elements/\">Elements</a>."
+            property string link: "https://eos.io/"
+            text: "Blockchain technology from <a href=\"" + link + "\">EOS</a>."
             size: 14
             onLinkActivated: {
-                HiFiAbout.openUrl("https://elementsproject.org/elements/");
+                HiFiAbout.openUrl(link);
             }
         }
         RalewayRegular {

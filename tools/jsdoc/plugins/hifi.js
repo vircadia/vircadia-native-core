@@ -107,9 +107,6 @@ exports.handlers = {
             if (e.doclet.hifiClientEntity) {
                 rows.push("Client Entity Scripts");
             }
-            if (e.doclet.hifiAvatar) {
-                rows.push("Avatar Scripts");
-            }
             if (e.doclet.hifiServerEntity) {
                 rows.push("Server Entity Scripts");
             }
@@ -117,14 +114,29 @@ exports.handlers = {
                 rows.push("Assignment Client Scripts");
             }
 
-            // Append an Available In: table at the end of the namespace description.
+            // Append an Available In: sentence at the beginning of the namespace description.
             if (rows.length > 0) {
-                var table = "<table><tr><th>Available in:</th><td>" + rows.join("</td><td>") + "</td></tr></table><br>";
-                e.doclet.description = table + (e.doclet.description ? e.doclet.description : "");
-            }
+                var availableIn = "<p class='availableIn'><b>Supported Script Types:</b> " + rows.join(" &bull; ") + "</p>";
+             
+                e.doclet.description = (e.doclet.description ? e.doclet.description : "") + availableIn;
+            }            
         }
     }
 };
+
+// Functions for adding @signal custom tag
+/** @private */
+function setDocletKindToTitle(doclet, tag) {
+    doclet.addTag( 'kind', tag.title );
+}
+
+function setDocletNameToValue(doclet, tag) {
+    if (tag.value && tag.value.description) { // as in a long tag
+        doclet.addTag('name', tag.value.description);
+    } else if (tag.text) { // or a short tag
+        doclet.addTag('name', tag.text);
+    }
+}
 
 // Define custom hifi tags here
 exports.defineTags = function (dictionary) {
@@ -143,14 +155,6 @@ exports.defineTags = function (dictionary) {
         }
     });
 
-    // @hifi-avatar-script
-    dictionary.defineTag("hifi-avatar", {
-        onTagged: function (doclet, tag) {
-            doclet.hifiAvatar = true;
-        }
-    });
-
-
     // @hifi-client-entity
     dictionary.defineTag("hifi-client-entity", {
         onTagged: function (doclet, tag) {
@@ -164,4 +168,14 @@ exports.defineTags = function (dictionary) {
             doclet.hifiServerEntity = true;
         }
     });
+    
+    // @signal
+    dictionary.defineTag("signal", {
+        mustHaveValue: true,
+        onTagged: function(doclet, tag) {
+            setDocletKindToTitle(doclet, tag);
+            setDocletNameToValue(doclet, tag);
+        }
+    });
+
 };

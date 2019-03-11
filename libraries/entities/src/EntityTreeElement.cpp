@@ -697,11 +697,11 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
     return foundEntity;
 }
 
-void EntityTreeElement::cleanupNonLocalEntities() {
+void EntityTreeElement::cleanupDomainAndNonOwnedEntities() {
     withWriteLock([&] {
         EntityItems savedEntities;
         foreach(EntityItemPointer entity, _entityItems) {
-            if (!entity->isLocalEntity()) {
+            if (!(entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
                 entity->preDelete();
                 entity->_element = NULL;
             } else {

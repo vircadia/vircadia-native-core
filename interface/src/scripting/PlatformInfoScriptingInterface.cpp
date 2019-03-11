@@ -7,7 +7,7 @@
 //
 #include "PlatformInfoScriptingInterface.h"
 #include "Application.h"
-
+#include <shared/GlobalAppProperties.h>
 #include <thread>
 
 #ifdef Q_OS_WIN
@@ -138,6 +138,14 @@ bool PlatformInfoScriptingInterface::has3DHTML() {
 #if defined(Q_OS_ANDROID)
     return false;
 #else
-    return true;
+    return !qApp->property(hifi::properties::STANDALONE).toBool();
+#endif
+}
+
+bool PlatformInfoScriptingInterface::isStandalone() {
+#if defined(Q_OS_ANDROID)
+    return false;
+#else
+    return qApp->property(hifi::properties::STANDALONE).toBool();
 #endif
 }

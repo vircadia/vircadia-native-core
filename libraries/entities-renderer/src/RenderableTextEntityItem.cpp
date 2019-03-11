@@ -19,6 +19,8 @@
 
 #include "GLMHelpers.h"
 
+#include <DisableDeferred.h>
+
 using namespace render;
 using namespace render::entities;
 
@@ -160,6 +162,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 backgroundColor;
     Transform modelTransform;
     glm::vec3 dimensions;
+    bool forwardRendered;
     withReadLock([&] {
         modelTransform = _renderTransform;
         dimensions = _dimensions;
@@ -169,6 +172,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         textColor = EntityRenderer::calculatePulseColor(textColor, _pulseProperties, _created);
         backgroundColor = glm::vec4(_backgroundColor, fadeRatio * _backgroundAlpha);
         backgroundColor = EntityRenderer::calculatePulseColor(backgroundColor, _pulseProperties, _created);
+        forwardRendered = _renderLayer != RenderLayer::WORLD || DISABLE_DEFERRED;
     });
 
     // Render background
@@ -188,7 +192,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     if (backgroundColor.a > 0.0f) {
         batch.setModelTransform(transformToTopLeft);
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        geometryCache->bindSimpleProgram(batch, false, backgroundColor.a < 1.0f, false, false, false);
+        geometryCache->bindSimpleProgram(batch, false, backgroundColor.a < 1.0f, false, false, false, true, forwardRendered);
         geometryCache->renderQuad(batch, minCorner, maxCorner, backgroundColor, _geometryID);
     }
 
@@ -199,7 +203,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
         batch.setModelTransform(transformToTopLeft);
 
         glm::vec2 bounds = glm::vec2(dimensions.x - (_leftMargin + _rightMargin), dimensions.y - (_topMargin + _bottomMargin));
-        _textRenderer->draw(batch, _leftMargin / scale, -_topMargin / scale, _text, textColor, bounds / scale);
+        _textRenderer->draw(batch, _leftMargin / scale, -_topMargin / scale, _text, textColor, bounds / scale, forwardRendered);
     }
 }
 

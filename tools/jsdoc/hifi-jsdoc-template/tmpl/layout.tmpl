@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <?js if (!env.conf.docdash) { env.conf.docdash = {};} ?>
+    <meta charset="utf-8">
+    <title><?js= title ?></title>
+    
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+</head>
+<body>
+
+<div class="nav-header">
+    <p><img src="images/white-logo.png" width="200px" /></p>
+    <?js if (env.conf.docdash.search) { ?>
+    <input type="text" class="search-input" id="nav-search" placeholder="Search ..." />
+    <?js } ?>
+</div>
+
+<nav>
+    <?js= this.nav ?>
+</nav>
+
+<div id="main">
+    <h1 class="page-title"><?js= title ?></h1>
+
+    <?js= content ?>
+    
+    <?js if (env.conf.docdash.disqus) { ?>
+    <div id="disqus_thread"></div>
+    <script>
+    (function() { // DON'T EDIT BELOW THIS LINE
+    var d = document, s = d.createElement('script');
+    s.src = '//<?js= env.conf.docdash.disqus ?>.disqus.com/embed.js';
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+    })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <?js } ?>
+</div>
+
+<br class="clear">
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+<?js if (env.conf.docdash.search || env.conf.docdash.collapse) { ?>
+    <script src="scripts/jquery-3.1.1.min.js"></script>
+    <?js if (env.conf.docdash.search) { ?>
+        <script src="scripts/search.js"></script>
+    <?js } ?>
+    <?js if (env.conf.docdash.collapse) { ?>
+        <script src="scripts/collapse.js"></script>
+    <?js } ?>
+<?js } ?>
+
+<?js if (env.conf.docdash.scripts && env.conf.docdash.scripts.length) {
+    for(var i = 0; i < env.conf.docdash.scripts.length; i++) {
+        if (env.conf.docdash.scripts[i].indexOf(".css") != -1) { ?>
+            <link type="text/css" rel="stylesheet" href="<?js= env.conf.docdash.scripts[i] ?>">
+        <?js } else { ?>
+            <script src="<?js= env.conf.docdash.scripts[i] ?>"></script>
+        <?js } ?>
+    <?js } ?>
+<?js } ?>
+
+</body>
+</html>

@@ -1066,13 +1066,6 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         if (_enableInverseKinematics) {
             _animVars.set("ikOverlayAlpha", 1.0f);
-            _animVars.set("splineIKEnabled", true);
-            _animVars.set("leftHandIKEnabled", true);
-            _animVars.set("rightHandIKEnabled", true);
-            _animVars.set("leftFootIKEnabled", true);
-            _animVars.set("rightFootIKEnabled", true);
-            _animVars.set("leftFootPoleVectorEnabled", true);
-            _animVars.set("rightFootPoleVectorEnabled", true);
         } else {
             _animVars.set("ikOverlayAlpha", 0.0f);
             _animVars.set("splineIKEnabled", false);
@@ -1086,6 +1079,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("rightFootPoleVectorEnabled", false);
         }
         _lastEnableInverseKinematics = _enableInverseKinematics;
+
     }
     _lastForward = forward;
     _lastPosition = worldPosition;
@@ -2183,5 +2177,54 @@ void Rig::initFlow(bool isActive) {
     } else {
         _internalFlow.cleanUp();
         _networkFlow.cleanUp();
+    }
+}
+
+float Rig::getUnscaledEyeHeight() const {
+    // Normally the model offset transform will contain the avatar scale factor, we explicitly remove it here.
+    AnimPose modelOffsetWithoutAvatarScale(glm::vec3(1.0f), getModelOffsetPose().rot(), getModelOffsetPose().trans());
+    AnimPose geomToRigWithoutAvatarScale = modelOffsetWithoutAvatarScale * getGeometryOffsetPose();
+
+    // This factor can be used to scale distances in the geometry frame into the unscaled rig frame.
+    // Typically it will be the unit conversion from cm to m.
+    float scaleFactor = geomToRigWithoutAvatarScale.scale().x;  // in practice this always a uniform scale factor.
+
+    int headTopJoint = indexOfJoint("HeadTop_End");
+    int headJoint = indexOfJoint("Head");
+    int eyeJoint = indexOfJoint("LeftEye") != -1 ? indexOfJoint("LeftEye") : indexOfJoint("RightEye");
+    int toeJoint = indexOfJoint("LeftToeBase") != -1 ? indexOfJoint("LeftToeBase") : indexOfJoint("RightToeBase");
+
+    // Makes assumption that the y = 0 plane in geometry is the ground plane.
+    // We also make that assumption in Rig::computeAvatarBoundingCapsule()
+    const float GROUND_Y = 0.0f;
+
+    // Values from the skeleton are in the geometry coordinate frame.
+    auto skeleton = getAnimSkeleton();
+    if (eyeJoint >= 0 && toeJoint >= 0) {
+        // Measure from eyes to toes.
+        float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
+        return scaleFactor * eyeHeight;
+    } else if (eyeJoint >= 0) {
+        // Measure Eye joint to y = 0 plane.
+        float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - GROUND_Y;
+        return scaleFactor * eyeHeight;
+    } else if (headTopJoint >= 0 && toeJoint >= 0) {
+        // Measure from ToeBase joint to HeadTop_End joint, then remove forehead distance.
+        const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+        float height = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
+        return scaleFactor * (height - height * ratio);
+    } else if (headTopJoint >= 0) {
+        // Measure from HeadTop_End joint to the ground, then remove forehead distance.
+        const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+        float headHeight = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - GROUND_Y;
+        return scaleFactor * (headHeight - headHeight * ratio);
+    } else if (headJoint >= 0) {
+        // Measure Head joint to the ground, then add in distance from neck to eye.
+        const float DEFAULT_AVATAR_NECK_TO_EYE = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+        const float ratio = DEFAULT_AVATAR_NECK_TO_EYE / DEFAULT_AVATAR_NECK_HEIGHT;
+        float neckHeight = skeleton->getAbsoluteDefaultPose(headJoint).trans().y - GROUND_Y;
+        return scaleFactor * (neckHeight + neckHeight * ratio);
+    } else {
+        return DEFAULT_AVATAR_EYE_HEIGHT;
     }
 }

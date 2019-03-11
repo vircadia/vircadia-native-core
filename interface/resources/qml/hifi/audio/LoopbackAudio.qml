@@ -14,7 +14,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
 import stylesUit 1.0
-import controlsUit 1.0 as HifiControls
+import controlsUit 1.0 as HifiControlsUit
 
 RowLayout {
     property bool audioLoopedBack: AudioScriptingInterface.getServerEcho();
@@ -24,7 +24,7 @@ RowLayout {
             AudioScriptingInterface.setServerEcho(true);
         }
     }
-    function stopAudioLoopback () {
+    function stopAudioLoopback() {
         if (audioLoopedBack) {
             audioLoopedBack = false;
             AudioScriptingInterface.setServerEcho(false);
@@ -33,36 +33,35 @@ RowLayout {
 
     HifiConstants { id: hifi; }
 
-    Button {
-        id: control
-        background: Rectangle {
-            implicitWidth: 20;
-            implicitHeight: 20;
-            radius: hifi.buttons.radius;
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.2;
-                    color: audioLoopedBack ? hifi.buttons.colorStart[hifi.buttons.blue] : hifi.buttons.colorStart[hifi.buttons.black];
-                }
-                GradientStop {
-                    position: 1.0;
-                    color: audioLoopedBack ? hifi.buttons.colorFinish[hifi.buttons.blue] : hifi.buttons.colorFinish[hifi.buttons.black];
-                }
+    Timer {
+        id: loopbackTimer
+        interval: 8000;
+        running: false;
+        repeat: false;
+        onTriggered: {
+            stopAudioLoopback();
+        }
+    }
+
+    HifiControlsUit.Button {
+        text: audioLoopedBack ? qsTr("STOP TESTING YOUR VOICE") : qsTr("TEST YOUR VOICE");
+        color: audioLoopedBack ? hifi.buttons.red : hifi.buttons.blue;
+        onClicked: {
+            if (audioLoopedBack) {
+                loopbackTimer.stop();
+                stopAudioLoopback();
+            } else {
+                loopbackTimer.restart();
+                startAudioLoopback();
             }
         }
-        contentItem: HiFiGlyphs {
-            size: 14;
-            color: (control.pressed || control.hovered) ? (audioLoopedBack ? "black" : hifi.colors.primaryHighlight) : "white";
-            text: audioLoopedBack ? hifi.glyphs.stop_square : hifi.glyphs.playback_play;
-        }
-
-        onClicked: audioLoopedBack ? stopAudioLoopback() : startAudioLoopback();
     }
 
     RalewayRegular {
         Layout.leftMargin: 2;
         size: 14;
         color: "white";
-        text: audioLoopedBack ? qsTr("Disable Audio Loopback") : qsTr("Enable Audio Loopback");
+        font.italic: true
+        text: audioLoopedBack ? qsTr("Speak in your input") : "";
     }
 }

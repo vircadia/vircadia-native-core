@@ -1302,6 +1302,14 @@
           "placeholder": "1",
           "default": "1",
           "advanced": true
+        },
+        {
+          "name": "connection_rate",
+          "label": "Connection Rate",
+          "help": "Number of new agents that can connect to the mixer every second",
+          "placeholder": "50",
+          "default": "50",
+          "advanced": true
         }
       ]
     },

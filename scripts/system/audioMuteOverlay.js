@@ -134,7 +134,7 @@
     function cleanup() {
         stopPoll();
     }
-
+  
     Script.scriptEnding.connect(cleanup);
 
     startOrStopPoll();

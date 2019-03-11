@@ -16,6 +16,7 @@ namespace hifi { namespace properties {
     extern const char* STEAM;
     extern const char* LOGGER;
     extern const char* OCULUS_STORE;
+    extern const char* STANDALONE;
     extern const char* TEST;
     extern const char* TRACING;
     extern const char* HMD;

@@ -21,7 +21,7 @@ MismatchWindow::MismatchWindow(QWidget *parent) : QDialog(parent) {
     diffImage->setScaledContents(true);
 }
 
-QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultImage) {
+QPixmap MismatchWindow::computeDiffPixmap(const QImage& expectedImage, const QImage& resultImage) {
     // Create an empty difference image if the images differ in size
     if (expectedImage.height() != resultImage.height() || expectedImage.width() != resultImage.width()) {
         return QPixmap();
@@ -60,7 +60,7 @@ QPixmap MismatchWindow::computeDiffPixmap(QImage expectedImage, QImage resultIma
     return resultPixmap;
 }
 
-void MismatchWindow::setTestResult(TestResult testResult) {
+void MismatchWindow::setTestResult(const TestResult& testResult) {
     errorLabel->setText("Similarity: " + QString::number(testResult._error));
 
     imagePath->setText("Path to test: " + testResult._pathname);
@@ -98,4 +98,37 @@ void MismatchWindow::on_abortTestsButton_clicked() {
 
 QPixmap MismatchWindow::getComparisonImage() {
     return _diffPixmap;
+}
+
+QPixmap MismatchWindow::getSSIMResultsImage(const SSIMResults& ssimResults) {
+    // This is an optimization, as QImage.setPixel() is embarrassingly slow
+    const int ELEMENT_SIZE { 8 };
+    const int WIDTH{ ssimResults.width * ELEMENT_SIZE };
+    const int HEIGHT{ ssimResults.height * ELEMENT_SIZE };
+
+    unsigned char* buffer = new unsigned char[WIDTH * HEIGHT * 3];
+
+
+    // loop over each SSIM result
+    for (int y = 0; y < ssimResults.height; ++y) {
+        for (int x = 0; x < ssimResults.width; ++x) {
+            double scaledResult = (ssimResults.results[x * ssimResults.height + y] + 1.0) / (2.0);
+            //double scaledResult = (ssimResults.results[x * ssimResults.height + y] - ssimResults.min) / (ssimResults.max - ssimResults.min);
+            // Create a square
+            for (int yy = 0; yy < ELEMENT_SIZE; ++yy) {
+                for (int xx = 0; xx < ELEMENT_SIZE; ++xx) {
+                    buffer[(xx  + yy * WIDTH + x * ELEMENT_SIZE + y * WIDTH * ELEMENT_SIZE) * 3 + 0] = 255 * (1.0 - scaledResult);   // R
+                    buffer[(xx  + yy * WIDTH + x * ELEMENT_SIZE + y * WIDTH * ELEMENT_SIZE) * 3 + 1] = 255 * scaledResult;           // G
+                    buffer[(xx  + yy * WIDTH + x * ELEMENT_SIZE + y * WIDTH * ELEMENT_SIZE) * 3 + 2] = 0;                            // B
+                }
+            }
+        }
+    }
+
+    QImage image(buffer, WIDTH, HEIGHT, QImage::Format_RGB888);
+    QPixmap pixmap = QPixmap::fromImage(image);
+
+    delete[] buffer;
+
+    return pixmap;
 }

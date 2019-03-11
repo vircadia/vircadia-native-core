@@ -15,6 +15,7 @@
 #include <OffscreenUi.h>
 #include <Preferences.h>
 #include <RenderShadowTask.h>
+#include <plugins/PluginUtils.h>
 #include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
