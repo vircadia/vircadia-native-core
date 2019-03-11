@@ -247,7 +247,7 @@ void Model::updateRenderItems() {
                 Transform renderTransform = modelTransform;
 
                 if (useDualQuaternionSkinning) {
-                    if (meshState.clusterDualQuaternions.size() == 1) {
+                    if (meshState.clusterDualQuaternions.size() <= 2) {
                         const auto& dq = meshState.clusterDualQuaternions[0];
                         Transform transform(dq.getRotation(),
                                             dq.getScale(),
@@ -255,7 +255,7 @@ void Model::updateRenderItems() {
                         renderTransform = modelTransform.worldTransform(Transform(transform));
                     }
                 } else {
-                    if (meshState.clusterMatrices.size() == 1) {
+                    if (meshState.clusterMatrices.size() <= 2) {
                         renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
                     }
                 }

@@ -1486,8 +1486,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             }
         }
 
-        // if we don't have a skinned joint, parent to the model itself
-        if (extracted.mesh.clusters.isEmpty()) {
+        // the last cluster is the root cluster
+        {
             HFMCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
@@ -1498,13 +1498,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
 
         // whether we're skinned depends on how many clusters are attached
-        const HFMCluster& firstHFMCluster = extracted.mesh.clusters.at(0);
-        glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             // this is a multi-mesh joint
             const int WEIGHTS_PER_VERTEX = 4;
             int numClusterIndices = extracted.mesh.vertices.size() * WEIGHTS_PER_VERTEX;
-            extracted.mesh.clusterIndices.fill(0, numClusterIndices);
+            extracted.mesh.clusterIndices.fill(extracted.mesh.clusters.size() - 1, numClusterIndices);
             QVector<float> weightAccumulators;
             weightAccumulators.fill(0.0f, numClusterIndices);
 
@@ -1526,6 +1524,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                         int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
+                        // FIXME: vertices with no weightpainting won't get recorded here
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
                         if (weight >= EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
@@ -1582,7 +1581,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 }
             }
         } else {
-            // this is a single-mesh joint
+            // this is a single-joint mesh
+            const HFMCluster& firstHFMCluster = extracted.mesh.clusters.at(0);
             int jointIndex = firstHFMCluster.jointIndex;
             HFMJoint& joint = hfmModel.joints[jointIndex];
 
