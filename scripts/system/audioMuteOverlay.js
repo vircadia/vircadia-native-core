@@ -14,7 +14,7 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-(function() { // BEGIN LOCAL_SCOPE
+(function () { // BEGIN LOCAL_SCOPE
     var utilsPath = Script.resolvePath('../developer/libraries/utils.js');
     Script.include(utilsPath);
 
@@ -67,7 +67,7 @@
     }
 
     function hasOverlay() {
-       return Overlays.getProperty(overlayID, "position") !== undefined;
+        return Overlays.getProperty(overlayID, "position") !== undefined;
     }
 
     function updateOverlay() {

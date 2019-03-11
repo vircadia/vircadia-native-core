@@ -88,3 +88,43 @@ bool AudioScriptingInterface::isStereoInput() {
     }
     return stereoEnabled;
 }
+
+bool AudioScriptingInterface::getServerEcho() {
+    bool serverEchoEnabled = false;
+    if (_localAudioInterface) {
+        serverEchoEnabled = _localAudioInterface->getServerEcho();
+    }
+    return serverEchoEnabled;
+}
+
+void AudioScriptingInterface::setServerEcho(bool serverEcho) {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "setServerEcho", Q_ARG(bool, serverEcho));
+    }
+}
+
+void AudioScriptingInterface::toggleServerEcho() {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "toggleServerEcho");
+    }
+}
+
+bool AudioScriptingInterface::getLocalEcho() {
+    bool localEchoEnabled = false;
+    if (_localAudioInterface) {
+        localEchoEnabled = _localAudioInterface->getLocalEcho();
+    }
+    return localEchoEnabled;
+}
+
+void AudioScriptingInterface::setLocalEcho(bool localEcho) {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "setLocalEcho", Q_ARG(bool, localEcho));
+    }
+}
+
+void AudioScriptingInterface::toggleLocalEcho() {
+    if (_localAudioInterface) {
+        QMetaObject::invokeMethod(_localAudioInterface, "toggleLocalEcho");
+    }
+}

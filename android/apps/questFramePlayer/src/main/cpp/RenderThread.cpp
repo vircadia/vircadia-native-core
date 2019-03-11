@@ -117,7 +117,8 @@ void RenderThread::setup() {
     { std::unique_lock<std::mutex> lock(_frameLock); }
 
     ovr::VrHandler::initVr();
-    ovr::VrHandler::setHandler(this);
+    // Enable KHR_no_error for this context
+    ovr::VrHandler::setHandler(this, true);
 
     makeCurrent();
 
