@@ -11,17 +11,10 @@
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 Script.include("/~/system/libraries/controllers.js");
 
-(function () {		// BEGIN LOCAL_SCOPE
+(function() { // BEGIN LOCAL_SCOPE
     function PushToTalkHandler() {
         var _this = this;
         this.active = false;
-        //var pttMapping, mappingName;
-
-        this.setup = function () {
-            //mappingName = 'Hifi-PTT-Dev-' + Math.random();
-            //pttMapping = Controller.newMapping(mappingName);
-            //pttMapping.enable();
-        };
 
         this.shouldTalk = function (controllerData) {
             // Set up test against controllerData here...
@@ -53,10 +46,6 @@ Script.include("/~/system/libraries/controllers.js");
             return makeRunningValues(true, [], []);
         };
 
-        this.cleanup = function () {
-            //pttMapping.disable();
-        };
-
         this.parameters = makeDispatcherModuleParameters(
             950,
             ["head"],
@@ -68,9 +57,8 @@ Script.include("/~/system/libraries/controllers.js");
     enableDispatcherModule("PushToTalk", pushToTalk);
 
     function cleanup() {
-        pushToTalk.cleanup();
         disableDispatcherModule("PushToTalk");
     };
 
     Script.scriptEnding.connect(cleanup);
-}());				// END LOCAL_SCOPE
+}()); // END LOCAL_SCOPE
