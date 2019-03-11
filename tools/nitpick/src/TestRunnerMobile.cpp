@@ -60,6 +60,7 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
     setWorkingFolder(_workingFolderLabel);
 
     _connectDeviceButton->setEnabled(true);
+    _downloadAPKPushbutton->setEnabled(true);
 }
 
 void TestRunnerMobile::connectDevice() {
@@ -154,8 +155,6 @@ void TestRunnerMobile::downloadComplete() {
     } else {
         _statusLabel->setText("Installer download complete");
     }
-
-    _installAPKPushbutton->setEnabled(true);
 }
 
 void TestRunnerMobile::installAPK() {
