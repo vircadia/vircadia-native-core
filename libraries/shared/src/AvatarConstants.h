@@ -76,6 +76,11 @@ const float ANALOG_AVATAR_MAX_WALKING_SPEED = 2.6f; // meters / second
 const float ANALOG_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.2f; // meters / second
 const float ANALOG_AVATAR_MAX_FLYING_SPEED = 30.0f; // meters / second
 const float ANALOG_AVATAR_MAX_SPRINT_SPEED = 3.0f; // meters / second
+const float ANALOG_AVATAR_GEAR_1 = 0.2f;    // meters / second
+const float ANALOG_AVATAR_GEAR_2 = 0.4f;    // meters / second
+const float ANALOG_AVATAR_GEAR_3 = 0.6f;    // meters / second
+const float ANALOG_AVATAR_GEAR_4 = 0.8f;    // meters / second
+const float ANALOG_AVATAR_GEAR_5 = 1.0f;    // meters / second
 
 const float ANALOG_PLUS_AVATAR_MAX_WALKING_SPEED = 3.3f; // meters / second
 const float ANALOG_PLUS_AVATAR_MAX_WALKING_BACKWARD_SPEED = 2.42f; // meters / second

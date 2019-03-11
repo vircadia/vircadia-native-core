@@ -1877,6 +1877,7 @@ private:
     // private methods
     void updateOrientation(float deltaTime);
     glm::vec3 calculateScaledDirection();
+    float calculateGearedSpeed(const float driveKey);
     glm::vec3 scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right);
     void updateActionMotor(float deltaTime);
     void updatePosition(float deltaTime);

@@ -3312,6 +3312,27 @@ void MyAvatar::updateOrientation(float deltaTime) {
 //    return scaledSpeed;
 //}
 
+float MyAvatar::calculateGearedSpeed(const float driveKey) {
+    if (driveKey > getDriveGear5()) {
+        return 1.0f;
+    }
+    else if (driveKey > getDriveGear4()) {
+        return 0.8f;
+    }
+    else if (driveKey > getDriveGear3()) {
+        return 0.6f;
+    }
+    else if (driveKey > getDriveGear2()) {
+        return 0.4f;
+    }
+    else if (driveKey > getDriveGear1()) {
+        return 0.2f;
+    }
+    else {
+        return 0.0f;
+    }
+}
+
 glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right) {
     float stickFullOn = 0.95f;
     auto zSpeed = getDriveKey(TRANSLATE_Z);
@@ -3330,8 +3351,8 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         }
     case CONTROLS_ANALOG:
         if (zSpeed || xSpeed) {
-            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
-            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
+            glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+            glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
             direction = scaledForward + scaledRight;
             return direction;
         } else {
@@ -3339,8 +3360,8 @@ glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 rig
         }
     case CONTROLS_ANALOG_PLUS:
         if (zSpeed || xSpeed) {
-            glm::vec3 scaledForward = getSensorToWorldScale() * zSpeed * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
-            glm::vec3 scaledRight = getSensorToWorldScale() * xSpeed * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
+            glm::vec3 scaledForward = getSensorToWorldScale() * calculateGearedSpeed(zSpeed) * ((zSpeed >= stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * forward;
+            glm::vec3 scaledRight = getSensorToWorldScale() * calculateGearedSpeed(xSpeed) * ((xSpeed > stickFullOn) ? getSprintSpeed() : getWalkSpeed()) * right;
             direction = scaledForward + scaledRight;
             return direction;
         } else {
@@ -3987,11 +4008,19 @@ void MyAvatar::setDriveGear1(float shiftPoint) {
         return;
     }
     if (shiftPoint > 1.0 || shiftPoint < 0) return;
-    _driveGear1 = (shiftPoint <= _driveGear2) ? shiftPoint : _driveGear1;
+    _driveGear1 = (shiftPoint < _driveGear2) ? shiftPoint : _driveGear1;
 }
 
 float MyAvatar::getDriveGear1() {
-    return _driveGear1;
+    switch (_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return ANALOG_AVATAR_GEAR_1;
+    case CONTROLS_ANALOG_PLUS:
+        return _driveGear1;
+    case CONTROLS_DEFAULT:
+    default:
+        return 1.0f;
+    }
 }
 
 void MyAvatar::setDriveGear2(float shiftPoint) {
@@ -4000,11 +4029,19 @@ void MyAvatar::setDriveGear2(float shiftPoint) {
         return;
     }
     if (shiftPoint > 1.0 || shiftPoint < 0) return;
-    _driveGear2 = (shiftPoint <= _driveGear3 && shiftPoint >= _driveGear1) ? shiftPoint : _driveGear2;
+    _driveGear2 = (shiftPoint < _driveGear3 && shiftPoint >= _driveGear1) ? shiftPoint : _driveGear2;
 }
 
 float MyAvatar::getDriveGear2() {
-    return _driveGear2;
+    switch (_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return ANALOG_AVATAR_GEAR_2;
+    case CONTROLS_ANALOG_PLUS:
+        return _driveGear2;
+    case CONTROLS_DEFAULT:
+    default:
+        return 1.0f;
+    }
 }
 
 void MyAvatar::setDriveGear3(float shiftPoint) {
@@ -4013,11 +4050,19 @@ void MyAvatar::setDriveGear3(float shiftPoint) {
         return;
     }
     if (shiftPoint > 1.0 || shiftPoint < 0) return;
-    _driveGear3 = (shiftPoint <= _driveGear4 && shiftPoint >= _driveGear2) ? shiftPoint : _driveGear3;
+    _driveGear3 = (shiftPoint < _driveGear4 && shiftPoint >= _driveGear2) ? shiftPoint : _driveGear3;
 }
 
 float MyAvatar::getDriveGear3() {
-    return _driveGear3;
+    switch (_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return ANALOG_AVATAR_GEAR_3;
+    case CONTROLS_ANALOG_PLUS:
+        return _driveGear3;
+    case CONTROLS_DEFAULT:
+    default:
+        return 1.0f;
+    }
 }
 
 void MyAvatar::setDriveGear4(float shiftPoint) {
@@ -4026,11 +4071,19 @@ void MyAvatar::setDriveGear4(float shiftPoint) {
         return;
     }
     if (shiftPoint > 1.0 || shiftPoint < 0) return;
-    _driveGear4 = (shiftPoint <= _driveGear5 && shiftPoint >= _driveGear3) ? shiftPoint : _driveGear4;
+    _driveGear4 = (shiftPoint < _driveGear5 && shiftPoint >= _driveGear3) ? shiftPoint : _driveGear4;
 }
 
 float MyAvatar::getDriveGear4() {
-    return _driveGear4;
+    switch (_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return ANALOG_AVATAR_GEAR_4;
+    case CONTROLS_ANALOG_PLUS:
+        return _driveGear4;
+    case CONTROLS_DEFAULT:
+    default:
+        return 1.0f;
+    }
 }
 
 void MyAvatar::setDriveGear5(float shiftPoint) {
@@ -4039,11 +4092,19 @@ void MyAvatar::setDriveGear5(float shiftPoint) {
         return;
     }
     if (shiftPoint > 1.0 || shiftPoint < 0) return;
-    _driveGear5 = (shiftPoint >= _driveGear4) ? shiftPoint : _driveGear5;
+    _driveGear5 = (shiftPoint > _driveGear4) ? shiftPoint : _driveGear5;
 }
 
 float MyAvatar::getDriveGear5() {
-    return _driveGear5;
+    switch (_controlSchemeIndex) {
+    case CONTROLS_ANALOG:
+        return ANALOG_AVATAR_GEAR_5;
+    case CONTROLS_ANALOG_PLUS:
+        return _driveGear5;
+    case CONTROLS_DEFAULT:
+    default:
+        return 1.0f;
+    }
 }
 
 bool MyAvatar::getFlyingHMDPref() {
