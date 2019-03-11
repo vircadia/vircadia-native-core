@@ -28,7 +28,7 @@ PropItem {
         flat: true
 
         anchors.left: root.splitter.right
-        anchors.right: parent.right 
+        anchors.right: root.right 
         anchors.verticalCenter: root.verticalCenter
         height: global.slimHeight
 

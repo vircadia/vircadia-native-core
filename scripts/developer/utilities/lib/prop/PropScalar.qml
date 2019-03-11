@@ -61,7 +61,6 @@ PropItem {
         stepSize: root.integral ? 1.0 : 0.0
         anchors.left: valueLabel.right
         anchors.right: root.right
-        anchors.rightMargin: 0
         anchors.verticalCenter: root.verticalCenter
 
         onValueChanged: { root.valueVarSetter(value) }

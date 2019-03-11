@@ -33,28 +33,16 @@ ComboBox {
         highlighted: valueCombo.highlightedIndex === index
     }
 
-    indicator: Canvas {
+    indicator: PiCanvasIcon {
         id: canvas
         x: valueCombo.width - width - valueCombo.rightPadding
         y: valueCombo.topPadding + (valueCombo.availableHeight - height) / 2
-        width: 12
-        height: 8
-        contextType: "2d"
 
-        Connections {
+        icon: 1
+        /*Connections {
             target: valueCombo
-            onPressedChanged: canvas.requestPaint()
-        }
-
-        onPaint: {
-            context.reset();
-            context.moveTo(0, 0);
-            context.lineTo(width, 0);
-            context.lineTo(width / 2, height);
-            context.closePath();
-            context.fillStyle = (valueCombo.pressed) ? global.colorBorderHighight : global.colorBorderLight;
-            context.fill();
-        }
+            onPressedChanged: { canvas.icon = control.down + 1 }
+        }*/
     }
 
     contentItem: PiText {

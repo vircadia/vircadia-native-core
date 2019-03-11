@@ -25,56 +25,83 @@ Item {
 
     property var label: "group"
 
-    property var isUnfold: false
-
+    property alias isUnfold: headerRect.icon
+    
     Item {
         id: header
         height: global.slimHeight
         anchors.left: parent.left           
         anchors.right: parent.right
-    
+
+        Item {
+            id: folder
+            anchors.left: header.left
+            width: headerRect.width * 2
+            anchors.verticalCenter: header.verticalCenter
+            height: parent.height
+            
+            PropCanvasIcon {
+                id: headerRect
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.verticalCenter: parent.verticalCenter
+                 
+                MouseArea{
+                    id: mousearea
+                    anchors.fill: parent
+                    onClicked: {
+                        root.isUnfold = !root.isUnfold
+                    }
+                }
+            }
+        }
+
         PropLabel {
             id: labelControl
-            anchors.left: header.left
-            width: 0.9 * header.width
+            anchors.left: folder.right
+            anchors.right: header.right
             anchors.verticalCenter: header.verticalCenter
             text: root.label
             horizontalAlignment: Text.AlignHCenter
         }
 
-        Rectangle {
-            id: headerRect
-            color: global.color
-            border.color: global.colorBorderLight
-            border.width: global.valueBorderWidth
-            radius: global.valueBorderRadius
-           
-            anchors.left: labelControl.right
-            anchors.right: header.right
-            anchors.verticalCenter: header.verticalCenter
-            height: parent.height
+     /*   Rectangle {
+            anchors.left: parent.left           
+            anchors.right: parent.right
+            height: 1
+            anchors.bottom: parent.bottom
+            color: global.colorBorderHighight
+       
+            visible: root.isUnfold   
+        }*/
+    }
 
-            MouseArea{
-                id: mousearea
-                anchors.fill: parent
-                onClicked: {
-                    root.isUnfold = !root.isUnfold
-                }
-            }
+    Rectangle {
+        visible: root.isUnfold
+
+        color: "transparent"
+        border.color: global.colorBorderLight
+        border.width: global.valueBorderWidth
+        radius: global.valueBorderRadius
+
+        anchors.left: parent.left           
+        anchors.right: parent.right
+        anchors.top: header.bottom
+        anchors.bottom: root.bottom  
+
+        Column {
+            id: column
+          //  anchors.top: header.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right   
+            clip: true
+
+            // Where the propItems are added
         }
     }
-    
-    Column {
-        id: column
-        visible: root.isUnfold
-        anchors.top: header.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right   
-        clip: true
 
-        // Where the propItems are added
-    }
     height: header.height + isUnfold * column.height
+    anchors.leftMargin: global.horizontalMargin
+    anchors.rightMargin: global.horizontalMargin
 
     function updatePropItems() {
          for (var i = 0; i < root.propItems.length; i++) {
