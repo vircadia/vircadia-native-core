@@ -184,18 +184,15 @@ Rectangle {
                 switchWidth: root.switchWidth;
                 labelTextOn: qsTr("Push To Talk (T)");
                 backgroundOnColor: "#E3E3E3";
-                checked: (bar.currentIndex === 1 && isVR) ||
-                             (bar.currentIndex === 0 && !isVR) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
+                checked: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
                 onCheckedChanged: {
-                    if ((bar.currentIndex === 1 && isVR) ||
-                             (bar.currentIndex === 0 && !isVR)) {
+                    if (bar.currentIndex === 0) {
                         AudioScriptingInterface.pushToTalkDesktop = checked;
                     } else {
                         AudioScriptingInterface.pushToTalkHMD = checked;
                     }
                     checked = Qt.binding(function() {
-                        if ((bar.currentIndex === 1 && isVR) ||
-                             (bar.currentIndex === 0 && !isVR)) {
+                        if (bar.currentIndex === 0) {
                             return AudioScriptingInterface.pushToTalkDesktop;
                         } else {
                             return AudioScriptingInterface.pushToTalkHMD;
@@ -218,13 +215,11 @@ Rectangle {
                     id: pttText
                     color: hifi.colors.white;
                     width: parent.width;
-                    wrapMode: (bar.currentIndex === 1 && isVR) ||
-                                 (bar.currentIndex === 0 && !isVR) ? Text.NoWrap : Text.WordWrap;
+                    wrapMode: (bar.currentIndex === 0) ? Text.NoWrap : Text.WordWrap;
                     font.italic: true
                     size: 16;
 
-                    text: (bar.currentIndex === 1 && isVR) ||
-                                 (bar.currentIndex === 0 && !isVR) ? qsTr("Press and hold the button \"T\" to unmute.") :
+                    text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to unmute.") :
                                     qsTr("Press and hold grip triggers on both of your controllers to unmute.");
                     onTextChanged: {
                         if (pttTextMetrics.width > pttTextContainer.width) {
