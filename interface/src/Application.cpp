@@ -4047,6 +4047,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
         _keysPressed.insert(event->key(), *event);
     }
 
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
     _controllerScriptingInterface->emitKeyPressEvent(event); // send events to any registered scripts
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isKeyCaptured(event) || isInterstitialMode()) {
@@ -4215,7 +4216,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_T:
-                auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
                 audioScriptingInterface->setPushingToTalk(true);
                 break;
 
@@ -4325,9 +4325,9 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         _keyboardMouseDevice->keyReleaseEvent(event);
     }
 
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
     switch (event->key()) {
     case Qt::Key_T:
-        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
         audioScriptingInterface->setPushingToTalk(false);
         break;
     }
