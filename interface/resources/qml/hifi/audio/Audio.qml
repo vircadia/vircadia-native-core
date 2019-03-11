@@ -166,10 +166,12 @@ Rectangle {
 
             Separator {}
 
-            ColumnLayout {
-                spacing: muteMic.spacing;
+            Item {
+                width: rightMostInputLevelPos
+                height: pttTextContainer.height + pttCheckBox.height + margins.paddings + 10
                 AudioControls.CheckBox {
-                    spacing: muteMic.spacing
+                    id: pttCheckBox
+                    anchors.top: parent.top
                     text: qsTr("Push To Talk (T)");
                     checked: isVR ? AudioScriptingInterface.pushToTalkHMD : AudioScriptingInterface.pushToTalkDesktop;
                     onClicked: {
@@ -189,69 +191,9 @@ Rectangle {
                 }
                 Item {
                     id: pttTextContainer
-                    x: margins.paddings;
-                    width: rightMostInputLevelPos
-                    height: pttTextMetrics.height
-                    visible: true
-                    TextMetrics {
-                        id: pttTextMetrics
-                        text: pttText.text
-                        font: pttText.font
-                    }
-                    RalewayRegular {
-                        id: pttText
-                        wrapMode: Text.WordWrap
-                        color: hifi.colors.white;
-                        width: parent.width;
-                        font.italic: true
-                        size: 16;
-                        text: isVR ? qsTr("Press and hold grip triggers on both of your controllers to unmute.") :
-                            qsTr("Press and hold the button \"T\" to unmute.");
-                        onTextChanged: {
-                            if (pttTextMetrics.width > rightMostInputLevelPos) {
-                                pttTextContainer.height = Math.ceil(pttTextMetrics.width / rightMostInputLevelPos) * pttTextMetrics.height;
-                            } else {
-                                pttTextContainer.height = pttTextMetrics.height;
-                            }
-                        }
-                    }
-                    Component.onCompleted: {
-                        if (pttTextMetrics.width > rightMostInputLevelPos) {
-                            pttTextContainer.height = Math.ceil(pttTextMetrics.width / rightMostInputLevelPos) * pttTextMetrics.height;
-                        } else {
-                            pttTextContainer.height = pttTextMetrics.height;
-                        }
-                    }
-                }
-            }
-
-            Separator {}
-
-            ColumnLayout {
-                spacing: muteMic.spacing;
-                AudioControls.CheckBox {
-                    spacing: muteMic.spacing
-                    text: qsTr("Push To Talk (T)");
-                    checked: isVR ? AudioScriptingInterface.pushToTalkHMD : AudioScriptingInterface.pushToTalkDesktop;
-                    onClicked: {
-                        if (isVR) {
-                            AudioScriptingInterface.pushToTalkHMD = checked;
-                        } else {
-                            AudioScriptingInterface.pushToTalkDesktop = checked;
-                        }
-                        checked = Qt.binding(function() {
-                            if (isVR) {
-                                return AudioScriptingInterface.pushToTalkHMD;
-                            } else {
-                                return AudioScriptingInterface.pushToTalkDesktop;
-                            }
-                        }); // restore binding
-                    }
-                }
-                Item {
-                    id: pttTextContainer
-                    x: margins.paddings;
-                    width: rightMostInputLevelPos
+                    anchors.top: pttCheckBox.bottom
+                    anchors.topMargin: 10
+                    width: parent.width
                     height: pttTextMetrics.height
                     visible: true
                     TextMetrics {
