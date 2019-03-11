@@ -171,15 +171,14 @@ Rectangle {
             }
         }
 
-        Separator {}
-
-
-        ColumnLayout {
-            id: pttColumn
-            spacing: 24;
-            x: 2 * margins.paddings;
+        Separator { id: pttStartSeparator; }
+        Item {
+            width: rightMostInputLevelPos;
+            height: pttSwitch.height + pttText.height + 24;
             HifiControlsUit.Switch {
                 id: pttSwitch
+                x: 2 * margins.paddings;
+                anchors.top: parent.top;
                 height: root.switchHeight;
                 switchWidth: root.switchWidth;
                 labelTextOn: qsTr("Push To Talk (T)");
@@ -200,39 +199,25 @@ Rectangle {
                     }); // restore binding
                 }
             }
-            Item {
-                id: pttTextContainer
-                width: rightMostInputLevelPos
-                height: pttTextMetrics.height
-                anchors.left: parent.left
-                anchors.leftMargin: -margins.padding
-                TextMetrics {
-                    id: pttTextMetrics
-                    text: pttText.text
-                    font: pttText.font
-                }
-                RalewayRegular {
-                    id: pttText
-                    color: hifi.colors.white;
-                    width: parent.width;
-                    wrapMode: (bar.currentIndex === 0) ? Text.NoWrap : Text.WordWrap;
-                    font.italic: true
-                    size: 16;
+            RalewayRegular {
+                id: pttText
+                x: 2 * margins.paddings;
+                color: hifi.colors.white;
+                anchors.bottom: parent.bottom;
+                width: rightMostInputLevelPos;
+                height: paintedHeight;
+                wrapMode: Text.WordWrap;
+                font.italic: true
+                size: 16;
 
-                    text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to unmute.") :
-                                    qsTr("Press and hold grip triggers on both of your controllers to unmute.");
-                    onTextChanged: {
-                        if (pttTextMetrics.width > pttTextContainer.width) {
-                            pttTextContainer.height = Math.ceil(pttTextMetrics.width / pttTextContainer.width) * pttTextMetrics.height;
-                        } else {
-                            pttTextContainer.height = pttTextMetrics.height;
-                        }
-                    }
-                }
+                text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to unmute.") :
+                                qsTr("Press and hold grip triggers on both of your controllers to unmute.");
             }
         }
 
-        Separator {}
+        Separator { 
+            id: pttEndSeparator;
+        }
 
 
         Item {
