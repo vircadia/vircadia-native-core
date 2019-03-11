@@ -178,6 +178,8 @@ Rectangle {
                 height: pttTextContainer.height + pttCheckBox.height + margins.paddings + 10
                 AudioControls.CheckBox {
                     id: pttCheckBox
+                    spacing: muteMic.spacing;
+                    width: rightMostInputLevelPos
                     anchors.top: parent.top
                     text: qsTr("Push To Talk (T)");
                     checked: isVR ? AudioScriptingInterface.pushToTalkHMD : AudioScriptingInterface.pushToTalkDesktop;
