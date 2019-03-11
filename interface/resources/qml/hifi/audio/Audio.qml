@@ -104,7 +104,6 @@ Rectangle {
 
         RowLayout {
             x: 2 * margins.paddings;
-            spacing: columnOne.width;
             width: parent.width;
 
             // mute is in its own row
@@ -170,66 +169,66 @@ Rectangle {
                     }
                 }
             }
+        }
 
-            Separator {}
+        Separator {}
 
-            Item {
-                width: rightMostInputLevelPos
-                height: pttTextContainer.height + pttCheckBox.height + margins.paddings + 10
-                AudioControls.CheckBox {
-                    id: pttCheckBox
-                    spacing: muteMic.spacing;
-                    width: rightMostInputLevelPos
-                    anchors.top: parent.top
-                    text: qsTr("Push To Talk (T)");
-                    checked: isVR ? AudioScriptingInterface.pushToTalkHMD : AudioScriptingInterface.pushToTalkDesktop;
-                    onClicked: {
-                        if (isVR) {
-                            AudioScriptingInterface.pushToTalkHMD = checked;
+
+        ColumnLayout {
+            id: pttColumn
+            spacing: 24;
+            x: 2 * margins.paddings;
+            HifiControlsUit.Switch {
+                id: pttSwitch
+                height: root.switchHeight;
+                switchWidth: root.switchWidth;
+                labelTextOn: qsTr("Push To Talk (T)");
+                backgroundOnColor: "#E3E3E3";
+                checked: (bar.currentIndex === 1 && isVR) ||
+                             (bar.currentIndex === 0 && !isVR) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
+                onCheckedChanged: {
+                    if ((bar.currentIndex === 1 && isVR) ||
+                             (bar.currentIndex === 0 && !isVR)) {
+                        AudioScriptingInterface.pushToTalkDesktop = checked;
+                    } else {
+                        AudioScriptingInterface.pushToTalkHMD = checked;
+                    }
+                    checked = Qt.binding(function() {
+                        if ((bar.currentIndex === 1 && isVR) ||
+                             (bar.currentIndex === 0 && !isVR)) {
+                            return AudioScriptingInterface.pushToTalkDesktop;
                         } else {
-                            AudioScriptingInterface.pushToTalkDesktop = checked;
+                            return AudioScriptingInterface.pushToTalkHMD;
                         }
-                        checked = Qt.binding(function() {
-                            if (isVR) {
-                                return AudioScriptingInterface.pushToTalkHMD;
-                            } else {
-                                return AudioScriptingInterface.pushToTalkDesktop;
-                            }
-                        }); // restore binding
-                    }
+                    }); // restore binding
                 }
-                Item {
-                    id: pttTextContainer
-                    anchors.top: pttCheckBox.bottom
-                    anchors.topMargin: 10
-                    width: parent.width
-                    height: pttTextMetrics.height
-                    visible: true
-                    TextMetrics {
-                        id: pttTextMetrics
-                        text: pttText.text
-                        font: pttText.font
-                    }
-                    RalewayRegular {
-                        id: pttText
-                        wrapMode: Text.WordWrap
-                        color: hifi.colors.white;
-                        width: parent.width;
-                        font.italic: true
-                        size: 16;
-                        text: isVR ? qsTr("Press and hold grip triggers on both of your controllers to unmute.") :
-                            qsTr("Press and hold the button \"T\" to unmute.");
-                        onTextChanged: {
-                            if (pttTextMetrics.width > rightMostInputLevelPos) {
-                                pttTextContainer.height = Math.ceil(pttTextMetrics.width / rightMostInputLevelPos) * pttTextMetrics.height;
-                            } else {
-                                pttTextContainer.height = pttTextMetrics.height;
-                            }
-                        }
-                    }
-                    Component.onCompleted: {
-                        if (pttTextMetrics.width > rightMostInputLevelPos) {
-                            pttTextContainer.height = Math.ceil(pttTextMetrics.width / rightMostInputLevelPos) * pttTextMetrics.height;
+            }
+            Item {
+                id: pttTextContainer
+                width: rightMostInputLevelPos
+                height: pttTextMetrics.height
+                anchors.left: parent.left
+                anchors.leftMargin: -margins.padding
+                TextMetrics {
+                    id: pttTextMetrics
+                    text: pttText.text
+                    font: pttText.font
+                }
+                RalewayRegular {
+                    id: pttText
+                    color: hifi.colors.white;
+                    width: parent.width;
+                    wrapMode: (bar.currentIndex === 1 && isVR) ||
+                                 (bar.currentIndex === 0 && !isVR) ? Text.NoWrap : Text.WordWrap;
+                    font.italic: true
+                    size: 16;
+
+                    text: (bar.currentIndex === 1 && isVR) ||
+                                 (bar.currentIndex === 0 && !isVR) ? qsTr("Press and hold the button \"T\" to unmute.") :
+                                    qsTr("Press and hold grip triggers on both of your controllers to unmute.");
+                    onTextChanged: {
+                        if (pttTextMetrics.width > pttTextContainer.width) {
+                            pttTextContainer.height = Math.ceil(pttTextMetrics.width / pttTextContainer.width) * pttTextMetrics.height;
                         } else {
                             pttTextContainer.height = pttTextMetrics.height;
                         }
@@ -239,6 +238,7 @@ Rectangle {
         }
 
         Separator {}
+
 
         Item {
             x: margins.paddings;
@@ -293,7 +293,7 @@ Rectangle {
                     text: devicename
                     onPressed: {
                         if (!checked) {
-                            stereoMic.checked = false;
+                            stereoInput.checked = false;
                             AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }
