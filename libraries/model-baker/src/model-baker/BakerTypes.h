@@ -12,6 +12,7 @@
 #ifndef hifi_BakerTypes_h
 #define hifi_BakerTypes_h
 
+#include <QUrl>
 #include <hfm/HFM.h>
 
 namespace baker {
@@ -35,6 +36,7 @@ namespace baker {
     using TangentsPerBlendshape = std::vector<std::vector<glm::vec3>>;
 
     using MeshIndicesToModelNames = QHash<int, QString>;
+    using GeometryMappingPair = std::pair<QUrl, QVariantHash>;
 };
 
 #endif // hifi_BakerTypes_h

@@ -20,6 +20,7 @@
 #include "CalculateBlendshapeNormalsTask.h"
 #include "CalculateBlendshapeTangentsTask.h"
 #include "PrepareJointsTask.h"
+#include "ParseFlowDataTask.h"
 
 namespace baker {
 
@@ -101,7 +102,7 @@ namespace baker {
 
     class BuildModelTask {
     public:
-        using Input = VaryingSet5<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>>;
+        using Input = VaryingSet6<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>, FlowData>;
         using Output = hfm::Model::Pointer;
         using JobModel = Job::ModelIO<BuildModelTask, Input, Output>;
 
@@ -111,13 +112,14 @@ namespace baker {
             hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
+            hfmModelOut->flowData = input.get5();
             output = hfmModelOut;
         }
     };
 
     class BakerEngineBuilder {
     public:
-        using Input = VaryingSet2<hfm::Model::Pointer, QVariantHash>;
+        using Input = VaryingSet2<hfm::Model::Pointer, GeometryMappingPair>;
         using Output = VaryingSet2<hfm::Model::Pointer, MaterialMapping>;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& input, Varying& output) {
@@ -157,19 +159,22 @@ namespace baker {
             // Parse material mapping
             const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", mapping);
 
+            // Parse flow data
+            const auto flowData = model.addJob<ParseFlowDataTask>("ParseFlowData", mapping);
+
             // Combine the outputs into a new hfm::Model
             const auto buildBlendshapesInputs = BuildBlendshapesTask::Input(blendshapesPerMeshIn, normalsPerBlendshapePerMesh, tangentsPerBlendshapePerMesh).asVarying();
             const auto blendshapesPerMeshOut = model.addJob<BuildBlendshapesTask>("BuildBlendshapes", buildBlendshapesInputs);
             const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
             const auto meshesOut = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
-            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices).asVarying();
+            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
 
             output = Output(hfmModelOut, materialMapping);
         }
     };
 
-    Baker::Baker(const hfm::Model::Pointer& hfmModel, const QVariantHash& mapping) :
+    Baker::Baker(const hfm::Model::Pointer& hfmModel, const GeometryMappingPair& mapping) :
         _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
         _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
         _engine->feedInput<BakerEngineBuilder::Input>(1, mapping);

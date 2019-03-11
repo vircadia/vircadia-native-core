@@ -1531,7 +1531,6 @@ void AudioClient::setNoiseReduction(bool enable, bool emitSignal) {
     }
 }
 
-
 bool AudioClient::setIsStereoInput(bool isStereoInput) {
     bool stereoInputChanged = false;
     if (isStereoInput != _isStereoInput && _inputDeviceInfo.supportedChannelCounts().contains(2)) {

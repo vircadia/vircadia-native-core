@@ -19,6 +19,11 @@ Script.include("/~/system/libraries/controllers.js");
 
 var isShowingOverlays = true;
 var debugOverlays = {};
+var textSizeOverlay = Overlays.addOverlay("text3d", {
+    position: MyAvatar.position,
+    lineHeight: 0.1,
+    visible: false
+});
 
 function removeOverlays() {
     // enumerate the overlays and remove them
@@ -30,6 +35,8 @@ function removeOverlays() {
             Overlays.deleteOverlay(debugOverlays[avatarID][j]);
         }
     }
+
+    Overlays.deleteOverlay(textSizeOverlay);
 
     debugOverlays = {};
 }
@@ -60,8 +67,6 @@ function updateOverlays() {
             var overlayPosition = avatar.getJointPosition("Head");
             overlayPosition.y += 1.15;
 
-            var rows = 8;
-
             var text = avatarID + "\n"
                        +"--- Data from Mixer ---\n"
                        +"All: " + AvatarManager.getAvatarDataRate(avatarID).toFixed(2) + "kbps (" + AvatarManager.getAvatarUpdateRate(avatarID).toFixed(2) + "hz)" + "\n"
@@ -85,9 +90,11 @@ function updateOverlays() {
                        //+" SM: " + AvatarManager.getAvatarSimulationRate(avatarID,"skeletonModel").toFixed(2) + "hz \n"
                        +" JD: " + AvatarManager.getAvatarSimulationRate(avatarID,"jointData").toFixed(2) + "hz \n"
 
+            var dimensions = Overlays.textSize(textSizeOverlay, text);
             if (avatarID in debugOverlays) {
                 // keep the overlay above the current position of this avatar
                 Overlays.editOverlay(debugOverlays[avatarID][0], {
+                    dimensions: { x: 1.1 * dimensions.width, y: 0.6 * dimensions.height },
                     position: overlayPosition,
                     text: text
                 });
@@ -95,15 +102,9 @@ function updateOverlays() {
                 // add the overlay above this avatar
                 var newOverlay = Overlays.addOverlay("text3d", {
                     position: overlayPosition,
-                    dimensions: {
-                        x: 1.25,
-                        y: rows * 0.13
-                    },
+                    dimensions: { x: 1.1 * dimensions.width, y: 0.6 * dimensions.height },
                     lineHeight: 0.1,
-                    font:{size:0.1},
                     text: text,
-                    size: 1,
-                    scale: 0.4,
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1,
                     solid: true,

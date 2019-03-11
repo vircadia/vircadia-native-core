@@ -36,11 +36,6 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 26
-    //buildToolsVersion '27.0.3'
-
-    def appVersionCode = Integer.valueOf(VERSION_CODE ?: 1)
-    def appVersionName = RELEASE_NUMBER ?: "1.0"
-
     defaultConfig {
         applicationId "io.highfidelity.hifiinterface"
         minSdkVersion 24
@@ -66,10 +61,10 @@ android {
         }
         signingConfigs {
             release {
-                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : null
-                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : ''
-                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : ''
-                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : ''
+                storeFile project.hasProperty("HIFI_ANDROID_KEYSTORE") ? file(HIFI_ANDROID_KEYSTORE) : file('../keystore.jks')
+                storePassword project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") ? HIFI_ANDROID_KEYSTORE_PASSWORD : 'password'
+                keyAlias project.hasProperty("HIFI_ANDROID_KEY_ALIAS") ? HIFI_ANDROID_KEY_ALIAS : 'key0'
+                keyPassword project.hasProperty("HIFI_ANDROID_KEY_PASSWORD") ? HIFI_ANDROID_KEY_PASSWORD : 'password'
             }
         }
     }
@@ -90,10 +85,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig project.hasProperty("HIFI_ANDROID_KEYSTORE") &&
-                    project.hasProperty("HIFI_ANDROID_KEYSTORE_PASSWORD") &&
-                    project.hasProperty("HIFI_ANDROID_KEY_ALIAS") &&
-                    project.hasProperty("HIFI_ANDROID_KEY_PASSWORD")? signingConfigs.release : null
+            signingConfig signingConfigs.release
             buildConfigField "String", "BACKTRACE_URL", "\"" + (System.getenv("CMAKE_BACKTRACE_URL") ? System.getenv("CMAKE_BACKTRACE_URL") : '') + "\""
             buildConfigField "String", "BACKTRACE_TOKEN", "\"" + (System.getenv("CMAKE_BACKTRACE_TOKEN") ? System.getenv("CMAKE_BACKTRACE_TOKEN") : '') + "\""
             buildConfigField "String", "OAUTH_CLIENT_ID", "\"" + (System.getenv("OAUTH_CLIENT_ID") ? System.getenv("OAUTH_CLIENT_ID") : '') + "\""

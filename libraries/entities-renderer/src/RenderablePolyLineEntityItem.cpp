@@ -19,6 +19,8 @@
 #include <PerfStat.h>
 #include <shaders/Shaders.h>
 
+#include <DisableDeferred.h>
+
 #include "paintStroke_Shared.slh"
 
 using namespace render;
@@ -44,7 +46,13 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
 
 void PolyLineEntityRenderer::buildPipeline() {
     // FIXME: opaque pipeline
-    gpu::ShaderPointer program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+    gpu::ShaderPointer program;
+    if (DISABLE_DEFERRED) {
+        program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_forward);
+    } else {
+        program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
+    }
+
     {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setCullMode(gpu::State::CullMode::CULL_NONE);
@@ -170,18 +178,19 @@ void PolyLineEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
 
 void PolyLineEntityRenderer::updateGeometry() {
     int maxNumVertices = std::min(_points.length(), _normals.length());
-
     bool doesStrokeWidthVary = false;
-    if (_widths.size() >= 0) {
+    if (_widths.size() > 0) {
+        float prevWidth = _widths[0];
         for (int i = 1; i < maxNumVertices; i++) {
-            float width = PolyLineEntityItem::DEFAULT_LINE_WIDTH;
-            if (i < _widths.length()) {
-                width = _widths[i];
-            }
-            if (width != _widths[i - 1]) {
+            float width = i < _widths.length() ? _widths[i] : PolyLineEntityItem::DEFAULT_LINE_WIDTH;
+            if (width != prevWidth) {
                 doesStrokeWidthVary = true;
                 break;
             }
+            if (i > _widths.length() + 1) {
+                break;
+            }
+            prevWidth = width;
         }
     }
 
@@ -193,12 +202,13 @@ void PolyLineEntityRenderer::updateGeometry() {
 
     std::vector<PolylineVertex> vertices;
     vertices.reserve(maxNumVertices);
+
     for (int i = 0; i < maxNumVertices; i++) {
         // Position
         glm::vec3 point = _points[i];
-
         // uCoord
         float width = i < _widths.size() ? _widths[i] : PolyLineEntityItem::DEFAULT_LINE_WIDTH;
+
         if (i > 0) { // First uCoord is 0.0f
             if (!_isUVModeStretch) {
                 accumulatedDistance += glm::distance(point, _points[i - 1]);

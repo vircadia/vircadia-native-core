@@ -463,6 +463,7 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
     auto flowPrefix = FLOW_JOINT_PREFIX.toUpper();
     auto simPrefix = SIM_JOINT_PREFIX.toUpper();
     std::vector<int> handsIndices;
+    _groupSettings.clear();
 
     for (int i = 0; i < skeleton->getNumJoints(); i++) {
         auto name = skeleton->getJointName(i);
@@ -509,6 +510,7 @@ void Flow::calculateConstraints(const std::shared_ptr<AnimSkeleton>& skeleton,
                     auto flowJoint = FlowJoint(i, parentIndex, -1, name, group, jointSettings);
                     _flowJointData.insert(std::pair<int, FlowJoint>(i, flowJoint));
                 }
+                updateGroupSettings(group, jointSettings);
             }
         } else {
             if (PRESET_COLLISION_DATA.find(name) != PRESET_COLLISION_DATA.end()) {
@@ -727,6 +729,7 @@ void Flow::setPhysicsSettingsForGroup(const QString& group, const FlowPhysicsSet
             joint.second.setSettings(settings);
         }
     }
+    updateGroupSettings(group, settings);
 }
 
 bool Flow::getJointPositionInWorldFrame(const AnimPoseVec& absolutePoses, int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
@@ -780,4 +783,12 @@ Flow& Flow::operator=(const Flow& otherFlow) {
         }
     }
     return *this;
+}
+
+void Flow::updateGroupSettings(const QString& group, const FlowPhysicsSettings& settings) {
+    if (_groupSettings.find(group) == _groupSettings.end()) {
+        _groupSettings.insert(std::pair<QString, FlowPhysicsSettings>(group, settings));
+    } else {
+        _groupSettings[group] = settings;
+    }
 }

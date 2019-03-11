@@ -376,7 +376,7 @@ Item {
     }
     FiraSansRegular {
         id: nameCardConnectionInfoText
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
         width: parent.width
         height: displayNameTextPixelSize
         size: displayNameTextPixelSize - 4
@@ -412,7 +412,7 @@ Item {
     }
     FiraSansRegular {
         id: nameCardRemoveConnectionText
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
         width: parent.width
         height: displayNameTextPixelSize
         size: displayNameTextPixelSize - 4
@@ -425,7 +425,7 @@ Item {
     }
     HifiControls.Button {
         id: visitConnectionButton
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
         text: "Visit"
         enabled: thisNameCard.placeName !== ""
         anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
@@ -450,7 +450,7 @@ Item {
         // Style
         radius: 4
         color: "#c5c5c5"
-        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent
+        visible: (!isMyCard && (selected && pal.activeTab == "nearbyTab")) && isPresent
         // Rectangle for the zero-gain point on the VU meter
         Rectangle {
             id: vuMeterZeroGain
@@ -481,7 +481,7 @@ Item {
             id: vuMeterBase
             // Anchors
             anchors.fill: parent
-            visible: isMyCard || selected
+            visible: !isMyCard && selected
             // Style
             color: parent.color
             radius: parent.radius
@@ -489,7 +489,7 @@ Item {
         // Rectangle for the VU meter audio level
         Rectangle {
             id: vuMeterLevel
-            visible: isMyCard || selected
+            visible: !isMyCard && selected
             // Size
             width: (thisNameCard.audioLevel) * parent.width
             // Style
@@ -525,7 +525,7 @@ Item {
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
         anchors.left: nameCardVUMeter.left;
         // Properties
-        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent;
+        visible: (!isMyCard && (selected && pal.activeTab == "nearbyTab")) && isPresent;
         minimumValue: -60.0
         maximumValue: 20.0
         stepSize: 5
@@ -572,19 +572,7 @@ Item {
                 implicitHeight: 16
             }
         }
-         RalewayRegular {
-            // The slider for my card is special, it controls the master gain
-            id: gainSliderText;
-            visible: isMyCard;
-            text: "master volume";
-            size: hifi.fontSizes.tabularData;
-            anchors.left: parent.right;
-            anchors.leftMargin: 8;
-            color: hifi.colors.baseGrayHighlight;
-            horizontalAlignment: Text.AlignLeft;
-            verticalAlignment: Text.AlignTop;
-        }
-   }
+    }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
         if (Users.getAvatarGain(avatarUuid) != sliderValue) {

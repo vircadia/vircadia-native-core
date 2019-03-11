@@ -29,8 +29,14 @@ QMap<QString, QString> getJointNameMapping(const QVariantHash& mapping) {
 QMap<QString, glm::quat> getJointRotationOffsets(const QVariantHash& mapping) {
     QMap<QString, glm::quat> jointRotationOffsets;
     static const QString JOINT_ROTATION_OFFSET_FIELD = "jointRotationOffset";
-    if (!mapping.isEmpty() && mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) {
-        auto offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
+    static const QString JOINT_ROTATION_OFFSET2_FIELD = "jointRotationOffset2";
+    if (!mapping.isEmpty() && ((mapping.contains(JOINT_ROTATION_OFFSET_FIELD) && mapping[JOINT_ROTATION_OFFSET_FIELD].type() == QVariant::Hash) || (mapping.contains(JOINT_ROTATION_OFFSET2_FIELD) && mapping[JOINT_ROTATION_OFFSET2_FIELD].type() == QVariant::Hash))) {
+        QHash<QString, QVariant> offsets;
+        if (mapping.contains(JOINT_ROTATION_OFFSET_FIELD)) {
+            offsets = mapping[JOINT_ROTATION_OFFSET_FIELD].toHash();
+        } else {
+            offsets = mapping[JOINT_ROTATION_OFFSET2_FIELD].toHash();
+        }
         for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
             QString jointName = itr.key();
             QString line = itr.value().toString();
@@ -57,30 +63,63 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     auto& jointRotationOffsets = output.edit1();
     auto& jointIndices = output.edit2();
 
+    bool newJointRot = false;
+    static const QString JOINT_ROTATION_OFFSET2_FIELD = "jointRotationOffset2";
+    QVariantHash fstHashMap = mapping.second;
+    if (fstHashMap.contains(JOINT_ROTATION_OFFSET2_FIELD)) {
+        newJointRot = true;
+    } else {
+        newJointRot = false;
+    }
+
     // Get joint renames
-    auto jointNameMapping = getJointNameMapping(mapping);
+    auto jointNameMapping = getJointNameMapping(mapping.second);
     // Apply joint metadata from FST file mappings
     for (const auto& jointIn : jointsIn) {
         jointsOut.push_back(jointIn);
         auto& jointOut = jointsOut.back();
 
-        auto jointNameMapKey = jointNameMapping.key(jointIn.name);
-        if (jointNameMapping.contains(jointNameMapKey)) {
-            jointOut.name = jointNameMapKey;
+        if (!newJointRot) {
+            auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+            if (jointNameMapping.contains(jointNameMapKey)) {
+                jointOut.name = jointNameMapKey;
+            }
         }
-
         jointIndices.insert(jointOut.name, (int)jointsOut.size());
     }
 
     // Get joint rotation offsets from FST file mappings
-    auto offsets = getJointRotationOffsets(mapping);
+    auto offsets = getJointRotationOffsets(mapping.second);
     for (auto itr = offsets.begin(); itr != offsets.end(); itr++) {
         QString jointName = itr.key();
         int jointIndex = jointIndices.value(jointName) - 1;
-        if (jointIndex != -1) {
+        if (jointIndex >= 0) {
             glm::quat rotationOffset = itr.value();
             jointRotationOffsets.insert(jointIndex, rotationOffset);
             qCDebug(model_baker) << "Joint Rotation Offset added to Rig._jointRotationOffsets : " << " jointName: " << jointName << " jointIndex: " << jointIndex << " rotation offset: " << rotationOffset;
+        }
+    }
+
+    if (newJointRot) {
+        for (const auto& jointIn : jointsIn) {
+
+            auto jointNameMapKey = jointNameMapping.key(jointIn.name);
+            int mappedIndex = jointIndices.value(jointIn.name);
+            if (jointNameMapping.contains(jointNameMapKey)) {
+
+                // delete and replace with hifi name
+                jointIndices.remove(jointIn.name);
+                jointIndices.insert(jointNameMapKey, mappedIndex);
+            } else {
+
+                // nothing mapped to this fbx joint name
+                if (jointNameMapping.contains(jointIn.name)) {
+                    // but the name is in the list of hifi names is mapped to a different joint
+                    int extraIndex = jointIndices.value(jointIn.name);
+                    jointIndices.remove(jointIn.name);
+                    jointIndices.insert("", extraIndex);
+                }
+            }
         }
     }
 }

@@ -75,7 +75,7 @@ public:
     }
 
 
-    virtual void eraseNonLocalEntities() override;
+    virtual void eraseDomainAndNonOwnedEntities() override;
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,
@@ -255,6 +255,7 @@ public:
     QByteArray computeNonce(const QString& certID, const QString ownerKey);
     bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
 
+    QUuid getMyAvatarSessionUUID() { return _myAvatar ? _myAvatar->getSessionUUID() : QUuid(); }
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
 
     void swapStaleProxies(std::vector<int>& proxies) { proxies.swap(_staleProxies); }
@@ -267,6 +268,9 @@ public:
 
     static void setTextSizeOperator(std::function<QSizeF(const QUuid&, const QString&)> textSizeOperator) { _textSizeOperator = textSizeOperator; }
     static QSizeF textSize(const QUuid& id, const QString& text);
+
+    static void setEntityClicksCapturedOperator(std::function<bool()> areEntityClicksCapturedOperator) { _areEntityClicksCapturedOperator = areEntityClicksCapturedOperator; }
+    static bool areEntityClicksCaptured();
 
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
@@ -378,6 +382,7 @@ private:
 
     static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
     static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
+    static std::function<bool()> _areEntityClicksCapturedOperator;
 
     std::vector<int32_t> _staleProxies;
 

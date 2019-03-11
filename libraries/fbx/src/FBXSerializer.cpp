@@ -167,7 +167,6 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
             }
         }
     }
-
     return globalTransform;
 }
 
@@ -436,6 +435,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     hfmModel.originalURL = url;
 
     float unitScaleFactor = 1.0f;
+    glm::quat upAxisZRotation;
+    bool applyUpAxisZRotation = false;
     glm::vec3 ambientColor;
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
@@ -473,11 +474,22 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                         if (subobject.name == propertyName) {
                             static const QVariant UNIT_SCALE_FACTOR = QByteArray("UnitScaleFactor");
                             static const QVariant AMBIENT_COLOR = QByteArray("AmbientColor");
+                            static const QVariant UP_AXIS = QByteArray("UpAxis");
                             const auto& subpropName = subobject.properties.at(0);
                             if (subpropName == UNIT_SCALE_FACTOR) {
                                 unitScaleFactor = subobject.properties.at(index).toFloat();
                             } else if (subpropName == AMBIENT_COLOR) {
                                 ambientColor = getVec3(subobject.properties, index);
+                            } else if (subpropName == UP_AXIS) {
+                                constexpr int UP_AXIS_Y = 1;
+                                constexpr int UP_AXIS_Z = 2;
+                                int upAxis = subobject.properties.at(index).toInt();
+                                if (upAxis == UP_AXIS_Y) {
+                                    // No update necessary, y up is the default
+                                } else if (upAxis == UP_AXIS_Z) {
+                                    upAxisZRotation = glm::angleAxis(glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                                    applyUpAxisZRotation = true;
+                                }
                             }
                         }
                     }
@@ -1269,9 +1281,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         joint.geometricScaling = fbxModel.geometricScaling;
         joint.isSkeletonJoint = fbxModel.isLimbNode;
         hfmModel.hasSkeletonJoints = (hfmModel.hasSkeletonJoints || joint.isSkeletonJoint);
-
+        if (applyUpAxisZRotation && joint.parentIndex == -1) {
+            joint.rotation *= upAxisZRotation;
+            joint.translation = upAxisZRotation * joint.translation;
+        }
         glm::quat combinedRotation = joint.preRotation * joint.rotation * joint.postRotation;
-
         if (joint.parentIndex == -1) {
             joint.transform = hfmModel.offset * glm::translate(joint.translation) * joint.preTransform *
                 glm::mat4_cast(combinedRotation) * joint.postTransform;
@@ -1664,6 +1678,14 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
     }
 
+    if (applyUpAxisZRotation) {
+        hfmModelPtr->meshExtents.transform(glm::mat4_cast(upAxisZRotation));
+        hfmModelPtr->bindExtents.transform(glm::mat4_cast(upAxisZRotation));
+        for (auto &mesh : hfmModelPtr->meshes) {
+            mesh.modelTransform *= glm::mat4_cast(upAxisZRotation);
+            mesh.meshExtents.transform(glm::mat4_cast(upAxisZRotation));
+        }
+    }
     return hfmModelPtr;
 }
 

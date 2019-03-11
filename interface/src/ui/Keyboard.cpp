@@ -65,7 +65,7 @@ static const glm::vec3 KEYBOARD_TABLET_OFFSET{0.30f, -0.38f, -0.04f};
 static const glm::vec3 KEYBOARD_TABLET_DEGREES_OFFSET{-45.0f, 0.0f, 0.0f};
 static const glm::vec3 KEYBOARD_TABLET_LANDSCAPE_OFFSET{-0.2f, -0.27f, -0.05f};
 static const glm::vec3 KEYBOARD_TABLET_LANDSCAPE_DEGREES_OFFSET{-45.0f, 0.0f, -90.0f};
-static const glm::vec3 KEYBOARD_AVATAR_OFFSET{-0.6f, 0.3f, -0.7f};
+static const glm::vec3 KEYBOARD_AVATAR_OFFSET{-0.3f, 0.0f, -0.7f};
 static const glm::vec3 KEYBOARD_AVATAR_DEGREES_OFFSET{0.0f, 180.0f, 0.0f};
 
 static const QString SOUND_FILE = PathUtils::resourcesUrl() + "sounds/keyboardPress.mp3";
@@ -259,6 +259,12 @@ void Keyboard::setUse3DKeyboard(bool use) {
 void Keyboard::createKeyboard() {
     auto pointerManager = DependencyManager::get<PointerManager>();
 
+    if (_created) {
+        pointerManager->removePointer(_leftHandStylus);
+        pointerManager->removePointer(_rightHandStylus);
+        clearKeyboardKeys();
+    }
+
     QVariantMap modelProperties {
         { "url", MALLET_MODEL_URL }
     };
@@ -289,6 +295,8 @@ void Keyboard::createKeyboard() {
     loadKeyboardFile(keyboardSvg);
 
     _keySound = DependencyManager::get<SoundCache>()->getSound(SOUND_FILE);
+
+    _created = true;
 }
 
 bool Keyboard::isRaised() const {
@@ -364,6 +372,12 @@ void Keyboard::raiseKeyboardAnchor(bool raise) const {
 
 void Keyboard::scaleKeyboard(float sensorToWorldScale) {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+
+    {
+        EntityItemProperties properties;
+        properties.setDimensions(_anchor.originalDimensions * sensorToWorldScale);
+        entityScriptingInterface->editEntity(_anchor.entityID, properties);
+    }
 
     {
         EntityItemProperties properties;

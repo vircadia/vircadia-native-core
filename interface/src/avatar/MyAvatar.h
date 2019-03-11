@@ -1322,6 +1322,19 @@ public:
     */
     Q_INVOKABLE void useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
 
+    /**jsdoc
+    * @function MyAvatar.getFlowData
+    * @returns {object}
+    */
+    Q_INVOKABLE QVariantMap getFlowData();
+
+    /**jsdoc
+    * returns the indices of every colliding flow joint
+    * @function MyAvatar.getCollidingFlowJoints
+    * @returns {int[]}
+    */
+    Q_INVOKABLE QVariantList getCollidingFlowJoints();
+
 public slots:
 
     /**jsdoc
@@ -1885,6 +1898,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
     void initAnimGraph();
+    void initFlowFromFST();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;

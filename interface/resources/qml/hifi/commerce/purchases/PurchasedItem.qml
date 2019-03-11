@@ -13,6 +13,7 @@
 
 import Hifi 1.0 as Hifi
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 import stylesUit 1.0
@@ -50,6 +51,8 @@ Item {
     property string upgradeTitle;
     property bool updateAvailable: root.updateItemId && root.updateItemId !== "";
     property bool valid;
+    property bool standaloneOptimized;
+    property bool standaloneIncompatible;
 
     property string originalStatusText;
     property string originalStatusColor;
@@ -380,7 +383,7 @@ Item {
                         if (updateButton.visible && uninstallButton.visible) {
                             item.itemButtonText = "";
                             item.glyphSize = 20;
-                        } else {
+                        } else if (item) {
                             item.itemButtonText = "Send to Trash";
                             item.glyphSize = 30;
                         }
@@ -403,7 +406,9 @@ Item {
                     id: permissionExplanationText;
                     anchors.fill: parent;
                     text: {
-                        if (root.itemType === "contentSet") {
+                        if (root.standaloneIncompatible) {
+                            "This item is incompatible with stand-alone devices. <a href='#standaloneIncompatible'>Learn more</a>";
+                        } else if (root.itemType === "contentSet") {
                             "You do not have 'Replace Content' permissions in this domain. <a href='#replaceContentPermission'>Learn more</a>";
                         } else if (root.itemType === "entity") {
                             "You do not have 'Rez Certified' permissions in this domain. <a href='#rezCertifiedPermission'>Learn more</a>";
@@ -417,7 +422,11 @@ Item {
                     verticalAlignment: Text.AlignVCenter;
 
                     onLinkActivated: {
-                        sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});
+                        if (link === "#standaloneIncompatible") {
+                            sendToPurchases({method: 'showStandaloneIncompatibleExplanation'});                            
+                        } else {
+                            sendToPurchases({method: 'showPermissionsExplanation', itemType: root.itemType});
+                        }
                     }
                 }
             }
@@ -699,7 +708,8 @@ Item {
             anchors.bottomMargin: 8;
             width: 160;
             height: 40;
-            enabled: root.hasPermissionToRezThis &&
+            enabled: !root.standaloneIncompatible && 
+                root.hasPermissionToRezThis &&
                 MyAvatar.skeletonModelURL !== root.itemHref &&
                 !root.wornEntityID &&
                 root.valid;
@@ -838,6 +848,28 @@ Item {
                     root.sendToPurchases({ method: 'flipCard' });
                 }
             }
+        } 
+        Image {
+            id: standaloneOptomizedBadge
+
+            anchors {
+                right: parent.right
+                bottom: parent.bottom
+                rightMargin: 15
+                bottomMargin:12
+            }
+            height: root.standaloneOptimized ? 36 : 0
+            width: 36
+            
+            visible: root.standaloneOptimized
+            fillMode: Image.PreserveAspectFit
+            source: "../../../../icons/standalone-optimized.svg"
+        }
+        ColorOverlay {
+            anchors.fill: standaloneOptomizedBadge
+            source: standaloneOptomizedBadge
+            color: hifi.colors.blueHighlight
+            visible: root.standaloneOptimized
         }
     }
 

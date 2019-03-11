@@ -26,10 +26,6 @@ public:
     virtual uint32_t fetchMetaSubItems(render::ItemIDs& subItems) const override { subItems.push_back(getRenderItemID()); return 1; }
 
     // getters
-    int getX() const { return _bounds.x(); }
-    int getY() const { return _bounds.y(); }
-    int getWidth() const { return _bounds.width(); }
-    int getHeight() const { return _bounds.height(); }
     const QRect& getBoundingRect() const { return _bounds; }
 
     // setters
@@ -40,7 +36,6 @@ public:
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
     void setProperties(const QVariantMap& properties) override;
-    QVariant getProperty(const QString& property) override;
 
 protected:
     QRect _bounds; // where on the screen to draw
