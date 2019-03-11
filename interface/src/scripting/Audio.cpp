@@ -40,7 +40,6 @@ Audio::Audio() : _devices(_contextIsHMD) {
     connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
     connect(client, &AudioClient::inputVolumeChanged, this, &Audio::setInputVolume);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
-    // when pushing to talk changed, handle it.
     connect(this, &Audio::pushingToTalkChanged, this, &Audio::handlePushedToTalk);
     enableNoiseReduction(enableNoiseReductionSetting.get());
     onContextChanged();
