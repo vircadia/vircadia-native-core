@@ -1435,8 +1435,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         });
         connect(this, &Application::activeDisplayPluginChanged,
             reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
-        connect(this, &Application::pushedToTalk,
-            reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::handlePushedToTalk);
     }
 
     // Create the rendering engine.  This can be slow on some machines due to lots of
@@ -1609,13 +1607,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             bool navAxis = false;
             switch (actionEnum) {
                 case Action::TOGGLE_PUSHTOTALK:
-                    if (audioScriptingInterface->getPTT()) {
-                        if (state > 0.0f) {
-                            audioScriptingInterface->setPushingToTalk(false);
-                        } else if (state < 0.0f) {
-                            audioScriptingInterface->setPushingToTalk(true);
-                        }
+                    if (state > 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(false);
+                    } else if (state < 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(true);
                     }
+                    break;
 
                 case Action::UI_NAV_VERTICAL:
                     navAxis = true;
@@ -4218,7 +4215,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_T:
-                emit pushedToTalk(true);
+                auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+                audioScriptingInterface->setPushingToTalk(true);
                 break;
 
             case Qt::Key_P: {
@@ -4329,7 +4327,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
     switch (event->key()) {
     case Qt::Key_T:
-        emit pushedToTalk(false);
+        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+        audioScriptingInterface->setPushingToTalk(false);
         break;
     }
 }
