@@ -939,7 +939,8 @@ void MyAvatar::simulate(float deltaTime, bool inView) {
         bool isPhysicsEnabled = qApp->isPhysicsEnabled();
         bool zoneAllowsFlying = zoneInteractionProperties.first;
         bool collisionlessAllowed = zoneInteractionProperties.second;
-        _characterController.setFlyingAllowed((zoneAllowsFlying && _enableFlying) || !isPhysicsEnabled);
+        _characterController.setZoneFlyingAllowed(zoneAllowsFlying || !isPhysicsEnabled);
+        _characterController.setComfortFlyingAllowed(_enableFlying);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
@@ -3391,12 +3392,11 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
                 right = (handRotation * controllerRight);
                 break;
             case MOVEMENT_HAND_RELATIVE_LEVELED:
+                handRotation = cancelOutRoll(handRotation);
                 forward = (handRotation * controllerForward);
-                forward.y = 0.0f;
-                forward /= forward.length();
+                //forward = glm::normalize(forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y));
                 right = (handRotation * controllerRight);
-                right.y = 0.0f;
-                right /= right.length();
+                //right = glm::normalize(right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y));
                 break;
             case MOVEMENT_HMD_RELATIVE:
             default:

@@ -718,7 +718,7 @@ Script.include("/~/system/libraries/controllers.js");
         }
 
         this.showReticle = function () {
-            return (_this.getOffhandY() > TELEPORT_DEADZONE) ? true : false;
+            return (_this.getDominantY() > TELEPORT_DEADZONE) ? true : false;
         };
 
         this.shouldTeleport = function () {
@@ -727,7 +727,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.shouldCancel = function () {
             //return (_this.getDominantY() < -TELEPORT_DEADZONE || _this.getOffhandY() < -TELEPORT_DEADZONE) ? true : false;
-            return (_this.getOffhandY() <= TELEPORT_DEADZONE) ? true : false;
+            return (_this.getDominantY() <= TELEPORT_DEADZONE) ? true : false;
         };
 
         this.parameters = makeDispatcherModuleParameters(
@@ -746,7 +746,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             var otherModule = this.getOtherModule();
-            if (!this.disabled && this.showReticle() && !otherModule.active && this.hand === this.getOffHand()) {
+            if (!this.disabled && this.showReticle() && !otherModule.active && this.hand === this.getDominantHand()) {
                 this.active = true;
                 this.enterTeleport();
                 return makeRunningValues(true, [], []);
@@ -847,8 +847,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.disableLasers = function() {
-            _this.setPlayAreaVisible(false, null, true);
-            _this.setTeleportVisible(false, null, true);
+            _this.setPlayAreaVisible(false, null, false);
+            _this.setTeleportVisible(false, null, false);
             Pointers.disablePointer(_this.teleportParabolaHandVisuals);
             Pointers.disablePointer(_this.teleportParabolaHandCollisions);
             Pointers.disablePointer(_this.teleportParabolaHeadVisuals);
