@@ -98,12 +98,12 @@ void TestRunnerMobile::connectDevice() {
             QString deviceID = tokens[0];
             
             QString modelID = tokens[3].split(':')[1];
-            QString modelName = "UNKNOWN";
+            _modelName = "UNKNOWN";
             if (modelNames.count(modelID) == 1) {
-                modelName = modelNames[modelID];
+                _modelName = modelNames[modelID];
             }
 
-            _detectedDeviceLabel->setText(modelName + " [" + deviceID + "]");
+            _detectedDeviceLabel->setText(_modelName + " [" + deviceID + "]");
             _pullFolderButton->setEnabled(true);
             _folderLineEdit->setEnabled(true);
             _downloadAPKPushbutton->setEnabled(true);
@@ -198,14 +198,22 @@ void TestRunnerMobile::runInterface() {
         ? QString("https://raw.githubusercontent.com/") + nitpick->getSelectedUser() + "/hifi_tests/" + nitpick->getSelectedBranch() + "/tests/testRecursive.js"
         : _scriptURL->text();
  
+    // Quest and Android have different commands to run interface
+    QString startCommand;
+    if (_modelName == "Quest") {
+        startCommand = "io.highfidelity.questInterface/.PermissionsChecker";
+    } else {
+        startCommand = "io.highfidelity.hifiinterface/.PermissionChecker";
+    }
+
     QString command = _adbInterface->getAdbCommand() +
-        " shell am start -n io.highfidelity.hifiinterface/.PermissionChecker" + 
-        " --es args \\\"" + 
-            " --url file:///~/serverless/tutorial.json" + 
-            " --no-updater" + 
-            " --no-login-suggestion" + 
-            " --testScript " + testScript + " quitWhenFinished" + 
-            " --testResultsLocation /sdcard/snapshots" + 
+        " shell am start -n " + startCommand +
+        " --es args \\\"" +
+        " --url file:///~/serverless/tutorial.json" +
+        " --no-updater" +
+        " --no-login-suggestion" +
+        " --testScript " + testScript + " quitWhenFinished" +
+        " --testResultsLocation /sdcard/snapshots" +
         "\\\"";
 
     appendLog(command);

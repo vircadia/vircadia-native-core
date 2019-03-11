@@ -75,5 +75,7 @@ private:
     std::map<QString, QString> modelNames;
 
     AdbInterface* _adbInterface;
+
+    QString _modelName;
 };
 #endif
