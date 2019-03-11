@@ -1043,7 +1043,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                                 cluster.transformLink = createMat4(values);
                             }
                         }
-                        clusters.insert(getID(object.properties), cluster);
+
+                        // skip empty clusters
+                        if (cluster.indices.size() > 0 && cluster.weights.size() > 0) {
+                            clusters.insert(getID(object.properties), cluster);
+                        }
 
                     } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
@@ -1510,19 +1514,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 const HFMCluster& hfmCluster = extracted.mesh.clusters.at(i);
                 int jointIndex = hfmCluster.jointIndex;
                 HFMJoint& joint = hfmModel.joints[jointIndex];
-                glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
-                glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
-                glm::vec3 boneBegin = boneEnd;
-                glm::vec3 boneDirection;
-                float boneLength = 0.0f;
-                if (joint.parentIndex != -1) {
-                    boneBegin = extractTranslation(inverseModelTransform * hfmModel.joints[joint.parentIndex].bindTransform);
-                    boneDirection = boneEnd - boneBegin;
-                    boneLength = glm::length(boneDirection);
-                    if (boneLength > EPSILON) {
-                        boneDirection /= boneLength;
-                    }
-                }
 
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
                 ShapeVertices& points = shapeVertices.at(jointIndex);
@@ -1575,16 +1566,19 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 int j = i * WEIGHTS_PER_VERTEX;
 
                 // normalize weights into uint16_t
-                float totalWeight = weightAccumulators[j];
-                for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                float totalWeight = 0.0f;
+                for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
                     totalWeight += weightAccumulators[k];
                 }
+
+                const float ALMOST_HALF = 0.499f;
                 if (totalWeight > 0.0f) {
-                    const float ALMOST_HALF = 0.499f;
                     float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                     for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
                         extracted.mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
                     }
+                } else {
+                    extracted.mesh.clusterWeights[j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
                 }
             }
         } else {
