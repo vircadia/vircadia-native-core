@@ -142,6 +142,7 @@ glm::mat4 getGlobalTransform(const QMultiMap<QString, QString>& _connectionParen
         visitedNodes.append(nodeID); // Append each node we visit
 
         const FBXModel& fbxModel = fbxModels.value(nodeID);
+        qCDebug(modelformat) << "this fbx model name is " << fbxModel.name;
         globalTransform = glm::translate(fbxModel.translation) * fbxModel.preTransform * glm::mat4_cast(fbxModel.preRotation *
             fbxModel.rotation * fbxModel.postRotation) * fbxModel.postTransform * globalTransform;
         if (fbxModel.hasGeometricOffset) {
@@ -201,13 +202,23 @@ public:
 void appendModelIDs(const QString& parentID, const QMultiMap<QString, QString>& connectionChildMap,
         QHash<QString, FBXModel>& fbxModels, QSet<QString>& remainingModels, QVector<QString>& modelIDs, bool isRootNode = false) {
     if (remainingModels.contains(parentID)) {
+        qCDebug(modelformat) << " remaining models contains parent " << parentID;
         modelIDs.append(parentID);
         remainingModels.remove(parentID);
     }
-    int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
+    int parentIndex = 1000;
+    if (isRootNode) {
+        qCDebug(modelformat) << " found a root node " << parentID;
+        parentIndex = -1;
+    } else {
+        parentIndex = modelIDs.size() - 1;
+    }
+    //int parentIndex = isRootNode ? -1 : modelIDs.size() - 1;
     foreach (const QString& childID, connectionChildMap.values(parentID)) {
+        qCDebug(modelformat) << " searching children, parent id " << parentID;
         if (remainingModels.contains(childID)) {
             FBXModel& fbxModel = fbxModels[childID];
+            qCDebug(modelformat) << " child id " << fbxModel.name;
             if (fbxModel.parentIndex == -1) {
                 fbxModel.parentIndex = parentIndex;
                 appendModelIDs(childID, connectionChildMap, fbxModels, remainingModels, modelIDs);
@@ -441,6 +452,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
     haveReportedUnhandledRotationOrder = false;
+    int nodeParentId = -1;
     foreach (const FBXNode& child, node.children) {
 
         if (child.name == "FBXHeaderExtension") {
@@ -497,6 +509,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             }
         } else if (child.name == "Objects") {
             foreach (const FBXNode& object, child.children) {
+                nodeParentId++;
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
                         meshes.insert(getID(object.properties), extractMesh(object, meshIndex));
@@ -505,6 +518,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
+                    qCDebug(modelformat) << "model name from object properties " << getName(object.properties) << " node parentID " << nodeParentId;
                     QString name = getName(object.properties);
                     QString id = getID(object.properties);
                     modelIDsToNames.insert(id, name);
@@ -1181,6 +1195,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
 #endif
     }
 
+
     // TODO: check if is code is needed
     if (!lights.empty()) {
         if (hifiGlobalNodeID.isEmpty()) {
@@ -1211,6 +1226,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
     for (QHash<QString, FBXModel>::const_iterator fbxModel = fbxModels.constBegin(); fbxModel != fbxModels.constEnd(); fbxModel++) {
         // models with clusters must be parented to the cluster top
         // Unless the model is a root node.
+        qCDebug(modelformat) << "fbx model name " << fbxModel.key();
         bool isARootNode = !modelIDs.contains(_connectionParentMap.value(fbxModel.key()));
         if (!isARootNode) {  
             foreach(const QString& deformerID, _connectionChildMap.values(fbxModel.key())) {
@@ -1265,6 +1281,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         HFMJoint joint;
         joint.parentIndex = fbxModel.parentIndex;
         int jointIndex = hfmModel.joints.size();
+
+        qCDebug(modelformat) << "fbx joint name " << fbxModel.name << " joint index " << jointIndex << " parent index " << joint.parentIndex;
 
         joint.translation = fbxModel.translation; // these are usually in centimeters
         joint.preTransform = fbxModel.preTransform;
