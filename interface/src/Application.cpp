@@ -1795,19 +1795,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     connect(offscreenUi.data(), &OffscreenUi::keyboardFocusActive, [this]() {
-#if !defined(DISABLE_QML)
-        // Do not show login dialog if requested not to on the command line
-        QString hifiNoLoginCommandLineKey = QString("--").append(HIFI_NO_LOGIN_COMMAND_LINE_KEY);
-        int index = arguments().indexOf(hifiNoLoginCommandLineKey);
-        if (index != -1) {
-            resumeAfterLoginDialogActionTaken();
-            return;
-        }
-
-        showLoginScreen();
-#else
-        resumeAfterLoginDialogActionTaken();
-#endif
+    resumeAfterLoginDialogActionTaken();
     });
 
     // Make sure we don't time out during slow operations at startup
