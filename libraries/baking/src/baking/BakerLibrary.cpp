@@ -42,7 +42,7 @@ std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureB
     auto filename = bakeableModelURL.fileName();
 
     // Output in a sub-folder with the name of the model, potentially suffixed by a number to make it unique
-    auto baseName = filename.left(filename.lastIndexOf('.'));
+    auto baseName = filename.left(filename.lastIndexOf('.')).left(filename.lastIndexOf(".baked"));
     auto subDirName = "/" + baseName;
     int i = 1;
     while (QDir(contentOutputPath + subDirName).exists()) {
