@@ -129,15 +129,14 @@ Rectangle {
                 }
 
                 HifiControlsUit.Switch {
-                    id: stereoInput;
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
-                    labelTextOn:  qsTr("Stereo input");
+                    labelTextOn: "Noise Reduction";
                     backgroundOnColor: "#E3E3E3";
-                    checked: AudioScriptingInterface.isStereoInput;
+                    checked: AudioScriptingInterface.noiseReduction;
                     onCheckedChanged: {
-                        AudioScriptingInterface.isStereoInput = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
+                        AudioScriptingInterface.noiseReduction = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
                     }
                 }
 
@@ -168,16 +167,18 @@ Rectangle {
             ColumnLayout {
                 spacing: 24;
                 HifiControlsUit.Switch {
+                    id: warnMutedSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
-                    labelTextOn: "Noise Reduction";
+                    labelTextOn: qsTr("Warn when muted");
                     backgroundOnColor: "#E3E3E3";
-                    checked: AudioScriptingInterface.noiseReduction;
-                    onCheckedChanged: {
-                        AudioScriptingInterface.noiseReduction = checked;
-                        checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
+                    checked: AudioScriptingInterface.warnWhenMuted;
+                    onClicked: {
+                        AudioScriptingInterface.warnWhenMuted = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.warnWhenMuted; }); // restore binding
                     }
                 }
+
 
                 HifiControlsUit.Switch {
                     id: audioLevelSwitch
@@ -191,6 +192,20 @@ Rectangle {
                         checked = Qt.binding(function() { return AvatarInputs.showAudioTools; }); // restore binding
                     }
                 }
+
+                HifiControlsUit.Switch {
+                    id: stereoInput;
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn:  qsTr("Stereo input");
+                    backgroundOnColor: "#E3E3E3";
+                    checked: AudioScriptingInterface.isStereoInput;
+                    onCheckedChanged: {
+                        AudioScriptingInterface.isStereoInput = checked;
+                        checked = Qt.binding(function() { return AudioScriptingInterface.isStereoInput; }); // restore binding
+                    }
+                }
+
             }
         }
 

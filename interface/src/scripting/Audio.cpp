@@ -25,6 +25,8 @@ QString Audio::DESKTOP { "Desktop" };
 QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
+Setting::Handle<bool> enableWarnWhenMutedSetting { QStringList { Audio::AUDIO, "WarnWhenMuted" }, true };
+
 
 float Audio::loudnessToLevel(float loudness) {
     float level = loudness * (1/32768.0f);  // level in [0, 1]
@@ -37,11 +39,13 @@ Audio::Audio() : _devices(_contextIsHMD) {
     auto client = DependencyManager::get<AudioClient>().data();
     connect(client, &AudioClient::muteToggled, this, &Audio::setMuted);
     connect(client, &AudioClient::noiseReductionChanged, this, &Audio::enableNoiseReduction);
+    connect(client, &AudioClient::warnWhenMutedChanged, this, &Audio::enableWarnWhenMuted);
     connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
     connect(client, &AudioClient::inputVolumeChanged, this, &Audio::setInputVolume);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     connect(this, &Audio::pushingToTalkChanged, this, &Audio::handlePushedToTalk);
     enableNoiseReduction(enableNoiseReductionSetting.get());
+    enableWarnWhenMuted(enableWarnWhenMutedSetting.get());
     onContextChanged();
 }
 
@@ -251,6 +255,28 @@ void Audio::enableNoiseReduction(bool enable) {
     });
     if (changed) {
         emit noiseReductionChanged(enable);
+    }
+}
+
+bool Audio::warnWhenMutedEnabled() const {
+    return resultWithReadLock<bool>([&] {
+        return _enableWarnWhenMuted;
+    });
+}
+
+void Audio::enableWarnWhenMuted(bool enable) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_enableWarnWhenMuted != enable) {
+            _enableWarnWhenMuted = enable;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setWarnWhenMuted", Q_ARG(bool, enable), Q_ARG(bool, false));
+            enableWarnWhenMutedSetting.set(enable);
+            changed = true;
+        }
+    });
+    if (changed) {
+        emit warnWhenMutedChanged(enable);
     }
 }
 
