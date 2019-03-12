@@ -953,7 +953,7 @@ public:
     controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
     controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
     controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
-    glm::quat getDominantHandRotation() const;
+    glm::quat getOffHandRotation() const;
 
     bool hasDriveInput() const;
 

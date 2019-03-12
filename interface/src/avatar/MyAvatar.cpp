@@ -2527,8 +2527,8 @@ controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action act
     }
 }
 
-glm::quat MyAvatar::getDominantHandRotation() const {
-    auto hand = (getDominantHand() == DOMINANT_RIGHT_HAND) ? controller::Action::RIGHT_HAND : controller::Action::LEFT_HAND;
+glm::quat MyAvatar::getOffHandRotation() const {
+    auto hand = (getDominantHand() == DOMINANT_RIGHT_HAND) ? controller::Action::LEFT_HAND : controller::Action::RIGHT_HAND;
     auto pose = getControllerPoseInAvatarFrame(hand);
     return pose.rotation;
 }
@@ -3317,23 +3317,25 @@ void MyAvatar::updateOrientation(float deltaTime) {
 //}
 
 float MyAvatar::calculateGearedSpeed(const float driveKey) {
-    if (driveKey > getDriveGear5()) {
-        return 1.0f;
+    float absDriveKey = abs(driveKey);
+    float sign = (driveKey < 0.0f) ? -1.0f : 1.0f;
+    if (absDriveKey > getDriveGear5()) {
+        return sign * 1.0f;
     }
-    else if (driveKey > getDriveGear4()) {
-        return 0.8f;
+    else if (absDriveKey > getDriveGear4()) {
+        return sign * 0.8f;
     }
-    else if (driveKey > getDriveGear3()) {
-        return 0.6f;
+    else if (absDriveKey > getDriveGear3()) {
+        return sign * 0.6f;
     }
-    else if (driveKey > getDriveGear2()) {
-        return 0.4f;
+    else if (absDriveKey > getDriveGear2()) {
+        return sign * 0.4f;
     }
-    else if (driveKey > getDriveGear1()) {
-        return 0.2f;
+    else if (absDriveKey > getDriveGear1()) {
+        return sign * 0.2f;
     }
     else {
-        return 0.0f;
+        return sign * 0.0f;
     }
 }
 
@@ -3385,21 +3387,19 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
     glm::vec3 forward, right;
 
     if (qApp->isHMDMode()) {
-        auto handRotation = getDominantHandRotation();
+        auto handRotation = getOffHandRotation();
         glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
-        glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f));
-        // Do shit here.
+        glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? 1.0f : -1.0f));
         switch (getMovementReference()) {
             case MOVEMENT_HAND_RELATIVE:
                 forward = (handRotation * controllerForward);
                 right = (handRotation * controllerRight);
                 break;
             case MOVEMENT_HAND_RELATIVE_LEVELED:
-                handRotation = cancelOutRoll(handRotation);
                 forward = (handRotation * controllerForward);
-                //forward = glm::normalize(forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                forward = glm::normalize(forward - (glm::dot(forward, Vectors::UNIT_Y) * Vectors::UNIT_Y));
                 right = (handRotation * controllerRight);
-                //right = glm::normalize(right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y));
+                right = glm::normalize(right - (glm::dot(right, Vectors::UNIT_Y) * Vectors::UNIT_Y));
                 break;
             case MOVEMENT_HMD_RELATIVE:
             default:
@@ -3407,20 +3407,6 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
                 right = IDENTITY_RIGHT;
         }
     } else {
-        forward = IDENTITY_FORWARD;
-        right = IDENTITY_RIGHT;
-    }
-
-    if (getMovementReference() && qApp->isHMDMode()) {
-        // Here we have to get the rotation of the dominant hand and apply that to the direction vector.
-        // If we're on the right hand, we have to flip the x-axis.
-        auto handRotation = getDominantHandRotation();
-        glm::vec3 controllerForward(0.0f, 1.0f, 0.0f);
-        glm::vec3 controllerRight(0.0f, 0.0f, (getDominantHand() == DOMINANT_RIGHT_HAND ? -1.0f : 1.0f));
-        forward = (handRotation * controllerForward);
-        right = (handRotation * controllerRight);
-    }
-    else {
         forward = IDENTITY_FORWARD;
         right = IDENTITY_RIGHT;
     }
