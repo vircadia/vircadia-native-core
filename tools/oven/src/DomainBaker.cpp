@@ -155,6 +155,10 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, QJs
             QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, getWorkerThreadCallback, _contentOutputPath).release(), &Baker::deleteLater);
             if (baker) {
                 // Hold on to the old url userinfo/query/fragment data so ModelBaker::getFullOutputMappingURL retains that data from the original model URL
+                // Note: The ModelBaker currently doesn't store this in the FST because the equal signs mess up FST parsing.
+                //       There is a small chance this could break a server workflow relying on the old behavior.
+                //       Url suffix is still propagated to the baked URL if the input URL is an FST.
+                //       Url suffix has always been stripped from the URL when loading the original model file to be baked.
                 baker->setOutputURLSuffix(url);
 
                 // make sure our handler is called when the baker is done
