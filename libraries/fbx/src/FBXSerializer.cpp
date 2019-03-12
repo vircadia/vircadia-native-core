@@ -508,6 +508,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 }
             }
         } else if (child.name == "Objects") {
+            //qCDebug(modelformat) << " the root model id is " << getID(child.properties);
             foreach (const FBXNode& object, child.children) {
                 nodeParentId++;
                 if (object.name == "Geometry") {
@@ -1169,8 +1170,19 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                             counter++;
                         }
                     }
-                    _connectionParentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
-                    _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+
+                    if ("2830302416448" == getID(connection.properties, 1) || "2830302416448" == getID(connection.properties, 2)) {
+                        if ("2829544143536" == getID(connection.properties, 1)) {
+                            _connectionParentMap.insert(getID(connection.properties, 1), "0");
+                            _connectionChildMap.insert("0", getID(connection.properties, 1));
+                        }
+                        qCDebug(modelformat) << " parent map inserted with id " << getID(connection.properties, 1) << " name " << modelIDsToNames.value(getID(connection.properties, 1)) << " id " << getID(connection.properties, 2) << " name " << modelIDsToNames.value(getID(connection.properties, 2));
+                    } else {
+                        _connectionParentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
+                        _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                    }
+                    
+                   // qCDebug(modelformat) << " child map inserted with id " << getID(connection.properties, 2) << " name " << modelIDsToNames.value(getID(connection.properties, 2)) << " id " << getID(connection.properties, 1) << " name " << modelIDsToNames.value(getID(connection.properties, 1));
                 }
             }
         }
@@ -1220,13 +1232,16 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         mapping.value("tz").toFloat())) * glm::mat4_cast(offsetRotation) *
             glm::scale(glm::vec3(offsetScale, offsetScale, offsetScale));
 
+    for (QHash<QString, QString>::const_iterator modelIDPair = modelIDsToNames.constBegin(); modelIDPair != modelIDsToNames.constEnd(); modelIDPair++) {
+        qCDebug(modelformat) << " model ID " << modelIDPair.key() << " name " << modelIDPair.value();
+    }
+
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
     QSet<QString> remainingFBXModels;
     for (QHash<QString, FBXModel>::const_iterator fbxModel = fbxModels.constBegin(); fbxModel != fbxModels.constEnd(); fbxModel++) {
         // models with clusters must be parented to the cluster top
         // Unless the model is a root node.
-        qCDebug(modelformat) << "fbx model name " << fbxModel.key();
         bool isARootNode = !modelIDs.contains(_connectionParentMap.value(fbxModel.key()));
         if (!isARootNode) {  
             foreach(const QString& deformerID, _connectionChildMap.values(fbxModel.key())) {
@@ -1235,6 +1250,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                         continue;
                     }
                     QString topID = getTopModelID(_connectionParentMap, fbxModels, _connectionChildMap.value(clusterID), url);
+                    qCDebug(modelformat) << "fbx model name " << fbxModel.value().name << " top id " << topID << " modelID " << fbxModel.key();
                     _connectionChildMap.remove(_connectionParentMap.take(fbxModel.key()), fbxModel.key());
                     _connectionParentMap.insert(fbxModel.key(), topID);
                     goto outerBreak;
@@ -1258,6 +1274,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             }
         }
         QString topID = getTopModelID(_connectionParentMap, fbxModels, first, url);
+        qCDebug(modelformat) << "topper name fbx name " << modelIDsToNames.value(first) << " top id " << topID << " top name " << modelIDsToNames.value(topID);
+        qCDebug(modelformat) << "parent id " << _connectionParentMap.value(topID) << " parent name " << modelIDsToNames.value(_connectionParentMap.value(topID)) << " remaining models parent value " << remainingFBXModels.contains(_connectionParentMap.value(topID));
         appendModelIDs(_connectionParentMap.value(topID), _connectionChildMap, fbxModels, remainingFBXModels, modelIDs, true);
     }
 
