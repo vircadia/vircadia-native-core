@@ -335,10 +335,12 @@ void DomainBaker::enumerateEntities() {
                 addModelBaker(MODEL_URL_KEY, entity[MODEL_URL_KEY].toString(), *it);
             }
             if (entity.contains(COMPOUND_SHAPE_URL_KEY)) {
-                // TODO: Do not combine mesh parts, otherwise the collision behavior will be different
+                // TODO: Support collision model baking
+                // Do not combine mesh parts, otherwise the collision behavior will be different
+                // combineParts is currently only used by OBJBaker (mesh-combining functionality ought to be moved to the asset engine at some point), and is also used by OBJBaker to determine if the material library should be loaded (should be separate flag)
                 // TODO: this could be optimized so that we don't do the full baking pass for collision shapes,
                 // but we have to handle the case where it's also used as a modelURL somewhere
-                addModelBaker(COMPOUND_SHAPE_URL_KEY, entity[COMPOUND_SHAPE_URL_KEY].toString(), *it);
+                //addModelBaker(COMPOUND_SHAPE_URL_KEY, entity[COMPOUND_SHAPE_URL_KEY].toString(), *it);
             }
             if (entity.contains(ANIMATION_KEY)) {
                 auto animationObject = entity[ANIMATION_KEY].toObject();
