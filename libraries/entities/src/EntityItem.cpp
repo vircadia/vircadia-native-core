@@ -147,6 +147,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_EDITION_NUMBER;
     requestedProperties += PROP_ENTITY_INSTANCE_NUMBER;
     requestedProperties += PROP_CERTIFICATE_ID;
+    requestedProperties += PROP_CERTIFICATE_TYPE;
     requestedProperties += PROP_STATIC_CERTIFICATE_VERSION;
 
     return requestedProperties;
@@ -337,6 +338,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_EDITION_NUMBER, getEditionNumber());
         APPEND_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, getEntityInstanceNumber());
         APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, getCertificateID());
+        APPEND_ENTITY_PROPERTY(PROP_CERTIFICATE_TYPE, getCertificateType());
         APPEND_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, getStaticCertificateVersion());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
@@ -942,6 +944,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_EDITION_NUMBER, quint32, setEditionNumber);
     READ_ENTITY_PROPERTY(PROP_ENTITY_INSTANCE_NUMBER, quint32, setEntityInstanceNumber);
     READ_ENTITY_PROPERTY(PROP_CERTIFICATE_ID, QString, setCertificateID);
+    READ_ENTITY_PROPERTY(PROP_CERTIFICATE_TYPE, QString, setCertificateType);
     READ_ENTITY_PROPERTY(PROP_STATIC_CERTIFICATE_VERSION, quint32, setStaticCertificateVersion);
 
     bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args,
@@ -1381,6 +1384,7 @@ EntityItemProperties EntityItem::getProperties(const EntityPropertyFlags& desire
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(editionNumber, getEditionNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(entityInstanceNumber, getEntityInstanceNumber);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateID, getCertificateID);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(certificateType, getCertificateType);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(staticCertificateVersion, getStaticCertificateVersion);
 
     // Script local data
@@ -1529,6 +1533,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(editionNumber, setEditionNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(entityInstanceNumber, setEntityInstanceNumber);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateID, setCertificateID);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(certificateType, setCertificateType);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(staticCertificateVersion, setStaticCertificateVersion);
 
     if (updateQueryAACube()) {
@@ -1918,25 +1923,19 @@ void EntityItem::setRotation(glm::quat rotation) {
 void EntityItem::setVelocity(const glm::vec3& value) {
     glm::vec3 velocity = getLocalVelocity();
     if (velocity != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            if (velocity != Vectors::ZERO) {
-                setLocalVelocity(Vectors::ZERO);
+        float speed = glm::length(value);
+        if (!glm::isnan(speed)) {
+            const float MIN_LINEAR_SPEED = 0.001f;
+            const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
+            if (speed < MIN_LINEAR_SPEED) {
+                velocity = ENTITY_ITEM_ZERO_VEC3;
+            } else if (speed > MAX_LINEAR_SPEED) {
+                velocity = (MAX_LINEAR_SPEED / speed) * value;
+            } else {
+                velocity = value;
             }
-        } else {
-            float speed = glm::length(value);
-            if (!glm::isnan(speed)) {
-                const float MIN_LINEAR_SPEED = 0.001f;
-                const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
-                if (speed < MIN_LINEAR_SPEED) {
-                    velocity = ENTITY_ITEM_ZERO_VEC3;
-                } else if (speed > MAX_LINEAR_SPEED) {
-                    velocity = (MAX_LINEAR_SPEED / speed) * value;
-                } else {
-                    velocity = value;
-                }
-                setLocalVelocity(velocity);
-                _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
-            }
+            setLocalVelocity(velocity);
+            _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
     }
 }
@@ -1954,19 +1953,15 @@ void EntityItem::setDamping(float value) {
 void EntityItem::setGravity(const glm::vec3& value) {
     withWriteLock([&] {
         if (_gravity != value) {
-            if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-                _gravity = Vectors::ZERO;
-            } else {
-                float magnitude = glm::length(value);
-                if (!glm::isnan(magnitude)) {
-                    const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
-                    if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
-                        _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
-                    } else {
-                        _gravity = value;
-                    }
-                    _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            float magnitude = glm::length(value);
+            if (!glm::isnan(magnitude)) {
+                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                } else {
+                    _gravity = value;
                 }
+                _flags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
         }
     });
@@ -1975,23 +1970,19 @@ void EntityItem::setGravity(const glm::vec3& value) {
 void EntityItem::setAngularVelocity(const glm::vec3& value) {
     glm::vec3 angularVelocity = getLocalAngularVelocity();
     if (angularVelocity != value) {
-        if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
-            setLocalAngularVelocity(Vectors::ZERO);
-        } else {
-            float speed = glm::length(value);
-            if (!glm::isnan(speed)) {
-                const float MIN_ANGULAR_SPEED = 0.0002f;
-                const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
-                if (speed < MIN_ANGULAR_SPEED) {
-                    angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-                } else if (speed > MAX_ANGULAR_SPEED) {
-                    angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
-                } else {
-                    angularVelocity = value;
-                }
-                setLocalAngularVelocity(angularVelocity);
-                _flags |= Simulation::DIRTY_ANGULAR_VELOCITY;
+        float speed = glm::length(value);
+        if (!glm::isnan(speed)) {
+            const float MIN_ANGULAR_SPEED = 0.0002f;
+            const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
+            if (speed < MIN_ANGULAR_SPEED) {
+                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            } else if (speed > MAX_ANGULAR_SPEED) {
+                angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
+            } else {
+                angularVelocity = value;
             }
+            setLocalAngularVelocity(angularVelocity);
+            _flags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
     }
 }
@@ -3150,6 +3141,7 @@ DEFINE_PROPERTY_ACCESSOR(QString, MarketplaceID, marketplaceID)
 DEFINE_PROPERTY_ACCESSOR(quint32, EditionNumber, editionNumber)
 DEFINE_PROPERTY_ACCESSOR(quint32, EntityInstanceNumber, entityInstanceNumber)
 DEFINE_PROPERTY_ACCESSOR(QString, CertificateID, certificateID)
+DEFINE_PROPERTY_ACCESSOR(QString, CertificateType, certificateType)
 DEFINE_PROPERTY_ACCESSOR(quint32, StaticCertificateVersion, staticCertificateVersion)
 
 uint32_t EntityItem::getDirtyFlags() const {

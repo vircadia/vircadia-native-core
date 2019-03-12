@@ -46,7 +46,7 @@ public:
     // Render string to batch
     void drawString(gpu::Batch& batch, DrawInfo& drawInfo, const QString& str,
         const glm::vec4& color, EffectType effectType, 
-        const glm::vec2& origin, const glm::vec2& bound);
+        const glm::vec2& origin, const glm::vec2& bound, bool forwardRendered);
 
     static Pointer load(const QString& family);
 

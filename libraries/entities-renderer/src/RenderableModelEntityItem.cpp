@@ -181,9 +181,11 @@ void RenderableModelEntityItem::updateModelBounds() {
         updateRenderItems = true;
     }
 
-    if (model->getScaleToFitDimensions() != getScaledDimensions() ||
-            model->getRegistrationPoint() != getRegistrationPoint() ||
-            !model->getIsScaledToFit()) {
+    bool overridingModelTransform = model->isOverridingModelTransformAndOffset();
+    if (!overridingModelTransform &&
+        (model->getScaleToFitDimensions() != getScaledDimensions() ||
+         model->getRegistrationPoint() != getRegistrationPoint() ||
+         !model->getIsScaledToFit())) {
         // The machinery for updateModelBounds will give existing models the opportunity to fix their
         // translation/rotation/scale/registration.  The first two are straightforward, but the latter two
         // have guards to make sure they don't happen after they've already been set.  Here we reset those guards.

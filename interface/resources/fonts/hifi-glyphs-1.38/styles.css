@@ -59,9 +59,6 @@
 .icon-headphones:before {
   content: "\68";
 }
-.icon-mic:before {
-  content: "\69";
-}
 .icon-upload:before {
   content: "\6a";
 }
@@ -308,9 +305,6 @@
 .icon-voxels:before {
   content: "\e005";
 }
-.icon-lock:before {
-  content: "\e006";
-}
 .icon-visible:before {
   content: "\e007";
 }
@@ -428,9 +422,6 @@
 .icon-password:before {
   content: "\e029";
 }
-.icon-rez:before {
-  content: "\e025";
-}
 .icon-keyboard-collapse:before {
   content: "\e02b";
 }
@@ -484,4 +475,22 @@
 }
 .icon-oculus:before {
   content: "\e036";
+}
+.icon-check-circled:before {
+  content: "\e037";
+}
+.icon-rez-01:before {
+  content: "\e025";
+}
+.icon-locked:before {
+  content: "\e006";
+}
+.icon-unlocked:before {
+  content: "\e039";
+}
+.icon-mic:before {
+  content: "\69";
+}
+.icon-92-lock-01:before {
+  content: "\e038";
 }
