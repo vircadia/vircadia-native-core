@@ -60,6 +60,7 @@ enum class Action {
 
     CONTEXT_MENU,
     TOGGLE_MUTE,
+    TOGGLE_PUSHTOTALK,
     CYCLE_CAMERA,
     TOGGLE_OVERLAY,
 

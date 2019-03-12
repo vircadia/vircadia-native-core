@@ -104,7 +104,6 @@ Rectangle {
 
         RowLayout {
             x: 2 * margins.paddings;
-            spacing: columnOne.width;
             width: parent.width;
 
             // mute is in its own row
@@ -119,7 +118,11 @@ Rectangle {
                     labelTextOn: "Mute microphone";
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.muted;
-                    onCheckedChanged: {
+                    onClicked: {
+                        if (AudioScriptingInterface.pushToTalk && !checked) {
+                            // disable push to talk if unmuting
+                            AudioScriptingInterface.pushToTalk = false;
+                        }
                         AudioScriptingInterface.muted = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
                     }
@@ -134,6 +137,29 @@ Rectangle {
                     onCheckedChanged: {
                         AudioScriptingInterface.noiseReduction = checked;
                         checked = Qt.binding(function() { return AudioScriptingInterface.noiseReduction; }); // restore binding
+                    }
+                }
+
+                HifiControlsUit.Switch {
+                    id: pttSwitch
+                    height: root.switchHeight;
+                    switchWidth: root.switchWidth;
+                    labelTextOn: qsTr("Push To Talk (T)");
+                    backgroundOnColor: "#E3E3E3";
+                    checked: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
+                    onCheckedChanged: {
+                        if (bar.currentIndex === 0) {
+                            AudioScriptingInterface.pushToTalkDesktop = checked;
+                        } else {
+                            AudioScriptingInterface.pushToTalkHMD = checked;
+                        }
+                        checked = Qt.binding(function() {
+                            if (bar.currentIndex === 0) {
+                                return AudioScriptingInterface.pushToTalkDesktop;
+                            } else {
+                                return AudioScriptingInterface.pushToTalkHMD;
+                            }
+                        }); // restore binding
                     }
                 }
             }
@@ -183,7 +209,27 @@ Rectangle {
             }
         }
 
-        Separator {}
+        Item {
+            anchors.left: parent.left
+            width: rightMostInputLevelPos;
+            height: pttText.height;
+            RalewayRegular {
+                id: pttText
+                x: margins.paddings;
+                color: hifi.colors.white;
+                width: rightMostInputLevelPos;
+                height: paintedHeight;
+                wrapMode: Text.WordWrap;
+                font.italic: true
+                size: 16;
+
+                text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
+                                qsTr("Press and hold grip triggers on both of your controllers to talk.");
+            }
+        }
+
+        Separator { }
+
 
         Item {
             x: margins.paddings;
@@ -238,7 +284,7 @@ Rectangle {
                     text: devicename
                     onPressed: {
                         if (!checked) {
-                            stereoMic.checked = false;
+                            stereoInput.checked = false;
                             AudioScriptingInterface.setStereoInput(false); // the next selected audio device might not support stereo
                             AudioScriptingInterface.setInputDevice(info, bar.currentIndex === 1);
                         }

@@ -26,7 +26,6 @@ QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
 Setting::Handle<bool> enableWarnWhenMutedSetting { QStringList { Audio::AUDIO, "WarnWhenMuted" }, true };
-Setting::Handle<bool> mutedSetting { QStringList{ Audio::AUDIO, "MuteMicrophone" }, false };
 
 
 float Audio::loudnessToLevel(float loudness) {
@@ -44,10 +43,10 @@ Audio::Audio() : _devices(_contextIsHMD) {
     connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
     connect(client, &AudioClient::inputVolumeChanged, this, &Audio::setInputVolume);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
+    connect(this, &Audio::pushingToTalkChanged, this, &Audio::handlePushedToTalk);
     enableNoiseReduction(enableNoiseReductionSetting.get());
     enableWarnWhenMuted(enableWarnWhenMutedSetting.get());
     onContextChanged();
-    setMuted(mutedSetting.get());
 }
 
 bool Audio::startRecording(const QString& filepath) {
@@ -69,25 +68,172 @@ void Audio::stopRecording() {
 }
 
 bool Audio::isMuted() const {
-    return resultWithReadLock<bool>([&] {
-        return _isMuted;
-    });
+    bool isHMD = qApp->isHMDMode();
+    if (isHMD) {
+        return getMutedHMD();
+    } else {
+        return getMutedDesktop();
+    }
 }
 
 void Audio::setMuted(bool isMuted) {
+    bool isHMD = qApp->isHMDMode();
+    if (isHMD) {
+        setMutedHMD(isMuted);
+    } else {
+        setMutedDesktop(isMuted);
+    }
+}
+
+void Audio::setMutedDesktop(bool isMuted) {
     bool changed = false;
     withWriteLock([&] {
-        if (_isMuted != isMuted) {
-            _isMuted = isMuted;
-            mutedSetting.set(_isMuted);
+        if (_desktopMuted != isMuted) {
+            changed = true;
+            _desktopMuted = isMuted;
             auto client = DependencyManager::get<AudioClient>().data();
             QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
-            changed = true;
         }
     });
     if (changed) {
         emit mutedChanged(isMuted);
+        emit desktopMutedChanged(isMuted);
     }
+}
+
+bool Audio::getMutedDesktop() const {
+    return resultWithReadLock<bool>([&] {
+        return _desktopMuted;
+    });
+}
+
+void Audio::setMutedHMD(bool isMuted) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_hmdMuted != isMuted) {
+            changed = true;
+            _hmdMuted = isMuted;
+            auto client = DependencyManager::get<AudioClient>().data();
+            QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted), Q_ARG(bool, false));
+        }
+    });
+    if (changed) {
+        emit mutedChanged(isMuted);
+        emit hmdMutedChanged(isMuted);
+    }
+}
+
+bool Audio::getMutedHMD() const {
+    return resultWithReadLock<bool>([&] {
+        return _hmdMuted;
+    });
+}
+
+bool Audio::getPTT() {
+    bool isHMD = qApp->isHMDMode();
+    if (isHMD) {
+        return getPTTHMD();
+    } else {
+        return getPTTDesktop();
+    }
+}
+
+void scripting::Audio::setPushingToTalk(bool pushingToTalk) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_pushingToTalk != pushingToTalk) {
+            changed = true;
+            _pushingToTalk = pushingToTalk;
+        }
+    });
+    if (changed) {
+        emit pushingToTalkChanged(pushingToTalk);
+    }
+}
+
+bool Audio::getPushingToTalk() const {
+    return resultWithReadLock<bool>([&] {
+        return _pushingToTalk;
+    });
+}
+
+void Audio::setPTT(bool enabled) {
+    bool isHMD = qApp->isHMDMode();
+    if (isHMD) {
+        setPTTHMD(enabled);
+    } else {
+        setPTTDesktop(enabled);
+    }
+}
+
+void Audio::setPTTDesktop(bool enabled) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_pttDesktop != enabled) {
+            changed = true;
+            _pttDesktop = enabled;
+        }
+    });
+    if (!enabled) {
+        // Set to default behavior (unmuted for Desktop) on Push-To-Talk disable.
+        setMutedDesktop(true);
+    } else {
+        // Should be muted when not pushing to talk while PTT is enabled.
+        setMutedDesktop(true);
+    }
+
+    if (changed) {
+        emit pushToTalkChanged(enabled);
+        emit pushToTalkDesktopChanged(enabled);
+    }
+}
+
+bool Audio::getPTTDesktop() const {
+    return resultWithReadLock<bool>([&] {
+        return _pttDesktop;
+    });
+}
+
+void Audio::setPTTHMD(bool enabled) {
+    bool changed = false;
+    withWriteLock([&] {
+        if (_pttHMD != enabled) {
+            changed = true;
+            _pttHMD = enabled;
+        }
+    });
+    if (!enabled) {
+        // Set to default behavior (unmuted for HMD) on Push-To-Talk disable.
+        setMutedHMD(false);
+    } else {
+        // Should be muted when not pushing to talk while PTT is enabled.
+        setMutedHMD(true);
+    }
+
+    if (changed) {
+        emit pushToTalkChanged(enabled);
+        emit pushToTalkHMDChanged(enabled);
+    }
+}
+
+void Audio::saveData() {
+    _desktopMutedSetting.set(getMutedDesktop());
+    _hmdMutedSetting.set(getMutedHMD());
+    _pttDesktopSetting.set(getPTTDesktop());
+    _pttHMDSetting.set(getPTTHMD());
+}
+
+void Audio::loadData() {
+    _desktopMuted = _desktopMutedSetting.get();
+    _hmdMuted = _hmdMutedSetting.get();
+    _pttDesktop = _pttDesktopSetting.get();
+    _pttHMD = _pttHMDSetting.get();
+}
+
+bool Audio::getPTTHMD() const {
+    return resultWithReadLock<bool>([&] {
+        return _pttHMD;
+    });
 }
 
 bool Audio::noiseReductionEnabled() const {
@@ -208,8 +354,23 @@ void Audio::onContextChanged() {
             changed = true;
         }
     });
+    if (isHMD) {
+        setMuted(getMutedHMD());
+    } else {
+        setMuted(getMutedDesktop());
+    }
     if (changed) {
         emit contextChanged(isHMD ? Audio::HMD : Audio::DESKTOP);
+    }
+}
+
+void Audio::handlePushedToTalk(bool enabled) {
+    if (getPTT()) {
+        if (enabled) {
+            setMuted(false);
+        } else {
+            setMuted(true);
+        }
     }
 }
 
