@@ -128,11 +128,8 @@ void TextureBaker::processTexture() {
 
     TextureMeta meta;
 
-    // If two textures have the same URL but are used differently, we need to process them separately
-    QString addMapChannel = QString::fromStdString("_" + std::to_string(_textureType));
-    _baseFilename += addMapChannel;
-
     QString newFilename = _textureURL.fileName();
+    QString addMapChannel = QString::fromStdString("_" + std::to_string(_textureType));
     newFilename.replace(QString("."), addMapChannel + ".");
     QString originalCopyFilePath = _outputDirectory.absoluteFilePath(newFilename);
 

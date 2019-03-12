@@ -305,6 +305,8 @@ void ModelBaker::bakeSourceCopy() {
     auto outputMapping = _mapping;
     outputMapping[FST_VERSION_FIELD] = FST_VERSION;
     outputMapping[FILENAME_FIELD] = _bakedModelURL.fileName();
+    // All textures will be found in the same directory as the model
+    outputMapping[TEXDIR_FIELD] = ".";
     hifi::ByteArray fstOut = FSTReader::writeMapping(outputMapping);
 
     QFile fstOutputFile { outputFSTURL };
@@ -403,6 +405,9 @@ QString ModelBaker::compressTexture(QString modelTextureFileName, image::Texture
             // ensuring that the baked texture will have a unique name
             // even if there was another texture with the same name at a different path
             baseTextureFileName = createBaseTextureFileName(modelTextureFileInfo);
+            // If two textures have the same URL but are used differently, we need to process them separately
+            QString addMapChannel = QString::fromStdString("_" + std::to_string(textureType));
+            baseTextureFileName += addMapChannel;
             _remappedTexturePaths[urlToTexture] = baseTextureFileName;
         }
 
