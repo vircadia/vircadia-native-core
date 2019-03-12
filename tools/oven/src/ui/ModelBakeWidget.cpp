@@ -176,9 +176,9 @@ void ModelBakeWidget::bakeButtonClicked() {
     auto fileURLStrings = _modelLineEdit->text().split(',');
     foreach (QString fileURLString, fileURLStrings) {
         // construct a URL from the path in the model file text box
-        QUrl modelToBakeURL(fileURLString);
+        QUrl modelToBakeURL = QUrl::fromUserInput(fileURLString);
 
-        QUrl bakeableModelURL = getBakeableModelURL(QUrl(modelToBakeURL));
+        QUrl bakeableModelURL = getBakeableModelURL(modelToBakeURL);
         if (!bakeableModelURL.isEmpty()) {
             auto getWorkerThreadCallback = []() -> QThread* {
                 return Oven::instance().getNextWorkerThread();
