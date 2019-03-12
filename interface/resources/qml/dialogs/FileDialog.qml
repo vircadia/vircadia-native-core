@@ -815,7 +815,7 @@ ModalWindow {
         Action {
             id: cancelAction
             text: "Cancel"
-            onTriggered: { canceled(); root.shown = false; }
+            onTriggered: { canceled(); root.destroy(); }
         }
     }
 

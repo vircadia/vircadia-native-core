@@ -37,6 +37,7 @@
 #include "RenderableModelEntityItem.h"
 
 #include <graphics-scripting/Forward.h>
+#include <CubicHermiteSpline.h>
 
 #include "Logging.h"
 
@@ -1534,12 +1535,15 @@ void Avatar::setModelURLFinished(bool success) {
 // rig is ready
 void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
+    buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
+    buildSpine2SplineRatioCache();
 }
 
 // rig has been reset.
 void Avatar::rigReset() {
     clearUnscaledEyeHeightCache();
+    clearSpine2SplineRatioCache();
 }
 
 void Avatar::computeMultiSphereShapes() {
@@ -1994,8 +1998,41 @@ void Avatar::buildUnscaledEyeHeightCache() {
     }
 }
 
+void Avatar::buildSpine2SplineRatioCache() {
+    if (_skeletonModel) {
+        auto& rig = _skeletonModel->getRig();
+        AnimPose hipsRigDefaultPose = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Hips"));
+        AnimPose headRigDefaultPose(rig.getAbsoluteDefaultPose(rig.indexOfJoint("Head")));
+        glm::vec3 basePosition = hipsRigDefaultPose.trans();
+        glm::vec3 tipPosition = headRigDefaultPose.trans();
+        glm::vec3 spine2Position = rig.getAbsoluteDefaultPose(rig.indexOfJoint("Spine2")).trans();
+
+        glm::vec3 baseToTip = tipPosition - basePosition;
+        float baseToTipLength = glm::length(baseToTip);
+        glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
+        glm::vec3 baseToSpine2 = spine2Position - basePosition;
+
+        _spine2SplineRatio = glm::dot(baseToSpine2, baseToTipNormal) / baseToTipLength;
+
+        CubicHermiteSplineFunctorWithArcLength defaultSpline(headRigDefaultPose.rot(), headRigDefaultPose.trans(), hipsRigDefaultPose.rot(), hipsRigDefaultPose.trans());
+
+        // measure the total arc length along the spline
+        float totalDefaultArcLength = defaultSpline.arcLength(1.0f);
+        float t = defaultSpline.arcLengthInverse(_spine2SplineRatio * totalDefaultArcLength);
+        glm::vec3 defaultSplineSpine2Translation = defaultSpline(t);
+
+        _spine2SplineOffset = spine2Position - defaultSplineSpine2Translation;
+    }
+
+}
+
 void Avatar::clearUnscaledEyeHeightCache() {
     _unscaledEyeHeightCache.set(DEFAULT_AVATAR_EYE_HEIGHT);
+}
+
+void Avatar::clearSpine2SplineRatioCache() {
+    _spine2SplineRatio = DEFAULT_AVATAR_EYE_HEIGHT;
+    _spine2SplineOffset = glm::vec3();
 }
 
 float Avatar::getUnscaledEyeHeightFromSkeleton() const {
@@ -2003,54 +2040,7 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     // TODO: if performance becomes a concern we can cache this value rather then computing it everytime.
 
     if (_skeletonModel) {
-        auto& rig = _skeletonModel->getRig();
-
-        // Normally the model offset transform will contain the avatar scale factor, we explicitly remove it here.
-        AnimPose modelOffsetWithoutAvatarScale(glm::vec3(1.0f), rig.getModelOffsetPose().rot(), rig.getModelOffsetPose().trans());
-        AnimPose geomToRigWithoutAvatarScale = modelOffsetWithoutAvatarScale * rig.getGeometryOffsetPose();
-
-        // This factor can be used to scale distances in the geometry frame into the unscaled rig frame.
-        // Typically it will be the unit conversion from cm to m.
-        float scaleFactor = geomToRigWithoutAvatarScale.scale().x;  // in practice this always a uniform scale factor.
-
-        int headTopJoint = rig.indexOfJoint("HeadTop_End");
-        int headJoint = rig.indexOfJoint("Head");
-        int eyeJoint = rig.indexOfJoint("LeftEye") != -1 ? rig.indexOfJoint("LeftEye") : rig.indexOfJoint("RightEye");
-        int toeJoint = rig.indexOfJoint("LeftToeBase") != -1 ? rig.indexOfJoint("LeftToeBase") : rig.indexOfJoint("RightToeBase");
-
-        // Makes assumption that the y = 0 plane in geometry is the ground plane.
-        // We also make that assumption in Rig::computeAvatarBoundingCapsule()
-        const float GROUND_Y = 0.0f;
-
-        // Values from the skeleton are in the geometry coordinate frame.
-        auto skeleton = rig.getAnimSkeleton();
-        if (eyeJoint >= 0 && toeJoint >= 0) {
-            // Measure from eyes to toes.
-            float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
-            return scaleFactor * eyeHeight;
-        } else if (eyeJoint >= 0) {
-            // Measure Eye joint to y = 0 plane.
-            float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - GROUND_Y;
-            return scaleFactor * eyeHeight;
-        } else if (headTopJoint >= 0 && toeJoint >= 0) {
-            // Measure from ToeBase joint to HeadTop_End joint, then remove forehead distance.
-            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float height = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
-            return scaleFactor * (height - height * ratio);
-        } else if (headTopJoint >= 0) {
-            // Measure from HeadTop_End joint to the ground, then remove forehead distance.
-            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float headHeight = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - GROUND_Y;
-            return scaleFactor * (headHeight - headHeight * ratio);
-        } else if (headJoint >= 0) {
-            // Measure Head joint to the ground, then add in distance from neck to eye.
-            const float DEFAULT_AVATAR_NECK_TO_EYE = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
-            const float ratio = DEFAULT_AVATAR_NECK_TO_EYE / DEFAULT_AVATAR_NECK_HEIGHT;
-            float neckHeight = skeleton->getAbsoluteDefaultPose(headJoint).trans().y - GROUND_Y;
-            return scaleFactor * (neckHeight + neckHeight * ratio);
-        } else {
-            return DEFAULT_AVATAR_EYE_HEIGHT;
-        }
+        return _skeletonModel->getRig().getUnscaledEyeHeight();
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }

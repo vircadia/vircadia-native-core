@@ -36,6 +36,7 @@ public:
     const AnimPoseVec& getRelativeDefaultPoses() const { return _relativeDefaultPoses; }
     const AnimPose& getAbsoluteDefaultPose(int jointIndex) const;
     const AnimPoseVec& getAbsoluteDefaultPoses() const { return _absoluteDefaultPoses; }
+    const glm::mat4& getGeometryOffset() const { return _geometryOffset; }
 
     // get pre transform which should include FBX pre potations
     const AnimPose& getPreRotationPose(int jointIndex) const;
@@ -54,6 +55,7 @@ public:
     void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
     void convertAbsolutePosesToRelative(AnimPoseVec& poses) const;
 
+    void convertRelativeRotationsToAbsolute(std::vector<glm::quat>& rotations) const;
     void convertAbsoluteRotationsToRelative(std::vector<glm::quat>& rotations) const;
 
     void saveNonMirroredPoses(const AnimPoseVec& poses) const;
@@ -83,6 +85,7 @@ protected:
     std::vector<int> _mirrorMap;
     QHash<QString, int> _jointIndicesByName;
     std::vector<std::vector<HFMCluster>> _clusterBindMatrixOriginalValues;
+    glm::mat4 _geometryOffset;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

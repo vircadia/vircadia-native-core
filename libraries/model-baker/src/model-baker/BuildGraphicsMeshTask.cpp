@@ -126,8 +126,8 @@ void buildGraphicsMesh(const hfm::Mesh& hfmMesh, graphics::MeshPointer& graphics
 #if HFM_PACK_NORMALS
             const auto normal = normalizeDirForPacking(*normalIt);
             const auto tangent = normalizeDirForPacking(*tangentIt);
-            const auto packedNormal = glm::packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
-            const auto packedTangent = glm::packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
+            const auto packedNormal = glm_packSnorm3x10_1x2(glm::vec4(normal, 0.0f));
+            const auto packedTangent = glm_packSnorm3x10_1x2(glm::vec4(tangent, 0.0f));
 #else
             const auto packedNormal = *normalIt;
             const auto packedTangent = *tangentIt;

@@ -298,10 +298,8 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         }
 
         // harvest accumulated rotations and apply the average
-        for (int i = 0; i < (int)_relativePoses.size(); ++i) {
-            if (i == _hipsIndex) {
-                continue;  // don't apply accumulators to hips
-            }
+        // don't apply accumulators to hips, or parents of hips
+        for (int i = (_hipsIndex+1); i < (int)_relativePoses.size(); ++i) {
             if (_rotationAccumulators[i].size() > 0) {
                 _relativePoses[i].rot() = _rotationAccumulators[i].getAverage();
                 _rotationAccumulators[i].clear();
@@ -865,7 +863,6 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimVariantMap& triggersOut, const AnimPoseVec& underPoses) {
-
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
 

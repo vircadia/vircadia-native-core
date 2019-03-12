@@ -380,16 +380,26 @@ void OpenGLDisplayPlugin::customizeContext() {
         scissorState->setScissorEnable(true);
 
         {
+#ifdef Q_OS_ANDROID
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaLinearToSRGB);
+#else
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
-            _simplePipeline = gpu::Pipeline::create(program, scissorState);
-            _hudPipeline = gpu::Pipeline::create(program, blendState);
+#endif 
+           _simplePipeline = gpu::Pipeline::create(program, scissorState);
         }
-
         {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::display_plugins::program::SrgbToLinear);
+#ifdef Q_OS_ANDROID
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaLinearToSRGB);
+#else
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureGammaSRGBToLinear);
+#endif
             _presentPipeline = gpu::Pipeline::create(program, scissorState);
         }
 
+        {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTexture);
+            _hudPipeline = gpu::Pipeline::create(program, blendState);
+        }
         {
             gpu::ShaderPointer program = gpu::Shader::createProgram(shader::gpu::program::DrawTextureMirroredX);
             _mirrorHUDPipeline = gpu::Pipeline::create(program, blendState);
@@ -885,6 +895,7 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = glm::uvec2(getRecommendedRenderSize());
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+       // _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_SRGBA_32, renderSize.x, renderSize.y));
     }
 }
 

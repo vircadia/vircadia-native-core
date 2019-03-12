@@ -127,7 +127,7 @@ public:
 
     const QAudioFormat& getOutputFormat() const { return _outputFormat; }
 
-    float getLastInputLoudness() const { return _lastInputLoudness; }   // TODO: relative to noise floor?
+    float getLastInputLoudness() const { return _lastInputLoudness; }
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
@@ -210,13 +210,16 @@ public slots:
     void setNoiseReduction(bool isNoiseGateEnabled, bool emitSignal = true);
     bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
-    bool getLocalEcho() { return _shouldEchoLocally; }
-    void setLocalEcho(bool localEcho) { _shouldEchoLocally = localEcho; }
-    void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
+    void setWarnWhenMuted(bool isNoiseGateEnabled, bool emitSignal = true);
+    bool isWarnWhenMutedEnabled() const { return _warnWhenMuted; }
 
-    bool getServerEcho() { return _shouldEchoToServer; }
-    void setServerEcho(bool serverEcho) { _shouldEchoToServer = serverEcho; }
-    void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
+    virtual bool getLocalEcho() override { return _shouldEchoLocally; }
+    virtual void setLocalEcho(bool localEcho) override { _shouldEchoLocally = localEcho; }
+    virtual void toggleLocalEcho() override { _shouldEchoLocally = !_shouldEchoLocally; }
+
+    virtual bool getServerEcho() override { return _shouldEchoToServer; }
+    virtual void setServerEcho(bool serverEcho) override { _shouldEchoToServer = serverEcho; }
+    virtual void toggleServerEcho() override { _shouldEchoToServer = !_shouldEchoToServer; }
 
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
@@ -246,6 +249,7 @@ signals:
     void inputVolumeChanged(float volume);
     void muteToggled(bool muted);
     void noiseReductionChanged(bool noiseReductionEnabled);
+    void warnWhenMutedChanged(bool warnWhenMutedEnabled);
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness, bool isClipping);
@@ -355,7 +359,9 @@ private:
 
     StDev _stdev;
     QElapsedTimer _timeSinceLastReceived;
-    float _lastInputLoudness;
+    float _lastRawInputLoudness;    // before mute/gate
+    float _lastSmoothedRawInputLoudness;
+    float _lastInputLoudness;       // after mute/gate
     float _timeSinceLastClip;
     int _totalInputAudioSamples;
 
@@ -363,6 +369,7 @@ private:
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
+    bool _warnWhenMuted;
 
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;

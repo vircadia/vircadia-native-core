@@ -16,6 +16,7 @@
 #include <hfm/HFM.h>
 
 #include "Engine.h"
+#include "BakerTypes.h"
 
 // The property "passthrough", when enabled, will let the input joints flow to the output unmodified, unlike the disabled property, which discards the data
 class PrepareJointsConfig : public baker::JobConfig {

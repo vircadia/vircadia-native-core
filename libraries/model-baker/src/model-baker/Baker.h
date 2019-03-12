@@ -16,6 +16,7 @@
 #include <hfm/HFM.h>
 
 #include "Engine.h"
+#include "BakerTypes.h"
 
 #include "ParseMaterialMappingTask.h"
 

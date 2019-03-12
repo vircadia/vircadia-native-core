@@ -1243,12 +1243,11 @@ void DomainServer::broadcastNewNode(const SharedNodePointer& addedNode) {
 
     limitedNodeList->eachMatchingNode(
         [this, addedNode](const SharedNodePointer& node)->bool {
-            if (node->getLinkedData() && node->getActiveSocket() && node != addedNode) {
-                // is the added Node in this node's interest list?
-                return isInInterestSet(node, addedNode);
-            } else {
-                return false;
-            }
+            // is the added Node in this node's interest list?
+            return node->getLinkedData()
+                && node->getActiveSocket()
+                && node != addedNode
+                && isInInterestSet(node, addedNode);
         },
         [this, &addNodePacket, connectionSecretIndex, addedNode, limitedNodeListWeak](const SharedNodePointer& node) {
             // send off this packet to the node
@@ -2548,7 +2547,7 @@ bool DomainServer::processPendingContent(HTTPConnection* connection, QString ite
         _pendingFileContent.seek(_pendingFileContent.size());
         _pendingFileContent.write(dataChunk);
         _pendingFileContent.close();
-        
+
         // Respond immediately - will timeout if we wait for restore.
         connection->respond(HTTPConnection::StatusCode200);
         if (itemName == "restore-file" || itemName == "restore-file-chunk-final" || itemName == "restore-file-chunk-only") {

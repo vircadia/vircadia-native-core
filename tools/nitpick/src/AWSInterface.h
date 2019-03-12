@@ -14,6 +14,7 @@
 #include <QCheckBox>
 #include <QLineEdit>
 #include <QObject>
+#include <QRadioButton>
 #include <QTextStream>
 
 #include "BusyWindow.h"
@@ -28,6 +29,8 @@ public:
     void createWebPageFromResults(const QString& testResults,
                                   const QString& workingDirectory,
                                   QCheckBox* updateAWSCheckBox,
+                                  QRadioButton* diffImageRadioButton,
+                                  QRadioButton* ssimImageRadionButton,
                                   QLineEdit* urlLineEdit);
 
     void extractTestFailuresFromZippedFolder(const QString& folderName);
@@ -67,6 +70,9 @@ private:
     QString AWS_BUCKET{ "hifi-qa" };
 
     QLineEdit* _urlLineEdit;
+
+
+    QString _comparisonImageFilename;
 };
 
 #endif  // hifi_AWSInterface_h

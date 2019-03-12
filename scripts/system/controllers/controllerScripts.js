@@ -30,11 +30,11 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/teleport.js",
     "controllerModules/hudOverlayPointer.js",
     "controllerModules/mouseHMD.js",
-    "controllerModules/scaleEntity.js",
     "controllerModules/nearGrabHyperLinkEntity.js",
     "controllerModules/nearTabletHighlight.js",
     "controllerModules/nearGrabEntity.js",
-    "controllerModules/farGrabEntity.js"
+    "controllerModules/farGrabEntity.js",
+    "controllerModules/pushToTalk.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

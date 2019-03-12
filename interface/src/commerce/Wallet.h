@@ -62,8 +62,8 @@ public:
      *     <tr><th>Value</th><th>Meaning</th><th>Description</th></tr>
      *   </thead>
      *   <tbody>
-     *     <tr><td><code>0</code></td><td>Not logged in</td><td>The user isn't logged in.</td></tr>
-     *     <tr><td><code>1</code></td><td>Not set up</td><td>The user's wallet isn't set up.</td></tr>
+     *     <tr><td><code>0</code></td><td>Not logged in</td><td>The user is not logged in.</td></tr>
+     *     <tr><td><code>1</code></td><td>Not set up</td><td>The user's wallet has not been set up.</td></tr>
      *     <tr><td><code>2</code></td><td>Pre-existing</td><td>There is a wallet present on the server but not one 
      *       locally.</td></tr>
      *     <tr><td><code>3</code></td><td>Conflicting</td><td>There is a wallet present on the server plus one present locally, 
@@ -73,8 +73,8 @@ public:
      *     <tr><td><code>5</code></td><td>Ready</td><td>The wallet is ready for use.</td></tr>
      *   </tbody>
      * </table>
-     * <p>Wallets used to be stored locally but now they're stored on the server, unless the computer once had a wallet stored
-     * locally in which case the wallet may be present in both places.</p>
+     * <p>Wallets used to be stored locally but now they're only stored on the server. A wallet is present in both places if 
+     * your computer previously stored its information locally.</p>
      * @typedef {number} WalletScriptingInterface.WalletStatus
      */
     enum WalletStatus {

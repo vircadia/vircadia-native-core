@@ -89,6 +89,8 @@ glm::vec3 RayPick::intersectRayWithEntityXYPlane(const QUuid& entityID, const gl
     return intersectRayWithXYPlane(origin, direction, props.getPosition(), props.getRotation(), props.getRegistrationPoint());
 }
 
+
+
 glm::vec2 RayPick::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint, bool unNormalized) {
     glm::quat invRot = glm::inverse(rotation);
     glm::vec3 localPos = invRot * (worldPos - position);
@@ -98,6 +100,19 @@ glm::vec2 RayPick::projectOntoXYPlane(const glm::vec3& worldPos, const glm::vec3
     glm::vec2 pos2D = glm::vec2(normalizedPos.x, (1.0f - normalizedPos.y));
     if (unNormalized) {
         pos2D *= glm::vec2(dimensions.x, dimensions.y);
+    }
+    return pos2D;
+}
+
+glm::vec2 RayPick::projectOntoXZPlane(const glm::vec3& worldPos, const glm::vec3& position, const glm::quat& rotation, const glm::vec3& dimensions, const glm::vec3& registrationPoint, bool unNormalized) {
+    glm::quat invRot = glm::inverse(rotation);
+    glm::vec3 localPos = invRot * (worldPos - position);
+
+    glm::vec3 normalizedPos = (localPos / dimensions) + registrationPoint;
+
+    glm::vec2 pos2D = glm::vec2(normalizedPos.x, (1.0f - normalizedPos.z));
+    if (unNormalized) {
+        pos2D *= glm::vec2(dimensions.x, dimensions.z);
     }
     return pos2D;
 }

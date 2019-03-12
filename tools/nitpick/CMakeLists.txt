@@ -80,7 +80,9 @@ else ()
     add_executable(${TARGET_NAME} ${NITPICK_SRCS} ${QM})
 endif ()
 
-add_dependencies(${TARGET_NAME} resources)
+if (NOT UNIX)
+    add_dependencies(${TARGET_NAME} resources)
+endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings

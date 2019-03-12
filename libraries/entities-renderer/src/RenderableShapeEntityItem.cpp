@@ -19,6 +19,8 @@
 
 #include "RenderPipelines.h"
 
+#include <DisableDeferred.h>
+
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT
 #include <FadeEffect.h>
@@ -53,7 +55,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
         }
 
         auto mat = _materials.find("0");
-        if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
+        if (mat != _materials.end() && mat->second.shouldUpdate()) {
             return true;
         }
 
@@ -188,7 +190,7 @@ bool ShapeEntityRenderer::useMaterialPipeline(const graphics::MultiMaterial& mat
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
     auto mat = _materials.find("0");
-    if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
+    if (mat != _materials.end() && mat->second.shouldUpdate()) {
         RenderPipelines::updateMultiMaterial(mat->second);
     }
 
@@ -276,7 +278,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline;
-        if (_renderLayer == RenderLayer::WORLD) {
+        if (_renderLayer == RenderLayer::WORLD && !DISABLE_DEFERRED) {
             pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         } else {
             pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();

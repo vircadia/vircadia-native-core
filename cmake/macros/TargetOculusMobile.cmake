@@ -1,6 +1,6 @@
 
 macro(target_oculus_mobile)
-    set(INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/oculus/VrApi)
+    set(INSTALL_DIR ${HIFI_ANDROID_PRECOMPILED}/oculus_1.22/VrApi)
 
     # Mobile SDK
     set(OVR_MOBILE_INCLUDE_DIRS ${INSTALL_DIR}/Include)

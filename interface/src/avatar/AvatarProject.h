@@ -77,7 +77,10 @@ public:
         return QDir::cleanPath(QDir(_projectPath).absoluteFilePath(_fst->getModelPath()));
     }
     Q_INVOKABLE bool getHasErrors() const { return _hasErrors; }
-    Q_INVOKABLE void setHasErrors(bool hasErrors) { _hasErrors = hasErrors; }
+    Q_INVOKABLE void setHasErrors(bool hasErrors) {
+        _hasErrors = hasErrors;
+        emit hasErrorsChanged();
+    }
 
     /**
      * returns the AvatarProject or a nullptr on failure.

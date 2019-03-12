@@ -35,10 +35,12 @@ class GeometryReader;
 
 class GeometryExtra {
 public:
-    const QVariantHash& mapping;
+    const GeometryMappingPair& mapping;
     const QUrl& textureBaseUrl;
     bool combineParts;
 };
+
+int geometryMappingPairTypeId = qRegisterMetaType<GeometryMappingPair>("GeometryMappingPair");
 
 // From: https://stackoverflow.com/questions/41145012/how-to-hash-qvariant
 class QVariantHasher {
@@ -78,7 +80,8 @@ namespace std {
     struct hash<GeometryExtra> {
         size_t operator()(const GeometryExtra& geometryExtra) const {
             size_t result = 0;
-            hash_combine(result, geometryExtra.mapping, geometryExtra.textureBaseUrl, geometryExtra.combineParts);
+            hash_combine(result, geometryExtra.mapping.first, geometryExtra.mapping.second, geometryExtra.textureBaseUrl,
+                geometryExtra.combineParts);
             return result;
         }
     };
@@ -151,7 +154,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra { _mapping, _textureBaseUrl, false };
+        GeometryExtra extra { GeometryMappingPair(_url, _mapping), _textureBaseUrl, false };
 
         // Get the raw GeometryResource
         _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
@@ -191,7 +194,7 @@ void GeometryMappingResource::onGeometryMappingLoaded(bool success) {
 
 class GeometryReader : public QRunnable {
 public:
-    GeometryReader(const ModelLoader& modelLoader, QWeakPointer<Resource>& resource, const QUrl& url, const QVariantHash& mapping,
+    GeometryReader(const ModelLoader& modelLoader, QWeakPointer<Resource>& resource, const QUrl& url, const GeometryMappingPair& mapping,
                    const QByteArray& data, bool combineParts, const QString& webMediaType) :
         _modelLoader(modelLoader), _resource(resource), _url(url), _mapping(mapping), _data(data), _combineParts(combineParts), _webMediaType(webMediaType) {
 
@@ -204,7 +207,7 @@ private:
     ModelLoader _modelLoader;
     QWeakPointer<Resource> _resource;
     QUrl _url;
-    QVariantHash _mapping;
+    GeometryMappingPair _mapping;
     QByteArray _data;
     bool _combineParts;
     QString _webMediaType;
@@ -244,7 +247,7 @@ void GeometryReader::run() {
         }
 
         HFMModel::Pointer hfmModel;
-        QVariantHash serializerMapping = _mapping;
+        QVariantHash serializerMapping = _mapping.second;
         serializerMapping["combineParts"] = _combineParts;
         serializerMapping["deduplicateIndices"] = true;
 
@@ -271,15 +274,14 @@ void GeometryReader::run() {
         }
 
         // Add scripts to hfmModel
-        if (!_mapping.value(SCRIPT_FIELD).isNull()) {
-            QVariantList scripts = _mapping.values(SCRIPT_FIELD);
+        if (!serializerMapping.value(SCRIPT_FIELD).isNull()) {
+            QVariantList scripts = serializerMapping.values(SCRIPT_FIELD);
             for (auto &script : scripts) {
                 hfmModel->scripts.push_back(script.toString());
             }
         }
-
         QMetaObject::invokeMethod(resource.data(), "setGeometryDefinition",
-                Q_ARG(HFMModel::Pointer, hfmModel), Q_ARG(QVariantHash, _mapping));
+                Q_ARG(HFMModel::Pointer, hfmModel), Q_ARG(GeometryMappingPair, _mapping));
     } catch (const std::exception&) {
         auto resource = _resource.toStrongRef();
         if (resource) {
@@ -313,17 +315,17 @@ public:
     void setExtra(void* extra) override;
 
 protected:
-    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping);
+    Q_INVOKABLE void setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping);
 
 private:
     ModelLoader _modelLoader;
-    QVariantHash _mapping;
+    GeometryMappingPair _mapping;
     bool _combineParts;
 };
 
 void GeometryDefinitionResource::setExtra(void* extra) {
     const GeometryExtra* geometryExtra = static_cast<const GeometryExtra*>(extra);
-    _mapping = geometryExtra ? geometryExtra->mapping : QVariantHash();
+    _mapping = geometryExtra ? geometryExtra->mapping : GeometryMappingPair(QUrl(), QVariantHash());
     _textureBaseUrl = geometryExtra ? resolveTextureBaseUrl(_url, geometryExtra->textureBaseUrl) : QUrl();
     _combineParts = geometryExtra ? geometryExtra->combineParts : true;
 }
@@ -336,9 +338,9 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
     QThreadPool::globalInstance()->start(new GeometryReader(_modelLoader, _self, _effectiveBaseURL, _mapping, data, _combineParts, _request->getWebMediaType()));
 }
 
-void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, QVariantHash mapping) {
+void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
     // Do processing on the model
-    baker::Baker modelBaker(hfmModel, mapping);
+    baker::Baker modelBaker(hfmModel, mapping.second);
     modelBaker.run();
 
     // Assume ownership of the processed HFMModel
@@ -395,11 +397,15 @@ QSharedPointer<Resource> ModelCache::createResource(const QUrl& url) {
 }
 
 QSharedPointer<Resource> ModelCache::createResourceCopy(const QSharedPointer<Resource>& resource) {
-    return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
+    if (resource->getURL().path().toLower().endsWith(".fst")) {
+        return QSharedPointer<Resource>(new GeometryMappingResource(*resource.staticCast<GeometryMappingResource>()), &Resource::deleter);
+    } else {
+        return QSharedPointer<Resource>(new GeometryDefinitionResource(*resource.staticCast<GeometryDefinitionResource>()), &Resource::deleter);
+    }
 }
 
 GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
-                                                          const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+                                                          const GeometryMappingPair& mapping, const QUrl& textureBaseUrl) {
     bool combineParts = true;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();
@@ -412,7 +418,8 @@ GeometryResource::Pointer ModelCache::getGeometryResource(const QUrl& url,
 }
 
 GeometryResource::Pointer ModelCache::getCollisionGeometryResource(const QUrl& url,
-                                                                   const QVariantHash& mapping, const QUrl& textureBaseUrl) {
+                                                                   const GeometryMappingPair& mapping,
+                                                                   const QUrl& textureBaseUrl) {
     bool combineParts = false;
     GeometryExtra geometryExtra = { mapping, textureBaseUrl, combineParts };
     GeometryResource::Pointer resource = getResource(url, QUrl(), &geometryExtra, std::hash<GeometryExtra>()(geometryExtra)).staticCast<GeometryResource>();

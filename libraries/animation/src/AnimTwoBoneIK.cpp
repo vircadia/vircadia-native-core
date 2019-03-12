@@ -156,7 +156,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
     glm::quat relMidRot = glm::angleAxis(midAngle, _midHingeAxis);
 
     // insert new relative pose into the chain and rebuild it.
-    ikChain.setRelativePoseAtJointIndex(_midJointIndex, AnimPose(relMidRot, underPoses[_midJointIndex].trans()));
+    ikChain.setRelativePoseAtJointIndex(_midJointIndex, AnimPose(underPoses[_midJointIndex].scale(), relMidRot, underPoses[_midJointIndex].trans()));
     ikChain.buildDirtyAbsolutePoses();
 
     // recompute tip pose after mid joint has been rotated
@@ -180,7 +180,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
         // transform result back into parent relative frame.
         glm::quat relBaseRot = glm::inverse(baseParentPose.rot()) * absRot;
-        ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(relBaseRot, underPoses[_baseJointIndex].trans()));
+        ikChain.setRelativePoseAtJointIndex(_baseJointIndex, AnimPose(underPoses[_baseJointIndex].scale(), relBaseRot, underPoses[_baseJointIndex].trans()));
     }
 
     // recompute midJoint pose after base has been rotated.
@@ -189,7 +189,7 @@ const AnimPoseVec& AnimTwoBoneIK::evaluate(const AnimVariantMap& animVars, const
 
     // transform target rotation in to parent relative frame.
     glm::quat relTipRot = glm::inverse(midJointPose.rot()) * targetPose.rot();
-    ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(relTipRot, underPoses[_tipJointIndex].trans()));
+    ikChain.setRelativePoseAtJointIndex(_tipJointIndex, AnimPose(underPoses[_tipJointIndex].scale(), relTipRot, underPoses[_tipJointIndex].trans()));
 
     // blend with the underChain
     ikChain.blend(underChain, alpha);

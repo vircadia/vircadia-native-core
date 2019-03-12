@@ -42,6 +42,7 @@
 
 static const quint64 DELETED_ENTITIES_EXTRA_USECS_TO_CONSIDER = USECS_PER_MSEC * 50;
 const float EntityTree::DEFAULT_MAX_TMP_ENTITY_LIFETIME = 60 * 60; // 1 hour
+static const QString DOMAIN_UNLIMITED = "domainUnlimited";
 
 EntityTree::EntityTree(bool shouldReaverage) :
     Octree(shouldReaverage)
@@ -52,7 +53,15 @@ EntityTree::EntityTree(bool shouldReaverage) :
 }
 
 EntityTree::~EntityTree() {
-    eraseAllOctreeElements(false);
+    // NOTE: to eraseAllOctreeElements() in this context is useless because
+    // any OctreeElements in the tree still have shared backpointers to this Tree
+    // which means the dtor never would have been called in the first place!
+    //
+    // I'm keeping this useless commented-out line to remind us:
+    // we don't need shared pointer overhead for EntityTrees.
+    // TODO: EntityTreeElement::_tree should be raw back pointer.
+    // AND: EntityItem::_element should be a raw back pointer.
+    //eraseAllOctreeElements(false); // KEEP THIS
 }
 
 void EntityTree::setEntityScriptSourceWhitelist(const QString& entityScriptSourceWhitelist) { 
@@ -70,56 +79,62 @@ OctreeElementPointer EntityTree::createNewElement(unsigned char* octalCode) {
     return std::static_pointer_cast<OctreeElement>(newElement);
 }
 
-void EntityTree::eraseNonLocalEntities() {
+void EntityTree::eraseDomainAndNonOwnedEntities() {
     emit clearingEntities();
 
     if (_simulation) {
-        // This will clear all entities host types including local entities, because local entities
-        // are not in the physics simulation
+        // local entities are not in the simulation, so we clear ALL
         _simulation->clearEntities();
     }
-    _staleProxies.clear();
-    QHash<EntityItemID, EntityItemPointer> localMap;
-    localMap.swap(_entityMap);
-    QHash<EntityItemID, EntityItemPointer> savedEntities;
+
     this->withWriteLock([&] {
-        foreach(EntityItemPointer entity, localMap) {
+        QHash<EntityItemID, EntityItemPointer> savedEntities;
+        // NOTE: lock the Tree first, then lock the _entityMap.
+        // It should never be done the other way around.
+        QReadLocker locker(&_entityMapLock);
+        foreach(EntityItemPointer entity, _entityMap) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
-                element->cleanupNonLocalEntities();
+                element->cleanupDomainAndNonOwnedEntities();
             }
 
-            if (entity->isLocalEntity()) {
+            if (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID())) {
                 savedEntities[entity->getEntityItemID()] = entity;
+            } else {
+                int32_t spaceIndex = entity->getSpaceIndex();
+                if (spaceIndex != -1) {
+                    // stale spaceIndices will be freed later
+                    _staleProxies.push_back(spaceIndex);
+                }
             }
         }
+        _entityMap.swap(savedEntities);
     });
-    localMap.clear();
-    _entityMap = savedEntities;
 
     resetClientEditStats();
     clearDeletedEntities();
 
     {
         QWriteLocker locker(&_needsParentFixupLock);
-        QVector<EntityItemWeakPointer> localEntitiesNeedsParentFixup;
+        QVector<EntityItemWeakPointer> needParentFixup;
 
         foreach (EntityItemWeakPointer entityItem, _needsParentFixup) {
-            if (!entityItem.expired() && entityItem.lock()->isLocalEntity()) {
-                localEntitiesNeedsParentFixup.push_back(entityItem);
+            auto entity = entityItem.lock();
+            if (entity && (entity->isLocalEntity() || (entity->isAvatarEntity() && entity->getOwningAvatarID() == getMyAvatarSessionUUID()))) {
+                needParentFixup.push_back(entityItem);
             }
         }
 
-        _needsParentFixup = localEntitiesNeedsParentFixup;
+        _needsParentFixup = needParentFixup;
     }
 }
+
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     emit clearingEntities();
 
     if (_simulation) {
         _simulation->clearEntities();
     }
-    _staleProxies.clear();
     QHash<EntityItemID, EntityItemPointer> localMap;
     localMap.swap(_entityMap);
     this->withWriteLock([&] {
@@ -127,6 +142,11 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
                 element->cleanupEntities();
+            }
+            int32_t spaceIndex = entity->getSpaceIndex();
+            if (spaceIndex != -1) {
+                // assume stale spaceIndices will be freed later
+                _staleProxies.push_back(spaceIndex);
             }
         }
     });
@@ -281,7 +301,7 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 
         // Delete an already-existing entity from the tree if it has the same
         //     CertificateID as the entity we're trying to add.
-        if (!existingEntityItemID.isNull()) {
+        if (!existingEntityItemID.isNull() && !entity->getCertificateType().contains(DOMAIN_UNLIMITED)) {
             qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
                 << existingEntityItemID << ". Deleting existing entity.";
             deleteEntity(existingEntityItemID, true);
@@ -764,9 +784,9 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
             _simulation->prepareEntityForDelete(theEntity);
         }
 
-        // keep a record of valid stale spaceIndices so they can be removed from the Space
         int32_t spaceIndex = theEntity->getSpaceIndex();
         if (spaceIndex != -1) {
+            // stale spaceIndices will be freed later
             _staleProxies.push_back(spaceIndex);
         }
     }
@@ -1851,7 +1871,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                         failedAdd = true;
                         qCDebug(entities) << "User without 'certified rez rights' [" << senderNode->getUUID()
                             << "] attempted to add a certified entity with ID:" << entityItemID;
-                    } else if (isClone && isCertified) {
+                    } else if (isClone && isCertified && !properties.getCertificateType().contains(DOMAIN_UNLIMITED)) {
                         failedAdd = true;
                         qCDebug(entities) << "User attempted to clone certified entity from entity ID:" << entityIDToClone;
                     } else if (isClone && !isCloneable) {
@@ -2020,6 +2040,8 @@ void EntityTree::fixupNeedsParentFixups() {
                                    Simulation::DIRTY_COLLISION_GROUP |
                                    Simulation::DIRTY_TRANSFORM);
             entityChanged(entity);
+            entity->locationChanged(true, false);
+
             entity->forEachDescendant([&](SpatiallyNestablePointer object) {
                 if (object->getNestableType() == NestableType::Entity) {
                     EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
@@ -2028,8 +2050,8 @@ void EntityTree::fixupNeedsParentFixups() {
                                                      Simulation::DIRTY_TRANSFORM);
                     entityChanged(descendantEntity);
                 }
+                object->locationChanged(true, false);
             });
-            entity->locationChanged(true);
 
             // Update our parent's bounding box
             bool success = false;
@@ -2955,6 +2977,7 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
 
 std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
+std::function<bool()> EntityTree::_areEntityClicksCapturedOperator = nullptr;
 
 QObject* EntityTree::getEntityObject(const QUuid& id) {
     if (_getEntityObjectOperator) {
@@ -2970,13 +2993,31 @@ QSizeF EntityTree::textSize(const QUuid& id, const QString& text) {
     return QSizeF(0.0f, 0.0f);
 }
 
+bool EntityTree::areEntityClicksCaptured() {
+    if (_areEntityClicksCapturedOperator) {
+        return _areEntityClicksCapturedOperator();
+    }
+    return false;
+}
+
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                                MovingEntitiesOperator& moveOperator, bool force, bool tellServer) {
     // if the queryBox has changed, tell the entity-server
     EntityItemPointer entity = std::dynamic_pointer_cast<EntityItem>(object);
     if (entity) {
-        // NOTE: we rely on side-effects of the entity->updateQueryAACube() call in the following if() conditional:
-        if (entity->updateQueryAACube() || force) {
+        bool queryAACubeChanged = false;
+        if (!entity->hasChildren()) {
+            // updateQueryAACube will also update all ancestors' AACubes, so we only need to call this for leaf nodes
+            queryAACubeChanged = entity->updateQueryAACube();
+        } else {
+            AACube oldCube = entity->getQueryAACube();
+            object->forEachChild([&](SpatiallyNestablePointer descendant) {
+                updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
+            });
+            queryAACubeChanged = oldCube != entity->getQueryAACube();
+        }
+
+        if (queryAACubeChanged || force) {
             bool success;
             AACube newCube = entity->getQueryAACube(success);
             if (success) {
@@ -3000,10 +3041,6 @@ void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, 
             entityChanged(entity);
         }
     }
-
-    object->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        updateEntityQueryAACubeWorker(descendant, packetSender, moveOperator, force, tellServer);
-    });
 }
 
 void EntityTree::updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

@@ -1048,6 +1048,7 @@
         // Track grabbed state and item.
         switch (message.action) {
             case "grab":
+            case "equip":
                 grabbingHand = HAND_NAMES.indexOf(message.joint);
                 grabbedItem = message.grabbedEntity;
                 break;
@@ -1056,7 +1057,7 @@
                 grabbedItem = null;
                 break;
             default:
-                error("Unexpected grab message!");
+                error("Unexpected grab message: " + JSON.stringify(message));
                 return;
         }
 

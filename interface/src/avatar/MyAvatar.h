@@ -1183,6 +1183,33 @@ public:
     void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData) override;
     void avatarEntityDataToJson(QJsonObject& root) const override;
     int sendAvatarDataPacket(bool sendAll = false) override;
+    
+    void addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar);
+
+    /**jsdoc
+    * Init flow simulation on avatar.
+    * @function MyAvatar.useFlow
+    * @param {boolean} - Set to <code>true</code> to activate flow simulation.
+    * @param {boolean} - Set to <code>true</code> to activate collisions.
+    * @param {Object} physicsConfig - object with the customized physic parameters
+    * i.e. {"hair": {"active": true, "stiffness": 0.0, "radius": 0.04, "gravity": -0.035, "damping": 0.8, "inertia": 0.8, "delta": 0.35}}
+    * @param {Object} collisionsConfig - object with the customized collision parameters
+    * i.e. {"Spine2": {"type": "sphere", "radius": 0.14, "offset": {"x": 0.0, "y": 0.2, "z": 0.0}}}
+    */
+    Q_INVOKABLE void useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
+
+    /**jsdoc
+    * @function MyAvatar.getFlowData
+    * @returns {object}
+    */
+    Q_INVOKABLE QVariantMap getFlowData();
+
+    /**jsdoc
+    * returns the indices of every colliding flow joint
+    * @function MyAvatar.getCollidingFlowJoints
+    * @returns {int[]}
+    */
+    Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
 public slots:
 
@@ -1737,6 +1764,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void initHeadBones();
     void initAnimGraph();
+    void initFlowFromFST();
 
     // Avatar Preferences
     QUrl _fullAvatarURLFromPreferences;
