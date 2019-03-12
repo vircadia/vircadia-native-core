@@ -425,10 +425,11 @@ void DomainBaker::handleFinishedModelBaker() {
             qDebug() << "Re-writing entity references to" << baker->getModelURL();
 
             // setup a new URL using the prefix we were passed
-            auto relativeMappingFilePath = baker->getFullOutputMappingURL().toString().remove(_contentOutputPath);
+            auto relativeMappingFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getFullOutputMappingURL().toString());
             if (relativeMappingFilePath.startsWith("/")) {
                 relativeMappingFilePath = relativeMappingFilePath.right(relativeMappingFilePath.length() - 1);
             }
+
             QUrl newURL = _destinationPath.resolved(relativeMappingFilePath);
 
             // enumerate the QJsonRef values for the URL of this model from our multi hash of
@@ -494,7 +495,12 @@ void DomainBaker::handleFinishedTextureBaker() {
             // this TextureBaker is done and everything went according to plan
             qDebug() << "Re-writing entity references to" << baker->getTextureURL();
 
-            auto newURL = _destinationPath.resolved(baker->getMetaTextureFileName());
+            // setup a new URL using the prefix we were passed
+            auto relativeTextureFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getMetaTextureFileName());
+            if (relativeTextureFilePath.startsWith("/")) {
+                relativeTextureFilePath = relativeTextureFilePath.right(relativeTextureFilePath.length() - 1);
+            }
+            auto newURL = _destinationPath.resolved(relativeTextureFilePath);
 
             // enumerate the QJsonRef values for the URL of this texture from our multi hash of
             // entity objects needing a URL re-write
@@ -563,7 +569,12 @@ void DomainBaker::handleFinishedScriptBaker() {
             // this JSBaker is done and everything went according to plan
             qDebug() << "Re-writing entity references to" << baker->getJSPath();
 
-            auto newURL = _destinationPath.resolved(baker->getBakedJSFilePath());
+            // setup a new URL using the prefix we were passed
+            auto relativeScriptFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getBakedJSFilePath());
+            if (relativeScriptFilePath.startsWith("/")) {
+                relativeScriptFilePath = relativeScriptFilePath.right(relativeScriptFilePath.length() - 1);
+            }
+            auto newURL = _destinationPath.resolved(relativeScriptFilePath);
 
             // enumerate the QJsonRef values for the URL of this script from our multi hash of
             // entity objects needing a URL re-write
@@ -634,7 +645,12 @@ void DomainBaker::handleFinishedMaterialBaker() {
 
             QString newDataOrURL;
             if (baker->isURL()) {
-                newDataOrURL = _destinationPath.resolved(baker->getBakedMaterialData()).toDisplayString();
+                // setup a new URL using the prefix we were passed
+                auto relativeMaterialFilePath = QDir(_contentOutputPath).relativeFilePath(baker->getBakedMaterialData());
+                if (relativeMaterialFilePath.startsWith("/")) {
+                    relativeMaterialFilePath = relativeMaterialFilePath.right(relativeMaterialFilePath.length() - 1);
+                }
+                newDataOrURL = _destinationPath.resolved(relativeMaterialFilePath).toDisplayString();
             } else {
                 newDataOrURL = baker->getBakedMaterialData();
             }
