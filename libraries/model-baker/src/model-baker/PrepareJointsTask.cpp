@@ -101,23 +101,24 @@ void PrepareJointsTask::run(const baker::BakeContextPointer& context, const Inpu
     }
 
     if (newJointRot) {
-        for (const auto& jointIn : jointsIn) {
+        for (auto& jointOut : jointsOut) {
 
-            auto jointNameMapKey = jointNameMapping.key(jointIn.name);
-            int mappedIndex = jointIndices.value(jointIn.name);
+            auto jointNameMapKey = jointNameMapping.key(jointOut.name);
+            int mappedIndex = jointIndices.value(jointOut.name);
             if (jointNameMapping.contains(jointNameMapKey)) {
-
                 // delete and replace with hifi name
-                jointIndices.remove(jointIn.name);
-                jointIndices.insert(jointNameMapKey, mappedIndex);
+                jointIndices.remove(jointOut.name);
+                jointOut.name = jointNameMapKey;
+                jointIndices.insert(jointOut.name, mappedIndex);
             } else {
 
                 // nothing mapped to this fbx joint name
-                if (jointNameMapping.contains(jointIn.name)) {
+                if (jointNameMapping.contains(jointOut.name)) {
                     // but the name is in the list of hifi names is mapped to a different joint
-                    int extraIndex = jointIndices.value(jointIn.name);
-                    jointIndices.remove(jointIn.name);
-                    jointIndices.insert("", extraIndex);
+                    int extraIndex = jointIndices.value(jointOut.name);
+                    jointIndices.remove(jointOut.name);
+                    jointOut.name = "";
+                    jointIndices.insert(jointOut.name, extraIndex);
                 }
             }
         }
