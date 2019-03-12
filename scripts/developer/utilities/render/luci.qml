@@ -32,7 +32,7 @@ Rectangle {
         Column {
             width: render.width
 
-            Prop.PropEnum {
+        /*    Prop.PropEnum {
                 label: "Tone Curve"
                 object: render.mainViewTask.getConfig("ToneMapping")
                 property: "curve"
@@ -44,9 +44,16 @@ Rectangle {
                         ]
                 anchors.left: parent.left
                 anchors.right: parent.right 
-            }        
-        
+            }        */
             Jet.TaskPropView {
+                id: "the"
+                jobPath: "RenderMainView.RenderDeferredTask"
+                label: "Le Render Deferred Job"
+
+                anchors.left: parent.left
+                anchors.right: parent.right 
+            }
+          /*  Jet.TaskPropView {
                 jobPath: "RenderMainView.ToneMapping"
                 label: "Le ToneMapping Job"
 
@@ -59,7 +66,10 @@ Rectangle {
 
                 anchors.left: parent.left
                 anchors.right: parent.right 
-            }
+            }*/
         }
     }
+
+    Component.onCompleted: {
+     }
 }

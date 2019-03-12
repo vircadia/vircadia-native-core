@@ -13,20 +13,12 @@ import QtQuick 2.7
 Item {
     Global { id: global }
     id: root
-    
-    // Prop Group is designed to author an array of ProItems, they are defined with an array of the tuplets describing each individual item:
-    // [ ..., PropItemInfo, ...]
-    // PropItemInfo {
-    //    type: "PropXXXX", object: JSobject, property: "propName"      
-    // }
-    //
-    property var propItems: []
-
 
     property var label: "group"
 
     property alias isUnfold: headerRect.icon
-    
+    property alias propItemsPanel: propItemsContainer
+
     Item {
         id: header
         height: global.slimHeight
@@ -89,7 +81,7 @@ Item {
         anchors.bottom: root.bottom  
 
         Column {
-            id: column
+            id: propItemsContainer
           //  anchors.top: header.bottom
             anchors.left: parent.left
             anchors.right: parent.right   
@@ -99,13 +91,22 @@ Item {
         }
     }
 
-    height: header.height + isUnfold * column.height
+    height: header.height + isUnfold * propItemsContainer.height
     anchors.leftMargin: global.horizontalMargin
     anchors.rightMargin: global.horizontalMargin
+    anchors.left: parent.left           
+    anchors.right: parent.right
 
-    function updatePropItems() {
-         for (var i = 0; i < root.propItems.length; i++) {
-            var proItem = root.propItems[i];
+    
+    // Prop Group is designed to author an array of ProItems, they are defined with an array of the tuplets describing each individual item:
+    // [ ..., PropItemInfo, ...]
+    // PropItemInfo {
+    //    type: "PropXXXX", object: JSobject, property: "propName"      
+    // }
+    //
+    function updatePropItems(propItemsModel) {
+        for (var i = 0; i < propItemsModel.length; i++) {
+            var proItem = propItemsModel[i];
             // valid object
             if (proItem['object'] !== undefined && proItem['object'] !== null ) {
                 // valid property
@@ -118,7 +119,7 @@ Item {
                         case 'boolean':
                         case 'PropBool': {
                             var component = Qt.createComponent("PropBool.qml");
-                            component.createObject(column, {
+                            component.createObject(propItemsContainer, {
                                 "label": proItem.property,
                                 "object": proItem.object,
                                 "property": proItem.property
@@ -127,7 +128,7 @@ Item {
                         case 'number':
                         case 'PropScalar': {
                             var component = Qt.createComponent("PropScalar.qml");
-                            component.createObject(column, {
+                            component.createObject(propItemsContainer, {
                                 "label": proItem.property,
                                 "object": proItem.object,
                                 "property": proItem.property,
@@ -138,7 +139,7 @@ Item {
                         } break;
                         case 'PropEnum': {
                             var component = Qt.createComponent("PropEnum.qml");
-                            component.createObject(column, {
+                            component.createObject(propItemsContainer, {
                                 "label": proItem.property,
                                 "object": proItem.object,
                                 "property": proItem.property,
@@ -147,22 +148,32 @@ Item {
                         } break;
                         case 'object': {
                             var component = Qt.createComponent("PropItem.qml");
-                            component.createObject(column, {
+                            component.createObject(propItemsContainer, {
                                 "label": proItem.property,
                                 "object": proItem.object,
                                 "property": proItem.property,
+                             })
+                        } break;
+                        case 'printLabel': {
+                            var component = Qt.createComponent("PropItem.qml");
+                            component.createObject(propItemsContainer, {
+                                "label": proItem.property
                              })
                         } break;
                     }
                 } else {
                     console.log('Invalid property: ' + JSON.stringify(proItem));
                 }
+            } else if (proItem['type'] === 'printLabel') {
+                var component = Qt.createComponent("PropItem.qml");
+                component.createObject(propItemsContainer, {
+                    "label": proItem.label
+                })     
             } else {
                 console.log('Invalid object: ' + JSON.stringify(proItem));
             }
         }
     }
     Component.onCompleted: {
-        updatePropItems();
     }
 }

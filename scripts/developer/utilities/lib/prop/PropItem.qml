@@ -16,7 +16,7 @@ Item {
     id: root
 
     // Prop item is designed to author an object[property]:
-    property var object: NULL
+    property var object: {}
     property string property: ""
 
     // value is accessed through the "valueVarSetter" and "valueVarGetter"

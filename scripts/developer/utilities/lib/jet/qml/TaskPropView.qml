@@ -1,5 +1,5 @@
 //
-//  jet/TaskListView.qml
+//  jet/TaskPropView.qml
 //
 //  Created by Sam Gateau, 2018/05/09
 //  Copyright 2018 High Fidelity, Inc.
@@ -27,13 +27,37 @@ Prop.PropGroup {
     property var jobPath: ""
     property alias label: root.label
 
-    Component.onCompleted: {
+    function populatePropItems() {
+        var propsModel = []
         var props = Jet.job_propKeys(rootConfig.getConfig(jobPath));
         console.log(JSON.stringify(props));
         for (var p in props) {
-            root.propItems.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
+            propsModel.push({"object": rootConfig.getConfig(jobPath), "property":props[p] })
         }
-        root.updatePropItems();
+        root.updatePropItems(propsModel);
+
+        
+        Jet.task_traverse(rootConfig.getConfig(jobPath),
+            function(job, depth, index) {
+                var component = Qt.createComponent("./TaskPropView.qml");
+                component.createObject(root.propItemsPanel, {
+                    "label": job.objectName,
+                    "rootConfig": root.rootConfig,
+                    "jobPath": root.jobPath + '.' + job.objectName
+                })
+              /*  var component = Qt.createComponent("../../prop/PropItem.qml");
+                component.createObject(root.propItemsPanel, {
+                    "label": root.jobPath + '.' + job.objectName + ' num=' + index,
+                })*/
+              //  propsModel.push({"type": "printLabel", "label": root.jobPath + '.' + job.objectName + ' num=' + index })
+
+                 return (depth < 1);
+            }, 0)      
+
+    }
+
+    Component.onCompleted: {
+        populatePropItems()
     }
         
  
