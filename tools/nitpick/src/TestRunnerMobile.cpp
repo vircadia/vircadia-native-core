@@ -164,22 +164,20 @@ void TestRunnerMobile::installAPK() {
         _adbInterface = new AdbInterface();
     }
 
-    if (_installerFilename.isNull()) {
-        QString installerPathname = QFileDialog::getOpenFileName(nullptr, "Please select the APK", _workingFolder,
-            "Available APKs (*.apk)"
-        );
+    QString installerPathname = QFileDialog::getOpenFileName(nullptr, "Please select the APK", _workingFolder,
+        "Available APKs (*.apk)"
+    );
 
-        if (installerPathname.isNull()) {
-            return;
-        }
-
-        // Remove the path
-        QStringList parts = installerPathname.split('/');
-        _installerFilename = parts[parts.length() - 1];
+    if (installerPathname.isNull()) {
+        return;
     }
 
+    // Remove the path
+    QStringList parts = installerPathname.split('/');
+    _installerFilename = parts[parts.length() - 1];
+
     _statusLabel->setText("Installing");
-    QString command = _adbInterface->getAdbCommand() + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
+    QString command = _adbInterface->getAdbCommand() + " install -r -d " + installerPathname + " >" + _workingFolder  + "/installOutput.txt";
     appendLog(command);
     system(command.toStdString().c_str());
     _statusLabel->setText("Installation complete");
