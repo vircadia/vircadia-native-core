@@ -1122,6 +1122,7 @@ public:
     float getUserEyeHeight() const;
 
     virtual SpatialParentTree* getParentTree() const override;
+    virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getSensorToWorldScale()); }
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
