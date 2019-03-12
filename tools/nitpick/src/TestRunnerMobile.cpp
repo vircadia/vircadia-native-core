@@ -43,7 +43,7 @@ TestRunnerMobile::TestRunnerMobile(
     _installAPKPushbutton = installAPKPushbutton;
     _runInterfacePushbutton = runInterfacePushbutton;
 
-    folderLineEdit->setText("/sdcard/DCIM/TEST");
+    folderLineEdit->setText("/sdcard/snapshots");
 
     modelNames["SM_G955U1"] = "Samsung S8+ unlocked";
     modelNames["SM_N960U1"] = "Samsung Note 9 unlocked";
