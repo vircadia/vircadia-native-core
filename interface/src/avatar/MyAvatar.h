@@ -652,7 +652,7 @@ public:
      * Restores a default role animation.
      * <p>Each avatar has an avatar-animation.json file that defines a set of animation roles. Animation roles map to easily 
      * understandable actions that the avatar can perform, such as <code>"idleStand"</code>, <code>"idleTalk"</code>, or 
-     * <code>"walkFwd"</code>. To get the full list of roles, use {#link MyAvatar.getAnimationRoles}. For each role,
+     * <code>"walkFwd"</code>. To get the full list of roles, use {@link MyAvatar.getAnimationRoles}. For each role,
      * the avatar-animation.json defines when the animation is used, the animation clip (.FBX) used, and how animations are 
      * blended together with procedural data (such as look-at vectors, hand sensors etc.). You can change the animation clip 
      * (.FBX) associated with a specified animation role using {@link MyAvatar.overrideRoleAnimation}.
@@ -1555,7 +1555,7 @@ public:
      * @param {boolean} isActive - <code>true</code> if flow simulation is enabled on the joint, <code>false</code> if it isn't.
      * @param {boolean} isCollidable - <code>true</code> to enable collisions in the flow simulation, <code>false</code> to 
      *     disable.
-     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig>] - Physic configurations for particular entity 
+     * @param {Object<JointName, MyAvatar.FlowPhysicsOptions>} [physicsConfig>] - Physics configurations for particular entity 
      *     and avatar joints.
      * @param {Object<JointName, MyAvatar.FlowCollisionsOptions>} [collisionsConfig] - Collision configurations for particular 
      *     entity and avatar joints.
