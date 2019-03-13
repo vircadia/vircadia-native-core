@@ -154,7 +154,7 @@ void AnimClip::copyFromNetworkAnim() {
         const float avatarToAnimationHeightRatio = avatarHeightInMeters / animHeightInMeters;
         const float unitsRatio = 1.0f / (avatarUnitScale / animationUnitScale);
         const float parentScaleRatio = 1.0f / (avatarHipsParentScale / animHipsParentScale);
-        qCDebug(animation) << " avatar unit scale " << avatarUnitScale << " animation unit scale " << animationUnitScale << " avatar height " << avatarHeightInMeters << " animation height " << animHeightInMeters << " avatar scale " << avatarHipsParentScale << " animation scale " << animHipsParentScale;
+
         boneLengthScale = avatarToAnimationHeightRatio * unitsRatio * parentScaleRatio;
     }
 
