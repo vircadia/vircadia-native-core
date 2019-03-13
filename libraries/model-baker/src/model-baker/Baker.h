@@ -23,7 +23,7 @@
 namespace baker {
     class Baker {
     public:
-        Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping);
+        Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& materialMappingBaseURL);
 
         std::shared_ptr<TaskConfig> getConfiguration();
 

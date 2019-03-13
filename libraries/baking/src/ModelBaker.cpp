@@ -249,7 +249,7 @@ void ModelBaker::bakeSourceCopy() {
         serializerMapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
         hfm::Model::Pointer loadedModel = serializer->read(modelData, serializerMapping, _modelURL);
 
-        baker::Baker baker(loadedModel, serializerMapping);
+        baker::Baker baker(loadedModel, serializerMapping, hifi::URL());
         auto config = baker.getConfiguration();
         // Enable compressed draco mesh generation
         config->getJobConfig("BuildDracoMesh")->setEnabled(true);

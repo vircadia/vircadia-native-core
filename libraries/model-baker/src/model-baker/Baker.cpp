@@ -119,12 +119,13 @@ namespace baker {
 
     class BakerEngineBuilder {
     public:
-        using Input = VaryingSet2<hfm::Model::Pointer, hifi::VariantHash>;
+        using Input = VaryingSet3<hfm::Model::Pointer, hifi::VariantHash, hifi::URL>;
         using Output = VaryingSet4<hfm::Model::Pointer, MaterialMapping, std::vector<hifi::ByteArray>, std::vector<std::vector<hifi::ByteArray>>>;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& input, Varying& output) {
             const auto& hfmModelIn = input.getN<Input>(0);
             const auto& mapping = input.getN<Input>(1);
+            const auto& materialMappingBaseURL = input.getN<Input>(2);
 
             // Split up the inputs from hfm::Model
             const auto modelPartsIn = model.addJob<GetModelPartsTask>("GetModelParts", hfmModelIn);
@@ -157,7 +158,8 @@ namespace baker {
             const auto jointIndices = jointInfoOut.getN<PrepareJointsTask::Output>(2);
 
             // Parse material mapping
-            const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", mapping);
+            const auto parseMaterialMappingInputs = ParseMaterialMappingTask::Input(mapping, materialMappingBaseURL).asVarying();
+            const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", parseMaterialMappingInputs);
 
             // Build Draco meshes
             // NOTE: This task is disabled by default and must be enabled through configuration
@@ -182,10 +184,11 @@ namespace baker {
         }
     };
 
-    Baker::Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping) :
+    Baker::Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& materialMappingBaseURL) :
         _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
         _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
         _engine->feedInput<BakerEngineBuilder::Input>(1, mapping);
+        _engine->feedInput<BakerEngineBuilder::Input>(2, materialMappingBaseURL);
     }
 
     std::shared_ptr<TaskConfig> Baker::getConfiguration() {

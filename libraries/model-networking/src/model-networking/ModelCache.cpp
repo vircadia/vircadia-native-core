@@ -340,7 +340,7 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
 
 void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
     // Do processing on the model
-    baker::Baker modelBaker(hfmModel, mapping.second);
+    baker::Baker modelBaker(hfmModel, mapping.second, mapping.first);
     modelBaker.run();
 
     // Assume ownership of the processed HFMModel
