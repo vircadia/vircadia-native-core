@@ -91,6 +91,14 @@ Rectangle {
                     id: -1,
                     name: "Everything"
                 });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Stand-alone Optimized"
+                });
+                categoriesModel.append({
+                    id: -1,
+                    name: "Stand-alone Compatible"
+                });
                 result.data.items.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,
@@ -127,6 +135,8 @@ Rectangle {
                 marketplaceItem.availability = result.data.availability;
                 marketplaceItem.updated_item_id = result.data.updated_item_id || "";
                 marketplaceItem.created_at = result.data.created_at;
+                marketplaceItem.standaloneOptimized = result.data.standalone_optimized;
+                marketplaceItem.standaloneVisible = result.data.standalone_optimized || result.data.standalone_incompatible;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
@@ -191,16 +201,16 @@ Rectangle {
             visible: true
 
             Image {
-                id: marketplaceHeaderImage;
-                source: "../common/images/marketplaceHeaderImage.png";
-                anchors.top: parent.top;
-                anchors.topMargin: 2;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 0;
-                anchors.left: parent.left;
-                anchors.leftMargin: 8;
-                width: 140;
-                fillMode: Image.PreserveAspectFit;
+                id: marketplaceHeaderImage
+                source: "../common/images/marketplaceHeaderImage.png"
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                width: 140
+                fillMode: Image.PreserveAspectFit
 
                 MouseArea {
                     anchors.fill: parent;
@@ -372,6 +382,7 @@ Rectangle {
         id: categoriesDropdown
 
         anchors.fill: parent;
+        anchors.topMargin: 2
 
         visible: false
         z: 10
@@ -410,6 +421,7 @@ Rectangle {
                 
                 model: categoriesModel
                 delegate: ItemDelegate {
+                    id: categoriesItemDelegate
                     height: 34
                     width: parent.width
 
@@ -421,6 +433,8 @@ Rectangle {
 
                         color: hifi.colors.white
                         visible: true
+                        border.color: hifi.colors.blueHighlight
+                        border.width: 0
 
                         RalewayRegular {
                             id: categoriesItemText
@@ -429,7 +443,7 @@ Rectangle {
                             anchors.fill:parent
  
                             text: model.name
-                            color: ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.baseGray
+                            color: categoriesItemDelegate.ListView.isCurrentItem ? hifi.colors.blueHighlight : hifi.colors.baseGray
                             horizontalAlignment: Text.AlignLeft
                             verticalAlignment: Text.AlignVCenter
                             size: 14
@@ -439,16 +453,22 @@ Rectangle {
                     MouseArea {
                         anchors.fill: parent
                         z: 10
-
                         hoverEnabled: true
                         propagateComposedEvents: false
 
-                        onEntered: {
-                            categoriesItem.color = ListView.isCurrentItem ? hifi.colors.white : hifi.colors.lightBlueHighlight;
+                        onPositionChanged: {
+                            // Must use onPositionChanged and not onEntered
+                            // due to a QML bug where a mouseenter event was
+                            // being fired on open of the categories list even
+                            // though the mouse was outside the borders
+                            categoriesItem.border.width = 2;
+                        }
+                        onExited: {
+                            categoriesItem.border.width = 0;
                         }
 
-                        onExited: {
-                            categoriesItem.color = ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.white;
+                        onCanceled: {
+                            categoriesItem.border.width = 0;
                         }
 
                         onClicked: {
@@ -546,7 +566,8 @@ Rectangle {
                 price: model.cost
                 availability: model.availability
                 isLoggedIn: root.isLoggedIn;
-
+                standaloneOptimized: model.standalone_optimized
+    
                 onShowItem: {
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }

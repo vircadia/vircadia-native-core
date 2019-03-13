@@ -25,7 +25,7 @@ struct GLContext {
     static EGLConfig findConfig(EGLDisplay display);
     bool makeCurrent();
     void doneCurrent();
-    bool create(EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY), EGLContext shareContext = EGL_NO_CONTEXT);
+    bool create(EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY), EGLContext shareContext = EGL_NO_CONTEXT, bool noError = false);
     void destroy();
     operator bool() const { return context != EGL_NO_CONTEXT; }
     static void initModule();

@@ -27,6 +27,7 @@ Item {
     property string labelGlyphOnText: "";
     property int labelGlyphOnSize: 32;
     property alias checked: originalSwitch.checked;
+    property string backgroundOnColor: "#252525";
     signal onCheckedChanged;
     signal clicked;
 
@@ -40,10 +41,10 @@ Item {
         onClicked: rootSwitch.clicked();
         hoverEnabled: true
 
-        topPadding: 3;
+        topPadding: 1;
         leftPadding: 3;
         rightPadding: 3;
-        bottomPadding: 3;
+        bottomPadding: 1;
 
         onHoveredChanged: {
             if (hovered) {
@@ -54,7 +55,7 @@ Item {
         }
 
         background: Rectangle {
-            color: "#252525";
+            color: checked ? backgroundOnColor : "#252525";
             implicitWidth: rootSwitch.switchWidth;
             implicitHeight: rootSwitch.height;
             radius: rootSwitch.switchRadius;

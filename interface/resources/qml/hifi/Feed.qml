@@ -82,6 +82,7 @@ Column {
             action: data.action || "",
             thumbnail_url: resolveUrl(thumbnail_url),
             image_url: resolveUrl(data.details && data.details.image_url),
+            standalone_optimized: data.standalone_optimized,
 
             metaverseId: (data.id || "").toString(), // Some are strings from server while others are numbers. Model objects require uniformity.
 
@@ -127,6 +128,7 @@ Column {
             hifiUrl: model.place_name + model.path;
             thumbnail: model.thumbnail_url;
             imageUrl: model.image_url;
+            standaloneOptimized: model.standalone_optimized;
             action: model.action;
             timestamp: model.created_at;
             onlineUsers: model.online_users;
@@ -186,5 +188,15 @@ Column {
                 }
             }
         }
+    }
+    function isStandalone(address) {
+        var lowerAddress = address.toLowerCase();
+
+        for (var i=0; i < suggestions.count; i++) {
+            if (suggestions.get(i).place_name.toLowerCase() === lowerAddress) {
+                return suggestions.get(i).standalone_optimized;
+            }
+        }
+        return false;
     }
 }

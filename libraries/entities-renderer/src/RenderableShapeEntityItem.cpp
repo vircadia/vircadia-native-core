@@ -19,6 +19,8 @@
 
 #include "RenderPipelines.h"
 
+#include <DisableDeferred.h>
+
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT
 #include <FadeEffect.h>
@@ -29,13 +31,6 @@ using namespace render::entities;
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1 
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
 static const float SPHERE_ENTITY_SCALE = 0.5f;
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-#endif
 
 static_assert(shader::render_utils::program::simple != 0, "Validate simple program exists");
 static_assert(shader::render_utils::program::simple_transparent != 0, "Validate simple transparent program exists");
