@@ -50,35 +50,7 @@ FBXBaker::FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputText
 
 void FBXBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     _hfmModel = hfmModel;
-    // Load the root node from the FBX file
-    importScene();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    // enumerate the models and textures found in the scene and start a bake for them
-    rewriteAndBakeSceneTextures();
-
-    if (shouldStop()) {
-        return;
-    }
-
-    rewriteAndBakeSceneModels(hfmModel->meshes, dracoMeshes, dracoMaterialLists);
-}
-
-void FBXBaker::importScene() {
-    qDebug() << "file path: " << _originalModelFilePath.toLocal8Bit().data() << QDir(_originalModelFilePath).exists();
-
-    QFile fbxFile(_originalModelFilePath);
-    if (!fbxFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalModelFilePath + " for reading");
-        return;
-    }
-
-    qCDebug(model_baking) << "Parsing" << _modelURL;
-    _rootNode = FBXSerializer().parseFBX(&fbxFile);
-
+    
 #ifdef HIFI_DUMP_FBX
     {
         FBXToJSON fbxToJSON;
@@ -92,6 +64,19 @@ void FBXBaker::importScene() {
         }
     }
 #endif
+
+    if (shouldStop()) {
+        return;
+    }
+
+    // enumerate the models and textures found in the scene and start a bake for them
+    rewriteAndBakeSceneTextures();
+
+    if (shouldStop()) {
+        return;
+    }
+
+    rewriteAndBakeSceneModels(hfmModel->meshes, dracoMeshes, dracoMaterialLists);
 }
 
 void FBXBaker::replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {

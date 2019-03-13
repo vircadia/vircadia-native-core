@@ -16,6 +16,7 @@
 
 #include <DependencyManager.h>
 #include <hfm/ModelFormatRegistry.h>
+#include <FBXSerializer.h>
 
 #include <model-baker/Baker.h>
 #include <model-baker/PrepareJointsTask.h>
@@ -249,6 +250,14 @@ void ModelBaker::bakeSourceCopy() {
         serializerMapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
         serializerMapping["deduplicateIndices"] = true; // Draco compression also deduplicates, but we might as well shave it off to save on some earlier processing (currently FBXSerializer only)
         hfm::Model::Pointer loadedModel = serializer->read(modelData, serializerMapping, _modelURL);
+
+        // Temporarily support copying the pre-parsed node from FBXSerializer, for better performance in FBXBaker
+        // TODO: Pure HFM baking
+        std::shared_ptr<FBXSerializer> fbxSerializer = std::dynamic_pointer_cast<FBXSerializer>(serializer);
+        if (fbxSerializer) {
+            qCDebug(model_baking) << "Parsing" << _modelURL;
+            _rootNode = fbxSerializer->_rootNode;
+        }
 
         baker::Baker baker(loadedModel, serializerMapping, _mappingURL);
         auto config = baker.getConfiguration();
