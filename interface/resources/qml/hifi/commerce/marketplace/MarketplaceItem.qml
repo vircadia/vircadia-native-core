@@ -298,7 +298,7 @@ Rectangle {
             property bool isFreeSpecial: isStocking || isUpdate
             enabled: isFreeSpecial || (availability === 'available')
             buttonGlyph: (enabled && !isUpdate && (price > 0)) ? hifi.glyphs.hfc : ""
-            text: isUpdate ? "UPDATE FOR FREE" : (isStocking ? "FREE STOCK" : (enabled ? (price || "FREE") : availability))
+            text: isUpdate ? "UPDATE" : (isStocking ? "FREE STOCK" : (enabled ? (price || "FREE") : availability))
             color: hifi.buttons.blue
 
             buttonGlyphSize: 24
