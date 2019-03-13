@@ -91,6 +91,7 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
 /**jsdoc
  * <p>An <code>AnimStateDictionary</code> object may have the following properties. It may also have other properties, set by 
  * scripts.</p>
+ * <p><strong>Warning:</strong> These properties are subject to change.
  * <table>
  *   <thead>
  *     <tr><th>Name</th><th>Type</p><th>Description</th>
@@ -171,11 +172,6 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
  *     <tr><td><code>leftHandPoleVector</code></td><td>{@link Vec3}</td><td>The direction the elbow should point in rig 
  *       coordinates.</td></tr>
  *
- *     <tr><td><code>leftHandIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the left
- *       hand.</td></tr>
- *     <tr><td><code>rightHandIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the right
- *       hand.</td></tr>
- *
  *     <tr><td><code>rightHandPosition</code></td><td>{@link Vec3}</td><td>The desired position of the <code>RightHand</code>
  *       joint in rig coordinates.</td></tr>
  *     <tr><td><code>rightHandRotation</code></td><td>{@link Quat}</td><td>The desired orientation of the 
@@ -213,8 +209,6 @@ static const QString MAIN_STATE_MACHINE_RIGHT_HAND_POSITION("mainStateMachineRig
  *       underlying animation.</td></tr>
  *     <tr><td><code>rightFootPoleVector</code></td><td>{@link Vec3}</td><td>The direction the knee should face in rig 
  *       coordinates.</td></tr>
- *
- *     <tr><td><code>splineIKEnabled</code></td><td>boolean</td><td><code>true</code> if IK is enabled for the spline.</td></tr>
  *
  *     <tr><td><code>isTalking</code></td><td>boolean</td><td><code>true</code> if the avatar is talking.</td></tr>
  *     <tr><td><code>notIsTalking</code></td><td>boolean</td><td><code>true</code> if the avatar is not talking.</td></tr>
