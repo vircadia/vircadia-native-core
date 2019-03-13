@@ -5443,6 +5443,39 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
     }
 }
 
+/**jsdoc
+ * Flow options currently used in flow simulation.
+ * @typedef {object} MyAvatar.FlowData
+ * @property {boolean} initialized - <code>true</code> if flow has been initialized for the current avatar, <code>false</code> 
+ *     if it hasn't.
+ * @property {boolean} active - <code>true</code> if flow is enabled, <code>false</code> if it isn't.
+ * @property {boolean} colliding - <code>true</code> if collisions are enabled, <code>false</code> if they aren't.
+ * @property {Object<GroupName, MyAvatar.FlowPhysicsData>} physicsData - The physics configuration for each group of joints 
+ *     that has been configured.
+ * @property {Object<JointName, MyAvatar.FlowCollisionsData>} collisions - The collisions configuration for each joint that 
+ *     has collisions configured.
+ * @property {Object<ThreadName, number[]>} threads - The threads hat have been configured, with the name of the first joint as 
+ *     the <code>ThreadName</code> and an array of the indexes of all the joints in the thread as the value.
+ */
+/**jsdoc
+ * A set of physics options currently used in flow simulation.
+ * @typedef {object} MyAvatar.FlowPhysicsData
+ * @property {boolean} active - <code>true</code> to enable flow on the joint, <code>false</code> if it isn't.,
+ * @property {number} radius - The thickness of segments and knots. (Needed for collisions.)
+ * @property {number} gravity - Y-value of the gravity vector.
+ * @property {number} inertia - Rotational inertia multiplier.
+ * @property {number} damping - The amount of damping on joint oscillation.
+ * @property {number} stiffness - How stiff each thread is.
+ * @property {number} delta - Delta time for every integration step.
+ * @property {number[]} jointIndices - The indexes of the joints the options are applied to.
+ */
+/**jsdoc
+ * A set of collision options currently used in flow simulation.
+ * @typedef {object} MyAvatar.FlowCollisionsData
+ * @property {number} radius - Collision sphere radius.
+ * @property {number} offset - Offset of the collision sphere from the joint.
+ * @property {number} jointIndex - The index of the joint the options are applied to.
+ */
 QVariantMap MyAvatar::getFlowData() {
     QVariantMap result;
     if (QThread::currentThread() != thread()) {

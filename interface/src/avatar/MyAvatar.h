@@ -1563,16 +1563,17 @@ public:
     Q_INVOKABLE void useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig = QVariantMap(), const QVariantMap& collisionsConfig = QVariantMap());
 
     /**jsdoc
-    * @function MyAvatar.getFlowData
-    * @returns {object}
-    */
+     * Gets the current flow configuration.
+     * @function MyAvatar.getFlowData
+     * @returns {MyAvatar.FlowData}
+     */
     Q_INVOKABLE QVariantMap getFlowData();
 
     /**jsdoc
-    * returns the indices of every colliding flow joint
-    * @function MyAvatar.getCollidingFlowJoints
-    * @returns {int[]}
-    */
+     * Gets the indexes of currently colliding flow joints.
+     * @function MyAvatar.getCollidingFlowJoints
+     * @returns {number[]} The indexes of currently colliding flow joints.
+     */
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
 public slots:
