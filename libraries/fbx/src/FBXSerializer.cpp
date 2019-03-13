@@ -1162,6 +1162,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     if (_connectionParentMap.value(getID(connection.properties, 1)) == "0") {
                         // don't assign the new parent
                         qCDebug(modelformat) << "root node " << getID(connection.properties, 1) << "  has discarded parent " << getID(connection.properties, 2);
+                        _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                     } else {
                         _connectionParentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
                         _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
