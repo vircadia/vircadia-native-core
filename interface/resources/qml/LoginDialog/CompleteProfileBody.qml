@@ -510,7 +510,7 @@ Item {
             console.log("Create Failed: " + error);
             if (completeProfileBody.withSteam || completeProfileBody.withOculus) {
                 if (completeProfileBody.loginDialogPoppedUp) {
-                    action = completeProfileBody.withSteam ? "Steam" : "Oculus";
+                    var action = completeProfileBody.withSteam ? "Steam" : "Oculus";
                     var data = {
                         "action": "user failed to create a profile with " + action + " from the complete profile screen"
                     }
