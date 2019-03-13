@@ -66,7 +66,7 @@ void TTSScriptingInterface::updateLastSoundAudioInjector() {
     if (_lastSoundAudioInjector) {
         AudioInjectorOptions options;
         options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
-        _lastSoundAudioInjector->setOptions(options);
+        DependencyManager::get<AudioInjectorManager>()->setOptions(_lastSoundAudioInjector, options);
         _lastSoundAudioInjectorUpdateTimer.start(INJECTOR_INTERVAL_MS);
     }
 }
@@ -143,7 +143,7 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak) {
     options.position = DependencyManager::get<AvatarManager>()->getMyAvatarPosition();
 
     if (_lastSoundAudioInjector) {
-        _lastSoundAudioInjector->stop();
+        DependencyManager::get<AudioInjectorManager>()->stop(_lastSoundAudioInjector);
         _lastSoundAudioInjectorUpdateTimer.stop();
     }
 
@@ -151,7 +151,7 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak) {
     uint32_t numSamples = (uint32_t)_lastSoundByteArray.size() / sizeof(AudioData::AudioSample);
     auto samples = reinterpret_cast<AudioData::AudioSample*>(_lastSoundByteArray.data());
     auto newAudioData = AudioData::make(numSamples, numChannels, samples);
-    _lastSoundAudioInjector = AudioInjector::playSoundAndDelete(newAudioData, options);
+    _lastSoundAudioInjector = DependencyManager::get<AudioInjectorManager>()->playSound(newAudioData, options, true);
 
     _lastSoundAudioInjectorUpdateTimer.start(INJECTOR_INTERVAL_MS);
 #else
@@ -161,7 +161,7 @@ void TTSScriptingInterface::speakText(const QString& textToSpeak) {
 
 void TTSScriptingInterface::stopLastSpeech() {
     if (_lastSoundAudioInjector) {
-        _lastSoundAudioInjector->stop();
-        _lastSoundAudioInjector = NULL;
+        DependencyManager::get<AudioInjectorManager>()->stop(_lastSoundAudioInjector);
+        _lastSoundAudioInjector = nullptr;
     }
 }

@@ -63,7 +63,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
         optionsCopy.ambisonic = sound->isAmbisonic();
         optionsCopy.localOnly = optionsCopy.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
 
-        auto injector = AudioInjector::playSound(sound, optionsCopy);
+        auto injector = DependencyManager::get<AudioInjectorManager>()->playSound(sound, optionsCopy);
         if (!injector) {
             return nullptr;
         }

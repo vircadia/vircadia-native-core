@@ -266,6 +266,11 @@ void Stats::updateStats(bool force) {
         }
         STAT_UPDATE(audioCodec, audioClient->getSelectedAudioFormat());
         STAT_UPDATE(audioNoiseGate, audioClient->getNoiseGateOpen() ? "Open" : "Closed");
+        {
+            int localInjectors = audioClient->getNumLocalInjectors();
+            int nonLocalInjectors = DependencyManager::get<AudioInjectorManager>()->getNumInjectors();
+            STAT_UPDATE(audioInjectors, QVector2D(localInjectors, nonLocalInjectors));
+        }
 
         STAT_UPDATE(entityPacketsInKbps, octreeServerCount ? totalEntityKbps / octreeServerCount : -1);
 
