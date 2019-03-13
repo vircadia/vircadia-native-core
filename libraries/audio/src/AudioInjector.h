@@ -78,7 +78,7 @@ public:
     bool isStereo() const { return resultWithReadLock<bool>([&] { return _options.stereo; }); }
     bool isAmbisonic() const { return resultWithReadLock<bool>([&] { return _options.ambisonic; }); }
 
-    const AudioInjectorOptions& getOptions() const { return resultWithReadLock<AudioInjectorOptions>([&] { return _options; }); }
+    AudioInjectorOptions getOptions() const { return resultWithReadLock<AudioInjectorOptions>([&] { return _options; }); }
     void setOptions(const AudioInjectorOptions& options);
 
     bool stateHas(AudioInjectorState state) const ;
