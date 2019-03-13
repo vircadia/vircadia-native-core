@@ -87,22 +87,11 @@ Rectangle {
                 console.log("Failed to get Marketplace Categories", result.data.message);
             } else {
                 categoriesModel.clear();
-                categoriesModel.append({
-                    id: -1,
-                    name: "Everything"
-                });
-                categoriesModel.append({
-                    id: -1,
-                    name: "Stand-alone Optimized"
-                });
-                categoriesModel.append({
-                    id: -1,
-                    name: "Stand-alone Compatible"
-                });
-                result.data.items.forEach(function(category) {
+                result.data.categories.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,
-                        name: category.name
+                        name: category.name,
+                        count: category.count
                     });
                 });
             }
@@ -396,12 +385,12 @@ Rectangle {
 
         Rectangle {
             anchors {
-                left: parent.left;
-                bottom: parent.bottom;
-                top: parent.top;
-                topMargin: 100;
+                left: parent.left
+                bottom: parent.bottom
+                top: parent.top
+                topMargin: 100
             }
-            width: parent.width/3
+            width: parent.width/2
 
             color: hifi.colors.white
             
@@ -432,20 +421,49 @@ Rectangle {
                         color: hifi.colors.white
                         visible: true
 
-                        RalewayRegular {
+                        RalewaySemiBold {
                             id: categoriesItemText
 
                             anchors.leftMargin: 15
-                            anchors.fill:parent
+                            anchors.top:parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.left: parent.left
  
+                            elide: Text.ElideRight
                             text: model.name
                             color: ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.baseGray
                             horizontalAlignment: Text.AlignLeft
                             verticalAlignment: Text.AlignVCenter
                             size: 14
                         }
+                        Rectangle {
+                            id: categoryItemCount
+                            anchors {
+                                top: parent.top
+                                bottom: parent.bottom
+                                topMargin: 5
+                                bottomMargin: 5
+                                leftMargin: 10
+                                rightMargin: 10
+                                left: categoriesItemText.right
+                            }
+                            width: childrenRect.width
+                            color: hifi.colors.blueHighlight
+                            radius: height/2
+                            
+                            RalewaySemiBold {
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: paintedWidth+30
+     
+                                text: model.count
+                                color: hifi.colors.white
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                size: 16
+                            }
+                        }
                     }
-
                     MouseArea {
                         anchors.fill: parent
                         z: 10
@@ -476,9 +494,9 @@ Rectangle {
                     parent: categoriesListView.parent
 
                     anchors {
-                        top: categoriesListView.top;
-                        bottom: categoriesListView.bottom;
-                        left: categoriesListView.right;
+                        top: categoriesListView.top
+                        bottom: categoriesListView.bottom
+                        left: categoriesListView.right
                     }
 
                     contentItem.opacity: 1
