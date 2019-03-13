@@ -268,7 +268,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(audioNoiseGate, audioClient->getNoiseGateOpen() ? "Open" : "Closed");
         {
             int localInjectors = audioClient->getNumLocalInjectors();
-            int nonLocalInjectors = DependencyManager::get<AudioInjectorManager>()->getNumInjectors();
+            size_t nonLocalInjectors = DependencyManager::get<AudioInjectorManager>()->getNumInjectors();
             STAT_UPDATE(audioInjectors, QVector2D(localInjectors, nonLocalInjectors));
         }
 

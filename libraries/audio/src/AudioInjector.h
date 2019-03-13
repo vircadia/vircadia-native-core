@@ -87,8 +87,10 @@ public:
     void restart();
     void finish();
 
-    void finishLocalInjection();
     void finishNetworkInjection();
+
+public slots:
+    void finishLocalInjection();
 
 signals:
     void finished();

@@ -19,13 +19,6 @@ QScriptValue injectorToScriptValue(QScriptEngine* engine, ScriptAudioInjector* c
         return QScriptValue(QScriptValue::NullValue);
     }
 
-    // when the script goes down we want to cleanup the injector
-    QObject::connect(engine, &QScriptEngine::destroyed, DependencyManager::get<AudioInjectorManager>().data(), [&] {
-        qCDebug(scriptengine) << "Script was shutdown, stopping an injector";
-        // FIXME: this doesn't work and leaves the injectors lying around
-        //DependencyManager::get<AudioInjectorManager>()->stop(in->_injector);
-    });
-
     return engine->newQObject(in, QScriptEngine::ScriptOwnership);
 }
 

@@ -46,16 +46,6 @@ ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer
 }
 
 ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
-    if (QThread::currentThread() != thread()) {
-        ScriptAudioInjector* injector = NULL;
-
-        BLOCKING_INVOKE_METHOD(this, "playSound",
-                                  Q_RETURN_ARG(ScriptAudioInjector*, injector),
-                                  Q_ARG(SharedSoundPointer, sound),
-                                  Q_ARG(const AudioInjectorOptions&, injectorOptions));
-        return injector;
-    }
-
     if (sound) {
         // stereo option isn't set from script, this comes from sound metadata or filename
         AudioInjectorOptions optionsCopy = injectorOptions;
