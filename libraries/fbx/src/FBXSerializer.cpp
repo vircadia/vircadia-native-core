@@ -1043,7 +1043,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                                 cluster.transformLink = createMat4(values);
                             }
                         }
-                        clusters.insert(getID(object.properties), cluster);
+
+                        // skip empty clusters
+                        if (cluster.indices.size() > 0 && cluster.weights.size() > 0) {
+                            clusters.insert(getID(object.properties), cluster);
+                        }
 
                     } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
@@ -1482,8 +1486,8 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
             }
         }
 
-        // if we don't have a skinned joint, parent to the model itself
-        if (extracted.mesh.clusters.isEmpty()) {
+        // the last cluster is the root cluster
+        {
             HFMCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
             if (cluster.jointIndex == -1) {
@@ -1494,13 +1498,11 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
         }
 
         // whether we're skinned depends on how many clusters are attached
-        const HFMCluster& firstHFMCluster = extracted.mesh.clusters.at(0);
-        glm::mat4 inverseModelTransform = glm::inverse(modelTransform);
         if (clusterIDs.size() > 1) {
             // this is a multi-mesh joint
             const int WEIGHTS_PER_VERTEX = 4;
             int numClusterIndices = extracted.mesh.vertices.size() * WEIGHTS_PER_VERTEX;
-            extracted.mesh.clusterIndices.fill(0, numClusterIndices);
+            extracted.mesh.clusterIndices.fill(extracted.mesh.clusters.size() - 1, numClusterIndices);
             QVector<float> weightAccumulators;
             weightAccumulators.fill(0.0f, numClusterIndices);
 
@@ -1510,19 +1512,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 const HFMCluster& hfmCluster = extracted.mesh.clusters.at(i);
                 int jointIndex = hfmCluster.jointIndex;
                 HFMJoint& joint = hfmModel.joints[jointIndex];
-                glm::mat4 transformJointToMesh = inverseModelTransform * joint.bindTransform;
-                glm::vec3 boneEnd = extractTranslation(transformJointToMesh);
-                glm::vec3 boneBegin = boneEnd;
-                glm::vec3 boneDirection;
-                float boneLength = 0.0f;
-                if (joint.parentIndex != -1) {
-                    boneBegin = extractTranslation(inverseModelTransform * hfmModel.joints[joint.parentIndex].bindTransform);
-                    boneDirection = boneEnd - boneBegin;
-                    boneLength = glm::length(boneDirection);
-                    if (boneLength > EPSILON) {
-                        boneDirection /= boneLength;
-                    }
-                }
 
                 glm::mat4 meshToJoint = glm::inverse(joint.bindTransform) * modelTransform;
                 ShapeVertices& points = shapeVertices.at(jointIndex);
@@ -1535,6 +1524,7 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                         int newIndex = it.value();
 
                         // remember vertices with at least 1/4 weight
+                        // FIXME: vertices with no weightpainting won't get recorded here
                         const float EXPANSION_WEIGHT_THRESHOLD = 0.25f;
                         if (weight >= EXPANSION_WEIGHT_THRESHOLD) {
                             // transform to joint-frame and save for later
@@ -1575,20 +1565,24 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                 int j = i * WEIGHTS_PER_VERTEX;
 
                 // normalize weights into uint16_t
-                float totalWeight = weightAccumulators[j];
-                for (int k = j + 1; k < j + WEIGHTS_PER_VERTEX; ++k) {
+                float totalWeight = 0.0f;
+                for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
                     totalWeight += weightAccumulators[k];
                 }
+
+                const float ALMOST_HALF = 0.499f;
                 if (totalWeight > 0.0f) {
-                    const float ALMOST_HALF = 0.499f;
                     float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                     for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
                         extracted.mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * weightAccumulators[k] + ALMOST_HALF);
                     }
+                } else {
+                    extracted.mesh.clusterWeights[j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
                 }
             }
         } else {
-            // this is a single-mesh joint
+            // this is a single-joint mesh
+            const HFMCluster& firstHFMCluster = extracted.mesh.clusters.at(0);
             int jointIndex = firstHFMCluster.jointIndex;
             HFMJoint& joint = hfmModel.joints[jointIndex];
 

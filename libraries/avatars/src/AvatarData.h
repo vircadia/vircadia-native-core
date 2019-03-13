@@ -104,6 +104,9 @@ const quint32 AVATAR_MOTION_SCRIPTABLE_BITS =
 // Procedural audio to mouth movement is enabled 8th bit
 // Procedural Blink is enabled 9th bit
 // Procedural Eyelid is enabled 10th bit
+// Procedural PROCEDURAL_BLINK_FACE_MOVEMENT is enabled 11th bit
+// Procedural Collide with other avatars is enabled 12th bit
+// Procedural Has Hero Priority is enabled 13th bit
 
 const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
 const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
@@ -115,6 +118,7 @@ const int AUDIO_ENABLED_FACE_MOVEMENT = 8; // 9th bit
 const int PROCEDURAL_EYE_FACE_MOVEMENT = 9; // 10th bit
 const int PROCEDURAL_BLINK_FACE_MOVEMENT = 10; // 11th bit
 const int COLLIDE_WITH_OTHER_AVATARS = 11; // 12th bit
+const int HAS_HERO_PRIORITY = 12; // 13th bit  (be scared)
 
 /**jsdoc
  * <p>The pointing state of the hands is specified by the following values:
@@ -1270,6 +1274,18 @@ public:
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
+    // An Avatar can be set Priority from the AvatarMixer side.
+    bool getHasPriority() const { return _hasPriority; }
+    // regular setHasPriority does a check of state changed and if true reset 'additionalFlagsChanged' timestamp
+    void setHasPriority(bool hasPriority) {
+        if (_hasPriority != hasPriority) {
+            _additionalFlagsChanged = usecTimestampNow();
+            _hasPriority = hasPriority;
+        }
+    }
+    // In some cases, we want to assign the hasPRiority flag without reseting timestamp
+    void setHasPriorityWithoutTimestampReset(bool hasPriority) { _hasPriority = hasPriority; }
+
     const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
     void clearRecordingBasis();
@@ -1680,6 +1696,7 @@ protected:
     bool _isNewAvatar { true };
     bool _isClientAvatar { false };
     bool _collideWithOtherAvatars { true };
+    bool _hasPriority{ false };
 
     // null unless MyAvatar or ScriptableAvatar sending traits data to mixer
     std::unique_ptr<ClientTraitsHandler, LaterDeleter> _clientTraitsHandler;

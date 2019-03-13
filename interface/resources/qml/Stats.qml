@@ -117,6 +117,10 @@ Item {
                     }
                     StatText {
                         visible: root.expanded
+                        text: "Heroes Count/Updated: " + root.heroAvatarCount + "/" + root.updatedHeroAvatarCount
+                    }
+                    StatText {
+                        visible: root.expanded
                         text: "Avatars NOT Updated: " + root.notUpdatedAvatarCount
                     }
                     StatText {

@@ -42,6 +42,8 @@ struct VrSurface : public TaskQueue {
     uint32_t readFbo{0};
     std::atomic<uint32_t> presentIndex{1};
     double displayTime{0};
+    // Not currently set by anything
+    bool noErrorContext { false };
 
     static constexpr float EYE_BUFFER_SCALE = 1.0f;
 
@@ -71,7 +73,7 @@ struct VrSurface : public TaskQueue {
 
         EGLContext currentContext = eglGetCurrentContext();
         EGLDisplay currentDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-        vrglContext.create(currentDisplay, currentContext);
+        vrglContext.create(currentDisplay, currentContext, noErrorContext);
         vrglContext.makeCurrent();
 
         glm::uvec2 eyeTargetSize;
@@ -91,14 +93,17 @@ struct VrSurface : public TaskQueue {
     }
 
     void shutdown() {
+        noErrorContext = false;
+        // Destroy the context?
     }
 
-    void setHandler(VrHandler *newHandler) {
+    void setHandler(VrHandler *newHandler, bool noError) {
         withLock([&] {
             isRenderThread = newHandler != nullptr;
             if (handler != newHandler) {
                 shutdown();
                 handler = newHandler;
+                noErrorContext = noError;
                 init();
                 if (handler) {
                     updateVrMode();
@@ -142,7 +147,6 @@ struct VrSurface : public TaskQueue {
                 __android_log_write(ANDROID_LOG_WARN, "QQQ_OVR", "vrapi_LeaveVrMode");
                 vrapi_SetClockLevels(session, 1, 1);
                 vrapi_SetExtraLatencyMode(session, VRAPI_EXTRA_LATENCY_MODE_OFF);
-                vrapi_SetDisplayRefreshRate(session, 60);
                 vrapi_LeaveVrMode(session);
 
                 session = nullptr;
@@ -153,16 +157,19 @@ struct VrSurface : public TaskQueue {
                     ovrJava java{ vm, env, oculusActivity };
                     ovrModeParms modeParms = vrapi_DefaultModeParms(&java);
                     modeParms.Flags |= VRAPI_MODE_FLAG_NATIVE_WINDOW;
+                    if (noErrorContext) {
+                        modeParms.Flags |= VRAPI_MODE_FLAG_CREATE_CONTEXT_NO_ERROR;
+                    }
                     modeParms.Display = (unsigned long long) vrglContext.display;
                     modeParms.ShareContext = (unsigned long long) vrglContext.context;
                     modeParms.WindowSurface = (unsigned long long) nativeWindow;
                     session = vrapi_EnterVrMode(&modeParms);
-                    ovrPosef trackingTransform = vrapi_GetTrackingTransform( session, VRAPI_TRACKING_TRANSFORM_SYSTEM_CENTER_EYE_LEVEL);
-                    vrapi_SetTrackingTransform( session, trackingTransform );
-                    vrapi_SetPerfThread(session, VRAPI_PERF_THREAD_TYPE_RENDERER, pthread_self());
+                    vrapi_SetTrackingSpace( session, VRAPI_TRACKING_SPACE_LOCAL);
+                    vrapi_SetPerfThread(session, VRAPI_PERF_THREAD_TYPE_RENDERER, gettid());
                     vrapi_SetClockLevels(session, 2, 4);
                     vrapi_SetExtraLatencyMode(session, VRAPI_EXTRA_LATENCY_MODE_DYNAMIC);
-                    vrapi_SetDisplayRefreshRate(session, 72);
+                    // Generates a warning on the quest: "vrapi_SetDisplayRefreshRate: Dynamic Display Refresh Rate not supported"
+                    // vrapi_SetDisplayRefreshRate(session, 72);
                 });
             }
         }
@@ -227,8 +234,8 @@ bool VrHandler::vrActive() const {
     return SURFACE.session != nullptr;
 }
 
-void VrHandler::setHandler(VrHandler* handler) {
-    SURFACE.setHandler(handler);
+void VrHandler::setHandler(VrHandler* handler, bool noError) {
+    SURFACE.setHandler(handler, noError);
 }
 
 void VrHandler::pollTask() {

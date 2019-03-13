@@ -12,7 +12,7 @@
 //
 
 import Hifi 1.0 as Hifi
-import QtQuick 2.5
+import QtQuick 2.9
 import stylesUit 1.0
 import controlsUit 1.0 as HifiControlsUit
 import "../../../controls" as HifiControls
@@ -33,6 +33,7 @@ Rectangle {
     property bool purchasesReceived: false;
     property bool punctuationMode: false;
     property bool isDebuggingFirstUseTutorial: false;
+    property bool isStandalone: false;
     property string installedApps;
     property bool keyboardRaised: false;
     property int numUpdatesAvailable: 0;
@@ -44,6 +45,7 @@ Rectangle {
         purchasesModel.getFirstPage();
         Commerce.getAvailableUpdates();
     }
+
     Connections {
         target: Commerce;
 
@@ -110,6 +112,10 @@ Rectangle {
         }
     }
 
+    Component.onCompleted: {
+        isStandalone = PlatformInfo.isStandalone();
+    }
+    
     HifiCommerceCommon.CommerceLightbox {
         id: lightboxPopup;
         z: 999;
@@ -527,6 +533,7 @@ Rectangle {
         ListView {
             id: purchasesContentsList;
             visible: purchasesModel.count !== 0;
+            interactive: !lightboxPopup.visible;
             clip: true;
             model: purchasesModel;
             snapMode: ListView.NoSnap;
@@ -553,6 +560,8 @@ Rectangle {
                 upgradeTitle: model.upgrade_title;
                 itemType: model.item_type;
                 valid: model.valid;
+                standaloneOptimized: model.standalone_optimized
+                standaloneIncompatible: root.isStandalone && model.standalone_incompatible
                 anchors.topMargin: 10;
                 anchors.bottomMargin: 10;
 
@@ -668,6 +677,14 @@ Rectangle {
                                 lightboxPopup.bodyText = "You do not have the permission 'Replace Content' in this <b>domain's server settings</b>. The domain owner " +
                                     "must enable it for you before you can replace content sets in this domain.";
                             }
+                            lightboxPopup.button1text = "CLOSE";
+                            lightboxPopup.button1method = function() {
+                                lightboxPopup.visible = false;
+                            }
+                            lightboxPopup.visible = true;
+                        } else if (msg.method === "showStandaloneIncompatibleExplanation") {
+                            lightboxPopup.titleText = "Stand-alone Incompatible";
+                            lightboxPopup.bodyText = "The item is incompatible with stand-alone devices.";
                             lightboxPopup.button1text = "CLOSE";
                             lightboxPopup.button1method = function() {
                                 lightboxPopup.visible = false;

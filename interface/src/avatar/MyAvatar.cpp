@@ -5377,10 +5377,22 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
  * @property {number} [offset=Vec3.ZERO] - Offset of the collision sphere from the joint.
  */
 void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "useFlow",
+            Q_ARG(bool, isActive),
+            Q_ARG(bool, isCollidable),
+            Q_ARG(const QVariantMap&, physicsConfig),
+            Q_ARG(const QVariantMap&, collisionsConfig));
+        return;
+    }
     if (_skeletonModel->isLoaded()) {
-        _skeletonModel->getRig().initFlow(isActive);
         auto &flow = _skeletonModel->getRig().getFlow();
         auto &collisionSystem = flow.getCollisionSystem();
+        if (!flow.isInitialized() && isActive) {
+            _skeletonModel->getRig().initFlow(true);
+        } else {
+            flow.setActive(isActive);
+        }
         collisionSystem.setActive(isCollidable);
         auto physicsGroups = physicsConfig.keys();
         if (physicsGroups.size() > 0) {
@@ -5429,6 +5441,93 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
             }
         }
     }
+}
+
+QVariantMap MyAvatar::getFlowData() {
+    QVariantMap result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "getFlowData",
+            Q_RETURN_ARG(QVariantMap, result));
+        return result;
+    }
+    if (_skeletonModel->isLoaded()) {
+        auto jointNames = getJointNames();
+        auto &flow = _skeletonModel->getRig().getFlow();
+        auto &collisionSystem = flow.getCollisionSystem();
+        bool initialized = flow.isInitialized();
+        result.insert("initialized", initialized);
+        result.insert("active", flow.getActive());
+        result.insert("colliding", collisionSystem.getActive());
+        QVariantMap physicsData;
+        QVariantMap collisionsData;
+        QVariantMap threadData;
+        std::map<QString, QVariantList> groupJointsMap;
+        QVariantList jointCollisionData;
+        auto &groups = flow.getGroupSettings();
+        for (auto &joint : flow.getJoints()) {
+            auto &groupName = joint.second.getGroup();
+            if (groups.find(groupName) != groups.end()) {
+                if (groupJointsMap.find(groupName) == groupJointsMap.end()) {
+                    groupJointsMap.insert(std::pair<QString, QVariantList>(groupName, QVariantList()));
+                }
+                groupJointsMap[groupName].push_back(joint.second.getIndex());
+            }
+        }        
+        for (auto &group : groups) {
+            QVariantMap settingsObject;
+            QString groupName = group.first;
+            FlowPhysicsSettings groupSettings = group.second;
+            settingsObject.insert("active", groupSettings._active);
+            settingsObject.insert("damping", groupSettings._damping);
+            settingsObject.insert("delta", groupSettings._delta);
+            settingsObject.insert("gravity", groupSettings._gravity);
+            settingsObject.insert("inertia", groupSettings._inertia);
+            settingsObject.insert("radius", groupSettings._radius);
+            settingsObject.insert("stiffness", groupSettings._stiffness);
+            settingsObject.insert("jointIndices", groupJointsMap[groupName]);
+            physicsData.insert(groupName, settingsObject);
+        }
+
+        auto &collisions = collisionSystem.getCollisions();
+        for (auto &collision : collisions) {
+            QVariantMap collisionObject;
+            collisionObject.insert("offset", vec3toVariant(collision._offset));
+            collisionObject.insert("radius", collision._radius);
+            collisionObject.insert("jointIndex", collision._jointIndex);
+            QString jointName = jointNames.size() > collision._jointIndex ? jointNames[collision._jointIndex] : "unknown";
+            collisionsData.insert(jointName, collisionObject);
+        }
+        for (auto &thread : flow.getThreads()) {
+            QVariantList indices;
+            for (int index : thread._joints) {
+                indices.append(index);
+            }
+            threadData.insert(thread._jointsPointer->at(thread._joints[0]).getName(), indices);
+        }
+        result.insert("physics", physicsData);
+        result.insert("collisions", collisionsData);
+        result.insert("threads", threadData);
+    }
+    return result;
+}
+
+QVariantList MyAvatar::getCollidingFlowJoints() {
+    QVariantList result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "getCollidingFlowJoints",
+            Q_RETURN_ARG(QVariantList, result));
+        return result;
+    }
+
+    if (_skeletonModel->isLoaded()) {
+        auto& flow = _skeletonModel->getRig().getFlow();
+        for (auto &joint : flow.getJoints()) {
+            if (joint.second.isColliding()) {
+                result.append(joint.second.getIndex());
+            }
+        }
+    }
+    return result;
 }
 
 void MyAvatar::initFlowFromFST() {

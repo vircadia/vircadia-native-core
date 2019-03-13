@@ -564,6 +564,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
             setAtBit16(flags, COLLIDE_WITH_OTHER_AVATARS);
         }
 
+        // Avatar has hero priority
+        if (getHasPriority()) {
+            setAtBit16(flags, HAS_HERO_PRIORITY);
+        }
+
         data->flags = flags;
         destinationBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 
@@ -1152,7 +1157,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         auto newHasProceduralEyeFaceMovement = oneAtBit16(bitItems, PROCEDURAL_EYE_FACE_MOVEMENT);
         auto newHasProceduralBlinkFaceMovement = oneAtBit16(bitItems, PROCEDURAL_BLINK_FACE_MOVEMENT);
         auto newCollideWithOtherAvatars = oneAtBit16(bitItems, COLLIDE_WITH_OTHER_AVATARS);
-        
+        auto newHasPriority = oneAtBit16(bitItems, HAS_HERO_PRIORITY);        
+
         bool keyStateChanged = (_keyState != newKeyState);
         bool handStateChanged = (_handState != newHandState);
         bool faceStateChanged = (_headData->_isFaceTrackerConnected != newFaceTrackerConnected);
@@ -1161,8 +1167,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         bool proceduralEyeFaceMovementChanged = (_headData->getHasProceduralEyeFaceMovement() != newHasProceduralEyeFaceMovement);
         bool proceduralBlinkFaceMovementChanged = (_headData->getHasProceduralBlinkFaceMovement() != newHasProceduralBlinkFaceMovement);
         bool collideWithOtherAvatarsChanged = (_collideWithOtherAvatars != newCollideWithOtherAvatars);
+        bool hasPriorityChanged = (getHasPriority() != newHasPriority);
         bool somethingChanged = keyStateChanged || handStateChanged || faceStateChanged || eyeStateChanged || audioEnableFaceMovementChanged || 
-                                proceduralEyeFaceMovementChanged || proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged;
+                                proceduralEyeFaceMovementChanged ||
+                                proceduralBlinkFaceMovementChanged || collideWithOtherAvatarsChanged || hasPriorityChanged;
 
         _keyState = newKeyState;
         _handState = newHandState;
@@ -1172,6 +1180,7 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         _headData->setHasProceduralEyeFaceMovement(newHasProceduralEyeFaceMovement);
         _headData->setHasProceduralBlinkFaceMovement(newHasProceduralBlinkFaceMovement);
         _collideWithOtherAvatars = newCollideWithOtherAvatars;
+        setHasPriorityWithoutTimestampReset(newHasPriority);
 
         sourceBuffer += sizeof(AvatarDataPacket::AdditionalFlags);
 

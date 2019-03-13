@@ -246,6 +246,8 @@
 
 #include "AboutUtil.h"
 
+#include <DisableDeferred.h>
+
 #if defined(Q_OS_WIN)
 #include <VersionHelpers.h>
 
@@ -287,13 +289,6 @@ static bool DISABLE_WATCHDOG = true;
 #else
 static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
 static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
-#endif
-
-#if defined(USE_GLES)
-static bool DISABLE_DEFERRED = true;
-#else
-static const QString RENDER_FORWARD{ "HIFI_RENDER_FORWARD" };
-static bool DISABLE_DEFERRED = QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
 #endif
 
 #if !defined(Q_OS_ANDROID)
@@ -754,6 +749,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     static const auto OCULUS_STORE_ARG = "--oculus-store";
     bool isStore = cmdOptionExists(argc, const_cast<const char**>(argv), OCULUS_STORE_ARG);
     qApp->setProperty(hifi::properties::OCULUS_STORE, isStore);
+
+    // emulate standalone device
+    static const auto STANDALONE_ARG = "--standalone";
+    bool isStandalone = cmdOptionExists(argc, const_cast<const char**>(argv), STANDALONE_ARG);
+    qApp->setProperty(hifi::properties::STANDALONE, isStandalone);
 
     // Ignore any previous crashes if running from command line with a test script.
     bool inTestMode { false };
@@ -1599,12 +1599,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
         {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
             bool navAxis = false;
             switch (actionEnum) {
+                case Action::TOGGLE_PUSHTOTALK:
+                    if (state > 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(true);
+                    } else if (state <= 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(false);
+                    }
+                    break;
+
                 case Action::UI_NAV_VERTICAL:
                     navAxis = true;
                     if (state > 0.0f) {
@@ -3030,6 +3039,10 @@ void Application::initializeUi() {
     };
     OffscreenQmlSurface::addWhitelistContextHandler({
         QUrl{ "hifi/commerce/marketplace/Marketplace.qml" },
+        QUrl{ "hifi/commerce/purchases/Purchases.qml" },
+        QUrl{ "hifi/commerce/wallet/Wallet.qml" },
+        QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
+        QUrl{ "hifi/tablet/TabletAddressDialog.qml" },
         }, platformInfoCallback);
 
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
@@ -4306,6 +4319,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
     }
+
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
@@ -5237,6 +5251,9 @@ void Application::loadSettings() {
         }
     }
 
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->loadData();
+
     getMyAvatar()->loadData();
     _settingsLoaded = true;
 }
@@ -5245,6 +5262,9 @@ void Application::saveSettings() const {
     sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SECOND);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
+
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->saveData();
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();

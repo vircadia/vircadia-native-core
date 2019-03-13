@@ -265,6 +265,7 @@ enum class EntityVersion : PacketVersion {
     WebBillboardMode,
     ModelScale,
     ReOrderParentIDProperties,
+    CertificateTypeProperty,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

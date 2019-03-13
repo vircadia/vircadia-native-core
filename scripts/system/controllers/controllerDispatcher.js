@@ -58,6 +58,7 @@ Script.include("/~/system/libraries/controllerDispatcherUtils.js");
         // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
         // is stored as the value, rather than false.
         this.activitySlots = {
+            head: false,
             leftHand: false,
             rightHand: false,
             rightHandTrigger: false,
