@@ -21,7 +21,7 @@ public:
     FSTBaker(const QUrl& inputMappingURL, TextureBakerThreadGetter inputTextureThreadGetter,
         const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
-    virtual QUrl getFullOutputMappingURL() const;
+    virtual QUrl getFullOutputMappingURL() const override;
 
 signals:
     void fstLoaded();

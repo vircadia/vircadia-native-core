@@ -145,7 +145,7 @@ void DomainBaker::loadLocalFile() {
     }
 }
 
-void DomainBaker::addModelBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef) {
+void DomainBaker::addModelBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef) {
     // grab a QUrl for the model URL
     QUrl bakeableModelURL = getBakeableModelURL(url);
     if (!bakeableModelURL.isEmpty() && (_shouldRebakeOriginals || !isModelBaked(bakeableModelURL))) {
@@ -185,7 +185,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, QJs
     }
 }
 
-void DomainBaker::addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, QJsonValueRef& jsonRef) {
+void DomainBaker::addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef) {
     QString cleanURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
     auto idx = cleanURL.lastIndexOf('.');
     auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
@@ -225,7 +225,7 @@ void DomainBaker::addTextureBaker(const QString& property, const QString& url, i
     }
 }
 
-void DomainBaker::addScriptBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef) {
+void DomainBaker::addScriptBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef) {
     // grab a clean version of the URL without a query or fragment
     QUrl scriptURL = QUrl(url).adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
 
@@ -257,7 +257,7 @@ void DomainBaker::addScriptBaker(const QString& property, const QString& url, QJ
     _entitiesNeedingRewrite.insert(scriptURL, { property, jsonRef });
 }
 
-void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, QJsonValueRef& jsonRef) {
+void DomainBaker::addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef) {
     // grab a clean version of the URL without a query or fragment
     QString materialData;
     if (isURL) {

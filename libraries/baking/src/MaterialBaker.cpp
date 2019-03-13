@@ -11,6 +11,8 @@
 
 #include "MaterialBaker.h"
 
+#include <unordered_map>
+
 #include "QJsonObject"
 #include "QJsonDocument"
 
@@ -124,7 +126,7 @@ void MaterialBaker::processMaterial() {
                             return;
                         }
 
-                        QPair<QUrl, image::TextureUsage::Type> textureKey = { textureURL, it->second };
+                        QPair<QUrl, image::TextureUsage::Type> textureKey { textureURL, it->second };
                         if (!_textureBakers.contains(textureKey)) {
                             QSharedPointer<TextureBaker> textureBaker {
                                 new TextureBaker(textureURL, it->second, _textureOutputDir),

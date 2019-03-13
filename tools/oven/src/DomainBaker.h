@@ -73,10 +73,10 @@ private:
 
     bool _shouldRebakeOriginals { false };
 
-    void addModelBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef);
-    void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, QJsonValueRef& jsonRef);
-    void addScriptBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef);
-    void addMaterialBaker(const QString& property, const QString& data, bool isURL, QJsonValueRef& jsonRef);
+    void addModelBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
+    void addTextureBaker(const QString& property, const QString& url, image::TextureUsage::Type type, const QJsonValueRef& jsonRef);
+    void addScriptBaker(const QString& property, const QString& url, const QJsonValueRef& jsonRef);
+    void addMaterialBaker(const QString& property, const QString& data, bool isURL, const QJsonValueRef& jsonRef);
 };
 
 #endif // hifi_DomainBaker_h
