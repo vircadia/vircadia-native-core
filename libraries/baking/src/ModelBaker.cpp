@@ -249,12 +249,15 @@ void ModelBaker::bakeSourceCopy() {
         serializerMapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
         hfm::Model::Pointer loadedModel = serializer->read(modelData, serializerMapping, _modelURL);
 
-        baker::Baker baker(loadedModel, serializerMapping, hifi::URL());
+        baker::Baker baker(loadedModel, serializerMapping, _mappingURL);
         auto config = baker.getConfiguration();
         // Enable compressed draco mesh generation
         config->getJobConfig("BuildDracoMesh")->setEnabled(true);
         // Do not permit potentially lossy modification of joint data meant for runtime
         ((PrepareJointsConfig*)config->getJobConfig("PrepareJoints"))->passthrough = true;
+        // The resources parsed from this job will not be used for now
+        // TODO: Proper full baking of all materials for a model
+        config->getJobConfig("ParseMaterialMapping")->setEnabled(false);
     
         // Begin hfm baking
         baker.run();
