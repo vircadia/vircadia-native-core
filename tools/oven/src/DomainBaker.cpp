@@ -23,10 +23,12 @@
 #include "baking/BakerLibrary.h"
 
 DomainBaker::DomainBaker(const QUrl& localModelFileURL, const QString& domainName,
-                         const QString& baseOutputPath, const QUrl& destinationPath) :
+                         const QString& baseOutputPath, const QUrl& destinationPath,
+                         bool shouldRebakeOriginals) :
     _localEntitiesFileURL(localModelFileURL),
     _domainName(domainName),
-    _baseOutputPath(baseOutputPath)
+    _baseOutputPath(baseOutputPath),
+    _shouldRebakeOriginals(shouldRebakeOriginals)
 {
     // make sure the destination path has a trailing slash
     if (!destinationPath.toString().endsWith('/')) {
@@ -146,7 +148,7 @@ void DomainBaker::loadLocalFile() {
 void DomainBaker::addModelBaker(const QString& property, const QString& url, QJsonValueRef& jsonRef) {
     // grab a QUrl for the model URL
     QUrl bakeableModelURL = getBakeableModelURL(url);
-    if (!bakeableModelURL.isEmpty()) {
+    if (!bakeableModelURL.isEmpty() && (_shouldRebakeOriginals || !isModelBaked(bakeableModelURL))) {
         // setup a ModelBaker for this URL, as long as we don't already have one
         if (!_modelBakers.contains(bakeableModelURL)) {
             auto getWorkerThreadCallback = []() -> QThread* {

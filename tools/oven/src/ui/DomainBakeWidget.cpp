@@ -126,6 +126,10 @@ void DomainBakeWidget::setupUI() {
     // start a new row for the next component
     ++rowIndex;
 
+    // setup a checkbox to allow re-baking of original assets
+    _rebakeOriginalsCheckBox = new QCheckBox("Re-bake originals");
+    gridLayout->addWidget(_rebakeOriginalsCheckBox, rowIndex, 0);
+
     // add a button that will kickoff the bake
     QPushButton* bakeButton = new QPushButton("Bake");
     connect(bakeButton, &QPushButton::clicked, this, &DomainBakeWidget::bakeButtonClicked);
@@ -207,7 +211,8 @@ void DomainBakeWidget::bakeButtonClicked() {
         auto fileToBakeURL = QUrl::fromLocalFile(_entitiesFileLineEdit->text());
         auto domainBaker = std::unique_ptr<DomainBaker> {
                 new DomainBaker(fileToBakeURL, _domainNameLineEdit->text(),
-                                outputDirectory.absolutePath(), _destinationPathLineEdit->text())
+                                outputDirectory.absolutePath(), _destinationPathLineEdit->text(),
+                                _rebakeOriginalsCheckBox->isChecked())
         };
 
         // make sure we hear from the baker when it is done

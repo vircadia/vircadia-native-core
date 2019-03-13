@@ -19,6 +19,8 @@
 // Returns either the given model URL if valid, or an empty URL
 QUrl getBakeableModelURL(const QUrl& url);
 
+bool isModelBaked(const QUrl& bakeableModelURL);
+
 // Assuming the URL is valid, gets the appropriate baker for the given URL, and creates the base directory where the baker's output will later be stored
 // Returns an empty pointer if a baker could not be created
 std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& contentOutputPath);

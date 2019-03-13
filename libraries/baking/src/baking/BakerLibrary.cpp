@@ -38,6 +38,13 @@ QUrl getBakeableModelURL(const QUrl& url) {
     return QUrl();
 }
 
+bool isModelBaked(const QUrl& bakeableModelURL) {
+    auto modelString = bakeableModelURL.toString();
+    auto beforeModelExtension = modelString;
+    beforeModelExtension.resize(modelString.lastIndexOf('.'));
+    return beforeModelExtension.endsWith(".baked");
+}
+
 std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, TextureBakerThreadGetter inputTextureThreadGetter, const QString& contentOutputPath) {
     auto filename = bakeableModelURL.fileName();
 
@@ -59,6 +66,7 @@ std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakea
     auto filename = bakeableModelURL.fileName();
 
     std::unique_ptr<ModelBaker> baker;
+
     if (filename.endsWith(FST_EXTENSION, Qt::CaseInsensitive)) {
         baker = std::make_unique<FSTBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive)) {
