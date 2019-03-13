@@ -1112,7 +1112,10 @@ void TestCreator::createWebPage(
     QCheckBox* updateAWSCheckBox, 
     QRadioButton* diffImageRadioButton,
     QRadioButton* ssimImageRadionButton,
-    QLineEdit* urlLineEdit
+    QLineEdit* urlLineEdit,
+    const QString& branch,
+    const QString& user
+
 ) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
                                                        "Zipped TestCreator Results (TestResults--*.zip)");
@@ -1136,6 +1139,8 @@ void TestCreator::createWebPage(
         updateAWSCheckBox, 
         diffImageRadioButton,
         ssimImageRadionButton,
-        urlLineEdit
+        urlLineEdit,
+        branch,
+        user
     );
 }

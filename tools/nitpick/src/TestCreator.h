@@ -107,7 +107,10 @@ public:
         QCheckBox* updateAWSCheckBox, 
         QRadioButton* diffImageRadioButton,
         QRadioButton* ssimImageRadionButton,
-        QLineEdit* urlLineEdit);
+        QLineEdit* urlLineEdit,
+        const QString& branch,
+        const QString& user
+    );
 
 private:
     QProgressBar* _progressBar;
