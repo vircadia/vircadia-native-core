@@ -247,6 +247,7 @@ void ModelBaker::bakeSourceCopy() {
         }
         hifi::VariantHash serializerMapping = _mapping;
         serializerMapping["combineParts"] = true; // set true so that OBJSerializer reads material info from material library
+        serializerMapping["deduplicateIndices"] = true; // Draco compression also deduplicates, but we might as well shave it off to save on some earlier processing (currently FBXSerializer only)
         hfm::Model::Pointer loadedModel = serializer->read(modelData, serializerMapping, _modelURL);
 
         baker::Baker baker(loadedModel, serializerMapping, _mappingURL);
