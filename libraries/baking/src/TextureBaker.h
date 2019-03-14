@@ -73,6 +73,7 @@ private:
     QDir _outputDirectory;
     QString _metaTextureFileName;
     QString _metaTexturePathPrefix;
+    QUrl _originalCopyFilePath;
 
     std::atomic<bool> _abortProcessing { false };
 
