@@ -1,5 +1,5 @@
 //
-//  MicBar.qml
+//  MicBarApplication.qml
 //  qml/hifi/audio
 //
 //  Created by Zach Pomerantz on 6/14/2017
@@ -16,9 +16,12 @@ import stylesUit 1.0
 import TabletScriptingInterface 1.0
 
 Rectangle {
+    id: micBar;
     readonly property var level: AudioScriptingInterface.inputLevel;
     readonly property var clipping: AudioScriptingInterface.clipping;
     readonly property var muted: AudioScriptingInterface.muted;
+    readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
     readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
@@ -28,6 +31,7 @@ Rectangle {
 
     readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
     readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
+    readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
     readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
     readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
     property bool standalone: false;
@@ -37,13 +41,16 @@ Rectangle {
     height: 44;
 
     radius: 5;
+    opacity: 0.7
 
     onLevelChanged: {
         var rectOpacity = muted && (level >= userSpeakingLevel) ? 0.9 : 0.3;
-        if (mouseArea.containsMouse && rectOpacity != 0.9) {
+        if (pushToTalk && !pushingToTalk) {
+            rectOpacity = (level >= userSpeakingLevel) ? 0.9 : 0.7;
+        } else if (mouseArea.containsMouse && rectOpacity != 0.9) {
             rectOpacity = 0.5;
         }
-        opacity = rectOpacity;
+        micBar.opacity = rectOpacity;
     }
 
     color: "#00000000";
@@ -94,15 +101,15 @@ Rectangle {
         id: colors;
 
         readonly property string unmutedColor: "#FFF";
+        readonly property string gatedColor: "#00BDFF";
         readonly property string mutedColor: "#E2334D";
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
         readonly property string yellow: "#C0C000";
-        readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: muted ? mutedColor : unmutedColor;
+        readonly property string icon: (muted || clipping) ? mutedColor : gated ? gatedColor : unmutedColor;
     }
 
     Item {
@@ -110,7 +117,7 @@ Rectangle {
 
         anchors {
             left: parent.left;
-            verticalCenter: parent.verticalCenter;
+            top: parent.top;
         }
 
         width: 40;
@@ -119,8 +126,8 @@ Rectangle {
         Item {
             Image {
                 id: image;
-                source: muted ? mutedIcon : clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
-
+                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : 
+                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
                 width: 29;
                 height: 32;
                 anchors {
@@ -134,7 +141,8 @@ Rectangle {
                 id: imageOverlay
                 anchors { fill: image }
                 source: image;
-                color: colors.icon;
+                color: (pushToTalk && !pushingToTalk) ? ((level >= userSpeakingLevel) ? colors.mutedColor :
+                    colors.unmutedColor) : colors.icon;
             }
         }
     }
@@ -142,26 +150,34 @@ Rectangle {
     Item {
         id: status;
 
-        visible: muted && (level >= userSpeakingLevel);
+        visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
-            top: parent.bottom
-            topMargin: 5
+            top: icon.bottom;
+            topMargin: 5;
         }
 
-        width: icon.width;
-        height: 8
+        width: parent.width;
+        height: statusTextMetrics.height;
+
+        TextMetrics {
+            id: statusTextMetrics
+            text: statusText.text
+            font: statusText.font
+        }
 
         RalewaySemiBold {
+            id: statusText
             anchors {
                 horizontalCenter: parent.horizontalCenter;
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: colors.mutedColor;
+            color: (level >= userSpeakingLevel && muted) ? colors.mutedColor : colors.unmutedColor;
+            font.bold: true
 
-            text: "MUTED";
+            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "PTT" : "PTT-(T)") : (muted ? "MUTED" : "MUTE");
             size: 12;
         }
     }
@@ -172,7 +188,8 @@ Rectangle {
         anchors {
             right: parent.right;
             rightMargin: 7;
-            verticalCenter: parent.verticalCenter;
+            top: parent.top
+            topMargin: 5
         }
 
         width: 8;
@@ -219,34 +236,5 @@ Rectangle {
                 }
             }
         }
-/*
-        Rectangle {
-            id: gatedIndicator;
-            visible: gated && !clipping
-
-            radius: 4;
-            width: 2 * radius;
-            height: 2 * radius;
-            color: "#0080FF";
-            anchors {
-                right: parent.left;
-                verticalCenter: parent.verticalCenter;
-            }
-        }
-
-        Rectangle {
-            id: clippingIndicator;
-            visible: clipping
-
-            radius: 4;
-            width: 2 * radius;
-            height: 2 * radius;
-            color: colors.red;
-            anchors {
-                left: parent.right;
-                verticalCenter: parent.verticalCenter;
-            }
-        }
-*/
     }
 }

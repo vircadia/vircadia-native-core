@@ -19,13 +19,18 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     readonly property var level: AudioScriptingInterface.inputLevel;
-    
+    readonly property var clipping: AudioScriptingInterface.clipping;
+    readonly property var muted: AudioScriptingInterface.muted;
+    readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
+
+    readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
     }
-        
+
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -70,7 +75,7 @@ Rectangle {
             if (AudioScriptingInterface.pushToTalk) {
                 return;
             }
-            AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
+            muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
@@ -113,9 +118,12 @@ Rectangle {
                 readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
                 readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
                 readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
+                readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
+                readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
 
                 id: image;
-                source: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? pushToTalkIcon : AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
+                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : 
+                    clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -138,9 +146,9 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
+        readonly property string color: muted ? colors.muted : colors.unmuted;
 
-        visible: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) || (AudioScriptingInterface.muted && (level >= userSpeakingLevel));
+        visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
@@ -159,7 +167,7 @@ Rectangle {
 
             color: parent.color;
 
-            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
+            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
@@ -235,12 +243,12 @@ Rectangle {
                 }
             }
         }
-        
+
         Rectangle {
             id: gatedIndicator;
             visible: gated && !AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: "#0080FF";
@@ -249,12 +257,12 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
         }
-        
+
         Rectangle {
             id: clippingIndicator;
             visible: AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: colors.red;

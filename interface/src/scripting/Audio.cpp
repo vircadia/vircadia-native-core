@@ -224,10 +224,10 @@ void Audio::saveData() {
 }
 
 void Audio::loadData() {
-    _desktopMuted = _desktopMutedSetting.get();
-    _hmdMuted = _hmdMutedSetting.get();
-    _pttDesktop = _pttDesktopSetting.get();
-    _pttHMD = _pttHMDSetting.get();
+    setMutedDesktop(_desktopMutedSetting.get());
+    setMutedHMD(_hmdMutedSetting.get());
+    setPTTDesktop(_pttDesktopSetting.get());
+    setPTTHMD(_pttHMDSetting.get());
 }
 
 bool Audio::getPTTHMD() const {

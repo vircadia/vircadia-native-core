@@ -211,7 +211,6 @@
 #include "ui/UpdateDialog.h"
 #include "ui/DomainConnectionModel.h"
 #include "ui/Keyboard.h"
-#include "ui/PrivacyShield.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -338,6 +337,10 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTREE_PPS};
 
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
+
+static const QUrl AVATAR_INPUTS_BAR_QML = PathUtils::qmlUrl("AvatarInputsBar.qml");
+static const QUrl MIC_BAR_ENTITY_QML = PathUtils::qmlUrl("hifi/audio/MicBarApplication.qml");
+static const QUrl BUBBLE_ICON_QML = PathUtils::qmlUrl("BubbleIcon.qml");
 
 static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
@@ -928,7 +931,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<KeyboardScriptingInterface>();
     DependencyManager::set<GrabManager>();
     DependencyManager::set<AvatarPackager>();
-    DependencyManager::set<PrivacyShield>();
 
     return previousSessionCrashed;
 }
@@ -1292,6 +1294,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         auto displayPlugin = qApp->getActiveDisplayPlugin();
         setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
+    });
+    connect(this, &Application::activeDisplayPluginChanged, this, [&](){
+#if !defined(Q_OS_ANDROID)
+        if (!getLoginDialogPoppedUp() && _desktopRootItemCreated) {
+            if (isHMDMode()) {
+                createAvatarInputsBar();
+                auto offscreenUi = getOffscreenUI();
+                offscreenUi->hide(AVATAR_INPUTS_BAR_QML.toString());
+            } else {
+                destroyAvatarInputsBar();
+                auto offscreenUi = getOffscreenUI();
+                offscreenUi->show(AVATAR_INPUTS_BAR_QML.toString(), "AvatarInputsBar");
+            }
+        }
+#endif
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
@@ -2378,7 +2395,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 });
             });
             auto rootItemLoadedFunctor = [webSurface, url, isTablet] {
-                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == LOGIN_DIALOG.toString());
+                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == LOGIN_DIALOG.toString() || url == AVATAR_INPUTS_BAR_QML.toString() ||
+                   url == BUBBLE_ICON_QML.toString() || url == MIC_BAR_ENTITY_QML.toString() );
             };
             if (webSurface->getRootItem()) {
                 rootItemLoadedFunctor();
@@ -2652,9 +2670,6 @@ void Application::cleanupBeforeQuit() {
         nodeList->getPacketReceiver().setShouldDropPackets(true);
     }
 
-    // destroy privacy shield before entity shutdown.
-    DependencyManager::get<PrivacyShield>()->destroyPrivacyShield();
-
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
 
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
@@ -2733,7 +2748,6 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<PickManager>();
     DependencyManager::destroy<KeyboardScriptingInterface>();
     DependencyManager::destroy<Keyboard>();
-    DependencyManager::destroy<PrivacyShield>();
     DependencyManager::destroy<AvatarPackager>();
 
     qCDebug(interfaceapp) << "Application::cleanupBeforeQuit() complete";
@@ -3301,6 +3315,7 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+    _desktopRootItemCreated = true;
 }
 
 void Application::userKickConfirmation(const QUuid& nodeID) {
@@ -5534,8 +5549,6 @@ void Application::resumeAfterLoginDialogActionTaken() {
     menu->getMenu("Developer")->setVisible(_developerMenuVisible);
     _myCamera.setMode(_previousCameraMode);
     cameraModeChanged();
-
-    DependencyManager::get<PrivacyShield>()->createPrivacyShield();
 }
 
 void Application::loadAvatarScripts(const QVector<QString>& urls) {
@@ -6493,8 +6506,6 @@ void Application::update(float deltaTime) {
         _loginStateManager.update(getMyAvatar()->getDominantHand(), _loginDialogID);
         updateLoginDialogPosition();
     }
-
-    DependencyManager::get<PrivacyShield>()->update(deltaTime);
 
     {
         PROFILE_RANGE_EX(app, "Overlays", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
@@ -8983,6 +8994,38 @@ void Application::updateLoginDialogPosition() {
             properties.setRotation(keyboardOrientation);
             entityScriptingInterface->editEntity(DependencyManager::get<Keyboard>()->getAnchorID(), properties);
         }
+    }
+}
+
+void Application::createAvatarInputsBar() {
+    const glm::vec3 LOCAL_POSITION { 0.0, 0.0, -1.0 };
+    // DEFAULT_DPI / tablet scale percentage
+    const float DPI = 31.0f / (75.0f / 100.0f);
+
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Web);
+    properties.setName("AvatarInputsBarEntity");
+    properties.setSourceUrl(AVATAR_INPUTS_BAR_QML.toString());
+    properties.setParentID(getMyAvatar()->getSelfID());
+    properties.setParentJointIndex(getMyAvatar()->getJointIndex("_CAMERA_MATRIX"));
+    properties.setPosition(LOCAL_POSITION);
+    properties.setLocalRotation(Quaternions::IDENTITY);
+    //properties.setDimensions(LOGIN_DIMENSIONS);
+    properties.setPrimitiveMode(PrimitiveMode::SOLID);
+    properties.getGrab().setGrabbable(false);
+    properties.setIgnorePickIntersection(false);
+    properties.setAlpha(1.0f);
+    properties.setDPI(DPI);
+    properties.setVisible(true);
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    _avatarInputsBarID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
+}
+
+void Application::destroyAvatarInputsBar() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    if (!_avatarInputsBarID.isNull()) {
+        entityScriptingInterface->deleteEntity(_avatarInputsBarID);
     }
 }
 
