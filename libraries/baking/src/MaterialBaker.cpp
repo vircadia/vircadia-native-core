@@ -109,7 +109,7 @@ void MaterialBaker::processMaterial() {
                         QUrl textureURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
 
                         // FIXME: this isn't properly handling bumpMaps or glossMaps
-                        static const std::unordered_map<graphics::Material::MapChannel, image::TextureUsage::Type> MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP {
+                        static const std::unordered_map<graphics::Material::MapChannel, image::TextureUsage::Type> MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP({
                             { graphics::Material::MapChannel::EMISSIVE_MAP, image::TextureUsage::EMISSIVE_TEXTURE },
                             { graphics::Material::MapChannel::ALBEDO_MAP, image::TextureUsage::ALBEDO_TEXTURE },
                             { graphics::Material::MapChannel::METALLIC_MAP, image::TextureUsage::METALLIC_TEXTURE },
@@ -118,7 +118,7 @@ void MaterialBaker::processMaterial() {
                             { graphics::Material::MapChannel::OCCLUSION_MAP, image::TextureUsage::OCCLUSION_TEXTURE },
                             { graphics::Material::MapChannel::LIGHTMAP_MAP, image::TextureUsage::LIGHTMAP_TEXTURE },
                             { graphics::Material::MapChannel::SCATTERING_MAP, image::TextureUsage::SCATTERING_TEXTURE }
-                        };
+                        });
 
                         auto it = MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.find(mapChannel);
                         if (it == MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.end()) {
@@ -126,7 +126,7 @@ void MaterialBaker::processMaterial() {
                             return;
                         }
 
-                        QPair<QUrl, image::TextureUsage::Type> textureKey { textureURL, it->second };
+                        QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, it->second);
                         if (!_textureBakers.contains(textureKey)) {
                             QSharedPointer<TextureBaker> textureBaker {
                                 new TextureBaker(textureURL, it->second, _textureOutputDir),
