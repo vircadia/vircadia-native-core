@@ -1213,6 +1213,12 @@ public:
 
 public slots:
 
+   /**jsdoc
+    * @function MyAvatar.setSessionUUID
+    * @param {Uuid} sessionUUID
+    */
+    virtual void setSessionUUID(const QUuid& sessionUUID) override;
+
     /**jsdoc
      * Increase the avatar's scale by five percent, up to a minimum scale of <code>1000</code>.
      * @function MyAvatar.increaseSize
