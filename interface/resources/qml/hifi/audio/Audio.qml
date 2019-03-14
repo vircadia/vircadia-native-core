@@ -342,9 +342,8 @@ Rectangle {
             anchors.top: inputDeviceHeader.bottom;
             anchors.topMargin: 10;
             x: margins.paddings
-            height: Math.min(150, contentHeight);
+            height: contentHeight;
             spacing: 4;
-            snapMode: ListView.SnapToItem;
             clip: true;
             model: AudioScriptingInterface.devices.input;
             delegate: Item {
@@ -433,11 +432,10 @@ Rectangle {
             id: outputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: Math.min(360 - inputView.height, contentHeight);
+            height: contentHeight;
             anchors.top: outputDeviceHeader.bottom;
             anchors.topMargin: 10;
             spacing: 4;
-            snapMode: ListView.SnapToItem;
             clip: true;
             model: AudioScriptingInterface.devices.output;
             delegate: Item {
