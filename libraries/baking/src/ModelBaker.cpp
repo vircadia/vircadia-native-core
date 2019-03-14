@@ -417,7 +417,7 @@ QString ModelBaker::compressTexture(QString modelTextureFileName, image::Texture
             // construct the new baked texture file name and file path
             // ensuring that the baked texture will have a unique name
             // even if there was another texture with the same name at a different path
-            baseTextureFileName = createBaseTextureFileName(modelTextureFileInfo, textureType);
+            baseTextureFileName = _textureFileNamer.createBaseTextureFileName(modelTextureFileInfo, textureType);
             _remappedTexturePaths[urlToTexture] = baseTextureFileName;
         }
 
@@ -626,28 +626,6 @@ void ModelBaker::checkIfTexturesFinished() {
             setIsFinished(true);
         }
     }
-}
-
-QString ModelBaker::createBaseTextureFileName(const QFileInfo& textureFileInfo, const image::TextureUsage::Type textureType) {
-    // If two textures have the same URL but are used differently, we need to process them separately
-    QString addMapChannel = QString::fromStdString("_" + std::to_string(textureType));
-
-    QString baseTextureFileName{ textureFileInfo.completeBaseName() + addMapChannel };
-
-    // first make sure we have a unique base name for this texture
-    // in case another texture referenced by this model has the same base name
-    auto& nameMatches = _textureNameMatchCount[baseTextureFileName];
-
-    if (nameMatches > 0) {
-        // there are already nameMatches texture with this name
-        // append - and that number to our baked texture file name so that it is unique
-        baseTextureFileName += "-" + QString::number(nameMatches);
-    }
-
-    // increment the number of name matches
-    ++nameMatches;
-
-    return baseTextureFileName;
 }
 
 void ModelBaker::setWasAborted(bool wasAborted) {

@@ -19,6 +19,7 @@
 
 #include "Baker.h"
 #include "TextureBaker.h"
+#include "baking/TextureFileNamer.h"
 
 #include "ModelBakingLoggingCategory.h"
 
@@ -97,7 +98,6 @@ private slots:
     void handleAbortedTexture();
 
 private:
-    QString createBaseTextureFileName(const QFileInfo & textureFileInfo, const image::TextureUsage::Type textureType);
     QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
     void bakeTexture(const QUrl & textureURL, image::TextureUsage::Type textureType, const QDir & outputDir, 
                      const QString & bakedFilename, const QByteArray & textureContent);
@@ -109,6 +109,8 @@ private:
     bool _pendingErrorEmission { false };
 
     bool _hasBeenBaked { false };
+
+    TextureFileNamer _textureFileNamer;
 };
 
 #endif // hifi_ModelBaker_h

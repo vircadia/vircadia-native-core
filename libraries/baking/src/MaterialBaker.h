@@ -15,6 +15,7 @@
 #include "Baker.h"
 
 #include "TextureBaker.h"
+#include "baking/TextureFileNamer.h"
 
 #include <material-networking/MaterialCache.h>
 
@@ -60,6 +61,7 @@ private:
 
     QScriptEngine _scriptEngine;
     static std::function<QThread*()> _getNextOvenWorkerThreadOperator;
+    TextureFileNamer _textureFileNamer;
 };
 
 #endif // !hifi_MaterialBaker_h

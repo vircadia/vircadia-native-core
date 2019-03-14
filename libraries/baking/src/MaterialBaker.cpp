@@ -129,8 +129,10 @@ void MaterialBaker::processMaterial() {
 
                         QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, it->second);
                         if (!_textureBakers.contains(textureKey)) {
+                            auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), it->second);
+
                             QSharedPointer<TextureBaker> textureBaker {
-                                new TextureBaker(textureURL, it->second, _textureOutputDir),
+                                new TextureBaker(textureURL, it->second, _textureOutputDir, "", baseTextureFileName),
                                 &TextureBaker::deleteLater
                             };
                             textureBaker->setMapChannel(mapChannel);
