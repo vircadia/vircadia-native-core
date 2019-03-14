@@ -33,10 +33,6 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
-#ifdef HIFI_DUMP_FBX
-#include "FBXToJSON.h"
-#endif
-
 FBXBaker::FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
         const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
         ModelBaker(inputModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
@@ -50,20 +46,6 @@ FBXBaker::FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputText
 
 void FBXBaker::bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) {
     _hfmModel = hfmModel;
-    
-#ifdef HIFI_DUMP_FBX
-    {
-        FBXToJSON fbxToJSON;
-        fbxToJSON << _rootNode;
-        QFileInfo modelFile(_originalModelFilePath);
-        QString outFilename(_bakedOutputDir + "/" + modelFile.completeBaseName() + "_FBX.json");
-        QFile jsonFile(outFilename);
-        if (jsonFile.open(QIODevice::WriteOnly)) {
-            jsonFile.write(fbxToJSON.str().c_str(), fbxToJSON.str().length());
-            jsonFile.close();
-        }
-    }
-#endif
 
     if (shouldStop()) {
         return;
