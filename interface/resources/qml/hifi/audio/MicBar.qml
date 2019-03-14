@@ -30,7 +30,7 @@ Rectangle {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
     }
-        
+
     property bool standalone: false;
     property var dragTarget: null;
 
@@ -146,7 +146,7 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
+        readonly property string color: muted ? colors.muted : colors.unmuted;
 
         visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
 
@@ -243,12 +243,12 @@ Rectangle {
                 }
             }
         }
-        
+
         Rectangle {
             id: gatedIndicator;
             visible: gated && !AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: "#0080FF";
@@ -257,12 +257,12 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
         }
-        
+
         Rectangle {
             id: clippingIndicator;
             visible: AudioScriptingInterface.clipping
-            
-            radius: 4;     
+
+            radius: 4;
             width: 2 * radius;
             height: 2 * radius;
             color: colors.red;

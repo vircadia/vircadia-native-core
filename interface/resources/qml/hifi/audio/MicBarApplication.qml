@@ -55,10 +55,12 @@ Rectangle {
 
     onLevelChanged: {
         var rectOpacity = muted && (level >= userSpeakingLevel) ? 0.9 : 0.3;
-        if (mouseArea.containsMouse && rectOpacity != 0.9) {
+        if (pushToTalk && !pushingToTalk) {
+            rectOpacity = (level >= userSpeakingLevel) ? 0.9 : 0.7;
+        } else if (mouseArea.containsMouse && rectOpacity != 0.9) {
             rectOpacity = 0.5;
         }
-        opacity = rectOpacity;
+        micBar.opacity = rectOpacity;
     }
 
     color: "#00000000";
