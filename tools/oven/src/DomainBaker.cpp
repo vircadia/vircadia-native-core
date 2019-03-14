@@ -271,7 +271,7 @@ void DomainBaker::addMaterialBaker(const QString& property, const QString& data,
 
         // setup a baker for this material
         QSharedPointer<MaterialBaker> materialBaker {
-            new MaterialBaker(data, isURL, _contentOutputPath),
+            new MaterialBaker(data, isURL, _contentOutputPath, _destinationPath),
             &MaterialBaker::deleteLater
         };
 

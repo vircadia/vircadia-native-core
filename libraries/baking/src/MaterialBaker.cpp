@@ -27,11 +27,12 @@ std::function<QThread*()> MaterialBaker::_getNextOvenWorkerThreadOperator;
 
 static int materialNum = 0;
 
-MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir) :
+MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, const QUrl& destinationPath) :
     _materialData(materialData),
     _isURL(isURL),
     _bakedOutputDir(bakedOutputDir),
-    _textureOutputDir(bakedOutputDir + "/materialTextures/" + QString::number(materialNum++))
+    _textureOutputDir(bakedOutputDir + "/materialTextures/" + QString::number(materialNum++)),
+    _destinationPath(destinationPath)
 {
 }
 
@@ -162,10 +163,11 @@ void MaterialBaker::handleFinishedTextureBaker() {
             qCDebug(material_baking) << "Re-writing texture references to" << baker->getTextureURL();
 
             auto newURL = QUrl(_textureOutputDir).resolved(baker->getMetaTextureFileName());
+            auto relativeURL = QDir(_bakedOutputDir).relativeFilePath(newURL.toString());
 
             // Replace the old texture URLs
             for (auto networkMaterial : _materialsNeedingRewrite.values(textureKey)) {
-                networkMaterial->getTextureMap(baker->getMapChannel())->getTextureSource()->setUrl(newURL);
+                networkMaterial->getTextureMap(baker->getMapChannel())->getTextureSource()->setUrl(_destinationPath.resolved(relativeURL));
             }
         } else {
             // this texture failed to bake - this doesn't fail the entire bake but we need to add the errors from
