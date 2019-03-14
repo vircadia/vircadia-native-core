@@ -26,6 +26,9 @@ android/**/src/main/assets
 android/**/gradle*
 *.class
 
+# Visual Studio
+/.vs
+
 # VSCode
 # List taken from Github Global Ignores master@435c4d92
 # https://github.com/github/gitignore/commits/master/Global/VisualStudioCode.gitignore

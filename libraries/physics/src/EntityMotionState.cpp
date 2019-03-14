@@ -203,11 +203,6 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     }
     assert(entityTreeIsLocked());
 
-    if (_entity->getShapeType() == SHAPE_TYPE_STATIC_MESH
-        || (_body && _body->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)) {
-        return MOTION_TYPE_STATIC;
-    }
-
     if (_entity->getLocked()) {
         if (_entity->isMoving()) {
             return MOTION_TYPE_KINEMATIC;

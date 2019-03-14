@@ -384,6 +384,7 @@ Rectangle {
         id: categoriesDropdown
 
         anchors.fill: parent;
+        anchors.topMargin: 2
 
         visible: false
         z: 10
@@ -422,6 +423,7 @@ Rectangle {
                 
                 model: categoriesModel
                 delegate: ItemDelegate {
+                    id: categoriesItemDelegate
                     height: 34
                     width: parent.width
 
@@ -433,6 +435,8 @@ Rectangle {
 
                         color: hifi.colors.white
                         visible: true
+                        border.color: hifi.colors.blueHighlight
+                        border.width: 0
 
                         RalewayRegular {
                             id: categoriesItemText
@@ -441,7 +445,7 @@ Rectangle {
                             anchors.fill:parent
  
                             text: model.name
-                            color: ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.baseGray
+                            color: categoriesItemDelegate.ListView.isCurrentItem ? hifi.colors.blueHighlight : hifi.colors.baseGray
                             horizontalAlignment: Text.AlignLeft
                             verticalAlignment: Text.AlignVCenter
                             size: 14
@@ -451,16 +455,22 @@ Rectangle {
                     MouseArea {
                         anchors.fill: parent
                         z: 10
-
                         hoverEnabled: true
                         propagateComposedEvents: false
 
-                        onEntered: {
-                            categoriesItem.color = ListView.isCurrentItem ? hifi.colors.white : hifi.colors.lightBlueHighlight;
+                        onPositionChanged: {
+                            // Must use onPositionChanged and not onEntered
+                            // due to a QML bug where a mouseenter event was
+                            // being fired on open of the categories list even
+                            // though the mouse was outside the borders
+                            categoriesItem.border.width = 2;
+                        }
+                        onExited: {
+                            categoriesItem.border.width = 0;
                         }
 
-                        onExited: {
-                            categoriesItem.color = ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.white;
+                        onCanceled: {
+                            categoriesItem.border.width = 0;
                         }
 
                         onClicked: {
@@ -561,6 +571,8 @@ Rectangle {
                 standaloneOptimized: model.standalone_optimized
     
                 onShowItem: {
+                    // reset the edition back to -1 to clear the 'update item' status
+                    marketplaceItem.edition = -1;
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }
 
