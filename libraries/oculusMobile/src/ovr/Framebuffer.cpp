@@ -100,7 +100,9 @@ void Framebuffer::drawBuffers(ovrEye eye) const {
 void Framebuffer::SwapChainInfo::create(const glm::uvec2 &size) {
     index = 0;
     validTexture = false;
-    swapChain = vrapi_CreateTextureSwapChain3(VRAPI_TEXTURE_TYPE_2D, GL_RGBA8, size.x, size.y, 1, 3);
+    // GL_SRGB8_ALPHA8 and GL_RGBA8 appear to behave the same here.  The only thing that changes the
+    // output gamma behavior is VRAPI_MODE_FLAG_FRONT_BUFFER_SRGB passed to vrapi_EnterVrMode
+    swapChain = vrapi_CreateTextureSwapChain3(VRAPI_TEXTURE_TYPE_2D, GL_SRGB8_ALPHA8, size.x, size.y, 1, 3);
     length = vrapi_GetTextureSwapChainLength(swapChain);
     if (!length) {
         __android_log_write(ANDROID_LOG_WARN, "QQQ_OVR", "Unable to count swap chain textures");

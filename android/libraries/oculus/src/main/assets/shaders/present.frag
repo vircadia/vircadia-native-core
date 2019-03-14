@@ -30,8 +30,10 @@ vec4 color_LinearTosRGBA(vec4 lrgba) {
     return vec4(color_LinearTosRGB(lrgba.xyz), lrgba.w);
 }
 
-// FIXME switch to texelfetch for getting from the source texture
+// FIXME switch to texelfetch for getting from the source texture?
 void main() {
-    FragColorL = color_LinearTosRGBA(texture(sampler, vTexCoordLR.xy));
-    FragColorR = color_LinearTosRGBA(texture(sampler, vTexCoordLR.zw));
+    //FragColorL = color_LinearTosRGBA(texture(sampler, vTexCoordLR.xy));
+    //FragColorR = color_LinearTosRGBA(texture(sampler, vTexCoordLR.zw));
+    FragColorL = texture(sampler, vTexCoordLR.xy);
+    FragColorR = texture(sampler, vTexCoordLR.zw);
 }

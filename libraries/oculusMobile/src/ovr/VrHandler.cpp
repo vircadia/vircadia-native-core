@@ -313,6 +313,7 @@ struct VrSurface : public TaskQueue {
                     ovrJava java{ vm, env, oculusActivity };
                     ovrModeParms modeParms = vrapi_DefaultModeParms(&java);
                     modeParms.Flags |= VRAPI_MODE_FLAG_NATIVE_WINDOW;
+                    modeParms.Flags |= VRAPI_MODE_FLAG_FRONT_BUFFER_SRGB;
                     if (noErrorContext) {
                         modeParms.Flags |= VRAPI_MODE_FLAG_CREATE_CONTEXT_NO_ERROR;
                     }
