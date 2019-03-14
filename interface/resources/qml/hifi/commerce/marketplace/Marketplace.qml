@@ -587,6 +587,8 @@ Rectangle {
                 standaloneOptimized: model.standalone_optimized
     
                 onShowItem: {
+                    // reset the edition back to -1 to clear the 'update item' status
+                    marketplaceItem.edition = -1;
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }
 
