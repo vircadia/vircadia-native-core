@@ -851,10 +851,7 @@ void TestCreator::createRecursiveScript(const QString& directory, bool interacti
     textStream << "   nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
     textStream << "   testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
     textStream << "   nitpick.enableRecursive();" << endl;
-    textStream << "   nitpick.enableAuto();" << endl << endl;
-    textStream << "   if (typeof Test !== 'undefined') {" << endl;
-    textStream << "       Test.wait(10000);" << endl;
-    textStream << "   }" << endl;
+    textStream << "   nitpick.enableAuto();" << endl;
     textStream << "} else {" << endl;
     textStream << "   depth++" << endl;
     textStream << "}" << endl << endl;
