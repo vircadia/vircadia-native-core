@@ -3996,7 +3996,7 @@ void MyAvatar::setDriveGear1(float shiftPoint) {
         QMetaObject::invokeMethod(this, "setDriveGear1", Q_ARG(float, shiftPoint));
         return;
     }
-    if (shiftPoint > 1.0 || shiftPoint < 0) return;
+    if (shiftPoint > 1.0f || shiftPoint < 0.0f) return;
     _driveGear1 = (shiftPoint < _driveGear2) ? shiftPoint : _driveGear1;
 }
 
@@ -4017,7 +4017,7 @@ void MyAvatar::setDriveGear2(float shiftPoint) {
         QMetaObject::invokeMethod(this, "setDriveGear2", Q_ARG(float, shiftPoint));
         return;
     }
-    if (shiftPoint > 1.0 || shiftPoint < 0) return;
+    if (shiftPoint > 1.0f || shiftPoint < 0.0f) return;
     _driveGear2 = (shiftPoint < _driveGear3 && shiftPoint >= _driveGear1) ? shiftPoint : _driveGear2;
 }
 
@@ -4038,7 +4038,7 @@ void MyAvatar::setDriveGear3(float shiftPoint) {
         QMetaObject::invokeMethod(this, "setDriveGear3", Q_ARG(float, shiftPoint));
         return;
     }
-    if (shiftPoint > 1.0 || shiftPoint < 0) return;
+    if (shiftPoint > 1.0f || shiftPoint < 0.0f) return;
     _driveGear3 = (shiftPoint < _driveGear4 && shiftPoint >= _driveGear2) ? shiftPoint : _driveGear3;
 }
 
@@ -4059,7 +4059,7 @@ void MyAvatar::setDriveGear4(float shiftPoint) {
         QMetaObject::invokeMethod(this, "setDriveGear4", Q_ARG(float, shiftPoint));
         return;
     }
-    if (shiftPoint > 1.0 || shiftPoint < 0) return;
+    if (shiftPoint > 1.0f || shiftPoint < 0.0f) return;
     _driveGear4 = (shiftPoint < _driveGear5 && shiftPoint >= _driveGear3) ? shiftPoint : _driveGear4;
 }
 
@@ -4080,7 +4080,7 @@ void MyAvatar::setDriveGear5(float shiftPoint) {
         QMetaObject::invokeMethod(this, "setDriveGear5", Q_ARG(float, shiftPoint));
         return;
     }
-    if (shiftPoint > 1.0 || shiftPoint < 0) return;
+    if (shiftPoint > 1.0f || shiftPoint < 0.0f) return;
     _driveGear5 = (shiftPoint > _driveGear4) ? shiftPoint : _driveGear5;
 }
 
