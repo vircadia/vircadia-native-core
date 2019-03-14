@@ -391,7 +391,7 @@ Rectangle {
                 top: parent.top
                 topMargin: 100
             }
-            width: parent.width/2
+            width: parent.width*2/3
 
             color: hifi.colors.white
             
@@ -431,7 +431,7 @@ Rectangle {
                             anchors.leftMargin: 15
                             anchors.top:parent.top
                             anchors.bottom: parent.bottom
-                            anchors.left: parent.left
+                            anchors.left: categoryItemCount.right
  
                             elide: Text.ElideRight
                             text: model.name
@@ -445,23 +445,23 @@ Rectangle {
                             anchors {
                                 top: parent.top
                                 bottom: parent.bottom
-                                topMargin: 5
-                                bottomMargin: 5
+                                topMargin: 7
+                                bottomMargin: 7
                                 leftMargin: 10
                                 rightMargin: 10
-                                left: categoriesItemText.right
+                                left: parent.left
                             }
                             width: childrenRect.width
-                            color: hifi.colors.blueHighlight
+                            color: hifi.colors.faintGray
                             radius: height/2
                             
                             RalewaySemiBold {
                                 anchors.top: parent.top
                                 anchors.bottom: parent.bottom
-                                width: paintedWidth+30
+                                width: 50
      
                                 text: model.count
-                                color: hifi.colors.white
+                                color: hifi.colors.lightGrayText
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                                 size: 16
