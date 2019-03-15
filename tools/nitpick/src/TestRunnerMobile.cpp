@@ -99,6 +99,8 @@ void TestRunnerMobile::connectDevice() {
     QString line2 = devicesFile.readLine();
 
     const QString DEVICE{ "device" };
+    const QString MODEL{ "model" };
+
     if (line2.contains("unauthorized")) {
         QMessageBox::critical(0, "Unauthorized device detected", "Please allow USB debugging on device");
     } else if (line2.contains(DEVICE)) {
@@ -111,10 +113,21 @@ void TestRunnerMobile::connectDevice() {
             QStringList tokens = line2.split(QRegExp("[\r\n\t ]+"));
             QString deviceID = tokens[0];
             
-            QString modelID = tokens[3].split(':')[1];
+            // Find the model entry
+            int i;
+            for (i = 0; i < tokens.size(); ++i) {
+                if (tokens[i].contains(MODEL)) {
+                    break;
+                }
+            }
+
             _modelName = "UNKNOWN";
-            if (modelNames.count(modelID) == 1) {
-                _modelName = modelNames[modelID];
+            if (i < tokens.size()) {
+                QString modelID = tokens[i].split(':')[1];
+
+                if (modelNames.count(modelID) == 1) {
+                    _modelName = modelNames[modelID];
+                }
             }
 
             _detectedDeviceLabel->setText(_modelName + " [" + deviceID + "]");
