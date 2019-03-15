@@ -123,21 +123,7 @@ void FBXBaker::rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const
                     }
                 } else if (object.name == "Model") {
                     for (FBXNode& modelChild : object.children) {
-                        bool properties = false;
-                        hifi::ByteArray propertyName;
-                        int index;
-                        if (modelChild.name == "Properties60") {
-                            properties = true;
-                            propertyName = "Property";
-                            index = 3;
-
-                        } else if (modelChild.name == "Properties70") {
-                            properties = true;
-                            propertyName = "P";
-                            index = 4;
-                        }
-
-                        if (properties) {
+                        if (modelChild.name == "Properties60" || modelChild.name == "Properties70") {
                             // This is a properties node
                             // Remove the geometric transform because that has been applied directly to the vertices in FBXSerializer
                             static const QVariant GEOMETRIC_TRANSLATION = hifi::ByteArray("GeometricTranslation");
