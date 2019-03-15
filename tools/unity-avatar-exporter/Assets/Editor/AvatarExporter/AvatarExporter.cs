@@ -1105,6 +1105,11 @@ class AvatarExporter : MonoBehaviour {
             string materialName = material.name;
             string shaderName = material.shader.name;
             
+            // if this material isn't mapped externally then ignore it
+            if (!materialMappings.ContainsValue(materialName)) {
+                continue;
+            }
+            
             // don't store any material data for unsupported shader types
             if (Array.IndexOf(SUPPORTED_SHADERS, shaderName) == -1) {
                 if (!unsupportedShaderMaterials.Contains(materialName)) {
