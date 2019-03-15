@@ -277,16 +277,10 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     } else if (!useMaterialPipeline(materials)) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        render::ShapePipelinePointer pipeline;
-        if (_renderLayer == RenderLayer::WORLD && !DISABLE_DEFERRED) {
-            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
-        } else {
-            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
-        }
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
-            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
+            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, args->_shapePipeline);
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
+            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, args->_shapePipeline);
         }
     } else {
         if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {
