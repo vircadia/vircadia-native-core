@@ -1531,16 +1531,19 @@ class ExportProjectWindow : EditorWindow {
     
     float GetAvatarHeight() {
         // height of an avatar model can be determined to be the max Y extents of the combined bounds for all its mesh renderers
-        Bounds bounds = new Bounds();
-        var meshRenderers = avatarPreviewObject.GetComponentsInChildren<MeshRenderer>();
-        var skinnedMeshRenderers = avatarPreviewObject.GetComponentsInChildren<SkinnedMeshRenderer>();
-        foreach (var renderer in meshRenderers) {
-            bounds.Encapsulate(renderer.bounds);
+        if (avatarPreviewObject != null) {
+            Bounds bounds = new Bounds();
+            var meshRenderers = avatarPreviewObject.GetComponentsInChildren<MeshRenderer>();
+            var skinnedMeshRenderers = avatarPreviewObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+            foreach (var renderer in meshRenderers) {
+                bounds.Encapsulate(renderer.bounds);
+            }
+            foreach (var renderer in skinnedMeshRenderers) {
+                bounds.Encapsulate(renderer.bounds);
+            }
+            return bounds.max.y;
         }
-        foreach (var renderer in skinnedMeshRenderers) {
-            bounds.Encapsulate(renderer.bounds);
-        }
-        return bounds.max.y;
+        return 0.0f;
     }
     
     void SetAvatarScale(float actualScale) {
