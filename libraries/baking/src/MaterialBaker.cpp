@@ -27,6 +27,15 @@ std::function<QThread*()> MaterialBaker::_getNextOvenWorkerThreadOperator;
 
 static int materialNum = 0;
 
+namespace std {
+    template <>
+    struct hash<graphics::Material::MapChannel> {
+        size_t operator()(const graphics::Material::MapChannel& a) const {
+            return std::hash<size_t>()((size_t)a);
+        }
+    };
+};
+
 MaterialBaker::MaterialBaker(const QString& materialData, bool isURL, const QString& bakedOutputDir, const QUrl& destinationPath) :
     _materialData(materialData),
     _isURL(isURL),
