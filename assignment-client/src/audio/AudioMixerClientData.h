@@ -84,6 +84,8 @@ public:
 
     float getMasterAvatarGain() const { return _masterAvatarGain; }
     void setMasterAvatarGain(float gain) { _masterAvatarGain = gain; }
+    float getMasterInjectorGain() const { return _masterInjectorGain; }
+    void setMasterInjectorGain(float gain) { _masterInjectorGain = gain; }
 
     AudioLimiter audioLimiter;
 
@@ -189,6 +191,7 @@ private:
     int _frameToSendStats { 0 };
 
     float _masterAvatarGain { 1.0f };   // per-listener mixing gain, applied only to avatars
+    float _masterInjectorGain { 1.0f }; // per-listener mixing gain, applied only to injectors
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
