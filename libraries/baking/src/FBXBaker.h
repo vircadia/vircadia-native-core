@@ -43,7 +43,6 @@ private:
     void replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
 
     hfm::Model::Pointer _hfmModel;
-    QHash<QUrl, QString> _remappedTexturePaths;
 
     bool _pendingErrorEmission { false };
 };

@@ -98,7 +98,7 @@ private slots:
     void handleAbortedTexture();
 
 private:
-    QUrl getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded = false);
+    QUrl getTextureURL(const QFileInfo& textureFileInfo, bool isEmbedded = false);
     void bakeTexture(const QUrl & textureURL, image::TextureUsage::Type textureType, const QDir & outputDir, 
                      const QString & bakedFilename, const QByteArray & textureContent);
     QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);

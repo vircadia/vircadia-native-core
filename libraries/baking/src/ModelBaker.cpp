@@ -408,7 +408,7 @@ QString ModelBaker::compressTexture(QString modelTextureFileName, image::Texture
         if (!modelTextureFileInfo.filePath().isEmpty()) {
             textureContent = _textureContentMap.value(modelTextureFileName.toLocal8Bit());
         }
-        auto urlToTexture = getTextureURL(modelTextureFileInfo, modelTextureFileName, !textureContent.isNull());
+        auto urlToTexture = getTextureURL(modelTextureFileInfo, !textureContent.isNull());
 
         QString baseTextureFileName;
         if (_remappedTexturePaths.contains(urlToTexture)) {
@@ -559,14 +559,11 @@ void ModelBaker::handleAbortedTexture() {
     checkIfTexturesFinished();
 }
 
-QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativeFileName, bool isEmbedded) {
+QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, bool isEmbedded) {
     QUrl urlToTexture;
 
-    // use QFileInfo to easily split up the existing texture filename into its components
-    auto apparentRelativePath = QFileInfo(relativeFileName.replace("\\", "/"));
-
     if (isEmbedded) {
-        urlToTexture = _modelURL.toString() + "/" + apparentRelativePath.filePath();
+        urlToTexture = _modelURL.toString() + "/" + textureFileInfo.filePath();
     } else {
         if (textureFileInfo.exists() && textureFileInfo.isFile()) {
             // set the texture URL to the local texture that we have confirmed exists
@@ -576,14 +573,14 @@ QUrl ModelBaker::getTextureURL(const QFileInfo& textureFileInfo, QString relativ
 
             // this is a relative file path which will require different handling
             // depending on the location of the original model
-            if (_modelURL.isLocalFile() && apparentRelativePath.exists() && apparentRelativePath.isFile()) {
+            if (_modelURL.isLocalFile() && textureFileInfo.exists() && textureFileInfo.isFile()) {
                 // the absolute path we ran into for the texture in the model exists on this machine
                 // so use that file
-                urlToTexture = QUrl::fromLocalFile(apparentRelativePath.absoluteFilePath());
+                urlToTexture = QUrl::fromLocalFile(textureFileInfo.absoluteFilePath());
             } else {
                 // we didn't find the texture on this machine at the absolute path
                 // so assume that it is right beside the model to match the behaviour of interface
-                urlToTexture = _modelURL.resolved(apparentRelativePath.fileName());
+                urlToTexture = _modelURL.resolved(textureFileInfo.fileName());
             }
         }
     }
