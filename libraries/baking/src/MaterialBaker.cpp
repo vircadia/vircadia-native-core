@@ -110,16 +110,17 @@ void MaterialBaker::processMaterial() {
                         QUrl textureURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
 
                         // FIXME: this isn't properly handling bumpMaps or glossMaps
-                        static const std::unordered_map<graphics::Material::MapChannel, image::TextureUsage::Type> MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP({
-                            { graphics::Material::MapChannel::EMISSIVE_MAP, image::TextureUsage::EMISSIVE_TEXTURE },
-                            { graphics::Material::MapChannel::ALBEDO_MAP, image::TextureUsage::ALBEDO_TEXTURE },
-                            { graphics::Material::MapChannel::METALLIC_MAP, image::TextureUsage::METALLIC_TEXTURE },
-                            { graphics::Material::MapChannel::ROUGHNESS_MAP, image::TextureUsage::ROUGHNESS_TEXTURE },
-                            { graphics::Material::MapChannel::NORMAL_MAP, image::TextureUsage::NORMAL_TEXTURE },
-                            { graphics::Material::MapChannel::OCCLUSION_MAP, image::TextureUsage::OCCLUSION_TEXTURE },
-                            { graphics::Material::MapChannel::LIGHTMAP_MAP, image::TextureUsage::LIGHTMAP_TEXTURE },
-                            { graphics::Material::MapChannel::SCATTERING_MAP, image::TextureUsage::SCATTERING_TEXTURE }
-                        });
+                        static std::unordered_map<graphics::Material::MapChannel, image::TextureUsage::Type> MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP;
+                        if (MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.empty()) {
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::EMISSIVE_MAP] = image::TextureUsage::EMISSIVE_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::ALBEDO_MAP] = image::TextureUsage::ALBEDO_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::METALLIC_MAP] = image::TextureUsage::METALLIC_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::ROUGHNESS_MAP] = image::TextureUsage::ROUGHNESS_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::NORMAL_MAP] = image::TextureUsage::NORMAL_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::OCCLUSION_MAP] = image::TextureUsage::OCCLUSION_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::LIGHTMAP_MAP] = image::TextureUsage::LIGHTMAP_TEXTURE;
+                            MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP[graphics::Material::MapChannel::SCATTERING_MAP] = image::TextureUsage::SCATTERING_TEXTURE;
+                        }
 
                         auto it = MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.find(mapChannel);
                         if (it == MAP_CHANNEL_TO_TEXTURE_USAGE_TYPE_MAP.end()) {

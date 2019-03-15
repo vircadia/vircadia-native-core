@@ -13,11 +13,19 @@
 #pragma warning( push )
 #pragma warning( disable : 4267 )
 #endif
+// gcc and clang
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 #include <draco/compression/decode.h>
 
 #ifdef _WIN32
 #pragma warning( pop )
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
 #endif
 
 #include <iostream>
