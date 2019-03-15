@@ -9,6 +9,7 @@
 //
 #include "TestRunnerMobile.h"
 
+#include <QNetworkInterface>
 #include <QThread>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
@@ -67,7 +68,7 @@ void TestRunnerMobile::connectDevice() {
     if (!_adbInterface) {
         _adbInterface = new AdbInterface();
     }
-
+    
     // Get list of devices
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbInterface->getAdbCommand() + " devices -l > " + devicesFullFilename;
@@ -202,6 +203,8 @@ void TestRunnerMobile::runInterface() {
         _adbInterface = new AdbInterface();
     }
 
+    sendServerIPToDevice();
+
     _statusLabel->setText("Starting Interface");
 
     QString testScript = (_runFullSuite->isChecked())
@@ -244,4 +247,83 @@ void TestRunnerMobile::pullFolder() {
     system(command.toStdString().c_str());
     _statusLabel->setText("Pull complete");
 #endif
+}
+
+void TestRunnerMobile::sendServerIPToDevice() {
+    // Get device IP
+    QFile ifconfigFile{ _workingFolder + "/ifconfig.txt" };
+    if (!ifconfigFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+            "Could not open 'ifconfig.txt'");
+        exit(-1);
+    }
+
+    QTextStream stream(&ifconfigFile);
+    QString line = ifconfigFile.readLine();
+    while (!line.isNull()) {
+        // The device IP is in the line following the "wlan0" line
+        line = ifconfigFile.readLine();
+        if (line.left(6) == "wlan0 ") {
+            break;
+        }
+    }
+
+    // The following line looks like this "inet addr:192.168.0.15  Bcast:192.168.0.255  Mask:255.255.255.0"
+    // Extract the address and mask
+    line = ifconfigFile.readLine();
+    QStringList lineParts = line.split(':');
+    if (lineParts.size() < 4) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+            "IP address line not in expected format: " + line);
+        exit(-1);
+    }
+
+    qint64 deviceIP = convertToBinary(lineParts[1].split(' ')[0]);
+    qint64 deviceMask = convertToBinary(lineParts[3].split(' ')[0]);
+    qint64 deviceSubnet = deviceMask & deviceIP;
+
+    // The device needs to be on the same subnet as the server
+    // To find which of our IPs is the server - choose the 1st that is on the same subnet
+    // If more than one found then report an error
+
+    QString serverIP;
+
+    QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
+    for (int i = 0; i < interfaces.count(); i++) {
+        QList<QNetworkAddressEntry> entries = interfaces.at(i).addressEntries();
+        for (int j = 0; j < entries.count(); j++) {
+            if (entries.at(j).ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                qint64 hostIP = convertToBinary(entries.at(j).ip().toString());
+                qint64 hostMask = convertToBinary(entries.at(j).netmask().toString());
+                qint64 hostSubnet = hostMask & hostIP;
+
+                if (hostSubnet == deviceSubnet) {
+                    if (!serverIP.isNull()) {
+                        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                            "Cannot identify server IP (multiple interfaces on device submask)");
+                        return;
+                    } else {
+                        union {
+                            uint32_t ip;
+                            uint8_t  bytes[4];
+                        } u;
+                        u.ip = hostIP;
+
+                        serverIP = QString::number(u.bytes[3]) + '.' + QString::number(u.bytes[2]) + '.' + QString::number(u.bytes[1]) + '.' + QString::number(u.bytes[0]);
+                    }
+                }
+            }
+        }
+    }
+
+    ifconfigFile.close();
+}
+
+qint64 TestRunnerMobile::convertToBinary(const QString& str) {
+    QString binary;
+    foreach (const QString& s, str.split(".")) {
+        binary += QString::number(s.toInt(), 2).rightJustified(8, '0');
+    }
+
+    return binary.toLongLong(NULL, 2);
 }

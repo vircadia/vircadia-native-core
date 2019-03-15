@@ -52,6 +52,9 @@ public:
 
     void pullFolder();
 
+    void sendServerIPToDevice();
+    qint64 convertToBinary (const QString& str);
+
 private:
     QPushButton* _connectDeviceButton;
     QPushButton* _pullFolderButton;
