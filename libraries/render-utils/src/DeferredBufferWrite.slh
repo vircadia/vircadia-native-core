@@ -64,7 +64,7 @@ void packDeferredFragmentUnlit(vec3 normal, float alpha, vec3 color) {
 }
 
 void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, float roughness) {
-    if (alpha < 1.e-6) {
+    if (alpha <= 0.0) {
         discard;
     }
     _fragColor0 = vec4(albedo.rgb, alpha);

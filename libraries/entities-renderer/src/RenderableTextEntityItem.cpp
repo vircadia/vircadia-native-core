@@ -19,8 +19,6 @@
 
 #include "GLMHelpers.h"
 
-#include <DisableDeferred.h>
-
 #include "DeferredLightingEffect.h"
 
 using namespace render;

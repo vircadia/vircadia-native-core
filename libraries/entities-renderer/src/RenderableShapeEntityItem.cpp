@@ -19,8 +19,6 @@
 
 #include "RenderPipelines.h"
 
-#include <DisableDeferred.h>
-
 //#define SHAPE_ENTITY_USE_FADE_EFFECT
 #ifdef SHAPE_ENTITY_USE_FADE_EFFECT
 #include <FadeEffect.h>
