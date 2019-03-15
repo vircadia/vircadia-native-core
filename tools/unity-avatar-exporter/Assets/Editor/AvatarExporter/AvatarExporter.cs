@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.3.5";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.3.6";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
@@ -56,6 +56,8 @@ class AvatarExporter : MonoBehaviour {
         "2018.1.0f2",
         "2017.4.18f1",
         "2017.4.17f1",
+        "2017.4.16f1",
+        "2017.4.15f1",
     };
    
     static readonly Dictionary<string, string> HUMANOID_TO_HIFI_JOINT_NAME = new Dictionary<string, string> {
@@ -1159,8 +1161,7 @@ class AvatarExporter : MonoBehaviour {
     
     static string GetMaterialTexture(Material material, string textureProperty) {
         // ensure the texture property name exists in this material and return its texture directory path if so
-        string[] textureNames = material.GetTexturePropertyNames();
-        if (Array.IndexOf(textureNames, textureProperty) >= 0) {
+        if (material.HasProperty(textureProperty)) {
             Texture texture = material.GetTexture(textureProperty);
             if (texture) {
                 foreach (var textureDependency in textureDependencies) {
@@ -1214,10 +1215,10 @@ class AvatarExporter : MonoBehaviour {
         }
         if (unsupportedShaderMaterials.Count > 1) {
             warnings += "The materials " + unsupportedShaders + " are using an unsupported shader. " +
-                        "Please change them to a Standard shader type.\n\n";
+                        "We recommend you change them to a Standard shader type.\n\n";
         } else if (unsupportedShaderMaterials.Count == 1) {
             warnings += "The material " + unsupportedShaders + " is using an unsupported shader. " +
-                        "Please change it to a Standard shader type.\n\n";
+                        "We recommend you change it to a Standard shader type.\n\n";
         }
     }
     
