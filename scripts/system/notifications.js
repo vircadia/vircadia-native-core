@@ -257,7 +257,7 @@
                 notice.isFacingAvatar = false;
 
                 notificationText = Overlays.addOverlay("text3d", notice);
-                 notifications.push(notificationText);
+                notifications.push(notificationText);
             } else {
                 notifications.push(Overlays.addOverlay("image3d", notice));
             }
