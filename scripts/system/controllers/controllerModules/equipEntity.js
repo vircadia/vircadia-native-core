@@ -595,7 +595,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
             // if the potentialHotspot is cloneable, clone it and return it
-            // if the potentialHotspot os not cloneable and locked return null
+            // if the potentialHotspot is not cloneable and locked return null
             if (potentialEquipHotspot &&
                 (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) ||
                  this.messageGrabEntity)) {
@@ -603,7 +603,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.targetEntityID = this.grabbedHotspot.entityID;
                 this.startEquipEntity(controllerData);
                 this.equipedWithSecondary = this.secondarySmoothedSqueezed();
-                return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
+                return makeRunningValues(true, [this.targetEntityID], []);
             } else {
                 return makeRunningValues(false, [], []);
             }
