@@ -2202,14 +2202,7 @@ bool EntityScriptingInterface::wantsHandControllerPointerEvents(const QUuid& id)
 }
 
 void EntityScriptingInterface::emitScriptEvent(const EntityItemID& entityID, const QVariant& message) {
-    if (_entityTree) {
-        _entityTree->withReadLock([&] {
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-            if (entity) {
-                entity->emitScriptEvent(message);
-            }
-        });
-    }
+    EntityTree::emitScriptEvent(entityID, message);
 }
 
 // TODO move this someplace that makes more sense...
