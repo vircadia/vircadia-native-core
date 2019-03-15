@@ -63,6 +63,7 @@ public:
     void negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node);
     void parseRequestsDomainListData(ReceivedMessage& message);
     void parsePerAvatarGainSet(ReceivedMessage& message, const SharedNodePointer& node);
+    void parseInjectorGainSet(ReceivedMessage& message, const SharedNodePointer& node);
     void parseNodeIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
     void parseRadiusIgnoreRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);
     void parseSoloRequest(QSharedPointer<ReceivedMessage> message, const SharedNodePointer& node);

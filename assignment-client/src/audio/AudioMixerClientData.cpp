@@ -92,6 +92,9 @@ int AudioMixerClientData::processPackets(ConcurrentAddedStreams& addedStreams) {
             case PacketType::PerAvatarGainSet:
                 parsePerAvatarGainSet(*packet, node);
                 break;
+            case PacketType::InjectorGainSet:
+                parseInjectorGainSet(*packet, node);
+                break;
             case PacketType::NodeIgnoreRequest:
                 parseNodeIgnoreRequest(packet, node);
                 break;
@@ -203,6 +206,17 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
         setGainForAvatar(avatarUUID, gain);
         qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUUID << "] to " << gain;
     }
+}
+
+void AudioMixerClientData::parseInjectorGainSet(ReceivedMessage& message, const SharedNodePointer& node) {
+    QUuid uuid = node->getUUID();
+
+    uint8_t packedGain;
+    message.readPrimitive(&packedGain);
+    float gain = unpackFloatGainFromByte(packedGain);
+
+    setMasterInjectorGain(gain);
+    qCDebug(audio) << "Setting MASTER injector gain for " << uuid << " to " << gain;
 }
 
 void AudioMixerClientData::setGainForAvatar(QUuid nodeID, float gain) {
