@@ -1599,12 +1599,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
         {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
             bool navAxis = false;
             switch (actionEnum) {
+                case Action::TOGGLE_PUSHTOTALK:
+                    if (state > 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(true);
+                    } else if (state <= 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(false);
+                    }
+                    break;
+
                 case Action::UI_NAV_VERTICAL:
                     navAxis = true;
                     if (state > 0.0f) {
@@ -4310,6 +4319,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
     }
+
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
@@ -5241,6 +5251,9 @@ void Application::loadSettings() {
         }
     }
 
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->loadData();
+
     getMyAvatar()->loadData();
     _settingsLoaded = true;
 }
@@ -5249,6 +5262,9 @@ void Application::saveSettings() const {
     sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SECOND);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
+
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->saveData();
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();

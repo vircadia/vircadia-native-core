@@ -5,6 +5,7 @@
         { "from": "Keyboard.D", "when": ["Keyboard.RightMouseButton", "!Keyboard.Control"], "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.E", "when": "!Keyboard.Control", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Q", "when": "!Keyboard.Control", "to": "Actions.LATERAL_LEFT" },
+        { "from": "Keyboard.T", "when": "!Keyboard.Control", "to": "Actions.TogglePushToTalk" },
 
         { "comment" : "Mouse turn need to be small continuous increments",
           "from": { "makeAxis" : [

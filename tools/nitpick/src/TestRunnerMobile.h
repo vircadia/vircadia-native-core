@@ -52,6 +52,9 @@ public:
 
     void pullFolder();
 
+    void sendServerIPToDevice();
+    qint64 convertToBinary (const QString& str);
+
 private:
     QPushButton* _connectDeviceButton;
     QPushButton* _pullFolderButton;
@@ -75,5 +78,7 @@ private:
     std::map<QString, QString> modelNames;
 
     AdbInterface* _adbInterface;
+
+    QString _modelName;
 };
 #endif
