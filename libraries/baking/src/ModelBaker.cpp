@@ -410,43 +410,40 @@ QString ModelBaker::compressTexture(QString modelTextureFileName, image::Texture
         }
         auto urlToTexture = getTextureURL(modelTextureFileInfo, !textureContent.isNull());
 
-        QString baseTextureFileName;
-        if (_remappedTexturePaths.contains(urlToTexture)) {
-            baseTextureFileName = _remappedTexturePaths[urlToTexture];
-        } else {
+        TextureKey textureKey { urlToTexture, textureType };
+        auto bakingTextureIt = _bakingTextures.find(textureKey);
+        if (bakingTextureIt == _bakingTextures.cend()) {
             // construct the new baked texture file name and file path
             // ensuring that the baked texture will have a unique name
             // even if there was another texture with the same name at a different path
-            baseTextureFileName = _textureFileNamer.createBaseTextureFileName(modelTextureFileInfo, textureType);
-            _remappedTexturePaths[urlToTexture] = baseTextureFileName;
-        }
+            QString baseTextureFileName = _textureFileNamer.createBaseTextureFileName(modelTextureFileInfo, textureType);
 
-        qCDebug(model_baking).noquote() << "Re-mapping" << modelTextureFileName
-            << "to" << baseTextureFileName;
+            QString bakedTextureFilePath {
+                _bakedOutputDir + "/" + baseTextureFileName + BAKED_META_TEXTURE_SUFFIX
+            };
 
-        QString bakedTextureFilePath {
-            _bakedOutputDir + "/" + baseTextureFileName + BAKED_META_TEXTURE_SUFFIX
-        };
+            textureChild = baseTextureFileName + BAKED_META_TEXTURE_SUFFIX;
 
-        textureChild = baseTextureFileName + BAKED_META_TEXTURE_SUFFIX;
-
-        if (!_bakingTextures.contains(urlToTexture)) {
             _outputFiles.push_back(bakedTextureFilePath);
 
             // bake this texture asynchronously
-            bakeTexture(urlToTexture, textureType, _bakedOutputDir, baseTextureFileName, textureContent);
+            bakeTexture(textureKey, _bakedOutputDir, baseTextureFileName, textureContent);
+        } else {
+            // Fetch existing texture meta name
+            textureChild = (*bakingTextureIt)->getBaseFilename() + BAKED_META_TEXTURE_SUFFIX;
         }
     }
+
+    qCDebug(model_baking).noquote() << "Re-mapping" << modelTextureFileName
+        << "to" << textureChild;
    
     return textureChild;
 }
 
-void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType,
-                             const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
-    
+void ModelBaker::bakeTexture(const TextureKey& textureKey, const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent) {
     // start a bake for this texture and add it to our list to keep track of
     QSharedPointer<TextureBaker> bakingTexture{
-        new TextureBaker(textureURL, textureType, outputDir, "../", bakedFilename, textureContent),
+        new TextureBaker(textureKey.first, textureKey.second, outputDir, "../", bakedFilename, textureContent),
         &TextureBaker::deleteLater
     };
     
@@ -455,7 +452,7 @@ void ModelBaker::bakeTexture(const QUrl& textureURL, image::TextureUsage::Type t
     connect(bakingTexture.data(), &TextureBaker::aborted, this, &ModelBaker::handleAbortedTexture);
 
     // keep a shared pointer to the baking texture
-    _bakingTextures.insert(textureURL, bakingTexture);
+    _bakingTextures.insert(textureKey, bakingTexture);
 
     // start baking the texture on one of our available worker threads
     bakingTexture->moveToThread(_textureThreadGetter());
@@ -507,7 +504,7 @@ void ModelBaker::handleBakedTexture() {
 
 
                 // now that this texture has been baked and handled, we can remove that TextureBaker from our hash
-                _bakingTextures.remove(bakedTexture->getTextureURL());
+                _bakingTextures.remove({ bakedTexture->getTextureURL(), bakedTexture->getTextureType() });
 
                 checkIfTexturesFinished();
             } else {
@@ -518,7 +515,7 @@ void ModelBaker::handleBakedTexture() {
                 _pendingErrorEmission = true;
 
                 // now that this texture has been baked, even though it failed, we can remove that TextureBaker from our list
-                _bakingTextures.remove(bakedTexture->getTextureURL());
+                _bakingTextures.remove({ bakedTexture->getTextureURL(), bakedTexture->getTextureType() });
 
                 // abort any other ongoing texture bakes since we know we'll end up failing
                 for (auto& bakingTexture : _bakingTextures) {
@@ -531,7 +528,7 @@ void ModelBaker::handleBakedTexture() {
             // we have errors to attend to, so we don't do extra processing for this texture
             // but we do need to remove that TextureBaker from our list
             // and then check if we're done with all textures
-            _bakingTextures.remove(bakedTexture->getTextureURL());
+            _bakingTextures.remove({ bakedTexture->getTextureURL(), bakedTexture->getTextureType() });
 
             checkIfTexturesFinished();
         }
@@ -545,7 +542,7 @@ void ModelBaker::handleAbortedTexture() {
     qDebug() << "Texture aborted: " << bakedTexture->getTextureURL();
 
     if (bakedTexture) {
-        _bakingTextures.remove(bakedTexture->getTextureURL());
+        _bakingTextures.remove({ bakedTexture->getTextureURL(), bakedTexture->getTextureType() });
     }
 
     // since a texture we were baking aborted, our status is also aborted

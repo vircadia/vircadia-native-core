@@ -42,6 +42,8 @@ class ModelBaker : public Baker {
     Q_OBJECT
 
 public:
+    using TextureKey = QPair<QUrl, image::TextureUsage::Type>;
+
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
     virtual ~ModelBaker();
@@ -99,13 +101,11 @@ private slots:
 
 private:
     QUrl getTextureURL(const QFileInfo& textureFileInfo, bool isEmbedded = false);
-    void bakeTexture(const QUrl & textureURL, image::TextureUsage::Type textureType, const QDir & outputDir, 
-                     const QString & bakedFilename, const QByteArray & textureContent);
+    void bakeTexture(const TextureKey& textureKey, const QDir& outputDir, const QString& bakedFilename, const QByteArray& textureContent);
     QString texturePathRelativeToModel(QUrl modelURL, QUrl textureURL);
 
-    QMultiHash<QUrl, QSharedPointer<TextureBaker>> _bakingTextures;
+    QMultiHash<TextureKey, QSharedPointer<TextureBaker>> _bakingTextures;
     QHash<QString, int> _textureNameMatchCount;
-    QHash<QUrl, QString> _remappedTexturePaths;
     bool _pendingErrorEmission { false };
 
     bool _hasBeenBaked { false };

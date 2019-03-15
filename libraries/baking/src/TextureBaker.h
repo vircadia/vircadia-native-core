@@ -39,6 +39,8 @@ public:
 
     QUrl getTextureURL() const { return _textureURL; }
 
+    QString getBaseFilename() const { return _baseFilename; }
+
     QString getMetaTextureFileName() const { return _metaTextureFileName; }
 
     virtual void setWasAborted(bool wasAborted) override;
