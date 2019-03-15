@@ -64,8 +64,6 @@ Script.include("/~/system/libraries/controllers.js");
         this.MIN_HAPTIC_PULSE_INTERVAL = 500; // ms
         this.disabled = false;
         var _this = this;
-        this.leftTrigger = 0.0;
-        this.rightTrigger = 0.0;
         this.initialControllerRotation = Quat.IDENTITY;
         this.currentControllerRotation = Quat.IDENTITY;
         this.manipulating = false;
@@ -103,13 +101,9 @@ Script.include("/~/system/libraries/controllers.js");
             return (this.hand === RIGHT_HAND ? LEFT_HAND : RIGHT_HAND);
         }
 
-        this.getOffhandTrigger = function () {
-            return (_this.hand === RIGHT_HAND ? _this.leftTrigger : _this.rightTrigger);
-        }
-
         // Activation criteria for rotating a fargrabbed entity. If we're changing the mapping, this is where to do it.
-        this.shouldManipulateTarget = function () {
-            return (_this.getOffhandTrigger() > TRIGGER_ON_VALUE) ? true : false;
+        this.shouldManipulateTarget = function (controllerData) {
+            return (controllerData.triggerValues[this.getOffhand()] > TRIGGER_ON_VALUE || controllerdata.secondaryValues[this.getOffhand()] > TRIGGER_ON_VALUE) ? true : false;
         };
 
         // Get the delta between the current rotation and where the controller was when manipulation started.
@@ -284,7 +278,7 @@ Script.include("/~/system/libraries/controllers.js");
             var newTargetPosLocal = MyAvatar.worldToJointPoint(newTargetPosition);
 
             // This block handles the user's ability to rotate the object they're FarGrabbing
-            if (this.shouldManipulateTarget()) {
+            if (this.shouldManipulateTarget(controllerData)) {
                 // Get the pose of the controller that is not grabbing.
                 var pose = Controller.getPoseValue((this.getOffhand() ? Controller.Standard.RightHand : Controller.Standard.LeftHand));
                 if (pose.valid) {
@@ -430,8 +424,6 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            this.leftTrigger = controllerData.triggerValues[LEFT_HAND];
-            this.rightTrigger = controllerData.triggerValues[RIGHT_HAND];
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.targetIsNull()) {
                 this.endFarGrabEntity(controllerData);
                 return makeRunningValues(false, [], []);
