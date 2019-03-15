@@ -67,14 +67,26 @@ void TestRunnerMobile::connectDevice() {
     if (!_adbInterface) {
         _adbInterface = new AdbInterface();
     }
-    
+
+    // Get list of devices
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbInterface->getAdbCommand() + " devices -l > " + devicesFullFilename;
     appendLog(command);
     system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
-        QMessageBox::critical(0, "Internal error", "devicesFullFilename not found");
+        QMessageBox::critical(0, "Internal error", "devices.txt not found");
+        exit (-1);
+    }
+
+    // Get device IP address
+    QString ifconfigFullFilename{ _workingFolder + "/ifconfig.txt" };
+    command = _adbInterface->getAdbCommand() + " shell ifconfig > " + ifconfigFullFilename;
+    appendLog(command);
+    system(command.toStdString().c_str());
+
+    if (!QFile::exists(ifconfigFullFilename)) {
+        QMessageBox::critical(0, "Internal error", "ifconfig.txt not found");
         exit (-1);
     }
 
