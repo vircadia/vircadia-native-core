@@ -265,6 +265,8 @@ void NodeList::reset(bool skipDomainHandlerReset) {
     _avatarGainMap.clear();
     _avatarGainMapLock.unlock();
 
+    _injectorGain = 0.0f;
+
     if (!skipDomainHandlerReset) {
         // clear the domain connection information, unless they're the ones that asked us to reset
         _domainHandler.softReset();
@@ -1085,6 +1087,29 @@ float NodeList::getAvatarGain(const QUuid& nodeID) {
         return it->second;
     }
     return 0.0f;
+}
+
+void NodeList::setInjectorGain(float gain) {
+    auto audioMixer = soloNodeOfType(NodeType::AudioMixer);
+    if (audioMixer) {
+        // setup the packet
+        auto setInjectorGainPacket = NLPacket::create(PacketType::InjectorGainSet, sizeof(float), true);
+
+        // We need to convert the gain in dB (from the script) to an amplitude before packing it.
+        setInjectorGainPacket->writePrimitive(packFloatGainToByte(fastExp2f(gain / 6.02059991f)));
+
+        qCDebug(networking) << "Sending Set Injector Gain packet with Gain:" << gain;
+
+        sendPacket(std::move(setInjectorGainPacket), *audioMixer);
+        _injectorGain = gain;
+
+    } else {
+        qWarning() << "Couldn't find audio mixer to send set gain request";
+    }
+}
+
+float NodeList::getInjectorGain() {
+    return _injectorGain;
 }
 
 void NodeList::kickNodeBySessionID(const QUuid& nodeID) {
