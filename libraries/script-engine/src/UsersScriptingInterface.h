@@ -15,6 +15,7 @@
 #define hifi_UsersScriptingInterface_h
 
 #include <DependencyManager.h>
+#include <shared/ReadWriteLockable.h>
 
 /**jsdoc
  * @namespace Users
@@ -195,6 +196,9 @@ signals:
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
+
+    ReadWriteLockable _kickResponseLock;
+    bool _waitingForKickResponse { false };
 };
 
 
