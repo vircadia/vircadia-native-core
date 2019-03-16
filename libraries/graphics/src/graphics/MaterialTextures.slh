@@ -235,7 +235,7 @@ vec3 fetchLightmapMap(vec2 uv) {
 <@endfunc@>
 <@func discardInvisible(opacity)@>
 {
-    if (<$opacity$> < 1.e-6) {
+    if (<$opacity$> <= 0.0) {
         discard;
     }
 }

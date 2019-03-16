@@ -1,28 +1,27 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  forward_simple_textured_transparent.frag
+//  sdf_text3D_transparent.frag
 //  fragment shader
 //
-//  Created by Clément Brisset on 5/29/15.
-//  Copyright 2014 High Fidelity, Inc.
-//
+//  Created by Bradley Austin Davis on 2015-02-04
+//  Based on fragment shader code from 
+//  https://github.com/paulhoux/Cinder-Samples/blob/master/TextRendering/include/text/Text.cpp 
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-<@include gpu/Color.slh@>
+
 <@include DefaultMaterials.slh@>
 
 <@include ForwardGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlended()$>
+<$declareEvalSkyboxGlobalColor()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
 <@include render-utils/ShaderConstants.h@>
 
-LAYOUT(binding=0) uniform sampler2D originalTexture;
+<@include sdf_text3D.slh@>
+<$declareEvalSDFSuperSampled()$>
 
 layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
@@ -33,28 +32,26 @@ layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 
 layout(location=0) out vec4 _fragColor0;
 
-void main(void) {
-    vec4 texel = texture(originalTexture, _texCoord0);
-    texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
-    vec3 albedo = _color.xyz * texel.xyz;
-    float alpha = _color.a * texel.a;
-    float metallic = DEFAULT_METALLIC;
+void main() {
+    float a = evalSDFSuperSampled(_texCoord0);
 
-    vec3 fresnel = getFresnelF0(metallic, albedo);
+    float alpha = a * _color.a;
+    if (alpha <= 0.0) {
+        discard;
+    }
 
     TransformCamera cam = getTransformCamera();
     vec3 fragPosition = _positionES.xyz;
 
-    _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+    _fragColor0 = vec4(evalSkyboxGlobalColor(
         cam._viewInverse,
         1.0,
         DEFAULT_OCCLUSION,
         fragPosition,
         normalize(_normalWS),
-        albedo,
-        fresnel,
-        metallic,
-        DEFAULT_EMISSIVE,
-        DEFAULT_ROUGHNESS, alpha),
-        alpha);
+        _color.rgb,
+        DEFAULT_FRESNEL,
+        DEFAULT_METALLIC,
+        DEFAULT_ROUGHNESS),
+        1.0);
 }

@@ -13,6 +13,8 @@
 #include "FontFamilies.h"
 #include "../StencilMaskPass.h"
 
+#include "DisableDeferred.h"
+
 static std::mutex fontMutex;
 
 struct TextureVertex {
@@ -221,25 +223,43 @@ void Font::setupGPU() {
 
         // Setup render pipeline
         {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D);
-            auto state = std::make_shared<gpu::State>();
-            state->setCullMode(gpu::State::CULL_BACK);
-            state->setDepthTest(true, true, gpu::LESS_EQUAL);
-            state->setBlendFunction(false,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMaskDrawShape(*state);
-            _pipeline = gpu::Pipeline::create(program, state);
+            {
+                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::forward_sdf_text3D);
+                auto state = std::make_shared<gpu::State>();
+                state->setCullMode(gpu::State::CULL_BACK);
+                state->setDepthTest(true, true, gpu::LESS_EQUAL);
+                state->setBlendFunction(false,
+                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+                PrepareStencil::testMaskDrawShape(*state);
+                _layeredPipeline = gpu::Pipeline::create(program, state);
+            }
 
-            gpu::ShaderPointer programTransparent = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
-            auto transparentState = std::make_shared<gpu::State>();
-            transparentState->setCullMode(gpu::State::CULL_BACK);
-            transparentState->setDepthTest(true, true, gpu::LESS_EQUAL);
-            transparentState->setBlendFunction(true,
-                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-            PrepareStencil::testMask(*transparentState);
-            _transparentPipeline = gpu::Pipeline::create(programTransparent, transparentState);
+            if (DISABLE_DEFERRED) {
+                _pipeline = _layeredPipeline;
+            } else {
+                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D);
+                auto state = std::make_shared<gpu::State>();
+                state->setCullMode(gpu::State::CULL_BACK);
+                state->setDepthTest(true, true, gpu::LESS_EQUAL);
+                state->setBlendFunction(false,
+                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+                PrepareStencil::testMaskDrawShape(*state);
+                _pipeline = gpu::Pipeline::create(program, state);
+            }
+
+            {
+                gpu::ShaderPointer program = gpu::Shader::createProgram(shader::render_utils::program::sdf_text3D_transparent);
+                auto state = std::make_shared<gpu::State>();
+                state->setCullMode(gpu::State::CULL_BACK);
+                state->setDepthTest(true, true, gpu::LESS_EQUAL);
+                state->setBlendFunction(true,
+                    gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                    gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+                PrepareStencil::testMask(*state);
+                _transparentPipeline = gpu::Pipeline::create(program, state);
+            }
         }
 
         // Sanity checks
@@ -343,7 +363,7 @@ void Font::buildVertices(Font::DrawInfo& drawInfo, const QString& str, const glm
 }
 
 void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString& str, const glm::vec4& color,
-                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool forwardRendered) {
+                      EffectType effectType, const glm::vec2& origin, const glm::vec2& bounds, bool layered) {
     if (str == "") {
         return;
     }
@@ -370,7 +390,7 @@ void Font::drawString(gpu::Batch& batch, Font::DrawInfo& drawInfo, const QString
     }
     // need the gamma corrected color here
 
-    batch.setPipeline(forwardRendered || (color.a < 1.0f) ? _transparentPipeline : _pipeline);
+    batch.setPipeline(color.a < 1.0f ? _transparentPipeline : (layered ? _layeredPipeline : _pipeline));
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, drawInfo.verticesBuffer, 0, _format->getChannels().at(0)._stride);
     batch.setResourceTexture(render_utils::slot::texture::TextFont, _texture);
