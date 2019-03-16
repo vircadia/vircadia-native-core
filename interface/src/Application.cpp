@@ -5772,6 +5772,7 @@ void Application::reloadResourceCaches() {
 
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
+    getMyAvatar()->prepareAvatarEntityDataForReload();
     // Clear the entities and their renderables
     getEntities()->clear();
 
@@ -6947,9 +6948,6 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails(bool clearAll) {
-    // before we delete all entities get MyAvatar's AvatarEntityData ready
-    getMyAvatar()->prepareAvatarEntityDataForReload();
-
     // if we're about to quit, we really don't need to do the rest of these things...
     if (_aboutToQuit) {
         return;
