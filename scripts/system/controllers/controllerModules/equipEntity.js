@@ -463,6 +463,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.startEquipEntity = function (controllerData) {
+            var _this = this;
+
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
@@ -505,16 +507,22 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (entityIsCloneable(grabbedProperties)) {
                 var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
                 this.targetEntityID = cloneID;
-                Entities.editEntity(this.targetEntityID, reparentProps);
                 controllerData.nearbyEntityPropertiesByID[this.targetEntityID] = grabbedProperties;
                 isClone = true;
-            } else if (!grabbedProperties.locked) {
-                Entities.editEntity(this.targetEntityID, reparentProps);
-            } else {
+            } else if (grabbedProperties.locked) {
                 this.grabbedHotspot = null;
                 this.targetEntityID = null;
                 return;
             }
+
+
+            // HACK -- when
+            // https://highfidelity.fogbugz.com/f/cases/21767/entity-edits-shortly-after-an-add-often-fail
+            // is resolved, this can just be an editEntity rather than a setTimeout.
+            this.editDelayTimeout = Script.setTimeout(function () {
+                _this.editDelayTimeout = null;
+                Entities.editEntity(_this.targetEntityID, reparentProps);
+            }, 100);
 
             // we don't want to send startEquip message until the trigger is released.  otherwise,
             // guns etc will fire right as they are equipped.
@@ -526,7 +534,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
 
-            var _this = this;
             var grabEquipCheck = function() {
                 var args = [_this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(_this.targetEntityID, "startEquip", args);
@@ -539,6 +546,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.endEquipEntity = function () {
+
+            if (this.editDelayTimeout) {
+                Script.clearTimeout(this.editDelayTimeout);
+                this.editDelayTimeout = null;
+            }
+
             this.storeAttachPointInSettings();
             Entities.editEntity(this.targetEntityID, {
                 parentID: Uuid.NULL,
