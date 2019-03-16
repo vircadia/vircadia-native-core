@@ -7,10 +7,10 @@
 
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera, print, getControllerJointIndex,
-   enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther, Messages, makeDispatcherModuleParameters,
+   enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters,
    makeRunningValues, Settings, entityHasActions, Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic,
-   entityIsCloneable, cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode, getGrabbableData,
-   entityIsEquippable
+   entityIsCloneable, cloneEntity, DISPATCHER_PROPERTIES, Uuid, isInEditMode, getGrabbableData,
+   entityIsEquippable, HMD
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -183,8 +183,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     var TRIGGER_OFF_VALUE = 0.1;
     var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
     var BUMPER_ON_VALUE = 0.5;
+    var ATTACHPOINT_MAX_DISTANCE = 3.0;
 
-    var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
+    // var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
 
     var UNEQUIP_KEY = "u";
 
@@ -200,7 +201,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 indicatorOffset: props.grab.equippableIndicatorOffset
             };
         } else {
-            return null
+            return null;
         }
     }
 
@@ -231,6 +232,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
             var joints = avatarSettingsData[hotspot.key];
             if (joints) {
+                // make sure they are reasonable
+                if (joints[jointName] && joints[jointName][0] &&
+                    Vec3.length(joints[jointName][0]) > ATTACHPOINT_MAX_DISTANCE) {
+                    print("equipEntity -- Warning: rejecting settings attachPoint " + Vec3.length(joints[jointName][0]));
+                    return undefined;
+                }
                 return joints[jointName];
             }
         }
