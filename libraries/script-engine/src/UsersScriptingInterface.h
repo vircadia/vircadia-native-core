@@ -39,6 +39,12 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
 public:
     UsersScriptingInterface();
+    void setKickConfirmationOperator(std::function<void(const QUuid& nodeID)> kickConfirmationOperator) {
+        _kickConfirmationOperator = kickConfirmationOperator;
+    }
+
+    bool getWaitForKickResponse() { return _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; }); }
+    void setWaitForKickResponse(bool waitForKickResponse) { _kickResponseLock.withWriteLock([&] { _waitingForKickResponse = waitForKickResponse; }); }
 
 public slots:
 
@@ -196,6 +202,8 @@ signals:
 private:
     bool getRequestsDomainListData();
     void setRequestsDomainListData(bool requests);
+
+    std::function<void(const QUuid& nodeID)> _kickConfirmationOperator;
 
     ReadWriteLockable _kickResponseLock;
     bool _waitingForKickResponse { false };

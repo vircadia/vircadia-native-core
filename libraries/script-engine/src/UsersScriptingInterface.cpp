@@ -12,8 +12,6 @@
 #include "UsersScriptingInterface.h"
 
 #include <NodeList.h>
-#include <AvatarHashMap.h>
-#include <OffscreenUi.h>
 
 UsersScriptingInterface::UsersScriptingInterface() {
     // emit a signal when kick permissions have changed
@@ -54,42 +52,14 @@ float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
 }
 
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
-    bool waitingForKickResponse = _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; });
-    if (getCanKick() && !waitingForKickResponse) {
 
-
-        auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
-        auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
-
-        QString userName;
-
-        if (avatar) {
-            userName = avatar->getSessionDisplayName();
-        } else {
-            userName = nodeID.toString();
+    if (_kickConfirmationOperator) {
+        bool waitingForKickResponse = _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; });
+        if (getCanKick() && !waitingForKickResponse) {
+            _kickConfirmationOperator(nodeID);
         }
-
-        QString kickMessage = "Do you wish to kick " + userName + " from your domain";
-        ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Kick User", kickMessage,
-                                                              QMessageBox::Yes | QMessageBox::No);
-
-        if (dlg->getDialogItem()) {
-
-            QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
-                QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
-
-                bool yes = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
-                // ask the NodeList to kick the user with the given session ID
-
-                if (yes) {
-                    DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
-                }
-
-                _kickResponseLock.withWriteLock([&] { _waitingForKickResponse = false; });
-            });
-
-            _kickResponseLock.withWriteLock([&] { _waitingForKickResponse = true; });
-        }
+    } else {
+        DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
     }
 }
 

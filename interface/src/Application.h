@@ -593,6 +593,7 @@ private:
     void toggleTabletUI(bool shouldOpen = false) const;
 
     static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+    void userKickConfirmation(const QUuid& nodeID);
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
