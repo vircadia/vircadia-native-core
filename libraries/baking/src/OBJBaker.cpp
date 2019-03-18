@@ -119,7 +119,7 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
     // Store the draco node containing the compressed mesh information, along with the per-meshPart material IDs the draco node references
     // Because we redefine the material IDs when initializing the material nodes above, we pass that in for the material list
     // The nth mesh part gets the nth material
-    {
+    if (!dracoMesh.isEmpty()) {
         std::vector<hifi::ByteArray> newMaterialList;
         newMaterialList.reserve(_materialIDs.size());
         for (auto materialID : _materialIDs) {
@@ -128,6 +128,8 @@ void OBJBaker::createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& h
         FBXNode dracoNode;
         buildDracoMeshNode(dracoNode, dracoMesh, newMaterialList);
         geometryNode.children.append(dracoNode);
+    } else {
+        handleWarning("Baked mesh for OBJ model '" + _modelURL.toString() + "' is empty");
     }
 
     // Generating Texture Node
