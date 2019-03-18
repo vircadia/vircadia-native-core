@@ -50,38 +50,12 @@ ModelBaker::ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter input
     _textureThreadGetter(inputTextureThreadGetter),
     _hasBeenBaked(hasBeenBaked)
 {
-    auto tempDir = PathUtils::generateTemporaryDir();
-
-    if (tempDir.isEmpty()) {
-        handleError("Failed to create a temporary directory.");
-        return;
+    auto bakedFilename = _modelURL.fileName();
+    if (!hasBeenBaked) {
+        bakedFilename = bakedFilename.left(bakedFilename.lastIndexOf('.'));
+        bakedFilename += BAKED_FBX_EXTENSION;
     }
-
-    _modelTempDir = tempDir;
-
-    _originalModelFilePath = _modelTempDir.filePath(_modelURL.fileName());
-    qDebug() << "Made temporary dir " << _modelTempDir;
-    qDebug() << "Origin file path: " << _originalModelFilePath;
-
-    {
-        auto bakedFilename = _modelURL.fileName();
-        if (!hasBeenBaked) {
-            bakedFilename = bakedFilename.left(bakedFilename.lastIndexOf('.'));
-            bakedFilename += BAKED_FBX_EXTENSION;
-        }
-        _bakedModelURL = _bakedOutputDir + "/" + bakedFilename;
-    }
-}
-
-ModelBaker::~ModelBaker() {
-    if (_modelTempDir.exists()) {
-        if (!_modelTempDir.remove(_originalModelFilePath)) {
-            qCWarning(model_baking) << "Failed to remove temporary copy of model file:" << _originalModelFilePath;
-        }
-        if (!_modelTempDir.rmdir(".")) {
-            qCWarning(model_baking) << "Failed to remove temporary directory:" << _modelTempDir;
-        }
-    }
+    _bakedModelURL = _bakedOutputDir + "/" + bakedFilename;
 }
 
 void ModelBaker::setOutputURLSuffix(const QUrl& outputURLSuffix) {
@@ -136,7 +110,8 @@ void ModelBaker::initializeOutputDirs() {
         }
     }
 
-    if (QDir(_originalOutputDir).exists()) {
+    QDir originalOutputDir { _originalOutputDir };
+    if (originalOutputDir.exists()) {
         if (_mappingURL.isEmpty()) {
             qWarning() << "Output path" << _originalOutputDir << "already exists. Continuing.";
         }
@@ -144,7 +119,15 @@ void ModelBaker::initializeOutputDirs() {
         qCDebug(model_baking) << "Creating original output folder" << _originalOutputDir;
         if (!QDir().mkpath(_originalOutputDir)) {
             handleError("Failed to create original output folder " + _originalOutputDir);
+            return;
         }
+    }
+
+    if (originalOutputDir.isReadable()) {
+        // The output directory is available. Use that to write/read the original model file
+        _originalOutputModelPath = originalOutputDir.filePath(_modelURL.fileName());
+    } else {
+        handleError("Unable to write to original output folder " + _originalOutputDir);
     }
 }
 
@@ -154,7 +137,7 @@ void ModelBaker::saveSourceModel() {
         // load up the local file
         QFile localModelURL { _modelURL.toLocalFile() };
 
-        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalModelFilePath;
+        qDebug() << "Local file url: " << _modelURL << _modelURL.toString() << _modelURL.toLocalFile() << ", copying to: " << _originalOutputModelPath;
 
         if (!localModelURL.exists()) {
             //QMessageBox::warning(this, "Could not find " + _modelURL.toString(), "");
@@ -162,13 +145,7 @@ void ModelBaker::saveSourceModel() {
             return;
         }
 
-        // make a copy in the output folder
-        if (!_originalOutputDir.isEmpty()) {
-            qDebug() << "Copying to: " << _originalOutputDir << "/" << _modelURL.fileName();
-            localModelURL.copy(_originalOutputDir + "/" + _modelURL.fileName());
-        }
-
-        localModelURL.copy(_originalModelFilePath);
+        localModelURL.copy(_originalOutputModelPath);
 
         // emit our signal to start the import of the model source copy
         emit modelLoaded();
@@ -199,13 +176,13 @@ void ModelBaker::handleModelNetworkReply() {
         qCDebug(model_baking) << "Downloaded" << _modelURL;
 
         // grab the contents of the reply and make a copy in the output folder
-        QFile copyOfOriginal(_originalModelFilePath);
+        QFile copyOfOriginal(_originalOutputModelPath);
 
-        qDebug(model_baking) << "Writing copy of original model file to" << _originalModelFilePath << copyOfOriginal.fileName();
+        qDebug(model_baking) << "Writing copy of original model file to" << _originalOutputModelPath << copyOfOriginal.fileName();
 
         if (!copyOfOriginal.open(QIODevice::WriteOnly)) {
             // add an error to the error list for this model stating that a duplicate of the original model could not be made
-            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalModelFilePath + ")");
+            handleError("Could not create copy of " + _modelURL.toString() + " (Failed to open " + _originalOutputModelPath + ")");
             return;
         }
         if (copyOfOriginal.write(requestReply->readAll()) == -1) {
@@ -216,10 +193,6 @@ void ModelBaker::handleModelNetworkReply() {
         // close that file now that we are done writing to it
         copyOfOriginal.close();
 
-        if (!_originalOutputDir.isEmpty()) {
-            copyOfOriginal.copy(_originalOutputDir + "/" + _modelURL.fileName());
-        }
-
         // emit our signal to start the import of the model source copy
         emit modelLoaded();
     } else {
@@ -229,9 +202,9 @@ void ModelBaker::handleModelNetworkReply() {
 }
 
 void ModelBaker::bakeSourceCopy() {
-    QFile modelFile(_originalModelFilePath);
+    QFile modelFile(_originalOutputModelPath);
     if (!modelFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalModelFilePath + " for reading");
+        handleError("Error opening " + _originalOutputModelPath + " for reading");
         return;
     }
     hifi::ByteArray modelData = modelFile.readAll();
@@ -243,7 +216,7 @@ void ModelBaker::bakeSourceCopy() {
     {
         auto serializer = DependencyManager::get<ModelFormatRegistry>()->getSerializerForMediaType(modelData, _modelURL, "");
         if (!serializer) {
-            handleError("Could not recognize file type of model file " + _originalModelFilePath);
+            handleError("Could not recognize file type of model file " + _originalOutputModelPath);
             return;
         }
         hifi::VariantHash serializerMapping = _mapping;

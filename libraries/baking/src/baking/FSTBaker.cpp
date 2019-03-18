@@ -49,9 +49,9 @@ void FSTBaker::bakeSourceCopy() {
         return;
     }
 
-    QFile fstFile(_originalModelFilePath);
+    QFile fstFile(_originalOutputModelPath);
     if (!fstFile.open(QIODevice::ReadOnly)) {
-        handleError("Error opening " + _originalModelFilePath + " for reading");
+        handleError("Error opening " + _originalOutputModelPath + " for reading");
         return;
     }
     
@@ -60,25 +60,25 @@ void FSTBaker::bakeSourceCopy() {
 
     auto filenameField = _mapping[FILENAME_FIELD].toString();
     if (filenameField.isEmpty()) {
-        handleError("The '" + FILENAME_FIELD + "' property in the FST file '" + _originalModelFilePath + "' could not be found");
+        handleError("The '" + FILENAME_FIELD + "' property in the FST file '" + _originalOutputModelPath + "' could not be found");
         return;
     }
     auto modelURL = _mappingURL.adjusted(QUrl::RemoveFilename).resolved(filenameField);
     auto bakeableModelURL = getBakeableModelURL(modelURL);
     if (bakeableModelURL.isEmpty()) {
-        handleError("The '" + FILENAME_FIELD + "' property in the FST file '" + _originalModelFilePath + "' could not be resolved to a valid bakeable model url");
+        handleError("The '" + FILENAME_FIELD + "' property in the FST file '" + _originalOutputModelPath + "' could not be resolved to a valid bakeable model url");
         return;
     }
 
     auto baker = getModelBakerWithOutputDirectories(bakeableModelURL, _textureThreadGetter, _bakedOutputDir, _originalOutputDir);
     _modelBaker = std::unique_ptr<ModelBaker>(dynamic_cast<ModelBaker*>(baker.release()));
     if (!_modelBaker) {
-        handleError("The model url '" + bakeableModelURL.toString() + "' from the FST file '" + _originalModelFilePath + "' (property: '" + FILENAME_FIELD + "') could not be used to initialize a valid model baker");
+        handleError("The model url '" + bakeableModelURL.toString() + "' from the FST file '" + _originalOutputModelPath + "' (property: '" + FILENAME_FIELD + "') could not be used to initialize a valid model baker");
         return;
     }
     if (dynamic_cast<FSTBaker*>(_modelBaker.get())) {
         // Could be interesting, but for now let's just prevent infinite FST loops in the most straightforward way possible
-        handleError("The FST file '" + _originalModelFilePath + "' (property: '" + FILENAME_FIELD + "') references another FST file. FST chaining is not supported.");
+        handleError("The FST file '" + _originalOutputModelPath + "' (property: '" + FILENAME_FIELD + "') references another FST file. FST chaining is not supported.");
         return;
     }
     _modelBaker->setMappingURL(_mappingURL);

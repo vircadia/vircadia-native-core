@@ -46,7 +46,6 @@ public:
 
     ModelBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
                const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
-    virtual ~ModelBaker();
 
     void setOutputURLSuffix(const QUrl& urlSuffix);
     void setMappingURL(const QUrl& mappingURL);
@@ -86,10 +85,9 @@ protected:
     QString _bakedOutputDir;
     QString _originalOutputDir;
     TextureBakerThreadGetter _textureThreadGetter;
+    QString _originalOutputModelPath;
     QString _outputMappingURL;
     QUrl _bakedModelURL;
-    QDir _modelTempDir;
-    QString _originalModelFilePath;
 
 protected slots:
     void handleModelNetworkReply();
