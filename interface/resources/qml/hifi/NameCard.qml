@@ -96,7 +96,7 @@ Item {
             enabled: (selected && activeTab == "nearbyTab") || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-                if (Phas3DHTML) {
+                if (has3DHTML) {
                     userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
                     userInfoViewer.visible = true;
                 }
