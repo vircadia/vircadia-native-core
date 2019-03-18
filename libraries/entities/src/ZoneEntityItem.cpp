@@ -13,7 +13,6 @@
 
 #include <glm/gtx/transform.hpp>
 #include <QDebug>
-#include <QUrlQuery>
 
 #include <ByteCountCoding.h>
 
@@ -463,9 +462,6 @@ void ZoneEntityItem::fetchCollisionGeometryResource() {
     if (hullURL.isEmpty()) {
         _shapeResource.reset();
     } else {
-        QUrlQuery queryArgs(hullURL);
-        queryArgs.addQueryItem("collision-hull", "");
-        hullURL.setQuery(queryArgs);
         _shapeResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
 }

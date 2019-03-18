@@ -9,12 +9,10 @@
 //
 
 #include "RenderableParticleEffectEntityItem.h"
-
 #include <StencilMaskPass.h>
 
 #include <GeometryCache.h>
 #include <shaders/Shaders.h>
-
 
 using namespace render;
 using namespace render::entities;
@@ -79,6 +77,14 @@ bool ParticleEffectEntityRenderer::needsRenderUpdateFromTypedEntity(const TypedE
         return true;
     }
 
+    if (_shapeType != entity->getShapeType()) {
+        return true;
+    }
+
+    if (_compoundShapeURL != entity->getCompoundShapeURL()) {
+        return true;
+    }
+
     return false;
 }
 
@@ -87,11 +93,17 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     if (!newParticleProperties.valid()) {
         qCWarning(entitiesrenderer) << "Bad particle properties";
     }
-    
-    if (resultWithReadLock<bool>([&]{ return _particleProperties != newParticleProperties; })) {
+
+    if (resultWithReadLock<bool>([&] { return _particleProperties != newParticleProperties; })) {
         _timeUntilNextEmit = 0;
-        withWriteLock([&]{
+        withWriteLock([&] {
             _particleProperties = newParticleProperties;
+            _shapeType = entity->getShapeType();
+            QString compoundShapeURL = entity->getCompoundShapeURL();
+            if (_compoundShapeURL != compoundShapeURL) {
+                _compoundShapeURL = compoundShapeURL;
+                fetchGeometryResource();
+            }
             if (!_prevEmitterShouldTrailInitialized) {
                 _prevEmitterShouldTrailInitialized = true;
                 _prevEmitterShouldTrail = _particleProperties.emission.shouldTrail;
@@ -104,10 +116,10 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
     });
     _emitting = entity->getIsEmitting();
 
-    bool textureEmpty = resultWithReadLock<bool>([&]{ return _particleProperties.textures.isEmpty(); });
+    bool textureEmpty = resultWithReadLock<bool>([&] { return _particleProperties.textures.isEmpty(); });
     if (textureEmpty) {
         if (_networkTexture) {
-            withWriteLock([&] { 
+            withWriteLock([&] {
                 _networkTexture.reset();
             });
         }
@@ -116,11 +128,11 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
             entity->setVisuallyReady(true);
         });
     } else {
-        bool textureNeedsUpdate = resultWithReadLock<bool>([&]{
+        bool textureNeedsUpdate = resultWithReadLock<bool>([&] {
             return !_networkTexture || _networkTexture->getURL() != QUrl(_particleProperties.textures);
         });
         if (textureNeedsUpdate) {
-            withWriteLock([&] { 
+            withWriteLock([&] {
                 _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_particleProperties.textures);
             });
         }
@@ -144,7 +156,7 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
 void ParticleEffectEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPointer& entity) {
     // Fill in Uniforms structure
     ParticleUniforms particleUniforms;
-    withReadLock([&]{
+    withReadLock([&] {
         particleUniforms.radius.start = _particleProperties.radius.range.start;
         particleUniforms.radius.middle = _particleProperties.radius.gradient.target;
         particleUniforms.radius.finish = _particleProperties.radius.range.finish;
@@ -183,7 +195,8 @@ Item::Bound ParticleEffectEntityRenderer::getBound() {
 
 static const size_t VERTEX_PER_PARTICLE = 4;
 
-ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties) {
+ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
+                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource) {
     CpuParticle particle;
 
     const auto& accelerationSpread = particleProperties.emission.acceleration.spread;
@@ -221,33 +234,53 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
 
         float azimuth;
         if (azimuthFinish >= azimuthStart) {
-            azimuth = azimuthStart + (azimuthFinish - azimuthStart) *  randFloat();
+            azimuth = azimuthStart + (azimuthFinish - azimuthStart) * randFloat();
         } else {
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
 
-        if (emitDimensions == Vectors::ZERO) {
+        if (emitDimensions == Vectors::ZERO || shapeType == ShapeType::SHAPE_TYPE_NONE) {
             // Point
             emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
         } else {
-            // Ellipsoid
-            float radiusScale = 1.0f;
-            if (emitRadiusStart < 1.0f) {
-                float randRadius =
-                    emitRadiusStart + randFloatInRange(0.0f, particle::MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
-                radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
+            glm::vec3 emitPosition;
+            switch (shapeType) {
+                case ShapeType::SHAPE_TYPE_BOX:
+
+                case ShapeType::SHAPE_TYPE_CAPSULE_X:
+                case ShapeType::SHAPE_TYPE_CAPSULE_Y:
+                case ShapeType::SHAPE_TYPE_CAPSULE_Z:
+
+                case ShapeType::SHAPE_TYPE_CYLINDER_X:
+                case ShapeType::SHAPE_TYPE_CYLINDER_Y:
+                case ShapeType::SHAPE_TYPE_CYLINDER_Z:
+
+                case ShapeType::SHAPE_TYPE_CIRCLE:
+                case ShapeType::SHAPE_TYPE_PLANE:
+
+                case ShapeType::SHAPE_TYPE_COMPOUND:
+
+                case ShapeType::SHAPE_TYPE_SPHERE:
+                case ShapeType::SHAPE_TYPE_ELLIPSOID:
+                default: {
+                    float radiusScale = 1.0f;
+                    if (emitRadiusStart < 1.0f) {
+                        float randRadius =
+                            emitRadiusStart + randFloatInRange(0.0f, particle::MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
+                        radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
+                    }
+
+                    glm::vec3 radii = radiusScale * 0.5f * emitDimensions;
+                    float x = radii.x * glm::cos(elevation) * glm::cos(azimuth);
+                    float y = radii.y * glm::cos(elevation) * glm::sin(azimuth);
+                    float z = radii.z * glm::sin(elevation);
+                    emitPosition = glm::vec3(x, y, z);
+                    emitDirection = glm::normalize(glm::vec3(radii.x > 0.0f ? x / (radii.x * radii.x) : 0.0f,
+                                                             radii.y > 0.0f ? y / (radii.y * radii.y) : 0.0f,
+                                                             radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f));
+                }
             }
 
-            glm::vec3 radii = radiusScale * 0.5f * emitDimensions;
-            float x = radii.x * glm::cos(elevation) * glm::cos(azimuth);
-            float y = radii.y * glm::cos(elevation) * glm::sin(azimuth);
-            float z = radii.z * glm::sin(elevation);
-            glm::vec3 emitPosition = glm::vec3(x, y, z);
-            emitDirection = glm::normalize(glm::vec3(
-                radii.x > 0.0f ? x / (radii.x * radii.x) : 0.0f,
-                radii.y > 0.0f ? y / (radii.y * radii.y) : 0.0f,
-                radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f
-            ));
             particle.relativePosition += emitOrientation * emitPosition;
         }
     }
@@ -267,20 +300,25 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     const auto now = usecTimestampNow();
     const auto interval = std::min<uint64_t>(USECS_PER_SECOND / 60, now - _lastSimulated);
     _lastSimulated = now;
-    
+
     particle::Properties particleProperties;
-    withReadLock([&]{
+    ShapeType shapeType;
+    GeometryResource::Pointer geometryResource;
+    withReadLock([&] {
         particleProperties = _particleProperties;
+        shapeType = _shapeType;
+        geometryResource = _geometryResource;
     });
 
     const auto& modelTransform = getModelTransform();
-    if (_emitting && particleProperties.emitting()) {
+    if (_emitting && particleProperties.emitting() &&
+        (_shapeType != ShapeType::SHAPE_TYPE_COMPOUND || (_geometryResource && _geometryResource->isLoaded()))) {
         uint64_t emitInterval = particleProperties.emitIntervalUsecs();
         if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
             while (timeRemaining > _timeUntilNextEmit) {
                 // emit particle
-                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties));
+                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties, shapeType, geometryResource));
                 _timeUntilNextEmit = emitInterval;
                 if (emitInterval < timeRemaining) {
                     timeRemaining -= emitInterval;
@@ -297,7 +335,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     }
 
     const float deltaTime = (float)interval / (float)USECS_PER_SECOND;
-    // update the particles 
+    // update the particles
     for (auto& particle : _cpuParticles) {
         if (_prevEmitterShouldTrail != particleProperties.emission.shouldTrail) {
             if (_prevEmitterShouldTrail) {
@@ -313,7 +351,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
     static GpuParticles gpuParticles;
     gpuParticles.clear();
     gpuParticles.reserve(_cpuParticles.size()); // Reserve space
-    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [&particleProperties, &modelTransform](const CpuParticle& particle) {
+    std::transform(_cpuParticles.begin(), _cpuParticles.end(), std::back_inserter(gpuParticles), [&particleProperties, &modelTransform] (const CpuParticle& particle) {
         glm::vec3 position = particle.relativePosition + (particleProperties.emission.shouldTrail ? particle.basePosition : modelTransform.getTranslation());
         return GpuParticle(position, glm::vec2(particle.lifetime, particle.seed));
     });
@@ -357,4 +395,13 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
 
     auto numParticles = _particleBuffer->getSize() / sizeof(GpuParticle);
     batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
+}
+
+void ParticleEffectEntityRenderer::fetchGeometryResource() {
+    QUrl hullURL(_compoundShapeURL);
+    if (hullURL.isEmpty()) {
+        _geometryResource.reset();
+    } else {
+        _geometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
+    }
 }

@@ -307,10 +307,6 @@ void RenderableModelEntityItem::setShapeType(ShapeType type) {
 }
 
 void RenderableModelEntityItem::setCompoundShapeURL(const QString& url) {
-    // because the caching system only allows one Geometry per url, and because this url might also be used
-    // as a visual model, we need to change this url in some way.  We add a "collision-hull" query-arg so it
-    // will end up in a different hash-key in ResourceCache.  TODO: It would be better to use the same URL and
-    // parse it twice.
     auto currentCompoundShapeURL = getCompoundShapeURL();
     ModelEntityItem::setCompoundShapeURL(url);
     if (getCompoundShapeURL() != currentCompoundShapeURL || !getModel()) {

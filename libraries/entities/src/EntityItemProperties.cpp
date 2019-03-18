@@ -1114,23 +1114,28 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     default, particles emit along the entity's local z-axis, and <code>azimuthStart</code> and <code>azimuthFinish</code> 
  *     are relative to the entity's local x-axis. The default value is a rotation of -90 degrees about the local x-axis, i.e., 
  *     the particles emit vertically.
- * @property {Vec3} emitDimensions=0,0,0 - The dimensions of the ellipsoid from which particles are emitted.
- * @property {number} emitRadiusStart=1 - The starting radius within the ellipsoid at which particles start being emitted;
- *     range <code>0.0</code> &ndash; <code>1.0</code> for the ellipsoid center to the ellipsoid surface, respectively.
- *     Particles are emitted from the portion of the ellipsoid that lies between <code>emitRadiusStart</code> and the 
- *     ellipsoid's surface.
+ * @property {Vec3} emitDimensions=0,0,0 - The dimensions of the shape from which particles are emitted.  The shape is specified with
+ *     <code>shapeType</code>.
+ * @property {number} emitRadiusStart=1 - The starting radius within the shape at which particles start being emitted;
+ *     range <code>0.0</code> &ndash; <code>1.0</code> for the center to the surface, respectively.
+ *     Particles are emitted from the portion of the shape that lies between <code>emitRadiusStart</code> and the 
+ *     shape's surface.
  * @property {number} polarStart=0 - The angle in radians from the entity's local z-axis at which particles start being emitted 
  *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
- *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
+ *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.  Only used if <code>shapeType</code> is
+ *     <code>ellipsoid</code>.
  * @property {number} polarFinish=0 - The angle in radians from the entity's local z-axis at which particles stop being emitted 
  *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
- *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.
+ *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.  Only used if <code>shapeType</code> is
+ *     <code>ellipsoid</code>.
  * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
  *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ *     Only used if <code>shapeType</code> is <code>ellipsoid</code>.
  * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local
  *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are
  *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ *     Only used if <code>shapeType</code> is <code>ellipsoid</code>.
  *
  * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.
@@ -1170,7 +1175,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  * up in the world.  If true, they will point towards the entity's up vector, based on its orientation.
  * @property {Entities.Pulse} pulse - The pulse-related properties.  Deprecated.
  *
- * @property {ShapeType} shapeType="none" - <em>Currently not used.</em> <em>Read-only.</em>
+ * @property {ShapeType} shapeType="ellipsoid" - The shape of the collision hull used if collisions are enabled.
+ * @property {string} compoundShapeURL="" - The model file to use for the compound shape if <code>shapeType</code> is
+ *     <code>"compound"</code>.
  *
  * @example <caption>Create a ball of green smoke.</caption>
  * particles = Entities.addEntity({
@@ -1658,6 +1665,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     // Particles only
     if (_type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COMPOUND_SHAPE_URL, compoundShapeURL);
         COPY_PROPERTY_TO_QSCRIPTVALUE_TYPED(PROP_COLOR, color, u8vec3Color);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA, alpha);
         _pulse.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
@@ -3104,6 +3112,7 @@ OctreeElement::AppendState EntityItemProperties::encodeEntityEditPacket(PacketTy
 
             if (properties.getType() == EntityTypes::ParticleEffect) {
                 APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)(properties.getShapeType()));
+                APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
                 APPEND_ENTITY_PROPERTY(PROP_COLOR, properties.getColor());
                 APPEND_ENTITY_PROPERTY(PROP_ALPHA, properties.getAlpha());
                 _staticPulse.setProperties(properties);
@@ -3584,6 +3593,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
 
     if (properties.getType() == EntityTypes::ParticleEffect) {
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLOR, u8vec3Color, setColor);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ALPHA, float, setAlpha);
         properties.getPulse().decodeFromEditPacket(propertyFlags, dataAt, processedBytes);
