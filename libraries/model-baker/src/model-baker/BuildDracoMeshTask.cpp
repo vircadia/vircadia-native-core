@@ -22,8 +22,11 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
+
+#ifndef Q_OS_ANDROID
 #include <draco/compression/encode.h>
 #include <draco/mesh/triangle_soup_mesh_builder.h>
+#endif
 
 #ifdef _WIN32
 #pragma warning( pop )
@@ -35,6 +38,7 @@
 #include "ModelBakerLogging.h"
 #include "ModelMath.h"
 
+#ifndef Q_OS_ANDROID
 std::vector<hifi::ByteArray> createMaterialList(const hfm::Mesh& mesh) {
     std::vector<hifi::ByteArray> materialList;
     for (const auto& meshPart : mesh.parts) {
@@ -199,6 +203,7 @@ std::unique_ptr<draco::Mesh> createDracoMesh(const hfm::Mesh& mesh, const std::v
     
     return dracoMesh;
 }
+#endif // not Q_OS_ANDROID
 
 void BuildDracoMeshTask::configure(const Config& config) {
     _encodeSpeed = config.encodeSpeed;
@@ -206,6 +211,9 @@ void BuildDracoMeshTask::configure(const Config& config) {
 }
 
 void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
+#ifdef Q_OS_ANDROID
+    qCWarning(model_baker) << "BuildDracoMesh is disabled on Android. Output meshes will be empty.";
+#else
     const auto& meshes = input.get0();
     const auto& normalsPerMesh = input.get1();
     const auto& tangentsPerMesh = input.get2();
@@ -239,4 +247,5 @@ void BuildDracoMeshTask::run(const baker::BakeContextPointer& context, const Inp
             dracoBytes = hifi::ByteArray(buffer.data(), (int)buffer.size());
         }
     }
+#endif // not Q_OS_ANDROID
 }

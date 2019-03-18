@@ -164,6 +164,8 @@ namespace baker {
             // Build Draco meshes
             // NOTE: This task is disabled by default and must be enabled through configuration
             // TODO: Tangent support (Needs changes to FBXSerializer_Mesh as well)
+            // NOTE: Due to an unresolved linker error, BuildDracoMeshTask is not functional on Android
+            // TODO: Figure out why BuildDracoMeshTask.cpp won't link with draco on Android
             const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(meshesIn, normalsPerMesh, tangentsPerMesh).asVarying();
             const auto buildDracoMeshOutputs = model.addJob<BuildDracoMeshTask>("BuildDracoMesh", buildDracoMeshInputs);
             const auto dracoMeshes = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(0);
