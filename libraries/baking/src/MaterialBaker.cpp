@@ -193,6 +193,8 @@ void MaterialBaker::handleFinishedTextureBaker() {
         if (_textureBakers.empty()) {
             outputMaterial();
         }
+    } else {
+        handleWarning("Unidentified baker finished and signaled to material baker to handle texture. Material: " + _materialData);
     }
 }
 
