@@ -57,7 +57,7 @@ void MaterialBaker::bake() {
     } else {
         // we already have a material passed to us, use that
         if (_materialResource->isLoaded()) {
-            emit originalMaterialLoaded();
+            processMaterial();
         } else {
             connect(_materialResource.data(), &Resource::finished, this, &MaterialBaker::originalMaterialLoaded);
         }

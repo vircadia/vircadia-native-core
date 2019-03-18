@@ -36,7 +36,7 @@ void JSBaker::bake() {
         loadScript();
     } else {
         // we already have a script passed to us, use that
-        emit originalScriptLoaded();
+        processScript();
     }
 }
 
