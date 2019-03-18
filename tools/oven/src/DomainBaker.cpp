@@ -302,7 +302,7 @@ const QString TYPE_KEY = "type";
 // Models
 const QString MODEL_URL_KEY = "modelURL";
 const QString COMPOUND_SHAPE_URL_KEY = "compoundShapeURL";
-const QString GRAP_KEY = "grab";
+const QString GRAB_KEY = "grab";
 const QString EQUIPPABLE_INDICATOR_URL_KEY = "equippableIndicatorURL";
 const QString ANIMATION_KEY = "animation";
 const QString ANIMATION_URL_KEY = "url";
@@ -354,10 +354,10 @@ void DomainBaker::enumerateEntities() {
                     addModelBaker(ANIMATION_KEY + "." + ANIMATION_URL_KEY, animationObject[ANIMATION_URL_KEY].toString(), *it);
                 }
             }
-            if (entity.contains(GRAP_KEY)) {
-                auto grabObject = entity[GRAP_KEY].toObject();
+            if (entity.contains(GRAB_KEY)) {
+                auto grabObject = entity[GRAB_KEY].toObject();
                 if (grabObject.contains(EQUIPPABLE_INDICATOR_URL_KEY)) {
-                    addModelBaker(GRAP_KEY + "." + EQUIPPABLE_INDICATOR_URL_KEY, grabObject[EQUIPPABLE_INDICATOR_URL_KEY].toString(), *it);
+                    addModelBaker(GRAB_KEY + "." + EQUIPPABLE_INDICATOR_URL_KEY, grabObject[EQUIPPABLE_INDICATOR_URL_KEY].toString(), *it);
                 }
             }
 
