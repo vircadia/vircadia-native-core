@@ -48,18 +48,24 @@ TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type tex
         _baseFilename = originalFilename.left(originalFilename.lastIndexOf('.'));
     }
 
-    _originalCopyFilePath = _outputDirectory.absoluteFilePath(_textureURL.fileName());
+    auto textureFilename = _textureURL.fileName();
+    QString originalExtension;
+    int extensionStart = textureFilename.indexOf(".");
+    if (extensionStart != -1) {
+        originalExtension = textureFilename.mid(extensionStart);
+    }
+    _originalCopyFilePath = _outputDirectory.absoluteFilePath(_baseFilename + originalExtension);
 }
 
 void TextureBaker::bake() {
     // once our texture is loaded, kick off a the processing
     connect(this, &TextureBaker::originalTextureLoaded, this, &TextureBaker::processTexture);
 
-    if (_originalTexture.isEmpty() && !QFile(_originalCopyFilePath.toString()).exists()) {
+    if (_originalTexture.isEmpty()) {
         // first load the texture (either locally or remotely)
         loadTexture();
     } else {
-        // we already have a texture passed to us, or the texture is already saved, so use that
+        // we already have a texture passed to us, use that
         emit originalTextureLoaded();
     }
 }
@@ -135,7 +141,7 @@ void TextureBaker::processTexture() {
     // Copy the original file into the baked output directory if it doesn't exist yet
     {
         QFile file { originalCopyFilePath };
-        if (!file.exists() && (!file.open(QIODevice::WriteOnly) || file.write(_originalTexture) == -1)) {
+        if (!file.open(QIODevice::WriteOnly) || file.write(_originalTexture) == -1) {
             handleError("Could not write original texture for " + _textureURL.toString());
             return;
         }
