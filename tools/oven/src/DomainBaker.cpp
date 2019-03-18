@@ -176,12 +176,12 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
 
                 // keep track of the total number of baking entities
                 ++_totalNumberOfSubBakes;
+
+                // add this QJsonValueRef to our multi hash so that we can easily re-write
+                // the model URL to the baked version once the baker is complete
+                _entitiesNeedingRewrite.insert(bakeableModelURL, { property, jsonRef });
             }
         }
-
-        // add this QJsonValueRef to our multi hash so that we can easily re-write
-        // the model URL to the baked version once the baker is complete
-        _entitiesNeedingRewrite.insert(bakeableModelURL, { property, jsonRef });
     }
 }
 
