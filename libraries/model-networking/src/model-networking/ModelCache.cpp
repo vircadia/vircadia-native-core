@@ -120,6 +120,8 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
     if (filename.isNull()) {
         finishedLoading(false);
     } else {
+        const QString baseURL = _mapping.value("baseURL").toString();
+        _url = _effectiveBaseURL.resolved(baseURL);
         QUrl url = _url.resolved(filename);
 
         QString texdir = _mapping.value(TEXDIR_FIELD).toString();
