@@ -121,20 +121,20 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         finishedLoading(false);
     } else {
         const QString baseURL = _mapping.value("baseURL").toString();
-        _url = _effectiveBaseURL.resolved(baseURL);
-        QUrl url = _url.resolved(filename);
+        const QUrl base = _effectiveBaseURL.resolved(baseURL);
+        QUrl url = base.resolved(filename);
 
         QString texdir = _mapping.value(TEXDIR_FIELD).toString();
         if (!texdir.isNull()) {
             if (!texdir.endsWith('/')) {
                 texdir += '/';
             }
-            _textureBaseUrl = resolveTextureBaseUrl(url, _url.resolved(texdir));
+            _textureBaseUrl = resolveTextureBaseUrl(url, base.resolved(texdir));
         } else {
             _textureBaseUrl = url.resolved(QUrl("."));
         }
 
-        auto scripts = FSTReader::getScripts(_url, _mapping);
+        auto scripts = FSTReader::getScripts(base, _mapping);
         if (scripts.size() > 0) {
             _mapping.remove(SCRIPT_FIELD);
             for (auto &scriptPath : scripts) {
@@ -147,7 +147,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         if (animGraphVariant.isValid()) {
             QUrl fstUrl(animGraphVariant.toString());
             if (fstUrl.isValid()) {
-                _animGraphOverrideUrl = _url.resolved(fstUrl);
+                _animGraphOverrideUrl = base.resolved(fstUrl);
             } else {
                 _animGraphOverrideUrl = QUrl();
             }
@@ -156,7 +156,7 @@ void GeometryMappingResource::downloadFinished(const QByteArray& data) {
         }
 
         auto modelCache = DependencyManager::get<ModelCache>();
-        GeometryExtra extra { GeometryMappingPair(_url, _mapping), _textureBaseUrl, false };
+        GeometryExtra extra { GeometryMappingPair(base, _mapping), _textureBaseUrl, false };
 
         // Get the raw GeometryResource
         _geometryResource = modelCache->getResource(url, QUrl(), &extra, std::hash<GeometryExtra>()(extra)).staticCast<GeometryResource>();
