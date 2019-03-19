@@ -239,7 +239,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
 
-        if (emitDimensions == Vectors::ZERO || shapeType == ShapeType::SHAPE_TYPE_NONE) {
+        if (emitDimensions == Vectors::ZERO) {
             // Point
             emitDirection = glm::quat(glm::vec3(PI_OVER_TWO - elevation, 0.0f, azimuth)) * Vectors::UNIT_Z;
         } else {
@@ -265,9 +265,10 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
                 default: {
                     float radiusScale = 1.0f;
                     if (emitRadiusStart < 1.0f) {
-                        float randRadius =
-                            emitRadiusStart + randFloatInRange(0.0f, particle::MAXIMUM_EMIT_RADIUS_START - emitRadiusStart);
-                        radiusScale = 1.0f - std::pow(1.0f - randRadius, 3.0f);
+                        float innerRadiusCubed = emitRadiusStart * emitRadiusStart * emitRadiusStart;
+                        float outerRadiusCubed = 1.0f; // pow(particle::MAXIMUM_EMIT_RADIUS_START, 3);
+                        float randRadiusCubed = randFloatInRange(innerRadiusCubed, outerRadiusCubed);
+                        radiusScale = std::cbrt(randRadiusCubed);
                     }
 
                     glm::vec3 radii = radiusScale * 0.5f * emitDimensions;

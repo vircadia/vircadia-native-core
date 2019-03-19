@@ -723,6 +723,19 @@ void ParticleEffectEntityItem::debugDump() const {
 }
 
 void ParticleEffectEntityItem::setShapeType(ShapeType type) {
+    switch (type) {
+        case SHAPE_TYPE_NONE:
+        case SHAPE_TYPE_HULL:
+        case SHAPE_TYPE_SIMPLE_HULL:
+        case SHAPE_TYPE_SIMPLE_COMPOUND:
+        case SHAPE_TYPE_STATIC_MESH:
+            // these types are unsupported for ParticleEffectEntity
+            type = particle::DEFAULT_SHAPE_TYPE;
+            break;
+        default:
+            break;
+    }
+
     withWriteLock([&] {
         if (type != _shapeType) {
             _shapeType = type;
