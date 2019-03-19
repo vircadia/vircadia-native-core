@@ -725,6 +725,9 @@ void ParticleEffectEntityItem::debugDump() const {
 void ParticleEffectEntityItem::setShapeType(ShapeType type) {
     switch (type) {
         case SHAPE_TYPE_NONE:
+        case SHAPE_TYPE_CAPSULE_X:
+        case SHAPE_TYPE_CAPSULE_Y:
+        case SHAPE_TYPE_CAPSULE_Z:
         case SHAPE_TYPE_HULL:
         case SHAPE_TYPE_SIMPLE_HULL:
         case SHAPE_TYPE_SIMPLE_COMPOUND:

@@ -98,12 +98,6 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         _timeUntilNextEmit = 0;
         withWriteLock([&] {
             _particleProperties = newParticleProperties;
-            _shapeType = entity->getShapeType();
-            QString compoundShapeURL = entity->getCompoundShapeURL();
-            if (_compoundShapeURL != compoundShapeURL) {
-                _compoundShapeURL = compoundShapeURL;
-                fetchGeometryResource();
-            }
             if (!_prevEmitterShouldTrailInitialized) {
                 _prevEmitterShouldTrailInitialized = true;
                 _prevEmitterShouldTrail = _particleProperties.emission.shouldTrail;
@@ -113,6 +107,12 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
 
     withWriteLock([&] {
         _pulseProperties = entity->getPulseProperties();
+        _shapeType = entity->getShapeType();
+        QString compoundShapeURL = entity->getCompoundShapeURL();
+        if (_compoundShapeURL != compoundShapeURL) {
+            _compoundShapeURL = compoundShapeURL;
+            fetchGeometryResource();
+        }
     });
     _emitting = entity->getIsEmitting();
 
@@ -193,7 +193,28 @@ Item::Bound ParticleEffectEntityRenderer::getBound() {
     return _bound;
 }
 
-static const size_t VERTEX_PER_PARTICLE = 4;
+// FIXME: these methods assume uniform emitDimensions, need to importance sample based on dimensions
+float importanceSample2Dimension(float startDim) {
+    float dimension = 1.0f;
+    if (startDim < 1.0f) {
+        float innerDimensionSquared = startDim * startDim;
+        float outerDimensionSquared = 1.0f;  // pow(particle::MAXIMUM_EMIT_RADIUS_START, 2);
+        float randDimensionSquared = randFloatInRange(innerDimensionSquared, outerDimensionSquared);
+        dimension = std::cbrt(randDimensionSquared);
+    }
+    return dimension;
+}
+
+float importanceSample3DDimension(float startDim) {
+    float dimension = 1.0f;
+    if (startDim < 1.0f) {
+        float innerDimensionCubed = startDim * startDim * startDim;
+        float outerDimensionCubed = 1.0f;  // pow(particle::MAXIMUM_EMIT_RADIUS_START, 3);
+        float randDimensionCubed = randFloatInRange(innerDimensionCubed, outerDimensionCubed);
+        dimension = std::cbrt(randDimensionCubed);
+    }
+    return dimension;
+}
 
 ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
                                                                                        const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource) {
@@ -245,33 +266,35 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
         } else {
             glm::vec3 emitPosition;
             switch (shapeType) {
-                case ShapeType::SHAPE_TYPE_BOX:
+                case SHAPE_TYPE_BOX: {
+                    glm::vec3 dim = importanceSample3DDimension(emitRadiusStart) * 0.5f * emitDimensions;
 
-                case ShapeType::SHAPE_TYPE_CAPSULE_X:
-                case ShapeType::SHAPE_TYPE_CAPSULE_Y:
-                case ShapeType::SHAPE_TYPE_CAPSULE_Z:
+                    int side = randIntInRange(0, 5);
+                    int axis = side % 3;
+                    float direction = side > 2 ? 1.0f : -1.0f;
 
-                case ShapeType::SHAPE_TYPE_CYLINDER_X:
-                case ShapeType::SHAPE_TYPE_CYLINDER_Y:
-                case ShapeType::SHAPE_TYPE_CYLINDER_Z:
+                    emitDirection[axis] = direction;
+                    emitPosition[axis] = direction * dim[axis];
+                    axis = (axis + 1) % 3;
+                    emitPosition[axis] = dim[axis] * randFloatInRange(-1.0f, 1.0f);
+                    axis = (axis + 1) % 3;
+                    emitPosition[axis] = dim[axis] * randFloatInRange(-1.0f, 1.0f);
+                    break;
+                }
 
-                case ShapeType::SHAPE_TYPE_CIRCLE:
-                case ShapeType::SHAPE_TYPE_PLANE:
+                case SHAPE_TYPE_CYLINDER_X:
+                case SHAPE_TYPE_CYLINDER_Y:
+                case SHAPE_TYPE_CYLINDER_Z:
 
-                case ShapeType::SHAPE_TYPE_COMPOUND:
+                case SHAPE_TYPE_CIRCLE:
+                case SHAPE_TYPE_PLANE:
 
-                case ShapeType::SHAPE_TYPE_SPHERE:
-                case ShapeType::SHAPE_TYPE_ELLIPSOID:
+                case SHAPE_TYPE_COMPOUND:
+
+                case SHAPE_TYPE_SPHERE:
+                case SHAPE_TYPE_ELLIPSOID:
                 default: {
-                    float radiusScale = 1.0f;
-                    if (emitRadiusStart < 1.0f) {
-                        float innerRadiusCubed = emitRadiusStart * emitRadiusStart * emitRadiusStart;
-                        float outerRadiusCubed = 1.0f; // pow(particle::MAXIMUM_EMIT_RADIUS_START, 3);
-                        float randRadiusCubed = randFloatInRange(innerRadiusCubed, outerRadiusCubed);
-                        radiusScale = std::cbrt(randRadiusCubed);
-                    }
-
-                    glm::vec3 radii = radiusScale * 0.5f * emitDimensions;
+                    glm::vec3 radii = importanceSample3DDimension(emitRadiusStart) * 0.5f * emitDimensions;
                     float x = radii.x * glm::cos(elevation) * glm::cos(azimuth);
                     float y = radii.y * glm::cos(elevation) * glm::sin(azimuth);
                     float z = radii.z * glm::sin(elevation);
@@ -279,6 +302,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
                     emitDirection = glm::normalize(glm::vec3(radii.x > 0.0f ? x / (radii.x * radii.x) : 0.0f,
                                                              radii.y > 0.0f ? y / (radii.y * radii.y) : 0.0f,
                                                              radii.z > 0.0f ? z / (radii.z * radii.z) : 0.0f));
+                    break;
                 }
             }
 
@@ -313,7 +337,7 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 
     const auto& modelTransform = getModelTransform();
     if (_emitting && particleProperties.emitting() &&
-        (_shapeType != ShapeType::SHAPE_TYPE_COMPOUND || (_geometryResource && _geometryResource->isLoaded()))) {
+        (_shapeType != SHAPE_TYPE_COMPOUND || (_geometryResource && _geometryResource->isLoaded()))) {
         uint64_t emitInterval = particleProperties.emitIntervalUsecs();
         if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
@@ -395,6 +419,7 @@ void ParticleEffectEntityRenderer::doRender(RenderArgs* args) {
     batch.setInputBuffer(0, _particleBuffer, 0, sizeof(GpuParticle));
 
     auto numParticles = _particleBuffer->getSize() / sizeof(GpuParticle);
+    static const size_t VERTEX_PER_PARTICLE = 4;
     batch.drawInstanced((gpu::uint32)numParticles, gpu::TRIANGLE_STRIP, (gpu::uint32)VERTEX_PER_PARTICLE);
 }
 
