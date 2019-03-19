@@ -29,7 +29,8 @@
                 localPosition: micBarLocalPosition,
                 localRotation: Quat.cancelOutRollAndPitch(Quat.lookAtSimple(Camera.orientation, micBarLocalPosition)),
                 sourceUrl: Script.resourcesPath() + "qml/hifi/audio/MicBarApplication.qml",
-                alpha: 0.9,
+                // cutoff alpha for detecting transparency
+                alpha: 0.98,
                 dimensions: micBarDimensions,
                 userData: {
                     grabbable: false
@@ -43,7 +44,8 @@
                 localPosition: bubbleIconLocalPosition,
                 localRotation: Quat.cancelOutRollAndPitch(Quat.lookAtSimple(Camera.orientation, bubbleIconLocalPosition)),
                 sourceUrl: Script.resourcesPath() + "qml/BubbleIcon.qml",
-                alpha: 0.9,
+                // cutoff alpha for detecting transparency
+                alpha: 0.98,
                 dimensions: bubbleIconDimensions,
                 userData: {
                     grabbable: false
