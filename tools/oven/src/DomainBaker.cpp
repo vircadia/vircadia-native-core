@@ -150,7 +150,8 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
     QUrl bakeableModelURL = getBakeableModelURL(url);
     if (!bakeableModelURL.isEmpty() && (_shouldRebakeOriginals || !isModelBaked(bakeableModelURL))) {
         // setup a ModelBaker for this URL, as long as we don't already have one
-        if (!_modelBakers.contains(bakeableModelURL)) {
+        bool haveBaker = _modelBakers.contains(bakeableModelURL);
+        if (!haveBaker) {
             auto getWorkerThreadCallback = []() -> QThread* {
                 return Oven::instance().getNextWorkerThread();
             };
@@ -168,6 +169,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
 
                 // insert it into our bakers hash so we hold a strong pointer to it
                 _modelBakers.insert(bakeableModelURL, baker);
+                haveBaker = true;
 
                 // move the baker to the baker thread
                 // and kickoff the bake
@@ -176,11 +178,13 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
 
                 // keep track of the total number of baking entities
                 ++_totalNumberOfSubBakes;
-
-                // add this QJsonValueRef to our multi hash so that we can easily re-write
-                // the model URL to the baked version once the baker is complete
-                _entitiesNeedingRewrite.insert(bakeableModelURL, { property, jsonRef });
             }
+        }
+
+        if (haveBaker) {
+            // add this QJsonValueRef to our multi hash so that we can easily re-write
+            // the model URL to the baked version once the baker is complete
+            _entitiesNeedingRewrite.insert(bakeableModelURL, { property, jsonRef });
         }
     }
 }
