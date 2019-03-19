@@ -34,7 +34,7 @@ void CalculateMeshTangentsTask::run(const baker::BakeContextPointer& context, co
     for (int i = 0; i < (int)meshes.size(); i++) {
         const auto& mesh = meshes[i];
         const auto& tangentsIn = mesh.tangents;
-        const auto& normals = normalsPerMesh[i];
+        const auto& normals = baker::safeGet(normalsPerMesh, i);
         tangentsPerMeshOut.emplace_back();
         auto& tangentsOut = tangentsPerMeshOut[tangentsPerMeshOut.size()-1];
 

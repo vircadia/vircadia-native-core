@@ -12,8 +12,7 @@
 #ifndef hifi_baker_Baker_h
 #define hifi_baker_Baker_h
 
-#include <QMap>
-
+#include <shared/HifiTypes.h>
 #include <hfm/HFM.h>
 
 #include "Engine.h"
@@ -24,18 +23,22 @@
 namespace baker {
     class Baker {
     public:
-        Baker(const hfm::Model::Pointer& hfmModel, const GeometryMappingPair& mapping);
+        Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& materialMappingBaseURL);
+
+        std::shared_ptr<TaskConfig> getConfiguration();
 
         void run();
 
         // Outputs, available after run() is called
-        hfm::Model::Pointer hfmModel;
-        MaterialMapping materialMapping;
+        hfm::Model::Pointer getHFMModel() const;
+        MaterialMapping getMaterialMapping() const;
+        const std::vector<hifi::ByteArray>& getDracoMeshes() const;
+        // This is a ByteArray and not a std::string because the character sequence can contain the null character (particularly for FBX materials)
+        std::vector<std::vector<hifi::ByteArray>> getDracoMaterialLists() const;
 
     protected:
         EnginePointer _engine;
     };
-
 };
 
 #endif //hifi_baker_Baker_h

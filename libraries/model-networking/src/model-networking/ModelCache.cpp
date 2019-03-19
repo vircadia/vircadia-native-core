@@ -249,6 +249,7 @@ void GeometryReader::run() {
         HFMModel::Pointer hfmModel;
         QVariantHash serializerMapping = _mapping.second;
         serializerMapping["combineParts"] = _combineParts;
+        serializerMapping["deduplicateIndices"] = true;
 
         if (_url.path().toLower().endsWith(".gz")) {
             QByteArray uncompressedData;
@@ -339,12 +340,12 @@ void GeometryDefinitionResource::downloadFinished(const QByteArray& data) {
 
 void GeometryDefinitionResource::setGeometryDefinition(HFMModel::Pointer hfmModel, const GeometryMappingPair& mapping) {
     // Do processing on the model
-    baker::Baker modelBaker(hfmModel, mapping);
+    baker::Baker modelBaker(hfmModel, mapping.second, mapping.first);
     modelBaker.run();
 
     // Assume ownership of the processed HFMModel
-    _hfmModel = modelBaker.hfmModel;
-    _materialMapping = modelBaker.materialMapping;
+    _hfmModel = modelBaker.getHFMModel();
+    _materialMapping = modelBaker.getMaterialMapping();
 
     // Copy materials
     QHash<QString, size_t> materialIDAtlas;
