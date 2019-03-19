@@ -1298,15 +1298,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
 #if !defined(Q_OS_ANDROID)
         if (!getLoginDialogPoppedUp() && _desktopRootItemCreated) {
-            if (isHMDMode()) {
-                createAvatarInputsBar();
-                auto offscreenUi = getOffscreenUI();
-                offscreenUi->hide(AVATAR_INPUTS_BAR_QML.toString());
-            } else {
-                destroyAvatarInputsBar();
-                auto offscreenUi = getOffscreenUI();
-                offscreenUi->show(AVATAR_INPUTS_BAR_QML.toString(), "AvatarInputsBar");
-            }
+/*            if (isHMDMode()) {*/
+                //createAvatarInputsBar();
+                //auto offscreenUi = getOffscreenUI();
+                //offscreenUi->hide(AVATAR_INPUTS_BAR_QML.toString());
+            //} else {
+                //destroyAvatarInputsBar();
+                //auto offscreenUi = getOffscreenUI();
+                //offscreenUi->show(AVATAR_INPUTS_BAR_QML.toString(), "AvatarInputsBar");
+            /*}*/
         }
 #endif
     });

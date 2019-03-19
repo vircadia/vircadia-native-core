@@ -11,10 +11,16 @@
     function onClicked(){
         onCreateAvatarInputsBarEntity = !onCreateAvatarInputsBarEntity;
         button.editProperties({isActive: onCreateAvatarInputsBarEntity});
-        var micBarDimensions = {x: 0.036, y: 0.048, z: 0.3};
-        var bubbleIconDimensions = {x: 0.036, y: 0.036, z: 0.3};
-        var micBarLocalPosition = {x: (-(micBarDimensions.x / 2)) - 0.2, y: -0.125, z: -0.5};
-        var bubbleIconLocalPosition = {x: (micBarDimensions.x * 1.2 / 2) - 0.2, y: ((micBarDimensions.y - bubbleIconDimensions.y) / 2 - 0.125), z: -0.5};
+        // QML NATURAL DIMENSIONS
+        var MIC_BAR_DIMENSIONS = {x: 0.036, y: 0.048, z: 0.3};
+        var BUBBLE_ICON_DIMENSIONS = {x: 0.036, y: 0.036, z: 0.3};
+        // CONSTANTS
+        var LOCAL_POSITION_X_OFFSET = -0.2;
+        var LOCAL_POSITION_Y_OFFSET = -0.125;
+        var LOCAL_POSITION_Z_OFFSET = -0.5;
+        // POSITIONS
+        var micBarLocalPosition = {x: (-(micBarDimensions.x / 2)) + LOCAL_POSITION_X_OFFSET, y: LOCAL_POSITION_Y_OFFSET, z: LOCAL_POSITION_Z_OFFSET};
+        var bubbleIconLocalPosition = {x: (micBarDimensions.x * 1.2 / 2) + LOCAL_POSITION_X_OFFSET, y: ((micBarDimensions.y - bubbleIconDimensions.y) / 2 + LOCAL_POSITION_Y_OFFSET), z: LOCAL_POSITION_Z_OFFSET};
         if (onCreateAvatarInputsBarEntity) {
             var props = {
                 type: "Web",
@@ -33,8 +39,6 @@
                 type: "Web",
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
-                // y is 0.01 - (0.048 + 0.036) / 2
-                // have 10% spacing separation between the entities
                 localPosition: bubbleIconLocalPosition,
                 localRotation: Quat.cancelOutRollAndPitch(Quat.lookAtSimple(Camera.orientation, bubbleIconLocalPosition)),
                 sourceUrl: Script.resourcesPath() + "qml/BubbleIcon.qml",
