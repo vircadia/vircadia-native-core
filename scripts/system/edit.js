@@ -2286,14 +2286,15 @@ var PropertiesTool = function (opts) {
         })
     };
 
-    function updateSelections(selectionUpdated) {
+    function updateSelections(selectionUpdated, caller) {
         if (blockPropertyUpdates) {
             return;
         }
 
         var data = {
             type: 'update',
-            spaceMode: selectionDisplay.getSpaceMode()
+            spaceMode: selectionDisplay.getSpaceMode(),
+            isPropertiesToolUpdate: caller === this,
         };
 
         if (selectionUpdated) {
@@ -2339,7 +2340,7 @@ var PropertiesTool = function (opts) {
 
         emitScriptEvent(data);
     }
-    selectionManager.addEventListener(updateSelections);
+    selectionManager.addEventListener(updateSelections, this);
 
 
     var onWebEventReceived = function(data) {
