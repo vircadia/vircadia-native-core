@@ -106,9 +106,10 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitStatusesCopy.simpleCBegin(), simpleIt));
 
             if (initialSend || *simpleIt == Updated) {
-                if (traitType == AvatarTraits::SkeletonModelURL) {
-                    bytesWritten += _owningAvatar->packTrait(traitType, *traitsPacketList);
+                bytesWritten += _owningAvatar->packTrait(traitType, *traitsPacketList);
 
+
+                if (traitType == AvatarTraits::SkeletonModelURL) {
                     // keep track of our skeleton version in case we get an override back
                     _currentSkeletonVersion = _currentTraitVersion;
                 }
