@@ -21,7 +21,7 @@
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
                 localPosition: micBarLocalPosition,
-                localRotation: Quat.lookAtSimple(Camera.orientation, micBarLocalPosition),
+                localRotation: Quat.cancelOutRollAndPitch(Quat.lookAtSimple(Camera.orientation, micBarLocalPosition)),
                 sourceUrl: Script.resourcesPath() + "qml/hifi/audio/MicBarApplication.qml",
                 dimensions: micBarDimensions,
                 userData: {
@@ -36,7 +36,7 @@
                 // y is 0.01 - (0.048 + 0.036) / 2
                 // have 10% spacing separation between the entities
                 localPosition: bubbleIconLocalPosition,
-                localRotation: Quat.lookAtSimple(Camera.orientation, bubbleIconLocalPosition),
+                localRotation: Quat.cancelOutRollAndPitch(Quat.lookAtSimple(Camera.orientation, bubbleIconLocalPosition)),
                 sourceUrl: Script.resourcesPath() + "qml/BubbleIcon.qml",
                 dimensions: bubbleIconDimensions,
                 userData: {
@@ -44,9 +44,7 @@
                 },
             };
             bubbleIconEntity = Entities.addEntity(props, "local");
-            console.log("creating entity");
         } else {
-            console.log("deleting entity");
             Entities.deleteEntity(micBarEntity);
             Entities.deleteEntity(bubbleIconEntity);
         }
