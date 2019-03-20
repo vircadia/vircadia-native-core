@@ -3043,6 +3043,9 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/tablet/TabletAddressDialog.qml" },
+        QUrl{ "hifi/Card.qml" },
+        QUrl{ "hifi/Pal.qml" },
+        QUrl{ "hifi/NameCard.qml" },
         }, platformInfoCallback);
 
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
