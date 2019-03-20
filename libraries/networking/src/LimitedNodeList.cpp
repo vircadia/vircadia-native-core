@@ -677,6 +677,9 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
     // If there is a new node with the same socket, this is a reconnection, kill the old node
     removeOldNode(findNodeWithAddr(publicSocket));
     removeOldNode(findNodeWithAddr(localSocket));
+    // If there is an old Connection to the new node's address kill it
+    _nodeSocket.cleanupConnection(publicSocket);
+    _nodeSocket.cleanupConnection(localSocket);
 
     auto it = _connectionIDs.find(uuid);
     if (it == _connectionIDs.end()) {
