@@ -368,7 +368,7 @@ Item {
         enabled: selected
         hoverEnabled: true
         onClicked: {
-            if(has3DHTML) {
+            if (has3DHTML) {
                 userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
                 userInfoViewer.visible = true;
             }
