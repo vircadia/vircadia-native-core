@@ -106,7 +106,7 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
             auto traitType = static_cast<AvatarTraits::TraitType>(std::distance(traitStatusesCopy.simpleCBegin(), simpleIt));
 
             if (initialSend || *simpleIt == Updated) {
-                bytesWritten += _owningAvatar->packTrait(traitType, *traitsPacketList);
+                bytesWritten += AvatarTraits::packTrait(traitType, *traitsPacketList, *_owningAvatar);
 
 
                 if (traitType == AvatarTraits::SkeletonModelURL) {
@@ -125,7 +125,9 @@ int ClientTraitsHandler::sendChangedTraitsToMixer() {
                     || instanceIDValuePair.value == Updated) {
                     // this is a changed trait we need to send or we haven't send out trait information yet
                     // ask the owning avatar to pack it
-                    bytesWritten += _owningAvatar->packTraitInstance(instancedIt->traitType, instanceIDValuePair.id, *traitsPacketList);
+                    bytesWritten += AvatarTraits::packTraitInstance(instancedIt->traitType, instanceIDValuePair.id,
+                                                                    *traitsPacketList, *_owningAvatar);
+
                 } else if (!initialSend && instanceIDValuePair.value == Deleted) {
                     // pack delete for this trait instance
                     bytesWritten += AvatarTraits::packInstancedTraitDelete(instancedIt->traitType, instanceIDValuePair.id,

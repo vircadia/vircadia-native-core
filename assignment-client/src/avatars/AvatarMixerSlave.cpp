@@ -139,7 +139,8 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                 if (lastReceivedVersion > lastSentVersionRef) {
                     bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
                     // there is an update to this trait, add it to the traits packet
-                    bytesWritten += sendingAvatar->packTrait(traitType, traitsPacketList, lastReceivedVersion);
+                    bytesWritten += AvatarTraits::packVersionedTrait(traitType, traitsPacketList,
+                                                                     lastReceivedVersion, *sendingAvatar);
                     // update the last sent version
                     lastSentVersionRef = lastReceivedVersion;
                     // Remember which versions we sent in this particular packet
@@ -194,7 +195,8 @@ qint64 AvatarMixerSlave::addChangedTraitsToBulkPacket(AvatarMixerClientData* lis
                     bytesWritten += addTraitsNodeHeader(listeningNodeData, sendingNodeData, traitsPacketList, bytesWritten);
 
                     // this instance version exists and has never been sent or is newer so we need to send it
-                    bytesWritten += sendingAvatar->packTraitInstance(traitType, instanceID, traitsPacketList, receivedVersion);
+                    bytesWritten += AvatarTraits::packVersionedTraitInstance(traitType, instanceID, traitsPacketList,
+                                                                             receivedVersion, *sendingAvatar);
 
                     if (sentInstanceIt != sentIDValuePairs.end()) {
                         sentInstanceIt->value = receivedVersion;

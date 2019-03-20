@@ -341,7 +341,7 @@ void AvatarMixerClientData::checkSkeletonURLAgainstWhitelist(const SlaveSharedDa
 
                 // the returned set traits packet uses the trait version from the incoming packet
                 // so the client knows they should not overwrite if they have since changed the trait
-                _avatar->packTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion);
+                AvatarTraits::packVersionedTrait(AvatarTraits::SkeletonModelURL, *packet, traitVersion, *_avatar);
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 nodeList->sendPacket(std::move(packet), sendingNode);
