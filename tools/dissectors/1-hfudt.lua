@@ -152,7 +152,9 @@ local packet_types = {
   [97] = "OctreeDataPersist",
   [98] = "EntityClone",
   [99] = "EntityQueryInitialResultsComplete",
-  [100] = "BulkAvatarTraits"
+  [100] = "BulkAvatarTraits",
+  [101] = "AudioSoloRequest",
+  [102] = "BulkAvatarTraitsAck"
 }
 
 local unsourced_packet_types = {
@@ -301,55 +303,53 @@ function p_hfudt.dissector(buf, pinfo, tree)
 
     -- check if we have part of a message that we need to re-assemble
     -- before it can be dissected
-    if obfuscation_bits == 0 then
-      if message_bit == 1 and message_position ~= 0 then
-        if fragments[message_number] == nil then
-          fragments[message_number] = {}
-        end
-
-        if fragments[message_number][message_part_number] == nil then
-          fragments[message_number][message_part_number] = {}
-        end
-
-        -- set the properties for this fragment
-        fragments[message_number][message_part_number] = {
-          payload = buf(i):bytes()
-        }
-
-        -- if this is the last part, set our maximum part number
-        if message_position == 1 then
-          fragments[message_number].last_part_number = message_part_number
-        end
-
-        -- if we have the last part
-        -- enumerate our parts for this message and see if everything is present
-        if fragments[message_number].last_part_number ~= nil then
-          local i = 0
-          local has_all = true
-
-          local finalMessage = ByteArray.new()
-          local message_complete = true
-
-          while i <= fragments[message_number].last_part_number do
-            if fragments[message_number][i] ~= nil then
-              finalMessage = finalMessage .. fragments[message_number][i].payload
-            else
-              -- missing this part, have to break until we have it
-              message_complete = false
-            end
-
-            i = i + 1
-          end
-
-          if message_complete then
-            debug("Message " .. message_number .. " is " .. finalMessage:len())
-            payload_to_dissect = ByteArray.tvb(finalMessage, message_number)
-          end
-        end
-
-      else
-        payload_to_dissect = buf(i):tvb()
+    if message_bit == 1 and message_position ~= 0 then
+      if fragments[message_number] == nil then
+        fragments[message_number] = {}
       end
+
+      if fragments[message_number][message_part_number] == nil then
+        fragments[message_number][message_part_number] = {}
+      end
+
+      -- set the properties for this fragment
+      fragments[message_number][message_part_number] = {
+        payload = buf(i):bytes()
+      }
+
+      -- if this is the last part, set our maximum part number
+      if message_position == 1 then
+        fragments[message_number].last_part_number = message_part_number
+      end
+
+      -- if we have the last part
+      -- enumerate our parts for this message and see if everything is present
+      if fragments[message_number].last_part_number ~= nil then
+        local i = 0
+        local has_all = true
+
+        local finalMessage = ByteArray.new()
+        local message_complete = true
+
+        while i <= fragments[message_number].last_part_number do
+          if fragments[message_number][i] ~= nil then
+            finalMessage = finalMessage .. fragments[message_number][i].payload
+          else
+            -- missing this part, have to break until we have it
+            message_complete = false
+          end
+
+          i = i + 1
+        end
+
+        if message_complete then
+          debug("Message " .. message_number .. " is " .. finalMessage:len())
+          payload_to_dissect = ByteArray.tvb(finalMessage, message_number)
+        end
+      end
+
+    else
+      payload_to_dissect = buf(i):tvb()
     end
 
     if payload_to_dissect ~= nil then

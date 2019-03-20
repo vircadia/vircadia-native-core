@@ -14,6 +14,17 @@
 #include "BakerTypes.h"
 
 namespace baker {
+    template<typename T>
+    const T& safeGet(const std::vector<T>& data, size_t i) {
+        static T t;
+
+        if (data.size() > i) {
+            return data[i];
+        } else {
+            return t;
+        }
+    }
+
     // Returns a reference to the normal at the specified index, or nullptr if it cannot be accessed
     using NormalAccessor = std::function<glm::vec3*(int index)>;
 

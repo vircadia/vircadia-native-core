@@ -11,31 +11,50 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+<@include DefaultMaterials.slh@>
 
 <@include gpu/Color.slh@>
-<@include DeferredBufferWrite.slh@>
-
 <@include render-utils/ShaderConstants.h@>
 
-// the albedo texture
+<@include ForwardGlobalLight.slh@>
+<$declareEvalGlobalLightingAlphaBlended()$>
+
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
+
 LAYOUT(binding=0) uniform sampler2D originalTexture;
 
-// the interpolated normal
+layout(location=RENDER_UTILS_ATTR_POSITION_ES) in vec4 _positionES;
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) in vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_COLOR) in vec4 _color;
 layout(location=RENDER_UTILS_ATTR_TEXCOORD01) in vec4 _texCoord01;
 #define _texCoord0 _texCoord01.xy
 #define _texCoord1 _texCoord01.zw
 
+layout(location=0) out vec4 _fragColor0;
+
 void main(void) {
     vec4 texel = texture(originalTexture, _texCoord0);
     texel = mix(texel, color_sRGBAToLinear(texel), float(_color.a <= 0.0));
-    texel.rgb *= _color.rgb;
-    texel.a *= abs(_color.a);
+    vec3 albedo = _color.xyz * texel.xyz;
+    float alpha = _color.a * texel.a;
+    float metallic = DEFAULT_METALLIC;
 
-    packDeferredFragmentTranslucent(
+    vec3 fresnel = getFresnelF0(metallic, albedo);
+
+    TransformCamera cam = getTransformCamera();
+    vec3 fragPosition = _positionES.xyz;
+
+    _fragColor0 = vec4(evalGlobalLightingAlphaBlendedWithHaze(
+        cam._viewInverse,
+        1.0,
+        DEFAULT_OCCLUSION,
+        fragPosition,
         normalize(_normalWS),
-        texel.a,
-        texel.rgb,
-        DEFAULT_ROUGHNESS);
+        albedo,
+        fresnel,
+        metallic,
+        DEFAULT_EMISSIVE,
+        DEFAULT_ROUGHNESS, alpha),
+        alpha);
 }
