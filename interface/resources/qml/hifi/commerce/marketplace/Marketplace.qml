@@ -359,7 +359,7 @@ Rectangle {
                 }
 
                 onAccepted: {
-                    if(root.searchString !== searchField.text) {
+                    if (root.searchString !== searchField.text) {
                         root.searchString = searchField.text;
                         getMarketplaceItems();
                         searchField.forceActiveFocus();
