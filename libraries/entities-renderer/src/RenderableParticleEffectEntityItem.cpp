@@ -194,13 +194,13 @@ Item::Bound ParticleEffectEntityRenderer::getBound() {
 }
 
 // FIXME: these methods assume uniform emitDimensions, need to importance sample based on dimensions
-float importanceSample2Dimension(float startDim) {
+float importanceSample2DDimension(float startDim) {
     float dimension = 1.0f;
     if (startDim < 1.0f) {
         float innerDimensionSquared = startDim * startDim;
         float outerDimensionSquared = 1.0f;  // pow(particle::MAXIMUM_EMIT_RADIUS_START, 2);
         float randDimensionSquared = randFloatInRange(innerDimensionSquared, outerDimensionSquared);
-        dimension = std::cbrt(randDimensionSquared);
+        dimension = std::sqrt(randDimensionSquared);
     }
     return dimension;
 }
@@ -259,6 +259,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
         } else {
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
+        // TODO: azimuth and elevation are only used for ellipsoids, but could be used for other shapes too
 
         if (emitDimensions == Vectors::ZERO) {
             // Point
@@ -284,10 +285,46 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
 
                 case SHAPE_TYPE_CYLINDER_X:
                 case SHAPE_TYPE_CYLINDER_Y:
-                case SHAPE_TYPE_CYLINDER_Z:
+                case SHAPE_TYPE_CYLINDER_Z: {
+                    glm::vec3 radii = importanceSample2DDimension(emitRadiusStart) * 0.5f * emitDimensions;
+                    int axis = shapeType - SHAPE_TYPE_CYLINDER_X;
 
-                case SHAPE_TYPE_CIRCLE:
-                case SHAPE_TYPE_PLANE:
+                    emitPosition[axis] = emitDimensions[axis] * randFloatInRange(-0.5f, 0.5f);
+                    emitDirection[axis] = 0.0f;
+                    axis = (axis + 1) % 3;
+                    emitPosition[axis] = radii[axis] * glm::cos(azimuth);
+                    emitDirection[axis] = radii[axis] > 0.0f ? emitPosition[axis] / (radii[axis] * radii[axis]) : 0.0f;
+                    axis = (axis + 1) % 3;
+                    emitPosition[axis] = radii[axis] * glm::sin(azimuth);
+                    emitDirection[axis] = radii[axis] > 0.0f ? emitPosition[axis] / (radii[axis] * radii[axis]) : 0.0f;
+                    emitDirection = glm::normalize(emitDirection);
+                    break;
+                }
+
+                case SHAPE_TYPE_CIRCLE: { // FIXME: SHAPE_TYPE_CIRCLE is not exposed to scripts in buildStringToShapeTypeLookup()
+                    glm::vec2 radii = importanceSample2DDimension(emitRadiusStart) * 0.5f * glm::vec2(emitDimensions.x, emitDimensions.z);
+                    float x = radii.x * glm::cos(azimuth);
+                    float z = radii.y * glm::sin(azimuth);
+                    emitPosition = glm::vec3(x, 0.0f, z);
+                    emitDirection = Vectors::UP;
+                    break;
+                }
+                case SHAPE_TYPE_PLANE: {
+                    glm::vec2 dim = importanceSample2DDimension(emitRadiusStart) * 0.5f * glm::vec2(emitDimensions.x, emitDimensions.z);
+
+                    int side = randIntInRange(0, 3);
+                    int axis = side % 2;
+                    float direction = side > 1 ? 1.0f : -1.0f;
+
+                    glm::vec2 pos;
+                    pos[axis] = direction * dim[axis];
+                    axis = (axis + 1) % 2;
+                    pos[axis] = dim[axis] * randFloatInRange(-1.0f, 1.0f);
+
+                    emitPosition = glm::vec3(pos.x, 0.0f, pos.y);
+                    emitDirection = Vectors::UP;
+                    break;
+                }
 
                 case SHAPE_TYPE_COMPOUND:
 
