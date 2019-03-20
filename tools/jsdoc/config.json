@@ -1,5 +1,6 @@
 {
     "opts": {
+        "readme": "api-mainpage.md",
         "template": "hifi-jsdoc-template"
     },
     "docdash": {
