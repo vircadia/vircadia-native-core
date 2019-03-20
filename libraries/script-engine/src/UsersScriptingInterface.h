@@ -91,6 +91,21 @@ public slots:
     float getAvatarGain(const QUuid& nodeID);
 
     /**jsdoc
+     * Sets the audio injector gain at the server.
+     * Units are Decibels (dB)
+     * @function Users.setInjectorGain
+     * @param {number} gain (in dB)
+    */
+    void setInjectorGain(float gain);
+
+    /**jsdoc
+     * Gets the audio injector gain at the server.
+     * @function Users.getInjectorGain
+     * @returns {number} gain (in dB)
+    */
+    float getInjectorGain();
+
+    /**jsdoc
      * Kick/ban another user. Removes them from the server and prevents them from returning. Bans by either user name (if 
      * available) or machine fingerprint otherwise. This will only do anything if you're an admin of the domain you're in. 
      * @function Users.kick

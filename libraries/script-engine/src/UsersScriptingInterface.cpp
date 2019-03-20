@@ -51,6 +51,15 @@ float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
     return DependencyManager::get<NodeList>()->getAvatarGain(nodeID);
 }
 
+void UsersScriptingInterface::setInjectorGain(float gain) {
+    // ask the NodeList to set the audio injector gain
+    DependencyManager::get<NodeList>()->setInjectorGain(gain);
+}
+
+float UsersScriptingInterface::getInjectorGain() {
+    return DependencyManager::get<NodeList>()->getInjectorGain();
+}
+
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
     // ask the NodeList to kick the user with the given session ID
     DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
