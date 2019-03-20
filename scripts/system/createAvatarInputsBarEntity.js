@@ -19,8 +19,8 @@
         var LOCAL_POSITION_Y_OFFSET = -0.125;
         var LOCAL_POSITION_Z_OFFSET = -0.5;
         // POSITIONS
-        var micBarLocalPosition = {x: (-(micBarDimensions.x / 2)) + LOCAL_POSITION_X_OFFSET, y: LOCAL_POSITION_Y_OFFSET, z: LOCAL_POSITION_Z_OFFSET};
-        var bubbleIconLocalPosition = {x: (micBarDimensions.x * 1.2 / 2) + LOCAL_POSITION_X_OFFSET, y: ((micBarDimensions.y - bubbleIconDimensions.y) / 2 + LOCAL_POSITION_Y_OFFSET), z: LOCAL_POSITION_Z_OFFSET};
+        var micBarLocalPosition = {x: (-(MIC_BAR_DIMENSIONS.x / 2)) + LOCAL_POSITION_X_OFFSET, y: LOCAL_POSITION_Y_OFFSET, z: LOCAL_POSITION_Z_OFFSET};
+        var bubbleIconLocalPosition = {x: (MIC_BAR_DIMENSIONS.x * 1.2 / 2) + LOCAL_POSITION_X_OFFSET, y: ((MIC_BAR_DIMENSIONS.y - BUBBLE_ICON_DIMENSIONS.y) / 2 + LOCAL_POSITION_Y_OFFSET), z: LOCAL_POSITION_Z_OFFSET};
         if (onCreateAvatarInputsBarEntity) {
             var props = {
                 type: "Web",
@@ -31,7 +31,7 @@
                 sourceUrl: Script.resourcesPath() + "qml/hifi/audio/MicBarApplication.qml",
                 // cutoff alpha for detecting transparency
                 alpha: 0.98,
-                dimensions: micBarDimensions,
+                dimensions: MIC_BAR_DIMENSIONS,
                 userData: {
                     grabbable: false
                 },
@@ -46,7 +46,7 @@
                 sourceUrl: Script.resourcesPath() + "qml/BubbleIcon.qml",
                 // cutoff alpha for detecting transparency
                 alpha: 0.98,
-                dimensions: bubbleIconDimensions,
+                dimensions: BUBBLE_ICON_DIMENSIONS,
                 userData: {
                     grabbable: false
                 },
