@@ -13,6 +13,8 @@
 
 #include <hfm/HFM.h>
 
+#include <shared/HifiTypes.h>
+
 #include "Engine.h"
 #include "BakerTypes.h"
 
@@ -20,7 +22,7 @@
 
 class ParseMaterialMappingTask {
 public:
-    using Input = baker::GeometryMappingPair;
+    using Input = baker::VaryingSet2<hifi::VariantHash, hifi::URL>;
     using Output = MaterialMapping;
     using JobModel = baker::Job::ModelIO<ParseMaterialMappingTask, Input, Output>;
 

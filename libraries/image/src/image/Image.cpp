@@ -205,7 +205,11 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
-    content.open(QIODevice::ReadOnly);
+    if (!content.isReadable()) {
+        content.open(QIODevice::ReadOnly);
+    } else {
+        content.reset();
+    }
 
     if (filenameExtension == "tga") {
         QImage image = image::readTGA(content);
