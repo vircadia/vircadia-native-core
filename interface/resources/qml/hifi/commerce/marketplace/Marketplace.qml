@@ -348,9 +348,11 @@ Rectangle {
                 }
 
                 onAccepted: {
-                    root.searchString = searchField.text;
-                    getMarketplaceItems();
-                    searchField.forceActiveFocus();
+                    if (root.searchString !== searchField.text) {
+                        root.searchString = searchField.text;
+                        getMarketplaceItems();
+                        searchField.forceActiveFocus();
+                    }
                 }
 
                 onActiveFocusChanged: {
