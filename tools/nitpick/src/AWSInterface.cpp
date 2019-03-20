@@ -56,10 +56,6 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
     _urlLineEdit = urlLineEdit;
     _urlLineEdit->setEnabled(false);
 
-
-    _urlLineEdit = urlLineEdit;
-    _urlLineEdit->setEnabled(false);
-
     _branch = branch;
     _user = user;
 
