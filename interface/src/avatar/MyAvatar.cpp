@@ -1570,7 +1570,7 @@ void MyAvatar::handleChangedAvatarEntityData() {
         entityTree->withWriteLock([&] {
             EntityItemPointer entity = entityTree->addEntity(id, properties);
             if (entity) {
-                packetSender->queueEditEntityMessage(PacketType::EntityAdd, entityTree, id, properties);
+                packetSender->queueEditAvatarEntityMessage(entityTree, id);
             }
         });
     }
@@ -3451,10 +3451,10 @@ float MyAvatar::getGravity() {
 }
 
 void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
-    QUuid oldID = getSessionUUID();
+    QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
-    QUuid id = getSessionUUID();
-    if (id != oldID) {
+    QUuid newSessionID = getSessionUUID();
+    if (newSessionID != oldSessionID) {
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
         if (entityTree) {
@@ -3462,15 +3462,20 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityIDs = _packedAvatarEntityData.keys();
             });
+            EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             entityTree->withWriteLock([&] {
                 for (const auto& entityID : avatarEntityIDs) {
                     auto entity = entityTree->findEntityByID(entityID);
                     if (!entity) {
                         continue;
                     }
-                    entity->setOwningAvatarID(id);
-                    if (entity->getParentID() == oldID) {
-                        entity->setParentID(id);
+                    entity->setOwningAvatarID(newSessionID);
+                    // NOTE: each attached AvatarEntity should already have the correct updated parentID
+                    // via magic in SpatiallyNestable, but when an AvatarEntity IS parented to MyAvatar
+                    // we need to update the "packedAvatarEntityData" we send to the avatar-mixer
+                    // so that others will get the updated state.
+                    if (entity->getParentID() == newSessionID) {
+                        packetSender->queueEditAvatarEntityMessage(entityTree, entityID);
                     }
                 }
             });
@@ -5523,14 +5528,14 @@ void MyAvatar::initFlowFromFST() {
     }
 }
 
-void MyAvatar::sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const {
+void MyAvatar::sendPacket(const QUuid& entityID) const {
     auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
     EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
     if (entityTree) {
         entityTree->withWriteLock([&] {
             // force an update packet
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            packetSender->queueEditEntityMessage(PacketType::EntityEdit, entityTree, entityID, properties);
+            packetSender->queueEditAvatarEntityMessage(entityTree, entityID);
         });
     }
 }
