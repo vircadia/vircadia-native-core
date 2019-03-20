@@ -87,7 +87,7 @@ void MarketplaceItemUploader::doGetCategories() {
         if (error == QNetworkReply::NoError) {
             auto doc = QJsonDocument::fromJson(reply->readAll());
             auto extractCategoryID = [&doc]() -> std::pair<bool, int> {
-                auto items = doc.object()["data"].toObject()["items"];
+                auto items = doc.object()["data"].toObject()["categories"];
                 if (!items.isArray()) {
                     qWarning() << "Categories parse error: data.items is not an array";
                     return { false, 0 };
