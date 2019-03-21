@@ -6,13 +6,17 @@
     var ui;
 
     var onCreateAvatarInputsBarEntity = false;
-    var micBarEntity, bubbleIconEntity;
+    var micBarEntity = null;
+    var bubbleIconEntity = null;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var AVATAR_INPUTS_EDIT_QML_SOURCE = "hifi/EditAvatarInputsBar.qml";
 
     // QML NATURAL DIMENSIONS
     var MIC_BAR_DIMENSIONS = {x: 0.036, y: 0.048, z: 0.3};
     var BUBBLE_ICON_DIMENSIONS = {x: 0.036, y: 0.036, z: 0.3};
+    // ENTITY NAMES
+    var MIC_BAR_NAME = "AvatarInputsMicBarEntity";
+    var BUBBLE_ICON_NAME = "AvatarInputsBubbleIconEntity";
     // CONSTANTS
     var LOCAL_POSITION_X_OFFSET = -0.2;
     var LOCAL_POSITION_Y_OFFSET = -0.125;
@@ -56,20 +60,19 @@
             var bubbleIconLocalPosition = Entities.getEntityProperties(bubbleIconEntity).localPosition;
             console.log("mic bar local position is at " + JSON.stringify(micBarLocalPosition));
             console.log("bubble icon local position is at " + JSON.stringify(bubbleIconLocalPosition));
-        } else if (message.method === "destroy") {
-            console.log("destroying");
-            Entities.deleteEntity(micBarEntity);
-            Entities.deleteEntity(bubbleIconEntity);
         }
     };
 
-    function createEntities(){
+    function createEntities() {
+        if (micBarEntity != null && bubbleIconEntity != null) {
+            return;
+        }
         // POSITIONS
         var micBarLocalPosition = {x: (-(MIC_BAR_DIMENSIONS.x / 2)) + LOCAL_POSITION_X_OFFSET, y: LOCAL_POSITION_Y_OFFSET, z: LOCAL_POSITION_Z_OFFSET};
         var bubbleIconLocalPosition = {x: (MIC_BAR_DIMENSIONS.x * 1.2 / 2) + LOCAL_POSITION_X_OFFSET, y: ((MIC_BAR_DIMENSIONS.y - BUBBLE_ICON_DIMENSIONS.y) / 2 + LOCAL_POSITION_Y_OFFSET), z: LOCAL_POSITION_Z_OFFSET};
         var props = {
             type: "Web",
-            name: "AvatarInputsMicBarEntity",
+            name: MIC_BAR_NAME,
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
             localPosition: micBarLocalPosition,
@@ -86,7 +89,7 @@
         micBarEntity = Entities.addEntity(props, "local");
         var props = {
             type: "Web",
-            name: "AvatarInputsBubbleIconEntity",
+            name: BUBBLE_ICON_NAME,
             parentID: MyAvatar.SELF_ID,
             parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
             localPosition: bubbleIconLocalPosition,
@@ -118,9 +121,9 @@
             home: Script.resourcesPath() + "qml/hifi/EditAvatarInputsBar.qml",
             onMessage: fromQml,
             onOpened: createEntities,
-            onClosed: cleanup,
-            // normalButton: "icons/tablet-icons/avatar-i.svg",
-            // activeButton: "icons/tablet-icons/avatar-a.svg",
+            // onClosed: cleanup,
+            normalButton: "icons/tablet-icons/edit-i.svg",
+            activeButton: "icons/tablet-icons/edit-a.svg",
         });
     };
 

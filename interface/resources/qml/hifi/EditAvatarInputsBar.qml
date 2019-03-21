@@ -28,8 +28,6 @@ Rectangle {
 
     signal sendToScript(var message);
     function emitSendToScript(message) {
-        console.log("sending to script");
-        console.log(JSON.stringify(message));
         sendToScript(message);
     }
 
@@ -57,7 +55,7 @@ Rectangle {
             left: parent.left
             leftMargin: 20
         }
-        label: "X OFFSET"
+        label: "X OFFSET: " + value.toFixed(2);
         maximumValue: 1.0
         minimumValue: -1.0
         stepSize: 0.05
@@ -79,7 +77,7 @@ Rectangle {
             left: parent.left
             leftMargin: 20
         }
-        label: "Y OFFSET"
+        label: "Y OFFSET: " + value.toFixed(2);
         maximumValue: 1.0
         minimumValue: -1.0
         stepSize: 0.05
@@ -101,7 +99,7 @@ Rectangle {
             left: parent.left
             leftMargin: 20
         }
-        label: "Z OFFSET"
+        label: "Z OFFSET: " + value.toFixed(2);
         maximumValue: 0.0
         minimumValue: -1.0
         stepSize: 0.05
