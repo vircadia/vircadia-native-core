@@ -2342,6 +2342,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return viewFrustum.getPosition();
     });
 
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
+
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
         if (htmlContent) {
@@ -3288,6 +3290,40 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+}
+
+void Application::userKickConfirmation(const QUuid& nodeID) {
+    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+    auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
+
+    QString userName;
+
+    if (avatar) {
+        userName = avatar->getSessionDisplayName();
+    } else {
+        userName = nodeID.toString();
+    }
+
+    QString kickMessage = "Do you wish to kick " + userName + " from your domain";
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Kick User", kickMessage,
+                                                          QMessageBox::Yes | QMessageBox::No);
+
+    if (dlg->getDialogItem()) {
+
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+
+            bool yes = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            // ask the NodeList to kick the user with the given session ID
+
+            if (yes) {
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+            }
+
+            DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
+        });
+        DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(true);
+    }
 }
 
 void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties) {
