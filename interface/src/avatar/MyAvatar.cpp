@@ -177,6 +177,8 @@ MyAvatar::MyAvatar(QThread* thread) :
     _driveGear3Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear3", _driveGear3),
     _driveGear4Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear4", _driveGear4),
     _driveGear5Setting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "driveGear5", _driveGear5),
+    _analogWalkSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "analogWalkSpeed", _analogWalkSpeed.get()),
+    _analogPlusWalkSpeedSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "analogPlusWalkSpeed", _analogPlusWalkSpeed.get()),
     _controlSchemeIndexSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "controlSchemeIndex", _controlSchemeIndex),
     _userRecenterModelSetting(QStringList() << AVATAR_SETTINGS_GROUP_NAME << "userRecenterModel", USER_RECENTER_MODEL_AUTO)
 {
@@ -1301,6 +1303,8 @@ void MyAvatar::saveData() {
     _driveGear3Setting.set(getDriveGear3());
     _driveGear4Setting.set(getDriveGear4());
     _driveGear5Setting.set(getDriveGear5());
+    _analogWalkSpeedSetting.set(getAnalogWalkSpeed());
+    _analogPlusWalkSpeedSetting.set(getAnalogPlusWalkSpeed());
     _controlSchemeIndexSetting.set(getControlSchemeIndex());
     _userRecenterModelSetting.set(userRecenterModelToString(getUserRecenterModel()));
 
@@ -1886,6 +1890,8 @@ void MyAvatar::loadData() {
     setDriveGear4(firstRunVal.get() ? DEFAULT_GEAR_4 : _driveGear4Setting.get());
     setDriveGear5(firstRunVal.get() ? DEFAULT_GEAR_5 : _driveGear5Setting.get());
     setControlSchemeIndex(firstRunVal.get() ? CONTROLS_DEFAULT : _controlSchemeIndexSetting.get());
+    setAnalogWalkSpeed(firstRunVal.get() ? ANALOG_AVATAR_MAX_WALKING_SPEED : _analogWalkSpeedSetting.get());
+    setAnalogPlusWalkSpeed(firstRunVal.get() ? ANALOG_PLUS_AVATAR_MAX_WALKING_SPEED : _analogPlusWalkSpeedSetting.get());
     setFlyingEnabled(getFlyingEnabled());
 
     setDisplayName(_displayNameSetting.get());
@@ -3351,7 +3357,7 @@ float MyAvatar::calculateGearedSpeed(const float driveKey) {
 }
 
 glm::vec3 MyAvatar::scaleMotorSpeed(const glm::vec3 forward, const glm::vec3 right) {
-    float stickFullOn = 0.95f;
+    float stickFullOn = 0.85f;
     auto zSpeed = getDriveKey(TRANSLATE_Z);
     auto xSpeed = getDriveKey(TRANSLATE_X);
     glm::vec3 direction;
@@ -4868,6 +4874,42 @@ float MyAvatar::getSprintSpeed() const {
     default:
         return _defaultSprintSpeed.get();
     }
+}
+
+void MyAvatar::setAnalogWalkSpeed(float value) {
+    _analogWalkSpeed.set(value);
+    // Sprint speed for Analog should be double walk speed.
+    _analogSprintSpeed.set(value * 2.0f);
+}
+
+float MyAvatar::getAnalogWalkSpeed() const {
+    return _analogWalkSpeed.get();
+}
+
+void MyAvatar::setAnalogSprintSpeed(float value) {
+    _analogSprintSpeed.set(value);
+}
+
+float MyAvatar::getAnalogSprintSpeed() const {
+    return _analogSprintSpeed.get();
+}
+
+void MyAvatar::setAnalogPlusWalkSpeed(float value) {
+    _analogPlusWalkSpeed.set(value);
+    // Sprint speed for Analog Plus should be double walk speed.
+    _analogPlusSprintSpeed.set(value * 2.0f);
+}
+
+float MyAvatar::getAnalogPlusWalkSpeed() const {
+    return _analogPlusWalkSpeed.get();
+}
+
+void MyAvatar::setAnalogPlusSprintSpeed(float value) {
+    _analogPlusSprintSpeed.set(value);
+}
+
+float MyAvatar::getAnalogPlusSprintSpeed() const {
+    return _analogPlusSprintSpeed.get();
 }
 
 void MyAvatar::setSitStandStateChange(bool stateChanged) {

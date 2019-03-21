@@ -1274,6 +1274,14 @@ public:
     float getWalkBackwardSpeed() const;
     void setSprintSpeed(float value);
     float getSprintSpeed() const;
+    void setAnalogWalkSpeed(float value);
+    float getAnalogWalkSpeed() const;
+    void setAnalogSprintSpeed(float value);
+    float getAnalogSprintSpeed() const;
+    void setAnalogPlusWalkSpeed(float value);
+    float getAnalogPlusWalkSpeed() const;
+    void setAnalogPlusSprintSpeed(float value);
+    float getAnalogPlusSprintSpeed() const;
     void setSitStandStateChange(bool stateChanged);
     float getSitStandStateChange() const;
     void updateSitStandState(float newHeightReading, float dt);
@@ -2123,6 +2131,8 @@ private:
     Setting::Handle<float> _driveGear3Setting;
     Setting::Handle<float> _driveGear4Setting;
     Setting::Handle<float> _driveGear5Setting;
+    Setting::Handle<float> _analogWalkSpeedSetting;
+    Setting::Handle<float> _analogPlusWalkSpeedSetting;
     Setting::Handle<int> _controlSchemeIndexSetting;
     std::vector<Setting::Handle<QUuid>> _avatarEntityIDSettings;
     std::vector<Setting::Handle<QByteArray>> _avatarEntityDataSettings;
