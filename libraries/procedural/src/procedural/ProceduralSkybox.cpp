@@ -17,7 +17,7 @@
 #include <ViewFrustum.h>
 #include <shaders/Shaders.h>
 
-ProceduralSkybox::ProceduralSkybox() : graphics::Skybox() {
+ProceduralSkybox::ProceduralSkybox(quint64 created) : graphics::Skybox(), _created(created) {
     _procedural._vertexSource = gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource();
     _procedural._opaqueFragmentSource = shader::Source::get(shader::procedural::fragment::proceduralSkybox);
     // Adjust the pipeline state for background using the stencil test
@@ -59,7 +59,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     batch.setModelTransform(Transform()); // only for Mac
 
     auto& procedural = skybox._procedural;
-    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat());
+    procedural.prepare(batch, glm::vec3(0), glm::vec3(1), glm::quat(), skybox.getCreated());
     skybox.prepare(batch);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 }
