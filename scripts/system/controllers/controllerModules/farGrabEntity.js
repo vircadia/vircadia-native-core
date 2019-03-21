@@ -103,7 +103,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         // Activation criteria for rotating a fargrabbed entity. If we're changing the mapping, this is where to do it.
         this.shouldManipulateTarget = function (controllerData) {
-            return (controllerData.triggerValues[this.getOffhand()] > TRIGGER_ON_VALUE || controllerdata.secondaryValues[this.getOffhand()] > TRIGGER_ON_VALUE) ? true : false;
+            return (controllerData.triggerValues[this.getOffhand()] > TRIGGER_ON_VALUE || controllerData.secondaryValues[this.getOffhand()] > TRIGGER_ON_VALUE) ? true : false;
         };
 
         // Get the delta between the current rotation and where the controller was when manipulation started.
