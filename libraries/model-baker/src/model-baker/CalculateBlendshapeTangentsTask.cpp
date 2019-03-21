@@ -24,7 +24,7 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
     
     tangentsPerBlendshapePerMeshOut.reserve(normalsPerBlendshapePerMesh.size());
     for (size_t i = 0; i < blendshapesPerMesh.size(); i++) {
-        const auto& normalsPerBlendshape = normalsPerBlendshapePerMesh[i];
+        const auto& normalsPerBlendshape = baker::safeGet(normalsPerBlendshapePerMesh, i);
         const auto& blendshapes = blendshapesPerMesh[i];
         const auto& mesh = meshes[i];
         tangentsPerBlendshapePerMeshOut.emplace_back();
@@ -43,7 +43,7 @@ void CalculateBlendshapeTangentsTask::run(const baker::BakeContextPointer& conte
         for (size_t j = 0; j < blendshapes.size(); j++) {
             const auto& blendshape = blendshapes[j];
             const auto& tangentsIn = blendshape.tangents;
-            const auto& normals = normalsPerBlendshape[j];
+            const auto& normals = baker::safeGet(normalsPerBlendshape, j);
             tangentsPerBlendshapeOut.emplace_back();
             auto& tangentsOut = tangentsPerBlendshapeOut[tangentsPerBlendshapeOut.size()-1];
 

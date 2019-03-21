@@ -143,6 +143,16 @@ Original.Button {
             horizontalAlignment: Text.AlignHCenter
             text: control.text
             Component.onCompleted: {
+                setTextPosition();
+            }
+            onTextChanged: {
+                setTextPosition();
+            }
+            function setTextPosition() {
+                // force TextMetrics to re-evaluate the text field and glyph sizes
+                // as for some reason it's not automatically being done.
+                buttonGlyphTextMetrics.text = buttonGlyph.text;
+                buttonTextMetrics.text = text;
                 if (control.buttonGlyph !== "") {
                     buttonText.x = buttonContentItem.width/2 - buttonTextMetrics.width/2 + (buttonGlyphTextMetrics.width + control.buttonGlyphRightMargin)/2;
                 } else {

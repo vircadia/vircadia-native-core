@@ -27,20 +27,12 @@ class OBJBaker : public ModelBaker {
 public:
     using ModelBaker::ModelBaker;
 
-public slots:
-    virtual void bake() override;
-
-signals:
-    void OBJLoaded();
-
-private slots:
-    void bakeOBJ();
-    void handleOBJNetworkReply();
+protected:
+    virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) override;
 
 private:
-    void loadOBJ();
-    void createFBXNodeTree(FBXNode& rootNode, HFMModel& hfmModel);
-    void setMaterialNodeProperties(FBXNode& materialNode, QString material, HFMModel& hfmModel);
+    void createFBXNodeTree(FBXNode& rootNode, const hfm::Model::Pointer& hfmModel, const hifi::ByteArray& dracoMesh);
+    void setMaterialNodeProperties(FBXNode& materialNode, QString material,  const hfm::Model::Pointer& hfmModel);
     NodeID nextNodeID() { return _nodeID++; }
 
 

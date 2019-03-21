@@ -47,6 +47,14 @@ TextureBaker::TextureBaker(const QUrl& textureURL, image::TextureUsage::Type tex
         auto originalFilename = textureURL.fileName();
         _baseFilename = originalFilename.left(originalFilename.lastIndexOf('.'));
     }
+
+    auto textureFilename = _textureURL.fileName();
+    QString originalExtension;
+    int extensionStart = textureFilename.indexOf(".");
+    if (extensionStart != -1) {
+        originalExtension = textureFilename.mid(extensionStart);
+    }
+    _originalCopyFilePath = _outputDirectory.absoluteFilePath(_baseFilename + originalExtension);
 }
 
 void TextureBaker::bake() {
@@ -128,7 +136,9 @@ void TextureBaker::processTexture() {
 
     TextureMeta meta;
 
-    auto originalCopyFilePath = _outputDirectory.absoluteFilePath(_textureURL.fileName());
+    QString originalCopyFilePath = _originalCopyFilePath.toString();
+
+    // Copy the original file into the baked output directory if it doesn't exist yet
     {
         QFile file { originalCopyFilePath };
         if (!file.open(QIODevice::WriteOnly) || file.write(_originalTexture) == -1) {
@@ -138,9 +148,10 @@ void TextureBaker::processTexture() {
         // IMPORTANT: _originalTexture is empty past this point
         _originalTexture.clear();
         _outputFiles.push_back(originalCopyFilePath);
-        meta.original = _metaTexturePathPrefix + _textureURL.fileName();
+        meta.original = _metaTexturePathPrefix + _originalCopyFilePath.fileName();
     }
 
+    // Load the copy of the original file from the baked output directory. New images will be created using the original as the source data.
     auto buffer = std::static_pointer_cast<QIODevice>(std::make_shared<QFile>(originalCopyFilePath));
     if (!buffer->open(QIODevice::ReadOnly)) {
         handleError("Could not open original file at " + originalCopyFilePath);
