@@ -3434,7 +3434,7 @@ glm::vec3 MyAvatar::calculateScaledDirection(){
     if (state == CharacterController::State::Hover ||
         _characterController.computeCollisionMask() == BULLET_COLLISION_MASK_COLLISIONLESS) {
         glm::vec3 up = (getDriveKey(TRANSLATE_Y)) * IDENTITY_UP;
-        up /= glm::length(up);
+        //up /= glm::length(up);
         direction += up;
     }
 
@@ -3464,12 +3464,6 @@ void MyAvatar::updateActionMotor(float deltaTime) {
     float directionLength = glm::length(direction);
     _isPushing = directionLength > EPSILON;
 
-    //if (_isPushing) {
-    //    direction;
-    //} else {
-    //    direction = Vectors::ZERO;
-    //}
-
     if (!_isPushing) {
         direction = Vectors::ZERO;
     }
@@ -3486,7 +3480,7 @@ void MyAvatar::updateActionMotor(float deltaTime) {
         const float maxBoostSpeed = sensorToWorldScale * MAX_BOOST_SPEED;
 
         if (_isPushing) {
-            direction /= direction;
+            direction /= directionLength;
             if (motorSpeed < maxBoostSpeed) {
                 // an active action motor should never be slower than this
                 float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
