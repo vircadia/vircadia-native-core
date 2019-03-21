@@ -13,7 +13,7 @@
     var AVATAR_INPUTS_EDIT_QML_SOURCE = "hifi/EditAvatarInputsBar.qml";
 
     function fromQml(message) {
-        console.log("message from QML: " + JSON.stringify(message));
+        print("message from QML: " + JSON.stringify(message));
     };
 
     function onClicked(){
@@ -72,10 +72,17 @@
     };
 
     function setup() {
-        button = tablet.addButton({
-        icon: "icons/tablet-icons/edit-i.svg",
-        activeIcon: "icons/tablet-icons/edit-a.svg",
-        text: buttonName
+        // button = tablet.addButton({
+        // icon: "icons/tablet-icons/edit-i.svg",
+        // activeIcon: "icons/tablet-icons/edit-a.svg",
+        // text: buttonName
+        // });
+        ui = new AppUi({
+            buttonName: "AVBAR",
+            home: Script.resourcesPath() + "qml/hifi/EditAvatarInputsBar.qml",
+            onMessage: fromQml,
+            // normalButton: "icons/tablet-icons/avatar-i.svg",
+            // activeButton: "icons/tablet-icons/avatar-a.svg",
         });
         button.clicked.connect(onClicked);
     };
