@@ -21,7 +21,7 @@
             ]
         },
         { "from": "Standard.LX", "to": "Actions.TranslateX",
-          "when": [ "Application.AdvancedMovement", "Application.RightHandDominant" ]
+          "when": [ "Application.AdvancedMovement", "Application.StrafeEnabled", "Application.RightHandDominant" ]
         },
         { "from": "Standard.LX", "to": "Actions.Yaw",
           "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn", "Application.RightHandDominant" ]
@@ -78,7 +78,7 @@
             ]
         },
         { "from": "Standard.RX", "to": "Actions.TranslateX",
-          "when": [ "Application.AdvancedMovement", "Application.LeftHandDominant" ]
+          "when": [ "Application.AdvancedMovement", "Application.StrafeEnabled", "Application.LeftHandDominant" ]
         },
         { "from": "Standard.RX", "to": "Actions.Yaw",
           "when": [ "!Application.AdvancedMovement", "!Application.SnapTurn", "Application.LeftHandDominant" ]

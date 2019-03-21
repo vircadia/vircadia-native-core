@@ -267,6 +267,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [myAvatar]()->bool { return myAvatar->getStrafeEnabled(); };
+        auto setter = [myAvatar](bool value) { myAvatar->setStrafeEnabled(value); };
+        preferences->addPreference(new CheckPreference(VR_MOVEMENT, "Strafing", getter, setter));
+    }
+    {
         auto getter = [myAvatar]()->bool { return myAvatar->getFlyingHMDPref(); };
         auto setter = [myAvatar](bool value) { myAvatar->setFlyingHMDPref(value); };
         auto preference = new CheckPreference(VR_MOVEMENT, "Jumping and flying", getter, setter);

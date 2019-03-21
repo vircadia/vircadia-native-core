@@ -272,6 +272,8 @@ class MyAvatar : public Avatar {
     const float DEFAULT_GEAR_3 = 0.8f;
     const float DEFAULT_GEAR_4 = 0.9f;
     const float DEFAULT_GEAR_5 = 1.0f;
+
+    const bool DEFAULT_STRAFE_ENABLED = true;
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -546,7 +548,16 @@ public:
      * @returns {string} 
      */
     Q_INVOKABLE QString getDominantHand() const;
-
+    /**jsdoc
+    * @function MyAVatar.setStrafeEnabled
+    * @param {bool} enabled
+    */
+    Q_INVOKABLE void setStrafeEnabled(bool enabled);
+    /**jsdoc
+    * @function MyAvatar.getStrafeEnabled
+    * @returns {bool}
+    */
+    Q_INVOKABLE bool getStrafeEnabled() const;
     /**jsdoc
      * @function MyAvatar.setHmdAvatarAlignmentType
      * @param {string} hand
@@ -1909,6 +1920,7 @@ private:
     bool _useSnapTurn { true };
     ThreadSafeValueCache<QString> _dominantHand { DOMINANT_RIGHT_HAND };
     ThreadSafeValueCache<QString> _hmdAvatarAlignmentType { DEFAULT_HMD_AVATAR_ALIGNMENT_TYPE };
+    ThreadSafeValueCache<bool> _strafeEnabled{ DEFAULT_STRAFE_ENABLED };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // degrees
     const float ROLL_CONTROL_RATE_DEFAULT = 114.0f; // degrees / sec
@@ -2089,6 +2101,7 @@ private:
     TimePoint _nextTraitsSendWindow;
 
     Setting::Handle<QString> _dominantHandSetting;
+    Setting::Handle<bool> _strafeEnabledSetting;
     Setting::Handle<QString> _hmdAvatarAlignmentTypeSetting;
     Setting::Handle<float> _headPitchSetting;
     Setting::Handle<float> _scaleSetting;
