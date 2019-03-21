@@ -165,11 +165,11 @@ void ClientTraitsHandler::processTraitOverride(QSharedPointer<ReceivedMessage> m
 
                 // override the skeleton URL but do not mark the trait as having changed
                 // so that we don't unecessarily send a new trait packet to the mixer with the overriden URL
-                auto encodedSkeletonURL = QUrl::fromEncoded(message->readWithoutCopy(traitBinarySize));
 
                 auto hasChangesBefore = _hasChangedTraits;
 
-                _owningAvatar->setSkeletonModelURL(encodedSkeletonURL);
+                auto traitBinaryData = message->readWithoutCopy(traitBinarySize);
+                _owningAvatar->processTrait(traitType, traitBinaryData);
 
                 // setSkeletonModelURL will flag us for changes to the SkeletonModelURL so we reset some state here to
                 // avoid unnecessarily sending the overriden skeleton model URL back to the mixer
