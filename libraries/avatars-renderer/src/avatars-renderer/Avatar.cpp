@@ -384,8 +384,7 @@ bool Avatar::applyGrabChanges() {
                         if (success) {
                             std::shared_ptr<Avatar> myAvatar = std::dynamic_pointer_cast<Avatar>(myAvatarSN);
                             if (myAvatar) {
-                                EntityItemProperties properties = entity->getProperties();
-                                myAvatar->sendPacket(entity->getID(), properties);
+                                myAvatar->sendPacket(entity->getID());
                             }
                         }
                     }
