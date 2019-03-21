@@ -11,9 +11,11 @@
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     var AVATAR_INPUTS_EDIT_QML_SOURCE = "hifi/EditAvatarInputsBar.qml";
 
+    // DPI
+    var ENTITY_DPI = 60.0;
     // QML NATURAL DIMENSIONS
-    var MIC_BAR_DIMENSIONS = {x: 0.036, y: 0.048, z: 0.3};
-    var BUBBLE_ICON_DIMENSIONS = {x: 0.036, y: 0.036, z: 0.3};
+    var MIC_BAR_DIMENSIONS = Vec3.multiply(30.0 / ENTITY_DPI, {x: 0.036, y: 0.048, z: 0.3});
+    var BUBBLE_ICON_DIMENSIONS = Vec3.multiply(30.0 / ENTITY_DPI, {x: 0.036, y: 0.036, z: 0.3});
     // ENTITY NAMES
     var MIC_BAR_NAME = "AvatarInputsMicBarEntity";
     var BUBBLE_ICON_NAME = "AvatarInputsBubbleIconEntity";
@@ -28,8 +30,8 @@
             var bubbleIconLocalPosition = Entities.getEntityProperties(bubbleIconEntity).localPosition;
             var newMicBarLocalPosition, newBubbleIconLocalPosition;
             if (message.x !== undefined) {
-                newMicBarLocalPosition = { x: -((MIC_BAR_DIMENSIONS.x) / 2) - message.x, y: micBarLocalPosition.y, z: micBarLocalPosition.z };
-                newBubbleIconLocalPosition = { x: ((MIC_BAR_DIMENSIONS.x) * 1.2 / 2) - message.x, y: bubbleIconLocalPosition.y, z: bubbleIconLocalPosition.z };
+                newMicBarLocalPosition = { x: -((MIC_BAR_DIMENSIONS.x) / 2) + message.x, y: micBarLocalPosition.y, z: micBarLocalPosition.z };
+                newBubbleIconLocalPosition = { x: ((MIC_BAR_DIMENSIONS.x) * 1.2 / 2) + message.x, y: bubbleIconLocalPosition.y, z: bubbleIconLocalPosition.z };
             } else if (message.y !== undefined) {
                 newMicBarLocalPosition = { x: micBarLocalPosition.x, y: message.y, z: micBarLocalPosition.z };
                 newBubbleIconLocalPosition = { x: bubbleIconLocalPosition.x, y: ((MIC_BAR_DIMENSIONS.y - BUBBLE_ICON_DIMENSIONS.y) / 2 + message.y), z: bubbleIconLocalPosition.z };
@@ -81,6 +83,7 @@
             // cutoff alpha for detecting transparency
             alpha: 0.98,
             dimensions: MIC_BAR_DIMENSIONS,
+            dpi: ENTITY_DPI,
             drawInFront: true,
             userData: {
                 grabbable: false
@@ -98,6 +101,7 @@
             // cutoff alpha for detecting transparency
             alpha: 0.98,
             dimensions: BUBBLE_ICON_DIMENSIONS,
+            dpi: ENTITY_DPI,
             drawInFront: true,
             userData: {
                 grabbable: false
