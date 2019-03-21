@@ -1,12 +1,20 @@
 "use strict";
 
 (function(){
+    var AppUi = Script.require("appUi");
+
+    var ui;
 
     var button;
     var buttonName = "AVBAR";
     var onCreateAvatarInputsBarEntity = false;
     var micBarEntity, bubbleIconEntity;
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+    var AVATAR_INPUTS_EDIT_QML_SOURCE = "hifi/EditAvatarInputsBar.qml";
+
+    function fromQml(message) {
+        console.log("message from QML: " + JSON.stringify(message));
+    };
 
     function onClicked(){
         onCreateAvatarInputsBarEntity = !onCreateAvatarInputsBarEntity;
@@ -24,6 +32,7 @@
         if (onCreateAvatarInputsBarEntity) {
             var props = {
                 type: "Web",
+                name: "AvatarInputsMicBarEntity",
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
                 localPosition: micBarLocalPosition,
@@ -32,6 +41,7 @@
                 // cutoff alpha for detecting transparency
                 alpha: 0.98,
                 dimensions: MIC_BAR_DIMENSIONS,
+                drawInFront: true,
                 userData: {
                     grabbable: false
                 },
@@ -39,6 +49,7 @@
             micBarEntity = Entities.addEntity(props, "local");
             var props = {
                 type: "Web",
+                name: "AvatarInputsBubbleIconEntity",
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX"),
                 localPosition: bubbleIconLocalPosition,
@@ -47,11 +58,13 @@
                 // cutoff alpha for detecting transparency
                 alpha: 0.98,
                 dimensions: BUBBLE_ICON_DIMENSIONS,
+                drawInFront: true,
                 userData: {
                     grabbable: false
                 },
             };
             bubbleIconEntity = Entities.addEntity(props, "local");
+            tablet.loadQMLSource(AVATAR_INPUTS_EDIT_QML_SOURCE);
         } else {
             Entities.deleteEntity(micBarEntity);
             Entities.deleteEntity(bubbleIconEntity);
