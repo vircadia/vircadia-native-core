@@ -55,6 +55,7 @@ Rectangle {
             top: title.bottom
             topMargin: 50
             left: parent.left
+            leftMargin: 20
         }
         label: "X OFFSET"
         maximumValue: 1.0
@@ -76,6 +77,7 @@ Rectangle {
             top: xSlider.bottom
             topMargin: 50
             left: parent.left
+            leftMargin: 20
         }
         label: "Y OFFSET"
         maximumValue: 1.0
@@ -92,12 +94,14 @@ Rectangle {
     }
 
     HifiControlsUit.Slider {
+        id: zSlider
         anchors {
             top: ySlider.bottom
             topMargin: 50
             left: parent.left
+            leftMargin: 20
         }
-        label: "Y OFFSET"
+        label: "Z OFFSET"
         maximumValue: 0.0
         minimumValue: -1.0
         stepSize: 0.05
@@ -112,9 +116,39 @@ Rectangle {
     }
 
     HifiControlsUit.Button {
-        id: setVisibleButton
+        id: setVisibleButton;
+        text: setVisible ? "SET INVISIBLE" : "SET VISIBLE";
+        width: 300;
+        property bool setVisible: true;
+        anchors {
+            top: zSlider.bottom
+            topMargin: 50
+            left: parent.left
+            leftMargin: 20
+        }
+        onClicked: {
+            setVisible = !setVisible;
+            emitSendToScript({
+                "method": "setVisible",
+                "visible": setVisible
+            });
+        }
     }
 
     HifiControlsUit.Button {
+        id: printButton;
+        text: "PRINT POSITIONS";
+        width: 300;
+        anchors {
+            top: setVisibleButton.bottom
+            topMargin: 50
+            left: parent.left
+            leftMargin: 20
+        }
+        onClicked: {
+            emitSendToScript({
+                "method": "print",
+            });
+        }
     }
 }
