@@ -523,9 +523,9 @@ Rectangle {
                     item.cardBackVisible = false;
                     item.isInstalled = root.installedApps.indexOf(item.id) > -1;
                     item.wornEntityID = '';
+                    item.upgrade_id = item.upgrade_id ? item.upgrade_id : "";
                 });
                 sendToScript({ method: 'purchases_updateWearables' });
-
                 return data.assets;
             }
         }
@@ -545,7 +545,7 @@ Rectangle {
             delegate: PurchasedItem {
                 itemName: title;
                 itemId: id;
-                updateItemId: model.upgrade_id ? model.upgrade_id : "";
+                updateItemId: model.upgrade_id
                 itemPreviewImageUrl: preview;
                 itemHref: download_url;
                 certificateId: certificate_id;

@@ -54,7 +54,7 @@ Column {
             'require_online=true',
             'protocol=' + encodeURIComponent(Window.protocolSignature())
         ];
-        endpoint: '/api/v1/user_stories?' + options.join('&');
+        endpoint: '/api/v1/user_stories?' + options.join('&') + (PlatformInfo.isStandalone() ? '&standalone_optimized=true' : '')
         itemsPerPage: 4;
         processPage: function (data) {
             return data.user_stories.map(makeModelData);

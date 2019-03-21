@@ -1604,12 +1604,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
         {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
             static int lastKey = Qt::Key_unknown;
             bool navAxis = false;
             switch (actionEnum) {
+                case Action::TOGGLE_PUSHTOTALK:
+                    if (state > 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(true);
+                    } else if (state <= 0.0f) {
+                        audioScriptingInterface->setPushingToTalk(false);
+                    }
+                    break;
+
                 case Action::UI_NAV_VERTICAL:
                     navAxis = true;
                     if (state > 0.0f) {
@@ -2347,6 +2356,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return viewFrustum.getPosition();
     });
 
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
+
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
         if (htmlContent) {
@@ -3048,6 +3059,9 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/tablet/TabletAddressDialog.qml" },
+        QUrl{ "hifi/Card.qml" },
+        QUrl{ "hifi/Pal.qml" },
+        QUrl{ "hifi/NameCard.qml" },
         }, platformInfoCallback);
 
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
@@ -3290,6 +3304,40 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+}
+
+void Application::userKickConfirmation(const QUuid& nodeID) {
+    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+    auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
+
+    QString userName;
+
+    if (avatar) {
+        userName = avatar->getSessionDisplayName();
+    } else {
+        userName = nodeID.toString();
+    }
+
+    QString kickMessage = "Do you wish to kick " + userName + " from your domain";
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Kick User", kickMessage,
+                                                          QMessageBox::Yes | QMessageBox::No);
+
+    if (dlg->getDialogItem()) {
+
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+
+            bool yes = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            // ask the NodeList to kick the user with the given session ID
+
+            if (yes) {
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+            }
+
+            DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
+        });
+        DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(true);
+    }
 }
 
 void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties) {
@@ -4324,6 +4372,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     if (_keyboardMouseDevice->isActive()) {
         _keyboardMouseDevice->keyReleaseEvent(event);
     }
+
 }
 
 void Application::focusOutEvent(QFocusEvent* event) {
@@ -5255,6 +5304,9 @@ void Application::loadSettings() {
         }
     }
 
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->loadData();
+
     getMyAvatar()->loadData();
     _settingsLoaded = true;
 }
@@ -5263,6 +5315,9 @@ void Application::saveSettings() const {
     sessionRunTime.set(_sessionRunTimer.elapsed() / MSECS_PER_SECOND);
     DependencyManager::get<AudioClient>()->saveSettings();
     DependencyManager::get<LODManager>()->saveSettings();
+
+    auto audioScriptingInterface = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+    audioScriptingInterface->saveData();
 
     Menu::getInstance()->saveSettings();
     getMyAvatar()->saveData();
@@ -5770,6 +5825,7 @@ void Application::reloadResourceCaches() {
 
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
+    getMyAvatar()->prepareAvatarEntityDataForReload();
     // Clear the entities and their renderables
     getEntities()->clear();
 
@@ -6945,9 +7001,6 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails(bool clearAll) {
-    // before we delete all entities get MyAvatar's AvatarEntityData ready
-    getMyAvatar()->prepareAvatarEntityDataForReload();
-
     // if we're about to quit, we really don't need to do the rest of these things...
     if (_aboutToQuit) {
         return;

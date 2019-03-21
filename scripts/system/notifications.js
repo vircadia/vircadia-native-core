@@ -203,7 +203,7 @@
         // Notification plane positions
         noticeY = -sensorScaleFactor * (y * NOTIFICATION_3D_SCALE + 0.5 * noticeHeight);
         notificationPosition = { x: 0, y: noticeY, z: 0 };
-        buttonPosition = { x: 0.5 * sensorScaleFactor * (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH), y: noticeY, z: 0.001 };
+        buttonPosition = { x: sensorScaleFactor * (noticeWidth - NOTIFICATION_3D_BUTTON_WIDTH), y: noticeY, z: 0.001 };
 
         // Rotate plane
         notificationOrientation = Quat.fromPitchYawRollDegrees(NOTIFICATIONS_3D_PITCH,
@@ -241,7 +241,7 @@
             noticeWidth = notice.width * NOTIFICATION_3D_SCALE + NOTIFICATION_3D_BUTTON_WIDTH;
             noticeHeight = notice.height * NOTIFICATION_3D_SCALE;
 
-            notice.size = { x: noticeWidth, y: noticeHeight };
+            notice.size = { x: noticeWidth * sensorScaleFactor, y: noticeHeight * sensorScaleFactor };
 
             positions = calculate3DOverlayPositions(noticeWidth, noticeHeight, notice.y);
 
@@ -249,8 +249,8 @@
             notice.parentJointIndex = -2;
 
             if (!image) {
-                notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE;
-                notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE;
+                notice.topMargin = 0.75 * notice.topMargin * NOTIFICATION_3D_SCALE * sensorScaleFactor;
+                notice.leftMargin = 2 * notice.leftMargin * NOTIFICATION_3D_SCALE * sensorScaleFactor;
                 notice.bottomMargin = 0;
                 notice.rightMargin = 0;
                 notice.lineHeight = 10.0 * (fontSize * sensorScaleFactor / 12.0) * NOTIFICATION_3D_SCALE;
@@ -267,14 +267,15 @@
             button.isFacingAvatar = false;
             button.parentID = MyAvatar.sessionUUID;
             button.parentJointIndex = -2;
+            button.visible = false;
 
             buttons.push((Overlays.addOverlay("image3d", button)));
             overlay3DDetails.push({
                 notificationOrientation: positions.notificationOrientation,
                 notificationPosition: positions.notificationPosition,
                 buttonPosition: positions.buttonPosition,
-                width: noticeWidth,
-                height: noticeHeight
+                width: noticeWidth * sensorScaleFactor,
+                height: noticeHeight * sensorScaleFactor
             });
 
 

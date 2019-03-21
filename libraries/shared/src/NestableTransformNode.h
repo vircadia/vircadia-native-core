@@ -20,8 +20,10 @@ public:
         _jointIndex(jointIndex) {
         auto nestablePointer = _spatiallyNestable.lock();
         if (nestablePointer) {
-            glm::vec3 nestableDimensions = getActualScale(nestablePointer);
-            _baseScale = glm::max(glm::vec3(0.001f), nestableDimensions);
+            if (nestablePointer->getNestableType() != NestableType::Avatar) {
+                glm::vec3 nestableDimensions = getActualScale(nestablePointer);
+                _baseScale = glm::max(glm::vec3(0.001f), nestableDimensions);
+            }
         }
     }
 

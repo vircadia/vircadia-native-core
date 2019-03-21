@@ -43,7 +43,6 @@
 
 using namespace std;
 
-const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 const float DISPLAYNAME_FADE_TIME = 0.5f;
@@ -1659,60 +1658,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     return bytesRead;
-}
-
-int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
-
-// render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
-                                            float radius1, float radius2, const glm::vec4& color) {
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    if (_jointConesID == GeometryCache::UNKNOWN_ID) {
-        _jointConesID = geometryCache->allocateID();
-    }
-
-    glm::vec3 axis = position2 - position1;
-    float length = glm::length(axis);
-
-    if (length > 0.0f) {
-
-        axis /= length;
-
-        glm::vec3 perpSin = glm::vec3(1.0f, 0.0f, 0.0f);
-        glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
-        perpSin = glm::cross(perpCos, axis);
-
-        float angleb = 0.0f;
-        QVector<glm::vec3> points;
-
-        for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
-
-            // the rectangles that comprise the sides of the cone section are
-            // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
-            int anglea = angleb;
-            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * TWO_PI;
-
-            float sa = sinf(anglea);
-            float sb = sinf(angleb);
-            float ca = cosf(anglea);
-            float cb = cosf(angleb);
-
-            glm::vec3 p1a = position1 + perpSin * sa * radius1 + perpCos * ca * radius1;
-            glm::vec3 p1b = position1 + perpSin * sb * radius1 + perpCos * cb * radius1;
-            glm::vec3 p2a = position2 + perpSin * sa * radius2 + perpCos * ca * radius2;
-            glm::vec3 p2b = position2 + perpSin * sb * radius2 + perpCos * cb * radius2;
-
-            points << p1a << p1b << p2a << p1b << p2a << p2b;
-        }
-
-        PROFILE_RANGE_BATCH(batch, __FUNCTION__);
-        // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
-        // better if the avatars cached these buffers for each of the joints they are rendering
-        geometryCache->updateVertices(_jointConesID, points, color);
-        geometryCache->renderVertices(batch, gpu::TRIANGLES, _jointConesID);
-    }
 }
 
 float Avatar::getSkeletonHeight() const {

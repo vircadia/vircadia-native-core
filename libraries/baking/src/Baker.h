@@ -52,7 +52,7 @@ protected:
     void handleErrors(const QStringList& errors);
 
     // List of baked output files. For instance, for an FBX this would
-    // include the .fbx and all of its texture files.
+    // include the .fbx, a .fst pointing to the fbx, and all of the fbx texture files.
     std::vector<QString> _outputFiles;
 
     QStringList _errorList;

@@ -15,9 +15,6 @@
 #include <QtGlobal>
 #include <QMetaType>
 #include <QSet>
-#include <QUrl>
-#include <QVarLengthArray>
-#include <QVariant>
 #include <QVector>
 
 #include <glm/glm.hpp>
@@ -25,6 +22,7 @@
 
 #include <Extents.h>
 #include <Transform.h>
+#include <shared/HifiTypes.h>
 
 #include "FBX.h"
 #include <hfm/HFMSerializer.h>
@@ -114,25 +112,25 @@ public:
     HFMModel* _hfmModel;
     /// Reads HFMModel from the supplied model and mapping data.
     /// \exception QString if an error occurs in parsing
-    HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
+    HFMModel::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) override;
 
     FBXNode _rootNode;
     static FBXNode parseFBX(QIODevice* device);
 
-    HFMModel* extractHFMModel(const QVariantHash& mapping, const QString& url);
+    HFMModel* extractHFMModel(const hifi::VariantHash& mapping, const QString& url);
 
-    static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate = true);
+    static ExtractedMesh extractMesh(const FBXNode& object, unsigned int& meshIndex, bool deduplicate);
     QHash<QString, ExtractedMesh> meshes;
 
     HFMTexture getTexture(const QString& textureID, const QString& materialID);
 
     QHash<QString, QString> _textureNames;
     // Hashes the original RelativeFilename of textures
-    QHash<QString, QByteArray> _textureFilepaths;
+    QHash<QString, hifi::ByteArray> _textureFilepaths;
     // Hashes the place to look for textures, in case they are not inlined
-    QHash<QString, QByteArray> _textureFilenames;
+    QHash<QString, hifi::ByteArray> _textureFilenames;
     // Hashes texture content by filepath, in case they are inlined
-    QHash<QByteArray, QByteArray> _textureContent;
+    QHash<hifi::ByteArray, hifi::ByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;
 
 

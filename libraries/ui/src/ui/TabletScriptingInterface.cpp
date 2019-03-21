@@ -368,6 +368,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
     if (toolbarMode) {
 #if !defined(DISABLE_QML)
+        closeDialog();
         // create new desktop window
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());

@@ -240,6 +240,12 @@ class MessageBoxListener : public ModalDialogListener {
         return static_cast<QMessageBox::StandardButton>(_result.toInt());
     }
 
+protected slots:
+    virtual void onDestroyed() override {
+        ModalDialogListener::onDestroyed();
+        onSelected(QMessageBox::NoButton);
+    }
+
 private slots:
     void onSelected(int button) {
         _result = button;
