@@ -3454,6 +3454,11 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
     QUuid newSessionID = getSessionUUID();
+    if (DependencyManager::get<NodeList>()->getSessionUUID().isNull()) {
+        // we don't actually have a connection to a domain right now
+        // so there is no need to queue AvatarEntity messages --> bail early
+        return;
+    }
     if (newSessionID != oldSessionID) {
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
