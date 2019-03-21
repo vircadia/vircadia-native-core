@@ -42,20 +42,14 @@
           "when": [ "!Application.SnapTurn", "Application.RightHandDominant" ]
         },
 
-        { "from": "Standard.RY",
+        { "from": "Standard.LeftSecondaryThumb",
           "when": [ "Application.Grounded", "Application.RightHandDominant" ],
-          "to": "Actions.Up",
-          "filters":
-            [
-                { "type": "deadZone", "min": 0.6 },
-                "invert"
-            ]
+          "to": "Actions.Up"
         },
 
-        { "from": "Standard.RY",
+        { "from": "Standard.LeftSecondaryThumb",
 		  "when": "Application.RightHandDominant",
-		  "to": "Actions.Up",
-		  "filters": "invert"
+		  "to": "Actions.Up"
 		},
 		
         { "from": "Standard.RY",
@@ -99,20 +93,14 @@
           "when": [ "!Application.SnapTurn", "Application.LeftHandDominant" ]
         },
 
-        { "from": "Standard.LY",
+        { "from": "Standard.RightSecondaryThumb",
           "when": [ "Application.Grounded", "Application.LeftHandDominant" ],
-          "to": "Actions.Up",
-          "filters":
-            [
-                { "type": "deadZone", "min": 0.6 },
-                "invert"
-            ]
+          "to": "Actions.Up"
         },
 
-        { "from": "Standard.LY",
+        { "from": "Standard.RightSecondaryThumb",
 		  "when": "Application.LeftHandDominant",
-		  "to": "Actions.Up",
-		  "filters": "invert"
+		  "to": "Actions.Up"
 		},
 
         { "from": "Standard.Back", "to": "Actions.CycleCamera" },
