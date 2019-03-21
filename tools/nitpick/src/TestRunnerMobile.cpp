@@ -197,10 +197,6 @@ void TestRunnerMobile::installAPK() {
         return;
     }
 
-    // Remove the path
-    QStringList parts = installerPathname.split('/');
-    _installerFilename = parts[parts.length() - 1];
-
     _statusLabel->setText("Installing");
     QString command = _adbInterface->getAdbCommand() + " install -r -d " + installerPathname + " >" + _workingFolder  + "/installOutput.txt";
     appendLog(command);
