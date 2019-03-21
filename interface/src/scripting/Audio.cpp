@@ -374,6 +374,18 @@ void Audio::handlePushedToTalk(bool enabled) {
     }
 }
 
+void Audio::setInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+    withWriteLock([&] {
+        _devices.chooseInputDevice(device, isHMD);
+    });
+}
+
+void Audio::setOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+    withWriteLock([&] {
+        _devices.chooseOutputDevice(device, isHMD);
+    });
+}
+
 void Audio::setReverb(bool enable) {
     withWriteLock([&] {
         DependencyManager::get<AudioClient>()->setReverb(enable);
@@ -386,14 +398,28 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     });
 }
 
-void Audio::setInputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+void Audio::setAvatarGain(float gain) {
     withWriteLock([&] {
-        _devices.chooseInputDevice(device, isHMD);
+        // ask the NodeList to set the master avatar gain
+        DependencyManager::get<NodeList>()->setAvatarGain("", gain);
     });
 }
 
-void Audio::setOutputDevice(const QAudioDeviceInfo& device, bool isHMD) {
+float Audio::getAvatarGain() {
+    return resultWithReadLock<float>([&] {
+        return DependencyManager::get<NodeList>()->getAvatarGain("");
+    });
+}
+
+void Audio::setInjectorGain(float gain) {
     withWriteLock([&] {
-        _devices.chooseOutputDevice(device, isHMD);
+        // ask the NodeList to set the audio injector gain
+        DependencyManager::get<NodeList>()->setInjectorGain(gain);
+    });
+}
+
+float Audio::getInjectorGain() {
+    return resultWithReadLock<float>([&] {
+        return DependencyManager::get<NodeList>()->getInjectorGain();
     });
 }

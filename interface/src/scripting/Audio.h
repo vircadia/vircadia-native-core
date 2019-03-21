@@ -171,6 +171,36 @@ public:
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
 
     /**jsdoc
+     * Sets the master avatar gain at the server.
+     * Units are Decibels (dB)
+     * @function Audio.setAvatarGain
+     * @param {number} gain (in dB)
+    */
+    Q_INVOKABLE void setAvatarGain(float gain);
+
+    /**jsdoc
+     * Gets the master avatar gain at the server.
+     * @function Audio.getAvatarGain
+     * @returns {number} gain (in dB)
+    */
+    Q_INVOKABLE float getAvatarGain();
+
+    /**jsdoc
+     * Sets the audio injector gain at the server.
+     * Units are Decibels (dB)
+     * @function Audio.setInjectorGain
+     * @param {number} gain (in dB)
+    */
+    Q_INVOKABLE void setInjectorGain(float gain);
+
+    /**jsdoc
+     * Gets the audio injector gain at the server.
+     * @function Audio.getInjectorGain
+     * @returns {number} gain (in dB)
+    */
+    Q_INVOKABLE float getInjectorGain();
+
+    /**jsdoc
      * Starts making an audio recording of the audio being played in-world (i.e., not local-only audio) to a file in WAV format.
      * @function Audio.startRecording
      * @param {string} filename - The path and name of the file to make the recording in. Should have a <code>.wav</code>
