@@ -79,6 +79,7 @@ function updateAvatarWearables(avatar, callback, wearablesOverride) {
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
         sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables});
+        sendToQml({ method : 'wearablesLockedChanged', wearablesLocked : getWearablesLocked()});
 
         if(callback)
             callback();
@@ -239,6 +240,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         AvatarBookmarks.loadBookmark(message.name);
         Entities.addingWearable.connect(onAddingWearable);
         Entities.deletingWearable.connect(onDeletingWearable);
+        sendToQml({ method : 'wearablesLockedChanged', wearablesLocked : getWearablesLocked()});
         break;
     case 'deleteAvatar':
         AvatarBookmarks.removeBookmark(message.name);
@@ -406,9 +408,11 @@ function isGrabbable(entityID) {
 }
 
 function setGrabbable(entityID, grabbable) {
-    var properties = Entities.getEntityProperties(entityID, ['avatarEntity']);
-    if (properties.avatarEntity) {
-        Entities.editEntity(entityID, { grab: { grabbable: grabbable }});
+    var properties = Entities.getEntityProperties(entityID, ['avatarEntity', 'grab.grabbable']);
+    if (properties.avatarEntity && properties.grab.grabable != grabbable) {
+        var editProps = { grab: { grabbable: grabbable }};
+        Entities.editEntity(entityID, editProps);
+        sendToQml({ method : 'wearablesLockedChanged', wearablesLocked : getWearablesLocked()});
     }
 }
 
@@ -453,12 +457,14 @@ function onAddingWearable(entityID) {
     updateAvatarWearables(currentAvatar, function() {
         sendToQml({'method' : 'updateAvatarInBookmarks'});
     });
+    sendToQml({ method : 'wearablesLockedChanged', wearablesLocked : getWearablesLocked()});
 }
 
 function onDeletingWearable(entityID) {
     updateAvatarWearables(currentAvatar, function() {
         sendToQml({'method' : 'updateAvatarInBookmarks'});
     });
+    sendToQml({ method : 'wearablesLockedChanged', wearablesLocked : getWearablesLocked()});
 }
 
 function handleWearableMessages(channel, message, sender) {
