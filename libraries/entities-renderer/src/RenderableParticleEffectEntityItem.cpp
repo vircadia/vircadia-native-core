@@ -1,4 +1,4 @@
-//
+﻿//
 //  RenderableParticleEffectEntityItem.cpp
 //  interface/src
 //
@@ -13,6 +13,8 @@
 
 #include <GeometryCache.h>
 #include <shaders/Shaders.h>
+
+#include <glm/gtx/transform.hpp>
 
 using namespace render;
 using namespace render::entities;
@@ -111,6 +113,7 @@ void ParticleEffectEntityRenderer::doRenderUpdateSynchronousTyped(const ScenePoi
         QString compoundShapeURL = entity->getCompoundShapeURL();
         if (_compoundShapeURL != compoundShapeURL) {
             _compoundShapeURL = compoundShapeURL;
+            _hasComputedTriangles = false;
             fetchGeometryResource();
         }
     });
@@ -217,7 +220,8 @@ float importanceSample3DDimension(float startDim) {
 }
 
 ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource) {
+                                                                                       const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                                                                       const TriangleInfo& triangleInfo) {
     CpuParticle particle;
 
     const auto& accelerationSpread = particleProperties.emission.acceleration.spread;
@@ -259,7 +263,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
         } else {
             azimuth = azimuthStart + (TWO_PI + azimuthFinish - azimuthStart) * randFloat();
         }
-        // TODO: azimuth and elevation are only used for ellipsoids, but could be used for other shapes too
+        // TODO: azimuth and elevation are only used for ellipsoids/circles, but could be used for other shapes too
 
         if (emitDimensions == Vectors::ZERO) {
             // Point
@@ -301,7 +305,7 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
                     break;
                 }
 
-                case SHAPE_TYPE_CIRCLE: { // FIXME: SHAPE_TYPE_CIRCLE is not exposed to scripts in buildStringToShapeTypeLookup()
+                case SHAPE_TYPE_CIRCLE: {
                     glm::vec2 radii = importanceSample2DDimension(emitRadiusStart) * 0.5f * glm::vec2(emitDimensions.x, emitDimensions.z);
                     float x = radii.x * glm::cos(azimuth);
                     float z = radii.y * glm::sin(azimuth);
@@ -326,7 +330,43 @@ ParticleEffectEntityRenderer::CpuParticle ParticleEffectEntityRenderer::createPa
                     break;
                 }
 
-                case SHAPE_TYPE_COMPOUND:
+                case SHAPE_TYPE_COMPOUND: {
+                    // if we get here we know that geometryResource is loaded
+
+                    size_t index = randFloat() * triangleInfo.totalSamples;
+                    Triangle triangle;
+                    for (size_t i = 0; i < triangleInfo.samplesPerTriangle.size(); i++) {
+                        size_t numSamples = triangleInfo.samplesPerTriangle[i];
+                        if (index < numSamples) {
+                            triangle = triangleInfo.triangles[i];
+                            break;
+                        }
+                        index -= numSamples;
+                    }
+
+                    float edgeLength1 = glm::length(triangle.v1 - triangle.v0);
+                    float edgeLength2 = glm::length(triangle.v2 - triangle.v1);
+                    float edgeLength3 = glm::length(triangle.v0 - triangle.v2);
+
+                    float perimeter = edgeLength1 + edgeLength2 + edgeLength3;
+                    float fraction1 = randFloatInRange(0.0f, 1.0f);
+                    float fractionEdge1 = glm::min(fraction1 * perimeter / edgeLength1, 1.0f);
+                    float fraction2 = fraction1 - edgeLength1 / perimeter;
+                    float fractionEdge2 = glm::clamp(fraction2 * perimeter / edgeLength2, 0.0f, 1.0f);
+                    float fraction3 = fraction2 - edgeLength2 / perimeter;
+                    float fractionEdge3 = glm::clamp(fraction3 * perimeter / edgeLength3, 0.0f, 1.0f);
+
+                    float dim = importanceSample2DDimension(emitRadiusStart);
+                    triangle = triangle * (glm::scale(emitDimensions) * triangleInfo.transform);
+                    glm::vec3 center = (triangle.v0 + triangle.v1 + triangle.v2) / 3.0f;
+                    glm::vec3 v0 = (dim * (triangle.v0 - center)) + center;
+                    glm::vec3 v1 = (dim * (triangle.v1 - center)) + center;
+                    glm::vec3 v2 = (dim * (triangle.v2 - center)) + center;
+
+                    emitPosition = glm::mix(v0, glm::mix(v1, glm::mix(v2, v0, fractionEdge3), fractionEdge2), fractionEdge1);
+                    emitDirection = triangle.getNormal();
+                    break;
+                }
 
                 case SHAPE_TYPE_SPHERE:
                 case SHAPE_TYPE_ELLIPSOID:
@@ -374,13 +414,16 @@ void ParticleEffectEntityRenderer::stepSimulation() {
 
     const auto& modelTransform = getModelTransform();
     if (_emitting && particleProperties.emitting() &&
-        (_shapeType != SHAPE_TYPE_COMPOUND || (_geometryResource && _geometryResource->isLoaded()))) {
+        (shapeType != SHAPE_TYPE_COMPOUND || (geometryResource && geometryResource->isLoaded()))) {
         uint64_t emitInterval = particleProperties.emitIntervalUsecs();
         if (emitInterval > 0 && interval >= _timeUntilNextEmit) {
             auto timeRemaining = interval;
             while (timeRemaining > _timeUntilNextEmit) {
+                if (_shapeType == SHAPE_TYPE_COMPOUND && !_hasComputedTriangles) {
+                    computeTriangles(geometryResource->getHFMModel());
+                }
                 // emit particle
-                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties, shapeType, geometryResource));
+                _cpuParticles.push_back(createParticle(now, modelTransform, particleProperties, shapeType, geometryResource, _triangleInfo));
                 _timeUntilNextEmit = emitInterval;
                 if (emitInterval < timeRemaining) {
                     timeRemaining -= emitInterval;
@@ -467,4 +510,120 @@ void ParticleEffectEntityRenderer::fetchGeometryResource() {
     } else {
         _geometryResource = DependencyManager::get<ModelCache>()->getCollisionGeometryResource(hullURL);
     }
+}
+
+// FIXME: this is very similar to Model::calculateTriangleSets
+void ParticleEffectEntityRenderer::computeTriangles(const hfm::Model& hfmModel) {
+    PROFILE_RANGE(render, __FUNCTION__);
+
+    int numberOfMeshes = hfmModel.meshes.size();
+
+    _hasComputedTriangles = true;
+    _triangleInfo.triangles.clear();
+    _triangleInfo.samplesPerTriangle.clear();
+
+    std::vector<float> areas;
+    float minArea = FLT_MAX;
+    AABox bounds;
+
+    for (int i = 0; i < numberOfMeshes; i++) {
+        const HFMMesh& mesh = hfmModel.meshes.at(i);
+
+        const int numberOfParts = mesh.parts.size();
+        for (int j = 0; j < numberOfParts; j++) {
+            const HFMMeshPart& part = mesh.parts.at(j);
+
+            const int INDICES_PER_TRIANGLE = 3;
+            const int INDICES_PER_QUAD = 4;
+            const int TRIANGLES_PER_QUAD = 2;
+
+            // tell our triangleSet how many triangles to expect.
+            int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
+            int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+            int totalTriangles = (numberOfQuads * TRIANGLES_PER_QUAD) + numberOfTris;
+            _triangleInfo.triangles.reserve(_triangleInfo.triangles.size() + totalTriangles);
+            areas.reserve(areas.size() + totalTriangles);
+
+            auto meshTransform = hfmModel.offset * mesh.modelTransform;
+
+            if (part.quadIndices.size() > 0) {
+                int vIndex = 0;
+                for (int q = 0; q < numberOfQuads; q++) {
+                    int i0 = part.quadIndices[vIndex++];
+                    int i1 = part.quadIndices[vIndex++];
+                    int i2 = part.quadIndices[vIndex++];
+                    int i3 = part.quadIndices[vIndex++];
+
+                    // track the model space version... these points will be transformed by the FST's offset, 
+                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
+                    // this can't change at runtime, so we can safely store these in our TriangleSet
+                    glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                    glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                    glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+                    glm::vec3 v3 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i3], 1.0f));
+
+                    Triangle tri1 = { v0, v1, v3 };
+                    Triangle tri2 = { v1, v2, v3 };
+                    _triangleInfo.triangles.push_back(tri1);
+                    _triangleInfo.triangles.push_back(tri2);
+
+                    float area1 = tri1.getArea();
+                    areas.push_back(area1);
+                    if (area1 > EPSILON) {
+                        minArea = std::min(minArea, area1);
+                    }
+
+                    float area2 = tri2.getArea();
+                    areas.push_back(area2);
+                    if (area2 > EPSILON) {
+                        minArea = std::min(minArea, area2);
+                    }
+
+                    bounds += v0;
+                    bounds += v1;
+                    bounds += v2;
+                    bounds += v3;
+                }
+            }
+
+            if (part.triangleIndices.size() > 0) {
+                int vIndex = 0;
+                for (int t = 0; t < numberOfTris; t++) {
+                    int i0 = part.triangleIndices[vIndex++];
+                    int i1 = part.triangleIndices[vIndex++];
+                    int i2 = part.triangleIndices[vIndex++];
+
+                    // track the model space version... these points will be transformed by the FST's offset, 
+                    // which includes the scaling, rotation, and translation specified by the FST/FBX, 
+                    // this can't change at runtime, so we can safely store these in our TriangleSet
+                    glm::vec3 v0 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i0], 1.0f));
+                    glm::vec3 v1 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i1], 1.0f));
+                    glm::vec3 v2 = glm::vec3(meshTransform * glm::vec4(mesh.vertices[i2], 1.0f));
+
+                    Triangle tri = { v0, v1, v2 };
+                    _triangleInfo.triangles.push_back(tri);
+
+                    float area = tri.getArea();
+                    areas.push_back(area);
+                    if (area > EPSILON) {
+                        minArea = std::min(minArea, area);
+                    }
+
+                    bounds += v0;
+                    bounds += v1;
+                    bounds += v2;
+                }
+            }
+        }
+    }
+
+    _triangleInfo.totalSamples = 0;
+    for (auto& area : areas) {
+        size_t numSamples = area / minArea;
+        _triangleInfo.samplesPerTriangle.push_back(numSamples);
+        _triangleInfo.totalSamples += numSamples;
+    }
+
+    glm::vec3 scale = bounds.getScale();
+    _triangleInfo.transform = glm::scale(1.0f / scale) * glm::translate(-bounds.calcCenter());
 }

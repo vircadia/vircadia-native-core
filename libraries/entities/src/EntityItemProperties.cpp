@@ -127,6 +127,7 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_SIMPLE_COMPOUND);
     addShapeType(SHAPE_TYPE_STATIC_MESH);
     addShapeType(SHAPE_TYPE_ELLIPSOID);
+    addShapeType(SHAPE_TYPE_CIRCLE);
 }
 
 QHash<QString, MaterialMappingMode> stringToMaterialMappingModeLookup;
@@ -1121,21 +1122,21 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
  *     Particles are emitted from the portion of the shape that lies between <code>emitRadiusStart</code> and the 
  *     shape's surface.
  * @property {number} polarStart=0 - The angle in radians from the entity's local z-axis at which particles start being emitted 
- *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
- *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.  Only used if <code>shapeType</code> is
- *     <code>ellipsoid</code>.
+ *     within the shape; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
+ *     shape that lies between <code>polarStart<code> and <code>polarFinish</code>.  Only used if <code>shapeType</code> is
+ *     <code>ellipsoid</code> or <code>sphere</code>.
  * @property {number} polarFinish=0 - The angle in radians from the entity's local z-axis at which particles stop being emitted 
- *     within the ellipsoid; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
- *     ellipsoid that lies between <code>polarStart<code> and <code>polarFinish</code>.  Only used if <code>shapeType</code> is
- *     <code>ellipsoid</code>.
+ *     within the shape; range <code>0</code> &ndash; <code>Math.PI</code>. Particles are emitted from the portion of the 
+ *     shape that lies between <code>polarStart<code> and <code>polarFinish</code>.  Only used if <code>shapeType</code> is
+ *     <code>ellipsoid</code> or <code>sphere</code>.
  * @property {number} azimuthStart=-Math.PI - The angle in radians from the entity's local x-axis about the entity's local 
  *     z-axis at which particles start being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are 
- *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
- *     Only used if <code>shapeType</code> is <code>ellipsoid</code>.
+ *     emitted from the portion of the shape that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ *     Only used if <code>shapeType</code> is <code>ellipsoid</code>, <code>sphere</code>, or <code>circle</code>.
  * @property {number} azimuthFinish=Math.PI - The angle in radians from the entity's local x-axis about the entity's local
  *     z-axis at which particles stop being emitted; range <code>-Math.PI</code> &ndash; <code>Math.PI</code>. Particles are
- *     emitted from the portion of the ellipsoid that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
- *     Only used if <code>shapeType</code> is <code>ellipsoid</code>.
+ *     emitted from the portion of the shape that lies between <code>azimuthStart<code> and <code>azimuthFinish</code>.
+ *     Only used if <code>shapeType</code> is <code>ellipsoid</code>, <code>sphere</code>, or <code>circle</code>..
  *
  * @property {string} textures="" - The URL of a JPG or PNG image file to display for each particle. If you want transparency,
  *     use PNG format.

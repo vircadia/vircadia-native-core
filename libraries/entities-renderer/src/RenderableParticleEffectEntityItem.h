@@ -81,8 +81,18 @@ private:
         glm::vec2 spare;
     };
 
+    void computeTriangles(const hfm::Model& hfmModel);
+    bool _hasComputedTriangles{ false };
+    struct TriangleInfo {
+        std::vector<Triangle> triangles;
+        std::vector<size_t> samplesPerTriangle;
+        size_t totalSamples;
+        glm::mat4 transform;
+    } _triangleInfo;
+
     static CpuParticle createParticle(uint64_t now, const Transform& baseTransform, const particle::Properties& particleProperties,
-                                      const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource);
+                                      const ShapeType& shapeType, const GeometryResource::Pointer& geometryResource,
+                                      const TriangleInfo& triangleInfo);
     void stepSimulation();
 
     particle::Properties _particleProperties;

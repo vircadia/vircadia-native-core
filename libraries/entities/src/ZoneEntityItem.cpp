@@ -352,7 +352,7 @@ bool ZoneEntityItem::contains(const glm::vec3& point) const {
 
             Extents meshExtents = hfmModel.getMeshExtents();
             glm::vec3 meshExtentsDiagonal = meshExtents.maximum - meshExtents.minimum;
-            glm::vec3 offset = -meshExtents.minimum- (meshExtentsDiagonal * getRegistrationPoint());
+            glm::vec3 offset = -meshExtents.minimum - (meshExtentsDiagonal * getRegistrationPoint());
             glm::vec3 scale(getScaledDimensions() / meshExtentsDiagonal);
 
             glm::mat4 hfmToEntityMatrix = glm::scale(scale) * glm::translate(offset);

@@ -175,7 +175,7 @@ protected:
 
     QString _textures;
 
-    ShapeType _shapeType = SHAPE_TYPE_NONE;
+    ShapeType _shapeType { SHAPE_TYPE_NONE } ;
 
 private:
     uint64_t _lastAnimated{ 0 };

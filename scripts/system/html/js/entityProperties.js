@@ -808,6 +808,21 @@ const GROUPS = [
                 propertyID: "speedSpread",
             },
             {
+                label: "Shape Type",
+                type: "dropdown",
+                options: { "box": "Box", "ellipsoid": "Ellipsoid", 
+                           "cylinder-y": "Cylinder", "circle": "Circle", "plane": "Plane",
+                           "compound": "Use Compound Shape URL" },
+                propertyID: "particleShapeType",
+                propertyName: "shapeType",
+            },
+            {
+                label: "Compound Shape URL",
+                type: "string",
+                propertyID: "particleCompoundShapeURL",
+                propertyName: "compoundShapeURL",
+            },
+            {
                 label: "Emit Dimensions",
                 type: "vec3",
                 vec3Type: "xyz",
