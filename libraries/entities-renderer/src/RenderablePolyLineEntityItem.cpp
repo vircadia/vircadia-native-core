@@ -46,12 +46,7 @@ PolyLineEntityRenderer::PolyLineEntityRenderer(const EntityItemPointer& entity) 
 
 void PolyLineEntityRenderer::buildPipeline() {
     // FIXME: opaque pipeline
-    gpu::ShaderPointer program;
-    if (DISABLE_DEFERRED) {
-        program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke_forward);
-    } else {
-        program = gpu::Shader::createProgram(shader::entities_renderer::program::paintStroke);
-    }
+    gpu::ShaderPointer program = gpu::Shader::createProgram(DISABLE_DEFERRED ? shader::entities_renderer::program::paintStroke_forward : shader::entities_renderer::program::paintStroke);
 
     {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());

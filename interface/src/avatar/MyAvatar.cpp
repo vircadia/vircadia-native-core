@@ -3450,6 +3450,34 @@ float MyAvatar::getGravity() {
     return _characterController.getGravity();
 }
 
+void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
+    QUuid oldID = getSessionUUID();
+    Avatar::setSessionUUID(sessionUUID);
+    QUuid id = getSessionUUID();
+    if (id != oldID) {
+        auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
+        EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
+        if (entityTree) {
+            QList<QUuid> avatarEntityIDs;
+            _avatarEntitiesLock.withReadLock([&] {
+                avatarEntityIDs = _packedAvatarEntityData.keys();
+            });
+            entityTree->withWriteLock([&] {
+                for (const auto& entityID : avatarEntityIDs) {
+                    auto entity = entityTree->findEntityByID(entityID);
+                    if (!entity) {
+                        continue;
+                    }
+                    entity->setOwningAvatarID(id);
+                    if (entity->getParentID() == oldID) {
+                        entity->setParentID(id);
+                    }
+                }
+            });
+        }
+    }
+}
+
 void MyAvatar::increaseSize() {
     float minScale = getDomainMinScale();
     float maxScale = getDomainMaxScale();

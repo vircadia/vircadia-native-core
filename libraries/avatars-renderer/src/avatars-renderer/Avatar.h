@@ -296,9 +296,6 @@ public:
 
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
-    static void renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
-                                               float radius1, float radius2, const glm::vec4& color);
-
     /**jsdoc
      * Set the offset applied to the current avatar. The offset adjusts the position that the avatar is rendered. For example, 
      * with an offset of <code>{ x: 0, y: 0.1, z: 0 }</code>, your avatar will appear to be raised off the ground slightly.
@@ -664,8 +661,6 @@ protected:
 
     AvatarTransit _transit;
     std::mutex _transitLock;
-
-    static int _jointConesID;
 
     int _voiceSphereID;
 
