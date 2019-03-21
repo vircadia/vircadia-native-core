@@ -121,6 +121,11 @@ exports.handlers = {
                 e.doclet.description = (e.doclet.description ? e.doclet.description : "") + availableIn;
             }            
         }
+
+        if (e.doclet.kind === "function" && e.doclet.returns && e.doclet.returns[0].type
+                && e.doclet.returns[0].type.names[0] === "Signal") {
+            e.doclet.kind = "signal";
+        }
     }
 };
 
