@@ -430,6 +430,8 @@ void Audio::setLocalInjectorGain(float gain) {
             _localInjectorGain = gain;
             // convert dB to amplitude
             gain = fastExp2f(gain / 6.02059991f);
+            // quantize and limit to match NodeList::setInjectorGain()
+            gain = unpackFloatGainFromByte(packFloatGainToByte(gain));
             DependencyManager::get<AudioClient>()->setLocalInjectorGain(gain);
         }
     });
@@ -447,6 +449,8 @@ void Audio::setSystemInjectorGain(float gain) {
             _systemInjectorGain = gain;
             // convert dB to amplitude
             gain = fastExp2f(gain / 6.02059991f);
+            // quantize and limit to match NodeList::setInjectorGain()
+            gain = unpackFloatGainFromByte(packFloatGainToByte(gain));
             DependencyManager::get<AudioClient>()->setSystemInjectorGain(gain);
         }
     });
