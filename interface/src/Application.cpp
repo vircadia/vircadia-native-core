@@ -1985,6 +1985,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return nullptr;
     });
 
+    EntityTree::setEmitScriptEventOperator([this](const QUuid& id, const QVariant& message) {
+        auto entities = getEntities();
+        if (auto entity = entities->renderableForEntityId(id)) {
+            entity->emitScriptEvent(message);
+        }
+    });
+
     EntityTree::setTextSizeOperator([this](const QUuid& id, const QString& text) {
         auto entities = getEntities();
         if (auto entity = entities->renderableForEntityId(id)) {
