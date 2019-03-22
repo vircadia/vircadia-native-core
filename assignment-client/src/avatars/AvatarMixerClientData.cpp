@@ -23,6 +23,9 @@
 
 #include "AvatarMixerSlave.h"
 
+// Offset from reported position for priority-zone purposes:
+const glm::vec3 AvatarMixerClientData::AVATAR_CENTER_OFFSET { 0.0f, 1.0f, 0.0 };
+
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : 
     NodeData(nodeID, nodeLocalID) {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
@@ -143,13 +146,10 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
     auto newPosition = getPosition();
     if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
         EntityTree& entityTree = *slaveSharedData.entityTree;
-        FindPriorityZone findPriorityZone { newPosition, false } ;
+        FindPriorityZone findPriorityZone { newPosition + AVATAR_CENTER_OFFSET } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
         _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
         _avatar->setNeedsHeroCheck(false);
-        if (findPriorityZone.isInPriorityZone) {
-            qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
-        }
     }
 
     return true;

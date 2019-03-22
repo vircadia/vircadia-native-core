@@ -843,7 +843,7 @@ void AvatarMixer::sendStatsPacket() {
 
     QJsonObject avatarsObject;
     auto nodeList = DependencyManager::get<NodeList>();
-    // add stats for each listerner
+    // add stats for each listener
     nodeList->eachNode([&](const SharedNodePointer& node) {
         QJsonObject avatarStats;
 
@@ -866,6 +866,12 @@ void AvatarMixer::sendStatsPacket() {
                 // add the diff between the full outbound bandwidth and the measured bandwidth for AvatarData send only
                 avatarStats["delta_full_vs_avatar_data_kbps"] =
                     (double)outboundAvatarDataKbps - avatarStats[OUTBOUND_AVATAR_DATA_STATS_KEY].toDouble();
+            }
+
+            if (node->getType() != NodeType::Agent) {  // Nodes that aren't avatars
+                const QString displayName
+                    { node->getType() == NodeType::EntityScriptServer ? "ENTITY SCRIPT SERVER" : "ENTITY SERVER" };
+                avatarStats["display_name"] = displayName;
             }
         }
 
