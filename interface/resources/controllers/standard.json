@@ -43,12 +43,12 @@
         },
 
         { "from": "Standard.LeftSecondaryThumb",
-          "when": [ "Application.Grounded", "Application.RightHandDominant" ],
+          "when": [ "Application.Grounded", "Application.LeftHandDominant" ],
           "to": "Actions.Up"
         },
 
         { "from": "Standard.LeftSecondaryThumb",
-		  "when": "Application.RightHandDominant",
+		  "when": "Application.LeftHandDominant",
 		  "to": "Actions.Up"
 		},
 		
@@ -94,12 +94,12 @@
         },
 
         { "from": "Standard.RightSecondaryThumb",
-          "when": [ "Application.Grounded", "Application.LeftHandDominant" ],
+          "when": [ "Application.Grounded", "Application.RightHandDominant" ],
           "to": "Actions.Up"
         },
 
         { "from": "Standard.RightSecondaryThumb",
-		  "when": "Application.LeftHandDominant",
+		  "when": "Application.RightHandDominant",
 		  "to": "Actions.Up"
 		},
 
