@@ -605,7 +605,7 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
-    virtual void sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const { }
+    virtual void sendPacket(const QUuid& entityID) const { }
     bool applyGrabChanges();
     void relayJointDataToChildren();
 

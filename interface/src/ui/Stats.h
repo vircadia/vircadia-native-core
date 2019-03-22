@@ -87,6 +87,7 @@ private: \
  * @property {number} audioPacketLoss - <em>Read-only.</em>
  * @property {string} audioCodec - <em>Read-only.</em>
  * @property {string} audioNoiseGate - <em>Read-only.</em>
+ * @property {Vec2} audioInjectors - <em>Read-only.</em>
  * @property {number} entityPacketsInKbps - <em>Read-only.</em>
  *
  * @property {number} downloads - <em>Read-only.</em>
@@ -243,6 +244,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, audioPacketLoss, 0)
     STATS_PROPERTY(QString, audioCodec, QString())
     STATS_PROPERTY(QString, audioNoiseGate, QString())
+    STATS_PROPERTY(QVector2D, audioInjectors, QVector2D());
     STATS_PROPERTY(int, entityPacketsInKbps, 0)
 
     STATS_PROPERTY(int, downloads, 0)
@@ -691,6 +693,13 @@ signals:
      * @returns {Signal}
      */
     void audioNoiseGateChanged();
+
+    /**jsdoc
+     * Triggered when the value of the <code>audioInjectors</code> property changes.
+     * @function Stats.audioInjectorsChanged
+     * @returns {Signal}
+     */
+    void audioInjectorsChanged();
 
     /**jsdoc
      * Triggered when the value of the <code>entityPacketsInKbps</code> property changes.

@@ -376,7 +376,7 @@ bool Avatar::applyGrabChanges() {
                     const EntityItemPointer& entity = std::dynamic_pointer_cast<EntityItem>(target);
                     if (entity && entity->getEntityHostType() == entity::HostType::AVATAR && entity->getSimulationOwner().getID() == getID()) {
                         EntityItemProperties properties = entity->getProperties();
-                        sendPacket(entity->getID(), properties);
+                        sendPacket(entity->getID());
                     }
                 }
             } else {

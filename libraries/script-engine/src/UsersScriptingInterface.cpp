@@ -52,8 +52,15 @@ float UsersScriptingInterface::getAvatarGain(const QUuid& nodeID) {
 }
 
 void UsersScriptingInterface::kick(const QUuid& nodeID) {
-    // ask the NodeList to kick the user with the given session ID
-    DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+
+    if (_kickConfirmationOperator) {
+        bool waitingForKickResponse = _kickResponseLock.resultWithReadLock<bool>([&] { return _waitingForKickResponse; });
+        if (getCanKick() && !waitingForKickResponse) {
+            _kickConfirmationOperator(nodeID);
+        }
+    } else {
+        DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+    }
 }
 
 void UsersScriptingInterface::mute(const QUuid& nodeID) {
