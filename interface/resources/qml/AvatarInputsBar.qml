@@ -26,10 +26,6 @@ Item {
     width: hmdActive ? audio.width : audioApplication.width;
     height: hmdActive ? audio.height : audioApplication.height;
 
-    onHmdActiveChanged: {
-        console.log("hmd active = " + hmdActive);
-    }
-
     Timer {
         id: hmdActiveCheckTimer;
         interval: 500;
