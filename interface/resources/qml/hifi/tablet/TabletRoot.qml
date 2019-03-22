@@ -117,7 +117,6 @@ Rectangle {
                 if (loader.item.hasOwnProperty("gotoPreviousApp")) {
                     loader.item.gotoPreviousApp = true;
                 }
-            
                 screenChanged("Web", url)
             });
         }

@@ -272,6 +272,9 @@ public:
     static void setEntityClicksCapturedOperator(std::function<bool()> areEntityClicksCapturedOperator) { _areEntityClicksCapturedOperator = areEntityClicksCapturedOperator; }
     static bool areEntityClicksCaptured();
 
+    static void setEmitScriptEventOperator(std::function<void(const QUuid&, const QVariant&)> emitScriptEventOperator) { _emitScriptEventOperator = emitScriptEventOperator; }
+    static void emitScriptEvent(const QUuid& id, const QVariant& message);
+
     std::map<QString, QString> getNamedPaths() const { return _namedPaths; }
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
@@ -383,6 +386,7 @@ private:
     static std::function<QObject*(const QUuid&)> _getEntityObjectOperator;
     static std::function<QSizeF(const QUuid&, const QString&)> _textSizeOperator;
     static std::function<bool()> _areEntityClicksCapturedOperator;
+    static std::function<void(const QUuid&, const QVariant&)> _emitScriptEventOperator;
 
     std::vector<int32_t> _staleProxies;
 

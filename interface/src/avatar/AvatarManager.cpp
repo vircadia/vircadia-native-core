@@ -629,8 +629,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                     // but most avatars are roughly the same size, so let's not be so fancy yet.
                     const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                    _collisionInjectors.remove_if(
-                        [](const AudioInjectorPointer& injector) { return !injector || injector->isFinished(); });
+                    _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) { return !injector; });
 
                     static const int MAX_INJECTOR_COUNT = 3;
                     if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
@@ -640,7 +639,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                         options.volume = energyFactorOfFull;
                         options.pitch = 1.0f / AVATAR_STRETCH_FACTOR;
 
-                        auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
+                        auto injector = DependencyManager::get<AudioInjectorManager>()->playSound(collisionSound, options, true);
                         _collisionInjectors.emplace_back(injector);
                     }
                 }
