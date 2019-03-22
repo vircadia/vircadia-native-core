@@ -53,16 +53,6 @@ Rectangle {
         micBar.opacity = rectOpacity;
     }
 
-    onLevelChanged: {
-        var rectOpacity = muted && (level >= userSpeakingLevel) ? 0.9 : 0.3;
-        if (pushToTalk && !pushingToTalk) {
-            rectOpacity = (level >= userSpeakingLevel) ? 0.9 : 0.7;
-        } else if (mouseArea.containsMouse && rectOpacity != 0.9) {
-            rectOpacity = 0.5;
-        }
-        micBar.opacity = rectOpacity;
-    }
-
     color: "#00000000";
     border {
         width: mouseArea.containsMouse || mouseArea.containsPress ? 2 : 0;
