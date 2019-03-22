@@ -29,7 +29,7 @@
 #include <PathUtils.h>
 #include <ResourceManager.h>
 #include <SoundCache.h>
-#include <AudioInjector.h>
+#include <AudioInjectorManager.h>
 #include <RegisteredMetaTypes.h>
 #include <ui/TabletScriptingInterface.h>
 
@@ -537,7 +537,7 @@ void Keyboard::handleTriggerBegin(const QUuid& id, const PointerEvent& event) {
         audioOptions.position = keyWorldPosition;
         audioOptions.volume = 0.05f;
 
-        AudioInjector::playSoundAndDelete(_keySound, audioOptions);
+        DependencyManager::get<AudioInjectorManager>()->playSound(_keySound, audioOptions, true);
 
         int scanCode = key.getScanCode(_capsEnabled);
         QString keyString = key.getKeyString(_capsEnabled);

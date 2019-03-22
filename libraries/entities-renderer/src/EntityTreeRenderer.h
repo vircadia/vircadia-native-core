@@ -16,7 +16,7 @@
 #include <QtCore/QStack>
 #include <QtGui/QMouseEvent>
 
-#include <AbstractAudioInterface.h>
+#include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
 #include <PointerEvent.h>

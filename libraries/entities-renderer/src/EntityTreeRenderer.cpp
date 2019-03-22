@@ -1105,7 +1105,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entit
     options.volume = volume;
     options.pitch = 1.0f / stretchFactor;
 
-    AudioInjector::playSoundAndDelete(collisionSound, options);
+    DependencyManager::get<AudioInjectorManager>()->playSound(collisionSound, options, true);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,

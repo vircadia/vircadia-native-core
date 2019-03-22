@@ -2706,9 +2706,7 @@ void Application::cleanupBeforeQuit() {
 
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
-    if (_snapshotSoundInjector != nullptr) {
-        _snapshotSoundInjector->stop();
-    }
+    _snapshotSoundInjector = nullptr;
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
@@ -4264,10 +4262,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
                     if (notificationSounds.get() && notificationSoundSnapshot.get()) {
                         if (_snapshotSoundInjector) {
-                            _snapshotSoundInjector->setOptions(options);
-                            _snapshotSoundInjector->restart();
+                            DependencyManager::get<AudioInjectorManager>()->setOptionsAndRestart(_snapshotSoundInjector, options);
                         } else {
-                            _snapshotSoundInjector = AudioInjector::playSound(_snapshotSound, options);
+                            _snapshotSoundInjector = DependencyManager::get<AudioInjectorManager>()->playSound(_snapshotSound, options);
                         }
                     }
                     takeSnapshot(true);
