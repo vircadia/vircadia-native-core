@@ -19,30 +19,49 @@ Item {
     objectName: "AvatarInputsBar"
     property int modality: Qt.NonModal
     readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
-    width: HMD.active ? audio.width : audioApplication.width;
-    height: HMD.active ? audio.height : audioApplication.height;
     x: 10;
     y: 5;
     readonly property bool shouldReposition: true;
+    property bool hmdActive: HMD.active;
+    width: hmdActive ? audio.width : audioApplication.width;
+    height: hmdActive ? audio.height : audioApplication.height;
+
+    onHmdActiveChanged: {
+        console.log("hmd active = " + hmdActive);
+    }
+
+    Timer {
+        id: hmdActiveCheckTimer;
+        interval: 500;
+        repeat: true;
+        onTriggered: {
+            root.hmdActive = HMD.active;
+        }
+ 
+    }
 
     HifiAudio.MicBar {
         id: audio;
-        visible: AvatarInputs.showAudioTools && HMD.active;
+        visible: AvatarInputs.showAudioTools && root.hmdActive;
         standalone: true;
         dragTarget: parent;
     }
 
     HifiAudio.MicBarApplication {
         id: audioApplication;
-        visible: AvatarInputs.showAudioTools && !HMD.active;
-        onVisibleChanged: {
-            console.log("visible changed: " + visible);
-        }
+        visible: AvatarInputs.showAudioTools && !root.hmdActive;
         standalone: true;
         dragTarget: parent;
     }
+    
+    Component.onCompleted: {
+        HMD.displayModeChanged.connect(function(isHmdMode) {
+            root.hmdActive = isHmdMode;
+        });
+    }
+
     BubbleIcon {
         dragTarget: parent
-        visible: !HMD.active;
+        visible: !root.hmdActive;
     }
 }

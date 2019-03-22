@@ -19,9 +19,9 @@ Rectangle {
     id: micBar
     HifiConstants { id: hifi; }
 
+    property var muted: AudioScriptingInterface.muted;
     readonly property var level: AudioScriptingInterface.inputLevel;
     readonly property var clipping: AudioScriptingInterface.clipping;
-    readonly property var muted: AudioScriptingInterface.muted;
     readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
     readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
 
