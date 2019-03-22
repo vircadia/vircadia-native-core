@@ -1366,7 +1366,9 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
             memset(_localScratchBuffer, 0, bytesToRead);
             if (0 < injectorBuffer->readData((char*)_localScratchBuffer, bytesToRead)) {
 
-                float gain = injector->getVolume();
+                bool isSystemSound = !injector->isPositionSet() && !injector->isAmbisonic();
+
+                float gain = injector->getVolume() * (isSystemSound ? _systemInjectorGain : _localInjectorGain);
 
                 if (injector->isAmbisonic()) {
 
