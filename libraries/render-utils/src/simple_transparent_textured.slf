@@ -16,8 +16,8 @@
 <@include gpu/Color.slh@>
 <@include render-utils/ShaderConstants.h@>
 
-<@include ForwardGlobalLight.slh@>
-<$declareEvalGlobalLightingAlphaBlended()$>
+<@include DeferredGlobalLight.slh@>
+<$declareEvalGlobalLightingAlphaBlendedWithHaze()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>

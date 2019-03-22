@@ -186,7 +186,11 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
                 if (_networkMaterial->isLoaded()) {
                     onMaterialRequestFinished(!_networkMaterial->isFailed());
                 } else {
-                    connect(_networkMaterial.data(), &Resource::finished, this, onMaterialRequestFinished);
+                    connect(_networkMaterial.data(), &Resource::finished, this, [&](bool success) {
+                        withWriteLock([&] {
+                            onMaterialRequestFinished(success);
+                        });
+                    });
                 }
             }
         } else if (materialDataChanged && usingMaterialData) {
