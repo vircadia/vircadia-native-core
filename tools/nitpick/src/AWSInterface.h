@@ -31,7 +31,10 @@ public:
                                   QCheckBox* updateAWSCheckBox,
                                   QRadioButton* diffImageRadioButton,
                                   QRadioButton* ssimImageRadionButton,
-                                  QLineEdit* urlLineEdit);
+                                  QLineEdit* urlLineEdit,
+                                  const QString& branch,
+                                  const QString& user
+    );
 
     void extractTestFailuresFromZippedFolder(const QString& folderName);
     void createHTMLFile();
@@ -70,9 +73,13 @@ private:
     QString AWS_BUCKET{ "hifi-qa" };
 
     QLineEdit* _urlLineEdit;
-
+    QString _user;
+    QString _branch;
 
     QString _comparisonImageFilename;
+
+    int _numberOfFailures;
+    int _numberOfSuccesses;
 };
 
 #endif  // hifi_AWSInterface_h

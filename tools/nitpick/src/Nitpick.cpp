@@ -38,7 +38,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
  
     _ui.plainTextEdit->setReadOnly(true);
 
-    setWindowTitle("Nitpick - v3.1.3");
+    setWindowTitle("Nitpick - " + nitpickVersion);
 
     clientProfiles << "VR-High" << "Desktop-High" << "Desktop-Low" << "Mobile-Touch" << "VR-Standalone";
     _ui.clientProfileComboBox->insertItems(0, clientProfiles);
@@ -266,7 +266,7 @@ void Nitpick::on_createXMLScriptRadioButton_clicked() {
 }
 
 void Nitpick::on_createWebPagePushbutton_clicked() {
-    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit);
+    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit, _ui.branchLineEdit->text(), _ui.userLineEdit->text());
 }
 
 void Nitpick::about() {
