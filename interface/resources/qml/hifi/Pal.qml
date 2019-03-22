@@ -1261,6 +1261,14 @@ Rectangle {
         case 'refreshConnections':
             refreshConnections();
             break;
+        case 'connectionRemoved':
+            for (var i=0; i<connectionsUserModel.count; ++i) {
+                if (connectionsUserModel.get(i).userName === message.params) {
+                    connectionsUserModel.remove(i);
+                    break;
+                }
+            }
+            break;
         case 'avatarDisconnected':
             var sessionID = message.params[0];
             delete ignored[sessionID];
