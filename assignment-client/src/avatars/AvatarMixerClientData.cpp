@@ -141,22 +141,15 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
     _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
 
     auto newPosition = getPosition();
-    if (newPosition != oldPosition) {
-//#define AVATAR_HERO_TEST_HACK
-#ifdef AVATAR_HERO_TEST_HACK
-        {
-            const static QString heroKey { "HERO" };
-            _avatar->setPriorityAvatar(_avatar->getDisplayName().contains(heroKey));
-        }
-#else
+    if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition, false } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
         _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
-        //if (findPriorityZone.isInPriorityZone) {
-        //    qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
-        //}
-#endif
+        _avatar->setNeedsHeroCheck(false);
+        if (findPriorityZone.isInPriorityZone) {
+            qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
+        }
     }
 
     return true;

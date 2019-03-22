@@ -43,12 +43,14 @@ void AvatarMixerSlave::configure(ConstIter begin, ConstIter end) {
 
 void AvatarMixerSlave::configureBroadcast(ConstIter begin, ConstIter end, 
                                 p_high_resolution_clock::time_point lastFrameTimestamp,
-                                float maxKbpsPerNode, float throttlingRatio) {
+                                float maxKbpsPerNode, float throttlingRatio,
+                                float priorityReservedFraction) {
     _begin = begin;
     _end = end;
     _lastFrameTimestamp = lastFrameTimestamp;
     _maxKbpsPerNode = maxKbpsPerNode;
     _throttlingRatio = throttlingRatio;
+    _avatarHeroFraction = priorityReservedFraction;
 }
 
 void AvatarMixerSlave::harvestStats(AvatarMixerSlaveStats& stats) {
@@ -308,7 +310,6 @@ namespace {
 }  // Close anonymous namespace.
 
 void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node) {
-    const float AVATAR_HERO_FRACTION { 0.4f };
     const Node* destinationNode = node.data();
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -343,7 +344,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 
     // max number of avatarBytes per frame (13 900, typical)
     const int maxAvatarBytesPerFrame = int(_maxKbpsPerNode * BYTES_PER_KILOBIT / AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND);
-    const int maxHeroBytesPerFrame = int(maxAvatarBytesPerFrame * AVATAR_HERO_FRACTION);  // 5555, typical
+    const int maxHeroBytesPerFrame = int(maxAvatarBytesPerFrame * _avatarHeroFraction);  // 5555, typical
 
     // keep track of the number of other avatars held back in this frame
     int numAvatarsHeldBack = 0;

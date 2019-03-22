@@ -34,8 +34,8 @@ public:
 
     static bool shouldReplicateTo(const Node& from, const Node& to) {
         return to.getType() == NodeType::DownstreamAvatarMixer &&
-               to.getPublicSocket() != from.getPublicSocket() &&
-               to.getLocalSocket() != from.getLocalSocket();
+            to.getPublicSocket() != from.getPublicSocket() &&
+            to.getLocalSocket() != from.getLocalSocket();
     }
 
 public slots:
@@ -80,6 +80,7 @@ private:
 
     // Attach to entity tree for avatar-priority zone info.
     EntityTreeHeadlessViewer _entityViewer;
+    bool _dirtyHeroStatus { true };  // Dirty the needs-hero-update
 
     // FIXME - new throttling - use these values somehow
     float _trailingMixRatio { 0.0f };
@@ -146,6 +147,12 @@ private:
 
     AvatarMixerSlavePool _slavePool;
     SlaveSharedData _slaveSharedData;
+
+public slots:
+    // Avatar zone possibly changed
+    void entityAdded(EntityItem* entity);
+    void entityRemoved(EntityItem* entity);
+    void entityChange();
 };
 
 #endif // hifi_AvatarMixer_h
