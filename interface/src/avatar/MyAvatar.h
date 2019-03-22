@@ -1919,7 +1919,7 @@ private:
     bool didTeleport();
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
-    void sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const override;
+    void sendPacket(const QUuid& entityID) const override;
 
     std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;
