@@ -38,7 +38,7 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
  
     _ui.plainTextEdit->setReadOnly(true);
 
-    setWindowTitle("Nitpick - v3.1.3");
+    setWindowTitle("Nitpick - " + nitpickVersion);
 
     clientProfiles << "VR-High" << "Desktop-High" << "Desktop-Low" << "Mobile-Touch" << "VR-Standalone";
     _ui.clientProfileComboBox->insertItems(0, clientProfiles);

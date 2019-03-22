@@ -211,8 +211,6 @@ void TestRunnerMobile::runInterface() {
         _adbInterface = new AdbInterface();
     }
 
-    sendServerIPToDevice();
-
     _statusLabel->setText("Starting Interface");
 
     QString testScript = (_runFullSuite->isChecked())
@@ -230,7 +228,7 @@ void TestRunnerMobile::runInterface() {
     QString command = _adbInterface->getAdbCommand() +
         " shell am start -n " + startCommand +
         " --es args \\\"" +
-        " --url file:///~/serverless/tutorial.json" +
+        " --url hifi://" + getServerIP() + "/0,0,0"
         " --no-updater" +
         " --no-login-suggestion" +
         " --testScript " + testScript + " quitWhenFinished" +
@@ -257,8 +255,8 @@ void TestRunnerMobile::pullFolder() {
 #endif
 }
 
-void TestRunnerMobile::sendServerIPToDevice() {
-    // Get device IP
+QString TestRunnerMobile::getServerIP() {
+    // Get device IP (ifconfig.txt was created when connecting)
     QFile ifconfigFile{ _workingFolder + "/ifconfig.txt" };
     if (!ifconfigFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -309,7 +307,7 @@ void TestRunnerMobile::sendServerIPToDevice() {
                     if (!serverIP.isNull()) {
                         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                             "Cannot identify server IP (multiple interfaces on device submask)");
-                        return;
+                        return QString("CANNOT IDENTIFY SERVER IP");
                     } else {
                         union {
                             uint32_t ip;
@@ -325,6 +323,8 @@ void TestRunnerMobile::sendServerIPToDevice() {
     }
 
     ifconfigFile.close();
+
+    return serverIP;
 }
 
 qint64 TestRunnerMobile::convertToBinary(const QString& str) {

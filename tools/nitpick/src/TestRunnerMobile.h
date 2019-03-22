@@ -52,7 +52,7 @@ public:
 
     void pullFolder();
 
-    void sendServerIPToDevice();
+    QString getServerIP();
     qint64 convertToBinary (const QString& str);
 
 private:
