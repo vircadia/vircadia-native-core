@@ -19,8 +19,16 @@ Rectangle {
     width: bubbleIcon.width + 10
     height: bubbleIcon.height + 10
     radius: 5;
-    opacity: AvatarInputs.ignoreRadiusEnabled ? 0.7 : 0.3;
     property var dragTarget: null;
+    property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
+
+    onIgnoreRadiusEnabledChanged: {
+        if (ignoreRadiusEnabled) {
+            bubbleRect.opacity = 0.7;
+        } else {
+            bubbleRect.opacity = 0.3;
+        }
+    }
 
     color: "#00000000";
     border {
@@ -58,15 +66,17 @@ Rectangle {
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {
+            var rectOpacity = ignoreRadiusEnabled ? (containsMouse ? 0.9 : 0.7) : (containsMouse ? 0.5 : 0.3);
             if (containsMouse) {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }
+            bubbleRect.opacity = rectOpacity;
         }
     }
     Image {
         id: bubbleIcon
         source: "../icons/tablet-icons/bubble-i.svg";
-        sourceSize: Qt.size(28, 28);
+        sourceSize: Qt.size(32, 32);
         smooth: true;
         anchors.top: parent.top
         anchors.topMargin: (parent.height - bubbleIcon.height) / 2

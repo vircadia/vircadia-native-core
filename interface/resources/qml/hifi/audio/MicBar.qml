@@ -16,6 +16,7 @@ import stylesUit 1.0
 import TabletScriptingInterface 1.0
 
 Rectangle {
+    id: micBar
     HifiConstants { id: hifi; }
 
     readonly property var level: AudioScriptingInterface.inputLevel;
@@ -72,7 +73,7 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
-            if (AudioScriptingInterface.pushToTalk) {
+            if (pushToTalk) {
                 return;
             }
             muted = !muted;
@@ -98,7 +99,7 @@ Rectangle {
         readonly property string red: colors.muted;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: muted ? muted : unmuted;
+        readonly property string icon: micBar.muted ? muted : unmuted;
     }
 
     Item {
@@ -122,7 +123,7 @@ Rectangle {
                 readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
 
                 id: image;
-                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : 
+                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
 
                 width: 30;
@@ -146,9 +147,9 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: muted ? colors.muted : colors.unmuted;
+        readonly property string color: colors.icon;
 
-        visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
+        visible: (pushToTalk && !pushingToTalk) || muted;
 
         anchors {
             left: parent.left;
@@ -177,7 +178,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
             color: parent.color;
         }
@@ -188,7 +189,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
             color: parent.color;
         }

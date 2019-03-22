@@ -18,20 +18,31 @@ Item {
     id: root;
     objectName: "AvatarInputsBar"
     property int modality: Qt.NonModal
-    readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled
-    width: audio.width;
-    height: audio.height;
+    readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
+    width: HMD.active ? audio.width : audioApplication.width;
+    height: HMD.active ? audio.height : audioApplication.height;
     x: 10;
     y: 5;
     readonly property bool shouldReposition: true;
 
-    HifiAudio.MicBarApplication {
+    HifiAudio.MicBar {
         id: audio;
-        visible: AvatarInputs.showAudioTools;
+        visible: AvatarInputs.showAudioTools && HMD.active;
+        standalone: true;
+        dragTarget: parent;
+    }
+
+    HifiAudio.MicBarApplication {
+        id: audioApplication;
+        visible: AvatarInputs.showAudioTools && !HMD.active;
+        onVisibleChanged: {
+            console.log("visible changed: " + visible);
+        }
         standalone: true;
         dragTarget: parent;
     }
     BubbleIcon {
         dragTarget: parent
+        visible: !HMD.active;
     }
 }

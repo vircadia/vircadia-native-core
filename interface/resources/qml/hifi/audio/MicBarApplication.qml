@@ -126,7 +126,7 @@ Rectangle {
         Item {
             Image {
                 id: image;
-                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : 
+                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
                 width: 29;
                 height: 32;
@@ -141,8 +141,7 @@ Rectangle {
                 id: imageOverlay
                 anchors { fill: image }
                 source: image;
-                color: (pushToTalk && !pushingToTalk) ? ((level >= userSpeakingLevel) ? colors.mutedColor :
-                    colors.unmutedColor) : colors.icon;
+                color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : colors.icon;
             }
         }
     }
@@ -150,12 +149,12 @@ Rectangle {
     Item {
         id: status;
 
-        visible: (pushToTalk && !pushingToTalk) || (muted && (level >= userSpeakingLevel));
+        visible: pushToTalk || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
             top: icon.bottom;
-            topMargin: 5;
+            topMargin: 2;
         }
 
         width: parent.width;
@@ -174,10 +173,10 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: (level >= userSpeakingLevel && muted) ? colors.mutedColor : colors.unmutedColor;
+            color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : (level >= userSpeakingLevel && muted) ? colors.mutedColor : colors.unmutedColor;
             font.bold: true
 
-            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "PTT" : "PTT-(T)") : (muted ? "MUTED" : "MUTE");
+            text: pushToTalk ? (HMD.active ? "PTT" : "PTT-(T)") : (muted ? "MUTED" : "MUTE");
             size: 12;
         }
     }
@@ -204,6 +203,7 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
+            visible: (!(pushToTalk && !pushingToTalk))
             height: parent.height * level;
             width: parent.width;
             radius: 5;
@@ -217,6 +217,7 @@ Rectangle {
 
         LinearGradient {
             anchors { fill: mask }
+            visible: (!(pushToTalk && !pushingToTalk))
             source: mask
             start: Qt.point(0, 0);
             end: Qt.point(0, bar.height);
