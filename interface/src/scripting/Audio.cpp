@@ -426,3 +426,37 @@ float Audio::getInjectorGain() {
         return DependencyManager::get<NodeList>()->getInjectorGain();
     });
 }
+
+void Audio::setLocalInjectorGain(float gain) {
+    withWriteLock([&] {
+        if (_localInjectorGain != gain) {
+            _localInjectorGain = gain;
+            // convert dB to amplitude
+            gain = fastExp2f(gain / 6.02059991f);
+            DependencyManager::get<AudioClient>()->setLocalInjectorGain(gain);
+        }
+    });
+}
+
+float Audio::getLocalInjectorGain() {
+    return resultWithReadLock<float>([&] {
+        return _localInjectorGain;
+    });
+}
+
+void Audio::setSystemInjectorGain(float gain) {
+    withWriteLock([&] {
+        if (_systemInjectorGain != gain) {
+            _systemInjectorGain = gain;
+            // convert dB to amplitude
+            gain = fastExp2f(gain / 6.02059991f);
+            DependencyManager::get<AudioClient>()->setSystemInjectorGain(gain);
+        }
+    });
+}
+
+float Audio::getSystemInjectorGain() {
+    return resultWithReadLock<float>([&] {
+        return _systemInjectorGain;
+    });
+}
