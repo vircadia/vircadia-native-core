@@ -620,7 +620,7 @@
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="text">
-       <string>usePreviousInstallation</string>
+       <string>Use Previous Installation</string>
       </property>
       <property name="checked">
        <bool>false</bool>
@@ -895,7 +895,7 @@
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, will not show results during evaluation&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
       </property>
       <property name="text">
-       <string>usePreviousInstallation</string>
+       <string>Use Previous Installation</string>
       </property>
       <property name="checked">
        <bool>false</bool>

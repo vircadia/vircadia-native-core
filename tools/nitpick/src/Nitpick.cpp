@@ -266,7 +266,7 @@ void Nitpick::on_createXMLScriptRadioButton_clicked() {
 }
 
 void Nitpick::on_createWebPagePushbutton_clicked() {
-    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit);
+    _testCreator->createWebPage(_ui.updateAWSCheckBox, _ui.diffImageRadioButton, _ui.ssimImageRadioButton, _ui.awsURLLineEdit, _ui.branchLineEdit->text(), _ui.userLineEdit->text());
 }
 
 void Nitpick::about() {

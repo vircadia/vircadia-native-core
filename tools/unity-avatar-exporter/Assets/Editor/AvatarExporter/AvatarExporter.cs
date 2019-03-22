@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.3.6";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.3.7";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
@@ -332,8 +332,7 @@ class AvatarExporter : MonoBehaviour {
     static List<string> alternateStandardShaderMaterials = new List<string>();
     static List<string> unsupportedShaderMaterials = new List<string>();
     
-    static Scene previewScene;
-    static string previousScene = "";
+    static SceneSetup[] previousSceneSetup;
     static Vector3 previousScenePivot = Vector3.zero;
     static Quaternion previousSceneRotation = Quaternion.identity;
     static float previousSceneSize = 0.0f;
@@ -1223,14 +1222,22 @@ class AvatarExporter : MonoBehaviour {
     }
     
     static bool OpenPreviewScene() {
+        // store the current scene setup to restore when closing the preview scene
+        previousSceneSetup = EditorSceneManager.GetSceneManagerSetup();
+        
+        // if the user is currently in the Humanoid Avatar Configuration then inform them to close it first
+        if (EditorSceneManager.GetActiveScene().name == "Avatar Configuration" && previousSceneSetup.Length == 0) {
+            EditorUtility.DisplayDialog("Error", "Please exit the Avatar Configuration before exporting.", "Ok");
+            return false;
+        }
+        
         // see if the user wants to save their current scene before opening preview avatar scene in place of user's scene
         if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) {
             return false;
         }
         
-        // store the user's current scene to re-open when done and open a new default scene in place of the user's scene
-        previousScene = EditorSceneManager.GetActiveScene().path;
-        previewScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
+        // open a new empty scene in place of the user's scene
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
         
         // instantiate a game object to preview the avatar and a game object for the height reference prefab at 0, 0, 0
         UnityEngine.Object heightReferenceResource = AssetDatabase.LoadAssetAtPath(HEIGHT_REFERENCE_PREFAB, typeof(UnityEngine.Object));
@@ -1259,13 +1266,8 @@ class AvatarExporter : MonoBehaviour {
         DestroyImmediate(avatarPreviewObject);
         DestroyImmediate(heightReferenceObject);
         
-        // re-open the scene the user had open before switching to the preview scene
-        if (!string.IsNullOrEmpty(previousScene)) {
-            EditorSceneManager.OpenScene(previousScene);
-        }
-        
-        // close the preview scene and flag it to be removed
-        EditorSceneManager.CloseScene(previewScene, true);
+        // restore to the previous scene setup that the user had open before exporting
+        EditorSceneManager.RestoreSceneManagerSetup(previousSceneSetup);
         
         // restore the camera pivot and rotation to the user's previous scene settings
         var sceneView = SceneView.lastActiveSceneView;
