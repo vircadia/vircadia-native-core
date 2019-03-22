@@ -18,7 +18,10 @@ import TabletScriptingInterface 1.0
 Rectangle {
     HifiConstants { id: hifi; }
 
+    property var muted: AudioScriptingInterface.muted;
     readonly property var level: AudioScriptingInterface.inputLevel;
+    readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
 
     property bool gated: false;
     Component.onCompleted: {
@@ -67,10 +70,10 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
-            if (AudioScriptingInterface.pushToTalk) {
+            if (pushToTalk) {
                 return;
             }
-            AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
+            muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
@@ -115,7 +118,7 @@ Rectangle {
                 readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
 
                 id: image;
-                source: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? pushToTalkIcon : AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
+                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -138,9 +141,9 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
+        readonly property string color: muted ? colors.muted : colors.unmuted;
 
-        visible: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) || AudioScriptingInterface.muted;
+        visible: (pushToTalk && !pushingToTalk) || muted;
 
         anchors {
             left: parent.left;
@@ -159,7 +162,7 @@ Rectangle {
 
             color: parent.color;
 
-            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
+            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
@@ -169,7 +172,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
             color: parent.color;
         }
@@ -180,7 +183,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
             color: parent.color;
         }
