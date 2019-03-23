@@ -184,6 +184,7 @@ class MyAvatar : public Avatar {
      * @property {Mat4} controllerLeftHandMatrix <em>Read-only.</em>
      * @property {Mat4} controllerRightHandMatrix <em>Read-only.</em>
      * @property {number} sensorToWorldScale <em>Read-only.</em>
+     * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only</em>
      */
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)

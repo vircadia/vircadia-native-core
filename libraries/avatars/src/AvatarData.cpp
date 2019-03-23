@@ -1143,10 +1143,11 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // we store the hand state as well as other items in a shared bitset. The hand state is an octal, but is split
         // into two sections to maintain backward compatibility. The bits are ordered as such (0-7 left to right).
         // AA 6/1/18 added three more flags bits 8,9, and 10 for procedural audio, blink, and eye saccade enabled
-        //     +---+-----+-----+--+--+--+--+-----+
-        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|xxxxx|
-        //     +---+-----+-----+--+--+--+--+-----+
+        //     +---+-----+-----+--+--+--+--+--+----+
+        //     |x,x|H0,H1|x,x,x|H2|Au|Bl|Ey|He|xxxx|
+        //     +---+-----+-----+--+--+--+--+--+----+
         // Hand state - H0,H1,H2 is found in the 3rd, 4th, and 8th bits
+        // Hero-avatar status (He) - 12th bit
         auto newHandState = getSemiNibbleAt(bitItems, HAND_STATE_START_BIT)
             + (oneAtBit16(bitItems, HAND_STATE_FINGER_POINTING_BIT) ? IS_FINGER_POINTING_FLAG : 0);
 

@@ -453,6 +453,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
 
     Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
 
+    Q_PROPERTY(bool hasPriority READ getHasPriority)
+
 public:
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
 
