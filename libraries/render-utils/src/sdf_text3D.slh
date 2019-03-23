@@ -1,0 +1,63 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+<!
+// <$_SCRIBE_FILENAME$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Sam Gondelman on 3/15/19
+//  Copyright 2019 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+!>
+<@if not SDF_TEXT3D_SLH@>
+<@def SDF_TEXT3D_SLH@>
+
+LAYOUT(binding=0) uniform sampler2D Font;
+
+struct TextParams {
+    vec4 color;
+    vec4 outline;
+};
+
+LAYOUT(binding=0) uniform textParamsBuffer {
+    TextParams params;
+};
+
+<@func declareEvalSDFSuperSampled()@>
+
+#define TAA_TEXTURE_LOD_BIAS    -3.0
+
+const float interiorCutoff = 0.8;
+const float outlineExpansion = 0.2;
+const float taaBias = pow(2.0, TAA_TEXTURE_LOD_BIAS);
+
+float evalSDF(vec2 texCoord) {
+    // retrieve signed distance
+    float sdf = textureLod(Font, texCoord, TAA_TEXTURE_LOD_BIAS).g;
+    sdf = mix(sdf, mix(sdf + outlineExpansion, 1.0 - sdf, float(sdf > interiorCutoff)), float(params.outline.x > 0.0));
+
+    // Rely on TAA for anti-aliasing
+    return step(0.5, sdf);
+}
+
+float evalSDFSuperSampled(vec2 texCoord) {
+    vec2 dxTexCoord = dFdx(texCoord) * 0.5 * taaBias;
+    vec2 dyTexCoord = dFdy(texCoord) * 0.5 * taaBias;
+
+    // Perform 4x supersampling for anisotropic filtering
+    float a;
+    a = evalSDF(texCoord);
+    a += evalSDF(texCoord + dxTexCoord);
+    a += evalSDF(texCoord + dyTexCoord);
+    a += evalSDF(texCoord + dxTexCoord + dyTexCoord);
+    a *= 0.25;
+
+    return a;
+}
+
+<@endfunc@>
+
+<@endif@>
+

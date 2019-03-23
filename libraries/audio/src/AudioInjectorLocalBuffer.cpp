@@ -16,6 +16,10 @@ AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(AudioDataPointer audioData) :
 {
 }
 
+AudioInjectorLocalBuffer::~AudioInjectorLocalBuffer() {
+    stop();
+}
+
 void AudioInjectorLocalBuffer::stop() {
     _isStopped = true;
     
@@ -30,9 +34,8 @@ bool AudioInjectorLocalBuffer::seek(qint64 pos) {
     }
 }
 
-
 qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
-    if (!_isStopped) {
+    if (!_isStopped && _audioData) {
         
         // first copy to the end of the raw audio
         int bytesToEnd = (int)_audioData->getNumBytes() - _currentOffset;

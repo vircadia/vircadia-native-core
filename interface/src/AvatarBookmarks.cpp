@@ -149,6 +149,9 @@ void AvatarBookmarks::removeBookmark(const QString& bookmarkName) {
     emit bookmarkDeleted(bookmarkName);
 }
 
+void AvatarBookmarks::deleteBookmark() {
+}
+
 void AvatarBookmarks::updateAvatarEntities(const QVariantList &avatarEntities) {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     auto currentAvatarEntities = myAvatar->getAvatarEntityData();

@@ -36,7 +36,6 @@ namespace baker {
     using TangentsPerBlendshape = std::vector<std::vector<glm::vec3>>;
 
     using MeshIndicesToModelNames = QHash<int, QString>;
-    using GeometryMappingPair = std::pair<QUrl, QVariantHash>;
 };
 
 #endif // hifi_BakerTypes_h

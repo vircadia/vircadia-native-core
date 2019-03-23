@@ -31,31 +31,18 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 class FBXBaker : public ModelBaker {
     Q_OBJECT
 public:
-    using ModelBaker::ModelBaker;
+    FBXBaker(const QUrl& inputModelURL, TextureBakerThreadGetter inputTextureThreadGetter,
+        const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
-public slots:
-    virtual void bake() override;
-
-signals:
-    void sourceCopyReadyToLoad();
-
-private slots:
-    void bakeSourceCopy();
-    void handleFBXNetworkReply();
+protected:
+    virtual void bakeProcessedSource(const hfm::Model::Pointer& hfmModel, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists) override;
 
 private:
-    void setupOutputFolder();
-
-    void loadSourceFBX();
-
-    void importScene();
-    void embedTextureMetaData();
-    void rewriteAndBakeSceneModels();
+    void rewriteAndBakeSceneModels(const QVector<hfm::Mesh>& meshes, const std::vector<hifi::ByteArray>& dracoMeshes, const std::vector<std::vector<hifi::ByteArray>>& dracoMaterialLists);
     void rewriteAndBakeSceneTextures();
+    void replaceMeshNodeWithDraco(FBXNode& meshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList);
 
-    HFMModel* _hfmModel;
-    QHash<QString, int> _textureNameMatchCount;
-    QHash<QUrl, QString> _remappedTexturePaths;
+    hfm::Model::Pointer _hfmModel;
 
     bool _pendingErrorEmission { false };
 };

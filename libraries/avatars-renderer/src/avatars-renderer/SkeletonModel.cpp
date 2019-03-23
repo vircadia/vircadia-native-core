@@ -338,24 +338,20 @@ void SkeletonModel::computeBoundingShape() {
 void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& batch, float scale, float alpha) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // draw a blue sphere at the capsule top point
-    glm::vec3 topPoint = _translation + getRotation() * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
-
+    glm::vec3 topPoint = _translation + _rotation * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
     batch.setModelTransform(Transform().setTranslation(topPoint).postScale(scale * _boundingCapsuleRadius));
     geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
-    glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
-    glm::vec3 axis = topPoint - bottomPoint;
-
+    glm::vec3 bottomPoint = topPoint - _rotation * glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
     batch.setModelTransform(Transform().setTranslation(bottomPoint).postScale(scale * _boundingCapsuleRadius));
     geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
-    glm::vec3 origin(0.0f);
-    batch.setModelTransform(Transform().setTranslation(bottomPoint));
-    geometryCache->bindSimpleProgram(batch);
-    Avatar::renderJointConnectingCone(batch, origin, axis, scale * _boundingCapsuleRadius, scale * _boundingCapsuleRadius,
-                                      glm::vec4(0.6f, 0.8f, 0.6f, alpha));
+    float capsuleDiameter = 2.0f * _boundingCapsuleRadius;
+    glm::vec3 cylinderDimensions = glm::vec3(capsuleDiameter, _boundingCapsuleHeight, capsuleDiameter);
+    batch.setModelTransform(Transform().setScale(scale * cylinderDimensions).setRotation(_rotation).setTranslation(0.5f * (topPoint + bottomPoint)));
+    geometryCache->renderSolidShapeInstance(args, batch, GeometryCache::Shape::Cylinder, glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }
 
 bool SkeletonModel::hasSkeleton() {

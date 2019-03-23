@@ -459,7 +459,7 @@ function loaded() {
                 isRenameFieldBeingMoved = true;
                 document.body.appendChild(elRenameInput);
                 // keep the focus
-                elRenameInput.select();
+                elRenameInput.focus();
             }
         }
 
@@ -475,7 +475,7 @@ function loaded() {
             elCell.innerHTML = "";
             elCell.appendChild(elRenameInput);
             // keep the focus
-            elRenameInput.select();
+            elRenameInput.focus();
             isRenameFieldBeingMoved = false;
         }
 

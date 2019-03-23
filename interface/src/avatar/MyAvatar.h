@@ -1122,6 +1122,7 @@ public:
     float getUserEyeHeight() const;
 
     virtual SpatialParentTree* getParentTree() const override;
+    virtual glm::vec3 scaleForChildren() const override { return glm::vec3(getSensorToWorldScale()); }
 
     const QUuid& getSelfID() const { return AVATAR_SELF_ID; }
 
@@ -1212,6 +1213,12 @@ public:
     Q_INVOKABLE QVariantList getCollidingFlowJoints();
 
 public slots:
+
+   /**jsdoc
+    * @function MyAvatar.setSessionUUID
+    * @param {Uuid} sessionUUID
+    */
+    virtual void setSessionUUID(const QUuid& sessionUUID) override;
 
     /**jsdoc
      * Increase the avatar's scale by five percent, up to a minimum scale of <code>1000</code>.
@@ -1912,7 +1919,7 @@ private:
     bool didTeleport();
     bool getIsAway() const { return _isAway; }
     void setAway(bool value);
-    void sendPacket(const QUuid& entityID, const EntityItemProperties& properties) const override;
+    void sendPacket(const QUuid& entityID) const override;
 
     std::mutex _pinnedJointsMutex;
     std::vector<int> _pinnedJoints;

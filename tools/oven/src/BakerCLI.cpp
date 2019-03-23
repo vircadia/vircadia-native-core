@@ -20,9 +20,10 @@
 
 #include "OvenCLIApplication.h"
 #include "ModelBakingLoggingCategory.h"
-#include "FBXBaker.h"
+#include "baking/BakerLibrary.h"
 #include "JSBaker.h"
 #include "TextureBaker.h"
+#include "MaterialBaker.h"
 
 BakerCLI::BakerCLI(OvenCLIApplication* parent) : QObject(parent) {
     
@@ -37,59 +38,68 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
 
     qDebug() << "Baking file type: " << type;
 
-    static const QString MODEL_EXTENSION { "fbx" };
+    static const QString MODEL_EXTENSION { "model" };
+    static const QString FBX_EXTENSION { "fbx" };     // legacy
+    static const QString MATERIAL_EXTENSION { "material" };
     static const QString SCRIPT_EXTENSION { "js" };
-
-    // check what kind of baker we should be creating
-    bool isFBX = type == MODEL_EXTENSION;
-    bool isScript = type == SCRIPT_EXTENSION;
-
-    // If the type doesn't match the above, we assume we have a texture, and the type specified is the
-    // texture usage type (albedo, cubemap, normals, etc.)
-    auto url = inputUrl.toDisplayString();
-    auto idx = url.lastIndexOf('.');
-    auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
-    bool isSupportedImage = QImageReader::supportedImageFormats().contains(extension.toLatin1());
 
     _outputPath = outputPath;
 
     // create our appropiate baker
-    if (isFBX) {
-        _baker = std::unique_ptr<Baker> {
-            new FBXBaker(inputUrl,
-                         []() -> QThread* { return Oven::instance().getNextWorkerThread(); },
-                         outputPath)
-        };
-        _baker->moveToThread(Oven::instance().getNextWorkerThread());
-    } else if (isScript) {
+    if (type == MODEL_EXTENSION || type == FBX_EXTENSION) {
+        QUrl bakeableModelURL = getBakeableModelURL(inputUrl);
+        if (!bakeableModelURL.isEmpty()) {
+            auto getWorkerThreadCallback = []() -> QThread* {
+                return Oven::instance().getNextWorkerThread();
+            };
+            _baker = getModelBaker(bakeableModelURL, getWorkerThreadCallback, outputPath);
+            if (_baker) {
+                _baker->moveToThread(Oven::instance().getNextWorkerThread());
+            }
+        }
+    } else if (type == SCRIPT_EXTENSION) {
         _baker = std::unique_ptr<Baker> { new JSBaker(inputUrl, outputPath) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
-    } else if (isSupportedImage) {
-        static const std::unordered_map<QString, image::TextureUsage::Type> STRING_TO_TEXTURE_USAGE_TYPE_MAP {
-            { "default", image::TextureUsage::DEFAULT_TEXTURE },
-            { "strict", image::TextureUsage::STRICT_TEXTURE },
-            { "albedo", image::TextureUsage::ALBEDO_TEXTURE },
-            { "normal", image::TextureUsage::NORMAL_TEXTURE },
-            { "bump", image::TextureUsage::BUMP_TEXTURE },
-            { "specular", image::TextureUsage::SPECULAR_TEXTURE },
-            { "metallic", image::TextureUsage::METALLIC_TEXTURE },
-            { "roughness", image::TextureUsage::ROUGHNESS_TEXTURE },
-            { "gloss", image::TextureUsage::GLOSS_TEXTURE },
-            { "emissive", image::TextureUsage::EMISSIVE_TEXTURE },
-            { "cube", image::TextureUsage::CUBE_TEXTURE },
-            { "occlusion", image::TextureUsage::OCCLUSION_TEXTURE },
-            { "scattering", image::TextureUsage::SCATTERING_TEXTURE },
-            { "lightmap", image::TextureUsage::LIGHTMAP_TEXTURE },
-        };
-
-        auto it = STRING_TO_TEXTURE_USAGE_TYPE_MAP.find(type);
-        if (it == STRING_TO_TEXTURE_USAGE_TYPE_MAP.end()) {
-            qCDebug(model_baking) << "Unknown texture usage type:" << type;
-            QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
-        }
-        _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, it->second, outputPath) };
+    } else if (type == MATERIAL_EXTENSION) {
+        _baker = std::unique_ptr<Baker> { new MaterialBaker(inputUrl.toDisplayString(), true, outputPath, QUrl(outputPath)) };
         _baker->moveToThread(Oven::instance().getNextWorkerThread());
     } else {
+        // If the type doesn't match the above, we assume we have a texture, and the type specified is the
+        // texture usage type (albedo, cubemap, normals, etc.)
+        auto url = inputUrl.toDisplayString();
+        auto idx = url.lastIndexOf('.');
+        auto extension = idx >= 0 ? url.mid(idx + 1).toLower() : "";
+
+        if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
+            static const std::unordered_map<QString, image::TextureUsage::Type> STRING_TO_TEXTURE_USAGE_TYPE_MAP {
+                { "default", image::TextureUsage::DEFAULT_TEXTURE },
+                { "strict", image::TextureUsage::STRICT_TEXTURE },
+                { "albedo", image::TextureUsage::ALBEDO_TEXTURE },
+                { "normal", image::TextureUsage::NORMAL_TEXTURE },
+                { "bump", image::TextureUsage::BUMP_TEXTURE },
+                { "specular", image::TextureUsage::SPECULAR_TEXTURE },
+                { "metallic", image::TextureUsage::METALLIC_TEXTURE },
+                { "roughness", image::TextureUsage::ROUGHNESS_TEXTURE },
+                { "gloss", image::TextureUsage::GLOSS_TEXTURE },
+                { "emissive", image::TextureUsage::EMISSIVE_TEXTURE },
+                { "cube", image::TextureUsage::CUBE_TEXTURE },
+                { "skybox", image::TextureUsage::CUBE_TEXTURE },
+                { "occlusion", image::TextureUsage::OCCLUSION_TEXTURE },
+                { "scattering", image::TextureUsage::SCATTERING_TEXTURE },
+                { "lightmap", image::TextureUsage::LIGHTMAP_TEXTURE },
+            };
+
+            auto it = STRING_TO_TEXTURE_USAGE_TYPE_MAP.find(type);
+            if (it == STRING_TO_TEXTURE_USAGE_TYPE_MAP.end()) {
+                qCDebug(model_baking) << "Unknown texture usage type:" << type;
+                QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
+            }
+            _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, it->second, outputPath) };
+            _baker->moveToThread(Oven::instance().getNextWorkerThread());
+        }
+    }
+
+    if (!_baker) {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
         QCoreApplication::exit(OVEN_STATUS_CODE_FAIL);
         return;

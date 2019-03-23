@@ -83,6 +83,7 @@ int TestCreator::compareImageLists() {
         QImage expectedImage(_expectedImagesFullFilenames[i]);
 
         double similarityIndex;  // in [-1.0 .. 1.0], where 1.0 means images are identical
+        double worstTileValue;   // in [-1.0 .. 1.0], where 1.0 means images are identical
 
         bool isInteractiveMode = (!_isRunningFromCommandLine && _checkBoxInteractiveMode->isChecked() && !_isRunningInAutomaticTestRun);
                                  
@@ -90,13 +91,16 @@ int TestCreator::compareImageLists() {
         if (isInteractiveMode && (resultImage.width() != expectedImage.width() || resultImage.height() != expectedImage.height())) {
             QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Images are not the same size");
             similarityIndex = -100.0;
+            worstTileValue = 0.0;
         } else {
             _imageComparer.compareImages(resultImage, expectedImage);
             similarityIndex = _imageComparer.getSSIMValue();
+            worstTileValue = _imageComparer.getWorstTileValue();
         }
 
         TestResult testResult = TestResult{
-            (float)similarityIndex,
+            similarityIndex,
+            worstTileValue,
             _expectedImagesFullFilenames[i].left(_expectedImagesFullFilenames[i].lastIndexOf("/") + 1),  // path to the test (including trailing /)
             QFileInfo(_expectedImagesFullFilenames[i].toStdString().c_str()).fileName(),                 // filename of expected image
             QFileInfo(_resultImagesFullFilenames[i].toStdString().c_str()).fileName(),                   // filename of result image
@@ -105,10 +109,9 @@ int TestCreator::compareImageLists() {
 
         _mismatchWindow.setTestResult(testResult);
         
-        if (similarityIndex < THRESHOLD) {
-            ++numberOfFailures;
-
+        if (similarityIndex < THRESHOLD_GLOBAL || worstTileValue < THRESHOLD_LOCAL) {
             if (!isInteractiveMode) {
+                ++numberOfFailures;
                 appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), _mismatchWindow.getSSIMResultsImage(testResult._ssimResults), true);
             } else {
                 _mismatchWindow.exec();
@@ -117,6 +120,7 @@ int TestCreator::compareImageLists() {
                     case USER_RESPONSE_PASS:
                         break;
                     case USE_RESPONSE_FAIL:
+                        ++numberOfFailures;
                         appendTestResultsToFile(testResult, _mismatchWindow.getComparisonImage(), _mismatchWindow.getSSIMResultsImage(testResult._ssimResults), true);
                         break;
                     case USER_RESPONSE_ABORT:
@@ -198,7 +202,8 @@ void TestCreator::appendTestResultsToFile(const TestResult& testResult, const QP
     stream << "TestCreator in folder " << testResult._pathname.left(testResult._pathname.length() - 1) << endl; // remove trailing '/'
     stream << "Expected image was    " << testResult._expectedImageFilename << endl;
     stream << "Actual image was      " << testResult._actualImageFilename << endl;
-    stream << "Similarity index was  " << testResult._error << endl;
+    stream << "Similarity index was  " << testResult._errorGlobal << endl;
+    stream << "Worst tile was  " << testResult._errorLocal << endl;
 
     descriptionFile.close();
 
@@ -819,6 +824,10 @@ void TestCreator::createRecursiveScript(const QString& directory, bool interacti
 
     // If 'directories' is empty, this means that this recursive script has no tests to call, so it is redundant
     if (directories.length() == 0) {
+        QString testRecursivePathname = directory + "/" + TEST_RECURSIVE_FILENAME;
+        if (QFile::exists(testRecursivePathname)) {
+            QFile::remove(testRecursivePathname);
+        }
         return;
     }
 
@@ -851,10 +860,7 @@ void TestCreator::createRecursiveScript(const QString& directory, bool interacti
     textStream << "   nitpick = createNitpick(Script.resolvePath(\".\"));" << endl;
     textStream << "   testsRootPath = nitpick.getTestsRootPath();" << endl << endl;
     textStream << "   nitpick.enableRecursive();" << endl;
-    textStream << "   nitpick.enableAuto();" << endl << endl;
-    textStream << "   if (typeof Test !== 'undefined') {" << endl;
-    textStream << "       Test.wait(10000);" << endl;
-    textStream << "   }" << endl;
+    textStream << "   nitpick.enableAuto();" << endl;
     textStream << "} else {" << endl;
     textStream << "   depth++" << endl;
     textStream << "}" << endl << endl;
@@ -1112,7 +1118,10 @@ void TestCreator::createWebPage(
     QCheckBox* updateAWSCheckBox, 
     QRadioButton* diffImageRadioButton,
     QRadioButton* ssimImageRadionButton,
-    QLineEdit* urlLineEdit
+    QLineEdit* urlLineEdit,
+    const QString& branch,
+    const QString& user
+
 ) {
     QString testResults = QFileDialog::getOpenFileName(nullptr, "Please select the zipped test results to update from", nullptr,
                                                        "Zipped TestCreator Results (TestResults--*.zip)");
@@ -1136,6 +1145,8 @@ void TestCreator::createWebPage(
         updateAWSCheckBox, 
         diffImageRadioButton,
         ssimImageRadionButton,
-        urlLineEdit
+        urlLineEdit,
+        branch,
+        user
     );
 }

@@ -1985,6 +1985,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return nullptr;
     });
 
+    EntityTree::setEmitScriptEventOperator([this](const QUuid& id, const QVariant& message) {
+        auto entities = getEntities();
+        if (auto entity = entities->renderableForEntityId(id)) {
+            entity->emitScriptEvent(message);
+        }
+    });
+
     EntityTree::setTextSizeOperator([this](const QUuid& id, const QString& text) {
         auto entities = getEntities();
         if (auto entity = entities->renderableForEntityId(id)) {
@@ -2341,6 +2348,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         copyViewFrustum(viewFrustum);
         return viewFrustum.getPosition();
     });
+
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
 
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
@@ -2704,9 +2713,7 @@ void Application::cleanupBeforeQuit() {
 
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
-    if (_snapshotSoundInjector != nullptr) {
-        _snapshotSoundInjector->stop();
-    }
+    _snapshotSoundInjector = nullptr;
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
@@ -3043,6 +3050,9 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/tablet/TabletAddressDialog.qml" },
+        QUrl{ "hifi/Card.qml" },
+        QUrl{ "hifi/Pal.qml" },
+        QUrl{ "hifi/NameCard.qml" },
         }, platformInfoCallback);
 
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
@@ -3285,6 +3295,40 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+}
+
+void Application::userKickConfirmation(const QUuid& nodeID) {
+    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+    auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
+
+    QString userName;
+
+    if (avatar) {
+        userName = avatar->getSessionDisplayName();
+    } else {
+        userName = nodeID.toString();
+    }
+
+    QString kickMessage = "Do you wish to kick " + userName + " from your domain";
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Kick User", kickMessage,
+                                                          QMessageBox::Yes | QMessageBox::No);
+
+    if (dlg->getDialogItem()) {
+
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+
+            bool yes = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            // ask the NodeList to kick the user with the given session ID
+
+            if (yes) {
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+            }
+
+            DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
+        });
+        DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(true);
+    }
 }
 
 void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties) {
@@ -4225,10 +4269,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
                     if (notificationSounds.get() && notificationSoundSnapshot.get()) {
                         if (_snapshotSoundInjector) {
-                            _snapshotSoundInjector->setOptions(options);
-                            _snapshotSoundInjector->restart();
+                            DependencyManager::get<AudioInjectorManager>()->setOptionsAndRestart(_snapshotSoundInjector, options);
                         } else {
-                            _snapshotSoundInjector = AudioInjector::playSound(_snapshotSound, options);
+                            _snapshotSoundInjector = DependencyManager::get<AudioInjectorManager>()->playSound(_snapshotSound, options);
                         }
                     }
                     takeSnapshot(true);
@@ -5772,6 +5815,7 @@ void Application::reloadResourceCaches() {
 
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery);
 
+    getMyAvatar()->prepareAvatarEntityDataForReload();
     // Clear the entities and their renderables
     getEntities()->clear();
 
@@ -6947,9 +6991,6 @@ void Application::updateWindowTitle() const {
 }
 
 void Application::clearDomainOctreeDetails(bool clearAll) {
-    // before we delete all entities get MyAvatar's AvatarEntityData ready
-    getMyAvatar()->prepareAvatarEntityDataForReload();
-
     // if we're about to quit, we really don't need to do the rest of these things...
     if (_aboutToQuit) {
         return;
