@@ -200,11 +200,11 @@ void AudioMixerClientData::parsePerAvatarGainSet(ReceivedMessage& message, const
     if (avatarUUID.isNull()) {
         // set the MASTER avatar gain
         setMasterAvatarGain(gain);
-        qCDebug(audio) << "Setting MASTER avatar gain for " << uuid << " to " << gain;
+        qCDebug(audio) << "Setting MASTER avatar gain for" << uuid << "to" << gain;
     } else {
         // set the per-source avatar gain
         setGainForAvatar(avatarUUID, gain);
-        qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUUID << "] to " << gain;
+        qCDebug(audio) << "Setting avatar gain adjustment for hrtf[" << uuid << "][" << avatarUUID << "] to" << gain;
     }
 }
 
@@ -216,7 +216,7 @@ void AudioMixerClientData::parseInjectorGainSet(ReceivedMessage& message, const 
     float gain = unpackFloatGainFromByte(packedGain);
 
     setMasterInjectorGain(gain);
-    qCDebug(audio) << "Setting MASTER injector gain for " << uuid << " to " << gain;
+    qCDebug(audio) << "Setting MASTER injector gain for" << uuid << "to" << gain;
 }
 
 void AudioMixerClientData::setGainForAvatar(QUuid nodeID, float gain) {
