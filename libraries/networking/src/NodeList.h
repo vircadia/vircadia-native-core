@@ -183,7 +183,8 @@ private:
     mutable QReadWriteLock _avatarGainMapLock;
     tbb::concurrent_unordered_map<QUuid, float, UUIDHasher> _avatarGainMap;
 
-    std::atomic<float> _injectorGain { 0.0f };
+    std::atomic<float> _avatarGain { 0.0f };    // in dB
+    std::atomic<float> _injectorGain { 0.0f };  // in dB
 
     void sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationNode);
 #if defined(Q_OS_ANDROID)
