@@ -404,13 +404,13 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
 void Audio::setAvatarGain(float gain) {
     withWriteLock([&] {
         // ask the NodeList to set the master avatar gain
-        DependencyManager::get<NodeList>()->setAvatarGain("", gain);
+        DependencyManager::get<NodeList>()->setAvatarGain(QUuid(), gain);
     });
 }
 
 float Audio::getAvatarGain() {
     return resultWithReadLock<float>([&] {
-        return DependencyManager::get<NodeList>()->getAvatarGain("");
+        return DependencyManager::get<NodeList>()->getAvatarGain(QUuid());
     });
 }
 
