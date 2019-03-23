@@ -16,7 +16,7 @@ public:
     bool isSupported() const override;
 
 protected:
-    void hmdPresent() override {}
+    void hmdPresent(const gpu::FramebufferPointer&) override {}
     bool isHmdMounted() const override { return true; }
 
 private:
