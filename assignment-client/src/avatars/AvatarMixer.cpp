@@ -1005,7 +1005,6 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     {   // Fraction of downstream bandwidth reserved for 'hero' avatars:
         static const QString PRIORITY_FRACTION_KEY = "priority_fraction";
         if (avatarMixerGroupObject.contains(PRIORITY_FRACTION_KEY)) {
-            bool isDouble = avatarMixerGroupObject[PRIORITY_FRACTION_KEY].isDouble();
             float priorityFraction = float(avatarMixerGroupObject[PRIORITY_FRACTION_KEY].toDouble());
             _slavePool.setPriorityReservedFraction(std::min(std::max(0.0f, priorityFraction), 1.0f));
             qCDebug(avatars) << "Avatar mixer reserving" << priorityFraction << "of bandwidth for priority avatars";
