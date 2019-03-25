@@ -181,6 +181,8 @@ public:
     bool isHeadsetPluggedIn() { return _isHeadsetPluggedIn; }
 #endif
 
+    int getNumLocalInjectors();
+
 public slots:
     void start();
     void stop();

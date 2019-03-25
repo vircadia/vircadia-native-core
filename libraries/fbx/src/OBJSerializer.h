@@ -25,9 +25,9 @@ public:
         COMMENT_TOKEN = 0x101
     };
     int nextToken(bool allowSpaceChar = false);
-    const QByteArray& getDatum() const { return _datum; }
+    const hifi::ByteArray& getDatum() const { return _datum; }
     bool isNextTokenFloat();
-    const QByteArray getLineAsDatum(); // some "filenames" have spaces in them
+    const hifi::ByteArray getLineAsDatum(); // some "filenames" have spaces in them
     void skipLine() { _device->readLine(); }
     void pushBackToken(int token) { _pushedBackToken = token; }
     void ungetChar(char ch) { _device->ungetChar(ch); }
@@ -39,7 +39,7 @@ public:
 
 private:
     QIODevice* _device;
-    QByteArray _datum;
+    hifi::ByteArray _datum;
     int _pushedBackToken;
     QString _comment;
 };
@@ -52,7 +52,7 @@ public:
     QString groupName; // We don't make use of hierarchical structure, but it can be preserved for debugging and future use.
     QString materialName;
     // Add one more set of vertex data. Answers true if successful
-    bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex,
+    bool add(const hifi::ByteArray& vertexIndex, const hifi::ByteArray& textureIndex, const hifi::ByteArray& normalIndex,
              const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors);
     // Return a set of one or more OBJFaces from this one, in which each is just a triangle.
     // Even though HFMMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
@@ -75,11 +75,11 @@ public:
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
-    QByteArray diffuseTextureFilename;
-    QByteArray specularTextureFilename;
-    QByteArray emissiveTextureFilename;
-    QByteArray bumpTextureFilename;
-    QByteArray opacityTextureFilename;
+    hifi::ByteArray diffuseTextureFilename;
+    hifi::ByteArray specularTextureFilename;
+    hifi::ByteArray emissiveTextureFilename;
+    hifi::ByteArray bumpTextureFilename;
+    hifi::ByteArray opacityTextureFilename;
 
     OBJMaterialTextureOptions bumpTextureOptions;
     int illuminationModel;
@@ -103,17 +103,17 @@ public:
     QString currentMaterialName;
     QHash<QString, OBJMaterial> materials;
     
-    HFMModel::Pointer read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url = QUrl()) override;
+    HFMModel::Pointer read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url = hifi::URL()) override;
 
 private:
-    QUrl _url;
+    hifi::URL _url;
 
-    QHash<QByteArray, bool> librariesSeen;
-    bool parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mapping, HFMModel& hfmModel,
+    QHash<hifi::ByteArray, bool> librariesSeen;
+    bool parseOBJGroup(OBJTokenizer& tokenizer, const hifi::VariantHash& mapping, HFMModel& hfmModel,
                        float& scaleGuess, bool combineParts);
     void parseMaterialLibrary(QIODevice* device);
-    void parseTextureLine(const QByteArray& textureLine, QByteArray& filename, OBJMaterialTextureOptions& textureOptions);
-    bool isValidTexture(const QByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
+    void parseTextureLine(const hifi::ByteArray& textureLine, hifi::ByteArray& filename, OBJMaterialTextureOptions& textureOptions);
+    bool isValidTexture(const hifi::ByteArray &filename); // true if the file exists. TODO?: check content-type header and that it is a supported format.
 
     int _partCounter { 0 };
 };

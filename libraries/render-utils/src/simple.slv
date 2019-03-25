@@ -19,7 +19,6 @@
 
 <@include render-utils/ShaderConstants.h@>
 
-// the interpolated normal
 layout(location=RENDER_UTILS_ATTR_NORMAL_WS) out vec3 _normalWS;
 layout(location=RENDER_UTILS_ATTR_NORMAL_MS) out vec3 _normalMS;
 layout(location=RENDER_UTILS_ATTR_COLOR) out vec4 _color;

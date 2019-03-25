@@ -20,6 +20,13 @@
 #include <StatTracker.h>
 #include <ResourceManager.h>
 #include <ResourceRequestObserver.h>
+#include <ResourceCache.h>
+#include <material-networking/TextureCache.h>
+#include <hfm/ModelFormatRegistry.h>
+#include <FBXSerializer.h>
+#include <OBJSerializer.h>
+
+#include "MaterialBaker.h"
 
 Oven* Oven::_staticInstance { nullptr };
 
@@ -33,6 +40,18 @@ Oven::Oven() {
     DependencyManager::set<StatTracker>();
     DependencyManager::set<ResourceManager>(false);
     DependencyManager::set<ResourceRequestObserver>();
+    DependencyManager::set<ResourceCacheSharedItems>();
+    DependencyManager::set<TextureCache>();
+
+    MaterialBaker::setNextOvenWorkerThreadOperator([] {
+        return Oven::instance().getNextWorkerThread();
+    });
+
+    {
+        auto modelFormatRegistry = DependencyManager::set<ModelFormatRegistry>();
+        modelFormatRegistry->addFormat(FBXSerializer());
+        modelFormatRegistry->addFormat(OBJSerializer());
+    }
 }
 
 Oven::~Oven() {
@@ -63,6 +82,10 @@ void Oven::setupWorkerThreads(int numWorkerThreads) {
 }
 
 QThread* Oven::getNextWorkerThread() {
+    // FIXME: we assign these threads when we make the bakers, but if certain bakers finish quickly, we could end up
+    // in a situation where threads have finished and others have tons of work queued.  Instead of assigning them at initialization,
+    // we should build a queue of bakers, and when threads finish, they can take the next available baker.
+
     // Here we replicate some of the functionality of QThreadPool by giving callers an available worker thread to use.
     // We can't use QThreadPool because we want to put QObjects with signals/slots on these threads.
     // So instead we setup our own list of threads, up to one less than the ideal thread count

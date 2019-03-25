@@ -52,12 +52,9 @@ protected:
 
 protected slots:
     /**jsdoc
-     * @function AvatarBookmarks.deleteBookmark
-     */
-    /**jsdoc
      * @function LocationBookmarks.deleteBookmark
      */
-    void deleteBookmark();
+    virtual void deleteBookmark();
 
 private:
     static bool sortOrder(QAction* a, QAction* b);

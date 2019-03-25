@@ -2978,6 +2978,7 @@ QStringList EntityTree::getJointNames(const QUuid& entityID) const {
 std::function<QObject*(const QUuid&)> EntityTree::_getEntityObjectOperator = nullptr;
 std::function<QSizeF(const QUuid&, const QString&)> EntityTree::_textSizeOperator = nullptr;
 std::function<bool()> EntityTree::_areEntityClicksCapturedOperator = nullptr;
+std::function<void(const QUuid&, const QVariant&)> EntityTree::_emitScriptEventOperator = nullptr;
 
 QObject* EntityTree::getEntityObject(const QUuid& id) {
     if (_getEntityObjectOperator) {
@@ -2998,6 +2999,12 @@ bool EntityTree::areEntityClicksCaptured() {
         return _areEntityClicksCapturedOperator();
     }
     return false;
+}
+
+void EntityTree::emitScriptEvent(const QUuid& id, const QVariant& message) {
+    if (_emitScriptEventOperator) {
+        _emitScriptEventOperator(id, message);
+    }
 }
 
 void EntityTree::updateEntityQueryAACubeWorker(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,

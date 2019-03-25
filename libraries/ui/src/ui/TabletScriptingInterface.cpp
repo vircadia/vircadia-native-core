@@ -23,7 +23,7 @@
 #include "ToolbarScriptingInterface.h"
 #include "Logging.h"
 
-#include <AudioInjector.h>
+#include <AudioInjectorManager.h>
 
 #include "SettingHandle.h"
 
@@ -212,7 +212,7 @@ void TabletScriptingInterface::playSound(TabletAudioEvents aEvent) {
         options.localOnly = true;
         options.positionSet = false;    // system sound
 
-        AudioInjectorPointer injector = AudioInjector::playSoundAndDelete(sound, options);
+        DependencyManager::get<AudioInjectorManager>()->playSound(sound, options, true);
     }
 }
 
@@ -368,6 +368,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
     if (toolbarMode) {
 #if !defined(DISABLE_QML)
+        closeDialog();
         // create new desktop window
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());

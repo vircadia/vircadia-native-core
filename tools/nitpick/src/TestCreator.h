@@ -107,7 +107,10 @@ public:
         QCheckBox* updateAWSCheckBox, 
         QRadioButton* diffImageRadioButton,
         QRadioButton* ssimImageRadionButton,
-        QLineEdit* urlLineEdit);
+        QLineEdit* urlLineEdit,
+        const QString& branch,
+        const QString& user
+    );
 
 private:
     QProgressBar* _progressBar;
@@ -121,7 +124,8 @@ private:
     const QString TEST_RESULTS_FOLDER { "TestResults" };
     const QString TEST_RESULTS_FILENAME { "TestResults.txt" };
 
-    const double THRESHOLD{ 0.9999 };
+    const double THRESHOLD_GLOBAL{ 0.9995 };
+    const double THRESHOLD_LOCAL { 0.6 };
 
     QDir _imageDirectory;
 

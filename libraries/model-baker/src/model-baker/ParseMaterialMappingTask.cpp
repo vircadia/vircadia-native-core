@@ -11,8 +11,8 @@
 #include "ModelBakerLogging.h"
 
 void ParseMaterialMappingTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
-    const auto& url = input.first;
-    const auto& mapping = input.second;
+    const auto& mapping = input.get0();
+    const auto& url = input.get1();
     MaterialMapping materialMapping;
 
     auto mappingIter = mapping.find("materialMap");
