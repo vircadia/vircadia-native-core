@@ -253,7 +253,7 @@ public:
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
 
     QByteArray computeNonce(const QString& certID, const QString ownerKey);
-    bool verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id);
+    bool verifyNonce(const QString& certID, const QString& nonce);
 
     QUuid getMyAvatarSessionUUID() { return _myAvatar ? _myAvatar->getSessionUUID() : QUuid(); }
     void setMyAvatar(std::shared_ptr<AvatarData> myAvatar) { _myAvatar = myAvatar; }
@@ -290,7 +290,7 @@ signals:
     void entityServerScriptChanging(const EntityItemID& entityItemID, const bool reload);
     void newCollisionSoundURL(const QUrl& url, const EntityItemID& entityID);
     void clearingEntities();
-    void killChallengeOwnershipTimeoutTimer(const QString& certID);
+    void killChallengeOwnershipTimeoutTimer(const EntityItemID& certID);
 
 protected:
 

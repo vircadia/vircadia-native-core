@@ -1423,9 +1423,7 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
 
 void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
     QTimer* _challengeOwnershipTimeoutTimer = new QTimer(this);
-    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [=](const QString& certID) {
-        QReadLocker locker(&_entityCertificateIDMapLock);
-        EntityItemID id = _entityCertificateIDMap.value(certID);
+    connect(this, &EntityTree::killChallengeOwnershipTimeoutTimer, this, [=](const EntityItemID& id) {
         if (entityItemID == id && _challengeOwnershipTimeoutTimer) {
             _challengeOwnershipTimeoutTimer->stop();
             _challengeOwnershipTimeoutTimer->deleteLater();
@@ -1455,12 +1453,7 @@ QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKe
     return nonceBytes;
 }
 
-bool EntityTree::verifyNonce(const QString& certID, const QString& nonce, EntityItemID& id) {
-    {
-        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-        id = _entityCertificateIDMap.value(certID);
-    }
-
+bool EntityTree::verifyNonce(const QString& certID, const QString& nonce) {
     QString actualNonce, key;
     {
         QWriteLocker locker(&_certNonceMapLock);
@@ -1645,10 +1638,14 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     QString certID(message.read(certIDByteArraySize));
     QString text(message.read(textByteArraySize));
 
-    emit killChallengeOwnershipTimeoutTimer(certID);
+   EntityItemID id;
+    {
+        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
+        id = _entityCertificateIDMap.value(certID);
+    }
+    emit killChallengeOwnershipTimeoutTimer(id);
 
-    EntityItemID id;
-    if (!verifyNonce(certID, text, id)) {
+    if (!verifyNonce(certID, text)) {
         if (!id.isNull()) {
             deleteEntity(id, true);
         }

@@ -422,8 +422,7 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     QString certID(packet->read(certIDByteArraySize));
     QString text(packet->read(textByteArraySize));
 
-    EntityItemID id;
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text, id);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text);
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
