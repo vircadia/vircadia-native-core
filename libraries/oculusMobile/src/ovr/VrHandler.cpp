@@ -9,37 +9,186 @@
 
 #include <android/native_window_jni.h>
 #include <android/log.h>
+#include <android/asset_manager.h>
+#include <android/asset_manager_jni.h>
 
 #include <unistd.h>
+#include <algorithm>
+#include <array>
 
 #include <VrApi.h>
 #include <VrApi_Helpers.h>
 #include <VrApi_Types.h>
 //#include <OVR_Platform.h>
 
+
 #include "GLContext.h"
 #include "Helpers.h"
 #include "Framebuffer.h"
 
+static AAssetManager* ASSET_MANAGER = nullptr;
 
+#define USE_BLIT_PRESENT 0
+
+#if !USE_BLIT_PRESENT
+
+
+
+static std::string getTextAsset(const char* assetPath) {
+    if (!ASSET_MANAGER || !assetPath) {
+        return nullptr;
+    }
+    AAsset* asset = AAssetManager_open(ASSET_MANAGER, assetPath, AASSET_MODE_BUFFER);
+    if (!asset) {
+        return {};
+    }
+
+    auto length = AAsset_getLength(asset);
+    if (0 == length) {
+        AAsset_close(asset);
+        return {};
+    }
+
+    auto buffer = AAsset_getBuffer(asset);
+    if (!buffer) {
+        AAsset_close(asset);
+        return {};
+    }
+
+    std::string result { static_cast<const char*>(buffer), static_cast<size_t>(length) };
+    AAsset_close(asset);
+    return result;
+}
+
+static std::string getShaderInfoLog(GLuint glshader) {
+    std::string result;
+    GLint infoLength = 0;
+    glGetShaderiv(glshader, GL_INFO_LOG_LENGTH, &infoLength);
+    if (infoLength > 0) {
+        char* temp = new char[infoLength];
+        glGetShaderInfoLog(glshader, infoLength, NULL, temp);
+        result = std::string(temp);
+        delete[] temp;
+    }
+    return result;
+}
+
+static GLuint buildShader(GLenum shaderDomain, const char* shader) {
+    GLuint glshader = glCreateShader(shaderDomain);
+    if (!glshader) {
+        throw std::runtime_error("Bad shader");
+    }
+
+    glShaderSource(glshader, 1, &shader, NULL);
+    glCompileShader(glshader);
+
+    GLint compiled = 0;
+    glGetShaderiv(glshader, GL_COMPILE_STATUS, &compiled);
+
+    // if compilation fails
+    if (!compiled) {
+        std::string compileError = getShaderInfoLog(glshader);
+        glDeleteShader(glshader);
+        __android_log_print(ANDROID_LOG_WARN, "QQQ_OVR", "Shader compile error: %s", compileError.c_str());
+        return 0;
+    }
+
+    return glshader;
+}
+
+static std::string getProgramInfoLog(GLuint glprogram) {
+    std::string result;
+    GLint infoLength = 0;
+    glGetProgramiv(glprogram, GL_INFO_LOG_LENGTH, &infoLength);
+    if (infoLength > 0) {
+        char* temp = new char[infoLength];
+        glGetProgramInfoLog(glprogram, infoLength, NULL, temp);
+        result = std::string(temp);
+        delete[] temp;
+    } 
+    return result;
+}
+
+static GLuint buildProgram(const char* vertex, const char* fragment) {
+    // A brand new program:
+    GLuint glprogram { 0 }, glvertex { 0 }, glfragment { 0 };
+    
+    try {
+        glprogram = glCreateProgram();
+        if (0 == glprogram) {
+            throw std::runtime_error("Failed to create program, is GL context current?");
+        }
+
+        glvertex = buildShader(GL_VERTEX_SHADER, vertex);
+        if (0 == glvertex) {
+            throw std::runtime_error("Failed to create or compile vertex shader");
+        }
+        glAttachShader(glprogram, glvertex);
+
+        glfragment = buildShader(GL_FRAGMENT_SHADER, fragment);
+        if (0 == glfragment) {
+            throw std::runtime_error("Failed to create or compile fragment shader");
+        }
+        glAttachShader(glprogram, glfragment);
+
+        GLint linked { 0 };
+        glLinkProgram(glprogram);
+        glGetProgramiv(glprogram, GL_LINK_STATUS, &linked);
+
+        if (!linked) {
+            std::string linkErrorLog = getProgramInfoLog(glprogram);
+            __android_log_print(ANDROID_LOG_WARN, "QQQ_OVR", "Program link error: %s", linkErrorLog.c_str());
+            throw std::runtime_error("Failed to link program, is the interface between the fragment and vertex shaders correct?");
+        }
+
+
+    } catch(const std::runtime_error& error) {
+        if (0 != glprogram) {
+            glDeleteProgram(glprogram);
+            glprogram = 0;
+        }
+    }
+
+    if (0 != glvertex) {
+        glDeleteShader(glvertex);
+    }
+
+    if (0 != glfragment) {
+        glDeleteShader(glfragment);
+    }
+
+    if (0 == glprogram) {
+        throw std::runtime_error("Failed to build program");
+    }
+
+    return glprogram;
+}
+
+#endif
 
 using namespace ovr;
 
 static thread_local bool isRenderThread { false };
 
 struct VrSurface : public TaskQueue {
-    using HandlerTask = VrHandler::HandlerTask;
+    using HandlerTask = ovr::VrHandler::HandlerTask;
 
     JavaVM* vm{nullptr};
     jobject oculusActivity{ nullptr };
     ANativeWindow* nativeWindow{ nullptr };
 
-    VrHandler* handler{nullptr};
+    ovr::VrHandler* handler{nullptr};
     ovrMobile* session{nullptr};
     bool resumed { false };
-    GLContext vrglContext;
-    Framebuffer eyeFbos[2];
-    uint32_t readFbo{0};
+    ovr::GLContext vrglContext;
+    ovr::Framebuffer eyesFbo;
+
+#if USE_BLIT_PRESENT
+    GLuint readFbo { 0 };
+#else
+    GLuint renderProgram { 0 };
+    GLuint renderVao { 0 };
+#endif
     std::atomic<uint32_t> presentIndex{1};
     double displayTime{0};
     // Not currently set by anything
@@ -76,6 +225,16 @@ struct VrSurface : public TaskQueue {
         vrglContext.create(currentDisplay, currentContext, noErrorContext);
         vrglContext.makeCurrent();
 
+#if USE_BLIT_PRESENT
+        glGenFramebuffers(1, &readFbo);
+#else
+        glGenVertexArrays(1, &renderVao);
+        const char* vertex = nullptr;
+        auto vertexShader = getTextAsset("shaders/present.vert");
+        auto fragmentShader = getTextAsset("shaders/present.frag");
+        renderProgram =  buildProgram(vertexShader.c_str(), fragmentShader.c_str());
+#endif
+
         glm::uvec2 eyeTargetSize;
         withEnv([&](JNIEnv* env){
             ovrJava java{ vm, env, oculusActivity };
@@ -85,10 +244,7 @@ struct VrSurface : public TaskQueue {
             };
         });
         __android_log_print(ANDROID_LOG_WARN, "QQQ_OVR", "QQQ Eye Size %d, %d", eyeTargetSize.x, eyeTargetSize.y);
-        ovr::for_each_eye([&](ovrEye eye) {
-            eyeFbos[eye].create(eyeTargetSize);
-        });
-        glGenFramebuffers(1, &readFbo);
+        eyesFbo.create(eyeTargetSize);
         vrglContext.doneCurrent();
     }
 
@@ -157,6 +313,7 @@ struct VrSurface : public TaskQueue {
                     ovrJava java{ vm, env, oculusActivity };
                     ovrModeParms modeParms = vrapi_DefaultModeParms(&java);
                     modeParms.Flags |= VRAPI_MODE_FLAG_NATIVE_WINDOW;
+                    modeParms.Flags |= VRAPI_MODE_FLAG_FRONT_BUFFER_SRGB;
                     if (noErrorContext) {
                         modeParms.Flags |= VRAPI_MODE_FLAG_CREATE_CONTEXT_NO_ERROR;
                     }
@@ -178,38 +335,51 @@ struct VrSurface : public TaskQueue {
     void presentFrame(uint32_t sourceTexture, const glm::uvec2 &sourceSize, const ovrTracking2& tracking) {
         ovrLayerProjection2 layer = vrapi_DefaultLayerProjection2();
         layer.HeadPose = tracking.HeadPose;
+
+        eyesFbo.bind();
         if (sourceTexture) {
+            eyesFbo.invalidate();
+#if USE_BLIT_PRESENT
             glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo);
             glFramebufferTexture(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, sourceTexture, 0);
-            GLenum framebufferStatus = glCheckFramebufferStatus(GL_READ_FRAMEBUFFER);
-            if (GL_FRAMEBUFFER_COMPLETE != framebufferStatus) {
-                __android_log_print(ANDROID_LOG_WARN, "QQQ_OVR", "incomplete framebuffer");
-            }
-        }
-        GLenum invalidateAttachment = GL_COLOR_ATTACHMENT0;
-
-        ovr::for_each_eye([&](ovrEye eye) {
-            const auto &eyeTracking = tracking.Eye[eye];
-            auto &eyeFbo = eyeFbos[eye];
-            const auto &destSize = eyeFbo._size;
-            eyeFbo.bind();
-            glInvalidateFramebuffer(GL_DRAW_FRAMEBUFFER, 1, &invalidateAttachment);
-            if (sourceTexture) {
+            const auto &destSize = eyesFbo.size();
+            ovr::for_each_eye([&](ovrEye eye) {
                 auto sourceWidth = sourceSize.x / 2;
                 auto sourceX = (eye == VRAPI_EYE_LEFT) ? 0 : sourceWidth;
+                // Each eye blit uses a different draw buffer
+                eyesFbo.drawBuffers(eye);
                 glBlitFramebuffer(
                     sourceX, 0, sourceX + sourceWidth, sourceSize.y,
                     0, 0, destSize.x, destSize.y,
                     GL_COLOR_BUFFER_BIT, GL_NEAREST);
-            }
-            eyeFbo.updateLayer(eye, layer, &eyeTracking.ProjectionMatrix);
-            eyeFbo.advance();
-        });
-        if (sourceTexture) {
-            glInvalidateFramebuffer(GL_READ_FRAMEBUFFER, 1, &invalidateAttachment);
+            });
+            static const std::array<GLenum, 1> READ_INVALIDATE_ATTACHMENTS {{ GL_COLOR_ATTACHMENT0 }};
+            glInvalidateFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)READ_INVALIDATE_ATTACHMENTS.size(), READ_INVALIDATE_ATTACHMENTS.data());
             glFramebufferTexture(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 0, 0);
+#else
+            eyesFbo.drawBuffers(VRAPI_EYE_COUNT);
+            const auto &destSize = eyesFbo.size();
+            glViewport(0, 0, destSize.x, destSize.y);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, sourceTexture);
+            glBindVertexArray(renderVao);
+            glUseProgram(renderProgram);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            glUseProgram(0);
+            glBindVertexArray(0);
+#endif
+        } else {
+            eyesFbo.drawBuffers(VRAPI_EYE_COUNT);
+            glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
         }
-        glFlush();
+
+        ovr::for_each_eye([&](ovrEye eye) {
+            const auto &eyeTracking = tracking.Eye[eye];
+            eyesFbo.updateLayer(eye, layer, &eyeTracking.ProjectionMatrix);
+        });
+
+        eyesFbo.advance();
 
         ovrLayerHeader2 *layerHeader = &layer.Header;
         ovrSubmitFrameDescription2 frameDesc = {};
@@ -321,8 +491,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *, void *) {
     return JNI_VERSION_1_6;
 }
 
-JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnCreate(JNIEnv* env, jobject obj) {
+JNIEXPORT void JNICALL Java_io_highfidelity_oculus_OculusMobileActivity_nativeOnCreate(JNIEnv* env, jobject obj, jobject assetManager) {
     __android_log_write(ANDROID_LOG_WARN, "QQQ_JNI", __FUNCTION__);
+    ASSET_MANAGER = AAssetManager_fromJava(env, assetManager);
     SURFACE.onCreate(env, obj);
 }
 

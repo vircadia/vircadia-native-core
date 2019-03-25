@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <glm/glm.hpp>
+#include <glad/glad.h>
 
 #include <VrApi_Types.h>
 
@@ -20,15 +21,28 @@ public:
     void create(const glm::uvec2& size);
     void advance();
     void destroy();
-    void bind();
+    void bind(GLenum target = GL_DRAW_FRAMEBUFFER);
+    void invalidate(GLenum target = GL_DRAW_FRAMEBUFFER);
+    void drawBuffers(ovrEye eye) const;
 
-    uint32_t _depth { 0 };
+    const glm::uvec2& size() const { return _size; }
+
+private:
     uint32_t _fbo{ 0 };
-    int _length{ -1 };
-    int _index{ -1 };
-    bool _validTexture{ false };
     glm::uvec2 _size;
-    ovrTextureSwapChain* _swapChain{ nullptr };
+    struct SwapChainInfo {
+        int length{ -1 };
+        int index{ -1 };
+        bool validTexture{ false };
+        ovrTextureSwapChain* swapChain{ nullptr };
+
+        void create(const glm::uvec2& size);
+        void destroy();
+        void advance();
+        void bind(GLenum target, GLenum attachment);
+    };
+
+    SwapChainInfo _swapChainInfos[VRAPI_FRAME_LAYER_EYE_MAX];
 };
 
 }  // namespace ovr
