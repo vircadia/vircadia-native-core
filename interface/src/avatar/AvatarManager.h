@@ -24,7 +24,7 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
-#include <AudioInjector.h>
+#include <AudioInjectorManager.h>
 #include <workload/Space.h>
 #include <EntitySimulation.h> // for SetOfEntities
 
@@ -239,7 +239,7 @@ private:
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
-    std::list<AudioInjectorPointer> _collisionInjectors;
+    std::list<QWeakPointer<AudioInjector>> _collisionInjectors;
 
     RateCounter<> _myAvatarSendRate;
     int _numAvatarsUpdated { 0 };

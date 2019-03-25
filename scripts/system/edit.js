@@ -2524,7 +2524,7 @@ var PropertiesTool = function (opts) {
 
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
-    webView.webEventReceived.connect(onWebEventReceived);
+    webView.webEventReceived.connect(this, onWebEventReceived);
 
     return that;
 };
