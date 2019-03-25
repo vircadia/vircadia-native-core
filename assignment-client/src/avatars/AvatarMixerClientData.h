@@ -223,7 +223,6 @@ private:
     PerNodeTraitVersions _perNodeSentTraitVersions;
 
     std::atomic_bool _isIgnoreRadiusEnabled { false };
-    static const glm::vec3 AVATAR_CENTER_OFFSET;
 };
 
 #endif // hifi_AvatarMixerClientData_h

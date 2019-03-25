@@ -23,9 +23,6 @@
 
 #include "AvatarMixerSlave.h"
 
-// Offset from reported position for priority-zone purposes:
-const glm::vec3 AvatarMixerClientData::AVATAR_CENTER_OFFSET { 0.0f, 1.0f, 0.0 };
-
 AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID, Node::LocalID nodeLocalID) : 
     NodeData(nodeID, nodeLocalID) {
     // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
@@ -132,7 +129,7 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         incrementNumOutOfOrderSends();
     }
     _lastReceivedSequenceNumber = sequenceNumber;
-    glm::vec3 oldPosition = getPosition();
+    glm::vec3 oldPosition = _avatar->getCentroidPosition();
     bool oldHasPriority = _avatar->getHasPriority();
 
     // compute the offset to the data payload
@@ -143,10 +140,10 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
     // Regardless of what the client says, restore the priority as we know it without triggering any update.
     _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
 
-    auto newPosition = getPosition();
+    auto newPosition = _avatar->getCentroidPosition();
     if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
         EntityTree& entityTree = *slaveSharedData.entityTree;
-        FindPriorityZone findPriorityZone { newPosition + AVATAR_CENTER_OFFSET } ;
+        FindPriorityZone findPriorityZone { newPosition } ;
         entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
         _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
         _avatar->setNeedsHeroCheck(false);
