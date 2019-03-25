@@ -228,6 +228,9 @@ void Audio::loadData() {
     _hmdMuted = _hmdMutedSetting.get();
     _pttDesktop = _pttDesktopSetting.get();
     _pttHMD = _pttHMDSetting.get();
+
+    auto client = DependencyManager::get<AudioClient>().data();
+    QMetaObject::invokeMethod(client, "setMuted", Q_ARG(bool, isMuted()), Q_ARG(bool, false));
 }
 
 bool Audio::getPTTHMD() const {
