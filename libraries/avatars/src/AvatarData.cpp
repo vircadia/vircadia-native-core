@@ -2802,7 +2802,7 @@ glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const 
 /**jsdoc
  * Information on an attachment worn by the avatar.
  * @typedef {object} AttachmentData
- * @property {string} modelUrl - The URL of the model file. Models can be .FBX or .OBJ format.
+ * @property {string} modelUrl - The URL of the model file. Models can be FBX or OBJ format.
  * @property {string} jointName - The offset to apply to the model relative to the joint position.
  * @property {Vec3} translation - The offset from the joint that the attachment is positioned at.
  * @property {Vec3} rotation - The rotation applied to the model relative to the joint orientation.
@@ -3015,6 +3015,10 @@ float AvatarData::_avatarSortCoefficientSize { 8.0f };
 float AvatarData::_avatarSortCoefficientCenter { 0.25f };
 float AvatarData::_avatarSortCoefficientAge { 1.0f };
 
+/**jsdoc
+ * An object with the UUIDs of avatar entities as keys and avatar entity properties objects as values.
+ * @typedef {Object.<Uuid, Entities.EntityProperties>} AvatarEntityMap
+ */
 QScriptValue AvatarEntityMapToScriptValue(QScriptEngine* engine, const AvatarEntityMap& value) {
     QScriptValue obj = engine->newObject();
     for (auto entityID : value.keys()) {

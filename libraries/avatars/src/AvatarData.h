@@ -61,10 +61,6 @@ using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
 using AvatarHash = QHash<QUuid, AvatarSharedPointer>;
 
-/**jsdoc
- * An object with the UUIDs of avatar entities as keys and binary blobs, being the entity properties, as values.
- * @typedef {Object.<Uuid, Array.<byte>>} AvatarEntityMap
- */
 using AvatarEntityMap = QMap<QUuid, QByteArray>;
 using PackedAvatarEntityMap = QMap<QUuid, QByteArray>; // similar to AvatarEntityMap, but different internal format
 using AvatarEntityIDs = QSet<QUuid>;
@@ -439,13 +435,13 @@ class AvatarData : public QObject, public SpatiallyNestable {
     // IMPORTANT: The JSDoc for the following properties should be copied to MyAvatar.h and ScriptableAvatar.h.
     /*
      * @property {Vec3} position - The position of the avatar.
-     * @property {number} scale=1.0 - The scale of the avatar. When setting, the value is limited to between <code>0.005</code> 
-     *     and <code>1000.0</code>. When getting, the value may temporarily be further limited by the domain's settings.
-     * @property {number} density - The density of the avatar in kg/m<sup>3</sup>. The density is used to work out its mass in 
+     * @property {number} scale=1.0 - The scale of the avatar. The value can be set to anything between <code>0.005</code> and
+     *     <code>1000.0</code>. When the scale value is fetched, it may temporarily be further limited by the domain's settings.
+     * @property {number} density - The density of the avatar in kg/m<sup>3</sup>. The density is used to work out its mass in
      *     the application of physics. <em>Read-only.</em>
-     * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar 
+     * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar
      *    but is otherwise not used or changed by Interface.
-     * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar.
+     * @property {number} bodyYaw - The left or right rotation about an axis running from the head to the feet of the avatar.
      *     Yaw is sometimes called "heading".
      * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is
      *     sometimes called "elevation".
@@ -461,28 +457,27 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     sometimes called "bank".
      * @property {Vec3} velocity - The current velocity of the avatar.
      * @property {Vec3} angularVelocity - The current angular velocity of the avatar.
-     * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the 
+     * @property {number} audioLoudness - The instantaneous loudness of the audio input that the avatar is injecting into the
      *     domain.
-     * @property {number} audioAverageLoudness - The rolling average loudness of the audio input that the avatar is injecting 
+     * @property {number} audioAverageLoudness - The rolling average loudness of the audio input that the avatar is injecting
      *     into the domain.
      * @property {string} displayName - The avatar's display name.
-     * @property {string} sessionDisplayName - Sanitized, defaulted version of <code>displayName</code> that is defined by the 
-     *     avatar mixer rather than by Interface clients. The result is unique among all avatars present in the domain at the 
-     *     time.
-     * @property {boolean} lookAtSnappingEnabled=true - If <code>true</code>, the avatar's eyes snap to look at another avatar's 
-     *     eyes if generally in the line of sight and the other avatar also has <code>lookAtSnappingEnabled == true</code>. 
-     * @property {string} skeletonModelURL - The URL of the avatar model's <code>.fst</code> file.
-     * @property {AttachmentData[]} attachmentData - Information on the attachments worn by the avatar.<br />
+     * @property {string} sessionDisplayName - <code>displayName's</code> sanitized and default version defined by the avatar
+     *     mixer rather than Interface clients. The result is unique among all avatars present in the domain at the time.
+     * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
+     *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
+     * @property {string} skeletonModelURL - The avatar's FST file.
+     * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
      *     <strong>Deprecated:</strong> Use avatar entities instead.
      * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
      * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
-     * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the 
+     * @property {Mat4} sensorToWorldMatrix - The scale, rotation, and translation transform from the user's real world to the
      *     avatar's size, orientation, and position in the virtual world. <em>Read-only.</em>
-     * @property {Mat4} controllerLeftHandMatrix - The rotation and translation of the left hand controller relative to the 
+     * @property {Mat4} controllerLeftHandMatrix - The rotation and translation of the left hand controller relative to the
      *     avatar. <em>Read-only.</em>
-     * @property {Mat4} controllerRightHandMatrix - The rotation and translation of the right hand controller relative to the 
+     * @property {Mat4} controllerRightHandMatrix - The rotation and translation of the right hand controller relative to the
      *     avatar. <em>Read-only.</em>
-     * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's 
+     * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
      *     size in the virtual world. <em>Read-only.</em>
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
@@ -785,7 +780,7 @@ public:
 
     /**jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {number} index - The index of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -796,7 +791,7 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} index - The index of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
@@ -897,7 +892,7 @@ public:
     Q_INVOKABLE virtual void clearJointData(const QString& name);
 
     /**jsdoc
-     * Checks that the data for a joint are valid.
+     * Checks if the data for a joint are valid.
      * @function Avatar.isJointDataValid
      * @param {string} name - The name of the joint.
      * @returns {boolean} <code>true</code> if the joint data are valid, <code>false</code> if not.
@@ -906,7 +901,7 @@ public:
 
     /**jsdoc
      * Gets the rotation of a joint relative to its parent. For information on the joint hierarchy used, see 
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.
      * @function Avatar.getJointRotation
      * @param {string} name - The name of the joint.
      * @returns {Quat} The rotation of the joint relative to its parent.
@@ -921,7 +916,7 @@ public:
      * Gets the translation of a joint relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function Avatar.getJointTranslation
      * @param {number} name - The name of the joint.
      * @returns {Vec3} The translation of the joint relative to its parent, in model coordinates.
@@ -1062,8 +1057,13 @@ public:
      * your avatar's face, use {@link Avatar.setForceFaceTrackerConnected} or {@link MyAvatar.setForceFaceTrackerConnected}.
      * @function Avatar.setBlendshape
      * @param {string} name - The name of the blendshape, per the 
-     *     {@link https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards.html#blendshapes Avatar Standards}.
+     *     {@link https://docs.highfidelity.com/create/avatars/avatar-standards.html#blendshapes Avatar Standards}.
      * @param {number} value - A value between <code>0.0</code> and <code>1.0</code>.
+     * @example <caption>Open your avatar's mouth wide.</caption>
+     * MyAvatar.setForceFaceTrackerConnected(true);
+     * MyAvatar.setBlendshape("JawOpen", 1.0);
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
@@ -1170,7 +1170,7 @@ public:
      * @example <caption>Report the URLs of all current attachments.</caption>
      * var attachments = MyAvatar.getaAttachmentData();
      * for (var i = 0; i < attachments.length; i++) {
-     *     print (attachments[i].modelURL);
+     *     print(attachments[i].modelURL);
      * }
      *
      * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
@@ -1318,6 +1318,14 @@ public:
      * @function Avatar.getSensorToWorldMatrix
      * @returns {Mat4} The scale, rotation, and translation transform from the user's real world to the avatar's size, 
      *     orientation, and position in the virtual world.
+     * @example <caption>Report the sensor to world matrix.</caption>
+     * var sensorToWorldMatrix = MyAvatar.getSensorToWorldMatrix();
+     * print("Sensor to woprld matrix: " + JSON.stringify(sensorToWorldMatrix));
+     * print("Rotation: " + JSON.stringify(Mat4.extractRotation(sensorToWorldMatrix)));
+     * print("Translation: " + JSON.stringify(Mat4.extractTranslation(sensorToWorldMatrix)));
+     * print("Scale: " + JSON.stringify(Mat4.extractScale(sensorToWorldMatrix)));
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     // thread safe
     Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
@@ -1335,6 +1343,14 @@ public:
      * Gets the rotation and translation of the left hand controller relative to the avatar.
      * @function Avatar.getControllerLeftHandMatrix
      * @returns {Mat4} The rotation and translation of the left hand controller relative to the avatar.
+     * @example <caption>Report the left hand controller matrix.</caption>
+     * var leftHandMatrix = MyAvatar.getControllerLeftHandMatrix();
+     * print("Controller left hand matrix: " + JSON.stringify(leftHandMatrix));
+     * print("Rotation: " + JSON.stringify(Mat4.extractRotation(leftHandMatrix)));
+     * print("Translation: " + JSON.stringify(Mat4.extractTranslation(leftHandMatrix)));
+     * print("Scale: " + JSON.stringify(Mat4.extractScale(leftHandMatrix))); // Always 1,1,1.
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     // thread safe
     Q_INVOKABLE glm::mat4 getControllerLeftHandMatrix() const;
@@ -1409,6 +1425,12 @@ signals:
      * Triggered when the avatar's <code>displayName</code> property value changes.
      * @function Avatar.displayNameChanged
      * @returns {Signal}
+     * @example <caption>Report when your avatar display name changes.</caption>
+     * MyAvatar.displayNameChanged.connect(function () {
+     *     print("Avatar display name changed to: " + MyAvatar.displayName);
+     * });
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     void displayNameChanged();
 
@@ -1416,6 +1438,12 @@ signals:
      * Triggered when the avatar's <code>sessionDisplayName</code> property value changes.
      * @function Avatar.sessionDisplayNameChanged
      * @returns {Signal}
+     * @example <caption>Report when your avatar's session display name changes.</caption>
+     * MyAvatar.sessionDisplayNameChanged.connect(function () {
+     *     print("Avatar session display name changed to: " + MyAvatar.sessionDisplayName);
+     * });
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     void sessionDisplayNameChanged();
 
@@ -1423,6 +1451,12 @@ signals:
      * Triggered when the avatar's model (i.e., <code>skeletonModelURL</code> property value) is changed.
      * @function Avatar.skeletonModelURLChanged
      * @returns {Signal}
+     * @example <caption>Report when your avatar's skeleton model changes.</caption>
+     * MyAvatar.skeletonModelURLChanged.connect(function () {
+     *     print("Skeleton model changed to: " + MyAvatar.skeletonModelURL);
+     * });
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     void skeletonModelURLChanged();
 
@@ -1431,6 +1465,12 @@ signals:
      * @function Avatar.lookAtSnappingChanged
      * @param {boolean} enabled - <code>true</code> if look-at snapping is enabled, <code>false</code> if not.
      * @returns {Signal}
+     * @example <caption>Report when your look-at snapping setting changes.</caption>
+     * MyAvatar.lookAtSnappingChanged.connect(function () {
+     *     print("Avatar look-at snapping changed to: " + MyAvatar.lookAtSnappingEnabled);
+     * });
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     void lookAtSnappingChanged(bool enabled);
 
@@ -1438,6 +1478,12 @@ signals:
      * Triggered when the avatar's <code>sessionUUID</code> property value changes.
      * @function Avatar.sessionUUIDChanged
      * @returns {Signal}
+     * @example <caption>Report when your avatar's session UUID changes.</caption>
+     * MyAvatar.sessionUUIDChanged.connect(function () {
+     *     print("Avatar session UUID changed to: " + MyAvatar.sessionUUID);
+     * });
+     *
+     * // Note: If using from the Avatar API, replace "MyAvatar" with "Avatar".
      */
     void sessionUUIDChanged();
 

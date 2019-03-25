@@ -20,7 +20,7 @@
 
 /**jsdoc
  * The <code>Avatar</code> API is used to manipulate scriptable avatars on the domain. This API is a subset of the 
- * {@link MyAvatar} API. To enable this API, set {@link Agent|Agent.isAvatatr} to <code>true</code>.
+ * {@link MyAvatar} API. To enable this API, set {@link Agent|Agent.isAvatar} to <code>true</code>.
  *
  * <p>For Interface, client entity, and avatar scripts, see {@link MyAvatar}.</p>
  *
@@ -30,13 +30,13 @@
  *
  * @comment IMPORTANT: This group of properties is copied from AvatarData.h; they should NOT be edited here.
  * @property {Vec3} position - The position of the avatar.
- * @property {number} scale=1.0 - The scale of the avatar. When setting, the value is limited to between <code>0.005</code>
- *     and <code>1000.0</code>. When getting, the value may temporarily be further limited by the domain's settings.
+ * @property {number} scale=1.0 - The scale of the avatar. The value can be set to anything between <code>0.005</code> and 
+ *     <code>1000.0</code>. When the scale value is fetched, it may temporarily be further limited by the domain's settings.
  * @property {number} density - The density of the avatar in kg/m<sup>3</sup>. The density is used to work out its mass in
  *     the application of physics. <em>Read-only.</em>
  * @property {Vec3} handPosition - A user-defined hand position, in world coordinates. The position moves with the avatar
  *    but is otherwise not used or changed by Interface.
- * @property {number} bodyYaw - The rotation left or right about an axis running from the head to the feet of the avatar.
+ * @property {number} bodyYaw - The left or right rotation about an axis running from the head to the feet of the avatar.
  *     Yaw is sometimes called "heading".
  * @property {number} bodyPitch - The rotation about an axis running from shoulder to shoulder of the avatar. Pitch is
  *     sometimes called "elevation".
@@ -57,13 +57,12 @@
  * @property {number} audioAverageLoudness - The rolling average loudness of the audio input that the avatar is injecting
  *     into the domain.
  * @property {string} displayName - The avatar's display name.
- * @property {string} sessionDisplayName - Sanitized, defaulted version of <code>displayName</code> that is defined by the
- *     avatar mixer rather than by Interface clients. The result is unique among all avatars present in the domain at the
- *     time.
- * @property {boolean} lookAtSnappingEnabled=true - If <code>true</code>, the avatar's eyes snap to look at another avatar's
- *     eyes if generally in the line of sight and the other avatar also has <code>lookAtSnappingEnabled == true</code>.
- * @property {string} skeletonModelURL - The URL of the avatar model's <code>.fst</code> file.
- * @property {AttachmentData[]} attachmentData - Information on the attachments worn by the avatar.<br />
+ * @property {string} sessionDisplayName - <code>displayName's</code> sanitized and default version defined by the avatar mixer 
+ *     rather than Interface clients. The result is unique among all avatars present in the domain at the time.
+ * @property {boolean} lookAtSnappingEnabled=true - <code>true</code> if the avatar's eyes snap to look at another avatar's
+ *     eyes when the other avatar is in the line of sight and also has <code>lookAtSnappingEnabled == true</code>.
+ * @property {string} skeletonModelURL - The avatar's FST file.
+ * @property {AttachmentData[]} attachmentData - Information on the avatar's attachments.<br />
  *     <strong>Deprecated:</strong> Use avatar entities instead.
  * @property {string[]} jointNames - The list of joints in the current avatar model. <em>Read-only.</em>
  * @property {Uuid} sessionUUID - Unique ID of the avatar in the domain. <em>Read-only.</em>
@@ -75,6 +74,12 @@
  *     avatar. <em>Read-only.</em>
  * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
  *     size in the virtual world. <em>Read-only.</em>
+ *
+ * @example <caption>Create a scriptable avatar.</caption>
+ * (function () {
+ *     Agent.setIsAvatar(true);
+ *     print("Position: " + JSON.stringify(Avatar.position));  // 0, 0, 0
+ * }());
  */
 
 class ScriptableAvatar : public AvatarData, public Dependency {
@@ -90,14 +95,14 @@ public:
     /**jsdoc
      * Starts playing an animation on the avatar.
      * @function Avatar.startAnimation
-     * @param {string} url - The URL to the animation file. Animation files need to be .FBX format but only need to contain 
+     * @param {string} url - The animation file's URL. Animation files need to be in the FBX format but only need to contain
      *     the avatar skeleton and animation data.
      * @param {number} [fps=30] - The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
      * @param {number} [priority=1] - <em>Not used.</em>
      * @param {boolean} [loop=false] - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
      * @param {boolean} [hold=false] - <em>Not used.</em>
-     * @param {number} [firstFrame=0] - The frame the animation should start at.
-     * @param {number} [lastFrame=3.403e+38] - The frame the animation should stop at.
+     * @param {number} [firstFrame=0] - The frame at which the animation starts.
+     * @param {number} [lastFrame=3.403e+38] - The frame at which the animation stops.
      * @param {string[]} [maskedJoints=[]] - The names of joints that should not be animated.
      */
     /// Allows scripts to run animations.
@@ -115,6 +120,9 @@ public:
      * Gets the details of the current avatar animation that is being or was recently played.
      * @function Avatar.getAnimationDetails
      * @returns {Avatar.AnimationDetails} The current or recent avatar animation.
+     * @example <caption>Report the current animation details.</caption>
+     * var animationDetails = Avatar.getAnimationDetails();
+     * print("Animation details: " + JSON.stringify(animationDetails));
      */
     Q_INVOKABLE AnimationDetails getAnimationDetails();
 
@@ -146,18 +154,21 @@ public:
     bool getHasAudioEnabledFaceMovement() const override { return _headData->getHasAudioEnabledFaceMovement(); }
 
     /**jsdoc
-     * Gets the avatar entities as binary data.
-     * <p><strong>Warning:</strong> Potentially a very expensive call. Do not use if possible.</p>
+     * Gets details of all avatar entities.
+     * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.getAvatarEntityData
-     * @returns {AvatarEntityMap} The avatar entities as binary data.
+     * @returns {AvatarEntityMap} Details of the avatar entities.
+     * @example <caption>Report the current avatar entities.</caption>
+     * var avatarEntityData = Avatar.getAvatarEntityData();
+     * print("Avatar entities: " + JSON.stringify(avatarEntityData));
      */
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const override;
 
     /**jsdoc
-     * Sets the avatar entities from binary data.
+     * Sets all avatar entities from an object.
      * <p><strong>Warning:</strong> Potentially an expensive call. Do not use if possible.</p>
      * @function Avatar.setAvatarEntityData
-     * @param {AvatarEntityMap} avatarEntityData - The avatar entities as binary data.
+     * @param {AvatarEntityMap} avatarEntityData - Details of the avatar entities.
      */
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData) override;
 

@@ -3542,8 +3542,8 @@ void MyAvatar::clearScaleRestriction() {
 /**jsdoc
  * A teleport target.
  * @typedef {object} MyAvatar.GoToProperties
- * @property {Vec3} position - The new position for the avatar, in world coordinates.
- * @property {Quat} [orientation] - The new orientation for the avatar.
+ * @property {Vec3} position - The avatar's new position.
+ * @property {Quat} [orientation] - The avatar's new orientation.
  */
 void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     qCDebug(interfaceapp, "MyAvatar QML goToLocation");
@@ -3902,8 +3902,7 @@ void MyAvatar::setCollisionWithOtherAvatarsFlags() {
 }
 
 /**jsdoc
- * A collision capsule is a cylinder with hemispherical ends. It is used, in particular, to approximate the extents of an 
- * avatar.
+ * A collision capsule is a cylinder with hemispherical ends. It is often used to approximate the extents of an avatar.
  * @typedef {object} MyAvatar.CollisionCapsule
  * @property {Vec3} start - The bottom end of the cylinder, excluding the bottom hemisphere.
  * @property {Vec3} end - The top end of the cylinder, excluding the top hemisphere.
@@ -5361,12 +5360,12 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
 /**jsdoc
  * Physics options to use in the flow simulation of a joint.
  * @typedef {object} MyAvatar.FlowPhysicsOptions
- * @property {boolean} [active=true] - <code>true</code> to enable flow on the joint, <code>false</code> if it isn't.,
- * @property {number} [radius=0.01] - The thickness of segments and knots. (Needed for collisions.)
+ * @property {boolean} [active=true] - <code>true</code> to enable flow on the joint, otherwise <code>false</code>.
+ * @property {number} [radius=0.01] - The thickness of segments and knots (needed for collisions).
  * @property {number} [gravity=-0.0096] - Y-value of the gravity vector.
  * @property {number} [inertia=0.8] - Rotational inertia multiplier.
  * @property {number} [damping=0.85] - The amount of damping on joint oscillation.
- * @property {number} [stiffness=0.0] - How stiff each thread is.
+ * @property {number} [stiffness=0.0] - The stiffness of each thread.
  * @property {number} [delta=0.55] - Delta time for every integration step.
  */
 /**jsdoc
@@ -5454,18 +5453,18 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
  *     that has been configured.
  * @property {Object<JointName, MyAvatar.FlowCollisionsData>} collisions - The collisions configuration for each joint that 
  *     has collisions configured.
- * @property {Object<ThreadName, number[]>} threads - The threads hat have been configured, with the name of the first joint as 
- *     the <code>ThreadName</code> and an array of the indexes of all the joints in the thread as the value.
+ * @property {Object<ThreadName, number[]>} threads - The threads that have been configured, with the first joint's name as the 
+ *     <code>ThreadName</code> and value as an array of the indexes of all the joints in the thread.
  */
 /**jsdoc
  * A set of physics options currently used in flow simulation.
  * @typedef {object} MyAvatar.FlowPhysicsData
- * @property {boolean} active - <code>true</code> to enable flow on the joint, <code>false</code> if it isn't.,
+ * @property {boolean} active - <code>true</code> to enable flow on the joint, otherwise <code>false</code>.
  * @property {number} radius - The thickness of segments and knots. (Needed for collisions.)
  * @property {number} gravity - Y-value of the gravity vector.
  * @property {number} inertia - Rotational inertia multiplier.
  * @property {number} damping - The amount of damping on joint oscillation.
- * @property {number} stiffness - How stiff each thread is.
+ * @property {number} stiffness - The stiffness of each thread.
  * @property {number} delta - Delta time for every integration step.
  * @property {number[]} jointIndices - The indexes of the joints the options are applied to.
  */

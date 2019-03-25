@@ -34,17 +34,21 @@ public:
      *     <tr><td><code>0</code></td><td>FullBodyBoneSet</td><td>All joints.</td></tr>
      *     <tr><td><code>1</code></td><td>UpperBodyBoneSet</td><td>Only the "Spine" joint and its children.</td></tr>
      *     <tr><td><code>2</code></td><td>LowerBodyBoneSet</td><td>Only the leg joints and their children.</td></tr>
-     *     <tr><td><code>3</code></td><td>LeftArmBoneSet</td><td>Joints that are children of the "LeftShoulder" joint.</td></tr>
-     *     <tr><td><code>4</code></td><td>RightArmBoneSet</td><td>Joints that are children of the "RightShoulder" 
+     *     <tr><td><code>3</code></td><td>LeftArmBoneSet</td><td>Joints that are the children of the "LeftShoulder" 
      *       joint.</td></tr>
-     *     <tr><td><code>5</code></td><td>AboveTheHeadBoneSet</td><td>Joints that are children of the "Head" joint.</td></tr>
-     *     <tr><td><code>6</code></td><td>BelowTheHeadBoneSet</td><td>Joints that are NOT children of the "head" 
+     *     <tr><td><code>4</code></td><td>RightArmBoneSet</td><td>Joints that are the children of the "RightShoulder" 
+     *       joint.</td></tr>
+     *     <tr><td><code>5</code></td><td>AboveTheHeadBoneSet</td><td>Joints that are the children of the "Head" 
+     *       joint.</td></tr>
+     *     <tr><td><code>6</code></td><td>BelowTheHeadBoneSet</td><td>Joints that are NOT the children of the "head" 
      *       joint.</td></tr>
      *     <tr><td><code>7</code></td><td>HeadOnlyBoneSet</td><td>The "Head" joint.</td></tr>
      *     <tr><td><code>8</code></td><td>SpineOnlyBoneSet</td><td>The "Spine" joint.</td></tr>
      *     <tr><td><code>9</code></td><td>EmptyBoneSet</td><td>No joints.</td></tr>
-     *     <tr><td><code>10</code></td><td>LeftHandBoneSet</td><td>joints that are children of the "LeftHand" joint.</td></tr>
-     *     <tr><td><code>11</code></td><td>RightHandBoneSet</td><td>Joints that are children of the "RightHand" joint.</td></tr>
+     *     <tr><td><code>10</code></td><td>LeftHandBoneSet</td><td>joints that are the children of the "LeftHand" 
+     *       joint.</td></tr>
+     *     <tr><td><code>11</code></td><td>RightHandBoneSet</td><td>Joints that are the children of the "RightHand" 
+     *       joint.</td></tr>
      *     <tr><td><code>12</code></td><td>HipsOnlyBoneSet</td><td>The "Hips" joint.</td></tr>
      *     <tr><td><code>13</code></td><td>BothFeetBoneSet</td><td>The "LeftFoot" and "RightFoot" joints.</td></tr>
      *   </tbody>

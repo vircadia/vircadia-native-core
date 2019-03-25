@@ -203,7 +203,7 @@ public:
     /**jsdoc
      * Gets the default rotation of a joint (in the current avatar) relative to its parent.
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointRotation
      * @param {number} index - The joint index.
      * @returns {Quat} The default rotation of the joint if the joint index is valid, otherwise {@link Quat(0)|Quat.IDENTITY}.
@@ -214,7 +214,7 @@ public:
      * Gets the default translation of a joint (in the current avatar) relative to its parent, in model coordinates.
      * <p><strong>Warning:</strong> These coordinates are not necessarily in meters.</p>
      * <p>For information on the joint hierarchy used, see
-     * <a href="https://docs.highfidelity.com/create/avatars/create-avatars/avatar-standards">Avatar Standards</a>.</p>
+     * <a href="https://docs.highfidelity.com/create/avatars/avatar-standards">Avatar Standards</a>.</p>
      * @function MyAvatar.getDefaultJointTranslation
      * @param {number} index - The joint index.
      * @returns {Vec3} The default translation of the joint (in model coordinates) if the joint index is valid, otherwise 
@@ -223,22 +223,30 @@ public:
     Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
 
     /**jsdoc
-     * Provides read-only access to the default joint rotations in avatar coordinates.
+     * Gets the default joint rotations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
      * in the avatar's model file. Typically this is a T-pose.
      * @function MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame
      * @param index {number} - The joint index.
-     * @returns {Quat} The rotation of this joint in avatar coordinates.
+     * @returns {Quat} The default rotation of the joint in avatar coordinates.
+     * @example <caption>Report the default rotation of your avatar's head joint relative to your avatar.</caption>
+     * var headIndex = MyAvatar.getJointIndex("Head");
+     * var defaultHeadRotation = MyAvatar.getAbsoluteDefaultJointRotationInObjectFrame(headIndex);
+     * print("Default head rotation: " + JSON.stringify(Quat.safeEulerAngles(defaultHeadRotation))); // Degrees
      */
     Q_INVOKABLE virtual glm::quat getAbsoluteDefaultJointRotationInObjectFrame(int index) const;
 
     /**jsdoc
-     * Provides read-only access to the default joint translations in avatar coordinates.
+     * Gets the default joint translations in avatar coordinates.
      * The default pose of the avatar is defined by the position and orientation of all bones
      * in the avatar's model file. Typically this is a T-pose.
      * @function MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame
      * @param index {number} - The joint index.
-     * @returns {Vec3} The position of this joint in avatar coordinates.
+     * @returns {Vec3} The default position of the joint in avatar coordinates.
+     * @example <caption>Report the default translation of your avatar's head joint relative to your avatar.</caption>
+     * var headIndex = MyAvatar.getJointIndex("Head");
+     * var defaultHeadTranslation = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(headIndex);
+     * print("Default head translation: " + JSON.stringify(defaultHeadTranslation));
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
@@ -459,7 +467,7 @@ public:
     Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
 
     /**jsdoc
-     * sets the joint of the entity or avatar that the avatar is parented to. 
+     * Sets the joint of the entity or avatar that the avatar is parented to. 
      * @function MyAvatar.setParentJointIndex
      * @param {number} parentJointIndex - he joint of the entity or avatar that the avatar should be parented to. Use
      *     <code>65535</code> or <code>-1</code> to parent to the entity or avatar's position and orientation rather than a 
