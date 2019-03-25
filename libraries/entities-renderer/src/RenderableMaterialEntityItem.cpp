@@ -169,7 +169,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
 
         if (urlChanged && !usingMaterialData) {
             _networkMaterial = MaterialCache::instance().getMaterial(_materialURL);
-            auto onMaterialRequestFinished = [&, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
+            auto onMaterialRequestFinished = [this, oldParentID, oldParentMaterialName, newCurrentMaterialName](bool success) {
                 if (success) {
                     deleteMaterial(oldParentID, oldParentMaterialName);
                     _texturesLoaded = false;
@@ -186,7 +186,7 @@ void MaterialEntityRenderer::doRenderUpdateAsynchronousTyped(const TypedEntityPo
                 if (_networkMaterial->isLoaded()) {
                     onMaterialRequestFinished(!_networkMaterial->isFailed());
                 } else {
-                    connect(_networkMaterial.data(), &Resource::finished, this, [&](bool success) {
+                    connect(_networkMaterial.data(), &Resource::finished, this, [this, onMaterialRequestFinished](bool success) {
                         withWriteLock([&] {
                             onMaterialRequestFinished(success);
                         });
