@@ -262,7 +262,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'adjustWearablesOpened':
         currentAvatarWearablesBackup = getMyAvatarWearables();
         adjustWearables.setOpened(true);
-        lockWearables();
+        unlockWearables();
 
         Entities.mousePressOnEntity.connect(onSelectedEntity);
         Messages.subscribe('Hifi-Object-Manipulation');
