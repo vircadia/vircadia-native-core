@@ -1609,8 +1609,7 @@ public:
 public slots:
 
    /**jsdoc
-    * @function MyAvatar.setSessionUUID
-    * @param {Uuid} sessionUUID
+    * @comment Uses the base class's JSDoc.
     */
     virtual void setSessionUUID(const QUuid& sessionUUID) override;
 
