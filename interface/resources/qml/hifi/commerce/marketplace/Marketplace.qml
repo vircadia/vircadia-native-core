@@ -664,7 +664,7 @@ Rectangle {
                         text: "LOG IN"
 
                         onClicked: {
-                            sendToScript({method: 'needsLogIn_loginClicked'});
+                            sendToScript({method: 'marketplace_loginClicked'});
                         }
                     }
 
