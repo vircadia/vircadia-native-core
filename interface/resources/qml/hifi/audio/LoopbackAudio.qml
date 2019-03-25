@@ -44,8 +44,11 @@ RowLayout {
     }
 
     HifiControlsUit.Button {
-        text: audioLoopedBack ? qsTr("STOP TESTING YOUR VOICE") : qsTr("TEST YOUR VOICE");
+        text: audioLoopedBack ? qsTr("STOP TESTING VOICE") : qsTr("TEST YOUR VOICE");
         color: audioLoopedBack ? hifi.buttons.red : hifi.buttons.blue;
+        fontSize: 15;
+        width: 200;
+        height: 32;
         onClicked: {
             if (audioLoopedBack) {
                 loopbackTimer.stop();
@@ -59,7 +62,7 @@ RowLayout {
 
     RalewayRegular {
         Layout.leftMargin: 2;
-        size: 14;
+        size: 18;
         color: "white";
         font.italic: true
         text: audioLoopedBack ? qsTr("Speak in your input") : "";
