@@ -17,7 +17,7 @@
 #include <ViewFrustum.h>
 #include <shaders/Shaders.h>
 
-ProceduralSkybox::ProceduralSkybox(quint64 created) : graphics::Skybox(), _created(created) {
+ProceduralSkybox::ProceduralSkybox(uint64_t created) : graphics::Skybox(), _created(created) {
     _procedural._vertexSource = gpu::Shader::createVertex(shader::graphics::vertex::skybox)->getSource();
     _procedural._opaqueFragmentSource = shader::Source::get(shader::procedural::fragment::proceduralSkybox);
     // Adjust the pipeline state for background using the stencil test

@@ -83,10 +83,10 @@ public:
     bool isReady() const;
     bool isEnabled() const { return _enabled; }
     void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation,
-                 const quint64& created, const ProceduralProgramKey key = ProceduralProgramKey());
+                 const uint64_t& created, const ProceduralProgramKey key = ProceduralProgramKey());
 
     glm::vec4 getColor(const glm::vec4& entityColor) const;
-    quint64 getFadeStartTime() const { return _fadeStartTime; }
+    uint64_t getFadeStartTime() const { return _fadeStartTime; }
     bool isFading() const { return _doesFade && _isFading; }
     void setIsFading(bool isFading) { _isFading = isFading; }
     void setDoesFade(bool doesFade) { _doesFade = doesFade; }
@@ -136,7 +136,7 @@ protected:
     // Rendering object descriptions, from userData
     QString _shaderSource;
     QString _shaderPath;
-    quint64 _shaderModified { 0 };
+    uint64_t _shaderModified { 0 };
     NetworkShaderPointer _networkShader;
     bool _shaderDirty { true };
     bool _uniformsDirty { true };
@@ -156,12 +156,12 @@ protected:
     glm::vec3 _entityDimensions;
     glm::vec3 _entityPosition;
     glm::mat3 _entityOrientation;
-    quint64 _entityCreated;
+    uint64_t _entityCreated;
 
 private:
     void setupUniforms();
 
-    mutable quint64 _fadeStartTime { 0 };
+    mutable uint64_t _fadeStartTime { 0 };
     mutable bool _hasStartedFade { false };
     mutable bool _isFading { false };
     bool _doesFade { true };

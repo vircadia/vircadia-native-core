@@ -225,7 +225,7 @@ void Procedural::prepare(gpu::Batch& batch,
                          const glm::vec3& position,
                          const glm::vec3& size,
                          const glm::quat& orientation,
-                         const quint64& created,
+                         const uint64_t& created,
                          const ProceduralProgramKey key) {
     std::lock_guard<std::mutex> lock(_mutex);
     _entityDimensions = size;
@@ -233,7 +233,7 @@ void Procedural::prepare(gpu::Batch& batch,
     _entityOrientation = glm::mat3_cast(orientation);
     _entityCreated = created;
     if (!_shaderPath.isEmpty()) {
-        auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
+        auto lastModified = (uint64_t)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
             file.open(QIODevice::ReadOnly);
