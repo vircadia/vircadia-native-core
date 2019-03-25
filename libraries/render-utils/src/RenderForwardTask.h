@@ -76,12 +76,13 @@ public:
     using Inputs = render::VaryingSet2<render::ItemBounds, LightingModelPointer>;
     using JobModel = render::Job::ModelI<DrawForward, Inputs>;
 
-    DrawForward(const render::ShapePlumberPointer& shapePlumber) : _shapePlumber(shapePlumber) {}
+    DrawForward(const render::ShapePlumberPointer& shapePlumber, bool opaquePass) : _shapePlumber(shapePlumber), _opaquePass(opaquePass) {}
     void run(const render::RenderContextPointer& renderContext,
             const Inputs& inputs);
 
 private:
     render::ShapePlumberPointer _shapePlumber;
+    bool _opaquePass;
 };
 
 #endif // hifi_RenderForwardTask_h

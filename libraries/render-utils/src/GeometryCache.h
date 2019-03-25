@@ -368,6 +368,12 @@ public:
     const ShapeData * getShapeData(Shape shape) const;
 
     graphics::MeshPointer meshFromShape(Shape geometryShape, glm::vec3 color);
+
+    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+        bool unlit = false, bool depthBias = false, bool forward = false);
+    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+        bool unlit = false, bool depthBias = false);
+
 private:
 
     GeometryCache();
@@ -471,11 +477,6 @@ private:
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
-
-    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool forward = false);
-    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false);
 };
 
 #endif // hifi_GeometryCache_h
