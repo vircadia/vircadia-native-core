@@ -46,16 +46,6 @@ ScriptAudioInjector* AudioScriptingInterface::playSystemSound(SharedSoundPointer
 }
 
 ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
-    if (QThread::currentThread() != thread()) {
-        ScriptAudioInjector* injector = NULL;
-
-        BLOCKING_INVOKE_METHOD(this, "playSound",
-                                  Q_RETURN_ARG(ScriptAudioInjector*, injector),
-                                  Q_ARG(SharedSoundPointer, sound),
-                                  Q_ARG(const AudioInjectorOptions&, injectorOptions));
-        return injector;
-    }
-
     if (sound) {
         // stereo option isn't set from script, this comes from sound metadata or filename
         AudioInjectorOptions optionsCopy = injectorOptions;
@@ -63,7 +53,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
         optionsCopy.ambisonic = sound->isAmbisonic();
         optionsCopy.localOnly = optionsCopy.localOnly || sound->isAmbisonic();  // force localOnly when Ambisonic
 
-        auto injector = AudioInjector::playSound(sound, optionsCopy);
+        auto injector = DependencyManager::get<AudioInjectorManager>()->playSound(sound, optionsCopy);
         if (!injector) {
             return nullptr;
         }

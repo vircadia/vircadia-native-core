@@ -40,6 +40,7 @@ public:
     virtual bool wantsKeyboardFocus() const { return false; }
     virtual void setProxyWindow(QWindow* proxyWindow) {}
     virtual QObject* getEventHandler() { return nullptr; }
+    virtual void emitScriptEvent(const QVariant& message) {}
     const EntityItemPointer& getEntity() const { return _entity; }
     const ItemID& getRenderItemID() const { return _renderItemID; }
 

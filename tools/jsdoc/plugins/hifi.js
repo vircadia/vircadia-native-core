@@ -121,22 +121,13 @@ exports.handlers = {
                 e.doclet.description = (e.doclet.description ? e.doclet.description : "") + availableIn;
             }            
         }
+
+        if (e.doclet.kind === "function" && e.doclet.returns && e.doclet.returns[0].type
+                && e.doclet.returns[0].type.names[0] === "Signal") {
+            e.doclet.kind = "signal";
+        }
     }
 };
-
-// Functions for adding @signal custom tag
-/** @private */
-function setDocletKindToTitle(doclet, tag) {
-    doclet.addTag( 'kind', tag.title );
-}
-
-function setDocletNameToValue(doclet, tag) {
-    if (tag.value && tag.value.description) { // as in a long tag
-        doclet.addTag('name', tag.value.description);
-    } else if (tag.text) { // or a short tag
-        doclet.addTag('name', tag.text);
-    }
-}
 
 // Define custom hifi tags here
 exports.defineTags = function (dictionary) {
@@ -166,15 +157,6 @@ exports.defineTags = function (dictionary) {
     dictionary.defineTag("hifi-server-entity", {
         onTagged: function (doclet, tag) {
             doclet.hifiServerEntity = true;
-        }
-    });
-    
-    // @signal
-    dictionary.defineTag("signal", {
-        mustHaveValue: true,
-        onTagged: function(doclet, tag) {
-            setDocletKindToTitle(doclet, tag);
-            setDocletNameToValue(doclet, tag);
         }
     });
 
