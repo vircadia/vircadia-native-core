@@ -669,10 +669,10 @@ Rectangle {
             }
         }   
         AudioControls.PlaySampleSound {
-          id: playSampleSound
-          x: margins.paddings
-          anchors.top: systemInjectorGainContainer.bottom;
-          anchors.topMargin: 10;
+              id: playSampleSound
+              x: margins.paddings
+              anchors.top: systemInjectorGainContainer.bottom;
+              anchors.topMargin: 10;
         }
     }
 }
