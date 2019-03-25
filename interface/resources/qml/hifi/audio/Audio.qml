@@ -32,7 +32,7 @@ Rectangle {
     property int switchHeight: 16
     property int switchWidth: 40
     property bool pushToTalk: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
-    property bool muted: (bar.currentIndex === 0) ? AudioScriptingInterface.desktopMuted : AudioScriptingInterface.hmdMuted;
+    property bool muted: (bar.currentIndex === 0) ? AudioScriptingInterface.mutedDesktop : AudioScriptingInterface.mutedHMD;
     readonly property real verticalScrollWidth: 10
     readonly property real verticalScrollShaft: 8
     signal sendToScript(var message);
@@ -185,10 +185,10 @@ Rectangle {
                             }
                         }
                         if ((bar.currentIndex === 0)) {
-                            AudioScriptingInterface.desktopMuted = checked;
+                            AudioScriptingInterface.mutedDesktop = checked;
                         }
                         else {
-                            AudioScriptingInterface.hmdMuted = checked;
+                            AudioScriptingInterface.mutedHMD = checked;
                         }
                     }
                 }
