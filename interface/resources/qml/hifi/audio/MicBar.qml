@@ -20,13 +20,20 @@ Rectangle {
 
     property var muted: AudioScriptingInterface.muted;
     readonly property var level: AudioScriptingInterface.inputLevel;
-    readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
-    readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
+    property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
 
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        AudioScriptingInterface.pushToTalkChanged.connect(function() {
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
+        AudioScriptingInterface.pushingToTalkChanged.connect(function() {
+            pushingToTalk = AudioScriptingInterface.pushingToTalk;
+        });
+
     }
 
     property bool standalone: false;
