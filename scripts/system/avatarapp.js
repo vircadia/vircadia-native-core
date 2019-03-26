@@ -468,30 +468,35 @@ function handleWearableMessages(channel, message, sender) {
     }
 
     var entityID = parsedMessage.grabbedEntity;
+
+    var updateWearable = function() {
+        // for some reasons Entities.getEntityProperties returns more than was asked..
+        var propertyNames = ['localPosition', 'localRotation', 'dimensions', 'naturalDimensions'];
+        var entityProperties = Entities.getEntityProperties(selectedAvatarEntityID, propertyNames);
+        var properties = {};
+
+        propertyNames.forEach(function(propertyName) {
+            properties[propertyName] = entityProperties[propertyName];
+        });
+
+        properties.localRotationAngles = Quat.safeEulerAngles(properties.localRotation);
+        sendToQml({'method' : 'wearableUpdated', 'entityID' : selectedAvatarEntityID,
+                   'wearableIndex' : -1, 'properties' : properties, updateUI : true});
+
+    };
+
     if(parsedMessage.action === 'grab') {
         if(selectedAvatarEntityID !== entityID) {
             ensureWearableSelected(entityID);
             sendToQml({'method' : 'selectAvatarEntity', 'entityID' : selectedAvatarEntityID});
         }
 
-        grabbedAvatarEntityChangeNotifier = Script.setInterval(function() {
-            // for some reasons Entities.getEntityProperties returns more than was asked..
-            var propertyNames = ['localPosition', 'localRotation', 'dimensions', 'naturalDimensions'];
-            var entityProperties = Entities.getEntityProperties(selectedAvatarEntityID, propertyNames);
-            var properties = {};
-
-            propertyNames.forEach(function(propertyName) {
-                properties[propertyName] = entityProperties[propertyName];
-            });
-
-            properties.localRotationAngles = Quat.safeEulerAngles(properties.localRotation);
-            sendToQml({'method' : 'wearableUpdated', 'entityID' : selectedAvatarEntityID, 'wearableIndex' : -1, 'properties' : properties, updateUI : true});
-
-        }, 1000);
+        grabbedAvatarEntityChangeNotifier = Script.setInterval(updateWearable, 1000);
     } else if(parsedMessage.action === 'release') {
         if(grabbedAvatarEntityChangeNotifier !== null) {
             Script.clearInterval(grabbedAvatarEntityChangeNotifier);
             grabbedAvatarEntityChangeNotifier = null;
+            updateWearable();
         }
     }
 }
