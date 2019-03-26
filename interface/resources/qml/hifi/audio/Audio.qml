@@ -438,14 +438,6 @@ Rectangle {
                 color: hifi.colors.white;
                 text: qsTr("Choose output device");
             }
-
-            AudioControls.PlaySampleSound {
-                x: margins.paddings
-
-                visible: (bar.currentIndex === 1 && isVR) ||
-                         (bar.currentIndex === 0 && !isVR);
-                anchors { right: parent.right }
-            }
         }
 
         ListView {
