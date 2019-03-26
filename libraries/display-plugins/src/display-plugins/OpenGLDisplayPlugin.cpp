@@ -109,7 +109,6 @@ public:
         Q_ASSERT(_context);
         _context->makeCurrent();
         CHECK_GL_ERROR();
-        _context->doneCurrent();
         while (!_shutdown) {
             if (_pendingOtherThreadOperation) {
                 PROFILE_RANGE(render, "MainThreadOp")
@@ -129,6 +128,7 @@ public:
                     Lock lock(_mutex);
                     _condition.wait(lock, [&] { return _finishedOtherThreadOperation; });
                 }
+                _context->makeCurrent();
             }
 
             // Check for a new display plugin
@@ -140,18 +140,16 @@ public:
                     if (newPlugin != currentPlugin) {
                         // Deactivate the old plugin
                         if (currentPlugin != nullptr) {
-                            _context->makeCurrent();
                             currentPlugin->uncustomizeContext();
                             CHECK_GL_ERROR();
-                            _context->doneCurrent();
+                            // Force completion of all pending GL commands
+                            glFinish();
                         }
 
                         if (newPlugin) {
                             bool hasVsync = true;
                             QThread::setPriority(newPlugin->getPresentPriority());
                             bool wantVsync = newPlugin->wantVsync();
-                            _context->makeCurrent();
-                            CHECK_GL_ERROR();
 #if defined(Q_OS_MAC)
                             newPlugin->swapBuffers();
 #endif
@@ -163,7 +161,8 @@ public:
                             newPlugin->setVsyncEnabled(hasVsync);
                             newPlugin->customizeContext();
                             CHECK_GL_ERROR();
-                            _context->doneCurrent();
+                            // Force completion of all pending GL commands
+                            glFinish();
                         }
                         currentPlugin = newPlugin;
                         _newPluginQueue.pop();
@@ -180,7 +179,6 @@ public:
             }
 
             // Execute the frame and present it to the display device.
-            _context->makeCurrent();
             {
                 PROFILE_RANGE(render, "PluginPresent")
                 gl::globalLock();
@@ -188,9 +186,9 @@ public:
                 gl::globalRelease(false);
                 CHECK_GL_ERROR();
             }
-            _context->doneCurrent();
         }
 
+        _context->doneCurrent();
         Lock lock(_mutex);
         _context->moveToThread(qApp->thread());
         _shutdown = false;
