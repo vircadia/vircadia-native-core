@@ -73,7 +73,7 @@ QImage image::readOpenEXR(QIODevice& content, const std::string& filename) {
         auto packHDRPixel = getHDRPackingFunction();
         
         for (int y = 0; y < height; y++) {
-            const auto srcScanline = pixels[height];
+            const auto srcScanline = pixels[y];
             gpu::uint32* dstScanline = (gpu::uint32*) image.scanLine(y);
 
             for (int x = 0; x < width; x++) {
