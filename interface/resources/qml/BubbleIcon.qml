@@ -22,12 +22,20 @@ Rectangle {
     property var dragTarget: null;
     property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
 
-    onIgnoreRadiusEnabledChanged: {
+    function updateOpacity() {
         if (ignoreRadiusEnabled) {
             bubbleRect.opacity = 0.7;
         } else {
             bubbleRect.opacity = 0.3;
         }
+    }
+
+    Component.onCompleted: {
+        updateOpacity();
+    }
+
+    onIgnoreRadiusEnabledChanged: {
+        updateOpacity();
     }
 
     color: "#00000000";

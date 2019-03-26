@@ -19,14 +19,18 @@ Rectangle {
     id: micBar;
     readonly property var level: AudioScriptingInterface.inputLevel;
     readonly property var clipping: AudioScriptingInterface.clipping;
-    readonly property var muted: AudioScriptingInterface.muted;
-    readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
-    readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
+    property var muted: AudioScriptingInterface.muted;
+    property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
     readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        HMD.displayModeChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
     }
 
     readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
@@ -86,8 +90,9 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
-            AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
+            AudioScriptingInterface.muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
+            muted = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {

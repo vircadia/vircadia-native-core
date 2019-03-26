@@ -22,14 +22,18 @@ Rectangle {
     property var muted: AudioScriptingInterface.muted;
     readonly property var level: AudioScriptingInterface.inputLevel;
     readonly property var clipping: AudioScriptingInterface.clipping;
-    readonly property var pushToTalk: AudioScriptingInterface.pushToTalk;
-    readonly property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
+    property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
 
     readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        HMD.displayModeChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
     }
 
     property bool standalone: false;
@@ -147,7 +151,6 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: colors.icon;
 
         visible: (pushToTalk && !pushingToTalk) || muted;
 
@@ -166,7 +169,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: parent.color;
+            color: colors.icon;
 
             text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
@@ -180,7 +183,7 @@ Rectangle {
 
             width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
-            color: parent.color;
+            color: colors.icon;
         }
 
         Rectangle {
@@ -191,7 +194,7 @@ Rectangle {
 
             width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
-            color: parent.color;
+            color: colors.icon;
         }
     }
 

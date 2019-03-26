@@ -177,14 +177,14 @@ Rectangle {
                     onClicked: {
                         if (pushToTalk && !checked) {
                             // disable push to talk if unmuting
-                            if ((bar.currentIndex === 0)) {
+                            if (bar.currentIndex === 0) {
                                 AudioScriptingInterface.pushToTalkDesktop = false;
                             }
                             else {
                                 AudioScriptingInterface.pushToTalkHMD = false;
                             }
                         }
-                        if ((bar.currentIndex === 0)) {
+                        if (bar.currentIndex === 0) {
                             AudioScriptingInterface.mutedDesktop = checked;
                         }
                         else {
@@ -293,7 +293,6 @@ Rectangle {
 
         Item {
             id: pttTextContainer
-            visible: pushToTalk;
             anchors.top: switchesContainer.bottom;
             anchors.topMargin: 10;
             anchors.left: parent.left;
