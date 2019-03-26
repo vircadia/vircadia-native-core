@@ -784,3 +784,48 @@ QRectF OpenVrDisplayPlugin::getPlayAreaRect() {
 
     return QRectF(center.x, center.y, dimensions.x, dimensions.y);
 }
+
+
+DisplayPlugin::StencilMaskMeshOperator OpenVrDisplayPlugin::getStencilMaskMeshOperator() {
+    if (_system) {
+        if (!_stencilMeshesInitialized) {
+            _stencilMeshesInitialized = true;
+            for (auto eye : VR_EYES) {
+                vr::HiddenAreaMesh_t stencilMesh = _system->GetHiddenAreaMesh(eye);
+                if (stencilMesh.pVertexData && stencilMesh.unTriangleCount > 0) {
+                    std::vector<glm::vec3> vertices;
+                    std::vector<uint32_t> indices;
+
+                    const int NUM_INDICES_PER_TRIANGLE = 3;
+                    int numIndices = stencilMesh.unTriangleCount * NUM_INDICES_PER_TRIANGLE;
+                    vertices.reserve(numIndices);
+                    indices.reserve(numIndices);
+                    for (int i = 0; i < numIndices; i++) {
+                        vr::HmdVector2_t vertex2D = stencilMesh.pVertexData[i];
+                        vertices.emplace_back(vertex2D.v[0], vertex2D.v[1], 0.0f);
+                        indices.push_back(i);
+                    }
+
+                    _stencilMeshes[eye] = graphics::Mesh::createIndexedTriangles_P3F((uint32_t)vertices.size(), (uint32_t)indices.size(), vertices.data(), indices.data());
+                } else {
+                    _stencilMeshesInitialized = false;
+                }
+            }
+        }
+
+        if (_stencilMeshesInitialized) {
+            return [&](gpu::Batch& batch) {
+                for (auto& mesh : _stencilMeshes) {
+                    batch.setIndexBuffer(mesh->getIndexBuffer());
+                    batch.setInputFormat((mesh->getVertexFormat()));
+                    batch.setInputStream(0, mesh->getVertexStream());
+
+                    // Draw
+                    auto part = mesh->getPartBuffer().get<graphics::Mesh::Part>(0);
+                    batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+                }
+            };
+        }
+    }
+    return nullptr;
+}
