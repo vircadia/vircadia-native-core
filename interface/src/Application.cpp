@@ -3961,6 +3961,15 @@ static void dumpEventQueue(QThread* thread) {
 }
 #endif // DEBUG_EVENT_QUEUE
 
+bool Application::notify(QObject * object, QEvent * event) {
+    if (thread() == QThread::currentThread()) {
+        PROFILE_RANGE_IF_LONGER(app, "notify", 2)
+        return QApplication::notify(object, event);
+    } 
+        
+    return QApplication::notify(object, event);
+}
+
 bool Application::event(QEvent* event) {
 
     if (_aboutToQuit) {
