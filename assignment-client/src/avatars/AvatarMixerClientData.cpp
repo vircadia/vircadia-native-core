@@ -129,7 +129,7 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
         incrementNumOutOfOrderSends();
     }
     _lastReceivedSequenceNumber = sequenceNumber;
-    glm::vec3 oldPosition = _avatar->getCentroidPosition();
+    glm::vec3 oldPosition = _avatar->getClientGlobalPosition();
     bool oldHasPriority = _avatar->getHasPriority();
 
     // compute the offset to the data payload
@@ -140,7 +140,7 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveShared
     // Regardless of what the client says, restore the priority as we know it without triggering any update.
     _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
 
-    auto newPosition = _avatar->getCentroidPosition();
+    auto newPosition = _avatar->getClientGlobalPosition();
     if (newPosition != oldPosition || _avatar->getNeedsHeroCheck()) {
         EntityTree& entityTree = *slaveSharedData.entityTree;
         FindPriorityZone findPriorityZone { newPosition } ;

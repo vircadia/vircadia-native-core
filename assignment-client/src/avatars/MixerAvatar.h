@@ -22,9 +22,6 @@ public:
     bool getNeedsHeroCheck() const { return _needsHeroCheck; }
     void setNeedsHeroCheck(bool needsHeroCheck = true)
         { _needsHeroCheck = needsHeroCheck; }
-    // Bounding-box World centre:
-    glm::vec3 getCentroidPosition() const
-        { return getWorldPosition() + _globalBoundingBoxOffset; }
 
 private:
     bool _needsHeroCheck { false };
