@@ -358,7 +358,7 @@ private:
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
     Setting::Handle<bool> _mutedDesktopSetting{ QStringList { Audio::AUDIO, "mutedDesktop" }, true };
-    Setting::Handle<bool> _mutedHMD{ QStringList { Audio::AUDIO, "mutedHMD" }, true };
+    Setting::Handle<bool> _mutedHMDSetting{ QStringList { Audio::AUDIO, "mutedHMD" }, true };
     Setting::Handle<bool> _pttDesktopSetting{ QStringList { Audio::AUDIO, "pushToTalkDesktop" }, false };
     Setting::Handle<bool> _pttHMDSetting{ QStringList { Audio::AUDIO, "pushToTalkHMD" }, false };
     bool _mutedDesktop{ true };
