@@ -17,7 +17,7 @@ import stylesUit 1.0
 import controlsUit 1.0 as HifiControlsUit
 
 RowLayout {
-    property bool audioLoopedBack: AudioScriptingInterface.getServerEcho();
+    property bool audioLoopedBack: AudioScriptingInterface.getLocalEcho();
     function startAudioLoopback() {
         if (!audioLoopedBack) {
             audioLoopedBack = true;
