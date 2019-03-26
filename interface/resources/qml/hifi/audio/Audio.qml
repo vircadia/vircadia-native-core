@@ -540,6 +540,8 @@ Rectangle {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: injectorGainSliderTextMetrics.height
+            anchors.top: avatarGainContainer.bottom;
+            anchors.topMargin: 10;
 
             HifiControlsUit.Slider {
                 id: injectorGainSlider
@@ -599,6 +601,8 @@ Rectangle {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: systemInjectorGainSliderTextMetrics.height
+            anchors.top: injectorGainContainer.bottom;
+            anchors.topMargin: 10;
 
             HifiControlsUit.Slider {
                 id: systemInjectorGainSlider
