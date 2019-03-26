@@ -21,13 +21,13 @@ RowLayout {
     function startAudioLoopback() {
         if (!audioLoopedBack) {
             audioLoopedBack = true;
-            AudioScriptingInterface.setServerEcho(true);
+            AudioScriptingInterface.setLocalEcho(true);
         }
     }
     function stopAudioLoopback() {
         if (audioLoopedBack) {
             audioLoopedBack = false;
-            AudioScriptingInterface.setServerEcho(false);
+            AudioScriptingInterface.setLocalEcho(false);
         }
     }
 
