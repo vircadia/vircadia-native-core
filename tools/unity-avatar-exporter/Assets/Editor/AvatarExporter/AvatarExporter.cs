@@ -17,7 +17,7 @@ using System.Text.RegularExpressions;
 
 class AvatarExporter : MonoBehaviour {
     // update version number for every PR that changes this file, also set updated version in README file
-    static readonly string AVATAR_EXPORTER_VERSION = "0.3.7";
+    static readonly string AVATAR_EXPORTER_VERSION = "0.4.0";
     
     static readonly float HIPS_GROUND_MIN_Y = 0.01f;
     static readonly float HIPS_SPINE_CHEST_MIN_SEPARATION = 0.001f;
@@ -697,11 +697,10 @@ class AvatarExporter : MonoBehaviour {
         if (materialDatas.Count > 0) {
             string materialJson = "{ ";
             foreach (var materialData in materialDatas) {
-                // if this is the only material in the mapping and it is the default name No Name mapped to No Name, 
+                // if this is the only material in the mapping and it is mapped to default material name No Name, 
                 // then the avatar has no embedded materials and this material should be applied to all meshes
                 string materialName = materialData.Key;
-                if (materialMappings.Count == 1 && materialName == DEFAULT_MATERIAL_NAME && 
-                    materialMappings[materialName] == DEFAULT_MATERIAL_NAME) {
+                if (materialMappings.Count == 1 && materialName == DEFAULT_MATERIAL_NAME) {
                     materialJson += "\"all\": ";
                 } else {
                     materialJson += "\"mat::" + materialName + "\": ";
@@ -1300,6 +1299,7 @@ class ExportProjectWindow : EditorWindow {
     const float DEFAULT_AVATAR_HEIGHT = 1.755f;
     const float MAXIMUM_RECOMMENDED_HEIGHT = DEFAULT_AVATAR_HEIGHT * 1.5f;
     const float MINIMUM_RECOMMENDED_HEIGHT = DEFAULT_AVATAR_HEIGHT * 0.25f;
+    const float SLIDER_DIFFERENCE_REMOVE_TEXT = 0.01f;
     readonly Color COLOR_YELLOW = Color.yellow; //new Color(0.9176f, 0.8274f, 0.0f);
     readonly Color COLOR_BACKGROUND = new Color(0.5f, 0.5f, 0.5f);
 
@@ -1314,6 +1314,7 @@ class ExportProjectWindow : EditorWindow {
     Vector2 warningScrollPosition = new Vector2(0, 0);
     string scaleWarningText = "";
     float sliderScale = 0.30103f;
+    float originalSliderScale;
     
     public delegate void OnExportDelegate(string projectDirectory, string projectName, float scale);
     OnExportDelegate onExportCallback;
@@ -1344,6 +1345,8 @@ class ExportProjectWindow : EditorWindow {
             SetAvatarScale(newScale);
             scaleWarningText = "Avatar's scale automatically adjusted to be within the recommended range.";
         }
+        
+        originalSliderScale = sliderScale;
     }
 
     void OnGUI() {      
@@ -1460,10 +1463,9 @@ class ExportProjectWindow : EditorWindow {
             Close();
         }
         
-        // when any value changes check for any errors and update scale warning if we are not exporting
+        // When a text field changes check for any errors if we didn't just check errors from clicking Export above
         if (GUI.changed && !export) {
             CheckForErrors(false);
-            UpdateScaleWarning();
         }
     }
     
@@ -1521,13 +1523,14 @@ class ExportProjectWindow : EditorWindow {
     }
     
     void UpdateScaleWarning() {
-        // called on any input changes
+        // called on any scale changes
         float height = GetAvatarHeight();
         if (height < MINIMUM_RECOMMENDED_HEIGHT) {
             scaleWarningText = "The height of the avatar is below the recommended minimum.";
         } else if (height > MAXIMUM_RECOMMENDED_HEIGHT) {
             scaleWarningText = "The height of the avatar is above the recommended maximum.";
-        } else {
+        } else if (Mathf.Abs(originalSliderScale - sliderScale) > SLIDER_DIFFERENCE_REMOVE_TEXT) {
+            // once moving slider beyond a small threshold, remove the automatically scaled text
             scaleWarningText = "";
         }
     }
@@ -1555,6 +1558,8 @@ class ExportProjectWindow : EditorWindow {
         
         // adjust slider scale value to match the new actual scale value
         sliderScale = GetSliderScaleFromActualScale(actualScale);
+        
+        UpdateScaleWarning();
     }
     
     float GetSliderScaleFromActualScale(float actualScale) {
