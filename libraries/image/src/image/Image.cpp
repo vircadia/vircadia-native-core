@@ -1427,9 +1427,6 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
         // If the target format isn't HDR (such as on GLES) but the image is, we need to
         // convert the image to LDR
         image = convertToLDRFormat(std::move(image), targetCubemapFormat);
-    } else {
-        // Else make sure we have a basic RGB 8bit per component image
-        image = image.convertToFormat(QImage::Format_ARGB32);
     }
 
     gpu::Element formatMip;
