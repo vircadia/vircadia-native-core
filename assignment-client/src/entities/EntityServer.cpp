@@ -22,7 +22,6 @@
 #include <ScriptCache.h>
 #include <EntityEditFilters.h>
 #include <NetworkingConstants.h>
-#include <AddressManager.h>
 #include <hfm/ModelFormatRegistry.h>
 
 #include "../AssignmentDynamicFactory.h"
@@ -471,62 +470,7 @@ void EntityServer::startDynamicDomainVerification() {
     qCDebug(entities) << "Starting Dynamic Domain Verification...";
 
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-    QHash<QString, EntityItemID> localMap(tree->getEntityCertificateIDMap());
-
-    QHashIterator<QString, EntityItemID> i(localMap);
-    qCDebug(entities) << localMap.size() << "certificates present.";
-    while (i.hasNext()) {
-        i.next();
-        const auto& certificateID = i.key();
-        const auto& entityID = i.value();
-
-        // Examine each cert:
-        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-        QNetworkRequest networkRequest;
-        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-        networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-        QUrl requestURL = NetworkingConstants::METAVERSE_SERVER_URL();
-        requestURL.setPath("/api/v1/commerce/proof_of_purchase_status/location");
-        QJsonObject request;
-        request["certificate_id"] = certificateID;
-        networkRequest.setUrl(requestURL);
-
-        QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
-
-        connect(networkReply, &QNetworkReply::finished, this, [this, entityID, networkReply] {
-            EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
-
-            QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
-            jsonObject = jsonObject["data"].toObject();
-            networkReply->deleteLater();
-
-            if (networkReply->error() != QNetworkReply::NoError) {
-                qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << networkReply->error() << "; NOT deleting entity" << entityID
-                    << "More info:" << jsonObject;
-                return;
-            }
-            QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
-            if (jsonObject["domain_id"].toString() == thisDomainID) {
-                // Entity belongs here. Nothing to do.
-                return;
-            }
-            // Entity does not belong here:
-            EntityItemPointer entity = tree->findEntityByEntityItemID(entityID);
-            if (!entity) {
-                qCDebug(entities) << "Entity undergoing dynamic domain verification is no longer available:" << entityID;
-                return;
-            }
-            if (entity->getAge() <= (_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS / MSECS_PER_SECOND)) {
-                qCDebug(entities) << "Entity failed dynamic domain verification, but was created too recently to necessitate deletion:" << entityID;
-                return;
-            }
-            qCDebug(entities) << "Entity's cert's domain ID" << jsonObject["domain_id"].toString()
-                << "doesn't match the current Domain ID" << thisDomainID << "; deleting entity" << entityID;
-            tree->withWriteLock([&] {
-                tree->deleteEntity(entityID, true);
-            });
-        });
-    }
+    tree->startDynamicDomainVerificationOnServer((float) _MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS / MSECS_PER_SECOND);
 
     int nextInterval = qrand() % ((_MAXIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS + 1) - _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS) + _MINIMUM_DYNAMIC_DOMAIN_VERIFICATION_TIMER_MS;
     qCDebug(entities) << "Restarting Dynamic Domain Verification timer for" << nextInterval / 1000 << "seconds";

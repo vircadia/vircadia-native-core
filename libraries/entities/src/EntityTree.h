@@ -279,6 +279,7 @@ public:
 
     void updateEntityQueryAACube(SpatiallyNestablePointer object, EntityEditPacketSender* packetSender,
                                  bool force, bool tellServer);
+    void startDynamicDomainVerificationOnServer(float minimumAgeToRemove);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -377,6 +378,8 @@ protected:
     Q_INVOKABLE void startChallengeOwnershipTimer(const EntityItemID& entityItemID);
 
 private:
+    void addCertifiedEntityOnServer(EntityItemPointer entity);
+    void removeCertifiedEntityOnServer(EntityItemPointer entity);
     void sendChallengeOwnershipPacket(const QString& certID, const QString& ownerKey, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
     void sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode);
     void validatePop(const QString& certID, const EntityItemID& entityItemID, const SharedNodePointer& senderNode);
