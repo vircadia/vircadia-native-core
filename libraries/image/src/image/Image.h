@@ -13,15 +13,19 @@
 #define hifi_image_Image_h
 
 #include <QVariant>
+#include <QImage>
 
 #include <gpu/Texture.h>
 
 #include "ColorChannel.h"
 
 class QByteArray;
-class QImage;
 
 namespace image {
+
+extern const QImage::Format QIMAGE_HDRFORMAT;
+
+std::function<gpu::uint32(const glm::vec3&)> getHDRPackingFunction();
 
 namespace TextureUsage {
 

@@ -26,6 +26,7 @@
 #include <GLMHelpers.h>
 
 #include "TGAReader.h"
+#include "OpenEXRReader.h"
 
 #include "ImageLogging.h"
 
@@ -48,6 +49,7 @@ std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 // we use a ref here to work around static order initialization
 // possibly causing the element not to be constructed yet
 static const auto& HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
+const QImage::Format image::QIMAGE_HDRFORMAT = QImage::Format_RGB30;
 
 uint rectifyDimension(const uint& dimension) {
     if (dimension == 0) {
@@ -86,7 +88,7 @@ QImage::Format hdrFormatForTarget(BackendTarget target) {
     if (target == BackendTarget::GLES32) {
         return QImage::Format_RGB32;
     }
-    return QImage::Format_RGB30;
+    return QIMAGE_HDRFORMAT;
 }
 
 TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, const QVariantMap& options) {
@@ -186,7 +188,7 @@ static float denormalize(float value, const float minValue) {
     return value < minValue ? 0.0f : value;
 }
 
-uint32 packR11G11B10F(const glm::vec3& color) {
+static uint32 packR11G11B10F(const glm::vec3& color) {
     // Denormalize else unpacking gives high and incorrect values
     // See https://www.khronos.org/opengl/wiki/Small_Float_Formats for this min value
     static const auto minValue = 6.10e-5f;
@@ -199,6 +201,21 @@ uint32 packR11G11B10F(const glm::vec3& color) {
     ucolor.g = std::min(ucolor.g, maxValue);
     ucolor.b = std::min(ucolor.b, maxValue);
     return glm::packF2x11_1x10(ucolor);
+}
+
+static std::function<uint32(const glm::vec3&)> getHDRPackingFunction(const gpu::Element& format) {
+    if (format == gpu::Element::COLOR_RGB9E5) {
+        return glm::packF3x9_E1x5;
+    } else if (format == gpu::Element::COLOR_R11G11B10) {
+        return packR11G11B10F;
+    } else {
+        qCWarning(imagelogging) << "Unknown handler format";
+        Q_UNREACHABLE();
+    }
+}
+
+std::function<uint32(const glm::vec3&)> getHDRPackingFunction() {
+    return getHDRPackingFunction(HDR_FORMAT);
 }
 
 QImage processRawImageData(QIODevice& content, const std::string& filename) {
@@ -217,6 +234,11 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
             return image;
         }
         content.reset();
+    } else if (filenameExtension == "exr") {
+        QImage image = image::readOpenEXR(content, filename);
+        if (!image.isNull()) {
+            return image;
+        }
     }
 
     QImageReader imageReader(&content, filenameExtension.c_str());
@@ -397,14 +419,7 @@ struct OutputHandler : public nvtt::OutputHandler {
 
 struct PackedFloatOutputHandler : public OutputHandler {
     PackedFloatOutputHandler(gpu::Texture* texture, int face, gpu::Element format) : OutputHandler(texture, face) {
-        if (format == gpu::Element::COLOR_RGB9E5) {
-            _packFunc = glm::packF3x9_E1x5;
-        } else if (format == gpu::Element::COLOR_R11G11B10) {
-            _packFunc = packR11G11B10F;
-        } else {
-            qCWarning(imagelogging) << "Unknown handler format";
-            Q_UNREACHABLE();
-        }
+        _packFunc = getHDRPackingFunction(format);
     }
 
     virtual void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
