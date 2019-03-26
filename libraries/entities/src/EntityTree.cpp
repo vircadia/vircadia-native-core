@@ -1506,21 +1506,21 @@ void EntityTree::startChallengeOwnershipTimer(const EntityItemID& entityItemID) 
     _challengeOwnershipTimeoutTimer->start(5000);
 }
 
-QByteArray EntityTree::computeNonce(const QString& certID, const QString ownerKey) {
+QByteArray EntityTree::computeNonce(const EntityItemID& entityID, const QString ownerKey) {
     QUuid nonce = QUuid::createUuid();  //random, 5-hex value, separated by "-"
     QByteArray nonceBytes = nonce.toByteArray();
 
-    QWriteLocker locker(&_certNonceMapLock);
-    _certNonceMap.insert(certID, QPair<QUuid, QString>(nonce, ownerKey));
+    QWriteLocker locker(&_entityNonceMapLock);
+    _entityNonceMap.insert(entityID, QPair<QUuid, QString>(nonce, ownerKey));
 
     return nonceBytes;
 }
 
-bool EntityTree::verifyNonce(const QString& certID, const QString& nonce) {
+bool EntityTree::verifyNonce(const EntityItemID& entityID, const QString& nonce) {
     QString actualNonce, key;
     {
-        QWriteLocker locker(&_certNonceMapLock);
-        QPair<QUuid, QString> sent = _certNonceMap.take(certID);
+        QWriteLocker locker(&_entityNonceMapLock);
+        QPair<QUuid, QString> sent = _entityNonceMap.take(entityID);
         actualNonce = sent.first.toString();
         key = sent.second;
     }
@@ -1530,9 +1530,9 @@ bool EntityTree::verifyNonce(const QString& certID, const QString& nonce) {
     bool verificationSuccess = EntityItemProperties::verifySignature(annotatedKey.toUtf8(), hashedActualNonce, QByteArray::fromBase64(nonce.toUtf8()));
 
     if (verificationSuccess) {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "succeeded.";
+        qCDebug(entities) << "Ownership challenge for Entity ID" << entityID << "succeeded.";
     } else {
-        qCDebug(entities) << "Ownership challenge for Cert ID" << certID << "failed. Actual nonce:" << actualNonce <<
+        qCDebug(entities) << "Ownership challenge for Entity ID" << entityID << "failed. Actual nonce:" << actualNonce <<
             "\nHashed actual nonce (digest):" << hashedActualNonce << "\nSent nonce (signature)" << nonce << "\nKey" << key;
     }
 
@@ -1585,7 +1585,7 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     // 1. Obtain a nonce
     auto nodeList = DependencyManager::get<NodeList>();
 
-    QByteArray text = computeNonce(certID, ownerKey);
+    QByteArray text = computeNonce(entityItemID, ownerKey);
 
     if (text == "") {
         qCDebug(entities) << "CRITICAL ERROR: Couldn't compute nonce. Deleting entity...";
@@ -1708,7 +1708,7 @@ void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const
     }
     emit killChallengeOwnershipTimeoutTimer(id);
 
-    if (!verifyNonce(certID, text)) {
+    if (!verifyNonce(id, text)) {
         if (!id.isNull()) {
             deleteEntity(id, true);
         }

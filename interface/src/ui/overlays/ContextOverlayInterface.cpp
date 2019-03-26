@@ -329,7 +329,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
                                 QString ownerKey = jsonObject["transfer_recipient_key"].toString();
 
                                 QByteArray certID = entityProperties.getCertificateID().toUtf8();
-                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(certID, ownerKey);
+                                QByteArray text = DependencyManager::get<EntityTreeRenderer>()->getTree()->computeNonce(entityID, ownerKey);
                                 QByteArray nodeToChallengeByteArray = entityProperties.getOwningAvatarID().toRfc4122();
 
                                 int certIDByteArraySize = certID.length();
@@ -422,7 +422,7 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     QString certID(packet->read(certIDByteArraySize));
     QString text(packet->read(textByteArraySize));
 
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(certID, text);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(_lastInspectedEntity, text);
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(certID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
