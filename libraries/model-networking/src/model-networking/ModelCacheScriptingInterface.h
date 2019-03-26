@@ -25,7 +25,8 @@ class ModelCacheScriptingInterface : public ScriptableResourceCache, public Depe
     // Properties are copied over from ResourceCache (see ResourceCache.h for reason).
 
     /**jsdoc
-     * API to manage model cache resources.
+     * The <code>ModelCache</code> API manages model cache resources.
+     *
      * @namespace ModelCache
      *
      * @hifi-interface

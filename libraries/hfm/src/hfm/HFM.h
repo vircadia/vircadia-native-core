@@ -251,11 +251,6 @@ public:
     bool wasCompressed { false };
 };
 
-/**jsdoc
- * @typedef {object} FBXAnimationFrame
- * @property {Quat[]} rotations
- * @property {Vec3[]} translations
- */
 /// A single animation frame.
 class AnimationFrame {
 public:

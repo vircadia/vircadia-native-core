@@ -126,7 +126,7 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * <ul>
  *   <li>WAV: 16-bit uncompressed WAV at any sample rate, with 1 (mono), 2(stereo), or 4 (ambisonic) channels.</li>
  *   <li>MP3: Mono or stereo, at any sample rate.</li>
- *   <li>RAW: 48khz 16-bit mono or stereo. Filename must include <code>".stereo"</code> to be interpreted as stereo.</li>
+ *   <li>RAW: 48khz 16-bit mono or stereo. File name must include <code>".stereo"</code> to be interpreted as stereo.</li>
  * </ul>
  *
  * @class SoundObject
@@ -138,8 +138,8 @@ typedef QSharedPointer<Sound> SharedSoundPointer;
  * @hifi-assignment-client
  *
  * @property {boolean} downloaded - <code>true</code> if the sound has been downloaded and is ready to be played, otherwise 
- *     <code>false</code>.
- * @property {number} duration - The duration of the sound, in seconds.
+ *     <code>false</code>. <em>Read-only.</em>
+ * @property {number} duration - The duration of the sound, in seconds. <em>Read-only.</em>
  */
 class SoundScriptingInterface : public QObject {
     Q_OBJECT

@@ -45,18 +45,6 @@ private:
 
 Q_DECLARE_METATYPE(AnimationPointer)
 
-/**jsdoc
- * @class AnimationObject
- *
- * @hifi-interface
- * @hifi-client-entity
- * @hifi-avatar
- * @hifi-server-entity
- * @hifi-assignment-client
- *
- * @property {string[]} jointNames
- * @property {FBXAnimationFrame[]} frames
- */
 /// An animation loaded from the network.
 class Animation : public Resource {
     Q_OBJECT
@@ -72,16 +60,8 @@ public:
 
     virtual bool isLoaded() const override;
 
-    /**jsdoc
-     * @function AnimationObject.getJointNames
-     * @returns {string[]}
-     */
     Q_INVOKABLE QStringList getJointNames() const;
     
-    /**jsdoc
-     * @function AnimationObject.getFrames
-     * @returns {FBXAnimationFrame[]}
-     */
     Q_INVOKABLE QVector<HFMAnimationFrame> getFrames() const;
 
     const QVector<HFMAnimationFrame>& getFramesReference() const;
