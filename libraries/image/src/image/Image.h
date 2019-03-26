@@ -26,6 +26,7 @@ namespace image {
 extern const QImage::Format QIMAGE_HDRFORMAT;
 
 std::function<gpu::uint32(const glm::vec3&)> getHDRPackingFunction();
+std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction();
 
 namespace TextureUsage {
 

@@ -84,7 +84,7 @@ const QStringList getSupportedFormats() {
 
 
 // On GLES, we don't use HDR skyboxes
-QImage::Format hdrFormatForTarget(BackendTarget target) {
+QImage::Format cubeMapFormatForTarget(BackendTarget target) {
     if (target == BackendTarget::GLES32) {
         return QImage::Format_RGB32;
     }
@@ -211,6 +211,7 @@ static std::function<uint32(const glm::vec3&)> getHDRPackingFunction(const gpu::
     } else {
         qCWarning(imagelogging) << "Unknown handler format";
         Q_UNREACHABLE();
+        return nullptr;
     }
 }
 
@@ -218,10 +219,24 @@ std::function<uint32(const glm::vec3&)> getHDRPackingFunction() {
     return getHDRPackingFunction(HDR_FORMAT);
 }
 
+std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction() {
+    if (HDR_FORMAT == gpu::Element::COLOR_RGB9E5) {
+        return glm::unpackF3x9_E1x5;
+    } else if (HDR_FORMAT == gpu::Element::COLOR_R11G11B10) {
+        return glm::unpackF2x11_1x10;
+    } else {
+        qCWarning(imagelogging) << "Unknown HDR encoding format in QImage";
+        Q_UNREACHABLE();
+        return nullptr;
+    }
+}
+
 QImage processRawImageData(QIODevice& content, const std::string& filename) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
+    // Remove possible query part of the filename if it comes from an URL
+    filenameExtension = filenameExtension.substr(0, filenameExtension.find_first_of('?'));
     if (!content.isReadable()) {
         content.open(QIODevice::ReadOnly);
     } else {
@@ -482,13 +497,13 @@ void generateHDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     QImage localCopy = std::move(image);
 
-    assert(localCopy.format() == hdrFormatForTarget(target));
+    assert(localCopy.format() == cubeMapFormatForTarget(target));
 
     const int width = localCopy.width(), height = localCopy.height();
     std::vector<glm::vec4> data;
     std::vector<glm::vec4>::iterator dataIt;
     auto mipFormat = texture->getStoredMipFormat();
-    std::function<glm::vec3(uint32)> unpackFunc;
+    std::function<glm::vec3(uint32)> unpackFunc = getHDRUnpackingFunction();
 
     nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
@@ -510,16 +525,6 @@ void generateHDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
         compressionOptions.setPixelFormat(32, 32, 32, 0);
     } else {
         qCWarning(imagelogging) << "Unknown mip format";
-        Q_UNREACHABLE();
-        return;
-    }
-
-    if (HDR_FORMAT == gpu::Element::COLOR_RGB9E5) {
-        unpackFunc = glm::unpackF3x9_E1x5;
-    } else if (HDR_FORMAT == gpu::Element::COLOR_R11G11B10) {
-        unpackFunc = glm::unpackF2x11_1x10;
-    } else {
-        qCWarning(imagelogging) << "Unknown HDR encoding format in QImage";
         Q_UNREACHABLE();
         return;
     }
@@ -579,7 +584,7 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     QImage localCopy = std::move(image);
 
-    if (localCopy.format() != QImage::Format_ARGB32 && localCopy.format() != hdrFormatForTarget(target)) {
+    if (localCopy.format() != QImage::Format_ARGB32 && localCopy.format() != cubeMapFormatForTarget(target)) {
         localCopy = localCopy.convertToFormat(QImage::Format_ARGB32);
     }
 
@@ -781,7 +786,7 @@ void generateMips(gpu::Texture* texture, QImage&& image, BackendTarget target, c
     if (target == BackendTarget::GLES32) {
         generateLDRMips(texture, std::move(image), target, abortProcessing, face);
     } else {
-        if (image.format() == hdrFormatForTarget(target)) {
+        if (image.format() == QIMAGE_HDRFORMAT) {
             generateHDRMips(texture, std::move(image), target, abortProcessing, face);
         } else {
             generateLDRMips(texture, std::move(image), target, abortProcessing, face);
@@ -1305,13 +1310,44 @@ const CubeLayout CubeLayout::CUBEMAP_LAYOUTS[] = {
 const int CubeLayout::NUM_CUBEMAP_LAYOUTS = sizeof(CubeLayout::CUBEMAP_LAYOUTS) / sizeof(CubeLayout);
 
 //#define DEBUG_COLOR_PACKING
-
-QImage convertToHDRFormat(QImage&& srcImage, gpu::Element format, BackendTarget target) {
+QImage convertToLDRFormat(QImage&& srcImage, QImage::Format format) {
     // Take a local copy to force move construction
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
     QImage localCopy = std::move(srcImage);
 
-    QImage hdrImage(localCopy.width(), localCopy.height(), hdrFormatForTarget(target));
+    QImage ldrImage(localCopy.width(), localCopy.height(), format);
+    auto unpackFunc = getHDRUnpackingFunction();
+
+    for (auto y = 0; y < localCopy.height(); y++) {
+        const QRgb* srcLineIt = reinterpret_cast<const QRgb*>(localCopy.constScanLine(y));
+        const QRgb* srcLineEnd = srcLineIt + localCopy.width();
+        uint32* ldrLineIt = reinterpret_cast<uint32*>(ldrImage.scanLine(y));
+        glm::vec3 color;
+
+        while (srcLineIt < srcLineEnd) {
+            color = unpackFunc(*srcLineIt);
+            // Apply reverse gamma and clamp
+            color.r = std::pow(color.r, 1.0f / 2.2f);
+            color.g = std::pow(color.g, 1.0f / 2.2f);
+            color.b = std::pow(color.b, 1.0f / 2.2f);
+            color.r = std::min(1.0f, color.r) * 255.0f;
+            color.g = std::min(1.0f, color.g) * 255.0f;
+            color.b = std::min(1.0f, color.b) * 255.0f;
+            *ldrLineIt = qRgb((int)color.r, (int)color.g, (int)color.b);
+
+            ++srcLineIt;
+            ++ldrLineIt;
+        }
+    }
+    return ldrImage;
+}
+
+QImage convertToHDRFormat(QImage&& srcImage, gpu::Element format) {
+    // Take a local copy to force move construction
+    // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
+    QImage localCopy = std::move(srcImage);
+
+    QImage hdrImage(localCopy.width(), localCopy.height(), QIMAGE_HDRFORMAT);
     std::function<uint32(const glm::vec3&)> packFunc;
 #ifdef DEBUG_COLOR_PACKING
     std::function<glm::vec3(uint32)> unpackFunc;
@@ -1349,9 +1385,9 @@ QImage convertToHDRFormat(QImage&& srcImage, gpu::Element format, BackendTarget 
             color.b = qBlue(*srcLineIt);
             // Normalize and apply gamma
             color /= 255.0f;
-            color.r = powf(color.r, 2.2f);
-            color.g = powf(color.g, 2.2f);
-            color.b = powf(color.b, 2.2f);
+            color.r = std::pow(color.r, 2.2f);
+            color.g = std::pow(color.g, 2.2f);
+            color.b = std::pow(color.b, 2.2f);
             *hdrLineIt = packFunc(color);
 #ifdef DEBUG_COLOR_PACKING
             glm::vec3 ucolor = unpackFunc(*hdrLineIt);
@@ -1382,13 +1418,18 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     gpu::TexturePointer theTexture = nullptr;
 
     QImage image = processSourceImage(std::move(localCopy), true, target);
-
-    if (image.format() != hdrFormatForTarget(target)) {
-        if (target == BackendTarget::GLES32) {
-            image = image.convertToFormat(QImage::Format_RGB32);
-        } else {
-            image = convertToHDRFormat(std::move(image), HDR_FORMAT, target);
-        }
+    auto targetCubemapFormat = cubeMapFormatForTarget(target);
+    if (targetCubemapFormat == QIMAGE_HDRFORMAT && image.format() != targetCubemapFormat) {
+        // If the target format is HDR but the image isn't, we need to convert the
+        // image to HDR.
+        image = convertToHDRFormat(std::move(image), HDR_FORMAT);
+    } else if (image.format() == QIMAGE_HDRFORMAT && image.format() != targetCubemapFormat) {
+        // If the target format isn't HDR (such as on GLES) but the image is, we need to
+        // convert the image to LDR
+        image = convertToLDRFormat(std::move(image), targetCubemapFormat);
+    } else {
+        // Else make sure we have a basic RGB 8bit per component image
+        image = image.convertToFormat(QImage::Format_ARGB32);
     }
 
     gpu::Element formatMip;
