@@ -1648,7 +1648,7 @@ using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUn
 void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
     float len = glm::compMax(glm::abs(unpacked.positionOffset));
     glm::vec3 normalizedPos(unpacked.positionOffset);
-    if (len > 1.0f) {
+    if (len > 0.0f) {
         normalizedPos /= len;
     } else {
         len = 1.0f;
