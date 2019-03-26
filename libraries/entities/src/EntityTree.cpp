@@ -1428,9 +1428,9 @@ void EntityTree::removeCertifiedEntityOnServer(EntityItemPointer entity) {
 }
 
 void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove) {
-    QHash<QString, EntityItemID> localMap(getEntityCertificateIDMap());
-    QHashIterator<QString, EntityItemID> i(localMap);
-    qCDebug(entities) << localMap.size() << "certificates present.";
+    QReadLocker locker(&_entityCertificateIDMapLock);
+    QHashIterator<QString, EntityItemID> i(_entityCertificateIDMap);
+    qCDebug(entities) << _entityCertificateIDMap.size() << "certificates present.";
     while (i.hasNext()) {
         i.next();
         const auto& certificateID = i.key();

@@ -157,11 +157,6 @@ public:
         return _recentlyDeletedEntityItemIDs;
     }
 
-    QHash<QString, EntityItemID> getEntityCertificateIDMap() const {
-        QReadLocker locker(&_entityCertificateIDMapLock);
-        return _entityCertificateIDMap;
-    }
-
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
