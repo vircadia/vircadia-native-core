@@ -576,6 +576,7 @@ public:
      * }, 3000);
      */
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    Q_INVOKABLE void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
     /**jsdoc
      * Restores the default animations.
@@ -594,6 +595,7 @@ public:
      * }, 3000);
      */
     Q_INVOKABLE void restoreAnimation();
+    Q_INVOKABLE void restoreHandAnimation(bool isLeft);
 
     /**jsdoc
      * Gets the current animation roles.

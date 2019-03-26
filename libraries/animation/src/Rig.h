@@ -118,6 +118,9 @@ public:
     void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void restoreAnimation();
     
+    void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+    void restoreHandAnimation(bool isLeft);
+
     void overrideNetworkAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
     void triggerNetworkRole(const QString& role);
     void restoreNetworkAnimation();
@@ -356,6 +359,27 @@ protected:
         float blendTime;
     };
 
+    struct HandAnimState {
+        enum ClipNodeEnum {
+            None = 0,
+            A,
+            B
+        };
+
+        HandAnimState() : clipNodeEnum(HandAnimState::None) {}
+        HandAnimState(ClipNodeEnum clipNodeEnumIn, const QString& urlIn, float fpsIn, bool loopIn, float firstFrameIn, float lastFrameIn) :
+            clipNodeEnum(clipNodeEnumIn), url(urlIn), fps(fpsIn), loop(loopIn), firstFrame(firstFrameIn), lastFrame(lastFrameIn) {
+        }
+
+
+        ClipNodeEnum clipNodeEnum;
+        QString url;
+        float fps;
+        bool loop;
+        float firstFrame;
+        float lastFrame;
+    };
+
     struct UserAnimState {
         enum ClipNodeEnum {
             None = 0,
@@ -390,6 +414,8 @@ protected:
 
     UserAnimState _userAnimState;
     NetworkAnimState _networkAnimState;
+    HandAnimState _rightHandAnimState;
+    HandAnimState _leftHandAnimState;
     std::map<QString, RoleAnimState> _roleAnimStates;
 
     float _leftHandOverlayAlpha { 0.0f };
