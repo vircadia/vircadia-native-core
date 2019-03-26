@@ -339,8 +339,8 @@ Item {
         visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.hasErrors
 
         anchors {
-            top: notForSaleMessage.bottom
-            topMargin: 16
+            top: notForSaleMessage.visible ? notForSaleMessage.bottom : infoMessage .bottom
+            bottom: showFilesText.top
             horizontalCenter: parent.horizontalCenter
         }
 

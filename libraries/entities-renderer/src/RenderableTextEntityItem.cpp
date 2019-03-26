@@ -162,10 +162,12 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     glm::vec4 backgroundColor;
     Transform modelTransform;
     glm::vec3 dimensions;
+    BillboardMode billboardMode;
     bool layered;
     withReadLock([&] {
         modelTransform = _renderTransform;
         dimensions = _dimensions;
+        billboardMode = _billboardMode;
 
         float fadeRatio = _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         textColor = glm::vec4(_textColor, fadeRatio * _textAlpha);
@@ -190,7 +192,7 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
     }
 
     auto transformToTopLeft = modelTransform;
-    transformToTopLeft.setRotation(EntityItem::getBillboardRotation(transformToTopLeft.getTranslation(), transformToTopLeft.getRotation(), _billboardMode, args->getViewFrustum().getPosition()));
+    transformToTopLeft.setRotation(EntityItem::getBillboardRotation(transformToTopLeft.getTranslation(), transformToTopLeft.getRotation(), billboardMode, args->getViewFrustum().getPosition()));
     transformToTopLeft.postTranslate(dimensions * glm::vec3(-0.5f, 0.5f, 0.0f)); // Go to the top left
     transformToTopLeft.setScale(1.0f); // Use a scale of one so that the text is not deformed
 
@@ -209,10 +211,6 @@ void TextEntityRenderer::doRender(RenderArgs* args) {
 
         glm::vec2 bounds = glm::vec2(dimensions.x - (_leftMargin + _rightMargin), dimensions.y - (_topMargin + _bottomMargin));
         _textRenderer->draw(batch, _leftMargin / scale, -_topMargin / scale, _text, textColor, bounds / scale, layered);
-    }
-
-    if (layered) {
-        DependencyManager::get<DeferredLightingEffect>()->unsetKeyLightBatch(batch);
     }
 }
 

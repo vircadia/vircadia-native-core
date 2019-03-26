@@ -345,14 +345,6 @@ Rectangle {
                 color: hifi.colors.white;
                 text: qsTr("Choose input device");
             }
-
-            AudioControls.LoopbackAudio {
-                x: margins.paddings
-
-                visible: (bar.currentIndex === 1 && isVR) ||
-                    (bar.currentIndex === 0 && !isVR);
-                anchors { right: parent.right }
-            }
         }
 
         ListView {
@@ -445,14 +437,6 @@ Rectangle {
                 size: 16;
                 color: hifi.colors.white;
                 text: qsTr("Choose output device");
-            }
-
-            AudioControls.PlaySampleSound {
-                x: margins.paddings
-
-                visible: (bar.currentIndex === 1 && isVR) ||
-                         (bar.currentIndex === 0 && !isVR);
-                anchors { right: parent.right }
             }
         }
 
@@ -556,6 +540,8 @@ Rectangle {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: injectorGainSliderTextMetrics.height
+            anchors.top: avatarGainContainer.bottom;
+            anchors.topMargin: 10;
 
             HifiControlsUit.Slider {
                 id: injectorGainSlider
@@ -615,6 +601,8 @@ Rectangle {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: systemInjectorGainSliderTextMetrics.height
+            anchors.top: injectorGainContainer.bottom;
+            anchors.topMargin: 10;
 
             HifiControlsUit.Slider {
                 id: systemInjectorGainSlider
@@ -667,12 +655,13 @@ Rectangle {
                 horizontalAlignment: Text.AlignLeft;
                 verticalAlignment: Text.AlignTop;
             }
-        }   
+        }
+
         AudioControls.PlaySampleSound {
-              id: playSampleSound
-              x: margins.paddings
-              anchors.top: systemInjectorGainContainer.bottom;
-              anchors.topMargin: 10;
+            id: playSampleSound
+            x: margins.paddings
+            anchors.top: systemInjectorGainContainer.bottom;
+            anchors.topMargin: 10;
         }
     }
 }

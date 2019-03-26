@@ -59,6 +59,9 @@ RowLayout {
         text: isPlaying ? qsTr("STOP TESTING") : qsTr("TEST YOUR SOUND");
         color: isPlaying ? hifi.buttons.red : hifi.buttons.blue;
         onClicked: isPlaying ? stopSound() : playSound();
+        fontSize: 15;
+        width: 200;
+        height: 32;
     }
 
 //    RalewayRegular {
