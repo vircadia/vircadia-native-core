@@ -50,7 +50,7 @@ Rectangle {
 
     property var jointNames: []
     property var currentAvatarSettings;
-    property bool wearablesLocked;
+    property bool wearablesFrozen;
 
     function fetchAvatarModelName(marketId, avatar) {
         var xmlhttp = new XMLHttpRequest();
@@ -190,8 +190,8 @@ Rectangle {
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if (message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
-        } else if (message.method === 'wearablesLockedChanged') {
-            wearablesLocked = message.wearablesLocked;
+        } else if (message.method === 'wearablesFrozenChanged') {
+            wearablesFrozen = message.wearablesFrozen;
         }
     }
 
@@ -526,10 +526,10 @@ Rectangle {
             anchors.right: adjustLabel.left
             anchors.verticalCenter: wearablesLabel.verticalCenter
             anchors.rightMargin: 15
-            glyphText: wearablesLocked ? hifi.glyphs.lock : hifi.glyphs.unlock;
+            glyphText: wearablesFrozen ? hifi.glyphs.lock : hifi.glyphs.unlock;
 
             onClicked: {
-                emitSendToScript({'method' : 'toggleWearablesLock'});
+                emitSendToScript({'method' : 'toggleWearablesFrozen'});
             }
         }
     }

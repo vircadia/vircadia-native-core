@@ -77,7 +77,7 @@ function updateAvatarWearables(avatar, callback, wearablesOverride) {
         avatar[ENTRY_AVATAR_ENTITIES] = wearables;
 
         sendToQml({'method' : 'wearablesUpdated', 'wearables' : wearables});
-        sendToQml({ 'method' : 'wearablesLockedChanged', 'wearablesLocked' : getWearablesLocked()});
+        sendToQml({ 'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : getWearablesFrozen()});
 
         if(callback)
             callback();
@@ -179,26 +179,26 @@ var MARKETPLACE_PURCHASES_QML_PATH = "hifi/commerce/wallet/Wallet.qml";
 var MARKETPLACE_URL = Account.metaverseServerURL + "/marketplace";
 var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("html/js/marketplacesInject.js");
 
-function getWearablesLocked() {
-    var wearablesLocked = true;
+function getWearablesFrozen() {
+    var wearablesFrozen = true;
     var wearablesArray = getMyAvatarWearables();
     wearablesArray.forEach(function(wearable) {
         if (isGrabbable(wearable.id)) {
-            wearablesLocked = false;
+            wearablesFrozen = false;
         }
     });
 
-    return wearablesLocked;
+    return wearablesFrozen;
 }
 
-function lockWearables() {
+function freezeWearables() {
     var wearablesArray = getMyAvatarWearables();
     wearablesArray.forEach(function(wearable) {
         setGrabbable(wearable.id, false);
     });
 }
 
-function unlockWearables() {
+function unfreezeWearables() {
     var wearablesArray = getMyAvatarWearables();
     wearablesArray.forEach(function(wearable) {
         setGrabbable(wearable.id, true);
@@ -237,7 +237,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
         AvatarBookmarks.loadBookmark(message.name);
         Entities.addingWearable.connect(onAddingWearable);
         Entities.deletingWearable.connect(onDeletingWearable);
-        sendToQml({ 'method' : 'wearablesLockedChanged', 'wearablesLocked' : getWearablesLocked()});
+        sendToQml({ 'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : getWearablesFrozen()});
         break;
     case 'deleteAvatar':
         AvatarBookmarks.removeBookmark(message.name);
@@ -262,7 +262,7 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
     case 'adjustWearablesOpened':
         currentAvatarWearablesBackup = getMyAvatarWearables();
         adjustWearables.setOpened(true);
-        unlockWearables();
+        unfreezeWearables();
 
         Entities.mousePressOnEntity.connect(onSelectedEntity);
         Messages.subscribe('Hifi-Object-Manipulation');
@@ -377,15 +377,15 @@ function fromQml(message) { // messages are {method, params}, like json-rpc. See
 
         currentAvatarSettings = getMyAvatarSettings();
         break;
-    case 'toggleWearablesLock':
-        var wearablesLocked = getWearablesLocked();
-        wearablesLocked = !wearablesLocked;
-        if (wearablesLocked) {
-            lockWearables();
+    case 'toggleWearablesFrozen':
+        var wearablesFrozen = getWearablesFrozen();
+        wearablesFrozen = !wearablesFrozen;
+        if (wearablesFrozen) {
+            freezeWearables();
         } else {
-            unlockWearables();
+            unfreezeWearables();
         }
-        sendToQml({'method' : 'wearablesLockedChanged', 'wearablesLocked' : wearablesLocked});
+        sendToQml({'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : wearablesFrozen});
         break;
     default:
         print('Unrecognized message from AvatarApp.qml');
@@ -410,7 +410,7 @@ function setGrabbable(entityID, grabbable) {
     if (properties.avatarEntity && properties.grab.grabbable != grabbable) {
         var editProps = { grab: { grabbable: grabbable }};
         Entities.editEntity(entityID, editProps);
-        sendToQml({ 'method' : 'wearablesLockedChanged', 'wearablesLocked' : getWearablesLocked()});
+        sendToQml({ 'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : getWearablesFrozen()});
     }
 }
 
@@ -444,14 +444,14 @@ function onAddingWearable(entityID) {
     updateAvatarWearables(currentAvatar, function() {
         sendToQml({'method' : 'updateAvatarInBookmarks'});
     });
-    sendToQml({ 'method' : 'wearablesLockedChanged', 'wearablesLocked' : getWearablesLocked()});
+    sendToQml({ 'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : getWearablesFrozen()});
 }
 
 function onDeletingWearable(entityID) {
     updateAvatarWearables(currentAvatar, function() {
         sendToQml({'method' : 'updateAvatarInBookmarks'});
     });
-    sendToQml({ 'method' : 'wearablesLockedChanged', 'wearablesLocked' : getWearablesLocked()});
+    sendToQml({ 'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : getWearablesFrozen()});
 }
 
 function handleWearableMessages(channel, message, sender) {
@@ -635,7 +635,7 @@ function onTabletScreenChanged(type, url) {
 
     if(onAvatarAppScreenNow) {
         sendToQml({ 'method' : 'initialize', 'data' : { jointNames : MyAvatar.getJointNames() }});
-        sendToQml({ 'method' : 'wearablesLockedChanged', 'wearablesLocked' : getWearablesLocked()});
+        sendToQml({ 'method' : 'wearablesFrozenChanged', 'wearablesFrozen' : getWearablesFrozen()});
     }
 }
 
