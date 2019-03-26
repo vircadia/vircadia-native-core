@@ -60,11 +60,11 @@ RowLayout {
         }
     }
 
-    RalewayRegular {
-        Layout.leftMargin: 2;
-        size: 14;
-        color: "white";
-        font.italic: true
-        text: audioLoopedBack ? qsTr("Speak in your input") : "";
-    }
+//    RalewayRegular {
+//        Layout.leftMargin: 2;
+//        size: 14;
+//        color: "white";
+//        font.italic: true
+//        text: audioLoopedBack ? qsTr("Speak in your input") : "";
+//    }
 }
