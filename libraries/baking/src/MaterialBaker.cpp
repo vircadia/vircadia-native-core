@@ -64,6 +64,14 @@ void MaterialBaker::bake() {
     }
 }
 
+void MaterialBaker::abort() {
+    Baker::abort();
+
+    for (auto& textureBaker : _textureBakers) {
+        textureBaker->abort();
+    }
+}
+
 void MaterialBaker::loadMaterial() {
     if (!_isURL) {
         qCDebug(material_baking) << "Loading local material" << _materialData;

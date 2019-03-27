@@ -49,10 +49,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString& outputPath, const QString&
     if (type == MODEL_EXTENSION || type == FBX_EXTENSION) {
         QUrl bakeableModelURL = getBakeableModelURL(inputUrl);
         if (!bakeableModelURL.isEmpty()) {
-            auto getWorkerThreadCallback = []() -> QThread* {
-                return Oven::instance().getNextWorkerThread();
-            };
-            _baker = getModelBaker(bakeableModelURL, getWorkerThreadCallback, outputPath);
+            _baker = getModelBaker(bakeableModelURL, outputPath);
             if (_baker) {
                 _baker->moveToThread(Oven::instance().getNextWorkerThread());
             }

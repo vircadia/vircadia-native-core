@@ -34,6 +34,7 @@ public:
 
 public slots:
     virtual void bake() override;
+    virtual void abort() override;
 
 signals:
     void originalMaterialLoaded();
