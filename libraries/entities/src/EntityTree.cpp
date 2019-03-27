@@ -1398,17 +1398,20 @@ bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
 
 void EntityTree::addCertifiedEntityOnServer(EntityItemPointer entity) {
     QString certID(entity->getCertificateID());
-    EntityItemID existingEntityItemID;
+    QList<EntityItemID> entityList;
     if (!certID.isEmpty()) {
         EntityItemID entityItemID = entity->getEntityItemID();
         QWriteLocker locker(&_entityCertificateIDMapLock);
-        existingEntityItemID = _entityCertificateIDMap.value(certID);
-        _entityCertificateIDMap.insert(certID, entityItemID);
+        entityList = _entityCertificateIDMap.value(certID);
+        QList<EntityItemID> newList;
+        newList << entityItemID;
+        _entityCertificateIDMap.insert(certID, newList);
         qCDebug(entities) << "Certificate ID" << certID << "belongs to" << entityItemID;
     }
     // Delete an already-existing entity from the tree if it has the same
     //     CertificateID as the entity we're trying to add.
-    if (!existingEntityItemID.isNull() && !entity->getCertificateType().contains(DOMAIN_UNLIMITED)) {
+    if (!entityList.isEmpty() && !entity->getCertificateType().contains(DOMAIN_UNLIMITED)) {
+        EntityItemID existingEntityItemID = entityList.first();
         qCDebug(entities) << "Certificate ID" << certID << "already exists on entity with ID"
             << existingEntityItemID << ". Deleting existing entity.";
         withWriteLock([&] {
@@ -1421,7 +1424,8 @@ void EntityTree::removeCertifiedEntityOnServer(EntityItemPointer entity) {
     QString certID = entity->getCertificateID();
     if (!certID.isEmpty()) {
         QWriteLocker entityCertificateIDMapLocker(&_entityCertificateIDMapLock);
-        if (entity->getEntityItemID() == _entityCertificateIDMap.value(certID)) {
+        QList<EntityItemID> entityList = _entityCertificateIDMap.value(certID);
+        if (!entityList.isEmpty() && (entity->getEntityItemID() == entityList.first())) {
             _entityCertificateIDMap.remove(certID);
         }
     }
@@ -1429,12 +1433,16 @@ void EntityTree::removeCertifiedEntityOnServer(EntityItemPointer entity) {
 
 void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove) {
     QReadLocker locker(&_entityCertificateIDMapLock);
-    QHashIterator<QString, EntityItemID> i(_entityCertificateIDMap);
+    QHashIterator<QString, QList<EntityItemID>> i(_entityCertificateIDMap);
     qCDebug(entities) << _entityCertificateIDMap.size() << "certificates present.";
     while (i.hasNext()) {
         i.next();
         const auto& certificateID = i.key();
-        const auto& entityID = i.value();
+        const auto& entityIDs = i.value();
+
+        if (entityIDs.isEmpty()) {
+            continue;
+        }
 
         // Examine each cert:
         QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -1449,7 +1457,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
 
         QNetworkReply* networkReply = networkAccessManager.put(networkRequest, QJsonDocument(request).toJson());
 
-        connect(networkReply, &QNetworkReply::finished, this, [this, entityID, networkReply, minimumAgeToRemove, &certificateID] {
+        connect(networkReply, &QNetworkReply::finished, this, [this, entityIDs, networkReply, minimumAgeToRemove, &certificateID] {
 
             QJsonObject jsonObject = QJsonDocument::fromJson(networkReply->readAll()).object();
             jsonObject = jsonObject["data"].toObject();
@@ -1458,7 +1466,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
             networkReply->deleteLater();
             if (failure) {
                 qCDebug(entities) << "Call to" << networkReply->url() << "failed with error" << failureReason
-                    << "; NOT deleting entity" << entityID << "More info:" << jsonObject;
+                    << "; NOT deleting cert" << certificateID << "More info:" << jsonObject;
                 return;
             }
             QString thisDomainID = DependencyManager::get<AddressManager>()->getDomainID().remove(QRegExp("\\{|\\}"));
@@ -1468,6 +1476,7 @@ void EntityTree::startDynamicDomainVerificationOnServer(float minimumAgeToRemove
             }
             // Entity does not belong here:
             {
+                EntityItemID entityID = entityIDs.first();
                 EntityItemPointer entity = findEntityByEntityItemID(entityID);
                 if (!entity) {
                     qCDebug(entities) << "Entity undergoing dynamic domain verification is no longer available:" << entityID;
