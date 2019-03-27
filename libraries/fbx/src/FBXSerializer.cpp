@@ -466,7 +466,6 @@ HFMModel* FBXSerializer::extractHFMModel(const QVariantHash& mapping, const QStr
                     }
                 } else if (object.name == "FBXVersion") {
                     fbxVersionNumber = object.properties.at(0).toInt();
-                    qCDebug(modelformat) << "the fbx version number " << fbxVersionNumber;
                 }
             }
         } else if (child.name == "GlobalSettings") {
