@@ -372,23 +372,6 @@ bool Avatar::applyGrabChanges() {
                 target->removeGrab(grab);
                 _avatarGrabs.erase(itr);
                 grabAddedOrRemoved = true;
-                const EntityItemPointer& entity = std::dynamic_pointer_cast<EntityItem>(target);
-                if (entity && entity->getEntityHostType() == entity::HostType::AVATAR) {
-                    // grabs are able to move avatar-entities which belong ot other avatars (assuming
-                    // the entities are grabbable, unlocked, etc).  Regardless of who released the grab
-                    // on this entity, the entity's owner needs to send off an update.
-                    QUuid entityOwnerID = entity->getOwningAvatarID();
-                    if (entityOwnerID == getMyAvatarID() || entityOwnerID == AVATAR_SELF_ID) {
-                        bool success;
-                        SpatiallyNestablePointer myAvatarSN = SpatiallyNestable::findByID(entityOwnerID, success);
-                        if (success) {
-                            std::shared_ptr<Avatar> myAvatar = std::dynamic_pointer_cast<Avatar>(myAvatarSN);
-                            if (myAvatar) {
-                                myAvatar->sendPacket(entity->getID());
-                            }
-                        }
-                    }
-                }
             } else {
                 undeleted.push_back(id);
             }
@@ -2112,13 +2095,4 @@ void Avatar::updateDescendantRenderIDs() {
             });
         }
     });
-}
-
-QUuid Avatar::getMyAvatarID() const  {
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (nodeList) {
-        return nodeList->getSessionUUID();
-    } else {
-        return QUuid();
-    }
 }

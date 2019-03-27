@@ -180,8 +180,6 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    QUuid getMyAvatarID() const;
-
     virtual void createOrb() { }
 
     enum class LoadingStatus {
