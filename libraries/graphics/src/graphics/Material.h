@@ -318,6 +318,7 @@ public:
     void setTextureTransforms(const Transform& transform, MaterialMappingMode mode, bool repeat);
 
     const std::string& getName() const { return _name; }
+    void setName(const std::string& name) { _name = name; }
 
     const std::string& getModel() const { return _model; }
     void setModel(const std::string& model) { _model = model; }

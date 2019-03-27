@@ -184,6 +184,7 @@ std::pair<std::string, std::shared_ptr<NetworkMaterial>> NetworkMaterialResource
                 auto nameJSON = materialJSON.value(key);
                 if (nameJSON.isString()) {
                     name = nameJSON.toString().toStdString();
+                    material->setName(name);
                 }
             } else if (key == "model") {
                 auto modelJSON = materialJSON.value(key);
