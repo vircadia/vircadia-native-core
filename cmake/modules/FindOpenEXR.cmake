@@ -58,6 +58,13 @@ else()
     message(WARNING, " OpenEXR headers not found")
 endif()
 
+set( ORIGINAL_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+if (APPLE)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")
+elseif (UNIX)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".so")
+endif()
+
 foreach(OPENEXR_LIB
     IlmImf
     IlmImfUtil
@@ -120,6 +127,8 @@ foreach(OPENEXR_LIB
     #mark_as_advanced(OPENEXR_${OPENEXR_LIB}_STATIC_DEBUG_LIBRARY)
 
 endforeach(OPENEXR_LIB)
+# MUST reset
+set(CMAKE_FIND_LIBRARY_SUFFIXES ${ORIGINAL_CMAKE_FIND_LIBRARY_SUFFIXES})
 
 # So #include <half.h> works
 list(APPEND OPENEXR_INCLUDE_DIRS ${OPENEXR_INCLUDE_DIR})
