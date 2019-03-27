@@ -26,7 +26,7 @@
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
 #include "FramebufferCache.h"
-
+#include "RandomAndNoise.h"
 
 namespace ru {
     using render_utils::slot::texture::Texture;
@@ -359,36 +359,11 @@ int JitterSampleConfig::play() {
     return _state;
 }
 
-template <int B> 
-class Halton {
-public:
-
-    float eval(int index) const {
-        float f = 1.0f;
-        float r = 0.0f;
-        float invB = 1.0f / (float)B;
-        index++; // Indices start at 1, not 0
-
-        while (index > 0) {
-            f = f * invB;
-            r = r + f * (float)(index % B);
-            index = index / B;
-
-        }
-
-        return r;
-    }
-
-};
-
-
 JitterSample::SampleSequence::SampleSequence(){
     // Halton sequence (2,3)
-    Halton<2> genX;
-    Halton<3> genY;
 
     for (int i = 0; i < SEQUENCE_LENGTH; i++) {
-        offsets[i] = glm::vec2(genX.eval(i), genY.eval(i));
+        offsets[i] = glm::vec2(evaluateHalton<2>(i), evaluateHalton<3>(i));
         offsets[i] -= vec2(0.5f);
     }
     offsets[SEQUENCE_LENGTH] = glm::vec2(0.0f);

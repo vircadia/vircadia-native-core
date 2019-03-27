@@ -16,6 +16,7 @@
 #include <glm/vec4.hpp>
 #include <vector>
 #include <array>
+#include <atomic>
 
 namespace image {
 
@@ -31,11 +32,20 @@ namespace image {
         Faces& editMip(gpu::uint16 mipLevel) { return _mips[mipLevel]; }
         const Faces& getMip(gpu::uint16 mipLevel) const { return _mips[mipLevel]; }
 
+        void convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProcessing) const;
+        glm::vec4 fetchLod(const glm::vec3& dir, float lod) const;
+
     private:
+
+        struct GGXSamples;
 
         int _width;
         int _height;
         std::vector<Faces> _mips;
+
+        static void generateGGXSamples(GGXSamples& data, float roughness, const int resolution);
+        void convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, gpu::uint16 mipLevel, int face, const std::atomic<bool>& abortProcessing) const;
+        glm::vec4 computeConvolution(const glm::vec3& normal, const GGXSamples& samples) const;
     };
 
 }

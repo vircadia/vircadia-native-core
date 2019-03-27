@@ -850,13 +850,10 @@ void generateMips(gpu::Texture* texture, QImage&& image, BackendTarget target, c
     }
 }
 
-void convolveFaceWithGGX(const CubeMap& source, int face, const std::atomic<bool>& abortProcessing) {
-
-}
-
-void convolveWithGGX(gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
-    PROFILE_RANGE(resource_parse, "convolveWithGGX");
+void convolveForGGX(gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
+    PROFILE_RANGE(resource_parse, "convolveForGGX");
     CubeMap source(texture->getWidth(), texture->getHeight(), texture->getNumMips());
+    CubeMap output(texture->getWidth(), texture->getHeight(), texture->getNumMips());
     gpu::uint16 mipLevel;
     int face;
     const auto textureFormat = texture->getTexelFormat();
@@ -875,18 +872,16 @@ void convolveWithGGX(gpu::Texture* texture, BackendTarget target, const std::ato
         }
     }
 
-    for (face = 0; face < 6; face++) {
-        convolveFaceWithGGX(source, face, abortProcessing);
-    }
+    source.convolveForGGX(output, abortProcessing);
 
     if (!abortProcessing) {
         // Convert all mip data back from float
         unsigned char* convertedPixels = new unsigned char[texture->getWidth() * texture->getHeight() * sizeof(uint32)];
 
-        for (mipLevel = 0; mipLevel < source.getMipCount(); ++mipLevel) {
+        for (mipLevel = 0; mipLevel < output.getMipCount(); ++mipLevel) {
             auto mipDims = texture->evalMipDimensions(mipLevel);
             auto mipSize = texture->evalMipFaceSize(mipLevel);
-            auto& mip = source.getMip(mipLevel);
+            auto& mip = output.getMip(mipLevel);
 
             for (face = 0; face < 6; face++) {
                 convertFromFloat(convertedPixels, mipDims.x, mipDims.y, sizeof(uint32)*mipDims.x, textureFormat, mip[face]);
@@ -1620,7 +1615,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
         }
 
         if (options & CUBE_GGX_CONVOLVE) {
-            convolveWithGGX(theTexture.get(), target, abortProcessing);
+            convolveForGGX(theTexture.get(), target, abortProcessing);
         }
     }
 
