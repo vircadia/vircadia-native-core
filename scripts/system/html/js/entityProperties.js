@@ -75,6 +75,25 @@ const GROUPS = [
                 propertyID: "visible",
                 replaceID: "placeholder-property-visible",
             },
+            {
+                label: "Render Layer",
+                type: "dropdown",
+                options: {
+                    world: "World",
+                    front: "Front",
+                    hud: "HUD"
+                },
+                propertyID: "renderLayer",
+            },
+            {
+                label: "Primitive Mode",
+                type: "dropdown",
+                options: {
+                    solid: "Solid",
+                    lines: "Wireframe",
+                },
+                propertyID: "primitiveMode",
+            },
         ]
     },
     {
@@ -520,6 +539,11 @@ const GROUPS = [
                 readOnly: true,
                 hideIfCertified: true,
             },
+            {
+                label: "Group Culled",
+                type: "bool",
+                propertyID: "groupCulled",
+            },
         ]
     },
     {
@@ -578,6 +602,35 @@ const GROUPS = [
                 label: "Source Resolution",
                 type: "number-draggable",
                 propertyID: "dpi",
+            },
+            {
+                label: "Web Color",
+                type: "color",
+                propertyID: "webColor",
+                propertyName: "color", // actual entity property name
+            },
+            {
+                label: "Web Alpha",
+                type: "number-draggable",
+                step: 0.001,
+                decimals: 3,
+                propertyID: "webAlpha",
+                propertyName: "alpha",
+            },
+            {
+                label: "Max FPS",
+                type: "number-draggable",
+                step: 1,
+                decimals: 0,
+                min: 0,
+                max: 240,
+                propertyID: "maxFPS",
+            },
+            {
+                label: "Script URL",
+                type: "string",
+                propertyID: "scriptURL",
+                placeholder: "URL",
             },
         ]
     },
@@ -3152,7 +3205,7 @@ function loaded() {
                 }
 
                 if (elLabel) {
-                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID);
+                    createAppTooltip.registerTooltipElement(elLabel.childNodes[0], propertyID, propertyName);
                 }
 
                 let elProperty = createElementFromHTML('<div style="width: 100%;"></div>');
@@ -3177,7 +3230,7 @@ function loaded() {
                         property.spaceMode = propertySpaceMode;
 
                         let elLabel = createElementFromHTML(`<div class="triple-label">${innerPropertyData.label}</div>`);
-                        createAppTooltip.registerTooltipElement(elLabel, propertyID);
+                        createAppTooltip.registerTooltipElement(elLabel, propertyID, propertyName);
 
                         elWrapper.appendChild(elLabel);
                         

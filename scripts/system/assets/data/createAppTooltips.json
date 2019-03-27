@@ -549,6 +549,27 @@
     "acceleration": {
         "tooltip": "A acceleration that the entity should move with, in world space."
     },
+    "renderLayer": {
+        "tooltip": "The layer on which this entity is rendered."
+    },
+    "primitiveMode": {
+        "tooltip": "The mode in which to draw an entity, either \"Solid\" or \"Wireframe\"."
+    },
+    "groupCulled": {
+        "tooltip": "If false, individual pieces of the entity may be culled by the render engine. If true, either the entire entity will be culled, or it won't at all."
+    },
+    "webColor": {
+        "tooltip": "The tint of the web entity."
+    },
+    "webAlpha": {
+        "tooltip": "The alpha of the web entity."
+    },
+    "maxFPS": {
+        "tooltip": "The FPS at which to render the web entity. Higher values will have a performance impact."
+    },
+    "scriptURL": {
+        "tooltip": "The URL of a script to inject into the web page."
+    },
     "alignToGrid": {
         "tooltip": "Used to align entities to the grid, or floor of the environment.",
         "skipJSProperty": true
