@@ -220,9 +220,9 @@ private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);
 
-    void simulateAvatarFades(float deltaTime);
-
     AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID) override;
+
+    void removeFadedAvatars();
 
     // called only from the AvatarHashMap thread - cannot be called while this thread holds the
     // hash lock, since handleRemovedAvatar needs a write lock on the entity tree and the entity tree
@@ -231,8 +231,7 @@ private:
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
     void handleTransitAnimations(AvatarTransit::Status status);
 
-    QVector<AvatarSharedPointer> _avatarsToFadeOut;
-
+    std::vector<AvatarSharedPointer> _avatarsToFadeOut;
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;
 

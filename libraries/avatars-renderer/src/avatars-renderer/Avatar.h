@@ -463,6 +463,7 @@ public:
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
     bool isFading() const { return _isFading; }
+    void setIsFading(bool isFading) { _isFading = isFading; }
     void updateFadingStatus();
 
     // JSDoc is in AvatarData.h.

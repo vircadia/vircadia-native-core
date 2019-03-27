@@ -50,6 +50,7 @@ OtherAvatar::OtherAvatar(QThread* thread) : Avatar(thread) {
 }
 
 OtherAvatar::~OtherAvatar() {
+    qDebug() << "-------->";
     removeOrb();
 }
 

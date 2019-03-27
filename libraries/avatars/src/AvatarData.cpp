@@ -132,6 +132,7 @@ AvatarData::AvatarData() :
 }
 
 AvatarData::~AvatarData() {
+    qDebug() << "AvatarData::~AvatarData()";
     delete _headData;
 }
 

@@ -47,6 +47,10 @@ void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {
     _queriedTransitions.emplace_back(id, func);
 }
 
+void Transaction::transitionFinishedOperator(ItemID id, TransitionFinishedFunc func) {
+    _transitionFinishedOperators.emplace_back(id, func);
+}
+
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
     _updatedItems.emplace_back(id, functor);
 }
@@ -75,6 +79,7 @@ void Transaction::reserve(const std::vector<Transaction>& transactionContainer) 
     size_t addedTransitionsCount = 0;
     size_t queriedTransitionsCount = 0;
     size_t reAppliedTransitionsCount = 0;
+    size_t transitionFinishedOperatorsCount = 0;
     size_t highlightResetsCount = 0;
     size_t highlightRemovesCount = 0;
     size_t highlightQueriesCount = 0;
@@ -85,6 +90,7 @@ void Transaction::reserve(const std::vector<Transaction>& transactionContainer) 
         updatedItemsCount += transaction._updatedItems.size();
         resetSelectionsCount += transaction._resetSelections.size();
         addedTransitionsCount += transaction._addedTransitions.size();
+        transitionFinishedOperatorsCount += transaction._transitionFinishedOperators.size();
         queriedTransitionsCount += transaction._queriedTransitions.size();
         reAppliedTransitionsCount += transaction._reAppliedTransitions.size();
         highlightResetsCount += transaction._highlightResets.size();
@@ -99,6 +105,7 @@ void Transaction::reserve(const std::vector<Transaction>& transactionContainer) 
     _addedTransitions.reserve(addedTransitionsCount);
     _queriedTransitions.reserve(queriedTransitionsCount);
     _reAppliedTransitions.reserve(reAppliedTransitionsCount);
+    _transitionFinishedOperators.reserve(transitionFinishedOperatorsCount);
     _highlightResets.reserve(highlightResetsCount);
     _highlightRemoves.reserve(highlightRemovesCount);
     _highlightQueries.reserve(highlightQueriesCount);
@@ -142,6 +149,7 @@ void Transaction::merge(Transaction&& transaction) {
     moveElements(_resetSelections, transaction._resetSelections);
     moveElements(_addedTransitions, transaction._addedTransitions);
     moveElements(_queriedTransitions, transaction._queriedTransitions);
+    moveElements(_transitionFinishedOperators, transaction._transitionFinishedOperators);
     moveElements(_reAppliedTransitions, transaction._reAppliedTransitions);
     moveElements(_highlightResets, transaction._highlightResets);
     moveElements(_highlightRemoves, transaction._highlightRemoves);
@@ -156,6 +164,7 @@ void Transaction::merge(const Transaction& transaction) {
     copyElements(_addedTransitions, transaction._addedTransitions);
     copyElements(_queriedTransitions, transaction._queriedTransitions);
     copyElements(_reAppliedTransitions, transaction._reAppliedTransitions);
+    copyElements(_transitionFinishedOperators, transaction._transitionFinishedOperators);
     copyElements(_highlightResets, transaction._highlightResets);
     copyElements(_highlightRemoves, transaction._highlightRemoves);
     copyElements(_highlightQueries, transaction._highlightQueries);
@@ -168,6 +177,7 @@ void Transaction::clear() {
     _resetSelections.clear();
     _addedTransitions.clear();
     _queriedTransitions.clear();
+    _transitionFinishedOperators.clear();
     _reAppliedTransitions.clear();
     _highlightResets.clear();
     _highlightRemoves.clear();
@@ -260,6 +270,10 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
 
         // Update the numItemsAtomic counter AFTER the reset changes went through
         _numAllocatedItems.exchange(maxID);
+
+        // reset transition finished operator
+
+        resetTransitionFinishedOperator(transaction._transitionFinishedOperators);
 
         // updates
         updateItems(transaction._updatedItems);
@@ -440,6 +454,18 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
     }
 }
 
+void Scene::resetTransitionFinishedOperator(const Transaction::TransitionFinishedOperators& transactions) {
+    for (auto& finishedOperator : transactions) {
+        auto itemId = std::get<0>(finishedOperator);
+        const auto& item = _items[itemId];
+        auto func = std::get<1>(finishedOperator);
+
+        if (item.exist() && func != nullptr) {
+            _transitionFinishedOperatorMap[itemId] = func;
+        }
+    }
+}
+
 void Scene::resetHighlights(const Transaction::HighlightResets& transactions) {
     auto outlineStage = getStage<HighlightStage>(HighlightStage::getName());
     if (outlineStage) {
@@ -528,8 +554,18 @@ void Scene::resetItemTransition(ItemID itemId) {
     auto& item = _items[itemId];
     if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
         auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-        transitionStage->removeTransition(item.getTransitionId());
-        setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
+        auto transitionItemId = transitionStage->getTransition(item.getTransitionId()).itemId;
+
+        if (transitionItemId == itemId) {
+            auto transitionFinishedOperator = _transitionFinishedOperatorMap[transitionItemId];
+
+            if (transitionFinishedOperator) {
+                transitionFinishedOperator();
+                _transitionFinishedOperatorMap[transitionItemId] = nullptr;
+            }
+            transitionStage->removeTransition(item.getTransitionId());
+            setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
+        }
     }
 }
 
