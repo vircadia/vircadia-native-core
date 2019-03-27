@@ -11,8 +11,8 @@ if (NOT ANDROID)
    	# using VCPKG for OPENEXR
     find_package(OpenEXR REQUIRED)
 
-    include_directories(SYSTEM "${OpenEXR_INCLUDE_DIRS}")
-    target_link_libraries(${TARGET_NAME} ${OpenEXR_LIBRARIES})
+    include_directories(SYSTEM "${OPENEXR_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${OPENEXR_LIBRARIES})
     target_compile_definitions(${TARGET_NAME} PUBLIC OPENEXR_DLL)
 endif()
 
