@@ -56,16 +56,19 @@ RowLayout {
     HifiConstants { id: hifi; }
 
     HifiControlsUit.Button {
-        text: isPlaying ? qsTr("STOP TESTING YOUR SOUND") : qsTr("TEST YOUR SOUND");
+        text: isPlaying ? qsTr("STOP TESTING") : qsTr("TEST YOUR SOUND");
         color: isPlaying ? hifi.buttons.red : hifi.buttons.blue;
         onClicked: isPlaying ? stopSound() : playSound();
+        fontSize: 15;
+        width: 200;
+        height: 32;
     }
 
-    RalewayRegular {
-        Layout.leftMargin: 2;
-        size: 14;
-        color: "white";
-        font.italic: true
-        text: isPlaying ? qsTr("Listen to your output") : "";
-    }
+//    RalewayRegular {
+//        Layout.leftMargin: 2;
+//        size: 14;
+//        color: "white";
+//        font.italic: true
+//        text: isPlaying ? qsTr("Listen to your output") : "";
+//    }
 }

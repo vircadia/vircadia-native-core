@@ -241,6 +241,8 @@ public slots:
     void setInputVolume(float volume, bool emitSignal = true);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
+    void setLocalInjectorGain(float gain) { _localInjectorGain = gain; };
+    void setSystemInjectorGain(float gain) { _systemInjectorGain = gain; };
 
     void outputNotify();
 
@@ -395,6 +397,8 @@ private:
     int16_t* _outputScratchBuffer { NULL };
 
     // for local audio (used by audio injectors thread)
+    std::atomic<float> _localInjectorGain { 1.0f };
+    std::atomic<float> _systemInjectorGain { 1.0f };
     float _localMixBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _localScratchBuffer[AudioConstants::NETWORK_FRAME_SAMPLES_AMBISONIC];
     float* _localOutputMixBuffer { NULL };

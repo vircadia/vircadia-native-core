@@ -1052,7 +1052,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
-    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
+    if ((_muted && !_shouldEchoLocally) || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
         return;
     }
 
@@ -1368,7 +1368,9 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
             memset(_localScratchBuffer, 0, bytesToRead);
             if (0 < injectorBuffer->readData((char*)_localScratchBuffer, bytesToRead)) {
 
-                float gain = options.volume;
+                bool isSystemSound = !options.positionSet && !options.ambisonic;
+
+                float gain = options.volume * (isSystemSound ? _systemInjectorGain : _localInjectorGain);
 
                 if (options.ambisonic) {
 
