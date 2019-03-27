@@ -542,7 +542,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         auto scene = qApp->getMain3DScene();
         avatar->fadeOut(scene, removalReason);
 
-        AvatarData* avatarData = removedAvatar.get();
+        std::weak_ptr<AvatarData> avatarDataWeakPtr = removedAvatar;
         transaction.transitionFinishedOperator(avatar->getRenderItemID(), [avatarDataWeakPtr]() {
             auto avatarDataPtr = avatarDataWeakPtr.lock();
 
