@@ -2217,6 +2217,20 @@ void Rig::initAnimGraph(const QUrl& url) {
                 overrideAnimation(origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
             }
 
+            if (_rightHandAnimState.clipNodeEnum != HandAnimState::None) {
+                // restore the right hand animation we had before reset.
+                HandAnimState origState = _rightHandAnimState;
+                _rightHandAnimState = { HandAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
+                overrideHandAnimation(false, origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
+            }
+
+            if (_leftHandAnimState.clipNodeEnum != HandAnimState::None) {
+                // restore the left hand animation we had before reset.
+                HandAnimState origState = _leftHandAnimState;
+                _leftHandAnimState = { HandAnimState::None, "", 30.0f, false, 0.0f, 0.0f };
+                overrideHandAnimation(true, origState.url, origState.fps, origState.loop, origState.firstFrame, origState.lastFrame);
+            }
+
             // restore the role animations we had before reset.
             for (auto& roleAnimState : _roleAnimStates) {
                 auto roleState = roleAnimState.second;
