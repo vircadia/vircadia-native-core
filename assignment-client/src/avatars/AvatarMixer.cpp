@@ -265,8 +265,11 @@ void AvatarMixer::start() {
                 nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                     std::for_each(cbegin, cend, [](const SharedNodePointer& node) {
                         if (node->getType() == NodeType::Agent) {
-                            auto& avatar = static_cast<AvatarMixerClientData*>(node->getLinkedData())->getAvatar();
-                            avatar.setNeedsHeroCheck();
+                            NodeData* nodeData = node->getLinkedData();
+                            if (nodeData) {
+                                auto& avatar = static_cast<AvatarMixerClientData*>(nodeData)->getAvatar();
+                                avatar.setNeedsHeroCheck();
+                            }
                         }
                     });
                 });
