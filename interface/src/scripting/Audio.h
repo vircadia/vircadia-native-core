@@ -172,6 +172,66 @@ public:
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
 
     /**jsdoc
+     * Sets the avatar gain at the server.
+     * Units are Decibels (dB)
+     * @function Audio.setAvatarGain
+     * @param {number} gain (in dB)
+    */
+    Q_INVOKABLE void setAvatarGain(float gain);
+
+    /**jsdoc
+     * Gets the avatar gain at the server.
+     * @function Audio.getAvatarGain
+     * @returns {number} gain (in dB)
+    */
+    Q_INVOKABLE float getAvatarGain();
+
+    /**jsdoc
+     * Sets the injector gain at the server.
+     * Units are Decibels (dB)
+     * @function Audio.setInjectorGain
+     * @param {number} gain (in dB)
+    */
+    Q_INVOKABLE void setInjectorGain(float gain);
+
+    /**jsdoc
+     * Gets the injector gain at the server.
+     * @function Audio.getInjectorGain
+     * @returns {number} gain (in dB)
+    */
+    Q_INVOKABLE float getInjectorGain();
+
+    /**jsdoc
+     * Sets the local injector gain in the client.
+     * Units are Decibels (dB)
+     * @function Audio.setLocalInjectorGain
+     * @param {number} gain (in dB)
+    */
+    Q_INVOKABLE void setLocalInjectorGain(float gain);
+
+    /**jsdoc
+     * Gets the local injector gain in the client.
+     * @function Audio.getLocalInjectorGain
+     * @returns {number} gain (in dB)
+    */
+    Q_INVOKABLE float getLocalInjectorGain();
+
+    /**jsdoc
+     * Sets the injector gain for system sounds.
+     * Units are Decibels (dB)
+     * @function Audio.setSystemInjectorGain
+     * @param {number} gain (in dB)
+    */
+    Q_INVOKABLE void setSystemInjectorGain(float gain);
+
+    /**jsdoc
+     * Gets the injector gain for system sounds.
+     * @function Audio.getSystemInjectorGain
+     * @returns {number} gain (in dB)
+    */
+    Q_INVOKABLE float getSystemInjectorGain();
+
+    /**jsdoc
      * Starts making an audio recording of the audio being played in-world (i.e., not local-only audio) to a file in WAV format.
      * @function Audio.startRecording
      * @param {string} filename - The path and name of the file to make the recording in. Should have a <code>.wav</code>
@@ -351,6 +411,8 @@ private:
 
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
+    float _localInjectorGain { 0.0f };  // in dB
+    float _systemInjectorGain { 0.0f }; // in dB
     bool _isClipping { false };
     bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _enableWarnWhenMuted { true };

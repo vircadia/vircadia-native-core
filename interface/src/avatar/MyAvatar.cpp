@@ -324,8 +324,11 @@ QString MyAvatar::getDominantHand() const {
 
 void MyAvatar::setDominantHand(const QString& hand) {
     if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
-        _dominantHand.set(hand);
-        emit dominantHandChanged(hand);
+        bool changed = (hand != _dominantHand.get());
+        if (changed) {
+            _dominantHand.set(hand);
+            emit dominantHandChanged(hand);
+        }
     }
 }
 
@@ -2385,7 +2388,19 @@ void MyAvatar::clearWornAvatarEntities() {
     }
 }
 
-
+/**jsdoc
+ * Information about an avatar entity.
+ * <table>
+ *   <thead>
+ *     <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+ *   </thead>
+ *   <tbody>
+ *     <tr><td><code>id</code></td><td>Uuid</td><td>Entity ID.</td></tr>
+ *     <tr><td><code>properties</code></td><td>{@link Entities.EntityProperties}</td><td>Entity properties.</td></tr>
+ *    </tbody>
+ * </table>
+ * @typedef {object} MyAvatar.AvatarEntityData
+ */
 QVariantList MyAvatar::getAvatarEntitiesVariant() {
     // NOTE: this method is NOT efficient
     QVariantList avatarEntitiesData;
@@ -3454,11 +3469,6 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
     QUuid newSessionID = getSessionUUID();
-    if (DependencyManager::get<NodeList>()->getSessionUUID().isNull()) {
-        // we don't actually have a connection to a domain right now
-        // so there is no need to queue AvatarEntity messages --> bail early
-        return;
-    }
     if (newSessionID != oldSessionID) {
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
@@ -3467,6 +3477,7 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityIDs = _packedAvatarEntityData.keys();
             });
+            bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             entityTree->withWriteLock([&] {
                 for (const auto& entityID : avatarEntityIDs) {
@@ -3474,12 +3485,14 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
                     if (!entity) {
                         continue;
                     }
+                    // update OwningAvatarID so entity can be identified as "ours" later
                     entity->setOwningAvatarID(newSessionID);
-                    // NOTE: each attached AvatarEntity should already have the correct updated parentID
-                    // via magic in SpatiallyNestable, but when an AvatarEntity IS parented to MyAvatar
-                    // we need to update the "packedAvatarEntityData" we send to the avatar-mixer
-                    // so that others will get the updated state.
-                    if (entity->getParentID() == newSessionID) {
+                    // NOTE: each attached AvatarEntity already have the correct updated parentID
+                    // via magic in SpatiallyNestable, hence we check against newSessionID
+                    if (sendPackets && entity->getParentID() == newSessionID) {
+                        // but when we have a real session and the AvatarEntity is parented to MyAvatar
+                        // we need to update the "packedAvatarEntityData" sent to the avatar-mixer
+                        // because it contains a stale parentID somewhere deep inside
                         packetSender->queueEditAvatarEntityMessage(entityTree, entityID);
                     }
                 }
@@ -3565,6 +3578,12 @@ void MyAvatar::clearScaleRestriction() {
     _haveReceivedHeightLimitsFromDomain = false;
 }
 
+/**jsdoc
+ * A teleport target.
+ * @typedef {object} MyAvatar.GoToProperties
+ * @property {Vec3} position - The avatar's new position.
+ * @property {Quat} [orientation] - The avatar's new orientation.
+ */
 void MyAvatar::goToLocation(const QVariant& propertiesVar) {
     qCDebug(interfaceapp, "MyAvatar QML goToLocation");
     auto properties = propertiesVar.toMap();
@@ -3921,6 +3940,13 @@ void MyAvatar::setCollisionWithOtherAvatarsFlags() {
     _characterController.setPendingFlagsUpdateCollisionMask();
 }
 
+/**jsdoc
+ * A collision capsule is a cylinder with hemispherical ends. It is often used to approximate the extents of an avatar.
+ * @typedef {object} MyAvatar.CollisionCapsule
+ * @property {Vec3} start - The bottom end of the cylinder, excluding the bottom hemisphere.
+ * @property {Vec3} end - The top end of the cylinder, excluding the top hemisphere.
+ * @property {number} radius - The radius of the cylinder and the hemispheres.
+ */
 void MyAvatar::updateCollisionCapsuleCache() {
     glm::vec3 start, end;
     float radius;
@@ -5370,6 +5396,24 @@ void MyAvatar::addAvatarHandsToFlow(const std::shared_ptr<Avatar>& otherAvatar) 
     }
 }
 
+/**jsdoc
+ * Physics options to use in the flow simulation of a joint.
+ * @typedef {object} MyAvatar.FlowPhysicsOptions
+ * @property {boolean} [active=true] - <code>true</code> to enable flow on the joint, otherwise <code>false</code>.
+ * @property {number} [radius=0.01] - The thickness of segments and knots (needed for collisions).
+ * @property {number} [gravity=-0.0096] - Y-value of the gravity vector.
+ * @property {number} [inertia=0.8] - Rotational inertia multiplier.
+ * @property {number} [damping=0.85] - The amount of damping on joint oscillation.
+ * @property {number} [stiffness=0.0] - The stiffness of each thread.
+ * @property {number} [delta=0.55] - Delta time for every integration step.
+ */
+/**jsdoc
+ * Collision options to use in the flow simulation of a joint.
+ * @typedef {object} MyAvatar.FlowCollisionsOptions
+ * @property {string} [type="sphere"] - Currently, only <code>"sphere"</code> is supported.
+ * @property {number} [radius=0.05] - Collision sphere radius.
+ * @property {number} [offset=Vec3.ZERO] - Offset of the collision sphere from the joint.
+ */
 void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& physicsConfig, const QVariantMap& collisionsConfig) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "useFlow",
@@ -5437,6 +5481,39 @@ void MyAvatar::useFlow(bool isActive, bool isCollidable, const QVariantMap& phys
     }
 }
 
+/**jsdoc
+ * Flow options currently used in flow simulation.
+ * @typedef {object} MyAvatar.FlowData
+ * @property {boolean} initialized - <code>true</code> if flow has been initialized for the current avatar, <code>false</code> 
+ *     if it hasn't.
+ * @property {boolean} active - <code>true</code> if flow is enabled, <code>false</code> if it isn't.
+ * @property {boolean} colliding - <code>true</code> if collisions are enabled, <code>false</code> if they aren't.
+ * @property {Object<GroupName, MyAvatar.FlowPhysicsData>} physicsData - The physics configuration for each group of joints 
+ *     that has been configured.
+ * @property {Object<JointName, MyAvatar.FlowCollisionsData>} collisions - The collisions configuration for each joint that 
+ *     has collisions configured.
+ * @property {Object<ThreadName, number[]>} threads - The threads that have been configured, with the first joint's name as the 
+ *     <code>ThreadName</code> and value as an array of the indexes of all the joints in the thread.
+ */
+/**jsdoc
+ * A set of physics options currently used in flow simulation.
+ * @typedef {object} MyAvatar.FlowPhysicsData
+ * @property {boolean} active - <code>true</code> to enable flow on the joint, otherwise <code>false</code>.
+ * @property {number} radius - The thickness of segments and knots. (Needed for collisions.)
+ * @property {number} gravity - Y-value of the gravity vector.
+ * @property {number} inertia - Rotational inertia multiplier.
+ * @property {number} damping - The amount of damping on joint oscillation.
+ * @property {number} stiffness - The stiffness of each thread.
+ * @property {number} delta - Delta time for every integration step.
+ * @property {number[]} jointIndices - The indexes of the joints the options are applied to.
+ */
+/**jsdoc
+ * A set of collision options currently used in flow simulation.
+ * @typedef {object} MyAvatar.FlowCollisionsData
+ * @property {number} radius - Collision sphere radius.
+ * @property {number} offset - Offset of the collision sphere from the joint.
+ * @property {number} jointIndex - The index of the joint the options are applied to.
+ */
 QVariantMap MyAvatar::getFlowData() {
     QVariantMap result;
     if (QThread::currentThread() != thread()) {

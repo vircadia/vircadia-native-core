@@ -17,17 +17,17 @@ import stylesUit 1.0
 import controlsUit 1.0 as HifiControlsUit
 
 RowLayout {
-    property bool audioLoopedBack: AudioScriptingInterface.getServerEcho();
+    property bool audioLoopedBack: AudioScriptingInterface.getLocalEcho();
     function startAudioLoopback() {
         if (!audioLoopedBack) {
             audioLoopedBack = true;
-            AudioScriptingInterface.setServerEcho(true);
+            AudioScriptingInterface.setLocalEcho(true);
         }
     }
     function stopAudioLoopback() {
         if (audioLoopedBack) {
             audioLoopedBack = false;
-            AudioScriptingInterface.setServerEcho(false);
+            AudioScriptingInterface.setLocalEcho(false);
         }
     }
 
