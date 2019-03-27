@@ -152,7 +152,7 @@ void DomainBaker::addModelBaker(const QString& property, const QString& url, con
         // setup a ModelBaker for this URL, as long as we don't already have one
         bool haveBaker = _modelBakers.contains(bakeableModelURL);
         if (!haveBaker) {
-            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, _contentOutputPath).release(), &Baker::deleteLater);
+            QSharedPointer<ModelBaker> baker = QSharedPointer<ModelBaker>(getModelBaker(bakeableModelURL, _contentOutputPath, _destinationPath).release(), &Baker::deleteLater);
             if (baker) {
                 // Hold on to the old url userinfo/query/fragment data so ModelBaker::getFullOutputMappingURL retains that data from the original model URL
                 // Note: The ModelBaker currently doesn't store this in the FST because the equal signs mess up FST parsing.

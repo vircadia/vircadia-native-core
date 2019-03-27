@@ -42,8 +42,9 @@
 
 #include "baking/BakerLibrary.h"
 
-ModelBaker::ModelBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+ModelBaker::ModelBaker(const QUrl& inputModelURL, const QUrl& destinationPath, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
     _modelURL(inputModelURL),
+    _destinationPath(destinationPath),
     _bakedOutputDir(bakedOutputDirectory),
     _originalOutputDir(originalOutputDirectory),
     _hasBeenBaked(hasBeenBaked)
@@ -255,6 +256,39 @@ void ModelBaker::bakeSourceCopy() {
         return;
     }
 
+    if (bakedModel->materials.size() > 0) {
+        _materialBaker = QSharedPointer<MaterialBaker>(
+            new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir, _destinationPath),
+            &MaterialBaker::deleteLater
+        );
+        connect(_materialBaker.data(), &MaterialBaker::finished, this, &ModelBaker::handleFinishedMaterialBaker);
+        _materialBaker->bake();
+    } else {
+        outputBakedFST();
+    }
+}
+
+void ModelBaker::handleFinishedMaterialBaker() {
+    auto baker = qobject_cast<MaterialBaker*>(sender());
+
+    if (baker) {
+        if (!baker->hasErrors()) {
+            // this MaterialBaker is done and everything went according to plan
+            qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
+
+        } else {
+            // this material failed to bake - this doesn't fail the entire bake but we need to add the errors from
+            // the material to our warnings
+            _warningList << baker->getWarnings();
+        }
+    } else {
+        handleWarning("Failed to bake the materials for model with URL " + _modelURL.toString());
+    }
+
+    outputBakedFST();
+}
+
+void ModelBaker::outputBakedFST() {
     // Output FST file, copying over input mappings if available
     QString outputFSTFilename = !_mappingURL.isEmpty() ? _mappingURL.fileName() : _modelURL.fileName();
     auto extensionStart = outputFSTFilename.indexOf(".");
@@ -289,7 +323,9 @@ void ModelBaker::bakeSourceCopy() {
 void ModelBaker::abort() {
     Baker::abort();
 
-    _materialBaker->abort();
+    if (_materialBaker) {
+        _materialBaker->abort();
+    }
 }
 
 bool ModelBaker::buildDracoMeshNode(FBXNode& dracoMeshNode, const QByteArray& dracoMeshBytes, const std::vector<hifi::ByteArray>& dracoMaterialList) {

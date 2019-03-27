@@ -45,7 +45,7 @@ bool isModelBaked(const QUrl& bakeableModelURL) {
     return beforeModelExtension.endsWith(".baked");
 }
 
-std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, const QString& contentOutputPath) {
+std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, const QString& contentOutputPath, const QUrl& destinationPath) {
     auto filename = bakeableModelURL.fileName();
 
     // Output in a sub-folder with the name of the model, potentially suffixed by a number to make it unique
@@ -59,20 +59,20 @@ std::unique_ptr<ModelBaker> getModelBaker(const QUrl& bakeableModelURL, const QS
     QString bakedOutputDirectory = contentOutputPath + subDirName + "/baked";
     QString originalOutputDirectory = contentOutputPath + subDirName + "/original";
 
-    return getModelBakerWithOutputDirectories(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory);
+    return getModelBakerWithOutputDirectories(bakeableModelURL, destinationPath, bakedOutputDirectory, originalOutputDirectory);
 }
 
-std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakeableModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory) {
+std::unique_ptr<ModelBaker> getModelBakerWithOutputDirectories(const QUrl& bakeableModelURL, const QUrl& destinationPath, const QString& bakedOutputDirectory, const QString& originalOutputDirectory) {
     auto filename = bakeableModelURL.fileName();
 
     std::unique_ptr<ModelBaker> baker;
 
     if (filename.endsWith(FST_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<FSTBaker>(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
+        baker = std::make_unique<FSTBaker>(bakeableModelURL, destinationPath, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FST_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<FBXBaker>(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive));
+        baker = std::make_unique<FBXBaker>(bakeableModelURL, destinationPath, bakedOutputDirectory, originalOutputDirectory, filename.endsWith(BAKED_FBX_EXTENSION, Qt::CaseInsensitive));
     } else if (filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
-        baker = std::make_unique<OBJBaker>(bakeableModelURL, bakedOutputDirectory, originalOutputDirectory);
+        baker = std::make_unique<OBJBaker>(bakeableModelURL, destinationPath, bakedOutputDirectory, originalOutputDirectory);
     //} else if (filename.endsWith(GLTF_EXTENSION, Qt::CaseInsensitive)) {
         //baker = std::make_unique<GLTFBaker>(bakeableModelURL, inputTextureThreadGetter, bakedOutputDirectory, originalOutputDirectory);
     } else {

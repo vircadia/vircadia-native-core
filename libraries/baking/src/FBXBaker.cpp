@@ -33,8 +33,8 @@
 #include "ModelBakingLoggingCategory.h"
 #include "TextureBaker.h"
 
-FBXBaker::FBXBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
-        ModelBaker(inputModelURL, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
+FBXBaker::FBXBaker(const QUrl& inputModelURL, const QUrl& destinationPath, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+        ModelBaker(inputModelURL, destinationPath, bakedOutputDirectory, originalOutputDirectory, hasBeenBaked) {
     if (hasBeenBaked) {
         // Look for the original model file one directory higher. Perhaps this is an oven output directory.
         QUrl originalRelativePath = QUrl("../original/" + inputModelURL.fileName().replace(BAKED_FBX_EXTENSION, FBX_EXTENSION));
