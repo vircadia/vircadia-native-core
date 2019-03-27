@@ -722,6 +722,8 @@ gpu::ShaderPointer GeometryCache::_unlitFadeShader;
 
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
+render::ShapePipelinePointer GeometryCache::_forwardSimpleOpaquePipeline;
+render::ShapePipelinePointer GeometryCache::_forwardSimpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
@@ -801,6 +803,8 @@ void GeometryCache::initializeShapePipelines() {
     if (!_simpleOpaquePipeline) {
         _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
         _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
+        _forwardSimpleOpaquePipeline = getShapePipeline(false, false, true, false, false, true);
+        _forwardSimpleTransparentPipeline = getShapePipeline(false, true, true, false, false, true);
         _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
         _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);

@@ -181,6 +181,11 @@ public:
 
     static void initializeShapePipelines();
 
+    render::ShapePipelinePointer getOpaqueShapePipeline() { assert(_simpleOpaquePipeline != nullptr); return _simpleOpaquePipeline; }
+    render::ShapePipelinePointer getTransparentShapePipeline() { assert(_simpleTransparentPipeline != nullptr); return _simpleTransparentPipeline; }
+    render::ShapePipelinePointer getForwardOpaqueShapePipeline() { assert(_forwardSimpleOpaquePipeline != nullptr); return _forwardSimpleOpaquePipeline; }
+    render::ShapePipelinePointer getForwardTransparentShapePipeline() { assert(_forwardSimpleTransparentPipeline != nullptr); return _forwardSimpleTransparentPipeline; }
+
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
@@ -369,11 +374,6 @@ public:
 
     graphics::MeshPointer meshFromShape(Shape geometryShape, glm::vec3 color);
 
-    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool forward = false);
-    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false);
-
 private:
 
     GeometryCache();
@@ -467,6 +467,8 @@ private:
     static gpu::ShaderPointer _unlitFadeShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
+    static render::ShapePipelinePointer _forwardSimpleOpaquePipeline;
+    static render::ShapePipelinePointer _forwardSimpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
@@ -477,6 +479,11 @@ private:
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
+
+    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+        bool unlit = false, bool depthBias = false, bool forward = false);
+    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+        bool unlit = false, bool depthBias = false);
 };
 
 #endif // hifi_GeometryCache_h

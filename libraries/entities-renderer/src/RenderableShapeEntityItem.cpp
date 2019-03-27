@@ -281,9 +281,9 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline;
         if (renderLayer == RenderLayer::WORLD) {
-            pipeline = GeometryCache::getShapePipeline(false, outColor.a < 1.0f, true, false);
+            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         } else {
-            pipeline = GeometryCache::getShapePipeline(false, outColor.a < 1.0f, true, false, false, true);
+            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
         }
         if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
