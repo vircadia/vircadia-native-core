@@ -1711,9 +1711,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
- * @property {boolean} isFacingAvatar - If <code>true< / code>, the overlay is rotated to face the user's camera about an axis
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
  *     parallel to the user's avatar's "up" direction.
- * @property {string} text="" - The text to display.Text does not automatically wrap; use <code>\n< / code> for a line break.
+ * @property {string} text="" - The text to display.Text does not automatically wrap; use <code>\n</code> for a line break.
  * @property {number} textAlpha=1 - The text alpha value.
  * @property {Color} backgroundColor=0,0,0 - The background color.
  * @property {number} backgroundAlpha=0.7 - The background alpha value.
@@ -1876,7 +1876,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
- *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1916,7 +1916,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
- *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
@@ -1927,46 +1927,46 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
- * @property {number} startAt = 0 - The counter - clockwise angle from the overlay's x-axis that drawing starts at, in degrees.
- * @property {number} endAt = 360 - The counter - clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
- * @property {number} outerRadius = 1 - The outer radius of the overlay, in meters.Synonym: <code>radius< / code>.
- * @property {number} innerRadius = 0 - The inner radius of the overlay, in meters.
- * @property {Color} color = 255, 255, 255 - The color of the overlay.Setting this value also sets the values of
- *     <code>innerStartColor< / code>, <code>innerEndColor< / code>, <code>outerStartColor< / code>, and <code>outerEndColor< / code>.
- * @property {Color} startColor - Sets the values of <code>innerStartColor< / code> and <code>outerStartColor< / code>.
- *     <em>Write - only.< / em>
- * @property {Color} endColor - Sets the values of <code>innerEndColor< / code> and <code>outerEndColor< / code>.
- *     <em>Write - only.< / em>
- * @property {Color} innerColor - Sets the values of <code>innerStartColor< / code> and <code>innerEndColor< / code>.
- *     <em>Write - only.< / em>
- * @property {Color} outerColor - Sets the values of <code>outerStartColor< / code> and <code>outerEndColor< / code>.
- *     <em>Write - only.< / em>
+ * @property {number} startAt = 0 - The counter - clockwise angle from the overlay's x-axis that drawing starts at in degrees.
+ * @property {number} endAt = 360 - The counter - clockwise angle from the overlay's x-axis that drawing ends at in degrees.
+ * @property {number} outerRadius = 1 - The outer radius of the overlay in meters. Synonym: <code>radius</code>.
+ * @property {number} innerRadius = 0 - The inner radius of the overlay in meters.
+ * @property {Color} color = 255, 255, 255 - The color of the overlay. Setting this value also sets the values of
+ *     <code>innerStartColor</code>, <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
+ * @property {Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
+ *     <em>Write - only.</em>
+ * @property {Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
+ *     <em>Write - only.</em>
+ * @property {Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
+ *     <em>Write - only.</em>
+ * @property {Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
+ *     <em>Write - only.</em>
  * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
  * @property {Color} innerEndColor - The color at the inner end point of the overlay.
  * @property {Color} outerStartColor - The color at the outer start point of the overlay.
  * @property {Color} outerEndColor - The color at the outer end point of the overlay.
- * @property {number} alpha = 0.5 - The opacity of the overlay, <code>0.0< / code> -<code>1.0< / code>.Setting this value also sets
- *     the values of <code>innerStartAlpha< / code>, <code>innerEndAlpha< / code>, <code>outerStartAlpha< / code>, and
- *     <code>outerEndAlpha< / code>.Synonym: <code>Alpha< / code>; <em>write - only< / em>.
- * @property {number} startAlpha - Sets the values of <code>innerStartAlpha< / code> and <code>outerStartAlpha< / code>.
- *     <em>Write - only.< / em>
- * @property {number} endAlpha - Sets the values of <code>innerEndAlpha< / code> and <code>outerEndAlpha< / code>.
- *     <em>Write - only.< / em>
- * @property {number} innerAlpha - Sets the values of <code>innerStartAlpha< / code> and <code>innerEndAlpha< / code>.
- *     <em>Write - only.< / em>
- * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha< / code> and <code>outerEndAlpha< / code>.
- *     <em>Write - only.< / em>
+ * @property {number} alpha = 0.5 - The opacity of the overlay, <code>0.0</code> -<code>1.0</code>. Setting this value also sets
+ *     the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and
+ *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>; <em>write - only</em>.
+ * @property {number} startAlpha - Sets the values of <code>innerStartAlpha</code> and <code>outerStartAlpha</code>.
+ *     <em>Write - only.</em>
+ * @property {number} endAlpha - Sets the values of <code>innerEndAlpha</code> and <code>outerEndAlpha</code>.
+ *     <em>Write - only.</em>
+ * @property {number} innerAlpha - Sets the values of <code>innerStartAlpha</code> and <code>innerEndAlpha</code>.
+ *     <em>Write - only.</em>
+ * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha</code> and <code>outerEndAlpha</code>.
+ *     <em>Write - only.</em>
  * @property {number} innerStartAlpha = 0 - The alpha at the inner start point of the overlay.
  * @property {number} innerEndAlpha = 0 - The alpha at the inner end point of the overlay.
  * @property {number} outerStartAlpha = 0 - The alpha at the outer start point of the overlay.
  * @property {number} outerEndAlpha = 0 - The alpha at the outer end point of the overlay.
  *
- * @property {boolean} hasTickMarks = false - If <code>true< / code>, tick marks are drawn.
+ * @property {boolean} hasTickMarks = false - If <code>true</code>, tick marks are drawn.
  * @property {number} majorTickMarksAngle = 0 - The angle between major tick marks, in degrees.
  * @property {number} minorTickMarksAngle = 0 - The angle between minor tick marks, in degrees.
- * @property {number} majorTickMarksLength = 0 - The length of the major tick marks, in meters.A positive value draws tick marks
+ * @property {number} majorTickMarksLength = 0 - The length of the major tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {number} minorTickMarksLength = 0 - The length of the minor tick marks, in meters.A positive value draws tick marks
+ * @property {number} minorTickMarksLength = 0 - The length of the minor tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
  * @property {Color} majorTickMarksColor = 0, 0, 0 - The color of the major tick marks.
  * @property {Color} minorTickMarksColor = 0, 0, 0 - The color of the minor tick marks.

@@ -1034,7 +1034,7 @@ void RenderableModelEntityItem::copyAnimationJointDataToModel() {
     });
 
     if (changed) {
-        locationChanged(false, true);
+        locationChanged(true, true);
     }
 }
 

@@ -470,8 +470,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 SortableAvatar(avatarNodeData, sourceAvatarNode, lastEncodeTime));
         }
         
-        // If Avatar A's PAL WAS open but is no longer open, AND
-        // Avatar A is ignoring Avatar B OR Avatar B is ignoring Avatar A...
+        // If Node A's PAL WAS open but is no longer open, AND
+        // Node A is ignoring Avatar B OR Node B is ignoring Avatar A...
         //
         // This is a bit heavy-handed still - there are cases where a kill packet
         // will be sent when it doesn't need to be (but where it _should_ be OK to send).
@@ -540,7 +540,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
             const MixerAvatar* sourceAvatar = sourceNodeData->getConstAvatarData();
 
             // Typically all out-of-view avatars but such avatars' priorities will rise with time:
-            bool isLowerPriority = currentVariant != kHero && sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;  // XXX: hero handling?
+            bool isLowerPriority = sortedAvatar.getPriority() <= OUT_OF_VIEW_THRESHOLD;
 
             if (isLowerPriority) {
                 detail = PALIsOpen ? AvatarData::PALMinimum : AvatarData::MinimumData;
@@ -549,8 +549,8 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 detail = distribution(generator) < AVATAR_SEND_FULL_UPDATE_RATIO ? AvatarData::SendAllData : AvatarData::CullSmallData;
                 destinationNodeData->incrementAvatarInView();
 
-                // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
-                // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
+                // If the time that the mixer sent AVATAR DATA about Avatar B to Node A is BEFORE OR EQUAL TO
+                // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Node A.
                 if (sourceAvatar->hasProcessedFirstIdentity()
                     && destinationNodeData->getLastBroadcastTime(sourceNode->getLocalID()) <= sourceNodeData->getIdentityChangeTimestamp()) {
                     identityBytesSent += sendIdentityPacket(*identityPacketList, sourceNodeData, *destinationNode);

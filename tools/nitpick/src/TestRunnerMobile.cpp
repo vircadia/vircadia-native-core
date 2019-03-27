@@ -43,7 +43,7 @@ TestRunnerMobile::TestRunnerMobile(
     _installAPKPushbutton = installAPKPushbutton;
     _runInterfacePushbutton = runInterfacePushbutton;
 
-    folderLineEdit->setText("/sdcard/DCIM/TEST");
+    folderLineEdit->setText("/sdcard/snapshots");
 
     modelNames["SM_G955U1"] = "Samsung S8+ unlocked";
     modelNames["SM_N960U1"] = "Samsung Note 9 unlocked";
@@ -60,6 +60,7 @@ void TestRunnerMobile::setWorkingFolderAndEnableControls() {
     setWorkingFolder(_workingFolderLabel);
 
     _connectDeviceButton->setEnabled(true);
+    _downloadAPKPushbutton->setEnabled(true);
 }
 
 void TestRunnerMobile::connectDevice() {
@@ -154,8 +155,6 @@ void TestRunnerMobile::downloadComplete() {
     } else {
         _statusLabel->setText("Installer download complete");
     }
-
-    _installAPKPushbutton->setEnabled(true);
 }
 
 void TestRunnerMobile::installAPK() {
@@ -164,22 +163,16 @@ void TestRunnerMobile::installAPK() {
         _adbInterface = new AdbInterface();
     }
 
-    if (_installerFilename.isNull()) {
-        QString installerPathname = QFileDialog::getOpenFileName(nullptr, "Please select the APK", _workingFolder,
-            "Available APKs (*.apk)"
-        );
+    QString installerPathname = QFileDialog::getOpenFileName(nullptr, "Please select the APK", _workingFolder,
+        "Available APKs (*.apk)"
+    );
 
-        if (installerPathname.isNull()) {
-            return;
-        }
-
-        // Remove the path
-        QStringList parts = installerPathname.split('/');
-        _installerFilename = parts[parts.length() - 1];
+    if (installerPathname.isNull()) {
+        return;
     }
 
     _statusLabel->setText("Installing");
-    QString command = _adbInterface->getAdbCommand() + " install -r -d " + _workingFolder + "/" + _installerFilename + " >" + _workingFolder  + "/installOutput.txt";
+    QString command = _adbInterface->getAdbCommand() + " install -r -d " + installerPathname + " >" + _workingFolder  + "/installOutput.txt";
     appendLog(command);
     system(command.toStdString().c_str());
     _statusLabel->setText("Installation complete");

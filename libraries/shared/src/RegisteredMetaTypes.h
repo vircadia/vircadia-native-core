@@ -43,6 +43,27 @@ Q_DECLARE_METATYPE(std::function<QVariant()>);
 void registerMetaTypes(QScriptEngine* engine);
 
 // Mat4
+/**jsdoc
+ * A 4 x 4 matrix, typically containing a scale, rotation, and translation transform. See also the {@link Mat4(0)|Mat4} object.
+ *
+ * @typedef {object} Mat4
+ * @property {number} r0c0 - Row 0, column 0 value.
+ * @property {number} r1c0 - Row 1, column 0 value.
+ * @property {number} r2c0 - Row 2, column 0 value.
+ * @property {number} r3c0 - Row 3, column 0 value.
+ * @property {number} r0c1 - Row 0, column 1 value.
+ * @property {number} r1c1 - Row 1, column 1 value.
+ * @property {number} r2c1 - Row 2, column 1 value.
+ * @property {number} r3c1 - Row 3, column 1 value.
+ * @property {number} r0c2 - Row 0, column 2 value.
+ * @property {number} r1c2 - Row 1, column 2 value.
+ * @property {number} r2c2 - Row 2, column 2 value.
+ * @property {number} r3c2 - Row 3, column 2 value.
+ * @property {number} r0c3 - Row 0, column 3 value.
+ * @property {number} r1c3 - Row 1, column 3 value.
+ * @property {number} r2c3 - Row 2, column 3 value.
+ * @property {number} r3c3 - Row 3, column 3 value.
+ */
 QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
 void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 
