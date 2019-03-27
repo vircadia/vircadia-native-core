@@ -740,10 +740,7 @@ void ParticleEffectEntityItem::setShapeType(ShapeType type) {
     }
 
     withWriteLock([&] {
-        if (type != _shapeType) {
-            _shapeType = type;
-            _flags |= Simulation::DIRTY_SHAPE | Simulation::DIRTY_MASS;
-        }
+        _shapeType = type;
     });
 }
 
