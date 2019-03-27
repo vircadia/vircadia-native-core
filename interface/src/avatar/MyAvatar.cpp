@@ -3466,11 +3466,6 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
     QUuid oldSessionID = getSessionUUID();
     Avatar::setSessionUUID(sessionUUID);
     QUuid newSessionID = getSessionUUID();
-    if (DependencyManager::get<NodeList>()->getSessionUUID().isNull()) {
-        // we don't actually have a connection to a domain right now
-        // so there is no need to queue AvatarEntity messages --> bail early
-        return;
-    }
     if (newSessionID != oldSessionID) {
         auto treeRenderer = DependencyManager::get<EntityTreeRenderer>();
         EntityTreePointer entityTree = treeRenderer ? treeRenderer->getTree() : nullptr;
@@ -3479,6 +3474,7 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
             _avatarEntitiesLock.withReadLock([&] {
                 avatarEntityIDs = _packedAvatarEntityData.keys();
             });
+            bool sendPackets = !DependencyManager::get<NodeList>()->getSessionUUID().isNull();
             EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
             entityTree->withWriteLock([&] {
                 for (const auto& entityID : avatarEntityIDs) {
@@ -3486,12 +3482,14 @@ void MyAvatar::setSessionUUID(const QUuid& sessionUUID) {
                     if (!entity) {
                         continue;
                     }
+                    // update OwningAvatarID so entity can be identified as "ours" later
                     entity->setOwningAvatarID(newSessionID);
-                    // NOTE: each attached AvatarEntity should already have the correct updated parentID
-                    // via magic in SpatiallyNestable, but when an AvatarEntity IS parented to MyAvatar
-                    // we need to update the "packedAvatarEntityData" we send to the avatar-mixer
-                    // so that others will get the updated state.
-                    if (entity->getParentID() == newSessionID) {
+                    // NOTE: each attached AvatarEntity already have the correct updated parentID
+                    // via magic in SpatiallyNestable, hence we check against newSessionID
+                    if (sendPackets && entity->getParentID() == newSessionID) {
+                        // but when we have a real session and the AvatarEntity is parented to MyAvatar
+                        // we need to update the "packedAvatarEntityData" sent to the avatar-mixer
+                        // because it contains a stale parentID somewhere deep inside
                         packetSender->queueEditAvatarEntityMessage(entityTree, entityID);
                     }
                 }
