@@ -1540,42 +1540,42 @@ bool EntityTree::verifyNonce(const EntityItemID& entityID, const QString& nonce)
 }
 
 void EntityTree::processChallengeOwnershipRequestPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
     int nodeToChallengeByteArraySize;
 
-    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&idByteArraySize);
     message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&nodeToChallengeByteArraySize);
 
-    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray id(message.read(idByteArraySize));
     QByteArray text(message.read(textByteArraySize));
     QByteArray nodeToChallenge(message.read(nodeToChallengeByteArraySize));
 
-    sendChallengeOwnershipRequestPacket(certID, text, nodeToChallenge, sourceNode);
+    sendChallengeOwnershipRequestPacket(id, text, nodeToChallenge, sourceNode);
 }
 
 void EntityTree::processChallengeOwnershipReplyPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
     int challengingNodeUUIDByteArraySize;
 
-    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&idByteArraySize);
     message.readPrimitive(&textByteArraySize);
     message.readPrimitive(&challengingNodeUUIDByteArraySize);
 
-    QByteArray certID(message.read(certIDByteArraySize));
+    QByteArray id(message.read(idByteArraySize));
     QByteArray text(message.read(textByteArraySize));
     QUuid challengingNode = QUuid::fromRfc4122(message.read(challengingNodeUUIDByteArraySize));
 
     auto challengeOwnershipReplyPacket = NLPacket::create(PacketType::ChallengeOwnershipReply,
-        certIDByteArraySize + text.length() + 2 * sizeof(int),
+        idByteArraySize + text.length() + 2 * sizeof(int),
         true);
-    challengeOwnershipReplyPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipReplyPacket->writePrimitive(idByteArraySize);
     challengeOwnershipReplyPacket->writePrimitive(text.length());
-    challengeOwnershipReplyPacket->write(certID);
+    challengeOwnershipReplyPacket->write(id);
     challengeOwnershipReplyPacket->write(text);
 
     nodeList->sendPacket(std::move(challengeOwnershipReplyPacket), *(nodeList->nodeWithUUID(challengingNode)));
@@ -1595,14 +1595,14 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     } else {
         qCDebug(entities) << "Challenging ownership of Cert ID" << certID;
         // 2. Send the nonce to the rezzing avatar's node
-        QByteArray certIDByteArray = certID.toUtf8();
-        int certIDByteArraySize = certIDByteArray.size();
+        QByteArray idByteArray = entityItemID.toByteArray();
+        int idByteArraySize = idByteArray.size();
         auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnership,
-            certIDByteArraySize + text.length() + 2 * sizeof(int),
+            idByteArraySize + text.length() + 2 * sizeof(int),
             true);
-        challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+        challengeOwnershipPacket->writePrimitive(idByteArraySize);
         challengeOwnershipPacket->writePrimitive(text.length());
-        challengeOwnershipPacket->write(certIDByteArray);
+        challengeOwnershipPacket->write(idByteArray);
         challengeOwnershipPacket->write(text);
         nodeList->sendPacket(std::move(challengeOwnershipPacket), *senderNode);
 
@@ -1616,24 +1616,24 @@ void EntityTree::sendChallengeOwnershipPacket(const QString& certID, const QStri
     }
 }
 
-void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& certID, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
+void EntityTree::sendChallengeOwnershipRequestPacket(const QByteArray& id, const QByteArray& text, const QByteArray& nodeToChallenge, const SharedNodePointer& senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // In this case, Client A is challenging Client B. Client A is inspecting a certified entity that it wants
     //     to make sure belongs to Avatar B.
     QByteArray senderNodeUUID = senderNode->getUUID().toRfc4122();
 
-    int certIDByteArraySize = certID.length();
+    int idByteArraySize = id.length();
     int TextByteArraySize = text.length();
     int senderNodeUUIDSize = senderNodeUUID.length();
 
     auto challengeOwnershipPacket = NLPacket::create(PacketType::ChallengeOwnershipRequest,
-        certIDByteArraySize + TextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
+        idByteArraySize + TextByteArraySize + senderNodeUUIDSize + 3 * sizeof(int),
         true);
-    challengeOwnershipPacket->writePrimitive(certIDByteArraySize);
+    challengeOwnershipPacket->writePrimitive(idByteArraySize);
     challengeOwnershipPacket->writePrimitive(TextByteArraySize);
     challengeOwnershipPacket->writePrimitive(senderNodeUUIDSize);
-    challengeOwnershipPacket->write(certID);
+    challengeOwnershipPacket->write(id);
     challengeOwnershipPacket->write(text);
     challengeOwnershipPacket->write(senderNodeUUID);
 
@@ -1692,26 +1692,19 @@ void EntityTree::validatePop(const QString& certID, const EntityItemID& entityIt
 }
 
 void EntityTree::processChallengeOwnershipPacket(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
-    int certIDByteArraySize;
+    int idByteArraySize;
     int textByteArraySize;
 
-    message.readPrimitive(&certIDByteArraySize);
+    message.readPrimitive(&idByteArraySize);
     message.readPrimitive(&textByteArraySize);
 
-    QString certID(message.read(certIDByteArraySize));
+    EntityItemID id(message.read(idByteArraySize));
     QString text(message.read(textByteArraySize));
 
-   EntityItemID id;
-    {
-        QReadLocker certIdMapLocker(&_entityCertificateIDMapLock);
-        id = _entityCertificateIDMap.value(certID);
-    }
     emit killChallengeOwnershipTimeoutTimer(id);
 
     if (!verifyNonce(id, text)) {
-        if (!id.isNull()) {
-            deleteEntity(id, true);
-        }
+        deleteEntity(id, true);
     }
 }
 
