@@ -292,7 +292,7 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
 
     setLastInspectedEntity(entityID);
 
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityID, _entityPropertyFlags);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -349,10 +349,10 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
 
                                 // Kickoff a 10-second timeout timer that marks the cert if we don't get an ownership response in time
                                 if (thread() != QThread::currentThread()) {
-                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer");
+                                    QMetaObject::invokeMethod(this, "startChallengeOwnershipTimer", Q_ARG(const EntityItemID&, entityID));
                                     return;
                                 } else {
-                                    startChallengeOwnershipTimer();
+                                    startChallengeOwnershipTimer(entityID);
                                 }
                             }
                         } else {
@@ -376,8 +376,8 @@ void ContextOverlayInterface::requestOwnershipVerification(const QUuid& entityID
         auto ledger = DependencyManager::get<Ledger>();
         _challengeOwnershipTimeoutTimer.stop();
         emit ledger->updateCertificateStatus(entityID, (uint)(ledger->CERTIFICATE_STATUS_STATIC_VERIFICATION_FAILED));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
-        qCDebug(context_overlay) << "Entity" << _lastInspectedEntity << "failed static certificate verification!";
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(entityID);
+        qCDebug(context_overlay) << "Entity" << entityID << "failed static certificate verification!";
     }
 }
 
@@ -395,14 +395,14 @@ void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
     }
 }
 
-void ContextOverlayInterface::startChallengeOwnershipTimer() {
+void ContextOverlayInterface::startChallengeOwnershipTimer(const EntityItemID& entityItemID) {
     auto ledger = DependencyManager::get<Ledger>();
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_lastInspectedEntity, _entityPropertyFlags);
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
 
     connect(&_challengeOwnershipTimeoutTimer, &QTimer::timeout, this, [=]() {
-        qCDebug(entities) << "Ownership challenge timed out for" << _lastInspectedEntity;
-        emit ledger->updateCertificateStatus(_lastInspectedEntity, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        qCDebug(entities) << "Ownership challenge timed out for" << entityItemID;
+        emit ledger->updateCertificateStatus(entityItemID, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_TIMEOUT));
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(entityItemID);
     });
 
     _challengeOwnershipTimeoutTimer.start(5000);
@@ -422,13 +422,13 @@ void ContextOverlayInterface::handleChallengeOwnershipReplyPacket(QSharedPointer
     EntityItemID id(packet->read(idByteArraySize));
     QString text(packet->read(textByteArraySize));
 
-    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(_lastInspectedEntity, text);
+    bool verificationSuccess = DependencyManager::get<EntityTreeRenderer>()->getTree()->verifyNonce(id, text);
 
     if (verificationSuccess) {
         emit ledger->updateCertificateStatus(id, (uint)(ledger->CERTIFICATE_STATUS_VERIFICATION_SUCCESS));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(_lastInspectedEntity);
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationSuccess(id);
     } else {
         emit ledger->updateCertificateStatus(id, (uint)(ledger->CERTIFICATE_STATUS_OWNER_VERIFICATION_FAILED));
-        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(_lastInspectedEntity);
+        emit DependencyManager::get<WalletScriptingInterface>()->ownershipVerificationFailed(id);
     }
 }
