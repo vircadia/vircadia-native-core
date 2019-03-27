@@ -51,7 +51,7 @@ void sendEnvironmentPacket(const SharedNodePointer& node, AudioMixerClientData& 
 // mix helpers
 inline float approximateGain(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd);
 inline float computeGain(float masterAvatarGain, float masterInjectorGain, const AvatarAudioStream& listeningNodeStream,
-        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, float distance, bool isEcho);
+        const PositionalAudioStream& streamToAdd, const glm::vec3& relativePosition, float distance);
 inline float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const PositionalAudioStream& streamToAdd,
         const glm::vec3& relativePosition);
 
@@ -504,13 +504,11 @@ void AudioMixerSlave::addStream(AudioMixerClientData::MixableStream& mixableStre
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
+    float gain = isEcho ? 1.0f
+                        : (isSoloing ? masterAvatarGain
+                                     : computeGain(masterAvatarGain, masterInjectorGain, listeningNodeStream, *streamToAdd,
+                                                   relativePosition, distance));
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
-
-    float gain = masterAvatarGain;
-    if (!isSoloing) {
-        gain = computeGain(masterAvatarGain, masterInjectorGain, listeningNodeStream, *streamToAdd, relativePosition,
-                           distance, isEcho);
-    }
 
     const int HRTF_DATASET_INDEX = 1;
 
@@ -599,8 +597,8 @@ void AudioMixerSlave::updateHRTFParameters(AudioMixerClientData::MixableStream& 
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream.getPosition();
 
     float distance = glm::max(glm::length(relativePosition), EPSILON);
-    float gain = computeGain(masterAvatarGain, masterInjectorGain, listeningNodeStream, *streamToAdd, relativePosition,
-                             distance, isEcho);
+    float gain = isEcho ? 1.0f : computeGain(masterAvatarGain, masterInjectorGain, listeningNodeStream, *streamToAdd, 
+                                             relativePosition, distance);
     float azimuth = isEcho ? 0.0f : computeAzimuth(listeningNodeStream, listeningNodeStream, relativePosition);
 
     mixableStream.hrtf->setParameterHistory(azimuth, distance, gain);
@@ -743,8 +741,7 @@ float computeGain(float masterAvatarGain,
                   const AvatarAudioStream& listeningNodeStream,
                   const PositionalAudioStream& streamToAdd,
                   const glm::vec3& relativePosition,
-                  float distance,
-                  bool isEcho) {
+                  float distance) {
     float gain = 1.0f;
 
     // injector: apply attenuation
@@ -754,7 +751,7 @@ float computeGain(float masterAvatarGain,
         gain *= masterInjectorGain;
 
     // avatar: apply fixed off-axis attenuation to make them quieter as they turn away
-    } else if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
+    } else if (streamToAdd.getType() == PositionalAudioStream::Microphone) {
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
 
         // source directivity is based on angle of emission, in local coordinates
