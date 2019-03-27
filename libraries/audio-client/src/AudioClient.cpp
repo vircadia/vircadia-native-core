@@ -1052,7 +1052,7 @@ void AudioClient::setReverbOptions(const AudioEffectOptions* options) {
 void AudioClient::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasReverb = _reverb || _receivedAudioStream.hasReverb();
-    if (_muted || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
+    if ((_muted && !_shouldEchoLocally) || !_audioOutput || (!_shouldEchoLocally && !hasReverb)) {
         return;
     }
 
