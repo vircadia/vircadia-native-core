@@ -465,7 +465,7 @@ void ZoneEntityRenderer::setAmbientURL(const QString& ambientUrl) {
     } else {
         _pendingAmbientTexture = true;
         auto textureCache = DependencyManager::get<TextureCache>();
-        _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::CUBE_TEXTURE);
+        _ambientTexture = textureCache->getTexture(_ambientTextureURL, image::TextureUsage::AMBIENT_TEXTURE);
 
         // keep whatever is assigned on the ambient map/sphere until texture is loaded
     }
@@ -506,7 +506,7 @@ void ZoneEntityRenderer::setSkyboxURL(const QString& skyboxUrl) {
     } else {
         _pendingSkyboxTexture = true;
         auto textureCache = DependencyManager::get<TextureCache>();
-        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, image::TextureUsage::CUBE_TEXTURE);
+        _skyboxTexture = textureCache->getTexture(_skyboxTextureURL, image::TextureUsage::SKY_TEXTURE);
     }
 }
 

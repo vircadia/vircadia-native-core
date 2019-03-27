@@ -647,17 +647,31 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
 void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
     if (!_defaultLight || !_defaultBackground) {
+        auto defaultSkyboxURL = PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json";
+
         if (!_defaultSkyboxNetworkTexture) {
             PROFILE_RANGE(render, "Process Default Skybox");
             _defaultSkyboxNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
-                PathUtils::resourcesUrl() + "images/Default-Sky-9-cubemap/Default-Sky-9-cubemap.texmeta.json", image::TextureUsage::CUBE_TEXTURE);
+                defaultSkyboxURL, image::TextureUsage::SKY_TEXTURE);
+        }
+
+        if (!_defaultSkyboxAmbientTexture) {
+            PROFILE_RANGE(render, "Process Default Ambient map");
+            _defaultSkyboxAmbientTexture = DependencyManager::get<TextureCache>()->getTexture(
+                defaultSkyboxURL, image::TextureUsage::AMBIENT_TEXTURE);
         }
 
         if (_defaultSkyboxNetworkTexture && _defaultSkyboxNetworkTexture->isLoaded() && _defaultSkyboxNetworkTexture->getGPUTexture()) {
-            _defaultSkyboxAmbientTexture = _defaultSkyboxNetworkTexture->getGPUTexture();
             _defaultSkybox->setCubemap(_defaultSkyboxAmbientTexture);
         } else {
             // Don't do anything until the skybox has loaded
+            return;
+        }
+
+        if (_defaultSkyboxAmbientTexture && _defaultSkyboxAmbientTexture->isLoaded() && _defaultSkyboxAmbientTexture->getGPUTexture()) {
+            _defaultSkyboxAmbientTexture = _defaultSkyboxAmbientTexture->getGPUTexture();
+        } else {
+            // Don't do anything until the ambient box has been loaded
             return;
         }
 

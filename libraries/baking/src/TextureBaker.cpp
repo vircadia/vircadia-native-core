@@ -206,7 +206,7 @@ void TextureBaker::processTexture() {
     }
 
     // Uncompressed KTX
-    if (_textureType == image::TextureUsage::Type::CUBE_TEXTURE) {
+    if (_textureType == image::TextureUsage::Type::SKY_TEXTURE || _textureType == image::TextureUsage::Type::AMBIENT_TEXTURE) {
         buffer->reset();
         auto processedTexture = image::processImage(std::move(buffer), _textureURL.toString().toStdString(), image::ColorChannel::NONE,
                                                     ABSOLUTE_MAX_TEXTURE_NUM_PIXELS, _textureType, false, gpu::BackendTarget::GL45, _abortProcessing);

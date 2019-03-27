@@ -100,7 +100,9 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
             return image::TextureUsage::createEmissiveTextureFromImage;
         case LIGHTMAP_TEXTURE:
             return image::TextureUsage::createLightmapTextureFromImage;
-        case CUBE_TEXTURE:
+        case SKY_TEXTURE:
+            return image::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
+        case AMBIENT_TEXTURE:
             if (options.value("generateIrradiance", true).toBool()) {
                 return image::TextureUsage::createCubeTextureFromImage;
             } else {
