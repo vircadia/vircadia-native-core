@@ -17,6 +17,8 @@
 #include <QIODevice>
 #include <QDebug>
 
+#if !defined(Q_OS_ANDROID)
+
 #include <OpenEXR/ImfIO.h>
 #include <OpenEXR/ImfRgbaFile.h>
 #include <OpenEXR/ImfArray.h>
@@ -54,7 +56,10 @@ private:
     QIODevice&  _device;
 };
 
+#endif
+
 QImage image::readOpenEXR(QIODevice& content, const std::string& filename) {
+#if !defined(Q_OS_ANDROID)
     QIODeviceImfStream device(content, filename);
 
     if (Imf::isOpenExrFile(device)) {
@@ -88,6 +93,7 @@ QImage image::readOpenEXR(QIODevice& content, const std::string& filename) {
     } else {
         qWarning(imagelogging) << "OpenEXR - File " << filename.c_str() << " doesn't have the proper format";
     }
+#endif
 
     return QImage();
 }

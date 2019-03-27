@@ -26,8 +26,9 @@
 #include <GLMHelpers.h>
 
 #include "TGAReader.h"
+#if !defined(Q_OS_ANDROID)
 #include "OpenEXRReader.h"
-
+#endif
 #include "ImageLogging.h"
 
 using namespace gpu;
@@ -249,12 +250,15 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
             return image;
         }
         content.reset();
-    } else if (filenameExtension == "exr") {
+    } 
+#if !defined(Q_OS_ANDROID)
+    else if (filenameExtension == "exr") {
         QImage image = image::readOpenEXR(content, filename);
         if (!image.isNull()) {
             return image;
         }
     }
+#endif
 
     QImageReader imageReader(&content, filenameExtension.c_str());
 
