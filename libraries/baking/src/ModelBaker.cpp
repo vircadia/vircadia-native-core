@@ -42,6 +42,8 @@
 
 #include "baking/BakerLibrary.h"
 
+#include <QJsonArray>
+
 ModelBaker::ModelBaker(const QUrl& inputModelURL, const QUrl& destinationPath, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
     _modelURL(inputModelURL),
     _destinationPath(destinationPath),
@@ -208,7 +210,6 @@ void ModelBaker::bakeSourceCopy() {
     }
     hifi::ByteArray modelData = modelFile.readAll();
 
-    hfm::Model::Pointer bakedModel;
     std::vector<hifi::ByteArray> dracoMeshes;
     std::vector<std::vector<hifi::ByteArray>> dracoMaterialLists; // Material order for per-mesh material lookup used by dracoMeshes
 
@@ -244,23 +245,24 @@ void ModelBaker::bakeSourceCopy() {
         // Begin hfm baking
         baker.run();
 
-        bakedModel = baker.getHFMModel();
+        _hfmModel = baker.getHFMModel();
         dracoMeshes = baker.getDracoMeshes();
         dracoMaterialLists = baker.getDracoMaterialLists();
     }
 
     // Do format-specific baking
-    bakeProcessedSource(bakedModel, dracoMeshes, dracoMaterialLists);
+    bakeProcessedSource(_hfmModel, dracoMeshes, dracoMaterialLists);
 
     if (shouldStop()) {
         return;
     }
 
-    if (bakedModel->materials.size() > 0) {
+    if (_hfmModel->materials.size() > 0) {
         _materialBaker = QSharedPointer<MaterialBaker>(
             new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir, _destinationPath),
             &MaterialBaker::deleteLater
         );
+        _materialBaker->setMaterials(_hfmModel->materials, _modelURL.toString());
         connect(_materialBaker.data(), &MaterialBaker::finished, this, &ModelBaker::handleFinishedMaterialBaker);
         _materialBaker->bake();
     } else {
@@ -273,9 +275,30 @@ void ModelBaker::handleFinishedMaterialBaker() {
 
     if (baker) {
         if (!baker->hasErrors()) {
+            auto bakedMaterialURL = baker->getBakedMaterialData();
             // this MaterialBaker is done and everything went according to plan
-            qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
+            qCDebug(model_baking) << "Adding baked material to FST mapping " << bakedMaterialURL;
 
+            // First we add the materials in the model
+            QJsonArray materialMapping;
+            for (auto material : _hfmModel->materials) {
+                QJsonObject json;
+                json["mat::" + material.name] = bakedMaterialURL + "?" + material.name;
+                materialMapping.push_back(json);
+            }
+
+            // The we add any existing mappings from the mapping
+            if (_mapping.contains(MATERIAL_MAPPING_FIELD)) {
+                QByteArray materialMapValue = _mapping[MATERIAL_MAPPING_FIELD].toByteArray();
+                QJsonObject oldMaterialMapping = QJsonDocument::fromJson(materialMapValue).object();
+                for (auto key : oldMaterialMapping.keys()) {
+                    QJsonObject json;
+                    json[key] = oldMaterialMapping[key];
+                    materialMapping.push_back(json);
+                }
+            }
+
+            _mapping[MATERIAL_MAPPING_FIELD] = QJsonDocument(materialMapping).toJson(QJsonDocument::Compact);
         } else {
             // this material failed to bake - this doesn't fail the entire bake but we need to add the errors from
             // the material to our warnings

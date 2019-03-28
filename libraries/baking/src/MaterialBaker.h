@@ -30,6 +30,8 @@ public:
     bool isURL() const { return _isURL; }
     QString getBakedMaterialData() const { return _bakedMaterialData; }
 
+    void setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL);
+
     static void setNextOvenWorkerThreadOperator(std::function<QThread*()> getNextOvenWorkerThreadOperator) { _getNextOvenWorkerThreadOperator = getNextOvenWorkerThreadOperator; }
 
 public slots:

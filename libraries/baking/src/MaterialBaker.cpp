@@ -253,3 +253,11 @@ void MaterialBaker::outputMaterial() {
     // emit signal to indicate the material baking is finished
     emit finished();
 }
+
+void MaterialBaker::setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL) {
+    _materialResource = NetworkMaterialResourcePointer(new NetworkMaterialResource(), [](NetworkMaterialResource* ptr) { ptr->deleteLater(); });
+    for (auto& material : materials) {
+        _materialResource->parsedMaterials.names.push_back(material.name.toStdString());
+        _materialResource->parsedMaterials.networkMaterials[material.name.toStdString()] = std::make_shared<NetworkMaterial>(material, baseURL);
+    }
+}
