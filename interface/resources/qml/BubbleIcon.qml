@@ -24,9 +24,9 @@ Rectangle {
 
     function updateOpacity() {
         if (ignoreRadiusEnabled) {
-            bubbleRect.opacity = 0.7;
+            bubbleRect.opacity = 1.0;
         } else {
-            bubbleRect.opacity = 0.3;
+            bubbleRect.opacity = 0.7;
         }
     }
 
@@ -74,7 +74,7 @@ Rectangle {
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {
-            var rectOpacity = ignoreRadiusEnabled ? (containsMouse ? 0.9 : 0.7) : (containsMouse ? 0.5 : 0.3);
+            var rectOpacity = (ignoreRadiusEnabled && containsMouse) ? 1.0 : (containsMouse ? 1.0 : 0.7);
             if (containsMouse) {
                 Tablet.playSound(TabletEnums.ButtonHover);
             }

@@ -51,14 +51,14 @@ Rectangle {
     height: 44;
 
     radius: 5;
-    opacity: 0.7
+    opacity: 0.7;
 
     onLevelChanged: {
-        var rectOpacity = muted && (level >= userSpeakingLevel) ? 0.9 : 0.3;
+        var rectOpacity = muted && (level >= userSpeakingLevel) ? 1.0 : 0.7;
         if (pushToTalk && !pushingToTalk) {
-            rectOpacity = (level >= userSpeakingLevel) ? 0.9 : 0.7;
-        } else if (mouseArea.containsMouse && rectOpacity != 0.9) {
-            rectOpacity = 0.5;
+            rectOpacity = (level >= userSpeakingLevel) ? 1.0 : 0.7;
+        } else if (mouseArea.containsMouse && rectOpacity != 1.0) {
+            rectOpacity = 1.0;
         }
         micBar.opacity = rectOpacity;
     }
