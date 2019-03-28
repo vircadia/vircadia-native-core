@@ -365,6 +365,7 @@ Rectangle {
             anchors.top: inputDeviceHeader.bottom;
             anchors.topMargin: 10;
             x: margins.paddings
+            interactive: false;
             height: contentHeight;
             spacing: 4;
             clip: true;
@@ -456,7 +457,8 @@ Rectangle {
         ListView {
             id: outputView
             width: parent.width - margins.paddings*2
-            x: margins.paddings
+            x: margins.paddings;
+            interactive: false;
             height: contentHeight;
             anchors.top: outputDeviceHeader.bottom;
             anchors.topMargin: 10;
