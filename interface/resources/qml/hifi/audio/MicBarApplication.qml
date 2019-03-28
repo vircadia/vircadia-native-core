@@ -31,6 +31,12 @@ Rectangle {
             muted = AudioScriptingInterface.muted;
             pushToTalk = AudioScriptingInterface.pushToTalk;
         });
+        AudioScriptingInterface.mutedChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+        });
+        AudioScriptingInterface.pushToTalkChanged.connect(function() {
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
     }
 
     readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";

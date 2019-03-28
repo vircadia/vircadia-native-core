@@ -34,6 +34,12 @@ Rectangle {
             muted = AudioScriptingInterface.muted;
             pushToTalk = AudioScriptingInterface.pushToTalk;
         });
+        AudioScriptingInterface.mutedChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+        });
+        AudioScriptingInterface.pushToTalkChanged.connect(function() {
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
     }
 
     property bool standalone: false;
