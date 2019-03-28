@@ -80,7 +80,7 @@ Rectangle {
             if (pushToTalk) {
                 return;
             }
-            muted = !muted;
+            AudioScriptingInterface.muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
