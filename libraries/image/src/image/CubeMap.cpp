@@ -56,115 +56,229 @@ static const glm::vec3 FACE_NORMALS[24] = {
     glm::vec3(-1.0f, -1.0f, -1.0f)
 };
 
+struct CubeFaceMip {
+    CubeFaceMip(gpu::uint16 level, const CubeMap* cubemap) {
+        _dims = cubemap->getMipDimensions(level);
+        _lineStride = _dims.x + 2;
+    }
+
+    gpu::Vec2i _dims;
+    int _lineStride;
+};
+
+class CubeMap::ConstMip : public CubeFaceMip {
+public:
+
+    ConstMip(gpu::uint16 level, const CubeMap* cubemap) : 
+        CubeFaceMip(level, cubemap), _faces(cubemap->_mips[level]) {
+    }
+
+    glm::vec4 fetch(int face, glm::vec2 uv) const {
+        glm::vec2 coordFrac = uv * glm::vec2(_dims) + 0.5f;
+        glm::vec2 coords = glm::floor(coordFrac);
+
+        coordFrac -= coords;
+
+        const auto* pixels = _faces[face].data();
+        gpu::Vec2i loCoords(coords);
+        const int offset = loCoords.x + loCoords.y * _lineStride;
+        glm::vec4 colorLL = pixels[offset];
+        glm::vec4 colorHL = pixels[offset +1 ];
+        glm::vec4 colorLH = pixels[offset + _lineStride];
+        glm::vec4 colorHH = pixels[offset + 1 + _lineStride];
+
+        colorLL += (colorHL - colorLL) * coordFrac.x;
+        colorLH += (colorHH - colorLH) * coordFrac.x;
+        return colorLL + (colorLH - colorLL) * coordFrac.y;
+    }
+
+private:
+
+    const Faces& _faces;
+
+};
+
+class CubeMap::Mip : public CubeFaceMip {
+public:
+
+    Mip(gpu::uint16 level, CubeMap* cubemap) :
+        CubeFaceMip(level, cubemap), _faces(cubemap->_mips[level]) {
+    }
+
+    void applySeams() {
+        // Copy edge rows and columns from neighbouring faces to fix seam filtering issues
+        seamColumnAndRow(gpu::Texture::CUBE_FACE_TOP_POS_Y, _dims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, -1, -1);
+        seamColumnAndRow(gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, _dims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, _dims.y, 1);
+        seamColumnAndColumn(gpu::Texture::CUBE_FACE_FRONT_NEG_Z, 0, gpu::Texture::CUBE_FACE_RIGHT_POS_X, _dims.x, 1);
+        seamColumnAndColumn(gpu::Texture::CUBE_FACE_BACK_POS_Z, _dims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, -1, 1);
+
+        seamRowAndRow(gpu::Texture::CUBE_FACE_BACK_POS_Z, -1, gpu::Texture::CUBE_FACE_TOP_POS_Y, _dims.y, 1);
+        seamRowAndRow(gpu::Texture::CUBE_FACE_BACK_POS_Z, _dims.y, gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, -1, 1);
+        seamColumnAndColumn(gpu::Texture::CUBE_FACE_BACK_POS_Z, -1, gpu::Texture::CUBE_FACE_LEFT_NEG_X, _dims.x, 1);
+
+        seamRowAndRow(gpu::Texture::CUBE_FACE_TOP_POS_Y, -1, gpu::Texture::CUBE_FACE_FRONT_NEG_Z, -1, -1);
+        seamColumnAndRow(gpu::Texture::CUBE_FACE_TOP_POS_Y, -1, gpu::Texture::CUBE_FACE_LEFT_NEG_X, -1, 1);
+
+        seamColumnAndColumn(gpu::Texture::CUBE_FACE_LEFT_NEG_X, -1, gpu::Texture::CUBE_FACE_FRONT_NEG_Z, _dims.x, 1);
+        seamColumnAndRow(gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, -1, gpu::Texture::CUBE_FACE_LEFT_NEG_X, _dims.y, -1);
+
+        seamRowAndRow(gpu::Texture::CUBE_FACE_FRONT_NEG_Z, _dims.y, gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, _dims.y, -1);
+
+        // Duplicate corner pixels
+        for (int face = 0; face < 6; face++) {
+            auto& pixels = _faces[face];
+
+            pixels[0] = pixels[1];
+            pixels[_dims.x + 1] = pixels[_dims.x];
+            pixels[(_dims.y + 1)*(_dims.x + 2)] = pixels[(_dims.y + 1)*(_dims.x + 2) + 1];
+            pixels[(_dims.y + 2)*(_dims.x + 2) - 1] = pixels[(_dims.y + 2)*(_dims.x + 2) - 2];
+        }
+    }
+
+private:
+
+    Faces& _faces;
+
+    static std::pair<int, int> getSrcAndDst(int dim, int value) {
+        int src;
+        int dst;
+
+        if (value < 0) {
+            src = 1;
+            dst = 0;
+        } else if (value >= dim) {
+            src = dim;
+            dst = dim + 1;
+        }
+        return std::make_pair(src, dst);
+    }
+
+    void seamColumnAndColumn(int face0, int col0, int face1, int col1, int inc) {
+        auto coords0 = getSrcAndDst(_dims.x, col0);
+        auto coords1 = getSrcAndDst(_dims.x, col1);
+
+        copyColumnToColumn(face0, coords0.first, face1, coords1.second, inc);
+        copyColumnToColumn(face1, coords1.first, face0, coords0.second, inc);
+    }
+
+    void seamColumnAndRow(int face0, int col0, int face1, int row1, int inc) {
+        auto coords0 = getSrcAndDst(_dims.x, col0);
+        auto coords1 = getSrcAndDst(_dims.y, row1);
+
+        copyColumnToRow(face0, coords0.first, face1, coords1.second, inc);
+        copyRowToColumn(face1, coords1.first, face0, coords0.second, inc);
+    }
+
+    void seamRowAndRow(int face0, int row0, int face1, int row1, int inc) {
+        auto coords0 = getSrcAndDst(_dims.y, row0);
+        auto coords1 = getSrcAndDst(_dims.y, row1);
+
+        copyRowToRow(face0, coords0.first, face1, coords1.second, inc);
+        copyRowToRow(face1, coords1.first, face0, coords0.second, inc);
+    }
+
+    inline static void copy(const glm::vec4* srcFirst, const glm::vec4* srcLast, int srcStride, glm::vec4* dstBegin, int dstStride) {
+        while (srcFirst <= srcLast) {
+            *dstBegin = *srcFirst;
+            srcFirst += srcStride;
+            dstBegin += dstStride;
+        }
+    }
+
+    void copyColumnToColumn(int srcFace, int srcCol, int dstFace, int dstCol, const int dstInc) {
+        const auto lastOffset = _lineStride * (_dims.y - 1);
+        auto srcFirst = _faces[srcFace].data() + srcCol + _lineStride;
+        auto srcLast = srcFirst + lastOffset;
+
+        auto dstFirst = _faces[dstFace].data() + dstCol + _lineStride;
+        auto dstLast = dstFirst + lastOffset;
+        const auto dstStride = _lineStride * dstInc;
+
+        if (dstInc < 0) {
+            std::swap(dstFirst, dstLast);
+        }
+
+        copy(srcFirst, srcLast, _lineStride, dstFirst, dstStride);
+    }
+
+    void copyRowToRow(int srcFace, int srcRow, int dstFace, int dstRow, const int dstInc) {
+        const auto lastOffset =(_dims.x - 1);
+        auto srcFirst = _faces[srcFace].data() + srcRow * _lineStride + 1;
+        auto srcLast = srcFirst + lastOffset;
+
+        auto dstFirst = _faces[dstFace].data() + dstRow * _lineStride + 1;
+        auto dstLast = dstFirst + lastOffset;
+
+        if (dstInc < 0) {
+            std::swap(dstFirst, dstLast);
+        }
+
+        copy(srcFirst, srcLast, 1, dstFirst, dstInc);
+    }
+
+    void copyColumnToRow(int srcFace, int srcCol, int dstFace, int dstRow, int dstInc) {
+        const auto srcLastOffset = _lineStride * (_dims.y - 1);
+        auto srcFirst = _faces[srcFace].data() + srcCol + _lineStride;
+        auto srcLast = srcFirst + srcLastOffset;
+
+        const auto dstLastOffset = (_dims.x - 1);
+        auto dstFirst = _faces[dstFace].data() + dstRow * _lineStride + 1;
+        auto dstLast = dstFirst + dstLastOffset;
+
+        if (dstInc < 0) {
+            std::swap(dstFirst, dstLast);
+        }
+
+        copy(srcFirst, srcLast, _lineStride, dstFirst, dstInc);
+    }
+
+    void copyRowToColumn(int srcFace, int srcRow, int dstFace, int dstCol, int dstInc) {
+        const auto srcLastOffset = (_dims.x - 1);
+        auto srcFirst = _faces[srcFace].data() + srcRow * _lineStride + 1;
+        auto srcLast = srcFirst + srcLastOffset;
+
+        const auto dstLastOffset = _lineStride * (_dims.y - 1);
+        auto dstFirst = _faces[dstFace].data() + dstCol + _lineStride;
+        auto dstLast = dstFirst + dstLastOffset;
+        const auto dstStride = _lineStride * dstInc;
+
+        if (dstInc < 0) {
+            std::swap(dstFirst, dstLast);
+        }
+
+        copy(srcFirst, srcLast, 1, dstFirst, dstStride);
+    }
+};
+
 CubeMap::CubeMap(int width, int height, int mipCount) {
     reset(width, height, mipCount);
 }
 
-CubeMap::CubeMap(gpu::TexturePointer texture, const std::atomic<bool>& abortProcessing) {
+CubeMap::CubeMap(gpu::Texture* texture, const std::atomic<bool>& abortProcessing) {
     reset(texture->getWidth(), texture->getHeight(), texture->getNumMips());
 
     const auto srcTextureFormat = texture->getTexelFormat();
+    int face;
 
     for (gpu::uint16 mipLevel = 0; mipLevel < texture->getNumMips(); ++mipLevel) {
         auto mipDims = texture->evalMipDimensions(mipLevel);
-        auto destLineStride = getFaceLineStride(mipLevel);
+        auto srcLineStride = (int) (sizeof(gpu::uint32)*mipDims.x);
+        auto dstLineStride = getFaceLineStride(mipLevel);
 
         for (face = 0; face < 6; face++) {
             auto sourcePixels = texture->accessStoredMipFace(mipLevel, face)->data();
             auto destPixels = editFace(mipLevel, face);
 
-            convertToFloat(sourcePixels, mipDims.x, mipDims.y, sizeof(uint32)*mipDims.x, srcTextureFormat, destPixels, destLineStride);
+            convertToFloat(sourcePixels, mipDims.x, mipDims.y, srcLineStride, srcTextureFormat, destPixels, dstLineStride);
             if (abortProcessing.load()) {
                 return;
             }
         }
 
-        // Now copy edge rows and columns from neighbouring faces to fix
-        // seam filtering issues
-        seamColumnAndRow(mipLevel, gpu::Texture::CUBE_FACE_TOP_POS_Y, mipDims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, -1, -1);
-        seamColumnAndRow(mipLevel, gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, mipDims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, mipDims.y, 1);
-        seamColumnAndColumn(mipLevel, gpu::Texture::CUBE_FACE_FRONT_NEG_Z, 0, gpu::Texture::CUBE_FACE_RIGHT_POS_X, mipDims.x, 1);
-        seamColumnAndColumn(mipLevel, gpu::Texture::CUBE_FACE_BACK_POS_Z, mipDims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, -1, 1);
+        Mip mip(mipLevel, this);
 
-        seamRowAndRow(mipLevel, gpu::Texture::CUBE_FACE_BACK_POS_Z, -1, gpu::Texture::CUBE_FACE_TOP_POS_Y, mipDims.y, 1);
-        seamRowAndRow(mipLevel, gpu::Texture::CUBE_FACE_BACK_POS_Z, mipDims.y, gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, -1, 1);
-        seamColumnAndColumn(mipLevel, gpu::Texture::CUBE_FACE_BACK_POS_Z, -1, gpu::Texture::CUBE_FACE_LEFT_NEG_X, mipDims.x, 1);
-
-        seamRowAndRow(mipLevel, gpu::Texture::CUBE_FACE_TOP_POS_Y, -1, gpu::Texture::CUBE_FACE_FRONT_NEG_Z, -1, -1);
-        seamColumnAndRow(mipLevel, gpu::Texture::CUBE_FACE_TOP_POS_Y, -1, gpu::Texture::CUBE_FACE_LEFT_NEG_X, -1, 1);
-
-        seamColumnAndColumn(mipLevel, gpu::Texture::CUBE_FACE_LEFT_NEG_X, -1, gpu::Texture::CUBE_FACE_FRONT_NEG_Z, mipDims.x, 1);
-        seamColumnAndRow(mipLevel, gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, -1, gpu::Texture::CUBE_FACE_LEFT_NEG_X, mipDims.y, -1);
-
-        seamRowAndRow(mipLevel, gpu::Texture::CUBE_FACE_FRONT_NEG_Z, mipDims.y, gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, mipDims.y, -1);
-
-        // Duplicate corner pixels
-        for (face = 0; face < 6; face++) {
-            auto& pixels = _mips[mipLevel][face];
-
-            pixels[0] = pixels[1];
-            pixels[mipDims.x+1] = pixels[mipDims.x];
-            pixels[(mipDims.y+1)*(mipDims.x+2)] = pixels[(mipDims.y+1)*(mipDims.x+2)+1];
-            pixels[(mipDims.y+2)*(mipDims.x+2)-1] = pixels[(mipDims.y+2)*(mipDims.x+2)-2];
-        }
+        mip.applySeams();
     }
-}
-
-inline static std::pair<int,int> getSrcAndDst(int dim, int value) {
-    int src;
-    int dst;
-
-    if (value < 0) {
-        src = 1;
-        dst = 0;
-    } else if (value >= dim) {
-        src = dim;
-        dst = dim+1;
-    }
-    return std::make_pair(src, dst);
-}
-
-void CubeMap::seamColumnAndColumn(gpu::uint16 mipLevel, int face0, int col0, int face1, int col1, int inc) {
-    auto mipDims = getMipDimensions(mipLevel);
-    auto coords0 = getSrcAndDst(mipDims.x, col0);
-    auto coords1 = getSrcAndDst(mipDims.x, col1);
-
-    copyColumnToColumn(mipLevel, face0, coords0.first, face1, coords1.second, inc);
-    copyColumnToColumn(mipLevel, face1, coords1.first, face0, coords0.second, inc);
-}
-
-void CubeMap::seamColumnAndRow(gpu::uint16 mipLevel, int face0, int col0, int face1, int row1, int inc) {
-    auto mipDims = getMipDimensions(mipLevel);
-    auto coords0 = getSrcAndDst(mipDims.x, col0);
-    auto coords1 = getSrcAndDst(mipDims.y, row1);
-
-    copyColumnToRow(mipLevel, face0, coords0.first, face1, coords1.second, inc);
-    copyRowToColumn(mipLevel, face1, coords1.first, face0, coords0.second, inc);
-}
-
-void CubeMap::seamRowAndRow(gpu::uint16 mipLevel, int face0, int row0, int face1, int row1, int inc) {
-    auto mipDims = getMipDimensions(mipLevel);
-    auto coords0 = getSrcAndDst(mipDims.y, row0);
-    auto coords1 = getSrcAndDst(mipDims.y, row1);
-
-    copyRowToRow(mipLevel, face0, coords0.first, face1, coords1.second, inc);
-    copyRowToRow(mipLevel, face1, coords1.first, face0, coords0.second, inc);
-}
-
-void CubeMap::copyColumnToColumn(gpu::uint16 mipLevel, int srcFace, int srcCol, int dstFace, int dstCol, int dstInc) {
-
-}
-
-void CubeMap::copyRowToRow(gpu::uint16 mipLevel, int srcFace, int srcRow, int dstFace, int dstRow, int dstInc) {
-
-}
-
-void CubeMap::copyColumnToRow(gpu::uint16 mipLevel, int srcFace, int srcCol, int dstFace, int dstRow, int dstInc) {
-
-}
-
-void CubeMap::copyRowToColumn(gpu::uint16 mipLevel, int srcFace, int srcRow, int dstFace, int dstCol, int dstInc) {
-
 }
 
 void CubeMap::reset(int width, int height, int mipCount) {
@@ -184,17 +298,123 @@ void CubeMap::reset(int width, int height, int mipCount) {
     }
 }
 
-glm::vec4* CubeMap::editFace(gpu::uint16 mipLevel, int face) {
-    return _mips[mipLevel][face].data() + 3 + _width;
+void CubeMap::copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing) const {
+    assert(_width == texture->getWidth() && _height == texture->getHeight() && texture->getNumMips() == _mips.size());
+
+    // Convert all mip data back from float
+    unsigned char* convertedPixels = new unsigned char[_width * _height * sizeof(gpu::uint32)];
+    const auto textureFormat = texture->getTexelFormat();
+
+    for (gpu::uint16 mipLevel = 0; mipLevel < texture->getNumMips(); ++mipLevel) {
+        auto mipDims = texture->evalMipDimensions(mipLevel);
+        auto mipSize = texture->evalMipFaceSize(mipLevel);
+        auto srcLineStride = getFaceLineStride(mipLevel);
+        auto dstLineStride = (int)(sizeof(gpu::uint32)*mipDims.x);
+
+        for (auto face = 0; face < 6; face++) {
+            auto srcPixels = getFace(mipLevel, face);
+
+            convertFromFloat(convertedPixels, mipDims.x, mipDims.y, dstLineStride, textureFormat, srcPixels, srcLineStride);
+            texture->assignStoredMipFace(mipLevel, face, mipSize, convertedPixels);
+            if (abortProcessing.load()) {
+                delete[] convertedPixels;
+                return;
+            }
+        }
+    }
+
+    delete[] convertedPixels;
 }
 
-const glm::vec4* CubeMap::getFace(gpu::uint16 mipLevel, int face) const;
-size_t CubeMap::getFaceLineStride(gpu::uint16 mipLevel) const;
+void CubeMap::getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv) {
+    // Taken from https://en.wikipedia.org/wiki/Cube_mapping
+    float absX = std::abs(dir.x);
+    float absY = std::abs(dir.y);
+    float absZ = std::abs(dir.z);
 
+    auto isXPositive = dir.x > 0;
+    auto isYPositive = dir.y > 0;
+    auto isZPositive = dir.z > 0;
+
+    float maxAxis, uc, vc;
+
+    // POSITIVE X
+    if (isXPositive && absX >= absY && absX >= absZ) {
+        // u (0 to 1) goes from +z to -z
+        // v (0 to 1) goes from -y to +y
+        maxAxis = absX;
+        uc = -dir.z;
+        vc = -dir.y;
+        *index = 0;
+    }
+    // NEGATIVE X
+    else if (!isXPositive && absX >= absY && absX >= absZ) {
+        // u (0 to 1) goes from -z to +z
+        // v (0 to 1) goes from -y to +y
+        maxAxis = absX;
+        uc = dir.z;
+        vc = -dir.y;
+        *index = 1;
+    }
+    // POSITIVE Y
+    else if (isYPositive && absY >= absX && absY >= absZ) {
+        // u (0 to 1) goes from -x to +x
+        // v (0 to 1) goes from +z to -z
+        maxAxis = absY;
+        uc = dir.x;
+        vc = dir.z;
+        *index = 2;
+    }
+    // NEGATIVE Y
+    else if (!isYPositive && absY >= absX && absY >= absZ) {
+        // u (0 to 1) goes from -x to +x
+        // v (0 to 1) goes from -z to +z
+        maxAxis = absY;
+        uc = dir.x;
+        vc = -dir.z;
+        *index = 3;
+    }
+    // POSITIVE Z
+    else if (isZPositive && absZ >= absX && absZ >= absY) {
+        // u (0 to 1) goes from -x to +x
+        // v (0 to 1) goes from -y to +y
+        maxAxis = absZ;
+        uc = dir.x;
+        vc = -dir.y;
+        *index = 4;
+    }
+    // NEGATIVE Z
+    else if (!isZPositive && absZ >= absX && absZ >= absY) {
+        // u (0 to 1) goes from +x to -x
+        // v (0 to 1) goes from -y to +y
+        maxAxis = absZ;
+        uc = -dir.x;
+        vc = -dir.y;
+        *index = 5;
+    }
+
+    // Convert range from -1 to 1 to 0 to 1
+    uv->x = 0.5f * (uc / maxAxis + 1.0f);
+    uv->y = 0.5f * (vc / maxAxis + 1.0f);
+}
 
 glm::vec4 CubeMap::fetchLod(const glm::vec3& dir, float lod) const {
-    // TODO
-    return glm::vec4(0.0f);
+    gpu::uint16 loLevel = (gpu::uint16)std::floor(lod);
+    gpu::uint16 hiLevel = (gpu::uint16)std::ceil(lod);
+    float lodFrac = lod - (float)loLevel;
+    ConstMip loMip(loLevel, this);
+    ConstMip hiMip(hiLevel, this);
+    int face;
+    glm::vec2 uv;
+    glm::vec4 loColor;
+    glm::vec4 hiColor;
+
+    getFaceUV(dir, &face, &uv);
+
+    loColor = loMip.fetch(face, uv);
+    hiColor = hiMip.fetch(face, uv);
+
+    return loColor + (hiColor - loColor) * lodFrac;
 }
 
 static glm::vec3 sampleGGX(const glm::vec2& Xi, const float roughness) {
@@ -283,7 +503,7 @@ void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int re
 void CubeMap::convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProcessing) const {
     // This should match fragment.glsl values, too
     static const float ROUGHNESS_1_MIP_RESOLUTION = 1.5f;
-    static const gpu::uint16 MAX_SAMPLE_COUNT = 4000;
+    static const size_t MAX_SAMPLE_COUNT = 4000;
 
     const auto mipCount = getMipCount();
     GGXSamples params;
@@ -294,10 +514,17 @@ void CubeMap::convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProc
         // This is the inverse code found in fragment.glsl in evaluateAmbientLighting
         float levelAlpha = float(mipLevel) / (mipCount - ROUGHNESS_1_MIP_RESOLUTION);
         float mipRoughness = levelAlpha * (1.0f + 2.0f * levelAlpha) / 3.0f;
+
         mipRoughness = std::max(1e-3f, mipRoughness);
         mipRoughness = std::min(1.0f, mipRoughness);
 
-        params.points.resize(std::min<size_t>(MAX_SAMPLE_COUNT, 1U + size_t(4000 * mipRoughness * mipRoughness)));
+        size_t mipTotalPixelCount = getMipWidth(mipLevel) * getMipHeight(mipLevel) * 6;
+        size_t sampleCount = 1U + size_t(4000 * mipRoughness * mipRoughness);
+
+        sampleCount = std::min(sampleCount, 2 * mipTotalPixelCount);
+        sampleCount = std::min(MAX_SAMPLE_COUNT, 4 * mipTotalPixelCount);
+
+        params.points.resize(sampleCount);
         generateGGXSamples(params, mipRoughness, _width);
 
         for (int face = 0; face < 6; face++) {
@@ -313,7 +540,8 @@ void CubeMap::convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, 
     const glm::vec3* faceNormals = FACE_NORMALS + face * 4;
     const glm::vec3 deltaXNormalLo = faceNormals[1] - faceNormals[0];
     const glm::vec3 deltaXNormalHi = faceNormals[3] - faceNormals[2];
-    auto& outputFace = output._mips[mipLevel][face];
+    auto outputFacePixels = output.editFace(mipLevel, face);
+    auto outputLineStride = output.getFaceLineStride(mipLevel);
 
     tbb::parallel_for(tbb::blocked_range2d<int, int>(0, _width, 16, 0, _height, 16), [&](const tbb::blocked_range2d<int, int>& range) {
         auto rowRange = range.rows();
@@ -330,7 +558,7 @@ void CubeMap::convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, 
                 // Interpolate normal for this pixel
                 const glm::vec3 normal = glm::normalize(normalYLo + deltaYNormal * yAlpha);
 
-                outputFace[x + y * _width] = computeConvolution(normal, samples);
+                outputFacePixels[x + y * outputLineStride] = computeConvolution(normal, samples);
             }
 
             if (abortProcessing.load()) {

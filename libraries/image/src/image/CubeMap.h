@@ -24,9 +24,10 @@ namespace image {
     public:
  
         CubeMap(int width, int height, int mipCount);
-        CubeMap(gpu::TexturePointer texture, const std::atomic<bool>& abortProcessing = false);
+        CubeMap(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false);
 
         void reset(int width, int height, int mipCount);
+        void copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) const;
 
         gpu::uint16 getMipCount() const { return (gpu::uint16)_mips.size(); }
         int getMipWidth(gpu::uint16 mipLevel) const {
@@ -57,6 +58,8 @@ namespace image {
     private:
 
         struct GGXSamples;
+        class Mip;
+        class ConstMip;
 
         using Face = std::vector<glm::vec4>;
         using Faces = std::array<Face, 6>;
@@ -65,18 +68,10 @@ namespace image {
         int _height;
         std::vector<Faces> _mips;
 
+        static void getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv);
         static void generateGGXSamples(GGXSamples& data, float roughness, const int resolution);
         void convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, gpu::uint16 mipLevel, int face, const std::atomic<bool>& abortProcessing) const;
         glm::vec4 computeConvolution(const glm::vec3& normal, const GGXSamples& samples) const;
-
-        void seamColumnAndColumn(gpu::uint16 mipLevel, int face0, int col0, int face1, int col1, int inc);
-        void seamColumnAndRow(gpu::uint16 mipLevel, int face0, int col0, int face1, int row1, int inc);
-        void seamRowAndRow(gpu::uint16 mipLevel, int face0, int row0, int face1, int row1, int inc);
-
-        void copyColumnToColumn(gpu::uint16 mipLevel, int srcFace, int srcCol, int dstFace, int dstCol, int dstInc);
-        void copyColumnToRow(gpu::uint16 mipLevel, int srcFace, int srcCol, int dstFace, int dstRow, int dstInc);
-        void copyRowToRow(gpu::uint16 mipLevel, int srcFace, int srcRow, int dstFace, int dstRow, int dstInc);
-        void copyRowToColumn(gpu::uint16 mipLevel, int srcFace, int srcRow, int dstFace, int dstCol, int dstInc);
 
     };
 

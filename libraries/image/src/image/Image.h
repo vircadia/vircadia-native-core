@@ -27,10 +27,10 @@ extern const QImage::Format QIMAGE_HDRFORMAT;
 
 std::function<gpu::uint32(const glm::vec3&)> getHDRPackingFunction();
 std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction();
-void convertToFloat(const unsigned char* source, int width, int height, int srcLineByteStride, gpu::Element sourceFormat, 
-                    glm::vec4* output, int outputLinePixelStride);
-void convertFromFloat(unsigned char* output, int width, int height, int outputLineByteStride, gpu::Element outputFormat, 
-                      const glm::vec4* source, int srcLinePixelStride);
+void convertToFloat(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat, 
+                    glm::vec4* output, size_t outputLinePixelStride);
+void convertFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+                      const glm::vec4* source, size_t srcLinePixelStride);
                       
 namespace TextureUsage {
 

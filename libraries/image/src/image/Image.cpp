@@ -521,8 +521,8 @@ public:
     }
 };
 
-void image::convertToFloat(const unsigned char* source, int width, int height, int srcLineByteStride, gpu::Element sourceFormat, 
-                           glm::vec4* output, int outputLinePixelStride) {
+void image::convertToFloat(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
+                           glm::vec4* output, size_t outputLinePixelStride) {
     glm::vec4* outputIt;
     auto unpackFunc = getUnpackingFunction(sourceFormat);
 
@@ -541,8 +541,8 @@ void image::convertToFloat(const unsigned char* source, int width, int height, i
     }
 }
 
-void image::convertFromFloat(unsigned char* output, int width, int height, int outputLineByteStride, gpu::Element outputFormat, 
-                             const glm::vec4* source, int srcLinePixelStride) {
+void image::convertFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+                             const glm::vec4* source, size_t srcLinePixelStride) {
     const glm::vec4* sourceIt;
     auto packFunc = getPackingFunction(outputFormat);
 
@@ -856,49 +856,11 @@ void generateMips(gpu::Texture* texture, QImage&& image, BackendTarget target, c
 
 void convolveForGGX(gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
     PROFILE_RANGE(resource_parse, "convolveForGGX");
-    CubeMap source(texture->getWidth(), texture->getHeight(), texture->getNumMips());
+    CubeMap source(texture, abortProcessing);
     CubeMap output(texture->getWidth(), texture->getHeight(), texture->getNumMips());
-    gpu::uint16 mipLevel;
-    int face;
-    const auto textureFormat = texture->getTexelFormat();
-
-    // Convert all mip data to float as source
-    for (mipLevel = 0; mipLevel < source.getMipCount(); ++mipLevel) {
-        auto mipDims = texture->evalMipDimensions(mipLevel);
-        auto& mip = source.editMip(mipLevel);
-
-        for (face = 0; face < 6; face++) {
-            auto sourcePixels = texture->accessStoredMipFace(mipLevel, face)->data();
-            convertToFloat(sourcePixels, mipDims.x, mipDims.y, sizeof(uint32)*mipDims.x, textureFormat, mip[face]);
-            if (abortProcessing.load()) {
-                return;
-            }
-        }
-    }
 
     source.convolveForGGX(output, abortProcessing);
-
-    if (!abortProcessing) {
-        // Convert all mip data back from float
-        unsigned char* convertedPixels = new unsigned char[texture->getWidth() * texture->getHeight() * sizeof(uint32)];
-
-        for (mipLevel = 0; mipLevel < output.getMipCount(); ++mipLevel) {
-            auto mipDims = texture->evalMipDimensions(mipLevel);
-            auto mipSize = texture->evalMipFaceSize(mipLevel);
-            auto& mip = output.getMip(mipLevel);
-
-            for (face = 0; face < 6; face++) {
-                convertFromFloat(convertedPixels, mipDims.x, mipDims.y, sizeof(uint32)*mipDims.x, textureFormat, mip[face]);
-                texture->assignStoredMipFace(mipLevel, face, mipSize, convertedPixels);
-                if (abortProcessing.load()) {
-                    delete[] convertedPixels;
-                    return;
-                }
-            }
-        }
-
-        delete[] convertedPixels;
-    }
+    output.copyTo(texture, abortProcessing);
 }
 
 void processTextureAlpha(const QImage& srcImage, bool& validAlpha, bool& alphaAsMask) {
