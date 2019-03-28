@@ -642,8 +642,6 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
 
-
-
 void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
 
     if (!_defaultLight || !_defaultBackground) {
@@ -655,21 +653,21 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
                 defaultSkyboxURL, image::TextureUsage::SKY_TEXTURE);
         }
 
-        if (!_defaultSkyboxAmbientTexture) {
+        if (!_defaultAmbientNetworkTexture) {
             PROFILE_RANGE(render, "Process Default Ambient map");
-            _defaultSkyboxAmbientTexture = DependencyManager::get<TextureCache>()->getTexture(
+            _defaultAmbientNetworkTexture = DependencyManager::get<TextureCache>()->getTexture(
                 defaultSkyboxURL, image::TextureUsage::AMBIENT_TEXTURE);
         }
 
         if (_defaultSkyboxNetworkTexture && _defaultSkyboxNetworkTexture->isLoaded() && _defaultSkyboxNetworkTexture->getGPUTexture()) {
-            _defaultSkybox->setCubemap(_defaultSkyboxAmbientTexture);
+            _defaultSkybox->setCubemap(_defaultSkyboxNetworkTexture->getGPUTexture());
         } else {
             // Don't do anything until the skybox has loaded
             return;
         }
 
-        if (_defaultSkyboxAmbientTexture && _defaultSkyboxAmbientTexture->isLoaded() && _defaultSkyboxAmbientTexture->getGPUTexture()) {
-            _defaultSkyboxAmbientTexture = _defaultSkyboxAmbientTexture->getGPUTexture();
+        if (_defaultAmbientNetworkTexture && _defaultAmbientNetworkTexture->isLoaded() && _defaultAmbientNetworkTexture->getGPUTexture()) {
+            _defaultAmbientTexture = _defaultAmbientNetworkTexture->getGPUTexture();
         } else {
             // Don't do anything until the ambient box has been loaded
             return;
@@ -688,8 +686,8 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 
             lp->setAmbientIntensity(0.5f);
-            lp->setAmbientMap(_defaultSkyboxAmbientTexture);
-            auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
+            lp->setAmbientMap(_defaultAmbientTexture);
+            auto irradianceSH = _defaultAmbientTexture->getIrradiance();
             if (irradianceSH) {
                 lp->setAmbientSphere((*irradianceSH));
             }

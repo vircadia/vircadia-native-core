@@ -36,6 +36,13 @@ vec3 fresnelSchlickAmbient(vec3 fresnelColor, float ndotd, float gloss) {
 <$declareSkyboxMap()$>
 <@endif@>
 
+float getMipLevelFromRoughness(float roughness, float lodCount) {
+    // This should match the value in the CubeMap::convolveForGGX method (CubeMap.cpp)
+    float ROUGHNESS_1_MIP_RESOLUTION = 1.5;
+    float deltaLod = lodCount - ROUGHNESS_1_MIP_RESOLUTION;
+    return (sqrt(6.0*roughness+0.25)-0.5)*deltaLod*0.5;
+}
+
 vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface, vec3 lightDir) {
     vec3 specularLight;
     <@if supportIfAmbientMapElseAmbientSphere@>
@@ -43,10 +50,10 @@ vec3 evalAmbientSpecularIrradiance(LightAmbient ambient, SurfaceData surface, ve
             <@endif@>
             <@if supportAmbientMap@>
         {
-            float levels = getLightAmbientMapNumMips(ambient);
-            float m = 12.0 / (1.0+11.0*surface.roughness);
-            float lod = levels - m;
+            float levelCount = getLightAmbientMapNumMips(ambient);
+            float lod = getMipLevelFromRoughness(surface.roughness, levelCount);
             lod = max(lod, 0.0);
+
             specularLight = evalSkyboxLight(lightDir, lod).xyz;
         }
     <@endif@>

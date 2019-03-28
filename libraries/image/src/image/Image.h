@@ -78,10 +78,10 @@ gpu::TexturePointer createCubeTextureFromImage(QImage&& image, const std::string
                                                bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createCubeTextureAndIrradianceFromImage(QImage&& image, const std::string& srcImageName,
                                                             bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
-gpu::TexturePointer createGGXConvolvedCubeTextureFromImage(QImage&& image, const std::string& srcImageName,
-                                                           bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
-gpu::TexturePointer createGGXConvolvedCubeTextureAndIrradianceFromImage(QImage&& image, const std::string& srcImageName,
-                                                                        bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
+gpu::TexturePointer createAmbientCubeTextureFromImage(QImage&& image, const std::string& srcImageName,
+                                                      bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
+gpu::TexturePointer createAmbientCubeTextureAndIrradianceFromImage(QImage&& image, const std::string& srcImageName,
+                                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createLightmapTextureFromImage(QImage&& image, const std::string& srcImageName,
                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing); 
 gpu::TexturePointer process2DTextureColorFromImage(QImage&& srcImage, const std::string& srcImageName, bool compress,

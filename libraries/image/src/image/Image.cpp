@@ -105,9 +105,9 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
             return image::TextureUsage::createCubeTextureFromImage;
         case AMBIENT_TEXTURE:
             if (options.value("generateIrradiance", true).toBool()) {
-                return image::TextureUsage::createCubeTextureAndIrradianceFromImage;
+                return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
             } else {
-                return image::TextureUsage::createCubeTextureFromImage;
+                return image::TextureUsage::createAmbientCubeTextureFromImage;
             }
         case BUMP_TEXTURE:
             return image::TextureUsage::createNormalTextureFromBumpImage;
@@ -188,12 +188,12 @@ gpu::TexturePointer TextureUsage::createCubeTextureFromImage(QImage&& srcImage, 
     return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_DEFAULT, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createGGXConvolvedCubeTextureFromImage(QImage&& image, const std::string& srcImageName,
+gpu::TexturePointer TextureUsage::createAmbientCubeTextureFromImage(QImage&& image, const std::string& srcImageName,
                                                            bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
     return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GGX_CONVOLVE, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createGGXConvolvedCubeTextureAndIrradianceFromImage(QImage&& image, const std::string& srcImageName,
+gpu::TexturePointer TextureUsage::createAmbientCubeTextureAndIrradianceFromImage(QImage&& image, const std::string& srcImageName,
                                                                         bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
     return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE | CUBE_GGX_CONVOLVE, abortProcessing);
 }

@@ -17,6 +17,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QStackedWidget>
 
 #include <QtCore/QDir>
@@ -57,6 +58,15 @@ void SkyboxBakeWidget::setupUI() {
     gridLayout->addWidget(skyboxFileLabel, rowIndex, 0);
     gridLayout->addWidget(_selectionLineEdit, rowIndex, 1, 1, 3);
     gridLayout->addWidget(chooseFileButton, rowIndex, 4);
+
+    // start a new row for next component
+    ++rowIndex;
+
+    // setup a section to enable Ambient map baking
+    _ambientMapBox = new QCheckBox("Bake ambient map(s)");
+    _ambientMapBox->setChecked(false);
+
+    gridLayout->addWidget(_ambientMapBox, rowIndex, 1);
 
     // start a new row for next component
     ++rowIndex;
@@ -176,51 +186,67 @@ void SkyboxBakeWidget::bakeButtonClicked() {
 
         // if the URL doesn't have a scheme, assume it is a local file
         if (skyboxToBakeURL.scheme() != "http" && skyboxToBakeURL.scheme() != "https" && skyboxToBakeURL.scheme() != "ftp") {
-            skyboxToBakeURL.setScheme("file");
+            skyboxToBakeURL = QUrl::fromLocalFile(fileURLString);
         }
 
         // everything seems to be in place, kick off a bake for this skybox now
-        auto baker = std::unique_ptr<TextureBaker> {
-            new TextureBaker(skyboxToBakeURL, image::TextureUsage::SKY_TEXTURE, outputDirectory.absolutePath())
-        };
+        addBaker(new TextureBaker(skyboxToBakeURL, image::TextureUsage::SKY_TEXTURE, outputDirectory.absolutePath()),
+                 outputDirectory);
 
-        // move the baker to a worker thread
-        baker->moveToThread(Oven::instance().getNextWorkerThread());
+        if (_ambientMapBox->isChecked()) {
+            QString ambientMapBaseFilename;
+            QString urlPath = skyboxToBakeURL.path();
+            auto urlParts = urlPath.split('.');
 
-        // invoke the bake method on the baker thread
-        QMetaObject::invokeMethod(baker.get(), "bake");
+            urlParts.front() += "-ambient";
+            ambientMapBaseFilename = QUrl(urlParts.front()).fileName();
 
-        // make sure we hear about the results of this baker when it is done
-        connect(baker.get(), &TextureBaker::finished, this, &SkyboxBakeWidget::handleFinishedBaker);
-
-        // add a pending row to the results window to show that this bake is in process
-        auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
-        auto resultsRow = resultsWindow->addPendingResultRow(skyboxToBakeURL.fileName(), outputDirectory);
-
-        // keep a unique_ptr to this baker
-        // and remember the row that represents it in the results table
-        _bakers.emplace_back(std::move(baker), resultsRow);
+            // we need to bake the corresponding ambient map too
+            addBaker(new TextureBaker(skyboxToBakeURL, image::TextureUsage::AMBIENT_TEXTURE, outputDirectory.absolutePath(), QString(), ambientMapBaseFilename),
+                     outputDirectory);
+        }
     }
 }
 
+void SkyboxBakeWidget::addBaker(TextureBaker* baker, const QDir& outputDirectory) {
+    auto textureBaker = std::unique_ptr<TextureBaker>{ baker };
+
+    // move the textureBaker to a worker thread
+    textureBaker->moveToThread(Oven::instance().getNextWorkerThread());
+
+    // invoke the bake method on the textureBaker thread
+    QMetaObject::invokeMethod(textureBaker.get(), "bake");
+
+    // make sure we hear about the results of this textureBaker when it is done
+    connect(textureBaker.get(), &TextureBaker::finished, this, &SkyboxBakeWidget::handleFinishedBaker);
+
+    // add a pending row to the results window to show that this bake is in process
+    auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
+    auto resultsRow = resultsWindow->addPendingResultRow(baker->getBaseFilename(), outputDirectory);
+
+    // keep a unique_ptr to this textureBaker
+    // and remember the row that represents it in the results table
+    _bakers.emplace_back(std::move(textureBaker), resultsRow);
+}
+
 void SkyboxBakeWidget::handleFinishedBaker() {
-    if (auto baker = qobject_cast<TextureBaker*>(sender())) {
+    if (auto textureBaker = qobject_cast<TextureBaker*>(sender())) {
         // add the results of this bake to the results window
-        auto it = std::find_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
-            return value.first.get() == baker;
+        auto it = std::find_if(_bakers.begin(), _bakers.end(), [textureBaker](const BakerRowPair& value) {
+            return value.first.get() == textureBaker;
         });
 
         if (it != _bakers.end()) {
             auto resultRow = it->second;
             auto resultsWindow = OvenGUIApplication::instance()->getMainWindow()->showResultsWindow();
 
-            if (baker->hasErrors()) {
-                resultsWindow->changeStatusForRow(resultRow, baker->getErrors().join("\n"));
+            if (textureBaker->hasErrors()) {
+                resultsWindow->changeStatusForRow(resultRow, textureBaker->getErrors().join("\n"));
             } else {
                 resultsWindow->changeStatusForRow(resultRow, "Success");
             }
 
-            // drop our strong pointer to the baker now that we are done with it
+            // drop our strong pointer to the textureBaker now that we are done with it
             _bakers.erase(it);
         }
     }

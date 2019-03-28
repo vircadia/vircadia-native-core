@@ -501,7 +501,7 @@ void CubeMap::generateGGXSamples(GGXSamples& data, float roughness, const int re
 }
 
 void CubeMap::convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProcessing) const {
-    // This should match fragment.glsl values, too
+    // This should match the value in the getMipLevelFromRoughness function (LightAmbient.slh)
     static const float ROUGHNESS_1_MIP_RESOLUTION = 1.5f;
     static const size_t MAX_SAMPLE_COUNT = 4000;
 
