@@ -41,8 +41,8 @@ macro(TARGET_OPENEXR)
             # using both versioned and unversioned names.
             find_library(OPENEXR_${OPENEXR_LIB}_LIBRARY_RELEASE
                 NAMES
-                    ${OPENEXR_LIB}-${OPENEXR_MAJOR_VERSION}_${OPENEXR_MINOR_VERSION}
-                    ${OPENEXR_LIB}
+                    ${OPENEXR_LIB}-${OPENEXR_MAJOR_VERSION}_${OPENEXR_MINOR_VERSION}_s
+                    ${OPENEXR_LIB}_s
 
                 PATHS ${VCPKG_INSTALL_ROOT}/lib NO_DEFAULT_PATH
             )
@@ -56,8 +56,8 @@ macro(TARGET_OPENEXR)
             # using both versioned and unversioned names.
             find_library(OPENEXR_${OPENEXR_LIB}_LIBRARY_DEBUG
                 NAMES
-                    ${OPENEXR_LIB}-${OPENEXR_MAJOR_VERSION}_${OPENEXR_MINOR_VERSION}_d
-                    ${OPENEXR_LIB}_d
+                    ${OPENEXR_LIB}-${OPENEXR_MAJOR_VERSION}_${OPENEXR_MINOR_VERSION}_s_d
+                    ${OPENEXR_LIB}_s_d
 
                 PATHS ${VCPKG_INSTALL_ROOT}/debug/lib NO_DEFAULT_PATH
             )
@@ -68,8 +68,5 @@ macro(TARGET_OPENEXR)
         endforeach(OPENEXR_LIB)
 
         target_link_libraries(${TARGET_NAME} ${OPENEXR_LIBRARIES})
-        if (WIN32)
-            target_compile_definitions(${TARGET_NAME} PUBLIC OPENEXR_DLL)
-        endif(WIN32)
     endif()
 endmacro()

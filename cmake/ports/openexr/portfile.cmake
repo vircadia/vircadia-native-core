@@ -12,8 +12,8 @@ vcpkg_from_github(
   PATCHES "fix_install_ilmimf.patch"
 )
 
-string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "static" OPENEXR_STATIC)
-string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "dynamic" OPENEXR_SHARED)
+set(OPENEXR_STATIC ON)
+set(OPENEXR_SHARED OFF)
 
 vcpkg_configure_cmake(SOURCE_PATH ${SOURCE_PATH}
   PREFER_NINJA
@@ -58,7 +58,7 @@ file(REMOVE ${CURRENT_PACKAGES_DIR}/bin/exrstdattr${EXECUTABLE_SUFFIX})
 
 vcpkg_copy_pdbs()
 
-if (VCPKG_LIBRARY_LINKAGE STREQUAL static)
+if (OPENEXR_STATIC)
   file(REMOVE_RECURSE ${CURRENT_PACKAGES_DIR}/bin ${CURRENT_PACKAGES_DIR}/debug/bin)
 endif()
 
