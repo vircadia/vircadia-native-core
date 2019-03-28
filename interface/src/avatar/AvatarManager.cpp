@@ -542,15 +542,11 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         auto scene = qApp->getMain3DScene();
         avatar->fadeOut(scene, removalReason);
 
-        std::weak_ptr<AvatarData> avatarDataWeakPtr = removedAvatar;
-        transaction.transitionFinishedOperator(avatar->getRenderItemID(), [avatarDataWeakPtr]() {
-            auto avatarDataPtr = avatarDataWeakPtr.lock();
-
-            if (avatarDataPtr) {
-                auto avatar = std::static_pointer_cast<Avatar>(avatarDataPtr);
-                avatar->setIsFading(false);
-            }
+        transaction.transitionFinishedOperator(avatar->getRenderItemID(), [avatar]() {
+            avatar->setIsFading(false);
         });
+
+        scene->enqueueTransaction(transaction);
     }
 
     _avatarsToFadeOut.push_back(removedAvatar);

@@ -408,7 +408,7 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
             // Only remove if:
             // transitioning to something other than none or we're transitioning to none from ELEMENT_LEAVE_DOMAIN or USER_LEAVE_DOMAIN
             const auto& oldTransitionType = transitionStage->getTransition(transitionId).eventType;
-            if (transitionType != Transition::NONE || !(oldTransitionType == Transition::ELEMENT_LEAVE_DOMAIN || oldTransitionType == Transition::USER_LEAVE_DOMAIN)) {
+            if (transitionType == Transition::NONE && oldTransitionType != Transition::NONE) {
                 resetItemTransition(itemId);
             }
         }
