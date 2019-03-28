@@ -96,6 +96,9 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
+            if (pushToTalk) {
+                return;
+            }
             AudioScriptingInterface.muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
             muted = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
