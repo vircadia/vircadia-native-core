@@ -443,6 +443,7 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
     QString hifiGlobalNodeID;
     unsigned int meshIndex = 0;
     haveReportedUnhandledRotationOrder = false;
+    int fbxVersionNumber = -1;
     foreach (const FBXNode& child, node.children) {
 
         if (child.name == "FBXHeaderExtension") {
@@ -465,6 +466,8 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                             }
                         }
                     }
+                } else if (object.name == "FBXVersion") {
+                    fbxVersionNumber = object.properties.at(0).toInt();
                 }
             }
         } else if (child.name == "GlobalSettings") {
@@ -1311,8 +1314,6 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
 
         joint.bindTransformFoundInCluster = false;
 
-        hfmModel.joints.append(joint);
-
         QString rotationID = localRotations.value(modelID);
         AnimationCurve xRotCurve = animationCurves.value(xComponents.value(rotationID));
         AnimationCurve yRotCurve = animationCurves.value(yComponents.value(rotationID));
@@ -1335,7 +1336,13 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                 xPosCurve.values.isEmpty() ? defaultPosValues.x : xPosCurve.values.at(i % xPosCurve.values.size()),
                 yPosCurve.values.isEmpty() ? defaultPosValues.y : yPosCurve.values.at(i % yPosCurve.values.size()),
                 zPosCurve.values.isEmpty() ? defaultPosValues.z : zPosCurve.values.at(i % zPosCurve.values.size()));
+            if ((fbxVersionNumber < 7500) && (i == 0)) {
+                joint.translation = hfmModel.animationFrames[i].translations[jointIndex];
+                joint.rotation = hfmModel.animationFrames[i].rotations[jointIndex];
+            }
+
         }
+        hfmModel.joints.append(joint);
     }
 
     // NOTE: shapeVertices are in joint-frame

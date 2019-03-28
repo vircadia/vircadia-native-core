@@ -36,7 +36,10 @@ class FrameProcessor:
         if not 'ktxFile' in texture: return
         sourceKtx = texture['ktxFile']
         if sourceKtx.startswith(':'):
-            sourceKtx = os.path.join(self.resDir, sourceKtx[3:])
+            sourceKtx = sourceKtx[1:]
+            while sourceKtx.startswith('/'):
+                sourceKtx = sourceKtx[1:]
+            sourceKtx = os.path.join(self.resDir, sourceKtx)
         sourceKtxDir, sourceKtxName = os.path.split(sourceKtx)
         destKtx = os.path.join(self.ktxDir, sourceKtxName)
         if not os.path.isfile(destKtx):
@@ -52,7 +55,7 @@ class FrameProcessor:
         with open(self.filename, 'w') as f:
             json.dump(self.json, f, indent=2)
 
-fp = FrameProcessor("D:/Frames/20190110_1635.json")
+fp = FrameProcessor("D:/Frames/20190112_1647.json")
 fp.process()
 
 

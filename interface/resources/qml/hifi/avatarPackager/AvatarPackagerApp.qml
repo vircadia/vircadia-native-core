@@ -133,7 +133,7 @@ Item {
         states: [
             State {
                 name: AvatarPackagerState.main
-                PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); docsEnabled: true; backButtonVisible: false }
+                PropertyChanges { target: avatarPackagerHeader; title: qsTr("Avatar Packager"); docsEnabled: true; videoEnabled: true; backButtonVisible: false }
                 PropertyChanges { target: avatarPackagerMain; visible: true }
                 PropertyChanges { target: avatarPackagerFooter; content: avatarPackagerMain.footer }
             },
@@ -229,7 +229,11 @@ Item {
         }
 
         function openDocs() {
-            Qt.openUrlExternally("https://docs.highfidelity.com/create/avatars/create-avatars#how-to-package-your-avatar");
+            Qt.openUrlExternally("https://docs.highfidelity.com/create/avatars/package-avatar.html");
+        }
+
+        function openVideo() {
+            Qt.openUrlExternally("https://youtu.be/zrkEowu_yps");
         }
 
         AvatarPackagerHeader {
@@ -242,6 +246,9 @@ Item {
             }
             onDocsButtonClicked: {
                 avatarPackager.openDocs();
+            }
+            onVideoButtonClicked: {
+                avatarPackager.openVideo();
             }
         }
 

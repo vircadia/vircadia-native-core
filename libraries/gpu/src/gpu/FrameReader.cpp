@@ -40,7 +40,7 @@ public:
             auto lastSlash = filename.rfind('/');
             result = filename.substr(0, lastSlash + 1);
         } else {
-            std::string result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
+            result = QFileInfo(filename.c_str()).absoluteDir().canonicalPath().toStdString();
             if (*result.rbegin() != '/') {
                 result += '/';
             }
