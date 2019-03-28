@@ -521,14 +521,15 @@ public:
     }
 };
 
-void convertToFloat(const unsigned char* source, int width, int height, int lineStride, gpu::Element sourceFormat, std::vector<glm::vec4>& output) {
-    std::vector<glm::vec4>::iterator outputIt;
+void image::convertToFloat(const unsigned char* source, int width, int height, int srcLineByteStride, gpu::Element sourceFormat, 
+                           glm::vec4* output, int outputLinePixelStride) {
+    glm::vec4* outputIt;
     auto unpackFunc = getUnpackingFunction(sourceFormat);
 
-    output.resize(width * height);
-    outputIt = output.begin();
+    outputLinePixelStride -= width;
+    outputIt = output;
     for (auto lineNb = 0; lineNb < height; lineNb++) {
-        const uint32* srcPixelIt = reinterpret_cast<const uint32*>(source + lineNb * lineStride);
+        const uint32* srcPixelIt = reinterpret_cast<const uint32*>(source + lineNb * srcLineByteStride);
         const uint32* srcPixelEnd = srcPixelIt + width;
 
         while (srcPixelIt < srcPixelEnd) {
@@ -536,17 +537,19 @@ void convertToFloat(const unsigned char* source, int width, int height, int line
             ++srcPixelIt;
             ++outputIt;
         }
+        outputIt += outputLinePixelStride;
     }
-    assert(outputIt == output.end());
 }
 
-void convertFromFloat(unsigned char* output, int width, int height, int lineStride, gpu::Element outputFormat, const std::vector<glm::vec4>& source) {
-    std::vector<glm::vec4>::const_iterator sourceIt;
+void image::convertFromFloat(unsigned char* output, int width, int height, int outputLineByteStride, gpu::Element outputFormat, 
+                             const glm::vec4* source, int srcLinePixelStride) {
+    const glm::vec4* sourceIt;
     auto packFunc = getPackingFunction(outputFormat);
 
-    sourceIt = source.begin();
+    srcLinePixelStride -= width;
+    sourceIt = source;
     for (auto lineNb = 0; lineNb < height; lineNb++) {
-        uint32* outPixelIt = reinterpret_cast<uint32*>(output + lineNb * lineStride);
+        uint32* outPixelIt = reinterpret_cast<uint32*>(output + lineNb * outputLineByteStride);
         uint32* outPixelEnd = outPixelIt + width;
 
         while (outPixelIt < outPixelEnd) {
@@ -554,8 +557,8 @@ void convertFromFloat(unsigned char* output, int width, int height, int lineStri
             ++outPixelIt;
             ++sourceIt;
         }
+        sourceIt += srcLinePixelStride;
     }
-    assert(sourceIt == source.end());
 }
 
 void generateHDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face) {
@@ -594,7 +597,8 @@ void generateHDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
         return;
     }
 
-    convertToFloat(localCopy.bits(), width, height, localCopy.bytesPerLine(), HDR_FORMAT, data);
+    data.resize(width * height);
+    convertToFloat(localCopy.bits(), width, height, localCopy.bytesPerLine(), HDR_FORMAT, data.data(), width);
 
     // We're done with the localCopy, free up the memory to avoid bloating the heap
     localCopy = QImage(); // QImage doesn't have a clear function, so override it with an empty one.
