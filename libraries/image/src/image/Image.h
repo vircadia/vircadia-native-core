@@ -14,6 +14,7 @@
 
 #include <QVariant>
 #include <QImage>
+#include <nvtt/nvtt.h>
 
 #include <gpu/Texture.h>
 
@@ -107,6 +108,18 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
 
+#if defined(NVTT_API)
+class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
+public:
+    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing);
+
+    const std::atomic<bool>& _abortProcessing;
+
+    void dispatch(nvtt::Task* task, void* context, int count) override;
+};
+
+nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressOptions);
+#endif
 } // namespace image
 
 #endif // hifi_image_Image_h

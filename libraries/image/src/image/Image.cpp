@@ -35,7 +35,6 @@
 using namespace gpu;
 
 #define CPU_MIPMAPS 1
-#include <nvtt/nvtt.h>
 
 #undef _CRT_SECURE_NO_WARNINGS
 #include <Etc2/Etc.h>
@@ -50,7 +49,7 @@ std::atomic<size_t> RECTIFIED_TEXTURE_COUNT{ 0 };
 
 // we use a ref here to work around static order initialization
 // possibly causing the element not to be constructed yet
-static const auto& HDR_FORMAT = gpu::Element::COLOR_R11G11B10;
+static const auto& GPUTEXTURE_HDRFORMAT = gpu::Element::COLOR_R11G11B10;
 const QImage::Format image::QIMAGE_HDRFORMAT = QImage::Format_RGB30;
 
 uint rectifyDimension(const uint& dimension) {
@@ -236,7 +235,7 @@ static std::function<uint32(const glm::vec3&)> getPackingFunction(const gpu::Ele
 }
 
 std::function<uint32(const glm::vec3&)> getHDRPackingFunction() {
-    return getPackingFunction(HDR_FORMAT);
+    return getPackingFunction(GPUTEXTURE_HDRFORMAT);
 }
 
 std::function<glm::vec3(gpu::uint32)> getUnpackingFunction(const gpu::Element& format) {
@@ -254,7 +253,7 @@ std::function<glm::vec3(gpu::uint32)> getUnpackingFunction(const gpu::Element& f
 }
 
 std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction() {
-    return getUnpackingFunction(HDR_FORMAT);
+    return getUnpackingFunction(GPUTEXTURE_HDRFORMAT);
 }
 
 QImage processRawImageData(QIODevice& content, const std::string& filename) {
@@ -504,22 +503,18 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
     }
 };
 
-class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
-public:
-    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing) : _abortProcessing(abortProcessing) {};
+SequentialTaskDispatcher::SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing) : _abortProcessing(abortProcessing) {
+}
 
-    const std::atomic<bool>& _abortProcessing;
-
-    virtual void dispatch(nvtt::Task* task, void* context, int count) override {
-        for (int i = 0; i < count; i++) {
-            if (!_abortProcessing.load()) {
-                task(context, i);
-            } else {
-                break;
-            }
+void SequentialTaskDispatcher::dispatch(nvtt::Task* task, void* context, int count) {
+    for (int i = 0; i < count; i++) {
+        if (!_abortProcessing.load()) {
+            task(context, i);
+        } else {
+            break;
         }
     }
-};
+}
 
 void image::convertToFloat(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
                            glm::vec4* output, size_t outputLinePixelStride) {
@@ -561,6 +556,40 @@ void image::convertFromFloat(unsigned char* output, int width, int height, size_
     }
 }
 
+nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressionOptions) {
+    auto outputFormat = outputTexture->getStoredMipFormat();
+
+    nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
+    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
+    nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
+
+    compressionOptions.setQuality(nvtt::Quality_Production);
+
+    // TODO: gles: generate ETC mips instead?
+    if (outputFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
+        compressionOptions.setFormat(nvtt::Format_BC6);
+    } else if (outputFormat == gpu::Element::COLOR_RGB9E5) {
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_Float);
+        compressionOptions.setPixelFormat(32, 32, 32, 0);
+    } else if (outputFormat == gpu::Element::COLOR_R11G11B10) {
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_Float);
+        compressionOptions.setPixelFormat(32, 32, 32, 0);
+    } else {
+        qCWarning(imagelogging) << "Unknown mip format";
+        Q_UNREACHABLE();
+        return nullptr;
+    }
+
+    if (outputFormat == gpu::Element::COLOR_RGB9E5 || outputFormat == gpu::Element::COLOR_R11G11B10) {
+        // Don't use NVTT (at least version 2.1) as it outputs wrong RGB9E5 and R11G11B10F values from floats
+        return new PackedFloatOutputHandler(outputTexture, face, outputFormat);
+    } else {
+        return new OutputHandler(outputTexture, face);
+    }
+}
+
 void generateHDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face) {
     // Take a local copy to force move construction
     // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#f18-for-consume-parameters-pass-by-x-and-stdmove-the-parameter
@@ -577,46 +606,22 @@ void generateHDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
     nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
 
-    nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setQuality(nvtt::Quality_Production);
-
-    // TODO: gles: generate ETC mips instead?
-    if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
-        compressionOptions.setFormat(nvtt::Format_BC6);
-    } else if (mipFormat == gpu::Element::COLOR_RGB9E5) {
-        compressionOptions.setFormat(nvtt::Format_RGB);
-        compressionOptions.setPixelType(nvtt::PixelType_Float);
-        compressionOptions.setPixelFormat(32, 32, 32, 0);
-    } else if (mipFormat == gpu::Element::COLOR_R11G11B10) {
-        compressionOptions.setFormat(nvtt::Format_RGB);
-        compressionOptions.setPixelType(nvtt::PixelType_Float);
-        compressionOptions.setPixelFormat(32, 32, 32, 0);
-    } else {
-        qCWarning(imagelogging) << "Unknown mip format";
-        Q_UNREACHABLE();
-        return;
-    }
-
     data.resize(width * height);
-    convertToFloat(localCopy.bits(), width, height, localCopy.bytesPerLine(), HDR_FORMAT, data.data(), width);
+    convertToFloat(localCopy.bits(), width, height, localCopy.bytesPerLine(), GPUTEXTURE_HDRFORMAT, data.data(), width);
 
     // We're done with the localCopy, free up the memory to avoid bloating the heap
     localCopy = QImage(); // QImage doesn't have a clear function, so override it with an empty one.
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
-    std::unique_ptr<nvtt::OutputHandler> outputHandler;
+
+    nvtt::CompressionOptions compressionOptions;
+    std::unique_ptr<nvtt::OutputHandler> outputHandler{ getNVTTCompressionOutputHandler(texture, face, compressionOptions) };
+
     MyErrorHandler errorHandler;
     outputOptions.setErrorHandler(&errorHandler);
     nvtt::Context context;
     int mipLevel = 0;
-
-    if (mipFormat == gpu::Element::COLOR_RGB9E5 || mipFormat == gpu::Element::COLOR_R11G11B10) {
-        // Don't use NVTT (at least version 2.1) as it outputs wrong RGB9E5 and R11G11B10F values from floats
-        outputHandler.reset(new PackedFloatOutputHandler(texture, face, mipFormat));
-    } else {
-        outputHandler.reset(new OutputHandler(texture, face));
-    }
 
     outputOptions.setOutputHandler(outputHandler.get());
 
@@ -836,27 +841,27 @@ void generateLDRMips(gpu::Texture* texture, QImage&& image, BackendTarget target
 
 #endif
 
-void generateMips(gpu::Texture* texture, QImage&& image, BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1, bool forceCPUBuild = false) {
-    if (forceCPUBuild || CPU_MIPMAPS) {
-        PROFILE_RANGE(resource_parse, "generateMips");
+void generateMips(gpu::Texture* texture, QImage&& image, BackendTarget target, const std::atomic<bool>& abortProcessing = false, int face = -1) {
+#if CPU_MIPMAPS
+    PROFILE_RANGE(resource_parse, "generateMips");
 
-        if (target == BackendTarget::GLES32) {
-            generateLDRMips(texture, std::move(image), target, abortProcessing, face);
-        } else {
-            if (image.format() == QIMAGE_HDRFORMAT) {
-                generateHDRMips(texture, std::move(image), target, abortProcessing, face);
-            } else {
-                generateLDRMips(texture, std::move(image), target, abortProcessing, face);
-            }
-        }
+    if (target == BackendTarget::GLES32) {
+        generateLDRMips(texture, std::move(image), target, abortProcessing, face);
     } else {
-        texture->setAutoGenerateMips(true);
+        if (image.format() == QIMAGE_HDRFORMAT) {
+            generateHDRMips(texture, std::move(image), target, abortProcessing, face);
+        } else {
+            generateLDRMips(texture, std::move(image), target, abortProcessing, face);
+        }
     }
+#else
+    texture->setAutoGenerateMips(true);
+#endif
 }
 
-void convolveForGGX(gpu::Texture* texture, BackendTarget target, const std::atomic<bool>& abortProcessing = false) {
+void convolveForGGX(const std::vector<QImage>& faces, gpu::Element faceFormat, gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) {
     PROFILE_RANGE(resource_parse, "convolveForGGX");
-    CubeMap source(texture, abortProcessing);
+    CubeMap source(faces, faceFormat, texture->getNumMips(), abortProcessing);
     CubeMap output(texture->getWidth(), texture->getHeight(), texture->getNumMips());
 
     source.convolveForGGX(output, abortProcessing);
@@ -1488,7 +1493,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
     if (targetCubemapFormat == QIMAGE_HDRFORMAT && image.format() != targetCubemapFormat) {
         // If the target format is HDR but the image isn't, we need to convert the
         // image to HDR.
-        image = convertToHDRFormat(std::move(image), HDR_FORMAT);
+        image = convertToHDRFormat(std::move(image), GPUTEXTURE_HDRFORMAT);
     } else if (image.format() == QIMAGE_HDRFORMAT && image.format() != targetCubemapFormat) {
         // If the target format isn't HDR (such as on GLES) but the image is, we need to
         // convert the image to LDR
@@ -1504,7 +1509,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
             formatGPU = gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB;
         }
     } else {
-        formatGPU = HDR_FORMAT;
+        formatGPU = GPUTEXTURE_HDRFORMAT;
     }
 
     formatMip = formatGPU;
@@ -1559,7 +1564,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
             if (target == BackendTarget::GLES32) {
                 irradianceFormat = gpu::Element::COLOR_SRGBA_32;
             } else {
-                irradianceFormat = HDR_FORMAT;
+                irradianceFormat = GPUTEXTURE_HDRFORMAT;
             }
 
             auto irradianceTexture = gpu::Texture::createCube(irradianceFormat, faces[0].width(), gpu::Texture::MAX_NUM_MIPS, gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR, gpu::Sampler::WRAP_CLAMP));
@@ -1575,14 +1580,16 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(QImage&& srcI
             theTexture->overrideIrradiance(irradiance);
         }
 
-        for (uint8 face = 0; face < faces.size(); ++face) {
-            // Force building the mip maps right now on CPU if we are convolving for GGX later on
-            generateMips(theTexture.get(), std::move(faces[face]), target, abortProcessing, face, (options & CUBE_GGX_CONVOLVE) == CUBE_GGX_CONVOLVE);
+        if (options & CUBE_GGX_CONVOLVE) {
+            convolveForGGX(faces, GPUTEXTURE_HDRFORMAT, theTexture.get(), abortProcessing);
+        } else {
+            // Create mip maps and compress to final format in one go
+            for (uint8 face = 0; face < faces.size(); ++face) {
+                // Force building the mip maps right now on CPU if we are convolving for GGX later on
+                generateMips(theTexture.get(), std::move(faces[face]), target, abortProcessing, face);
+            }
         }
 
-        if (options & CUBE_GGX_CONVOLVE) {
-            convolveForGGX(theTexture.get(), target, abortProcessing);
-        }
     }
 
     return theTexture;

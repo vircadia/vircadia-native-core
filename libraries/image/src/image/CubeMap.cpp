@@ -16,6 +16,9 @@
 
 #include "RandomAndNoise.h"
 #include "Image.h"
+#include "ImageLogging.h"
+
+#include <nvtt/nvtt.h>
 
 #ifndef M_PI
 #define M_PI    3.14159265359
@@ -57,9 +60,14 @@ static const glm::vec3 FACE_NORMALS[24] = {
 };
 
 struct CubeFaceMip {
+
     CubeFaceMip(gpu::uint16 level, const CubeMap* cubemap) {
         _dims = cubemap->getMipDimensions(level);
         _lineStride = _dims.x + 2;
+    }
+
+    CubeFaceMip(const CubeFaceMip& other) : _dims(other._dims), _lineStride(other._lineStride) {
+
     }
 
     gpu::Vec2i _dims;
@@ -101,8 +109,11 @@ private:
 class CubeMap::Mip : public CubeFaceMip {
 public:
 
-    Mip(gpu::uint16 level, CubeMap* cubemap) :
+    explicit Mip(gpu::uint16 level, CubeMap* cubemap) :
         CubeFaceMip(level, cubemap), _faces(cubemap->_mips[level]) {
+    }
+
+    Mip(const Mip& other) : CubeFaceMip(other), _faces(other._faces) {
     }
 
     void applySeams() {
@@ -138,6 +149,14 @@ public:
 private:
 
     Faces& _faces;
+
+    inline static void copy(const glm::vec4* srcFirst, const glm::vec4* srcLast, int srcStride, glm::vec4* dstBegin, int dstStride) {
+        while (srcFirst <= srcLast) {
+            *dstBegin = *srcFirst;
+            srcFirst += srcStride;
+            dstBegin += dstStride;
+        }
+    }
 
     static std::pair<int, int> getSrcAndDst(int dim, int value) {
         int src;
@@ -175,14 +194,6 @@ private:
 
         copyRowToRow(face0, coords0.first, face1, coords1.second, inc);
         copyRowToRow(face1, coords1.first, face0, coords0.second, inc);
-    }
-
-    inline static void copy(const glm::vec4* srcFirst, const glm::vec4* srcLast, int srcStride, glm::vec4* dstBegin, int dstStride) {
-        while (srcFirst <= srcLast) {
-            *dstBegin = *srcFirst;
-            srcFirst += srcStride;
-            dstBegin += dstStride;
-        }
     }
 
     void copyColumnToColumn(int srcFace, int srcCol, int dstFace, int dstCol, const int dstInc) {
@@ -254,30 +265,80 @@ CubeMap::CubeMap(int width, int height, int mipCount) {
     reset(width, height, mipCount);
 }
 
-CubeMap::CubeMap(gpu::Texture* texture, const std::atomic<bool>& abortProcessing) {
-    reset(texture->getWidth(), texture->getHeight(), texture->getNumMips());
+struct CubeMap::MipMapOutputHandler : public nvtt::OutputHandler {
+    MipMapOutputHandler(CubeMap* cube) : _cubemap(cube) {}
 
-    const auto srcTextureFormat = texture->getTexelFormat();
+    void beginImage(int size, int width, int height, int depth, int face, int miplevel) override {
+        _data = _cubemap->editFace(miplevel, face);
+        _current = _data;
+    }
+
+    bool writeData(const void* data, int size) override {
+        assert((size % sizeof(glm::vec4)) == 0);
+        memcpy(_current, data, size);
+        _current += size / sizeof(glm::vec4);
+        return true;
+    }
+
+    void endImage() override {
+        _data = nullptr;
+        _current = nullptr;
+    }
+
+    CubeMap* _cubemap{ nullptr };
+    glm::vec4* _data{ nullptr };
+    glm::vec4* _current{ nullptr };
+};
+
+CubeMap::CubeMap(const std::vector<QImage>& faces, gpu::Element srcTextureFormat, int mipCount, const std::atomic<bool>& abortProcessing) {
+    reset(faces.front().width(), faces.front().height(), mipCount);
+
     int face;
 
-    for (gpu::uint16 mipLevel = 0; mipLevel < texture->getNumMips(); ++mipLevel) {
-        auto mipDims = texture->evalMipDimensions(mipLevel);
-        auto srcLineStride = (int) (sizeof(gpu::uint32)*mipDims.x);
-        auto dstLineStride = getFaceLineStride(mipLevel);
-
-        for (face = 0; face < 6; face++) {
-            auto sourcePixels = texture->accessStoredMipFace(mipLevel, face)->data();
-            auto destPixels = editFace(mipLevel, face);
-
-            convertToFloat(sourcePixels, mipDims.x, mipDims.y, srcLineStride, srcTextureFormat, destPixels, dstLineStride);
-            if (abortProcessing.load()) {
-                return;
-            }
+    struct MipMapErrorHandler : public nvtt::ErrorHandler {
+        virtual void error(nvtt::Error e) override {
+            qCWarning(imagelogging) << "Texture mip map creation error:" << nvtt::errorString(e);
         }
+    };
 
+    // Compute mips
+    for (face = 0; face < 6; face++) {
+        auto sourcePixels = faces[face].bits();
+        auto floatPixels = editFace(0, face);
+
+        convertToFloat(sourcePixels, _width, _height, faces[face].bytesPerLine(), srcTextureFormat, floatPixels, _width);
+
+        nvtt::Surface surface;
+        surface.setImage(nvtt::InputFormat_RGBA_32F, _width, _height, 1, floatPixels);
+        surface.setAlphaMode(nvtt::AlphaMode_None);
+        surface.setWrapMode(nvtt::WrapMode_Clamp);
+
+        auto mipLevel = 0;
+        copyFace(_width, _height, reinterpret_cast<const glm::vec4*>(surface.data()), surface.width(), editFace(0, face), getFaceLineStride(0));
+
+        while (surface.canMakeNextMipmap() && !abortProcessing.load()) {
+            surface.buildNextMipmap(nvtt::MipmapFilter_Box);
+            mipLevel++;
+
+            copyFace(surface.width(), surface.height(), reinterpret_cast<const glm::vec4*>(surface.data()), surface.width(), editFace(mipLevel, face), getFaceLineStride(mipLevel));
+        }
+    }
+
+    if (abortProcessing.load()) {
+        return;
+    }
+
+    for (gpu::uint16 mipLevel = 0; mipLevel < mipCount; ++mipLevel) {
         Mip mip(mipLevel, this);
-
         mip.applySeams();
+    }
+}
+
+void CubeMap::copyFace(int width, int height, const glm::vec4* source, int srcLineStride, glm::vec4* dest, int dstLineStride) {
+    for (int y = 0; y < height; y++) {
+        std::copy(source, source + width, dest);
+        source += srcLineStride;
+        dest += dstLineStride;
     }
 }
 
@@ -301,29 +362,45 @@ void CubeMap::reset(int width, int height, int mipCount) {
 void CubeMap::copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing) const {
     assert(_width == texture->getWidth() && _height == texture->getHeight() && texture->getNumMips() == _mips.size());
 
-    // Convert all mip data back from float
-    unsigned char* convertedPixels = new unsigned char[_width * _height * sizeof(gpu::uint32)];
-    const auto textureFormat = texture->getTexelFormat();
+    struct CompressionpErrorHandler : public nvtt::ErrorHandler {
+        virtual void error(nvtt::Error e) override {
+            qCWarning(imagelogging) << "Texture compression error:" << nvtt::errorString(e);
+        }
+    };
 
-    for (gpu::uint16 mipLevel = 0; mipLevel < texture->getNumMips(); ++mipLevel) {
-        auto mipDims = texture->evalMipDimensions(mipLevel);
-        auto mipSize = texture->evalMipFaceSize(mipLevel);
-        auto srcLineStride = getFaceLineStride(mipLevel);
-        auto dstLineStride = (int)(sizeof(gpu::uint32)*mipDims.x);
+    CompressionpErrorHandler errorHandler;
+    nvtt::OutputOptions outputOptions;
+    outputOptions.setOutputHeader(false);
+    outputOptions.setErrorHandler(&errorHandler);
 
-        for (auto face = 0; face < 6; face++) {
-            auto srcPixels = getFace(mipLevel, face);
+    nvtt::Surface surface;
+    surface.setAlphaMode(nvtt::AlphaMode_None);
+    surface.setWrapMode(nvtt::WrapMode_Clamp);
 
-            convertFromFloat(convertedPixels, mipDims.x, mipDims.y, dstLineStride, textureFormat, srcPixels, srcLineStride);
-            texture->assignStoredMipFace(mipLevel, face, mipSize, convertedPixels);
-            if (abortProcessing.load()) {
-                delete[] convertedPixels;
-                return;
-            }
+    glm::vec4* packedPixels = new glm::vec4[_width * _height];
+    for (int face = 0; face < 6; face++) {
+        nvtt::CompressionOptions compressionOptions;
+        std::unique_ptr<nvtt::OutputHandler> outputHandler{ getNVTTCompressionOutputHandler(texture, face, compressionOptions) };
+
+        outputOptions.setOutputHandler(outputHandler.get());
+
+        SequentialTaskDispatcher dispatcher(abortProcessing);
+        nvtt::Context context;
+        context.setTaskDispatcher(&dispatcher);
+
+        for (gpu::uint16 mipLevel = 0; mipLevel < _mips.size() && !abortProcessing.load(); mipLevel++) {
+            auto mipDims = getMipDimensions(mipLevel);
+
+            copyFace(mipDims.x, mipDims.y, getFace(mipLevel, face), getFaceLineStride(mipLevel), packedPixels, mipDims.x);
+            surface.setImage(nvtt::InputFormat_RGBA_32F, mipDims.x, mipDims.y, 1, packedPixels);
+            context.compress(surface, face, mipLevel, compressionOptions, outputOptions);
+        }
+
+        if (abortProcessing.load()) {
+            break;
         }
     }
-
-    delete[] convertedPixels;
+    delete[] packedPixels;
 }
 
 void CubeMap::getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv) {

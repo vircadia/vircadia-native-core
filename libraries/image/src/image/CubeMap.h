@@ -18,13 +18,15 @@
 #include <array>
 #include <atomic>
 
+#include <QImage>
+
 namespace image {
 
     class CubeMap {
     public:
  
         CubeMap(int width, int height, int mipCount);
-        CubeMap(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false);
+        CubeMap(const std::vector<QImage>& faces, gpu::Element faceFormat, int mipCount, const std::atomic<bool>& abortProcessing = false);
 
         void reset(int width, int height, int mipCount);
         void copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) const;
@@ -58,6 +60,7 @@ namespace image {
     private:
 
         struct GGXSamples;
+        struct MipMapOutputHandler;
         class Mip;
         class ConstMip;
 
@@ -70,6 +73,7 @@ namespace image {
 
         static void getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv);
         static void generateGGXSamples(GGXSamples& data, float roughness, const int resolution);
+        static void copyFace(int width, int height, const glm::vec4* source, int srcLineStride, glm::vec4* dest, int dstLineStride);
         void convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, gpu::uint16 mipLevel, int face, const std::atomic<bool>& abortProcessing) const;
         glm::vec4 computeConvolution(const glm::vec3& normal, const GGXSamples& samples) const;
 
