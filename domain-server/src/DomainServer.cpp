@@ -1766,14 +1766,14 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
 
     bool remoteHasExistingData { false };
     QUuid id;
-    int version;
+    int dataVersion;
     message->readPrimitive(&remoteHasExistingData);
     if (remoteHasExistingData) {
         constexpr size_t UUID_SIZE_BYTES = 16;
         auto idData = message->read(UUID_SIZE_BYTES);
         id = QUuid::fromRfc4122(idData);
-        message->readPrimitive(&version);
-        qCDebug(domain_server) << "Entity server does have existing data: ID(" << id << ") DataVersion(" << version << ")";
+        message->readPrimitive(&dataVersion);
+        qCDebug(domain_server) << "Entity server does have existing data: ID(" << id << ") DataVersion(" << dataVersion << ")";
     } else {
         qCDebug(domain_server) << "Entity server does not have existing data";
     }
@@ -1782,11 +1782,11 @@ void DomainServer::processOctreeDataRequestMessage(QSharedPointer<ReceivedMessag
     auto reply = NLPacketList::create(PacketType::OctreeDataFileReply, QByteArray(), true, true);
     OctreeUtils::RawEntityData data;
     if (data.readOctreeDataInfoFromFile(entityFilePath)) {
-        if (data.id == id && data.version <= version) {
+        if (data.id == id && data.dataVersion <= dataVersion) {
             qCDebug(domain_server) << "ES has sufficient octree data, not sending data";
             reply->writePrimitive(false);
         } else {
-            qCDebug(domain_server) << "Sending newer octree data to ES: ID(" << data.id << ") DataVersion(" << data.version << ")";
+            qCDebug(domain_server) << "Sending newer octree data to ES: ID(" << data.id << ") DataVersion(" << data.dataVersion << ")";
             QFile file(entityFilePath);
             if (file.open(QIODevice::ReadOnly)) {
                 reply->writePrimitive(true);
