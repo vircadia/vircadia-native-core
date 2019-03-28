@@ -346,9 +346,9 @@ public:
      * @returns {ResourceObject} A resource object.
      * @example <caption>Prefetch a resource and wait until it has loaded.</caption>
      * // Replace AnimationCache with ModelCache, SoundCache, or TextureCache as appropriate.
-     * // TextureCache has it's own version of this function.
+     * // TextureCache has its own version of this function.
      * 
-     * var resourceURL = "qrc:///avatar/animations/walk_bwd_fast.fbx";
+     * var resourceURL = "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/animations/sitting_idle.fbx";
      * var resourceObject = AnimationCache.prefetch(resourceURL);
      * 
      * function checkIfResourceLoaded(state) {
