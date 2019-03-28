@@ -44,6 +44,9 @@ public:
     const EntityItemPointer& getEntity() const { return _entity; }
     const ItemID& getRenderItemID() const { return _renderItemID; }
 
+    bool getIsFading() { return _isFading; }
+    void setIsFading(bool isFading) { _isFading = isFading; }
+
     const SharedSoundPointer& getCollisionSound() { return _collisionSound; }
     void setCollisionSound(const SharedSoundPointer& sound) { _collisionSound = sound; }
 

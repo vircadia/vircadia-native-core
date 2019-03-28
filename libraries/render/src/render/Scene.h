@@ -230,8 +230,7 @@ protected:
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
 
-    mutable std::mutex _transitionFinishedOperatorMapMutex;
-    std::unordered_map<ItemID, Transaction::TransitionFinishedFunc> _transitionFinishedOperatorMap;
+    std::unordered_map<TransitionStage::Index, std::vector<Transaction::TransitionFinishedFunc>> _transitionFinishedOperatorMap;
 
     void resetSelections(const Transaction::SelectionResets& transactions);
   // More actions coming to selections soon:

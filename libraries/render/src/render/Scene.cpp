@@ -271,10 +271,6 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         // Update the numItemsAtomic counter AFTER the reset changes went through
         _numAllocatedItems.exchange(maxID);
 
-        // reset transition finished operator
-
-        resetTransitionFinishedOperator(transaction._transitionFinishedOperators);
-
         // updates
         updateItems(transaction._updatedItems);
 
@@ -285,6 +281,7 @@ void Scene::processTransactionFrame(const Transaction& transaction) {
         transitionItems(transaction._addedTransitions);
         reApplyTransitions(transaction._reAppliedTransitions);
         queryTransitionItems(transaction._queriedTransitions);
+        resetTransitionFinishedOperator(transaction._transitionFinishedOperators);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
@@ -408,7 +405,7 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
             // Only remove if:
             // transitioning to something other than none or we're transitioning to none from ELEMENT_LEAVE_DOMAIN or USER_LEAVE_DOMAIN
             const auto& oldTransitionType = transitionStage->getTransition(transitionId).eventType;
-            if (transitionType == Transition::NONE && oldTransitionType != Transition::NONE) {
+            if (transitionType != oldTransitionType) {
                 resetItemTransition(itemId);
             }
         }
@@ -454,14 +451,19 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
     }
 }
 
-void Scene::resetTransitionFinishedOperator(const Transaction::TransitionFinishedOperators& transactions) {
-    for (auto& finishedOperator : transactions) {
+void Scene::resetTransitionFinishedOperator(const Transaction::TransitionFinishedOperators& operators) {
+    for (auto& finishedOperator : operators) {
         auto itemId = std::get<0>(finishedOperator);
         const auto& item = _items[itemId];
         auto func = std::get<1>(finishedOperator);
 
         if (item.exist() && func != nullptr) {
-            _transitionFinishedOperatorMap[itemId] = func;
+            TransitionStage::Index transitionId = item.getTransitionId();
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
+                _transitionFinishedOperatorMap[transitionId].emplace_back(func);
+            } else {
+                fucn();
+            }
         }
     }
 }
@@ -552,20 +554,20 @@ void Scene::setItemTransition(ItemID itemId, Index transitionId) {
 
 void Scene::resetItemTransition(ItemID itemId) {
     auto& item = _items[itemId];
-    if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
+    TransitionStage::Index transitionId = item.getTransitionId();
+    if (!render::TransitionStage::isIndexInvalid(transitionId)) {
         auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-        auto transitionItemId = transitionStage->getTransition(item.getTransitionId()).itemId;
 
-        if (transitionItemId == itemId) {
-            auto transitionFinishedOperator = _transitionFinishedOperatorMap[transitionItemId];
+        auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
 
-            if (transitionFinishedOperator) {
-                transitionFinishedOperator();
-                _transitionFinishedOperatorMap[transitionItemId] = nullptr;
+        for (auto finishedOperator : finishedOperators) {
+            if (finishedOperator) {
+                finishedOperator();
             }
-            transitionStage->removeTransition(item.getTransitionId());
-            setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
         }
+        _transitionFinishedOperatorMap.erase(transitionId);
+        transitionStage->removeTransition(transitionId);
+        setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
     }
 }
 

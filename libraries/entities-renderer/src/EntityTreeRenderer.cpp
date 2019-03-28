@@ -1057,6 +1057,17 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
     }
 }
 
+void EntityTreeRenderable::fadeOutRenderable(const EntityRendererPointer& renderable) {
+    render::Transaction transaction;
+    auto scene = qApp->getMain3DScene();
+
+    transaction.transitionFinishedOperator(renderable->getRenderItemID(), [renderable]() {
+        renderable->setIsFading(false);
+    });
+
+    scene->enqueueTransaction(transaction);
+}
+
 void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision) {
     assert((bool)entity);
     auto renderable = renderableForEntity(entity);

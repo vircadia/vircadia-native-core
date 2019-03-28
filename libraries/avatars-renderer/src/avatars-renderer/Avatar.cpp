@@ -682,18 +682,6 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
     _isFading = true;
 }
 
-void Avatar::updateFadingStatus() {
-    if (_isFading) {
-        render::Transaction transaction;
-        transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
-            if (!transition || transition->isFinished) {
-                _isFading = false;
-            }
-        });
-        AbstractViewStateInterface::instance()->getMain3DScene()->enqueueTransaction(transaction);
-    }
-}
-
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
     transaction.removeItem(_renderItemID);
     render::Item::clearID(_renderItemID);
