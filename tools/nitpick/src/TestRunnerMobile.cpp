@@ -114,19 +114,17 @@ void TestRunnerMobile::connectDevice() {
             QString deviceID = tokens[0];
             
             // Find the model entry
-            int i;
-            for (i = 0; i < tokens.size(); ++i) {
-                if (tokens[i].contains(MODEL)) {
-                    break;
-                }
-            }
-
             _modelName = "UNKNOWN";
-            if (i < tokens.size()) {
-                QString modelID = tokens[i].split(':')[1];
+            for (int i = 0; i < tokens.size(); ++i) {
+                if (tokens[i].contains(MODEL)) {
+                    if (i < tokens.size()) {
+                        QString modelID = tokens[i].split(':')[1];
 
-                if (modelNames.count(modelID) == 1) {
-                    _modelName = modelNames[modelID];
+                        if (modelNames.count(modelID) == 1) {
+                            _modelName = modelNames[modelID];
+                        }
+                    }
+                    break;
                 }
             }
 
@@ -225,10 +223,16 @@ void TestRunnerMobile::runInterface() {
         startCommand = "io.highfidelity.hifiinterface/.PermissionChecker";
     }
 
+        QString serverIP { getServerIP() };
+    if (serverIP == NETWORK_NOT_FOUND) {
+        _runInterfacePushbutton->setEnabled(false);
+        return;
+    }
+
     QString command = _adbInterface->getAdbCommand() +
         " shell am start -n " + startCommand +
         " --es args \\\"" +
-        " --url hifi://" + getServerIP() + "/0,0,0"
+        " --url hifi://" + serverIP + "/0,0,0"
         " --no-updater" +
         " --no-login-suggestion" +
         " --testScript " + testScript + " quitWhenFinished" +
@@ -268,10 +272,10 @@ QString TestRunnerMobile::getServerIP() {
     QString line = ifconfigFile.readLine();
     while (!line.isNull()) {
         // The device IP is in the line following the "wlan0" line
-        line = ifconfigFile.readLine();
         if (line.left(6) == "wlan0 ") {
             break;
         }
+        line = ifconfigFile.readLine();
     }
 
     // The following line looks like this "inet addr:192.168.0.15  Bcast:192.168.0.255  Mask:255.255.255.0"
@@ -280,8 +284,9 @@ QString TestRunnerMobile::getServerIP() {
     QStringList lineParts = line.split(':');
     if (lineParts.size() < 4) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-            "IP address line not in expected format: " + line);
-        exit(-1);
+            "IP address line not in expected format: " + line + "(check that device WIFI is on)");
+
+        return NETWORK_NOT_FOUND;
     }
 
     qint64 deviceIP = convertToBinary(lineParts[1].split(' ')[0]);

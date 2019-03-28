@@ -80,5 +80,7 @@ private:
     AdbInterface* _adbInterface;
 
     QString _modelName;
+
+    QString NETWORK_NOT_FOUND{ "NETWORK NOT FOUND"};
 };
 #endif
