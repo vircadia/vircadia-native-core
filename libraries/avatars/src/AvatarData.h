@@ -479,6 +479,7 @@ class AvatarData : public QObject, public SpatiallyNestable {
      *     avatar. <em>Read-only.</em>
      * @property {number} sensorToWorldScale - The scale that transforms dimensions in the user's real world to the avatar's
      *     size in the virtual world. <em>Read-only.</em>
+     * @property {boolean} hasPriority - is the avatar in a Hero zone? <em>Read-only.</em>
      */
     Q_PROPERTY(glm::vec3 position READ getWorldPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getDomainLimitedScale WRITE setTargetScale)
@@ -517,6 +518,8 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
     Q_PROPERTY(float sensorToWorldScale READ getSensorToWorldScale)
+
+    Q_PROPERTY(bool hasPriority READ getHasPriority)
 
 public:
     virtual QString getName() const override { return QString("Avatar:") + _displayName; }
