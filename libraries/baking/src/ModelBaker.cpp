@@ -275,15 +275,18 @@ void ModelBaker::handleFinishedMaterialBaker() {
 
     if (baker) {
         if (!baker->hasErrors()) {
-            auto bakedMaterialURL = baker->getBakedMaterialData();
             // this MaterialBaker is done and everything went according to plan
-            qCDebug(model_baking) << "Adding baked material to FST mapping " << bakedMaterialURL;
+            qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
+
+            QString relativeBakedMaterialURL = "/" + _modelURL.fileName();
+            auto baseName = relativeBakedMaterialURL.left(relativeBakedMaterialURL.lastIndexOf('.'));
+            relativeBakedMaterialURL = baseName + BAKED_MATERIAL_EXTENSION;
 
             // First we add the materials in the model
             QJsonArray materialMapping;
             for (auto material : _hfmModel->materials) {
                 QJsonObject json;
-                json["mat::" + material.name] = bakedMaterialURL + "?" + material.name;
+                json["mat::" + material.name] = relativeBakedMaterialURL + "?" + material.name;
                 materialMapping.push_back(json);
             }
 

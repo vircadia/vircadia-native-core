@@ -149,8 +149,18 @@ void MaterialBaker::processMaterial() {
                         if (!_textureBakers.contains(textureKey)) {
                             auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), it->second);
 
+                            QByteArray content;
+                            {
+                                auto textureContentMapIter = _textureContentMap.find(networkMaterial.second->getName());
+                                if (textureContentMapIter != _textureContentMap.end()) {
+                                    auto textureUsageIter = textureContentMapIter->second.find(it->second);
+                                    if (textureUsageIter != textureContentMapIter->second.end()) {
+                                        content = textureUsageIter->second;
+                                    }
+                                }
+                            }
                             QSharedPointer<TextureBaker> textureBaker {
-                                new TextureBaker(textureURL, it->second, _textureOutputDir, "", baseTextureFileName),
+                                new TextureBaker(textureURL, it->second, _textureOutputDir, "", baseTextureFileName, content),
                                 &TextureBaker::deleteLater
                             };
                             textureBaker->setMapChannel(mapChannel);
@@ -159,6 +169,7 @@ void MaterialBaker::processMaterial() {
                             textureBaker->moveToThread(_getNextOvenWorkerThreadOperator ? _getNextOvenWorkerThreadOperator() : thread());
                             QMetaObject::invokeMethod(textureBaker.data(), "bake");
                         }
+                        // FIXME: we need to detect when our material has opacity and output the opacityMap
                         _materialsNeedingRewrite.insert(textureKey, networkMaterial.second);
                     } else {
                         qCDebug(material_baking) << "Texture extension not supported: " << extension;
@@ -254,10 +265,31 @@ void MaterialBaker::outputMaterial() {
     emit finished();
 }
 
+void MaterialBaker::addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture) {
+    std::string name = materialName.toStdString();
+    auto& textureUsageMap = _textureContentMap[materialName.toStdString()];
+    if (textureUsageMap.find(textureUsage) == textureUsageMap.end()) {
+        // Content may be empty, unless the data is inlined
+        textureUsageMap[textureUsage] = texture.content;
+    }
+};
+
 void MaterialBaker::setMaterials(const QHash<QString, hfm::Material>& materials, const QString& baseURL) {
     _materialResource = NetworkMaterialResourcePointer(new NetworkMaterialResource(), [](NetworkMaterialResource* ptr) { ptr->deleteLater(); });
     for (auto& material : materials) {
         _materialResource->parsedMaterials.names.push_back(material.name.toStdString());
         _materialResource->parsedMaterials.networkMaterials[material.name.toStdString()] = std::make_shared<NetworkMaterial>(material, baseURL);
+
+        // Store any embedded texture content
+        addTexture(material.name, image::TextureUsage::NORMAL_TEXTURE, material.normalTexture);
+        addTexture(material.name, image::TextureUsage::ALBEDO_TEXTURE, material.albedoTexture);
+        addTexture(material.name, image::TextureUsage::GLOSS_TEXTURE, material.glossTexture);
+        addTexture(material.name, image::TextureUsage::ROUGHNESS_TEXTURE, material.roughnessTexture);
+        addTexture(material.name, image::TextureUsage::SPECULAR_TEXTURE, material.specularTexture);
+        addTexture(material.name, image::TextureUsage::METALLIC_TEXTURE, material.metallicTexture);
+        addTexture(material.name, image::TextureUsage::EMISSIVE_TEXTURE, material.emissiveTexture);
+        addTexture(material.name, image::TextureUsage::OCCLUSION_TEXTURE, material.occlusionTexture);
+        addTexture(material.name, image::TextureUsage::SCATTERING_TEXTURE, material.scatteringTexture);
+        addTexture(material.name, image::TextureUsage::LIGHTMAP_TEXTURE, material.lightmapTexture);
     }
 }

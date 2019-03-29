@@ -65,6 +65,9 @@ private:
     QScriptEngine _scriptEngine;
     static std::function<QThread*()> _getNextOvenWorkerThreadOperator;
     TextureFileNamer _textureFileNamer;
+
+    void addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture);
+    std::unordered_map<std::string, std::unordered_map<image::TextureUsage::Type, QByteArray>> _textureContentMap;
 };
 
 #endif // !hifi_MaterialBaker_h
