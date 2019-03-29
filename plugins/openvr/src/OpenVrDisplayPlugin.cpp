@@ -802,7 +802,8 @@ DisplayPlugin::StencilMaskMeshOperator OpenVrDisplayPlugin::getStencilMaskMeshOp
                     indices.reserve(numIndices);
                     for (int i = 0; i < numIndices; i++) {
                         vr::HmdVector2_t vertex2D = stencilMesh.pVertexData[i];
-                        vertices.emplace_back(vertex2D.v[0], vertex2D.v[1], 0.0f);
+                        // We need the vertices in clip space
+                        vertices.emplace_back(vertex2D.v[0] - (1.0f - (float)eye), 2.0f * vertex2D.v[1] - 1.0f, 0.0f);
                         indices.push_back(i);
                     }
 
