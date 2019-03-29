@@ -396,6 +396,13 @@ public slots:
     Q_INVOKABLE bool isLoaded(const QUuid& id);
 
     /**jsdoc
+     * Check whether all textures have been loaded.
+     * @function Entities.areTexturesLoaded
+     * @returns {boolean} <code>true</code> texture memory usage is not increasing <code>false</code>.
+     */
+    Q_INVOKABLE bool isTextureLoadingComplete();
+
+    /**jsdoc
      * Check if there is an object of a given ID.
      * @function Entities.isAddedEntity
      * @param {Uuid} id - The ID to check.

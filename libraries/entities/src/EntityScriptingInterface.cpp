@@ -1026,6 +1026,12 @@ bool EntityScriptingInterface::isLoaded(const QUuid& id) {
     return toReturn;
 }
 
+bool EntityScriptingInterface::isTextureLoadingComplete() {
+    bool result;
+    QMetaObject::invokeMethod(qApp, "gpuTextureMemSizeStable", Qt::DirectConnection, Q_RETURN_ARG(bool, result));
+    return result;
+}
+
 bool EntityScriptingInterface::isAddedEntity(const QUuid& id) {
     bool toReturn = false;
     _entityTree->withReadLock([&] {
