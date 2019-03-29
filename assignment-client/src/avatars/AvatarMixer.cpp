@@ -262,7 +262,7 @@ void AvatarMixer::start() {
         {
             if (_dirtyHeroStatus) {
                 _dirtyHeroStatus = false;
-                nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
+                nodeList->nestedEach([](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                     std::for_each(cbegin, cend, [](const SharedNodePointer& node) {
                         if (node->getType() == NodeType::Agent) {
                             NodeData* nodeData = node->getLinkedData();
@@ -1108,7 +1108,7 @@ void AvatarMixer::entityAdded(EntityItem* entity) {
     if (entity->getType() == EntityTypes::Zone) {
         _dirtyHeroStatus = true;
         entity->registerChangeHandler([this](const EntityItemID& entityItemID) {
-            this->entityChange();
+            entityChange();
         });
     }
 }

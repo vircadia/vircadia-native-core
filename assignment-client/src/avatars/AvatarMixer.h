@@ -46,6 +46,11 @@ public slots:
 
     void sendStatsPacket() override;
 
+    // Avatar zone possibly changed
+    void entityAdded(EntityItem* entity);
+    void entityRemoved(EntityItem* entity);
+    void entityChange();
+
 private slots:
     void queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node);
     void handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
@@ -147,12 +152,6 @@ private:
 
     AvatarMixerSlavePool _slavePool;
     SlaveSharedData _slaveSharedData;
-
-public slots:
-    // Avatar zone possibly changed
-    void entityAdded(EntityItem* entity);
-    void entityRemoved(EntityItem* entity);
-    void entityChange();
 };
 
 #endif // hifi_AvatarMixer_h
