@@ -197,6 +197,12 @@ public:
      * Gets the volume (gain) that avatar's voices are played at. This gain is used at the server.
      * @function Audio.getAvatarGain
      * @returns {number} Avatar gain (dB) at the server.
+     * @example <caption>Report current audio gain settings.</caption>
+     * // 0 value = normal volume; -ve value = quieter; +ve value = louder.
+     * print("Avatar gain: " + Audio.getAvatarGain());
+     * print("Environment server gain: " + Audio.getInjectorGain());
+     * print("Environment local gain: " + Audio.getLocalInjectorGain());
+     * print("System gain: " + Audio.getSystemInjectorGain());
      */
     Q_INVOKABLE float getAvatarGain();
 
@@ -303,6 +309,10 @@ signals:
      * @function Audio.desktopMutedChanged
      * @param {boolean} isMuted - <code>true</code> if desktop audio input is muted, otherwise <code>false</code>.
      * @returns {Signal}
+     * @example <caption>Report when desktop muting changes.</caption>
+     * Audio.desktopMutedChanged.connect(function (desktopMuted) {
+     *     print("Desktop muted: " + desktopMuted);
+     * });
      */
     void desktopMutedChanged(bool isMuted);
 
@@ -319,6 +329,10 @@ signals:
      * @function Audio.pushToTalkChanged
      * @param {boolean} enabled - <code>true</code> if push-to-talk is enabled, otherwise <code>false</code>.
      * @returns {Signal}
+     * @example <caption>Report when push-to-talk changes.</caption>
+     * Audio.pushToTalkChanged.connect(function (enabled) {
+     *     print("Push to talk: " + (enabled ? "on" : "off"));
+     * });
      */
     void pushToTalkChanged(bool enabled);
 

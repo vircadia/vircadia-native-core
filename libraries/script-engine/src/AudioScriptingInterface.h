@@ -45,6 +45,33 @@ public:
      * played.
      * @function Audio.addToSoloList
      * @param {Uuid[]} ids - Avatar IDs to add to the solo list.
+
+     * @example <caption>Listen to a single nearby avatar for a short while.</caption>
+     * // Find nearby avatars.
+     * var RANGE = 100; // m
+     * var nearbyAvatars = AvatarList.getAvatarsInRange(MyAvatar.position, RANGE);
+     * 
+     * // Remove own avatar from list.
+     * var myAvatarIndex = nearbyAvatars.indexOf(MyAvatar.sessionUUID);
+     * if (myAvatarIndex !== -1) {
+     *     nearbyAvatars.splice(myAvatarIndex, 1);
+     * }
+     * 
+     * if (nearbyAvatars.length > 0) {
+     *     // Listen to only one of the nearby avatars.
+     *     var avatarName = AvatarList.getAvatar(nearbyAvatars[0]).displayName;
+     *     print("Listening only to " + avatarName);
+     *     Audio.addToSoloList([nearbyAvatars[0]]);
+     * 
+     *     // Stop listening to only the one avatar after a short while.
+     *     Script.setTimeout(function () {
+     *         print("Finished listening only to " + avatarName);
+     *         Audio.resetSoloList();
+     *     }, 10000); // 10s
+     * 
+     * } else {
+     *     print("No nearby avatars");
+     * }
      */
     Q_INVOKABLE void addToSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
@@ -108,6 +135,11 @@ public:
      * @function Audio.setLocalEcho
      * @parm {boolean} localEcho - <code>true</code> to enable echoing microphone audio back to you from the client, 
      *     <code>false</code> to disable.
+     * @example <caption>Echo local audio for a few seconds.</caption>
+     * Audio.setLocalEcho(true);
+     * Script.setTimeout(function () {
+     *     Audio.setLocalEcho(false);
+     * }, 3000); // 3s
      */
     Q_INVOKABLE void setLocalEcho(bool localEcho);
 
