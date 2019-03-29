@@ -18,6 +18,7 @@ import TabletScriptingInterface 1.0
 Rectangle {
     id: micBar;
     readonly property var level: AudioScriptingInterface.inputLevel;
+    readonly property var warnWhenMuted: AudioScriptingInterface.warnWhenMuted;
     readonly property var clipping: AudioScriptingInterface.clipping;
     property var muted: AudioScriptingInterface.muted;
     property var pushToTalk: AudioScriptingInterface.pushToTalk;
@@ -54,7 +55,7 @@ Rectangle {
     opacity: 0.7;
 
     onLevelChanged: {
-        var rectOpacity = muted && (level >= userSpeakingLevel) ? 1.0 : 0.7;
+        var rectOpacity = (muted && (level >= userSpeakingLevel)) && warnWhenMuted ? 1.0 : 0.7;
         if (pushToTalk && !pushingToTalk) {
             rectOpacity = (level >= userSpeakingLevel) ? 1.0 : 0.7;
         } else if (mouseArea.containsMouse && rectOpacity != 1.0) {
@@ -163,7 +164,7 @@ Rectangle {
     Item {
         id: status;
 
-        visible: pushToTalk || (muted && (level >= userSpeakingLevel));
+        visible: pushToTalk || (muted && (level >= userSpeakingLevel) && warnWhenMuted);
 
         anchors {
             left: parent.left;
@@ -187,7 +188,7 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : (level >= userSpeakingLevel && muted) ? colors.mutedColor : colors.unmutedColor;
+            color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : (level >= userSpeakingLevel && muted && warnWhenMuted) ? colors.mutedColor : colors.unmutedColor;
             font.bold: true
 
             text: pushToTalk ? (HMD.active ? "PTT" : "PTT-(T)") : (muted ? "MUTED" : "MUTE");

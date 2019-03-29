@@ -58,20 +58,6 @@
                 parentID: MyAvatar.SELF_ID,
                 parentJointIndex: MyAvatar.getJointIndex("_CAMERA_MATRIX")
             });
-        } else {
-            var textDimensions = { x: 100, y: 50 };
-            warningOverlayID = Overlays.addOverlay("text", {
-                name: "Muted-Warning",
-                font: { size: 36 },
-                text: warningText,
-                x: (Window.innerWidth - textDimensions.x) / 2,
-                y: (Window.innerHeight - textDimensions.y),
-                width: textDimensions.x,
-                height: textDimensions.y,
-                textColor: { red: 226, green: 51, blue: 77 },
-                backgroundAlpha: 0,
-                visible: true
-            });
         }
     }
 

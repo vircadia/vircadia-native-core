@@ -32,7 +32,8 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",
     "system/emote.js",
-    "system/miniTablet.js"
+    "system/miniTablet.js",
+    "system/audioMuteOverlay.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",
