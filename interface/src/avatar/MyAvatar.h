@@ -576,6 +576,25 @@ public:
      * }, 3000);
      */
     Q_INVOKABLE void overrideAnimation(const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
+
+    /**jsdoc
+     * <code>overrideHandAnimation()</code> Gets the overrides the default hand poses that are triggered with controller buttons.
+     * use {@link MyAvatar.restoreHandAnimation}.</p> to restore the default poses.
+     * @function MyAvatar.overrideHandAnimation
+     * @param isLeft {boolean} Set true if using the left hand
+     * @param url {string} The URL to the animation file. Animation files need to be FBX format, but only need to contain the
+     * avatar skeleton and animation data.
+     * @param fps {number} The frames per second (FPS) rate for the animation playback. 30 FPS is normal speed.
+     * @param loop {boolean} Set to true if the animation should loop.
+     * @param firstFrame {number} The frame the animation should start at.
+     * @param lastFrame {number} The frame the animation should end at
+     * @example <caption> Override left hand animation for three seconds. </caption>
+     * // Override the left hand pose then restore the default pose.
+     * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
+     * Script.setTimeout(function () {
+     *     MyAvatar.restoreHandAnimation();
+     * }, 3000);
+     */
     Q_INVOKABLE void overrideHandAnimation(bool isLeft, const QString& url, float fps, bool loop, float firstFrame, float lastFrame);
 
     /**jsdoc
@@ -595,6 +614,23 @@ public:
      * }, 3000);
      */
     Q_INVOKABLE void restoreAnimation();
+
+    /**jsdoc
+     * Restores the default hand animation state machine that is driven by the state machine in the avatar-animation json.
+     * <p>The avatar animation system includes a set of default animations along with rules for how those animations are blended
+     * together with procedural data (such as look at vectors, hand sensors etc.). Playing your own custom animations will
+     * override the  default animations. <code>restoreHandAnimation()</code> is used to restore the default hand poses
+     * If you aren't currently playing an override hand
+     * animation, this function has no effect.</p>
+     * @function MyAvatar.restoreHandAnimation
+     * @param isLeft {boolean} Set to true if using the left hand
+     * @example <caption> Override left hand animation for three seconds. </caption>
+     * // Override the left hand pose then restore the default pose.
+     * MyAvatar.overrideHandAnimation(isLeft, ANIM_URL, 30, true, 0, 53);
+     * Script.setTimeout(function () {
+     *     MyAvatar.restoreHandAnimation();
+     * }, 3000);
+     */
     Q_INVOKABLE void restoreHandAnimation(bool isLeft);
 
     /**jsdoc
