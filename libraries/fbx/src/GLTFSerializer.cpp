@@ -757,9 +757,9 @@ QVector<int> GLTFSerializer::nodeDFS(int n, std::vector<int>& children, bool ord
     QVector<int> result;
     result.append(n);
     int begin = 0;
-    int finish = children.size();
+    int finish = (int)children.size();
     if (order) {
-        begin = children.size() - 1;
+        begin = (int)children.size() - 1;
         finish = -1;
     }
     int index = begin;
@@ -850,7 +850,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         }
         joint.transform = node.transforms.first();
         joint.postTransform = glm::mat4();
-        glm:vec3 scale = extractScale(joint.transform);
+        glm::vec3 scale = extractScale(joint.transform);
         joint.postTransform[0][0] = scale.x;
         joint.postTransform[1][1] = scale.y;
         joint.postTransform[2][2] = scale.z;
@@ -1132,7 +1132,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                         for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
                             totalWeight += clusterWeights[k];
                         }
-                        const float ALMOST_HALF = 0.499f;
                         if (totalWeight > 0.0f) {
                             float weightScalingFactor = (float)(UINT16_MAX) / totalWeight;
                             for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
