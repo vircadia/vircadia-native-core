@@ -41,7 +41,7 @@ public:
     }
 
     /**jsdoc
-     * Adds avatar to the audio solo list. If the audio solo list is non-empty, only audio from the avatars in the list is 
+     * Adds avatars to the audio solo list. If the audio solo list is non-empty, only audio from the avatars in the list is 
      * played.
      * @function Audio.addToSoloList
      * @param {Uuid[]} ids - Avatar IDs to add to the solo list.
@@ -96,7 +96,7 @@ public:
     }
 
     /**jsdoc
-     * Gets whether echoing microphone audio back to your from the server is enabled. When enabled, microphone audio is echoed 
+     * Gets whether echoing microphone audio back to you from the server is enabled. When enabled, microphone audio is echoed 
      * only if you're unmuted or are pushing-to-talk.
      * @function Audio.getServerEcho
      * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the server is enabled, 
@@ -105,7 +105,7 @@ public:
     Q_INVOKABLE bool getServerEcho();
 
     /**jsdoc
-     * Sets whether echoiing microphone audio back to your from the server is enabled. When enabled, microphone audio is echoed 
+     * Sets whether echoing microphone audio back to you from the server is enabled. When enabled, microphone audio is echoed 
      * only if you're unmuted or are pushing-to-talk.
      * @function Audio.setServerEcho
      * @parm {boolean} serverEcho - <code>true</code> to enable echoing microphone back to you from the server, 
@@ -121,8 +121,8 @@ public:
     Q_INVOKABLE void toggleServerEcho();
 
     /**jsdoc
-     * Gets whether echoing microphone audio back to your by the client is enabled. When enabled, microphone audio is even if 
-     * you're muted or not pushing-to-talk.
+     * Gets whether echoing microphone audio back to you by the client is enabled. When enabled, microphone audio is echoed 
+     * even if you're muted or not pushing-to-talk.
      * @function Audio.getLocalEcho
      * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the client is enabled, 
      *     <code>false</code> if it isn't.
@@ -130,8 +130,8 @@ public:
     Q_INVOKABLE bool getLocalEcho();
 
     /**jsdoc
-     * Sets whether echoing microphone audio back to your by the client is enabled. When enabled, microphone audio is even if
-     * you're muted or not pushing-to-talk.
+     * Sets whether echoing microphone audio back to you by the client is enabled. When enabled, microphone audio is echoed 
+     * even if you're muted or not pushing-to-talk.
      * @function Audio.setLocalEcho
      * @parm {boolean} localEcho - <code>true</code> to enable echoing microphone audio back to you from the client, 
      *     <code>false</code> to disable.

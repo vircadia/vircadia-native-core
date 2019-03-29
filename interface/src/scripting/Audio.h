@@ -70,8 +70,8 @@ class Audio : public AudioScriptingInterface, protected ReadWriteLockable {
      * @comment The following properties are from AudioScriptingInterface.h.
      * @property {boolean} isStereoInput - <code>true</code> if the input audio is being used in stereo, otherwise
      *     <code>false</code>. Some devices do not support stereo, in which case the value is always <code>false</code>.
-     * @property {boolean} isSoloing - <code>true</code> if audio soloing, i.e., playing audio from only specific avatars. 
-     *     <em>Read-only.</em>
+     * @property {boolean} isSoloing - <code>true</code> if currently audio soloing, i.e., playing audio from only specific 
+     *     avatars. <em>Read-only.</em>
      * @property {Uuid[]} soloList - The list of currently soloed avatar IDs. Empty list if not currently audio soloing. 
      *     <em>Read-only.</em>
      */
@@ -187,14 +187,14 @@ public:
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
 
     /**jsdoc
-     * Sets the volume (gain) that avatar's voices are played at. This gain is used at the server.
+     * Sets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.setAvatarGain
      * @param {number} Avatar gain (dB) at the server.
      */
     Q_INVOKABLE void setAvatarGain(float gain);
 
     /**jsdoc
-     * Gets the volume (gain) that avatar's voices are played at. This gain is used at the server.
+     * Gets the gain (relative volume) that avatars' voices are played at. This gain is used at the server.
      * @function Audio.getAvatarGain
      * @returns {number} Avatar gain (dB) at the server.
      * @example <caption>Report current audio gain settings.</caption>
@@ -207,42 +207,42 @@ public:
     Q_INVOKABLE float getAvatarGain();
 
     /**jsdoc
-     * Sets the volume (gain) that the environment is played at, for sounds from the server.
+     * Sets the gain (relative volume) that the environment is played at, for sounds from the server.
      * @function Audio.setInjectorGain
      * @param {number} Injector gain (dB) at the server.
      */
     Q_INVOKABLE void setInjectorGain(float gain);
 
     /**jsdoc
-     * Gets the volume (gain) that the environment is played at, for sounds from the server.
+     * Gets the gain (relative volume) that the environment is played at, for sounds from the server.
      * @function Audio.getInjectorGain
      * @returns {number} Injector gain (dB) at the server.
      */
     Q_INVOKABLE float getInjectorGain();
 
     /**jsdoc
-     * Sets the volume (gain) that the environment is played at, for sounds from the client.
+     * Sets the gain (relative volume) that the environment is played at, for sounds from the client.
      * @function Audio.setLocalInjectorGain
      * @param {number} Local injector gain (dB) in the client.
      */
     Q_INVOKABLE void setLocalInjectorGain(float gain);
 
     /**jsdoc
-     * Gets the volume (gain) that the environment is played at, for sounds from the client.
+     * Gets the gain (relative volume) that the environment is played at, for sounds from the client.
      * @function Audio.getLocalInjectorGain
      * @returns {number} Local injector gain (dB) in the client.
      */
     Q_INVOKABLE float getLocalInjectorGain();
 
     /**jsdoc
-     * Sets the volume (gain) that system sounds are played at.
+     * Sets the gain (relative volume) that system sounds are played at.
      * @function Audio.setSystemInjectorGain
      * @param {number} System injector gain (dB) in the client.
      */
     Q_INVOKABLE void setSystemInjectorGain(float gain);
 
     /**jsdoc
-     * Gets the volume (gain) that system sounds are played at.
+     * Gets the gain (relative volume) that system sounds are played at.
      * @function Audio.getSystemInjectorGain
      * @returns {number} System injector gain (dB) in the client.
     */
@@ -405,7 +405,7 @@ signals:
     void contextChanged(const QString& context);
 
     /**jsdoc
-     * Triggered when push-to-talk changes.
+     * Triggered when pushing-to-talk changes.
      * @function Audio.pushingToTalkChanged
      * @param {boolean} talking - <code>true</code> if started pushing to talk, <code>false</code> if stopped pushing to talk.
      * @returns {Signal}
