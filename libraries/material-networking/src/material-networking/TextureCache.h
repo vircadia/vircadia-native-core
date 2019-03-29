@@ -23,7 +23,7 @@
 #include <ResourceCache.h>
 #include <graphics/TextureMap.h>
 #include <image/ColorChannel.h>
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 #include <ktx/KTX.h>
 #include <TextureMeta.h>
 
