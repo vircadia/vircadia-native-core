@@ -228,7 +228,7 @@ Rectangle {
                     anchors.top: noiseReductionSwitch.bottom
                     anchors.topMargin: 24
                     anchors.left: parent.left
-                    labelTextOn: qsTr("Push To Talk (T)");
+                    labelTextOn: (bar.currentIndex === 0) ? qsTr("Push To Talk (T)") : qsTr("Push To Talk");
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
@@ -254,7 +254,7 @@ Rectangle {
                     switchWidth: root.switchWidth;
                     anchors.top: parent.top
                     anchors.left: parent.left
-                    labelTextOn: qsTr("Warn when muted");
+                    labelTextOn: qsTr("Warn when muted in HMD");
                     labelTextSize: 16;
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.warnWhenMuted;
