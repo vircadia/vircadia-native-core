@@ -1,6 +1,4 @@
----
-title: 'Coding Standards'
----
+# Coding Standards
 
 Note that the current code base does not necessarily follow this with 100% consistency. It will be an ongoing process to try and sanitize the existing code to match these guidelines.
 
