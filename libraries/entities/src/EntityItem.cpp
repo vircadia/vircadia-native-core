@@ -789,8 +789,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     auto lastEdited = lastEditedFromBufferAdjusted;
     bool otherOverwrites = overwriteLocalData && !weOwnSimulation;
-    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection](quint64 updatedTimestamp, bool valueChanged) {
-        if (stillHasGrabActions()) {
+    // calculate hasGrab once outside the lambda rather than calling it every time inside
+    bool hasGrab = stillHasGrabAction();
+    auto shouldUpdate = [this, lastEdited, otherOverwrites, filterRejection, hasGrab](quint64 updatedTimestamp, bool valueChanged) {
+        if (hasGrab) {
             return false;
         }
         bool simulationChanged = lastEdited > updatedTimestamp;
@@ -957,12 +959,18 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     // by doing this parsing here... but it's not likely going to fully recover the content.
     //
 
-    if (overwriteLocalData && (getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES))) {
+    if (overwriteLocalData &&
+            !hasGrab &&
+            (getDirtyFlags() & (Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES))) {
         // NOTE: This code is attempting to "repair" the old data we just got from the server to make it more
         // closely match where the entities should be if they'd stepped forward in time to "now". The server
         // is sending us data with a known "last simulated" time. That time is likely in the past, and therefore
         // this "new" data is actually slightly out of date. We calculate the time we need to skip forward and
         // use our simulation helper routine to get a best estimate of where the entity should be.
+        //
+        // NOTE: We don't want to do this in the hasGrab case because grabs "know best"
+        // (e.g. grabs will prevent drift between distributed physics simulations).
+        //
         float skipTimeForward = (float)(now - lastSimulatedFromBufferAdjusted) / (float)(USECS_PER_SECOND);
 
         // we want to extrapolate the motion forward to compensate for packet travel time, but
@@ -1426,7 +1434,7 @@ void EntityItem::getTransformAndVelocityProperties(EntityItemProperties& propert
 
 void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
     uint8_t newPriority = glm::max(priority, _scriptSimulationPriority);
-    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasGrabActions()) {
+    if (newPriority < SCRIPT_GRAB_SIMULATION_PRIORITY && stillHasMyGrabAction()) {
         newPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
     }
     if (newPriority != _scriptSimulationPriority) {
@@ -1439,7 +1447,7 @@ void EntityItem::upgradeScriptSimulationPriority(uint8_t priority) {
 void EntityItem::clearScriptSimulationPriority() {
     // DO NOT markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) here, because this
     // is only ever called from the code that actually handles the dirty flags, and it knows best.
-    _scriptSimulationPriority = stillHasGrabActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : 0;
+    _scriptSimulationPriority = stillHasMyGrabAction() ? SCRIPT_GRAB_SIMULATION_PRIORITY : 0;
 }
 
 void EntityItem::setPendingOwnershipPriority(uint8_t priority) {
@@ -2186,7 +2194,7 @@ void EntityItem::enableNoBootstrap() {
 }
 
 void EntityItem::disableNoBootstrap() {
-    if (!stillHasGrabActions()) {
+    if (!stillHasMyGrabAction()) {
         _flags &= ~Simulation::SPECIAL_FLAGS_NO_BOOTSTRAPPING;
         _flags |= Simulation::DIRTY_COLLISION_GROUP; // may need to not collide with own avatar
 
@@ -2272,7 +2280,13 @@ bool EntityItem::removeAction(EntitySimulationPointer simulation, const QUuid& a
     return success;
 }
 
-bool EntityItem::stillHasGrabActions() const {
+bool EntityItem::stillHasGrabAction() const {
+    return !_grabActions.empty();
+}
+
+// retutrns 'true' if there exists an action that returns 'true' for EntityActionInterface::isMine()
+// (e.g. the action belongs to the MyAvatar instance)
+bool EntityItem::stillHasMyGrabAction() const {
     QList<EntityDynamicPointer> holdActions = getActionsOfType(DYNAMIC_TYPE_HOLD);
     QList<EntityDynamicPointer>::const_iterator i = holdActions.begin();
     while (i != holdActions.end()) {
@@ -2697,20 +2711,6 @@ void EntityItem::setLastEdited(quint64 lastEdited) {
     withWriteLock([&] {
         _lastEdited = _lastUpdated = lastEdited;
         _changedOnServer = glm::max(lastEdited, _changedOnServer);
-    });
-}
-
-quint64 EntityItem::getLastBroadcast() const {
-    quint64 result;
-    withReadLock([&] {
-        result = _lastBroadcast;
-    });
-    return result;
-}
-
-void EntityItem::setLastBroadcast(quint64 lastBroadcast) {
-    withWriteLock([&] {
-        _lastBroadcast = lastBroadcast;
     });
 }
 
@@ -3479,6 +3479,9 @@ void EntityItem::addGrab(GrabPointer grab) {
         simulation->addDynamic(action);
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
         simulation->changeEntity(getThisPointer());
+
+        // don't forget to set isMine() for locally-created grabs
+        action->setIsMine(grab->getOwnerID() == Physics::getSessionUUID());
     }
 }
 

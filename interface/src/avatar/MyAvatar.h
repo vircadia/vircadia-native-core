@@ -2170,7 +2170,7 @@ private:
     bool getEnableStepResetRotation() const { return _stepResetRotationEnabled; }
     void setEnableDrawAverageFacing(bool drawAverage) { _drawAverageFacingEnabled = drawAverage; }
     bool getEnableDrawAverageFacing() const { return _drawAverageFacingEnabled; }
-    bool isMyAvatar() const override { return true; }
+    virtual bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
     int _skeletonModelChangeCount { 0 };

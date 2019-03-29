@@ -365,7 +365,7 @@ void OtherAvatar::handleChangedAvatarEntityData() {
     // AVATAR ENTITY UPDATE FLOW
     // - if queueEditEntityMessage() sees "AvatarEntity" HostType it calls _myAvatar->storeAvatarEntityDataPayload()
     // - storeAvatarEntityDataPayload() saves the payload and flags the trait instance for the entity as updated,
-    // - ClientTraitsHandler::sendChangedTraitsToMixea() sends the entity bytes to the mixer which relays them to other interfaces
+    // - ClientTraitsHandler::sendChangedTraitsToMixer() sends the entity bytes to the mixer which relays them to other interfaces
     // - AvatarHashMap::processBulkAvatarTraits() on other interfaces calls avatar->processTraitInstance()
     // - AvatarData::processTraitInstance() calls storeAvatarEntityDataPayload(), which sets _avatarEntityDataChanged = true
     // - (My)Avatar::simulate() calls handleChangedAvatarEntityData() every frame which checks _avatarEntityDataChanged
@@ -495,6 +495,18 @@ void OtherAvatar::handleChangedAvatarEntityData() {
                 const QUuid NULL_ID = QUuid("{00000000-0000-0000-0000-000000000005}");
                 entity->setParentID(NULL_ID);
                 entity->setParentID(oldParentID);
+
+                if (entity->stillHasMyGrabAction()) {
+                    // For this case: we want to ignore transform+velocities coming from authoritative OtherAvatar
+                    // because the MyAvatar is grabbing and we expect the local grab state
+                    // to have enough information to prevent simulation drift.
+                    //
+                    // Clever readers might realize this could cause problems.  For example,
+                    // if an ignored OtherAvagtar were to simultanously grab the object then there would be
+                    // a noticeable discrepancy between participants in the distributed physics simulation,
+                    // however the difference would be stable and would not drift.
+                    properties.clearTransformOrVelocityChanges();
+                }
                 if (entityTree->updateEntity(entityID, properties)) {
                     entity->updateLastEditedFromRemote();
                 } else {
