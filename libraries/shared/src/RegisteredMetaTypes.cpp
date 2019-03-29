@@ -40,6 +40,7 @@ int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
 int voidLambdaType = qRegisterMetaType<std::function<void()>>();
 int variantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+int stencilModeMetaTypeId = qRegisterMetaType<StencilMode>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec2ToScriptValue, vec2FromScriptValue);
@@ -64,6 +65,8 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
+
+    qScriptRegisterMetaType(engine, stencilModeToScriptValue, stencilModeFromScriptValue);
 }
 
 QScriptValue vec2ToScriptValue(QScriptEngine* engine, const glm::vec2& vec2) {
@@ -1280,4 +1283,12 @@ QVariantMap parseTexturesToMap(QString newTextures, const QVariantMap& defaultTe
     }
 
     return toReturn;
+}
+
+QScriptValue stencilModeToScriptValue(QScriptEngine* engine, const StencilMode& stencilMode) {
+    return engine->newVariant((int)stencilMode);
+}
+
+void stencilModeFromScriptValue(const QScriptValue& object, StencilMode& stencilMode) {
+    stencilMode = StencilMode(object.toVariant().toInt());
 }
