@@ -536,7 +536,7 @@ void AccountManager::requestAccessToken(const QString& login, const QString& pas
 
     QByteArray postData;
     postData.append("grant_type=password&");
-    postData.append("username=" + login + "&");
+    postData.append("username=" + QUrl::toPercentEncoding(login) + "&");
     postData.append("password=" + QUrl::toPercentEncoding(password) + "&");
     postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
