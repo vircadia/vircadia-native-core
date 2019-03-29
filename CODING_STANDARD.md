@@ -4,25 +4,25 @@ Note that the current code base does not necessarily follow this with 100% consi
 
 Basically taken directly from [http://geosoft.no/development/cppstyle.html](http://geosoft.no/development/cppstyle.html) with some subtle changes and omissions.
 
-## 1. Naming
+## [1.] Naming
 
-### 1.1. General Naming Conventions
+### [1.1.] General Naming Conventions
 
-#### 1.1.1. Names representing types must be in mixed case starting with upper case.
+#### [1.1.1.] Names representing types must be in mixed case starting with upper case.
 
 ```cpp
 Coach, PenaltyBox
 
 ```
 
-#### 1.1.2. Private class variables must be in mixed case prefixed with an underscore.
+#### [1.1.2.] Private class variables must be in mixed case prefixed with an underscore.
 
 ```cpp
 _puck, _team
 
 ```
 
-#### 1.1.3. Local variables must be in mixed case (and NOT prefixed with an underscore).
+#### [1.1.3] Local variables must be in mixed case (and NOT prefixed with an underscore).
 
 ```cpp
 redLine, icingFrequency
