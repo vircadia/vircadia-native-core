@@ -41,25 +41,27 @@ public:
     }
 
     /**jsdoc
-     * Add nodes to the audio solo list
+     * Adds avatar to the audio solo list. If the audio solo list is non-empty, only audio from the avatars in the list is 
+     * played.
      * @function Audio.addToSoloList
-     * @param {Uuid[]} uuidList - List of node UUIDs to add to the solo list.
+     * @param {Uuid[]} ids - Avatar IDs to add to the solo list.
      */
     Q_INVOKABLE void addToSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().addUUIDs(uuidList);
     }
 
     /**jsdoc
-     * Remove nodes from the audio solo list
+     * Removes avatars from the audio solo list. If the audio solo list is non-empty, only audio from the avatars in the list 
+     * is played.
      * @function Audio.removeFromSoloList
-     * @param {Uuid[]} uuidList - List of node UUIDs to remove from the solo list.
+     * @param {Uuid[]} ids - Avatar IDs to remove from the solo list.
      */
     Q_INVOKABLE void removeFromSoloList(QVector<QUuid> uuidList) {
         _localAudioInterface->getAudioSolo().removeUUIDs(uuidList);
     }
 
     /**jsdoc
-     * Reset the list of soloed nodes.
+     * Clears the audio solo list.
      * @function Audio.resetSoloList
      */
     Q_INVOKABLE void resetSoloList() {
@@ -67,33 +69,51 @@ public:
     }
 
     /**jsdoc
+     * Gets whether echoing microphone audio back to your from the server is enabled. When enabled, microphone audio is echoed 
+     * only if you're unmuted or are pushing-to-talk.
      * @function Audio.getServerEcho
+     * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the server is enabled, 
+     *     <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool getServerEcho();
 
     /**jsdoc
+     * Sets whether echoiing microphone audio back to your from the server is enabled. When enabled, microphone audio is echoed 
+     * only if you're unmuted or are pushing-to-talk.
      * @function Audio.setServerEcho
-     * @parm {boolean} serverEcho
+     * @parm {boolean} serverEcho - <code>true</code> to enable echoing microphone back to you from the server, 
+     *     <code>false<code> to disable.
      */
     Q_INVOKABLE void setServerEcho(bool serverEcho);
 
     /**jsdoc
+     * Toggles the echoing of microphone audio back to you from the server. When enabled, microphone audio is echoed only if 
+     * you're unmuted or are pushing-to-talk.
      * @function Audio.toggleServerEcho
      */
     Q_INVOKABLE void toggleServerEcho();
 
     /**jsdoc
+     * Gets whether echoing microphone audio back to your by the client is enabled. When enabled, microphone audio is even if 
+     * you're muted or not pushing-to-talk.
      * @function Audio.getLocalEcho
+     * @returns {boolean} <code>true</code> if echoing microphone audio back to you from the client is enabled, 
+     *     <code>false</code> if it isn't.
      */
     Q_INVOKABLE bool getLocalEcho();
 
     /**jsdoc
+     * Sets whether echoing microphone audio back to your by the client is enabled. When enabled, microphone audio is even if
+     * you're muted or not pushing-to-talk.
      * @function Audio.setLocalEcho
-     * @parm {boolean} localEcho
+     * @parm {boolean} localEcho - <code>true</code> to enable echoing microphone audio back to you from the client, 
+     *     <code>false</code> to disable.
      */
     Q_INVOKABLE void setLocalEcho(bool localEcho);
 
     /**jsdoc
+     * Toggles the echoing of microphone audio back to you from the client. When enabled, microphone audio is echoed even if 
+     * you're muted or not pushing-to-talk.
      * @function Audio.toggleLocalEcho
      */
     Q_INVOKABLE void toggleLocalEcho();
@@ -129,7 +149,7 @@ protected:
     Q_INVOKABLE ScriptAudioInjector* playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
 
     /**jsdoc
-     * Start playing the content of an audio file, locally (isn't sent to the audio mixer). This is the same as calling 
+     * Starts playing the content of an audio file, locally (isn't sent to the audio mixer). This is the same as calling 
      * {@link Audio.playSound} with {@link AudioInjector.AudioInjectorOptions} <code>localOnly</code> set <code>true</code> and 
      * the specified <code>position</code>.
      * @function Audio.playSystemSound
@@ -140,15 +160,15 @@ protected:
     Q_INVOKABLE ScriptAudioInjector* playSystemSound(SharedSoundPointer sound);
 
     /**jsdoc
-     * Set whether or not the audio input should be used in stereo. If the audio input does not support stereo then setting a 
-     * value of <code>true</code> has no effect.
+     * Sets whether the audio input should be used in stereo. If the audio input doesn't support stereo then setting a value 
+     * of <code>true</code> has no effect.
      * @function Audio.setStereoInput
      * @param {boolean} stereo - <code>true</code> if the audio input should be used in stereo, otherwise <code>false</code>.
      */
     Q_INVOKABLE void setStereoInput(bool stereo);
 
     /**jsdoc
-     * Get whether or not the audio input is used in stereo.
+     * Gets whether the audio input is used in stereo.
      * @function Audio.isStereoInput
      * @returns {boolean} <code>true</code> if the audio input is used in stereo, otherwise <code>false</code>. 
      */
