@@ -287,7 +287,7 @@ public:
     void addBlaToList(Blah* bla) { _blas.append(bla); }
 
     // Allowed, because this is a simple method
-    int calculateCircumference () { return PI * pow(_radius, 2.0); }
+    int calculateCircumference() { return PI * pow(_radius, 2.0); }
 
     // this routine needs to be fast, we'll inline it below
     void doSomethingHighPerformance() const;
@@ -826,7 +826,7 @@ v = w * (x + z);
 
 ```
 
-#### [4.2.2] C++ reserved words should be followed by a white space.Commas should be followed by a white space.
+#### [4.2.2] C++ reserved words should be followed by a white space.
 
 ```cpp
 setLine(leftWing, center, rightWing, leftDefense, rightDefense);
@@ -834,22 +834,14 @@ setLine(leftWing, center, rightWing, leftDefense, rightDefense);
 
 ```
 
-#### [4.2.3] Commas should be followed by a white space.
-
-```cpp
-setLine(leftWing, center, rightWing, leftDefense, rightDefense);
-// NOT: setLine(leftWing,center,rightWing,leftDefense,rightDefense);
-```
-
-
-#### [4.2.4] Semicolons in for statments should be followed by a space character.
+#### [4.2.3] Semicolons in for statments should be followed by a space character.
 
 ```cpp
 for (i = 0; i < 10; i++) {  // NOT: for(i=0;i<10;i++){
 
 ```
 
-#### [4.2.5] Declaring and Calling Functions
+#### [4.2.4] Declaring and Calling Functions
 
 - Function names should not be followed by a white space.
 - And there should be no space between the open parenthesis and the first parameter, and no space between the last parameter and the close parenthesis.
@@ -878,7 +870,7 @@ penguins.hireCoach();
 
 ```
 
-#### [4.2.7] Avoid adding optional spaces across multi-line statements and adjacent statements.
+#### [4.2.6] Avoid adding optional spaces across multi-line statements and adjacent statements.
 
 Avoid the following:
 
@@ -894,7 +886,7 @@ charaSlapShotSpeed        = computeShot(stickFlex, weber);
 
 A change to the length of a variable in these sections causes unnecessary changes to the other lines.
 
-#### [4.2.8] Multi-line statements must have all n+1 lines indented at least one level (four spaces).
+#### [4.2.7] Multi-line statements must have all n+1 lines indented at least one level (four spaces).
 
 Align all n+2 lines with the indentation of the n+1 line.
 
