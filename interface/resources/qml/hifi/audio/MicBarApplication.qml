@@ -163,7 +163,7 @@ Rectangle {
     Item {
         id: status;
 
-        visible: pushToTalk || (muted && (level >= userSpeakingLevel);
+        visible: pushToTalk || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
