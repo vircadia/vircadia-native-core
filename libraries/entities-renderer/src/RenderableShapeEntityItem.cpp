@@ -265,7 +265,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         if (_procedural.isReady()) {
             outColor = _procedural.getColor(outColor);
             outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
-            _procedural.prepare(batch, _position, _dimensions, _orientation, ProceduralProgramKey(outColor.a < 1.0f));
+            _procedural.prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
             proceduralRender = true;
         }
     });
