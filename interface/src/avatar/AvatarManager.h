@@ -24,7 +24,7 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
-#include <AudioInjector.h>
+#include <AudioInjectorManager.h>
 #include <workload/Space.h>
 #include <EntitySimulation.h> // for SetOfEntities
 
@@ -90,6 +90,8 @@ public:
 
     int getNumAvatarsUpdated() const { return _numAvatarsUpdated; }
     int getNumAvatarsNotUpdated() const { return _numAvatarsNotUpdated; }
+    int getNumHeroAvatars() const { return _numHeroAvatars; }
+    int getNumHeroAvatarsUpdated() const { return _numHeroAvatarsUpdated; }
     float getAvatarSimulationTime() const { return _avatarSimulationTime; }
 
     void updateMyAvatar(float deltaTime);
@@ -237,11 +239,13 @@ private:
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
-    std::list<AudioInjectorPointer> _collisionInjectors;
+    std::list<QWeakPointer<AudioInjector>> _collisionInjectors;
 
     RateCounter<> _myAvatarSendRate;
     int _numAvatarsUpdated { 0 };
     int _numAvatarsNotUpdated { 0 };
+    int _numHeroAvatars{ 0 };
+    int _numHeroAvatarsUpdated{ 0 };
     float _avatarSimulationTime { 0.0f };
     bool _shouldRender { true };
     bool _myAvatarDataPacketsPaused { false };

@@ -10,21 +10,42 @@
 #ifndef hifi_common_h
 #define hifi_common_h
 
+#include <vector>
 #include <QtCore/QString>
+
+class SSIMResults {
+public:
+    int width;
+    int height;
+    std::vector<double> results;
+ 
+    double ssim;
+    double worstTileValue;
+
+    // Used for scaling
+    double min;
+    double max;
+};
 
 class TestResult {
 public:
-    TestResult(float error, QString pathname, QString expectedImageFilename, QString actualImageFilename) :
-        _error(error),
+    TestResult(double errorGlobal, double errorLocal, const QString& pathname, const QString& expectedImageFilename, const QString& actualImageFilename, const SSIMResults& ssimResults) :
+        _errorGlobal(errorGlobal),
+        _errorLocal(errorLocal),
         _pathname(pathname),
         _expectedImageFilename(expectedImageFilename),
-        _actualImageFilename(actualImageFilename)
+        _actualImageFilename(actualImageFilename),
+        _ssimResults(ssimResults)
     {}
 
-    double _error;
+    double _errorGlobal;
+    double _errorLocal;
+
     QString _pathname;
     QString _expectedImageFilename;
     QString _actualImageFilename;
+
+    SSIMResults _ssimResults;
 };
 
 enum UserResponse {
@@ -39,4 +60,5 @@ const double R_Y = 0.212655f;
 const double G_Y = 0.715158f;
 const double B_Y = 0.072187f;
 
+const QString nitpickVersion { "v3.1.4" };
 #endif // hifi_common_h

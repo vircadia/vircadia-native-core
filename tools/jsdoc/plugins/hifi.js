@@ -117,11 +117,17 @@ exports.handlers = {
                 rows.push("Assignment Client Scripts");
             }
 
-            // Append an Available In: table at the end of the namespace description.
+            // Append an Available In: sentence at the beginning of the namespace description.
             if (rows.length > 0) {
-                var table = "<table><tr><th>Available in:</th><td>" + rows.join("</td><td>") + "</td></tr></table><br>";
-                e.doclet.description = table + (e.doclet.description ? e.doclet.description : "");
-            }
+                var availableIn = "<p class='availableIn'><b>Supported Script Types:</b> " + rows.join(" &bull; ") + "</p>";
+             
+                e.doclet.description = (e.doclet.description ? e.doclet.description : "") + availableIn;
+            }            
+        }
+
+        if (e.doclet.kind === "function" && e.doclet.returns && e.doclet.returns[0].type
+                && e.doclet.returns[0].type.names[0] === "Signal") {
+            e.doclet.kind = "signal";
         }
     }
 };
@@ -150,7 +156,6 @@ exports.defineTags = function (dictionary) {
         }
     });
 
-
     // @hifi-client-entity
     dictionary.defineTag("hifi-client-entity", {
         onTagged: function (doclet, tag) {
@@ -164,4 +169,5 @@ exports.defineTags = function (dictionary) {
             doclet.hifiServerEntity = true;
         }
     });
+
 };

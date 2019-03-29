@@ -108,7 +108,7 @@ public:
     virtual void setJointTranslations(const QVector<glm::vec3>& translations) override;
     virtual void setJointTranslationsSet(const QVector<bool>& translationsSet) override;
 
-    virtual void locationChanged(bool tellPhysics = true) override;
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true) override;
 
     virtual int getJointIndex(const QString& name) const override;
     virtual QStringList getJointNames() const override;

@@ -1529,7 +1529,6 @@ public slots:
      * @function Entities.emitScriptEvent
      * @param {Uuid} entityID - The ID of the {@link Entities.EntityType|Web} entity.
      * @param {string} message - The message to send.
-     * @todo <em>This function is currently not implemented.</em>
      */
     Q_INVOKABLE void emitScriptEvent(const EntityItemID& entityID, const QVariant& message);
 

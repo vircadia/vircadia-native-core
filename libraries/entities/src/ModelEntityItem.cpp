@@ -63,6 +63,7 @@ EntityItemProperties ModelEntityItem::getProperties(const EntityPropertyFlags& d
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelScale, getModelScale);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotationsSet, getJointRotationsSet);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotations, getJointRotations);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
@@ -85,6 +86,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelScale, setModelScale);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotationsSet, setJointRotationsSet);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
@@ -128,6 +130,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
 
     READ_ENTITY_PROPERTY(PROP_MODEL_URL, QString, setModelURL);
+    READ_ENTITY_PROPERTY(PROP_MODEL_SCALE, glm::vec3, setModelScale);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
     READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
     READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
@@ -165,6 +168,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_TEXTURES;
 
     requestedProperties += PROP_MODEL_URL;
+    requestedProperties += PROP_MODEL_SCALE;
     requestedProperties += PROP_JOINT_ROTATIONS_SET;
     requestedProperties += PROP_JOINT_ROTATIONS;
     requestedProperties += PROP_JOINT_TRANSLATIONS_SET;
@@ -192,6 +196,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
 
     APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, getModelURL());
+    APPEND_ENTITY_PROPERTY(PROP_MODEL_SCALE, getModelScale());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
@@ -296,6 +301,31 @@ void ModelEntityItem::setModelURL(const QString& url) {
     });
 }
 
+glm::vec3 ModelEntityItem::getScaledDimensions() const {
+    glm::vec3 parentScale =  getTransform().getScale();
+    return _unscaledDimensions * parentScale;
+}
+
+void ModelEntityItem::setScaledDimensions(const glm::vec3& value) {
+    glm::vec3 parentScale = getTransform().getScale();
+    setUnscaledDimensions(value / parentScale);
+}
+
+const Transform ModelEntityItem::getTransform() const {
+    bool success;
+    return getTransform(success);
+}
+
+const Transform ModelEntityItem::getTransform(bool& success, int depth) const {
+    const Transform parentTransform = getParentTransform(success, depth);
+    Transform localTransform = getLocalTransform();
+    localTransform.postScale(getModelScale());
+
+    Transform worldTransform;
+    Transform::mult(worldTransform, parentTransform, localTransform);
+
+    return worldTransform;
+}
 void ModelEntityItem::setCompoundShapeURL(const QString& url) {
     withWriteLock([&] {
         if (_compoundShapeURL.get() != url) {
@@ -707,4 +737,16 @@ bool ModelEntityItem::applyNewAnimationProperties(AnimationPropertyGroup newProp
         _flags |= Simulation::DIRTY_UPDATEABLE;
     }
     return somethingChanged;
+}
+
+glm::vec3 ModelEntityItem::getModelScale() const {
+    return resultWithReadLock<glm::vec3>([&] {
+        return _modelScale;
+    });
+}
+
+void ModelEntityItem::setModelScale(const glm::vec3& modelScale) {
+    withWriteLock([&] {
+        _modelScale = modelScale;
+    });
 }

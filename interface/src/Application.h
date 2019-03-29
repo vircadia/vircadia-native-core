@@ -338,7 +338,8 @@ public:
     void beforeEnterBackground();
     void enterBackground();
     void enterForeground();
-#endif
+    void toggleAwayMode();
+    #endif
 
 signals:
     void svoImportRequested(const QString& url);
@@ -592,6 +593,7 @@ private:
     void toggleTabletUI(bool shouldOpen = false) const;
 
     static void setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties);
+    void userKickConfirmation(const QUuid& nodeID);
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -732,6 +734,7 @@ private:
     bool _failedToConnectToEntityServer { false };
 
     bool _reticleClickPressed { false };
+    bool _keyboardFocusWaitingOnRenderable { false };
 
     int _avatarAttachmentRequest = 0;
 

@@ -16,6 +16,10 @@
 
 #include <DependencyManager.h>
 #include <NodeList.h>
+#include <EntityTree.h>
+#include <ZoneEntityItem.h>
+
+#include "AvatarLogging.h"
 
 #include "AvatarMixerSlave.h"
 
@@ -62,7 +66,7 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
 
         switch (packet->getType()) {
             case PacketType::AvatarData:
-                parseData(*packet);
+                parseData(*packet, slaveSharedData);
                 break;
             case PacketType::SetAvatarTraits:
                 processSetTraitsMessage(*packet, slaveSharedData, *node);
@@ -80,7 +84,42 @@ int AvatarMixerClientData::processPackets(const SlaveSharedData& slaveSharedData
     return packetsProcessed;
 }
 
-int AvatarMixerClientData::parseData(ReceivedMessage& message) {
+namespace {
+    using std::static_pointer_cast;
+
+    // Operator to find if a point is within an avatar-priority (hero) Zone Entity.
+    struct FindPriorityZone {
+        glm::vec3 position;
+        bool isInPriorityZone { false };
+        float zoneVolume { std::numeric_limits<float>::max() };
+
+        static bool operation(const OctreeElementPointer& element, void* extraData) {
+            auto findPriorityZone = static_cast<FindPriorityZone*>(extraData);
+            if (element->getAACube().contains(findPriorityZone->position)) {
+                const EntityTreeElementPointer entityTreeElement = static_pointer_cast<EntityTreeElement>(element);
+                entityTreeElement->forEachEntity([&findPriorityZone](EntityItemPointer item) {
+                    if (item->getType() == EntityTypes::Zone 
+                        && item->contains(findPriorityZone->position)) {
+                        auto zoneItem = static_pointer_cast<ZoneEntityItem>(item);
+                        if (zoneItem->getAvatarPriority() != COMPONENT_MODE_INHERIT) {
+                            float volume = zoneItem->getVolumeEstimate();
+                            if (volume < findPriorityZone->zoneVolume) { // Smaller volume wins
+                                findPriorityZone->isInPriorityZone = zoneItem->getAvatarPriority() == COMPONENT_MODE_ENABLED;
+                                findPriorityZone->zoneVolume = volume;
+                            }
+                        }
+                    }
+                });
+                return true;  // Keep recursing 
+            } else {  // Position isn't within this subspace, so end recursion.
+                return false;
+            }
+        }
+    };
+
+}  // Close anonymous namespace.
+
+int AvatarMixerClientData::parseData(ReceivedMessage& message, const SlaveSharedData& slaveSharedData) {
     // pull the sequence number from the data first
     uint16_t sequenceNumber;
 
@@ -90,9 +129,37 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
         incrementNumOutOfOrderSends();
     }
     _lastReceivedSequenceNumber = sequenceNumber;
+    glm::vec3 oldPosition = getPosition();
+    bool oldHasPriority = _avatar->getHasPriority();
 
     // compute the offset to the data payload
-    return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
+    if (!_avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()))) {
+        return false;
+    }
+
+    // Regardless of what the client says, restore the priority as we know it without triggering any update.
+    _avatar->setHasPriorityWithoutTimestampReset(oldHasPriority);
+
+    auto newPosition = getPosition();
+    if (newPosition != oldPosition) {
+//#define AVATAR_HERO_TEST_HACK
+#ifdef AVATAR_HERO_TEST_HACK
+        {
+            const static QString heroKey { "HERO" };
+            _avatar->setPriorityAvatar(_avatar->getDisplayName().contains(heroKey));
+        }
+#else
+        EntityTree& entityTree = *slaveSharedData.entityTree;
+        FindPriorityZone findPriorityZone { newPosition, false } ;
+        entityTree.recurseTreeWithOperation(&FindPriorityZone::operation, &findPriorityZone);
+        _avatar->setHasPriority(findPriorityZone.isInPriorityZone);
+        //if (findPriorityZone.isInPriorityZone) {
+        //    qCWarning(avatars) << "Avatar" << _avatar->getSessionDisplayName() << "in hero zone";
+        //}
+#endif
+    }
+
+    return true;
 }
 
 void AvatarMixerClientData::processSetTraitsMessage(ReceivedMessage& message,

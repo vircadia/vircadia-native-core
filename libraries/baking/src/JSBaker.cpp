@@ -11,9 +11,11 @@
 
 #include "JSBaker.h"
 
-#include <PathUtils.h>
+#include <QtNetwork/QNetworkReply>
 
-#include "Baker.h"
+#include <NetworkAccessManager.h>
+#include <SharedUtil.h>
+#include <PathUtils.h>
 
 const int ASCII_CHARACTERS_UPPER_LIMIT = 126;
 
@@ -21,25 +23,79 @@ JSBaker::JSBaker(const QUrl& jsURL, const QString& bakedOutputDir) :
     _jsURL(jsURL),
     _bakedOutputDir(bakedOutputDir)
 {
-
 }
 
 void JSBaker::bake() {
     qCDebug(js_baking) << "JS Baker " << _jsURL << "bake starting";
 
-    // Import file to start baking
-    QFile jsFile(_jsURL.toLocalFile());
-    if (!jsFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        handleError("Error opening " + _jsURL.fileName() + " for reading");
-        return;
-    }
+    // once our script is loaded, kick off a the processing
+    connect(this, &JSBaker::originalScriptLoaded, this, &JSBaker::processScript);
 
+    if (_originalScript.isEmpty()) {
+        // first load the script (either locally or remotely)
+        loadScript();
+    } else {
+        // we already have a script passed to us, use that
+        processScript();
+    }
+}
+
+void JSBaker::loadScript() {
+    // check if the script is local or first needs to be downloaded
+    if (_jsURL.isLocalFile()) {
+        // load up the local file
+        QFile localScript(_jsURL.toLocalFile());
+        if (!localScript.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            handleError("Error opening " + _jsURL.fileName() + " for reading");
+            return;
+        }
+
+        _originalScript = localScript.readAll();
+
+        emit originalScriptLoaded();
+    } else {
+        // remote file, kick off a download
+        auto& networkAccessManager = NetworkAccessManager::getInstance();
+
+        QNetworkRequest networkRequest;
+
+        // setup the request to follow re-directs and always hit the network
+        networkRequest.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        networkRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
+        networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+
+        networkRequest.setUrl(_jsURL);
+
+        qCDebug(js_baking) << "Downloading" << _jsURL;
+
+        // kickoff the download, wait for slot to tell us it is done
+        auto networkReply = networkAccessManager.get(networkRequest);
+        connect(networkReply, &QNetworkReply::finished, this, &JSBaker::handleScriptNetworkReply);
+    }
+}
+
+void JSBaker::handleScriptNetworkReply() {
+    auto requestReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (requestReply->error() == QNetworkReply::NoError) {
+        qCDebug(js_baking) << "Downloaded script" << _jsURL;
+
+        // store the original script so it can be passed along for the bake
+        _originalScript = requestReply->readAll();
+
+        emit originalScriptLoaded();
+    } else {
+        // add an error to our list stating that this script could not be downloaded
+        handleError("Error downloading " + _jsURL.toString() + " - " + requestReply->errorString());
+    }
+}
+
+void JSBaker::processScript() {
     // Read file into an array
-    QByteArray inputJS = jsFile.readAll();
     QByteArray outputJS;
 
     // Call baking on inputJS and store result in outputJS 
-    bool success = bakeJS(inputJS, outputJS);
+    bool success = bakeJS(_originalScript, outputJS);
     if (!success) {
         qCDebug(js_baking) << "Bake Failed";
         handleError("Unterminated multi-line comment");

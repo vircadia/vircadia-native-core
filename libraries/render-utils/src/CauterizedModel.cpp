@@ -244,7 +244,7 @@ void CauterizedModel::updateRenderItems() {
 
                     Transform renderTransform = modelTransform;
                     if (useDualQuaternionSkinning) {
-                        if (meshState.clusterDualQuaternions.size() == 1) {
+                        if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
                             const auto& dq = meshState.clusterDualQuaternions[0];
                             Transform transform(dq.getRotation(),
                                                 dq.getScale(),
@@ -252,7 +252,7 @@ void CauterizedModel::updateRenderItems() {
                             renderTransform = modelTransform.worldTransform(transform);
                         }
                     } else {
-                        if (meshState.clusterMatrices.size() == 1) {
+                        if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
                             renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
                         }
                     }
@@ -260,7 +260,7 @@ void CauterizedModel::updateRenderItems() {
 
                     renderTransform = modelTransform;
                     if (useDualQuaternionSkinning) {
-                        if (cauterizedMeshState.clusterDualQuaternions.size() == 1) {
+                        if (cauterizedMeshState.clusterDualQuaternions.size() == 1 || cauterizedMeshState.clusterDualQuaternions.size() == 2) {
                             const auto& dq = cauterizedMeshState.clusterDualQuaternions[0];
                             Transform transform(dq.getRotation(),
                                                 dq.getScale(),
@@ -268,7 +268,7 @@ void CauterizedModel::updateRenderItems() {
                             renderTransform = modelTransform.worldTransform(Transform(transform));
                         }
                     } else {
-                        if (cauterizedMeshState.clusterMatrices.size() == 1) {
+                        if (cauterizedMeshState.clusterMatrices.size() == 1 || cauterizedMeshState.clusterMatrices.size() == 2) {
                             renderTransform = modelTransform.worldTransform(Transform(cauterizedMeshState.clusterMatrices[0]));
                         }
                     }

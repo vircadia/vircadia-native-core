@@ -125,8 +125,10 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
+    STAT_UPDATE(heroAvatarCount, avatarManager->getNumHeroAvatars());
     STAT_UPDATE(physicsObjectCount, qApp->getNumCollisionObjects());
     STAT_UPDATE(updatedAvatarCount, avatarManager->getNumAvatarsUpdated());
+    STAT_UPDATE(updatedHeroAvatarCount, avatarManager->getNumHeroAvatarsUpdated());
     STAT_UPDATE(notUpdatedAvatarCount, avatarManager->getNumAvatarsNotUpdated());
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE_FLOAT(renderrate, qApp->getRenderLoopRate(), 0.1f);
@@ -264,6 +266,11 @@ void Stats::updateStats(bool force) {
         }
         STAT_UPDATE(audioCodec, audioClient->getSelectedAudioFormat());
         STAT_UPDATE(audioNoiseGate, audioClient->getNoiseGateOpen() ? "Open" : "Closed");
+        {
+            int localInjectors = audioClient->getNumLocalInjectors();
+            size_t nonLocalInjectors = DependencyManager::get<AudioInjectorManager>()->getNumInjectors();
+            STAT_UPDATE(audioInjectors, QVector2D(localInjectors, nonLocalInjectors));
+        }
 
         STAT_UPDATE(entityPacketsInKbps, octreeServerCount ? totalEntityKbps / octreeServerCount : -1);
 

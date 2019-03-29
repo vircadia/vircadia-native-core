@@ -43,7 +43,6 @@
 
 using namespace std;
 
-const int   NUM_BODY_CONE_SIDES = 9;
 const float CHAT_MESSAGE_SCALE = 0.0015f;
 const float CHAT_MESSAGE_HEIGHT = 0.1f;
 const float DISPLAYNAME_FADE_TIME = 0.5f;
@@ -377,7 +376,7 @@ bool Avatar::applyGrabChanges() {
                     const EntityItemPointer& entity = std::dynamic_pointer_cast<EntityItem>(target);
                     if (entity && entity->getEntityHostType() == entity::HostType::AVATAR && entity->getSimulationOwner().getID() == getID()) {
                         EntityItemProperties properties = entity->getProperties();
-                        sendPacket(entity->getID(), properties);
+                        sendPacket(entity->getID());
                     }
                 }
             } else {
@@ -1537,6 +1536,7 @@ void Avatar::rigReady() {
     buildUnscaledEyeHeightCache();
     buildSpine2SplineRatioCache();
     computeMultiSphereShapes();
+    buildSpine2SplineRatioCache();
 }
 
 // rig has been reset.
@@ -1658,60 +1658,6 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     }
 
     return bytesRead;
-}
-
-int Avatar::_jointConesID = GeometryCache::UNKNOWN_ID;
-
-// render a makeshift cone section that serves as a body part connecting joint spheres
-void Avatar::renderJointConnectingCone(gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
-                                            float radius1, float radius2, const glm::vec4& color) {
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-
-    if (_jointConesID == GeometryCache::UNKNOWN_ID) {
-        _jointConesID = geometryCache->allocateID();
-    }
-
-    glm::vec3 axis = position2 - position1;
-    float length = glm::length(axis);
-
-    if (length > 0.0f) {
-
-        axis /= length;
-
-        glm::vec3 perpSin = glm::vec3(1.0f, 0.0f, 0.0f);
-        glm::vec3 perpCos = glm::normalize(glm::cross(axis, perpSin));
-        perpSin = glm::cross(perpCos, axis);
-
-        float angleb = 0.0f;
-        QVector<glm::vec3> points;
-
-        for (int i = 0; i < NUM_BODY_CONE_SIDES; i ++) {
-
-            // the rectangles that comprise the sides of the cone section are
-            // referenced by "a" and "b" in one dimension, and "1", and "2" in the other dimension.
-            int anglea = angleb;
-            angleb = ((float)(i+1) / (float)NUM_BODY_CONE_SIDES) * TWO_PI;
-
-            float sa = sinf(anglea);
-            float sb = sinf(angleb);
-            float ca = cosf(anglea);
-            float cb = cosf(angleb);
-
-            glm::vec3 p1a = position1 + perpSin * sa * radius1 + perpCos * ca * radius1;
-            glm::vec3 p1b = position1 + perpSin * sb * radius1 + perpCos * cb * radius1;
-            glm::vec3 p2a = position2 + perpSin * sa * radius2 + perpCos * ca * radius2;
-            glm::vec3 p2b = position2 + perpSin * sb * radius2 + perpCos * cb * radius2;
-
-            points << p1a << p1b << p2a << p1b << p2a << p2b;
-        }
-
-        PROFILE_RANGE_BATCH(batch, __FUNCTION__);
-        // TODO: this is really inefficient constantly recreating these vertices buffers. It would be
-        // better if the avatars cached these buffers for each of the joints they are rendering
-        geometryCache->updateVertices(_jointConesID, points, color);
-        geometryCache->renderVertices(batch, gpu::TRIANGLES, _jointConesID);
-    }
 }
 
 float Avatar::getSkeletonHeight() const {
@@ -2039,54 +1985,7 @@ float Avatar::getUnscaledEyeHeightFromSkeleton() const {
     // TODO: if performance becomes a concern we can cache this value rather then computing it everytime.
 
     if (_skeletonModel) {
-        auto& rig = _skeletonModel->getRig();
-
-        // Normally the model offset transform will contain the avatar scale factor, we explicitly remove it here.
-        AnimPose modelOffsetWithoutAvatarScale(glm::vec3(1.0f), rig.getModelOffsetPose().rot(), rig.getModelOffsetPose().trans());
-        AnimPose geomToRigWithoutAvatarScale = modelOffsetWithoutAvatarScale * rig.getGeometryOffsetPose();
-
-        // This factor can be used to scale distances in the geometry frame into the unscaled rig frame.
-        // Typically it will be the unit conversion from cm to m.
-        float scaleFactor = geomToRigWithoutAvatarScale.scale().x;  // in practice this always a uniform scale factor.
-
-        int headTopJoint = rig.indexOfJoint("HeadTop_End");
-        int headJoint = rig.indexOfJoint("Head");
-        int eyeJoint = rig.indexOfJoint("LeftEye") != -1 ? rig.indexOfJoint("LeftEye") : rig.indexOfJoint("RightEye");
-        int toeJoint = rig.indexOfJoint("LeftToeBase") != -1 ? rig.indexOfJoint("LeftToeBase") : rig.indexOfJoint("RightToeBase");
-
-        // Makes assumption that the y = 0 plane in geometry is the ground plane.
-        // We also make that assumption in Rig::computeAvatarBoundingCapsule()
-        const float GROUND_Y = 0.0f;
-
-        // Values from the skeleton are in the geometry coordinate frame.
-        auto skeleton = rig.getAnimSkeleton();
-        if (eyeJoint >= 0 && toeJoint >= 0) {
-            // Measure from eyes to toes.
-            float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
-            return scaleFactor * eyeHeight;
-        } else if (eyeJoint >= 0) {
-            // Measure Eye joint to y = 0 plane.
-            float eyeHeight = skeleton->getAbsoluteDefaultPose(eyeJoint).trans().y - GROUND_Y;
-            return scaleFactor * eyeHeight;
-        } else if (headTopJoint >= 0 && toeJoint >= 0) {
-            // Measure from ToeBase joint to HeadTop_End joint, then remove forehead distance.
-            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float height = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - skeleton->getAbsoluteDefaultPose(toeJoint).trans().y;
-            return scaleFactor * (height - height * ratio);
-        } else if (headTopJoint >= 0) {
-            // Measure from HeadTop_End joint to the ground, then remove forehead distance.
-            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
-            float headHeight = skeleton->getAbsoluteDefaultPose(headTopJoint).trans().y - GROUND_Y;
-            return scaleFactor * (headHeight - headHeight * ratio);
-        } else if (headJoint >= 0) {
-            // Measure Head joint to the ground, then add in distance from neck to eye.
-            const float DEFAULT_AVATAR_NECK_TO_EYE = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
-            const float ratio = DEFAULT_AVATAR_NECK_TO_EYE / DEFAULT_AVATAR_NECK_HEIGHT;
-            float neckHeight = skeleton->getAbsoluteDefaultPose(headJoint).trans().y - GROUND_Y;
-            return scaleFactor * (neckHeight + neckHeight * ratio);
-        } else {
-            return DEFAULT_AVATAR_EYE_HEIGHT;
-        }
+        return _skeletonModel->getRig().getUnscaledEyeHeight();
     } else {
         return DEFAULT_AVATAR_EYE_HEIGHT;
     }

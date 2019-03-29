@@ -1,4 +1,17 @@
 {
+    "opts": {
+        "template": "hifi-jsdoc-template"
+    },
+    "docdash": {
+        "meta": {                       
+            "title": "",                
+            "description": "",          
+            "keyword": ""               
+        },
+        "search": [true],  
+        "collapse": [true],       
+        "typedefs": [false]    
+    },    
     "templates": {
         "default": {
             "outputSourceFiles": false

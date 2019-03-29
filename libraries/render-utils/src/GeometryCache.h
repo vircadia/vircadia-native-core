@@ -185,12 +185,6 @@ public:
     render::ShapePipelinePointer getTransparentShapePipeline() { assert(_simpleTransparentPipeline != nullptr); return _simpleTransparentPipeline; }
     render::ShapePipelinePointer getForwardOpaqueShapePipeline() { assert(_forwardSimpleOpaquePipeline != nullptr); return _forwardSimpleOpaquePipeline; }
     render::ShapePipelinePointer getForwardTransparentShapePipeline() { assert(_forwardSimpleTransparentPipeline != nullptr); return _forwardSimpleTransparentPipeline; }
-    render::ShapePipelinePointer getOpaqueFadeShapePipeline() { assert(_simpleOpaqueFadePipeline != nullptr); return _simpleOpaqueFadePipeline; }
-    render::ShapePipelinePointer getTransparentFadeShapePipeline() { assert(_simpleTransparentFadePipeline != nullptr); return _simpleTransparentFadePipeline; }
-    render::ShapePipelinePointer getOpaqueShapePipeline(bool isFading);
-    render::ShapePipelinePointer getTransparentShapePipeline(bool isFading);
-    render::ShapePipelinePointer getWireShapePipeline() { assert(_simpleWirePipeline != nullptr); return GeometryCache::_simpleWirePipeline; }
-
 
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
@@ -317,12 +311,6 @@ public:
     void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
                     const glm::vec4& color1, const glm::vec4& color2, int id);
 
-    void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
-                    const glm::vec4& color, float glowIntensity, float glowWidth, int id);
-
-    void renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, const glm::vec4& color, int id) 
-                       { renderGlowLine(batch, p1, p2, color, 1.0f, 0.05f, id); }
-
     void renderDashedLine(gpu::Batch& batch, const glm::vec3& start, const glm::vec3& end, const glm::vec4& color, int id)
                           { renderDashedLine(batch, start, end, color, 0.05f, 0.025f, id); }
 
@@ -385,6 +373,7 @@ public:
     const ShapeData * getShapeData(Shape shape) const;
 
     graphics::MeshPointer meshFromShape(Shape geometryShape, glm::vec3 color);
+
 private:
 
     GeometryCache();
@@ -483,7 +472,6 @@ private:
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
-    gpu::PipelinePointer _glowLinePipeline;
 
     static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 

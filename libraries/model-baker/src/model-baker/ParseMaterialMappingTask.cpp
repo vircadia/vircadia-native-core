@@ -10,7 +10,9 @@
 
 #include "ModelBakerLogging.h"
 
-void ParseMaterialMappingTask::run(const baker::BakeContextPointer& context, const Input& mapping, Output& output) {
+void ParseMaterialMappingTask::run(const baker::BakeContextPointer& context, const Input& input, Output& output) {
+    const auto& mapping = input.get0();
+    const auto& url = input.get1();
     MaterialMapping materialMapping;
 
     auto mappingIter = mapping.find("materialMap");
@@ -59,14 +61,13 @@ void ParseMaterialMappingTask::run(const baker::BakeContextPointer& context, con
                     {
                         NetworkMaterialResourcePointer materialResource = NetworkMaterialResourcePointer(new NetworkMaterialResource(), [](NetworkMaterialResource* ptr) { ptr->deleteLater(); });
                         materialResource->moveToThread(qApp->thread());
-                        // TODO: add baseURL to allow FSTs to reference relative files next to them
-                        materialResource->parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument(mappingValue), QUrl());
+                        materialResource->parsedMaterials = NetworkMaterialResource::parseJSONMaterials(QJsonDocument(mappingValue), url);
                         materialMapping.push_back(std::pair<std::string, NetworkMaterialResourcePointer>(mapping.toStdString(), materialResource));
                     }
 
                 } else if (mappingJSON.isString()) {
                     auto mappingValue = mappingJSON.toString();
-                    materialMapping.push_back(std::pair<std::string, NetworkMaterialResourcePointer>(mapping.toStdString(), MaterialCache::instance().getMaterial(mappingValue)));
+                    materialMapping.push_back(std::pair<std::string, NetworkMaterialResourcePointer>(mapping.toStdString(), MaterialCache::instance().getMaterial(url.resolved(mappingValue))));
                 }
             }
         }

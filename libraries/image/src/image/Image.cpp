@@ -25,6 +25,8 @@
 #include <StatTracker.h>
 #include <GLMHelpers.h>
 
+#include "TGAReader.h"
+
 #include "ImageLogging.h"
 
 using namespace gpu;
@@ -203,6 +205,20 @@ QImage processRawImageData(QIODevice& content, const std::string& filename) {
     // Help the QImage loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
     auto filenameExtension = filename.substr(filename.find_last_of('.') + 1);
+    if (!content.isReadable()) {
+        content.open(QIODevice::ReadOnly);
+    } else {
+        content.reset();
+    }
+
+    if (filenameExtension == "tga") {
+        QImage image = image::readTGA(content);
+        if (!image.isNull()) {
+            return image;
+        }
+        content.reset();
+    }
+
     QImageReader imageReader(&content, filenameExtension.c_str());
 
     if (imageReader.canRead()) {

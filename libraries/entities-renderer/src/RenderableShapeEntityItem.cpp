@@ -53,7 +53,7 @@ bool ShapeEntityRenderer::needsRenderUpdate() const {
         }
 
         auto mat = _materials.find("0");
-        if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
+        if (mat != _materials.end() && mat->second.shouldUpdate()) {
             return true;
         }
 
@@ -188,7 +188,7 @@ bool ShapeEntityRenderer::useMaterialPipeline(const graphics::MultiMaterial& mat
 
 ShapeKey ShapeEntityRenderer::getShapeKey() {
     auto mat = _materials.find("0");
-    if (mat != _materials.end() && (mat->second.needsUpdate() || mat->second.areTexturesLoading())) {
+    if (mat != _materials.end() && mat->second.shouldUpdate()) {
         RenderPipelines::updateMultiMaterial(mat->second);
     }
 
@@ -249,10 +249,14 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     graphics::MultiMaterial materials;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape;
+    PrimitiveMode primitiveMode;
+    RenderLayer renderLayer;
     bool proceduralRender = false;
     glm::vec4 outColor;
     withReadLock([&] {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
+        primitiveMode = _primitiveMode;
+        renderLayer = _renderLayer;
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
         materials = _materials["0"];
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
@@ -267,7 +271,7 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     });
 
     if (proceduralRender) {
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
             geometryCache->renderShape(batch, geometryShape, outColor);
@@ -276,12 +280,12 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         render::ShapePipelinePointer pipeline;
-        if (_renderLayer == RenderLayer::WORLD) {
+        if (renderLayer == RenderLayer::WORLD) {
             pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         } else {
             pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
         }
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
         } else {
             geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);

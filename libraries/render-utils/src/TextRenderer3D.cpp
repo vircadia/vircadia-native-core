@@ -67,11 +67,11 @@ float TextRenderer3D::getFontSize() const {
 }
 
 void TextRenderer3D::draw(gpu::Batch& batch, float x, float y, const QString& str, const glm::vec4& color,
-                         const glm::vec2& bounds) {
+                         const glm::vec2& bounds, bool layered) {
     // The font does all the OpenGL work
     if (_font) {
         _color = color;
-        _font->drawString(batch, _drawInfo, str, _color, _effectType, { x, y }, bounds);
+        _font->drawString(batch, _drawInfo, str, _color, _effectType, { x, y }, bounds, layered);
     }
 }
 

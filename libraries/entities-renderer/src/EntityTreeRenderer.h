@@ -16,7 +16,7 @@
 #include <QtCore/QStack>
 #include <QtGui/QMouseEvent>
 
-#include <AbstractAudioInterface.h>
+#include <AudioInjectorManager.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <EntityTree.h>
 #include <PointerEvent.h>
@@ -87,14 +87,14 @@ public:
     virtual void init() override;
 
     /// clears the tree
-    virtual void clearNonLocalEntities() override;
+    virtual void clearDomainAndNonOwnedEntities() override;
     virtual void clear() override;
 
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
 
     // event handles which may generate entity related events
-    std::pair<float, QUuid> mousePressEvent(QMouseEvent* event);
+    QUuid mousePressEvent(QMouseEvent* event);
     void mouseReleaseEvent(QMouseEvent* event);
     void mouseDoublePressEvent(QMouseEvent* event);
     void mouseMoveEvent(QMouseEvent* event);
@@ -170,7 +170,7 @@ private:
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
     bool applyLayeredZones();
-    void stopNonLocalEntityScripts();
+    void stopDomainAndNonOwnedEntities();
 
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);
 
@@ -179,7 +179,7 @@ private:
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     bool checkEnterLeaveEntities();
-    void leaveNonLocalEntities();
+    void leaveDomainAndNonOwnedEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 

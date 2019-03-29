@@ -35,8 +35,9 @@ Rectangle {
     property string category: ""
     property int price: 0
     property string availability: "unknown"
-    property bool isLoggedIn: false;
-
+    property bool isLoggedIn: false
+    property bool standaloneOptimized: false
+    
     signal buy()
     signal showItem()
     signal categoryClicked(string category)
@@ -226,6 +227,7 @@ Rectangle {
                     top: parent.top
                     left: parent.left
                     leftMargin: 15
+                    topMargin: 10
                 }
                 width: paintedWidth
                 
@@ -239,16 +241,18 @@ Rectangle {
                 id: creatorText
 
                 anchors {
-                    top: creatorLabel.top;
-                    left: creatorLabel.right;
-                    leftMargin: 15;
+                    top: creatorLabel.top
+                    left: creatorLabel.right
+                    leftMargin: 15
+                    right: badges.left
                 }
-                width: paintedWidth;
+                width: paintedWidth
 
-                text: root.creator;
-                size: 14;
-                color: hifi.colors.lightGray;
-                verticalAlignment: Text.AlignVCenter;
+                text: root.creator
+                size: 14
+                elide: Text.ElideRight
+                color: hifi.colors.lightGray
+                verticalAlignment: Text.AlignVCenter
             }
 
             RalewaySemiBold {
@@ -259,12 +263,12 @@ Rectangle {
                     left: parent.left
                     leftMargin: 15
                 }
-                width: paintedWidth;      
+                width: paintedWidth   
 
-                text: "IN:";
-                size: 14;
-                color: hifi.colors.lightGrayText;
-                verticalAlignment: Text.AlignVCenter;
+                text: "IN:"
+                size: 14
+                color: hifi.colors.lightGrayText
+                verticalAlignment: Text.AlignVCenter
             }
 
             RalewaySemiBold {
@@ -274,22 +278,56 @@ Rectangle {
                     top: categoryLabel.top
                     left: categoryLabel.right
                     leftMargin: 15
+                    right: badges.left
                 }
                 width: paintedWidth
 
                 text: root.category
                 size: 14
-                color: hifi.colors.blueHighlight;
-                verticalAlignment: Text.AlignVCenter;
-                
+                color: hifi.colors.blueHighlight
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideRight
                 MouseArea {
                     anchors.fill: parent
 
                     onClicked: root.categoryClicked(root.category);
                 }
             }
+            Item {
+                id: badges
+                
+                anchors {
+                    right: buyButton.left
+                    top: parent.top
+                    topMargin: 10
+                    rightMargin: 10
+                }
+                height: 50
+                
+                Image {
+                    id: standaloneOptomizedBadge
+
+                    anchors {
+                        right: parent.right
+                        top: parent.top
+                    }
+                    height: root.standaloneOptimized ? 40 : 0
+                    width: 40
+                    
+                    visible: root.standaloneOptimized
+                    fillMode: Image.PreserveAspectFit
+                    source: "../../../../icons/standalone-optimized.svg"
+                }
+                ColorOverlay {
+                    anchors.fill: standaloneOptomizedBadge
+                    source: standaloneOptomizedBadge
+                    color: hifi.colors.blueHighlight
+                    visible: root.standaloneOptimized
+                }
+            }            
 
             HifiControlsUit.Button {
+                id: buyButton
                 anchors {
                     right: parent.right
                     top: parent.top
@@ -298,19 +336,21 @@ Rectangle {
                     topMargin:10
                     bottomMargin: 10
                 }
+                width: 180
 
                 property bool isNFS: availability === "not for sale" // Note: server will say "sold out" or "invalidated" before it says NFS
                 property bool isMine: creator === Account.username
                 property bool isUpgrade: root.edition >= 0
                 property int costToMe: ((isMine && isNFS) || isUpgrade) ? 0 : price
-                property bool isAvailable: costToMe >= 0
+                property bool isAvailable: availability === "available"
 
                 text: isUpgrade ? "UPGRADE FOR FREE" : (isAvailable ?  (costToMe || "FREE") : availability)
                 enabled: isAvailable
                 buttonGlyph: isAvailable ? (costToMe ? hifi.glyphs.hfc : "") : ""
 
                 color: hifi.buttons.blue;
-
+                buttonGlyphSize: 24
+                fontSize: 24
                 onClicked: root.buy();
             }
         }

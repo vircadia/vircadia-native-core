@@ -32,16 +32,13 @@ Rectangle {
     property string initialActiveViewAfterStatus5: "walletInventory";
     property bool keyboardRaised: false;
     property bool isPassword: false;
+    property bool has3DHTML: PlatformInfo.has3DHTML();
 
     anchors.fill: (typeof parent === undefined) ? undefined : parent;
 
     Image {
         anchors.fill: parent;
         source: "images/wallet-bg.jpg";
-    }
-
-    Component.onDestruction: {
-        KeyboardScriptingInterface.raised = false;
     }
 
     Connections {
@@ -339,8 +336,10 @@ Rectangle {
         Connections {
             onSendSignalToWallet: {
                 if (msg.method === 'transactionHistory_usernameLinkClicked') {
-                    userInfoViewer.url = msg.usernameLink;
-                    userInfoViewer.visible = true;
+                    if (has3DHTML) {
+                        userInfoViewer.url = msg.usernameLink;
+                        userInfoViewer.visible = true;
+                    }
                 } else {
                     sendToScript(msg);
                 }

@@ -260,12 +260,7 @@ bool ScriptEngine::isDebugMode() const {
 #endif
 }
 
-ScriptEngine::~ScriptEngine() {
-    QSharedPointer<ScriptEngines> scriptEngines(_scriptEngines);
-    if (scriptEngines) {
-        scriptEngines->removeScriptEngine(qSharedPointerCast<ScriptEngine>(sharedFromThis()));
-    }
-}
+ScriptEngine::~ScriptEngine() {}
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();
@@ -976,7 +971,9 @@ void ScriptEngine::addEventHandler(const EntityItemID& entityID, const QString& 
         using PointerHandler = std::function<void(const EntityItemID&, const PointerEvent&)>;
         auto makePointerHandler = [this](QString eventName) -> PointerHandler {
             return [this, eventName](const EntityItemID& entityItemID, const PointerEvent& event) {
-                forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
+                if (!EntityTree::areEntityClicksCaptured()) {
+                    forwardHandlerCall(entityItemID, eventName, { entityItemID.toScriptValue(this), event.toScriptValue(this) });
+                }
             };
         };
 

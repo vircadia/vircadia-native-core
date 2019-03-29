@@ -30,6 +30,8 @@ Rectangle {
     property string dateAcquired: "--";
     property string itemCost: "--";
     property string marketplace_item_id: "";
+    property bool   standaloneOptimized: false;
+    property bool   standaloneIncompatible: false;
     property string certTitleTextColor: hifi.colors.darkGray;
     property string certTextColor: hifi.colors.white;
     property string infoTextColor: hifi.colors.blueAccent;
@@ -71,6 +73,8 @@ Rectangle {
             } else {
                 root.marketplace_item_id = result.data.marketplace_item_id;
                 root.isMyCert = result.isMyCert ? result.isMyCert : false;
+                root.standaloneOptimized = result.data.standalone_optimized;
+                root.standaloneIncompatible = result.data.standalone_incompatible;
 
                 if (root.certInfoReplaceMode > 3) {
                     root.itemName = result.data.marketplace_item_name;
@@ -421,6 +425,24 @@ Rectangle {
         anchors.rightMargin: 24;
         height: root.useGoldCert ? 220 : 372;
 
+        HiFiGlyphs {
+            id: standaloneOptomizedBadge
+
+            anchors {
+                right: parent.right
+                top: ownedByHeader.top
+                rightMargin: 15
+                topMargin: 28
+            }
+            
+            visible: root.standaloneOptimized
+
+            text: hifi.glyphs.hmd
+            size: 34
+            horizontalAlignment: Text.AlignHCenter
+            color: hifi.colors.blueHighlight
+        }
+
         RalewayRegular {
             id: errorText;
             visible: !root.useGoldCert;
@@ -467,6 +489,7 @@ Rectangle {
             color: root.infoTextColor;
             elide: Text.ElideRight;
         }
+        
         AnonymousProRegular {
             id: isMyCertText;
             visible: root.isMyCert && ownedBy.text !== "--" && ownedBy.text !== "";
@@ -486,13 +509,45 @@ Rectangle {
         }
 
         RalewayRegular {
+            id: standaloneHeader;
+            text: root.standaloneOptimized ? "STAND-ALONE OPTIMIZED" : "STAND-ALONE INCOMPATIBLE";
+            // Text size
+            size: 16;
+            // Anchors
+            anchors.top: ownedBy.bottom;
+            anchors.topMargin: 15;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            visible: root.standaloneOptimized || root.standaloneIncompatible;
+            height: visible ? paintedHeight : 0;
+            // Style
+            color: hifi.colors.darkGray;
+        }
+
+        RalewayRegular {
+            id: standaloneText;
+            text: root.standaloneOptimized ? "This item is stand-alone optimized" : "This item is incompatible with stand-alone devices";
+            // Text size
+            size: 18;
+            // Anchors
+            anchors.top: standaloneHeader.bottom;
+            anchors.topMargin: 8;
+            anchors.left: standaloneHeader.left;
+            visible: root.standaloneOptimized || root.standaloneIncompatible;
+            height: visible ? paintedHeight : 0;
+            // Style
+            color: root.infoTextColor;
+            elide: Text.ElideRight;
+        }
+
+        RalewayRegular {
             id: dateAcquiredHeader;
             text: "ACQUISITION DATE";
             // Text size
             size: 16;
             // Anchors
-            anchors.top: ownedBy.bottom;
-            anchors.topMargin: 28;
+            anchors.top: standaloneText.bottom;
+            anchors.topMargin: 20;
             anchors.left: parent.left;
             anchors.right: parent.horizontalCenter;
             anchors.rightMargin: 8;
@@ -521,8 +576,8 @@ Rectangle {
             // Text size
             size: 16;
             // Anchors
-            anchors.top: ownedBy.bottom;
-            anchors.topMargin: 28;
+            anchors.top: standaloneText.bottom;
+            anchors.topMargin: 20;
             anchors.left: parent.horizontalCenter;
             anchors.right: parent.right;
             height: paintedHeight;

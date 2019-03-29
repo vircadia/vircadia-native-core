@@ -128,8 +128,11 @@ SelectionManager = (function() {
         }
     };
 
-    that.addEventListener = function(func) {
-        listeners.push(func);
+    that.addEventListener = function(func, thisContext) {
+        listeners.push({
+            callback: func,
+            thisContext: thisContext
+        });
     };
 
     that.hasSelection = function() {
@@ -572,7 +575,7 @@ SelectionManager = (function() {
 
         for (var j = 0; j < listeners.length; j++) {
             try {
-                listeners[j](selectionUpdated === true, caller);
+                listeners[j].callback.call(listeners[j].thisContext, selectionUpdated === true, caller);
             } catch (e) {
                 print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }
@@ -708,7 +711,7 @@ SelectionDisplay = (function() {
         shape: "Cone",
         solid: true,
         visible: false,
-        ignoreRayIntersection: false,
+        ignorePickIntersection: true,
         drawInFront: true
     };
     var handlePropertiesTranslateArrowCylinders = {
@@ -716,7 +719,7 @@ SelectionDisplay = (function() {
         shape: "Cylinder",
         solid: true,
         visible: false,
-        ignoreRayIntersection: false,
+        ignorePickIntersection: true,
         drawInFront: true
     };
     var handleTranslateXCone = Overlays.addOverlay("shape", handlePropertiesTranslateArrowCones);
@@ -741,7 +744,7 @@ SelectionDisplay = (function() {
         majorTickMarksAngle: ROTATE_DEFAULT_TICK_MARKS_ANGLE,
         majorTickMarksLength: 0.1,
         visible: false,
-        ignoreRayIntersection: false,
+        ignorePickIntersection: true,
         drawInFront: true
     };
     var handleRotatePitchRing = Overlays.addOverlay("circle3d", handlePropertiesRotateRings);
@@ -766,7 +769,7 @@ SelectionDisplay = (function() {
         solid: true,
         innerRadius: 0.9,
         visible: false,
-        ignoreRayIntersection: true,
+        ignorePickIntersection: true,
         drawInFront: true
     });
 
@@ -779,7 +782,7 @@ SelectionDisplay = (function() {
         visible: false,
         isFacingAvatar: true,
         drawInFront: true,
-        ignoreRayIntersection: true,
+        ignorePickIntersection: true,
         dimensions: { x: 0, y: 0 },
         lineHeight: 0.0,
         topMargin: 0,
@@ -791,7 +794,7 @@ SelectionDisplay = (function() {
     var handlePropertiesStretchCubes = {
         solid: true,
         visible: false,
-        ignoreRayIntersection: false,
+        ignorePickIntersection: true,
         drawInFront: true
     };
     var handleStretchXCube = Overlays.addOverlay("cube", handlePropertiesStretchCubes);
@@ -802,18 +805,17 @@ SelectionDisplay = (function() {
     Overlays.editOverlay(handleStretchZCube, { color: COLOR_BLUE });
 
     var handlePropertiesStretchPanel = {
-        shape: "Quad",
         alpha: 0.5,
         solid: true,
         visible: false,
-        ignoreRayIntersection: true,
+        ignorePickIntersection: true,
         drawInFront: true
     };
-    var handleStretchXPanel = Overlays.addOverlay("shape", handlePropertiesStretchPanel);
+    var handleStretchXPanel = Overlays.addOverlay("cube", handlePropertiesStretchPanel);
     Overlays.editOverlay(handleStretchXPanel, { color: COLOR_RED });
-    var handleStretchYPanel = Overlays.addOverlay("shape", handlePropertiesStretchPanel);
+    var handleStretchYPanel = Overlays.addOverlay("cube", handlePropertiesStretchPanel);
     Overlays.editOverlay(handleStretchYPanel, { color: COLOR_GREEN });
-    var handleStretchZPanel = Overlays.addOverlay("shape", handlePropertiesStretchPanel);
+    var handleStretchZPanel = Overlays.addOverlay("cube", handlePropertiesStretchPanel);
     Overlays.editOverlay(handleStretchZPanel, { color: COLOR_BLUE });
 
     var handleScaleCube = Overlays.addOverlay("cube", {
@@ -821,7 +823,7 @@ SelectionDisplay = (function() {
         color: COLOR_SCALE_CUBE,
         solid: true,
         visible: false,
-        ignoreRayIntersection: false,
+        ignorePickIntersection: true,
         drawInFront: true,
         borderSize: 1.4
     });
@@ -841,7 +843,7 @@ SelectionDisplay = (function() {
         color: COLOR_GREEN,
         solid: true,
         visible: false,
-        ignoreRayIntersection: false,
+        ignorePickIntersection: true,
         drawInFront: true,
         borderSize: 1.4
     });
@@ -854,6 +856,7 @@ SelectionDisplay = (function() {
         alpha: 0,
         solid: false,
         visible: false,
+        ignorePickIntersection: true,
         dashed: false
     });
 
@@ -865,6 +868,7 @@ SelectionDisplay = (function() {
         alpha: 0,
         solid: false,
         visible: false,
+        ignorePickIntersection: true,
         dashed: false
     });
 
@@ -877,7 +881,7 @@ SelectionDisplay = (function() {
             green: 0,
             blue: 0
         },
-        ignoreRayIntersection: true // always ignore this
+        ignorePickIntersection: true // always ignore this
     });
     var yRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
@@ -888,7 +892,7 @@ SelectionDisplay = (function() {
             green: 255,
             blue: 0
         },
-        ignoreRayIntersection: true // always ignore this
+        ignorePickIntersection: true // always ignore this
     });
     var zRailOverlay = Overlays.addOverlay("line3d", {
         visible: false,
@@ -899,7 +903,7 @@ SelectionDisplay = (function() {
             green: 0,
             blue: 255
         },
-        ignoreRayIntersection: true // always ignore this
+        ignorePickIntersection: true // always ignore this
     });
 
     var allOverlays = [
@@ -972,7 +976,7 @@ SelectionDisplay = (function() {
         color: COLOR_DEBUG_PICK_PLANE,
         solid: true,
         visible: false,
-        ignoreRayIntersection: true,
+        ignorePickIntersection: true,
         drawInFront: false
     });
     var debugPickPlaneHits = [];
@@ -1802,6 +1806,7 @@ SelectionDisplay = (function() {
                                isActiveTool(handleRotateYawRing) || 
                                isActiveTool(handleRotateRollRing);
             selectionBoxGeometry.visible = !inModeRotate && !isCameraInsideBox;
+            selectionBoxGeometry.ignorePickIntersection = !selectionBoxGeometry.visible;
             Overlays.editOverlay(selectionBox, selectionBoxGeometry);
 
             // UPDATE ICON TRANSLATE HANDLE
@@ -1811,9 +1816,13 @@ SelectionDisplay = (function() {
                     rotation: rotation
                 };
                 iconSelectionBoxGeometry.visible = !inModeRotate && isCameraInsideBox;
+                iconSelectionBoxGeometry.ignorePickIntersection = !iconSelectionBoxGeometry.visible;
                 Overlays.editOverlay(iconSelectionBox, iconSelectionBoxGeometry);
             } else {
-                Overlays.editOverlay(iconSelectionBox, { visible: false });
+                Overlays.editOverlay(iconSelectionBox, {
+                    visible: false,
+                    ignorePickIntersection: true
+                });
             }
 
             // UPDATE DUPLICATOR (CURRENTLY HIDDEN FOR NOW)
@@ -1882,7 +1891,7 @@ SelectionDisplay = (function() {
     // FUNCTION: SET OVERLAYS VISIBLE
     that.setOverlaysVisible = function(isVisible) {
         for (var i = 0, length = allOverlays.length; i < length; i++) {
-            Overlays.editOverlay(allOverlays[i], { visible: isVisible });
+            Overlays.editOverlay(allOverlays[i], { visible: isVisible, ignorePickIntersection: !isVisible });
         }
     };
 
@@ -1894,18 +1903,18 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleTranslateXVisible = function(isVisible) {
-        Overlays.editOverlay(handleTranslateXCone, { visible: isVisible });
-        Overlays.editOverlay(handleTranslateXCylinder, { visible: isVisible });
+        Overlays.editOverlay(handleTranslateXCone, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Overlays.editOverlay(handleTranslateXCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleTranslateYVisible = function(isVisible) {
-        Overlays.editOverlay(handleTranslateYCone, { visible: isVisible });
-        Overlays.editOverlay(handleTranslateYCylinder, { visible: isVisible });
+        Overlays.editOverlay(handleTranslateYCone, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Overlays.editOverlay(handleTranslateYCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleTranslateZVisible = function(isVisible) {
-        Overlays.editOverlay(handleTranslateZCone, { visible: isVisible });
-        Overlays.editOverlay(handleTranslateZCylinder, { visible: isVisible });
+        Overlays.editOverlay(handleTranslateZCone, { visible: isVisible, ignorePickIntersection: !isVisible });
+        Overlays.editOverlay(handleTranslateZCylinder, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: SET HANDLE ROTATE VISIBLE
@@ -1916,15 +1925,15 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleRotatePitchVisible = function(isVisible) {
-        Overlays.editOverlay(handleRotatePitchRing, { visible: isVisible });
+        Overlays.editOverlay(handleRotatePitchRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleRotateYawVisible = function(isVisible) {
-        Overlays.editOverlay(handleRotateYawRing, { visible: isVisible });
+        Overlays.editOverlay(handleRotateYawRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleRotateRollVisible = function(isVisible) {
-        Overlays.editOverlay(handleRotateRollRing, { visible: isVisible });
+        Overlays.editOverlay(handleRotateRollRing, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: SET HANDLE STRETCH VISIBLE
@@ -1935,15 +1944,15 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleStretchXVisible = function(isVisible) {
-        Overlays.editOverlay(handleStretchXCube, { visible: isVisible });
+        Overlays.editOverlay(handleStretchXCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleStretchYVisible = function(isVisible) {
-        Overlays.editOverlay(handleStretchYCube, { visible: isVisible });
+        Overlays.editOverlay(handleStretchYCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleStretchZVisible = function(isVisible) {
-        Overlays.editOverlay(handleStretchZCube, { visible: isVisible });
+        Overlays.editOverlay(handleStretchZCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
     
     // FUNCTION: SET HANDLE SCALE VISIBLE
@@ -1953,16 +1962,16 @@ SelectionDisplay = (function() {
     };
 
     that.setHandleScaleVisible = function(isVisible) {
-        Overlays.editOverlay(handleScaleCube, { visible: isVisible });
+        Overlays.editOverlay(handleScaleCube, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     that.setHandleBoundingBoxVisible = function(isVisible) {
-        Overlays.editOverlay(handleBoundingBox, { visible: isVisible });
+        Overlays.editOverlay(handleBoundingBox, { visible: isVisible, ignorePickIntersection: true });
     };
 
     // FUNCTION: SET HANDLE DUPLICATOR VISIBLE
     that.setHandleDuplicatorVisible = function(isVisible) {
-        Overlays.editOverlay(handleDuplicator, { visible: isVisible });
+        Overlays.editOverlay(handleDuplicator, { visible: isVisible, ignorePickIntersection: !isVisible });
     };
 
     // FUNCTION: DEBUG PICK PLANE
@@ -1975,7 +1984,7 @@ SelectionDisplay = (function() {
             position: pickPlanePosition,
             rotation: rotation,
             dimensions: dimensions,
-            visible: true 
+            visible: true
         });
     };
     
@@ -1986,7 +1995,7 @@ SelectionDisplay = (function() {
             shape: "Sphere",
             solid: true,
             visible: true,
-            ignoreRayIntersection: true,
+            ignorePickIntersection: true,
             drawInFront: false,
             color: COLOR_DEBUG_PICK_PLANE_HIT,
             position: pickHitPosition,
@@ -2082,10 +2091,12 @@ SelectionDisplay = (function() {
                 pushCommandForSelections(duplicatedEntityIDs);
                 if (isConstrained) {
                     Overlays.editOverlay(xRailOverlay, {
-                        visible: false
+                        visible: false,
+                        ignorePickIntersection: true
                     });
                     Overlays.editOverlay(zRailOverlay, {
-                        visible: false
+                        visible: false,
+                        ignorePickIntersection: true
                     });
                 }
             },
@@ -2174,22 +2185,26 @@ SelectionDisplay = (function() {
                         Overlays.editOverlay(xRailOverlay, {
                             start: xStart,
                             end: xEnd,
-                            visible: true
+                            visible: true,
+                            ignorePickIntersection: true
                         });
                         Overlays.editOverlay(zRailOverlay, {
                             start: zStart,
                             end: zEnd,
-                            visible: true
+                            visible: true,
+                            ignorePickIntersection: true
                         });
                         isConstrained = true;
                     }
                 } else {
                     if (isConstrained) {
                         Overlays.editOverlay(xRailOverlay, {
-                            visible: false
+                            visible: false,
+                            ignorePickIntersection: true
                         });
                         Overlays.editOverlay(zRailOverlay, {
-                            visible: false
+                            visible: false,
+                            ignorePickIntersection: true
                         });
                         isConstrained = false;
                     }
@@ -2460,7 +2475,7 @@ SelectionDisplay = (function() {
                 }
 
                 if (stretchPanel !== null) {
-                    Overlays.editOverlay(stretchPanel, { visible: true });
+                    Overlays.editOverlay(stretchPanel, { visible: true, ignorePickIntersection: false });
                 }
                 var stretchCubePosition = Overlays.getProperty(handleStretchCube, "position");
                 var stretchPanelPosition = Overlays.getProperty(stretchPanel, "position");
@@ -2481,7 +2496,7 @@ SelectionDisplay = (function() {
                 }
                 
                 if (stretchPanel !== null) {
-                    Overlays.editOverlay(stretchPanel, { visible: false });
+                    Overlays.editOverlay(stretchPanel, { visible: false, ignorePickIntersection: true });
                 }
                 activeStretchCubePanelOffset = null;
                 
@@ -2775,7 +2790,8 @@ SelectionDisplay = (function() {
                     rotation: worldRotation,
                     startAt: 0,
                     endAt: 0,
-                    visible: true
+                    visible: true,
+                    ignorePickIntersection: false
                 });
 
                 // editOverlays may not have committed rotation changes.
@@ -2805,13 +2821,13 @@ SelectionDisplay = (function() {
                 if (wantDebug) {
                     print("================== " + getMode() + "(addHandleRotateTool onEnd) -> =======================");
                 }
-                Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
+                Overlays.editOverlay(rotationDegreesDisplay, { visible: false, ignorePickIntersection: true });
                 Overlays.editOverlay(selectedHandle, { 
                     hasTickMarks: false,
                     solid: true,
                     innerRadius: ROTATE_RING_IDLE_INNER_RADIUS
                 });
-                Overlays.editOverlay(handleRotateCurrentRing, { visible: false });
+                Overlays.editOverlay(handleRotateCurrentRing, { visible: false, ignorePickIntersection: true });
                 pushCommandForSelections();
                 if (wantDebug) {
                     print("================== " + getMode() + "(addHandleRotateTool onEnd) <- =======================");

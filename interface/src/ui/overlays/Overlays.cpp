@@ -43,14 +43,6 @@ std::unordered_map<QString, QString> Overlays::_entityToOverlayTypes;
 std::unordered_map<QString, QString> Overlays::_overlayToEntityTypes;
 
 Overlays::Overlays() {
-    auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, this, &Overlays::hoverEnterPointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverContinueOverlay, this, &Overlays::hoverOverPointerEvent);
-    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, this, &Overlays::hoverLeavePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, this, &Overlays::mousePressPointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, this, &Overlays::mouseMovePointerEvent);
-    connect(pointerManager.data(), &PointerManager::triggerEndOverlay, this, &Overlays::mouseReleasePointerEvent);
-
     ADD_TYPE_MAP(Box, cube);
     ADD_TYPE_MAP(Sphere, sphere);
     _overlayToEntityTypes["rectangle3d"] = "Shape";
@@ -81,13 +73,23 @@ void Overlays::cleanupAllOverlays() {
 
 void Overlays::init() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
-    auto pointerManager = DependencyManager::get<PointerManager>();
-    connect(pointerManager.data(), &PointerManager::hoverBeginOverlay, entityScriptingInterface , &EntityScriptingInterface::hoverEnterEntity);
-    connect(pointerManager.data(), &PointerManager::hoverContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
-    connect(pointerManager.data(), &PointerManager::hoverEndOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
-    connect(pointerManager.data(), &PointerManager::triggerBeginOverlay, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
-    connect(pointerManager.data(), &PointerManager::triggerContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
-    connect(pointerManager.data(), &PointerManager::triggerEndOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+    auto pointerManager = DependencyManager::get<PointerManager>().data();
+    connect(pointerManager, &PointerManager::hoverBeginOverlay, entityScriptingInterface , &EntityScriptingInterface::hoverEnterEntity);
+    connect(pointerManager, &PointerManager::hoverContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
+    connect(pointerManager, &PointerManager::hoverEndOverlay, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+    connect(pointerManager, &PointerManager::triggerBeginOverlay, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
+    connect(pointerManager, &PointerManager::triggerContinueOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(pointerManager, &PointerManager::triggerEndOverlay, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity, this, &Overlays::mousePressOnPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mousePressOffEntity, this, &Overlays::mousePressOffPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseDoublePressOnEntity, this, &Overlays::mouseDoublePressOnPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseDoublePressOffEntity, this, &Overlays::mouseDoublePressOffPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity, this, &Overlays::mouseReleasePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity, this, &Overlays::mouseMovePointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity , this, &Overlays::hoverEnterPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity, this, &Overlays::hoverOverPointerEvent);
+    connect(entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity, this, &Overlays::hoverLeavePointerEvent);
 }
 
 void Overlays::update(float deltatime) {
@@ -202,7 +204,8 @@ QString Overlays::overlayToEntityType(const QString& type) {
 #define RENAME_PROP(o, e)                                   \
     {                                                       \
         auto iter = overlayProps.find(#o);                  \
-        if (iter != overlayProps.end()) {                   \
+        if (iter != overlayProps.end() &&                   \
+                !overlayProps.contains(#e)) {               \
             overlayProps[#e] = iter.value();                \
         }                                                   \
     }
@@ -295,14 +298,14 @@ QString Overlays::overlayToEntityType(const QString& type) {
         }                                                   \
     }
 
-static QHash<QUuid, glm::quat> savedRotations = QHash<QUuid, glm::quat>();
+static QHash<QUuid, std::pair<glm::quat, bool>> savedRotations = QHash<QUuid, std::pair<glm::quat, bool>>();
 
 EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, const QString& type, bool add, const QUuid& id) {
-    glm::quat rotation;
+    std::pair<glm::quat, bool> rotation;
     return convertOverlayToEntityProperties(overlayProps, rotation, type, add, id);
 }
 
-EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, glm::quat& rotationToSave, const QString& type, bool add, const QUuid& id) {
+EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& overlayProps, std::pair<glm::quat, bool>& rotationToSave, const QString& type, bool add, const QUuid& id) {
     overlayProps["type"] = type;
 
     SET_OVERLAY_PROP_DEFAULT(alpha, 0.7);
@@ -311,7 +314,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP(start, position);
     }
     RENAME_PROP(point, position);
-    RENAME_PROP(scale, dimensions);
+    if (type != "Model") {
+        RENAME_PROP(scale, dimensions);
+    } else {
+        RENAME_PROP(scale, modelScale);
+    }
     RENAME_PROP(size, dimensions);
     RENAME_PROP(orientation, rotation);
     RENAME_PROP(localOrientation, localRotation);
@@ -409,32 +416,13 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
             overlayProps["dimensions"] = vec3toVariant(ratio * dimensions);
         }
 
-        if (add || overlayProps.contains("rotation")) {
-            glm::quat rotation;
-            {
-                auto iter = overlayProps.find("rotation");
-                if (iter != overlayProps.end()) {
-                    rotation = quatFromVariant(iter.value());
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_ROTATION;
-                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getRotation();
-                }
-            }
+        if (add && !overlayProps.contains("rotation") && !overlayProps.contains("localRotation")) {
+            overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, Vectors::RIGHT));
+        } else if (overlayProps.contains("rotation")) {
+            glm::quat rotation = quatFromVariant(overlayProps["rotation"]);
             overlayProps["rotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
-        }
-        if (add || overlayProps.contains("localRotation")) {
-            glm::quat rotation;
-            {
-                auto iter = overlayProps.find("localRotation");
-                if (iter != overlayProps.end()) {
-                    rotation = quatFromVariant(iter.value());
-                } else if (!add) {
-                    EntityPropertyFlags desiredProperties;
-                    desiredProperties += PROP_LOCAL_ROTATION;
-                    rotation = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getLocalRotation();
-                }
-            }
+        } else if (overlayProps.contains("localRotation")) {
+            glm::quat rotation = quatFromVariant(overlayProps["localRotation"]);
             overlayProps["localRotation"] = quatToVariant(glm::angleAxis(-(float)M_PI_2, rotation * Vectors::RIGHT) * rotation);
         }
 
@@ -506,15 +494,34 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
         RENAME_PROP_CONVERT(p1, p1, [](const QVariant& v) { return vec3toVariant(glm::vec3(0.0f)); });
         RENAME_PROP_CONVERT(p2, p2, [=](const QVariant& v) {
             glm::vec3 position;
+            bool hasPosition = false;
+            glm::quat rotation;
+            bool hasRotation = false;
+
             auto iter2 = overlayProps.find("position");
             if (iter2 != overlayProps.end()) {
                 position = vec3FromVariant(iter2.value());
-            } else if (!add) {
-                EntityPropertyFlags desiredProperties;
-                desiredProperties += PROP_POSITION;
-                position = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id, desiredProperties).getPosition();
+                hasPosition = true;
             }
-            return vec3toVariant(vec3FromVariant(v) - position);
+            iter2 = overlayProps.find("rotation");
+            if (iter2 != overlayProps.end()) {
+                rotation = quatFromVariant(iter2.value());
+                hasRotation = true;
+            }
+
+            if (!add && !(hasPosition && hasRotation)) {
+                auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+                if (entity) {
+                    if (!hasPosition) {
+                        position = entity->getWorldPosition();
+                    }
+                    if (!hasRotation) {
+                        rotation = entity->getWorldOrientation();
+                    }
+                }
+            }
+
+            return vec3toVariant(glm::inverse(rotation) * (vec3FromVariant(v) - position));
         });
 
         RENAME_PROP(localStart, p1);
@@ -561,27 +568,31 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
 
     if (type == "Text" || type == "Image" || type == "Grid" || type == "Web") {
         glm::quat originalRotation = ENTITY_ITEM_DEFAULT_ROTATION;
+        bool local = false;
         {
             auto iter = overlayProps.find("rotation");
             if (iter != overlayProps.end()) {
                 originalRotation = quatFromVariant(iter.value());
+                local = false;
             } else {
                 iter = overlayProps.find("localRotation");
                 if (iter != overlayProps.end()) {
                     originalRotation = quatFromVariant(iter.value());
+                    local = true;
                 } else if (!add) {
                     auto iter2 = savedRotations.find(id);
                     if (iter2 != savedRotations.end()) {
-                        originalRotation = iter2.value();
+                        originalRotation = iter2.value().first;
+                        local = iter2.value().second;
                     }
                 }
             }
         }
 
         if (!add) {
-            savedRotations[id] = originalRotation;
+            savedRotations[id] = { originalRotation, local };
         } else {
-            rotationToSave = originalRotation;
+            rotationToSave = { originalRotation, local };
         }
 
         glm::vec3 dimensions = ENTITY_ITEM_DEFAULT_DIMENSIONS;
@@ -612,7 +623,11 @@ EntityItemProperties Overlays::convertOverlayToEntityProperties(QVariantMap& ove
                 rotation = glm::angleAxis((float)M_PI, rotation * Vectors::UP) * rotation;
             }
 
-            overlayProps["localRotation"] = quatToVariant(rotation);
+            if (local) {
+                overlayProps["localRotation"] = quatToVariant(rotation);
+            } else {
+                overlayProps["rotation"] = quatToVariant(rotation);
+            }
             overlayProps["dimensions"] = vec3toVariant(glm::abs(dimensions));
         }
     }
@@ -636,7 +651,11 @@ QVariantMap Overlays::convertEntityToOverlayProperties(const EntityItemPropertie
         RENAME_PROP(position, start);
     }
     RENAME_PROP(position, point);
-    RENAME_PROP(dimensions, scale);
+    if (type != "Model") {
+        RENAME_PROP(dimensions, scale);
+    } else {
+        RENAME_PROP(modelScale, scale);
+    }
     RENAME_PROP(dimensions, size);
     RENAME_PROP(ignorePickIntersection, ignoreRayIntersection);
 
@@ -756,29 +775,29 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
         return UNKNOWN_ENTITY_ID;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QUuid result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
-        return result;
-    }
-
-    Overlay::Pointer overlay;
-    if (type == ImageOverlay::TYPE) {
+    if (type == ImageOverlay::TYPE || type == TextOverlay::TYPE || type == RectangleOverlay::TYPE) {
 #if !defined(DISABLE_QML)
-        overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-#endif
-    } else if (type == TextOverlay::TYPE) {
-#if !defined(DISABLE_QML)
-        overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-#endif
-    } else if (type == RectangleOverlay::TYPE) {
-        overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
-    }
+        if (QThread::currentThread() != thread()) {
+            QUuid result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QString&, type), Q_ARG(const QVariant&, properties));
+            return result;
+        }
 
-    if (overlay) {
-        overlay->setProperties(properties.toMap());
-        return add2DOverlay(overlay);
+        Overlay::Pointer overlay;
+        if (type == ImageOverlay::TYPE) {
+            overlay = Overlay::Pointer(new ImageOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        } else if (type == TextOverlay::TYPE) {
+            overlay = Overlay::Pointer(new TextOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        } else if (type == RectangleOverlay::TYPE) {
+            overlay = Overlay::Pointer(new RectangleOverlay(), [](Overlay* ptr) { ptr->deleteLater(); });
+        }
+        if (overlay) {
+            overlay->setProperties(properties.toMap());
+            return add2DOverlay(overlay);
+        }
+#endif
+        return QUuid();
     }
 
     QString entityType = overlayToEntityType(type);
@@ -790,7 +809,7 @@ QUuid Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (type == "rectangle3d") {
         propertyMap["shape"] = "Quad";
     }
-    glm::quat rotationToSave;
+    std::pair<glm::quat, bool> rotationToSave;
     QUuid id = DependencyManager::get<EntityScriptingInterface>()->addEntityInternal(convertOverlayToEntityProperties(propertyMap, rotationToSave, entityType, true), entity::HostType::LOCAL);
     if (entityType == "Text" || entityType == "Image" || entityType == "Grid" || entityType == "Web") {
         savedRotations[id] = rotationToSave;
@@ -819,15 +838,14 @@ QUuid Overlays::cloneOverlay(const QUuid& id) {
         return UNKNOWN_ENTITY_ID;
     }
 
-    if (QThread::currentThread() != thread()) {
-        QUuid result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QUuid result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(QUuid, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return add2DOverlay(Overlay::Pointer(overlay->createClone(), [](Overlay* ptr) { ptr->deleteLater(); }));
     }
 
@@ -903,6 +921,11 @@ void Overlays::deleteOverlay(const QUuid& id) {
 
     Overlay::Pointer overlay = take2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(const QUuid&, id));
+            return;
+        }
+
         _overlaysToDelete.push_back(overlay);
         emit overlayDeleted(id);
         return;
@@ -917,15 +940,14 @@ QString Overlays::getOverlayType(const QUuid& id) {
         return "";
     }
 
-    if (QThread::currentThread() != thread()) {
-        QString result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QString result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return overlay->getType();
     }
 
@@ -933,15 +955,14 @@ QString Overlays::getOverlayType(const QUuid& id) {
 }
 
 QObject* Overlays::getOverlayObject(const QUuid& id) {
-    if (QThread::currentThread() != thread()) {
-        QObject* result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QObject* result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(const QUuid&, id));
+            return result;
+        }
         return qobject_cast<QObject*>(&(*overlay));
     }
 
@@ -953,6 +974,12 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
         return UNKNOWN_ENTITY_ID;
     }
 
+    if (QThread::currentThread() != thread()) {
+        QUuid result;
+        BLOCKING_INVOKE_METHOD(this, "getOverlayAtPoint", Q_RETURN_ARG(QUuid, result), Q_ARG(const glm::vec2&, point));
+        return result;
+    }
+
     QMutexLocker locker(&_mutex);
     QMapIterator<QUuid, Overlay::Pointer> i(_overlays);
     unsigned int bestStackOrder = 0;
@@ -960,8 +987,7 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
     while (i.hasNext()) {
         i.next();
         auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
-        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-            thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
+        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
             if (thisOverlay->getStackOrder() > bestStackOrder) {
                 bestID = i.key();
                 bestStackOrder = thisOverlay->getStackOrder();
@@ -975,9 +1001,7 @@ QUuid Overlays::getOverlayAtPoint(const glm::vec2& point) {
 QVariant Overlays::getProperty(const QUuid& id, const QString& property) {
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
-        if (overlay->supportsGetProperty()) {
-            return overlay->getProperty(property);
-        }
+        // We don't support getting properties from QML Overlays right now
         return QVariant();
     }
 
@@ -993,12 +1017,8 @@ QVariantMap Overlays::getProperties(const QUuid& id, const QStringList& properti
     Overlay::Pointer overlay = get2DOverlay(id);
     QVariantMap result;
     if (overlay) {
-        if (overlay->supportsGetProperty()) {
-            for (const auto& property : properties) {
-                result.insert(property, overlay->getProperty(property));
-            }
-        }
-        return result;
+        // We don't support getting properties from QML Overlays right now
+        return QVariantMap();
     }
 
     QVariantMap overlayProperties = convertEntityToOverlayProperties(DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(id));
@@ -1125,38 +1145,30 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 }
 
 bool Overlays::isLoaded(const QUuid& id) {
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(const QUuid&, id));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
-        return overlay->isLoaded();
+        return true;
     }
 
     return DependencyManager::get<EntityScriptingInterface>()->isLoaded(id);
 }
 
 QSizeF Overlays::textSize(const QUuid& id, const QString& text) {
-    if (QThread::currentThread() != thread()) {
-        QSizeF result;
-        PROFILE_RANGE(script, __FUNCTION__);
-        BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(const QUuid&, id), Q_ARG(QString, text));
-        return result;
-    }
-
     Overlay::Pointer overlay = get2DOverlay(id);
     if (overlay) {
+        if (QThread::currentThread() != thread()) {
+            QSizeF result;
+            PROFILE_RANGE(script, __FUNCTION__);
+            BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(const QUuid&, id), Q_ARG(QString, text));
+            return result;
+        }
         if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(overlay)) {
             return textOverlay->textSize(text);
         }
         return QSizeF(0.0f, 0.0f);
-    } else {
-        return DependencyManager::get<EntityScriptingInterface>()->textSize(id, text);
     }
+
+    return DependencyManager::get<EntityScriptingInterface>()->textSize(id, text);
 }
 
 bool Overlays::isAddedOverlay(const QUuid& id) {
@@ -1169,7 +1181,7 @@ bool Overlays::isAddedOverlay(const QUuid& id) {
 }
 
 void Overlays::sendMousePressOnOverlay(const QUuid& id, const PointerEvent& event) {
-    mousePressPointerEvent(id, event);
+    mousePressOnPointerEvent(id, event);
 }
 
 void Overlays::sendMouseReleaseOnOverlay(const QUuid& id, const PointerEvent& event) {
@@ -1216,57 +1228,66 @@ float Overlays::height() {
     return offscreenUi->getWindow()->size().height();
 }
 
-static uint32_t toPointerButtons(const QMouseEvent& event) {
-    uint32_t buttons = 0;
-    buttons |= event.buttons().testFlag(Qt::LeftButton) ? PointerEvent::PrimaryButton : 0;
-    buttons |= event.buttons().testFlag(Qt::RightButton) ? PointerEvent::SecondaryButton : 0;
-    buttons |= event.buttons().testFlag(Qt::MiddleButton) ? PointerEvent::TertiaryButton : 0;
-    return buttons;
-}
-
-static PointerEvent::Button toPointerButton(const QMouseEvent& event) {
-    switch (event.button()) {
-        case Qt::LeftButton:
-            return PointerEvent::PrimaryButton;
-        case Qt::RightButton:
-            return PointerEvent::SecondaryButton;
-        case Qt::MiddleButton:
-            return PointerEvent::TertiaryButton;
-        default:
-            return PointerEvent::NoButtons;
-    }
-}
-
-RayToOverlayIntersectionResult getPrevPickResult() {
-    RayToOverlayIntersectionResult overlayResult;
-    overlayResult.intersects = false;
-    auto pickResult = DependencyManager::get<PickManager>()->getPrevPickResultTyped<RayPickResult>(DependencyManager::get<EntityTreeRenderer>()->getMouseRayPickID());
-    if (pickResult) {
-        overlayResult.intersects = pickResult->type == IntersectionType::LOCAL_ENTITY;
-        if (overlayResult.intersects) {
-            overlayResult.intersection = pickResult->intersection;
-            overlayResult.distance = pickResult->distance;
-            overlayResult.surfaceNormal = pickResult->surfaceNormal;
-            overlayResult.overlayID = pickResult->objectID;
-            overlayResult.extraInfo = pickResult->extraInfo;
+void Overlays::mousePressOnPointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mousePressOnOverlay(id, event);
         }
     }
-    return overlayResult;
 }
 
-PointerEvent Overlays::calculateOverlayPointerEvent(const QUuid& id, const PickRay& ray,
-                                                    const RayToOverlayIntersectionResult& rayPickResult, QMouseEvent* event,
-                                                    PointerEvent::EventType eventType) {
-    glm::vec2 pos2D = RayPick::projectOntoEntityXYPlane(id, rayPickResult.intersection);
-    return PointerEvent(eventType, PointerManager::MOUSE_POINTER_ID, pos2D, rayPickResult.intersection, rayPickResult.surfaceNormal,
-                        ray.direction, toPointerButton(*event), toPointerButtons(*event), event->modifiers());
+void Overlays::mousePressOffPointerEvent() {
+    emit mousePressOffOverlay();
+}
+
+void Overlays::mouseDoublePressOnPointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mouseDoublePressOnOverlay(id, event);
+        }
+    }
+}
+
+void Overlays::mouseDoublePressOffPointerEvent() {
+    emit mouseDoublePressOffOverlay();
+}
+
+void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mouseReleaseOnOverlay(id, event);
+        }
+    }
+}
+
+void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
+    auto keyboard = DependencyManager::get<Keyboard>();
+    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
+    if (!keyboard->getKeyIDs().contains(id)) {
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit mouseMoveOnOverlay(id, event);
+        }
+    }
 }
 
 void Overlays::hoverEnterPointerEvent(const QUuid& id, const PointerEvent& event) {
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeyIDs().contains(id)) {
-        emit hoverEnterOverlay(id, event);
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit hoverEnterOverlay(id, event);
+        }
     }
 }
 
@@ -1274,7 +1295,10 @@ void Overlays::hoverOverPointerEvent(const QUuid& id, const PointerEvent& event)
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeyIDs().contains(id)) {
-        emit hoverOverOverlay(id, event);
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit hoverOverOverlay(id, event);
+        }
     }
 }
 
@@ -1282,113 +1306,10 @@ void Overlays::hoverLeavePointerEvent(const QUuid& id, const PointerEvent& event
     auto keyboard = DependencyManager::get<Keyboard>();
     // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
     if (!keyboard->getKeyIDs().contains(id)) {
-        emit hoverLeaveOverlay(id, event);
-    }
-}
-
-std::pair<float, QUuid> Overlays::mousePressEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mousePressEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        _currentClickingOnOverlayID = rayPickResult.overlayID;
-
-        PointerEvent pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        mousePressPointerEvent(_currentClickingOnOverlayID, pointerEvent);
-        return { rayPickResult.distance, rayPickResult.overlayID };
-    }
-    emit mousePressOffOverlay();
-    return { FLT_MAX, UNKNOWN_ENTITY_ID };
-}
-
-void Overlays::mousePressPointerEvent(const QUuid& id, const PointerEvent& event) {
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeyIDs().contains(id)) {
-        emit mousePressOnOverlay(id, event);
-    }
-}
-
-bool Overlays::mouseDoublePressEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseDoublePressEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        _currentClickingOnOverlayID = rayPickResult.overlayID;
-
-        auto pointerEvent = calculateOverlayPointerEvent(_currentClickingOnOverlayID, ray, rayPickResult, event, PointerEvent::Press);
-        emit mouseDoublePressOnOverlay(_currentClickingOnOverlayID, pointerEvent);
-        return true;
-    }
-    emit mouseDoublePressOffOverlay();
-    return false;
-}
-
-bool Overlays::mouseReleaseEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseReleaseEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Release);
-        mouseReleasePointerEvent(rayPickResult.overlayID, pointerEvent);
-    }
-
-    _currentClickingOnOverlayID = UNKNOWN_ENTITY_ID;
-    return false;
-}
-
-void Overlays::mouseReleasePointerEvent(const QUuid& id, const PointerEvent& event) {
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeyIDs().contains(id)) {
-        emit mouseReleaseOnOverlay(id, event);
-    }
-}
-
-bool Overlays::mouseMoveEvent(QMouseEvent* event) {
-    PerformanceTimer perfTimer("Overlays::mouseMoveEvent");
-
-    PickRay ray = qApp->computePickRay(event->x(), event->y());
-    RayToOverlayIntersectionResult rayPickResult = getPrevPickResult();
-    if (rayPickResult.intersects) {
-        auto pointerEvent = calculateOverlayPointerEvent(rayPickResult.overlayID, ray, rayPickResult, event, PointerEvent::Move);
-        mouseMovePointerEvent(rayPickResult.overlayID, pointerEvent);
-
-        // If previously hovering over a different overlay then leave hover on that overlay.
-        if (_currentHoverOverOverlayID != UNKNOWN_ENTITY_ID && rayPickResult.overlayID != _currentHoverOverOverlayID) {
-            auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
-            hoverLeavePointerEvent(_currentHoverOverOverlayID, pointerEvent);
+        auto entity = DependencyManager::get<EntityTreeRenderer>()->getEntity(id);
+        if (entity && entity->isLocalEntity()) {
+            emit hoverLeaveOverlay(id, event);
         }
-
-        // If hovering over a new overlay then enter hover on that overlay.
-        if (rayPickResult.overlayID != _currentHoverOverOverlayID) {
-            hoverEnterPointerEvent(rayPickResult.overlayID, pointerEvent);
-        }
-
-        // Hover over current overlay.
-        hoverOverPointerEvent(rayPickResult.overlayID, pointerEvent);
-
-        _currentHoverOverOverlayID = rayPickResult.overlayID;
-    } else {
-        // If previously hovering an overlay then leave hover.
-        if (_currentHoverOverOverlayID != UNKNOWN_ENTITY_ID) {
-            auto pointerEvent = calculateOverlayPointerEvent(_currentHoverOverOverlayID, ray, rayPickResult, event, PointerEvent::Move);
-            hoverLeavePointerEvent(_currentHoverOverOverlayID, pointerEvent);
-
-            _currentHoverOverOverlayID = UNKNOWN_ENTITY_ID;
-        }
-    }
-    return false;
-}
-
-void Overlays::mouseMovePointerEvent(const QUuid& id, const PointerEvent& event) {
-    auto keyboard = DependencyManager::get<Keyboard>();
-    // Do not send keyboard key event to scripts to prevent malignant scripts from gathering what you typed
-    if (!keyboard->getKeyIDs().contains(id)) {
-        emit mouseMoveOnOverlay(id, event);
     }
 }
 
@@ -1718,7 +1639,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  *
  * @property {Vec3} position - The position of the overlay center. Synonyms: <code>p1</code>, <code>point</code>, and
  *     <code>start</code>.
- * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>scale</code>, <code>size</code>.
+ * @property {Vec3} dimensions - The dimensions of the overlay. Synonyms: <code>size</code>.
+ * @property {Vec3} scale - The scale factor applied to the model's dimensions.
  * @property {Quat} rotation - The orientation of the overlay. Synonym: <code>orientation</code>.
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
@@ -1789,9 +1711,9 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
- * @property {boolean} isFacingAvatar - If <code>true< / code>, the overlay is rotated to face the user's camera about an axis
+ * @property {boolean} isFacingAvatar - If <code>true</code>, the overlay is rotated to face the user's camera about an axis
  *     parallel to the user's avatar's "up" direction.
- * @property {string} text="" - The text to display.Text does not automatically wrap; use <code>\n< / code> for a line break.
+ * @property {string} text="" - The text to display.Text does not automatically wrap; use <code>\n</code> for a line break.
  * @property {number} textAlpha=1 - The text alpha value.
  * @property {Color} backgroundColor=0,0,0 - The background color.
  * @property {number} backgroundAlpha=0.7 - The background alpha value.
@@ -1954,7 +1876,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
- *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
  * @property {boolean} drawInFront=false - If <code>true</code>, the overlay is rendered in front of objects in the world, but behind the HUD.
  * @property {boolean} drawHUDLayer=false - If <code>true</code>, the overlay is rendered in front of everything, including the HUD.
@@ -1994,7 +1916,7 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {Vec3} localPosition - The local position of the overlay relative to its parent if the overlay has a
  *     <code>parentID</code> set, otherwise the same value as <code>position</code>.
  * @property {Quat} localRotation - The orientation of the overlay relative to its parent if the overlay has a
- *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>.  Synonym: <code>localOrientation</code>.
+ *     <code>parentID</code> set, otherwise the same value as <code>rotation</code>. Synonym: <code>localOrientation</code>.
  * @property {boolean} isSolid=false - Synonyms: <ode>solid</code>, <code>isFilled</code>, and <code>filled</code>.
  *     Antonyms: <code>isWire</code> and <code>wire</code>.
  * @property {boolean} ignorePickIntersection=false - If <code>true</code>, picks ignore the overlay.  <code>ignoreRayIntersection</code> is a synonym.
@@ -2005,46 +1927,46 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
  * @property {number} parentJointIndex=65535 - Integer value specifying the skeleton joint that the overlay is attached to if
  *     <code>parentID</code> is an avatar skeleton. A value of <code>65535</code> means "no joint".
  *
- * @property {number} startAt = 0 - The counter - clockwise angle from the overlay's x-axis that drawing starts at, in degrees.
- * @property {number} endAt = 360 - The counter - clockwise angle from the overlay's x-axis that drawing ends at, in degrees.
- * @property {number} outerRadius = 1 - The outer radius of the overlay, in meters.Synonym: <code>radius< / code>.
- * @property {number} innerRadius = 0 - The inner radius of the overlay, in meters.
- * @property {Color} color = 255, 255, 255 - The color of the overlay.Setting this value also sets the values of
- *     <code>innerStartColor< / code>, <code>innerEndColor< / code>, <code>outerStartColor< / code>, and <code>outerEndColor< / code>.
- * @property {Color} startColor - Sets the values of <code>innerStartColor< / code> and <code>outerStartColor< / code>.
- *     <em>Write - only.< / em>
- * @property {Color} endColor - Sets the values of <code>innerEndColor< / code> and <code>outerEndColor< / code>.
- *     <em>Write - only.< / em>
- * @property {Color} innerColor - Sets the values of <code>innerStartColor< / code> and <code>innerEndColor< / code>.
- *     <em>Write - only.< / em>
- * @property {Color} outerColor - Sets the values of <code>outerStartColor< / code> and <code>outerEndColor< / code>.
- *     <em>Write - only.< / em>
+ * @property {number} startAt = 0 - The counter - clockwise angle from the overlay's x-axis that drawing starts at in degrees.
+ * @property {number} endAt = 360 - The counter - clockwise angle from the overlay's x-axis that drawing ends at in degrees.
+ * @property {number} outerRadius = 1 - The outer radius of the overlay in meters. Synonym: <code>radius</code>.
+ * @property {number} innerRadius = 0 - The inner radius of the overlay in meters.
+ * @property {Color} color = 255, 255, 255 - The color of the overlay. Setting this value also sets the values of
+ *     <code>innerStartColor</code>, <code>innerEndColor</code>, <code>outerStartColor</code>, and <code>outerEndColor</code>.
+ * @property {Color} startColor - Sets the values of <code>innerStartColor</code> and <code>outerStartColor</code>.
+ *     <em>Write - only.</em>
+ * @property {Color} endColor - Sets the values of <code>innerEndColor</code> and <code>outerEndColor</code>.
+ *     <em>Write - only.</em>
+ * @property {Color} innerColor - Sets the values of <code>innerStartColor</code> and <code>innerEndColor</code>.
+ *     <em>Write - only.</em>
+ * @property {Color} outerColor - Sets the values of <code>outerStartColor</code> and <code>outerEndColor</code>.
+ *     <em>Write - only.</em>
  * @property {Color} innerStartcolor - The color at the inner start point of the overlay.
  * @property {Color} innerEndColor - The color at the inner end point of the overlay.
  * @property {Color} outerStartColor - The color at the outer start point of the overlay.
  * @property {Color} outerEndColor - The color at the outer end point of the overlay.
- * @property {number} alpha = 0.5 - The opacity of the overlay, <code>0.0< / code> -<code>1.0< / code>.Setting this value also sets
- *     the values of <code>innerStartAlpha< / code>, <code>innerEndAlpha< / code>, <code>outerStartAlpha< / code>, and
- *     <code>outerEndAlpha< / code>.Synonym: <code>Alpha< / code>; <em>write - only< / em>.
- * @property {number} startAlpha - Sets the values of <code>innerStartAlpha< / code> and <code>outerStartAlpha< / code>.
- *     <em>Write - only.< / em>
- * @property {number} endAlpha - Sets the values of <code>innerEndAlpha< / code> and <code>outerEndAlpha< / code>.
- *     <em>Write - only.< / em>
- * @property {number} innerAlpha - Sets the values of <code>innerStartAlpha< / code> and <code>innerEndAlpha< / code>.
- *     <em>Write - only.< / em>
- * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha< / code> and <code>outerEndAlpha< / code>.
- *     <em>Write - only.< / em>
+ * @property {number} alpha = 0.5 - The opacity of the overlay, <code>0.0</code> -<code>1.0</code>. Setting this value also sets
+ *     the values of <code>innerStartAlpha</code>, <code>innerEndAlpha</code>, <code>outerStartAlpha</code>, and
+ *     <code>outerEndAlpha</code>. Synonym: <code>Alpha</code>; <em>write - only</em>.
+ * @property {number} startAlpha - Sets the values of <code>innerStartAlpha</code> and <code>outerStartAlpha</code>.
+ *     <em>Write - only.</em>
+ * @property {number} endAlpha - Sets the values of <code>innerEndAlpha</code> and <code>outerEndAlpha</code>.
+ *     <em>Write - only.</em>
+ * @property {number} innerAlpha - Sets the values of <code>innerStartAlpha</code> and <code>innerEndAlpha</code>.
+ *     <em>Write - only.</em>
+ * @property {number} outerAlpha - Sets the values of <code>outerStartAlpha</code> and <code>outerEndAlpha</code>.
+ *     <em>Write - only.</em>
  * @property {number} innerStartAlpha = 0 - The alpha at the inner start point of the overlay.
  * @property {number} innerEndAlpha = 0 - The alpha at the inner end point of the overlay.
  * @property {number} outerStartAlpha = 0 - The alpha at the outer start point of the overlay.
  * @property {number} outerEndAlpha = 0 - The alpha at the outer end point of the overlay.
  *
- * @property {boolean} hasTickMarks = false - If <code>true< / code>, tick marks are drawn.
+ * @property {boolean} hasTickMarks = false - If <code>true</code>, tick marks are drawn.
  * @property {number} majorTickMarksAngle = 0 - The angle between major tick marks, in degrees.
  * @property {number} minorTickMarksAngle = 0 - The angle between minor tick marks, in degrees.
- * @property {number} majorTickMarksLength = 0 - The length of the major tick marks, in meters.A positive value draws tick marks
+ * @property {number} majorTickMarksLength = 0 - The length of the major tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
- * @property {number} minorTickMarksLength = 0 - The length of the minor tick marks, in meters.A positive value draws tick marks
+ * @property {number} minorTickMarksLength = 0 - The length of the minor tick marks, in meters. A positive value draws tick marks
  *     outwards from the inner radius; a negative value draws tick marks inwards from the outer radius.
  * @property {Color} majorTickMarksColor = 0, 0, 0 - The color of the major tick marks.
  * @property {Color} minorTickMarksColor = 0, 0, 0 - The color of the minor tick marks.

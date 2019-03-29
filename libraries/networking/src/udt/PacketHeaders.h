@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         SetAvatarTraits,
-        UNUSED_PACKET_TYPE,
+        InjectorGainSet,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -260,8 +260,12 @@ enum class EntityVersion : PacketVersion {
     MissingWebEntityProperties,
     PulseProperties,
     RingGizmoEntities,
+    AvatarPriorityZone,
     ShowKeyboardFocusHighlight,
     WebBillboardMode,
+    ModelScale,
+    ReOrderParentIDProperties,
+    CertificateTypeProperty,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

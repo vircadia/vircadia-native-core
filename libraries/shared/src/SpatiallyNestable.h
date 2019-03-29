@@ -129,9 +129,9 @@ public:
     virtual void setSNScale(const glm::vec3& scale, bool& success);
 
     // get world-frame values for a specific joint
-    virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
-    virtual glm::vec3 getWorldPosition(int jointIndex, bool& success) const;
-    virtual glm::vec3 getSNScale(int jointIndex, bool& success) const;
+    virtual const Transform getJointTransform(int jointIndex, bool& success, int depth = 0) const;
+    virtual glm::vec3 getJointWorldPosition(int jointIndex, bool& success) const;
+    virtual glm::vec3 getJointSNScale(int jointIndex, bool& success) const;
 
     // object's parent's frame
     virtual Transform getLocalTransform() const;
@@ -211,7 +211,7 @@ public:
 
     void dump(const QString& prefix = "") const;
 
-    virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
+    virtual void locationChanged(bool tellPhysics = true, bool tellChildren = true); // called when a this object's location has changed
     virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
     virtual void parentDeleted() { } // called on children of a deleted parent
 
@@ -221,7 +221,7 @@ public:
     bool hasGrabs();
     virtual QUuid getEditSenderID();
 
-    void bumpAncestorChainRenderableVersion() const;
+    void bumpAncestorChainRenderableVersion(int depth = 0) const;
 
 protected:
     QUuid _id;

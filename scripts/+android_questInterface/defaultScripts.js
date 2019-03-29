@@ -14,8 +14,8 @@
 var DEFAULT_SCRIPTS_COMBINED = [
     "system/request-service.js",
     "system/progress.js",
-    //"system/away.js",
-    "system/hmd.js",
+    "system/away.js",
+    //"system/hmd.js",
     "system/menu.js",
     "system/bubble.js",
     "system/pal.js", // "system/mod.js", // older UX, if you prefer
@@ -25,6 +25,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/notifications.js",
     "system/commerce/wallet.js",
     "system/dialTone.js",
+    "system/marketplaces/marketplaces.js",
     "system/quickGoto.js",
     "system/firstPersonHMD.js",
     "system/tablet-ui/tabletUI.js",

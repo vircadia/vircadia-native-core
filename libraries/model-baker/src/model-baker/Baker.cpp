@@ -11,15 +11,16 @@
 
 #include "Baker.h"
 
-#include <shared/HifiTypes.h>
-
 #include "BakerTypes.h"
+#include "ModelMath.h"
 #include "BuildGraphicsMeshTask.h"
 #include "CalculateMeshNormalsTask.h"
 #include "CalculateMeshTangentsTask.h"
 #include "CalculateBlendshapeNormalsTask.h"
 #include "CalculateBlendshapeTangentsTask.h"
 #include "PrepareJointsTask.h"
+#include "BuildDracoMeshTask.h"
+#include "ParseFlowDataTask.h"
 
 namespace baker {
 
@@ -59,12 +60,12 @@ namespace baker {
             blendshapesPerMeshOut = blendshapesPerMeshIn;
 
             for (int i = 0; i < (int)blendshapesPerMeshOut.size(); i++) {
-                const auto& normalsPerBlendshape = normalsPerBlendshapePerMesh[i];
-                const auto& tangentsPerBlendshape = tangentsPerBlendshapePerMesh[i];
+                const auto& normalsPerBlendshape = safeGet(normalsPerBlendshapePerMesh, i);
+                const auto& tangentsPerBlendshape = safeGet(tangentsPerBlendshapePerMesh, i);
                 auto& blendshapesOut = blendshapesPerMeshOut[i];
                 for (int j = 0; j < (int)blendshapesOut.size(); j++) {
-                    const auto& normals = normalsPerBlendshape[j];
-                    const auto& tangents = tangentsPerBlendshape[j];
+                    const auto& normals = safeGet(normalsPerBlendshape, j);
+                    const auto& tangents = safeGet(tangentsPerBlendshape, j);
                     auto& blendshape = blendshapesOut[j];
                     blendshape.normals = QVector<glm::vec3>::fromStdVector(normals);
                     blendshape.tangents = QVector<glm::vec3>::fromStdVector(tangents);
@@ -90,10 +91,10 @@ namespace baker {
             auto meshesOut = meshesIn;
             for (int i = 0; i < numMeshes; i++) {
                 auto& meshOut = meshesOut[i];
-                meshOut._mesh = graphicsMeshesIn[i];
-                meshOut.normals = QVector<glm::vec3>::fromStdVector(normalsPerMeshIn[i]);
-                meshOut.tangents = QVector<glm::vec3>::fromStdVector(tangentsPerMeshIn[i]);
-                meshOut.blendshapes = QVector<hfm::Blendshape>::fromStdVector(blendshapesPerMeshIn[i]);
+                meshOut._mesh = safeGet(graphicsMeshesIn, i);
+                meshOut.normals = QVector<glm::vec3>::fromStdVector(safeGet(normalsPerMeshIn, i));
+                meshOut.tangents = QVector<glm::vec3>::fromStdVector(safeGet(tangentsPerMeshIn, i));
+                meshOut.blendshapes = QVector<hfm::Blendshape>::fromStdVector(safeGet(blendshapesPerMeshIn, i));
             }
             output = meshesOut;
         }
@@ -101,7 +102,7 @@ namespace baker {
 
     class BuildModelTask {
     public:
-        using Input = VaryingSet5<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>>;
+        using Input = VaryingSet6<hfm::Model::Pointer, std::vector<hfm::Mesh>, std::vector<hfm::Joint>, QMap<int, glm::quat>, QHash<QString, int>, FlowData>;
         using Output = hfm::Model::Pointer;
         using JobModel = Job::ModelIO<BuildModelTask, Input, Output>;
 
@@ -111,6 +112,7 @@ namespace baker {
             hfmModelOut->joints = QVector<hfm::Joint>::fromStdVector(input.get2());
             hfmModelOut->jointRotationOffsets = input.get3();
             hfmModelOut->jointIndices = input.get4();
+            hfmModelOut->flowData = input.get5();
             hfmModelOut->computeKdops();
             output = hfmModelOut;
         }
@@ -118,12 +120,13 @@ namespace baker {
 
     class BakerEngineBuilder {
     public:
-        using Input = VaryingSet2<hfm::Model::Pointer, QVariantHash>;
-        using Output = VaryingSet2<hfm::Model::Pointer, MaterialMapping>;
+        using Input = VaryingSet3<hfm::Model::Pointer, hifi::VariantHash, hifi::URL>;
+        using Output = VaryingSet4<hfm::Model::Pointer, MaterialMapping, std::vector<hifi::ByteArray>, std::vector<std::vector<hifi::ByteArray>>>;
         using JobModel = Task::ModelIO<BakerEngineBuilder, Input, Output>;
         void build(JobModel& model, const Varying& input, Varying& output) {
             const auto& hfmModelIn = input.getN<Input>(0);
             const auto& mapping = input.getN<Input>(1);
+            const auto& materialMappingBaseURL = input.getN<Input>(2);
 
             // Split up the inputs from hfm::Model
             const auto modelPartsIn = model.addJob<GetModelPartsTask>("GetModelParts", hfmModelIn);
@@ -156,30 +159,62 @@ namespace baker {
             const auto jointIndices = jointInfoOut.getN<PrepareJointsTask::Output>(2);
 
             // Parse material mapping
-            const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", mapping);
+            const auto parseMaterialMappingInputs = ParseMaterialMappingTask::Input(mapping, materialMappingBaseURL).asVarying();
+            const auto materialMapping = model.addJob<ParseMaterialMappingTask>("ParseMaterialMapping", parseMaterialMappingInputs);
+
+            // Build Draco meshes
+            // NOTE: This task is disabled by default and must be enabled through configuration
+            // TODO: Tangent support (Needs changes to FBXSerializer_Mesh as well)
+            // NOTE: Due to an unresolved linker error, BuildDracoMeshTask is not functional on Android
+            // TODO: Figure out why BuildDracoMeshTask.cpp won't link with draco on Android
+            const auto buildDracoMeshInputs = BuildDracoMeshTask::Input(meshesIn, normalsPerMesh, tangentsPerMesh).asVarying();
+            const auto buildDracoMeshOutputs = model.addJob<BuildDracoMeshTask>("BuildDracoMesh", buildDracoMeshInputs);
+            const auto dracoMeshes = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(0);
+            const auto materialList = buildDracoMeshOutputs.getN<BuildDracoMeshTask::Output>(1);
+
+            // Parse flow data
+            const auto flowData = model.addJob<ParseFlowDataTask>("ParseFlowData", mapping);
 
             // Combine the outputs into a new hfm::Model
             const auto buildBlendshapesInputs = BuildBlendshapesTask::Input(blendshapesPerMeshIn, normalsPerBlendshapePerMesh, tangentsPerBlendshapePerMesh).asVarying();
             const auto blendshapesPerMeshOut = model.addJob<BuildBlendshapesTask>("BuildBlendshapes", buildBlendshapesInputs);
             const auto buildMeshesInputs = BuildMeshesTask::Input(meshesIn, graphicsMeshes, normalsPerMesh, tangentsPerMesh, blendshapesPerMeshOut).asVarying();
             const auto meshesOut = model.addJob<BuildMeshesTask>("BuildMeshes", buildMeshesInputs);
-            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices).asVarying();
+            const auto buildModelInputs = BuildModelTask::Input(hfmModelIn, meshesOut, jointsOut, jointRotationOffsets, jointIndices, flowData).asVarying();
             const auto hfmModelOut = model.addJob<BuildModelTask>("BuildModel", buildModelInputs);
 
-            output = Output(hfmModelOut, materialMapping);
+            output = Output(hfmModelOut, materialMapping, dracoMeshes, materialList);
         }
     };
 
-    Baker::Baker(const hfm::Model::Pointer& hfmModel, const QVariantHash& mapping) :
+    Baker::Baker(const hfm::Model::Pointer& hfmModel, const hifi::VariantHash& mapping, const hifi::URL& materialMappingBaseURL) :
         _engine(std::make_shared<Engine>(BakerEngineBuilder::JobModel::create("Baker"), std::make_shared<BakeContext>())) {
         _engine->feedInput<BakerEngineBuilder::Input>(0, hfmModel);
         _engine->feedInput<BakerEngineBuilder::Input>(1, mapping);
+        _engine->feedInput<BakerEngineBuilder::Input>(2, materialMappingBaseURL);
+    }
+
+    std::shared_ptr<TaskConfig> Baker::getConfiguration() {
+        return _engine->getConfiguration();
     }
 
     void Baker::run() {
         _engine->run();
-        hfmModel = _engine->getOutput().get<BakerEngineBuilder::Output>().get0();
-        materialMapping = _engine->getOutput().get<BakerEngineBuilder::Output>().get1();
     }
 
+    hfm::Model::Pointer Baker::getHFMModel() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get0();
+    }
+    
+    MaterialMapping Baker::getMaterialMapping() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get1();
+    }
+
+    const std::vector<hifi::ByteArray>& Baker::getDracoMeshes() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get2();
+    }
+
+    std::vector<std::vector<hifi::ByteArray>> Baker::getDracoMaterialLists() const {
+        return _engine->getOutput().get<BakerEngineBuilder::Output>().get3();
+    }
 };

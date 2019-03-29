@@ -82,6 +82,7 @@ private:
     QSharedPointer<OffscreenQmlSurface> _webSurface { nullptr };
     bool _cachedWebSurface { false };
     gpu::TexturePointer _texture;
+    QString _tryingToBuildURL;
 
     glm::u8vec3 _color;
     float _alpha { 1.0f };
@@ -105,7 +106,7 @@ private:
     static std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> _releaseWebSurfaceOperator;
 
 public slots:
-    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitScriptEvent(const QVariant& scriptMessage) override;
 
 signals:
     void scriptEventReceived(const QVariant& message);

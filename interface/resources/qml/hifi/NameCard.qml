@@ -46,6 +46,8 @@ Item {
     property string placeName: ""
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
     property alias avImage: avatarImage
+    property bool has3DHTML: PlatformInfo.has3DHTML();
+
     Item {
         id: avatarImage
         visible: profileUrl !== "" && userName !== "";
@@ -94,10 +96,12 @@ Item {
             enabled: (selected && activeTab == "nearbyTab") || isMyCard;
             hoverEnabled: enabled
             onClicked: {
-                userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
-                userInfoViewer.visible = true;
+                if (has3DHTML) {
+                    userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
+                    userInfoViewer.visible = true;
+                }
             }
-            onEntered: infoHoverImage.visible = true;
+            onEntered: infoHoverImage.visible = has3DHTML;
             onExited: infoHoverImage.visible = false;
         }
     }
@@ -352,7 +356,7 @@ Item {
     }
     StateImage {
         id: nameCardConnectionInfoImage
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && has3DHTML
         imageURL: "../../images/info-icon-2-state.svg" // PLACEHOLDER!!!
         size: 32;
         buttonState: 0;
@@ -364,8 +368,10 @@ Item {
         enabled: selected
         hoverEnabled: true
         onClicked: {
-            userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
-            userInfoViewer.visible = true;
+            if (has3DHTML) {
+                userInfoViewer.url = Account.metaverseServerURL + "/users/" + userName;
+                userInfoViewer.visible = true;
+            }
         }
         onEntered: {
             nameCardConnectionInfoImage.buttonState = 1;
@@ -376,8 +382,7 @@ Item {
     }
     FiraSansRegular {
         id: nameCardConnectionInfoText
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
-        width: parent.width
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && PlatformInfo.has3DHTML()
         height: displayNameTextPixelSize
         size: displayNameTextPixelSize - 4
         anchors.left: nameCardConnectionInfoImage.right
@@ -391,9 +396,10 @@ Item {
         id: nameCardRemoveConnectionImage
         visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
         text: hifi.glyphs.close
-        size: 28;
+        size: 24;
         x: 120
         anchors.verticalCenter: nameCardConnectionInfoImage.verticalCenter
+        anchors.left: has3DHTML ? nameCardConnectionInfoText.right + 10 : avatarImage.right
     }
     MouseArea {
         anchors.fill:nameCardRemoveConnectionImage
@@ -412,7 +418,7 @@ Item {
     }
     FiraSansRegular {
         id: nameCardRemoveConnectionText
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
         width: parent.width
         height: displayNameTextPixelSize
         size: displayNameTextPixelSize - 4
@@ -425,7 +431,7 @@ Item {
     }
     HifiControls.Button {
         id: visitConnectionButton
-        visible: selected && !isMyCard && pal.activeTab == "connectionsTab" && !isMyCard
+        visible: selected && !isMyCard && pal.activeTab == "connectionsTab"
         text: "Visit"
         enabled: thisNameCard.placeName !== ""
         anchors.verticalCenter: nameCardRemoveConnectionImage.verticalCenter
@@ -450,7 +456,7 @@ Item {
         // Style
         radius: 4
         color: "#c5c5c5"
-        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent
+        visible: (!isMyCard && (selected && pal.activeTab == "nearbyTab")) && isPresent
         // Rectangle for the zero-gain point on the VU meter
         Rectangle {
             id: vuMeterZeroGain
@@ -481,7 +487,7 @@ Item {
             id: vuMeterBase
             // Anchors
             anchors.fill: parent
-            visible: isMyCard || selected
+            visible: !isMyCard && selected
             // Style
             color: parent.color
             radius: parent.radius
@@ -489,7 +495,7 @@ Item {
         // Rectangle for the VU meter audio level
         Rectangle {
             id: vuMeterLevel
-            visible: isMyCard || selected
+            visible: !isMyCard && selected
             // Size
             width: (thisNameCard.audioLevel) * parent.width
             // Style
@@ -525,7 +531,7 @@ Item {
         anchors.verticalCenter: nameCardVUMeter.verticalCenter;
         anchors.left: nameCardVUMeter.left;
         // Properties
-        visible: (isMyCard || (selected && pal.activeTab == "nearbyTab")) && isPresent;
+        visible: (!isMyCard && (selected && pal.activeTab == "nearbyTab")) && isPresent;
         minimumValue: -60.0
         maximumValue: 20.0
         stepSize: 5
@@ -572,19 +578,7 @@ Item {
                 implicitHeight: 16
             }
         }
-         RalewayRegular {
-            // The slider for my card is special, it controls the master gain
-            id: gainSliderText;
-            visible: isMyCard;
-            text: "master volume";
-            size: hifi.fontSizes.tabularData;
-            anchors.left: parent.right;
-            anchors.leftMargin: 8;
-            color: hifi.colors.baseGrayHighlight;
-            horizontalAlignment: Text.AlignLeft;
-            verticalAlignment: Text.AlignTop;
-        }
-   }
+    }
 
     function updateGainFromQML(avatarUuid, sliderValue, isReleased) {
         if (Users.getAvatarGain(avatarUuid) != sliderValue) {

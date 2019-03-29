@@ -41,6 +41,7 @@ Rectangle {
     property string searchScopeString: "Featured"
     property bool isLoggedIn: false
     property bool supports3DHTML: true
+    property bool pendingGetMarketplaceItemCall: false
 
     anchors.fill: (typeof parent === undefined) ? undefined : parent
 
@@ -86,21 +87,20 @@ Rectangle {
                 console.log("Failed to get Marketplace Categories", result.data.message);
             } else {
                 categoriesModel.clear();
-                categoriesModel.append({
-                    id: -1,
-                    name: "Everything"
-                });
-                result.data.items.forEach(function(category) {
+                result.data.categories.forEach(function(category) {
                     categoriesModel.append({
                         id: category.id,
-                        name: category.name
+                        name: category.name,
+                        count: category.count
                     });
                 });
             }
             getMarketplaceItems();
         }
         onGetMarketplaceItemsResult: {
-            marketBrowseModel.handlePage(result.status !== "success" && result.message, result);
+            if (!pendingGetMarketplaceItemCall) {
+                marketBrowseModel.handlePage(result.status !== "success" && result.message, result);
+            }
         }
         
         onGetMarketplaceItemResult: {
@@ -112,7 +112,7 @@ Rectangle {
                 marketplaceItem.image_url = result.data.thumbnail_url;
                 marketplaceItem.name = result.data.title;
                 marketplaceItem.likes = result.data.likes;
-                if(result.data.has_liked !== undefined) {
+                if (result.data.has_liked !== undefined) {
                     marketplaceItem.liked = result.data.has_liked;
                 }
                 marketplaceItem.creator = result.data.creator;
@@ -122,10 +122,14 @@ Rectangle {
                 marketplaceItem.attributions = result.data.attributions;
                 marketplaceItem.license = result.data.license;
                 marketplaceItem.availability = result.data.availability;
+                marketplaceItem.updated_item_id = result.data.updated_item_id || "";
                 marketplaceItem.created_at = result.data.created_at;
+                marketplaceItem.standaloneOptimized = result.data.standalone_optimized;
+                marketplaceItem.standaloneVisible = result.data.standalone_optimized || result.data.standalone_incompatible;
                 marketplaceItemScrollView.contentHeight = marketplaceItemContent.height;
                 itemsList.visible = false;
                 marketplaceItemView.visible = true;
+                pendingGetMarketplaceItemCall = false;
             }
         }
     }
@@ -186,16 +190,16 @@ Rectangle {
             visible: true
 
             Image {
-                id: marketplaceHeaderImage;
-                source: "../common/images/marketplaceHeaderImage.png";
-                anchors.top: parent.top;
-                anchors.topMargin: 2;
-                anchors.bottom: parent.bottom;
-                anchors.bottomMargin: 0;
-                anchors.left: parent.left;
-                anchors.leftMargin: 8;
-                width: 140;
-                fillMode: Image.PreserveAspectFit;
+                id: marketplaceHeaderImage
+                source: "../common/images/marketplaceHeaderImage.png"
+                anchors.top: parent.top
+                anchors.topMargin: 2
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 0
+                anchors.left: parent.left
+                anchors.leftMargin: 8
+                width: 140
+                fillMode: Image.PreserveAspectFit
 
                 MouseArea {
                     anchors.fill: parent;
@@ -344,9 +348,11 @@ Rectangle {
                 }
 
                 onAccepted: {
-                    root.searchString = searchField.text;
-                    getMarketplaceItems();
-                    searchField.forceActiveFocus();
+                    if (root.searchString !== searchField.text) {
+                        root.searchString = searchField.text;
+                        getMarketplaceItems();
+                        searchField.forceActiveFocus();
+                    }
                 }
 
                 onActiveFocusChanged: {
@@ -367,6 +373,7 @@ Rectangle {
         id: categoriesDropdown
 
         anchors.fill: parent;
+        anchors.topMargin: 2
 
         visible: false
         z: 10
@@ -381,12 +388,12 @@ Rectangle {
 
         Rectangle {
             anchors {
-                left: parent.left;
-                bottom: parent.bottom;
-                top: parent.top;
-                topMargin: 100;
+                left: parent.left
+                bottom: parent.bottom
+                top: parent.top
+                topMargin: 100
             }
-            width: parent.width/3
+            width: parent.width*2/3
 
             color: hifi.colors.white
             
@@ -405,6 +412,7 @@ Rectangle {
                 
                 model: categoriesModel
                 delegate: ItemDelegate {
+                    id: categoriesItemDelegate
                     height: 34
                     width: parent.width
 
@@ -416,34 +424,71 @@ Rectangle {
 
                         color: hifi.colors.white
                         visible: true
+                        border.color: hifi.colors.blueHighlight
+                        border.width: 0
 
-                        RalewayRegular {
+                        RalewaySemiBold {
                             id: categoriesItemText
 
                             anchors.leftMargin: 15
-                            anchors.fill:parent
+                            anchors.top:parent.top
+                            anchors.bottom: parent.bottom
+                            anchors.left: categoryItemCount.right
  
+                            elide: Text.ElideRight
                             text: model.name
-                            color: ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.baseGray
+                            color: categoriesItemDelegate.ListView.isCurrentItem ? hifi.colors.blueHighlight : hifi.colors.baseGray
                             horizontalAlignment: Text.AlignLeft
                             verticalAlignment: Text.AlignVCenter
                             size: 14
                         }
+                        Rectangle {
+                            id: categoryItemCount
+                            anchors {
+                                top: parent.top
+                                bottom: parent.bottom
+                                topMargin: 7
+                                bottomMargin: 7
+                                leftMargin: 10
+                                rightMargin: 10
+                                left: parent.left
+                            }
+                            width: childrenRect.width
+                            color: hifi.colors.faintGray
+                            radius: height/2
+                            
+                            RalewaySemiBold {
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: 50
+     
+                                text: model.count
+                                color: hifi.colors.lightGrayText
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                size: 16
+                            }
+                        }
                     }
-
                     MouseArea {
                         anchors.fill: parent
                         z: 10
-
                         hoverEnabled: true
                         propagateComposedEvents: false
 
-                        onEntered: {
-                            categoriesItem.color = ListView.isCurrentItem ? hifi.colors.white : hifi.colors.lightBlueHighlight;
+                        onPositionChanged: {
+                            // Must use onPositionChanged and not onEntered
+                            // due to a QML bug where a mouseenter event was
+                            // being fired on open of the categories list even
+                            // though the mouse was outside the borders
+                            categoriesItem.border.width = 2;
+                        }
+                        onExited: {
+                            categoriesItem.border.width = 0;
                         }
 
-                        onExited: {
-                            categoriesItem.color = ListView.isCurrentItem ? hifi.colors.lightBlueHighlight : hifi.colors.white;
+                        onCanceled: {
+                            categoriesItem.border.width = 0;
                         }
 
                         onClicked: {
@@ -461,9 +506,9 @@ Rectangle {
                     parent: categoriesListView.parent
 
                     anchors {
-                        top: categoriesListView.top;
-                        bottom: categoriesListView.bottom;
-                        left: categoriesListView.right;
+                        top: categoriesListView.top
+                        bottom: categoriesListView.bottom
+                        left: categoriesListView.right
                     }
 
                     contentItem.opacity: 1
@@ -541,8 +586,11 @@ Rectangle {
                 price: model.cost
                 availability: model.availability
                 isLoggedIn: root.isLoggedIn;
-
+                standaloneOptimized: model.standalone_optimized
+    
                 onShowItem: {
+                    // reset the edition back to -1 to clear the 'update item' status
+                    marketplaceItem.edition = -1;
                     MarketplaceScriptingInterface.getMarketplaceItem(item_id);
                 }
 
@@ -616,7 +664,7 @@ Rectangle {
                         text: "LOG IN"
 
                         onClicked: {
-                            sendToScript({method: 'needsLogIn_loginClicked'});
+                            sendToScript({method: 'marketplace_loginClicked'});
                         }
                     }
 
@@ -979,7 +1027,6 @@ Rectangle {
                         xhr.open("GET", url);
                         xhr.onreadystatechange = function() {
                             if (xhr.readyState == XMLHttpRequest.DONE) {
-                                console.log(xhr.responseText);
                                 licenseText.text = xhr.responseText;
                                 licenseInfo.visible = true;
                             }
@@ -1224,6 +1271,7 @@ Rectangle {
                     console.log("A message with method 'updateMarketplaceQMLItem' was sent without an itemId!");
                     return;
                 }
+                pendingGetMarketplaceItemCall = true;
                 marketplaceItem.edition = message.params.edition ? message.params.edition : -1;
                 MarketplaceScriptingInterface.getMarketplaceItem(message.params.itemId);
                 break;

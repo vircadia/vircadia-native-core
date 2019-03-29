@@ -5,8 +5,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global entityIsCloneable:true, getGrabbableData:true, cloneEntity:true, propsAreCloneDynamic:true, Script,
-   propsAreCloneDynamic:true, Entities*/
+/* global entityIsCloneable:true, cloneEntity:true, propsAreCloneDynamic:true, Script,
+   propsAreCloneDynamic:true, Entities, Uuid */
 
 Script.include("/~/system/libraries/controllerDispatcherUtils.js");
 
@@ -47,12 +47,10 @@ propsAreCloneDynamic = function(props) {
 };
 
 cloneEntity = function(props) {
-    var entityToClone = props.id;
-    var certificateID = Entities.getEntityProperties(entityToClone, ['certificateID']).certificateID;
-    // ensure entity is cloneable and does not have a certificate ID, whereas cloneable limits
-    // will now be handled by the server where the entity add will fail if limit reached
-    if (entityIsCloneable(props) && (certificateID === undefined || certificateID.length === 0)) {
-        var cloneID = Entities.cloneEntity(entityToClone);
+    var entityIDToClone = props.id;
+    if (entityIsCloneable(props) &&
+        (Uuid.isNull(props.certificateID) || props.certificateType.indexOf('domainUnlimited') >= 0)) {
+        var cloneID = Entities.cloneEntity(entityIDToClone);
         return cloneID;
     }
     return null;

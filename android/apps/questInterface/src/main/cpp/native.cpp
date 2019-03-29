@@ -61,7 +61,7 @@ extern "C" {
     Java_io_highfidelity_oculus_OculusMobileActivity_nativeInitOculusPlatform(JNIEnv *env, jobject obj){
         initOculusPlatform(env, obj);
     }
-QAndroidJniObject __interfaceActivity;
+    QAndroidJniObject __interfaceActivity;
 
     JNIEXPORT void JNICALL
     Java_io_highfidelity_oculus_OculusMobileActivity_questNativeOnCreate(JNIEnv *env, jobject obj) {
@@ -80,6 +80,10 @@ QAndroidJniObject __interfaceActivity;
         });
     }
 
+    JNIEXPORT void JNICALL
+    Java_io_highfidelity_oculus_OculusMobileActivity_questNativeAwayMode(JNIEnv *env, jobject obj) {
+            AndroidHelper::instance().toggleAwayMode();
+    }
 
 
 JNIEXPORT void Java_io_highfidelity_oculus_OculusMobileActivity_questOnAppAfterLoad(JNIEnv* env, jobject obj) {

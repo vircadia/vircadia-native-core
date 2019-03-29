@@ -121,6 +121,7 @@ QRectF OculusMobileDisplayPlugin::getPlayAreaRect() {
 
 glm::mat4 OculusMobileDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
     glm::mat4 result = baseProjection;
+
     VrHandler::withOvrMobile([&](ovrMobile* session){
         auto trackingState = vrapi_GetPredictedTracking2(session, 0.0);
         result = ovr::Fov{ trackingState.Eye[eye].ProjectionMatrix }.withZ(baseProjection);
@@ -130,15 +131,19 @@ glm::mat4 OculusMobileDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& 
 
 glm::mat4 OculusMobileDisplayPlugin::getCullingProjection(const glm::mat4& baseProjection) const {
     glm::mat4 result = baseProjection;
+
     VrHandler::withOvrMobile([&](ovrMobile* session){
         auto trackingState = vrapi_GetPredictedTracking2(session, 0.0);
         ovr::Fov fovs[2];
         for (size_t i = 0; i < 2; ++i) {
             fovs[i].extract(trackingState.Eye[i].ProjectionMatrix);
         }
+
         fovs[0].extend(fovs[1]);
-        return fovs[0].withZ(baseProjection);
+        result= glm::scale( fovs[0].withZ(baseProjection),glm::vec3(1.5f));
+        return result;
     });
+
     return result;
 }
 
@@ -168,10 +173,8 @@ bool OculusMobileDisplayPlugin::isHmdMounted() const {
 static void goToDevMobile() {
     auto addressManager = DependencyManager::get<AddressManager>();
     auto currentAddress = addressManager->currentAddress().toString().toStdString();
-    if (std::string::npos == currentAddress.find("dev-mobile")) {
-        addressManager->handleLookupString("hifi://dev-mobile/495.236,501.017,482.434/0,0.97452,0,-0.224301");
-        //addressManager->handleLookupString("hifi://dev-mobile/504,498,491/0,0,0,0");
-        //addressManager->handleLookupString("hifi://dev-mobile/0,-1,1");
+    if (std::string::npos == currentAddress.find("quest-dev")) {
+        addressManager->handleLookupString("hifi://quest-dev");
     }
 }
 
@@ -217,12 +220,12 @@ bool OculusMobileDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
        });
     }
 
-    //  static uint32_t count = 0;
-    //  if ((++count % 1000) == 0) {
-    //      AbstractViewStateInterface::instance()->postLambdaEvent([] {
-    //          goToDevMobile();
-    //      });
-    //  }
+  //  static uint32_t count = 0;
+  //  if ((++count % 1000) == 0) {
+  //      AbstractViewStateInterface::instance()->postLambdaEvent([] {
+  //          goToDevMobile();
+  //      });
+  //  }
 
     return result && Parent::beginFrameRender(frameIndex);
 }
@@ -242,7 +245,7 @@ void OculusMobileDisplayPlugin::updatePresentPose() {
     });
 }
 
-void OculusMobileDisplayPlugin::internalPresent() {
+void OculusMobileDisplayPlugin::internalPresent(const gpu::FramebufferPointer& compsiteFramebuffer) {
     VrHandler::pollTask();
 
     if (!vrActive()) {
@@ -250,8 +253,12 @@ void OculusMobileDisplayPlugin::internalPresent() {
         return;
     }
 
-    auto sourceTexture = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
-    glm::uvec2 sourceSize{ _compositeFramebuffer->getWidth(), _compositeFramebuffer->getHeight() };
+    GLuint sourceTexture = 0;
+    glm::uvec2 sourceSize;
+    if (compsiteFramebuffer) {
+        sourceTexture = getGLBackend()->getTextureID(compsiteFramebuffer->getRenderBuffer(0));
+        sourceSize = { compsiteFramebuffer->getWidth(), compsiteFramebuffer->getHeight() };
+    }
     VrHandler::presentFrame(sourceTexture, sourceSize, presentTracking);
     _presentRate.increment();
 }

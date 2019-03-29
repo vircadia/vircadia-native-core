@@ -213,6 +213,63 @@ Item {
         popup.open();
     }
 
+    HiFiGlyphs {
+        id: errorsGlyph
+        visible: !AvatarPackagerCore.currentAvatarProject || AvatarPackagerCore.currentAvatarProject.hasErrors
+        text: hifi.glyphs.alert
+        size: 315
+        color: "#EA4C5F"
+        anchors {
+            top: parent.top
+            topMargin: -30
+            horizontalCenter: parent.horizontalCenter
+        }
+    }
+
+    Image {
+        id: successGlyph
+        visible: AvatarPackagerCore.currentAvatarProject && !AvatarPackagerCore.currentAvatarProject.hasErrors
+        anchors {
+            top: parent.top
+            topMargin: 52
+            horizontalCenter: parent.horizontalCenter
+        }
+        width: 149.6
+        height: 149
+        source: "../../../icons/checkmark-stroke.svg"
+    }
+
+    RalewayRegular {
+        id: doctorStatusMessage
+
+        states: [
+            State {
+               when: AvatarPackagerCore.currentAvatarProject && !AvatarPackagerCore.currentAvatarProject.hasErrors
+               name: "noErrors"
+                PropertyChanges {
+                    target: doctorStatusMessage
+                    text: "Your avatar looks fine."
+                }
+            },
+            State {
+                when: !AvatarPackagerCore.currentAvatarProject || AvatarPackagerCore.currentAvatarProject.hasErrors
+                name: "errors"
+                PropertyChanges {
+                    target: doctorStatusMessage
+                    text: "Your avatar has a few issues."
+                }
+            }
+        ]
+        color: 'white'
+        size: 20
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: errorsGlyph.bottom
+
+        wrapMode: Text.Wrap
+    }
+
     RalewayRegular {
         id: infoMessage
 
@@ -240,13 +297,60 @@ Item {
 
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: parent.top
+        anchors.top: doctorStatusMessage.bottom
 
         anchors.bottomMargin: 24
 
         wrapMode: Text.Wrap
 
         text: "You can upload your files to our servers to always access them, and to make your avatar visible to other users."
+    }
+
+    RalewayRegular {
+        id: notForSaleMessage
+
+        visible: root.hasSuccessfullyUploaded
+
+        color: 'white'
+        linkColor: '#00B4EF'
+        size: 20
+
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: infoMessage.bottom
+        anchors.topMargin: 10
+
+        anchors.bottomMargin: 24
+
+        wrapMode: Text.Wrap
+        text: "This item is not for sale yet, <a href='#'>learn more</a>."
+
+        onLinkActivated: {
+            Qt.openUrlExternally("https://docs.highfidelity.com/sell/add-item/upload-avatar.html");
+        }
+    }
+
+    RalewayRegular {
+        id: showErrorsLink
+
+        color: 'white'
+        linkColor: '#00B4EF'
+
+        visible: AvatarPackagerCore.currentAvatarProject && AvatarPackagerCore.currentAvatarProject.hasErrors
+
+        anchors {
+            top: notForSaleMessage.visible ? notForSaleMessage.bottom : infoMessage .bottom
+            bottom: showFilesText.top
+            horizontalCenter: parent.horizontalCenter
+        }
+
+        size: 28
+
+        text: "<a href='toggle'>View all errors</a>"
+
+        onLinkActivated: {
+            avatarPackager.state = AvatarPackagerState.avatarDoctorErrorReport;
+        }
     }
 
     HifiControls.Button {

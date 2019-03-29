@@ -7,10 +7,10 @@
 
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, Camera, print, getControllerJointIndex,
-   enableDispatcherModule, disableDispatcherModule, entityIsFarGrabbedByOther, Messages, makeDispatcherModuleParameters,
+   enableDispatcherModule, disableDispatcherModule, Messages, makeDispatcherModuleParameters,
    makeRunningValues, Settings, entityHasActions, Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic,
-   entityIsCloneable, cloneEntity, DISPATCHER_PROPERTIES, Uuid, unhighlightTargetEntity, isInEditMode, getGrabbableData,
-   entityIsEquippable
+   entityIsCloneable, cloneEntity, DISPATCHER_PROPERTIES, Uuid, isInEditMode, getGrabbableData,
+   entityIsEquippable, HMD
 */
 
 Script.include("/~/system/libraries/Xform.js");
@@ -183,8 +183,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
     var TRIGGER_OFF_VALUE = 0.1;
     var TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; //  Squeezed just enough to activate search or near grab
     var BUMPER_ON_VALUE = 0.5;
+    var ATTACHPOINT_MAX_DISTANCE = 3.0;
 
-    var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
+    // var EMPTY_PARENT_ID = "{00000000-0000-0000-0000-000000000000}";
 
     var UNEQUIP_KEY = "u";
 
@@ -200,7 +201,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 indicatorOffset: props.grab.equippableIndicatorOffset
             };
         } else {
-            return null
+            return null;
         }
     }
 
@@ -231,6 +232,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var jointName = (hand === RIGHT_HAND) ? "RightHand" : "LeftHand";
             var joints = avatarSettingsData[hotspot.key];
             if (joints) {
+                // make sure they are reasonable
+                if (joints[jointName] && joints[jointName][0] &&
+                    Vec3.length(joints[jointName][0]) > ATTACHPOINT_MAX_DISTANCE) {
+                    print("equipEntity -- Warning: rejecting settings attachPoint " + Vec3.length(joints[jointName][0]));
+                    return undefined;
+                }
                 return joints[jointName];
             }
         }
@@ -456,6 +463,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.startEquipEntity = function (controllerData) {
+            var _this = this;
+
             this.dropGestureReset();
             this.clearEquipHaptics();
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
@@ -498,16 +507,22 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (entityIsCloneable(grabbedProperties)) {
                 var cloneID = this.cloneHotspot(grabbedProperties, controllerData);
                 this.targetEntityID = cloneID;
-                Entities.editEntity(this.targetEntityID, reparentProps);
                 controllerData.nearbyEntityPropertiesByID[this.targetEntityID] = grabbedProperties;
                 isClone = true;
-            } else if (!grabbedProperties.locked) {
-                Entities.editEntity(this.targetEntityID, reparentProps);
-            } else {
+            } else if (grabbedProperties.locked) {
                 this.grabbedHotspot = null;
                 this.targetEntityID = null;
                 return;
             }
+
+
+            // HACK -- when
+            // https://highfidelity.fogbugz.com/f/cases/21767/entity-edits-shortly-after-an-add-often-fail
+            // is resolved, this can just be an editEntity rather than a setTimeout.
+            this.editDelayTimeout = Script.setTimeout(function () {
+                _this.editDelayTimeout = null;
+                Entities.editEntity(_this.targetEntityID, reparentProps);
+            }, 100);
 
             // we don't want to send startEquip message until the trigger is released.  otherwise,
             // guns etc will fire right as they are equipped.
@@ -519,7 +534,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
 
-            var _this = this;
             var grabEquipCheck = function() {
                 var args = [_this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(_this.targetEntityID, "startEquip", args);
@@ -532,6 +546,12 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.endEquipEntity = function () {
+
+            if (this.editDelayTimeout) {
+                Script.clearTimeout(this.editDelayTimeout);
+                this.editDelayTimeout = null;
+            }
+
             this.storeAttachPointInSettings();
             Entities.editEntity(this.targetEntityID, {
                 parentID: Uuid.NULL,
@@ -595,7 +615,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
             // if the potentialHotspot is cloneable, clone it and return it
-            // if the potentialHotspot os not cloneable and locked return null
+            // if the potentialHotspot is not cloneable and locked return null
             if (potentialEquipHotspot &&
                 (((this.triggerSmoothedSqueezed() || this.secondarySmoothedSqueezed()) && !this.waitForTriggerRelease) ||
                  this.messageGrabEntity)) {
@@ -603,7 +623,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 this.targetEntityID = this.grabbedHotspot.entityID;
                 this.startEquipEntity(controllerData);
                 this.equipedWithSecondary = this.secondarySmoothedSqueezed();
-                return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
+                return makeRunningValues(true, [this.targetEntityID], []);
             } else {
                 return makeRunningValues(false, [], []);
             }

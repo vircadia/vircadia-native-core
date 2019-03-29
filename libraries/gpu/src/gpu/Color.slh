@@ -16,18 +16,37 @@
 // YCoCg =====> Luma (Y) chrominance green (Cg) and chrominance orange (Co)
 // https://software.intel.com/en-us/node/503873
 
+// sRGB ====> Linear
 float color_scalar_sRGBToLinear(float value) {
-    const float SRGB_ELBOW = 0.04045;
-
-    return mix(pow((value + 0.055) / 1.055, 2.4), value / 12.92, float(value <= SRGB_ELBOW));
+    // Same as pow(value, 2.2)
+    return mix(pow((value + 0.055) / 1.055, 2.4), value / 12.92, float(value <= 0.04045));
 }
 
 vec3 color_sRGBToLinear(vec3 srgb) {
-    return vec3(color_scalar_sRGBToLinear(srgb.r), color_scalar_sRGBToLinear(srgb.g), color_scalar_sRGBToLinear(srgb.b));
+   // return vec3(color_scalar_sRGBToLinear(srgb.r), color_scalar_sRGBToLinear(srgb.g), color_scalar_sRGBToLinear(srgb.b));
+    // Same as pow(value, 2.2)
+    return mix(pow((srgb + vec3(0.055)) / vec3(1.055), vec3(2.4)), srgb / vec3(12.92), vec3(lessThanEqual(srgb, vec3(0.04045))));
+
 }
 
 vec4 color_sRGBAToLinear(vec4 srgba) {
     return vec4(color_sRGBToLinear(srgba.xyz), srgba.w);
+}
+
+// Linear ====> sRGB
+float color_scalar_LinearTosRGB(float value) {
+    // Same as return pow(value, 1/2.2)
+    return mix(1.055 * pow(value, 0.41666) - 0.055, value * 12.92, float(value < 0.0031308));
+}
+
+vec3 color_LinearTosRGB(vec3 lrgb) {
+    // Same as return pow(lrgb, 1/2.2)
+//    return vec3(color_scalar_LinearTosRGB(lrgb.r), color_scalar_LinearTosRGB(lrgb.g), color_scalar_LinearTosRGB(lrgb.b));
+    return mix(vec3(1.055) * pow(vec3(lrgb), vec3(0.41666)) - vec3(0.055), vec3(lrgb) * vec3(12.92), vec3(lessThan(lrgb, vec3(0.0031308))));
+}
+
+vec4 color_LinearTosRGBA(vec4 lrgba) {
+    return vec4(color_LinearTosRGB(lrgba.xyz), lrgba.w);
 }
 
 vec3 color_LinearToYCoCg(vec3 rgb) {

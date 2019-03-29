@@ -7,6 +7,7 @@
 //
 package io.highfidelity.oculus;
 
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
@@ -24,7 +25,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private static final String TAG = OculusMobileActivity.class.getSimpleName();
     static { System.loadLibrary("oculusMobile"); }
 
-    private native void nativeOnCreate();
+    private native void nativeOnCreate(AssetManager assetManager);
     private native static void nativeOnResume();
     private native static void nativeOnPause();
     private native static void nativeOnSurfaceChanged(Surface s);
@@ -34,11 +35,16 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private native void questNativeOnResume();
     private native void questOnAppAfterLoad();
 
-
+    private native void questNativeAwayMode();
     private SurfaceView mView;
     private SurfaceHolder mSurfaceHolder;
 
     public void onCreate(Bundle savedInstanceState) {
+
+        if(getIntent().hasExtra("applicationArguments")){
+            super.APPLICATION_PARAMETERS=getIntent().getStringExtra("applicationArguments");
+        }
+
         super.onCreate(savedInstanceState);
 
         Log.w(TAG, "QQQ onCreate");
@@ -48,9 +54,10 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         mView = new SurfaceView(this);
         mView.getHolder().addCallback(this);
 
-        nativeOnCreate();
+        nativeOnCreate(getAssets());
         questNativeOnCreate();
     }
+
     public void onAppLoadedComplete() {
         Log.w(TAG, "QQQ Load Completed");
         runOnUiThread(() -> {
@@ -62,7 +69,8 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     @Override
     protected void onDestroy() {
         Log.w(TAG, "QQQ onDestroy");
-
+        isPausing=false;
+        super.onStop();
         nativeOnSurfaceChanged(null);
 
         Log.w(TAG, "QQQ onDestroy -- SUPER onDestroy");
@@ -74,10 +82,11 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         Log.w(TAG, "QQQ onResume");
         super.onResume();
         //Reconnect the global reference back to handler
-        nativeOnCreate();
+        nativeOnCreate(getAssets());
 
         questNativeOnResume();
         nativeOnResume();
+        isPausing=false;
     }
 
     @Override
@@ -87,40 +96,42 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
 
         questNativeOnPause();
         nativeOnPause();
+        isPausing=true;
     }
 
     @Override
     protected void onStop(){
         super.onStop();
-        Log.w(TAG, "QQQ Onstop called");
+        Log.w(TAG, "QQQ_ Onstop called");
+        questNativeAwayMode();
     }
 
     @Override
-    protected void onRestart(){
+    protected void onRestart() {
         super.onRestart();
-        Log.w(TAG, "QQQ onRestart called ****");
+        Log.w(TAG, "QQQ_ onRestart called");
         questOnAppAfterLoad();
+        questNativeAwayMode();
     }
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ surfaceCreated ************************************");
+        Log.w(TAG, "QQQ_ surfaceCreated");
         nativeOnSurfaceChanged(holder.getSurface());
         mSurfaceHolder = holder;
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.w(TAG, "QQQ surfaceChanged");
+        Log.w(TAG, "QQQ_ surfaceChanged");
         nativeOnSurfaceChanged(holder.getSurface());
         mSurfaceHolder = holder;
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
-        Log.w(TAG, "QQQ surfaceDestroyed ***************************************************");
+        Log.w(TAG, "QQQ_ surfaceDestroyed");
         nativeOnSurfaceChanged(null);
         mSurfaceHolder = null;
-
     }
 }

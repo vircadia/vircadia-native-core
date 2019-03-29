@@ -247,7 +247,7 @@ void Model::updateRenderItems() {
                 Transform renderTransform = modelTransform;
 
                 if (useDualQuaternionSkinning) {
-                    if (meshState.clusterDualQuaternions.size() == 1) {
+                    if (meshState.clusterDualQuaternions.size() == 1 || meshState.clusterDualQuaternions.size() == 2) {
                         const auto& dq = meshState.clusterDualQuaternions[0];
                         Transform transform(dq.getRotation(),
                                             dq.getScale(),
@@ -255,7 +255,7 @@ void Model::updateRenderItems() {
                         renderTransform = modelTransform.worldTransform(Transform(transform));
                     }
                 } else {
-                    if (meshState.clusterMatrices.size() == 1) {
+                    if (meshState.clusterMatrices.size() == 1 || meshState.clusterMatrices.size() == 2) {
                         renderTransform = modelTransform.worldTransform(Transform(meshState.clusterMatrices[0]));
                     }
                 }
@@ -1642,7 +1642,7 @@ using packBlendshapeOffsetTo = void(glm::uvec4& packed, const BlendshapeOffsetUn
 void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& packed, const BlendshapeOffsetUnpacked& unpacked) {
     float len = glm::compMax(glm::abs(unpacked.positionOffset));
     glm::vec3 normalizedPos(unpacked.positionOffset);
-    if (len > 1.0f) {
+    if (len > 0.0f) {
         normalizedPos /= len;
     } else {
         len = 1.0f;
@@ -1650,9 +1650,9 @@ void packBlendshapeOffsetTo_Pos_F32_3xSN10_Nor_3xSN10_Tan_3xSN10(glm::uvec4& pac
 
     packed = glm::uvec4(
         glm::floatBitsToUint(len),
-        glm::packSnorm3x10_1x2(glm::vec4(normalizedPos, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.normalOffset, 0.0f)),
-        glm::packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffset, 0.0f))
+        glm_packSnorm3x10_1x2(glm::vec4(normalizedPos, 0.0f)),
+        glm_packSnorm3x10_1x2(glm::vec4(unpacked.normalOffset, 0.0f)),
+        glm_packSnorm3x10_1x2(glm::vec4(unpacked.tangentOffset, 0.0f))
     );
 }
 

@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "AWSInterface.h"
+#include "common.h"
 
 #include <QDirIterator>
 #include <QJsonDocument>
@@ -27,7 +28,12 @@ AWSInterface::AWSInterface(QObject* parent) : QObject(parent) {
 void AWSInterface::createWebPageFromResults(const QString& testResults,
                                             const QString& workingDirectory,
                                             QCheckBox* updateAWSCheckBox,
-                                            QLineEdit* urlLineEdit) {
+                                            QRadioButton* diffImageRadioButton,
+                                            QRadioButton* ssimImageRadionButton,
+                                            QLineEdit* urlLineEdit,
+                                            const QString& branch,
+                                            const QString& user
+) {
     _workingDirectory = workingDirectory;
 
     // Verify filename is in correct format 
@@ -50,8 +56,18 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
     _urlLineEdit = urlLineEdit;
     _urlLineEdit->setEnabled(false);
 
+    _branch = branch;
+    _user = user;
+
     QString zipFilenameWithoutExtension = zipFilename.split('.')[0];
     extractTestFailuresFromZippedFolder(_workingDirectory + "/" + zipFilenameWithoutExtension);
+
+    if (diffImageRadioButton->isChecked()) {
+        _comparisonImageFilename = "Difference Image.png";
+    } else {
+        _comparisonImageFilename = "SSIM Image.png";
+    }
+        
     createHTMLFile();
 
     if (updateAWSCheckBox->isChecked()) {
@@ -192,13 +208,21 @@ void AWSInterface::writeTitle(QTextStream& stream, const QStringList& originalNa
 
     stream << "run on " << hostName << "</h1>\n";
 
-    int numberOfFailures = originalNamesFailures.length();
-    int numberOfSuccesses = originalNamesSuccesses.length();
+    stream << "<h2>";
+    stream << "nitpick  " << nitpickVersion;
+    stream << ", tests from GitHub: " << _user << "/" << _branch;
+    stream << "</h2>";
 
-    stream << "<h2>" << QString::number(numberOfFailures) << " failed, out of a total of " << QString::number(numberOfSuccesses) << " tests</h2>\n";
+    _numberOfFailures = originalNamesFailures.length();
+    _numberOfSuccesses = originalNamesSuccesses.length();
+
+    stream << "<h2>" << QString::number(_numberOfFailures) << " failed, out of a total of " << QString::number(_numberOfFailures + _numberOfSuccesses) << " tests</h2>\n";
 
     stream << "\t" << "\t" << "<font color=\"red\">\n";
-    stream << "\t" << "\t" << "<h1>The following tests failed:</h1>";
+ 
+    if (_numberOfFailures > 0) {
+        stream << "\t" << "\t" << "<h1>The following tests failed:</h1>";
+    }
 }
 
 void AWSInterface::writeTable(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses) {
@@ -279,7 +303,10 @@ void AWSInterface::writeTable(QTextStream& stream, const QStringList& originalNa
 
     closeTable(stream);
     stream << "\t" << "\t" << "<font color=\"blue\">\n";
-    stream << "\t" << "\t" << "<h1>The following tests passed:</h1>";
+
+    if (_numberOfSuccesses > 0) {
+        stream << "\t" << "\t" << "<h1>The following tests passed:</h1>";
+    }
 
     // Now do the same for passes
     folderNames.clear();
@@ -353,7 +380,7 @@ void AWSInterface::openTable(QTextStream& stream, const QString& testResult, con
         stream << "\t\t\t\t<th><h1>Test</h1></th>\n";
         stream << "\t\t\t\t<th><h1>Actual Image</h1></th>\n";
         stream << "\t\t\t\t<th><h1>Expected Image</h1></th>\n";
-        stream << "\t\t\t\t<th><h1>Difference Image</h1></th>\n";
+        stream << "\t\t\t\t<th><h1>Comparison Image</h1></th>\n";
         stream << "\t\t\t</tr>\n";
     }
 }
@@ -378,12 +405,13 @@ void AWSInterface::createEntry(const int index, const QString& testResult, QText
 
     QString folder;
     bool differenceFileFound;
+    
     if (isFailure) {
         folder = FAILURES_FOLDER;
-        differenceFileFound = QFile::exists(_htmlFailuresFolder + "/" + resultName + "/Difference Image.png");
+        differenceFileFound = QFile::exists(_htmlFailuresFolder + "/" + resultName + "/" + _comparisonImageFilename);
     } else {
         folder = SUCCESSES_FOLDER;
-        differenceFileFound = QFile::exists(_htmlSuccessesFolder + "/" + resultName + "/Difference Image.png");
+        differenceFileFound = QFile::exists(_htmlSuccessesFolder + "/" + resultName + "/" + _comparisonImageFilename);
     }
 
     if (textResultsFileFound) {
@@ -450,7 +478,7 @@ void AWSInterface::createEntry(const int index, const QString& testResult, QText
         stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Expected Image.png\" width = \"576\" height = \"324\" ></td>\n";
 
         if (differenceFileFound) {
-            stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/Difference Image.png\" width = \"576\" height = \"324\" ></td>\n";
+            stream << "\t\t\t\t<td><img src=\"./" << folder << "/" << resultName << "/" << _comparisonImageFilename << "\" width = \"576\" height = \"324\" ></td>\n";
         } else {
             stream << "\t\t\t\t<td><h2>No Image Found</h2>\n";
         }
@@ -469,7 +497,7 @@ void AWSInterface::updateAWS() {
 
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-                              "Could not create 'addTestCases.py'");
+                              "Could not create 'updateAWS.py'");
         exit(-1);
     }
 
@@ -512,12 +540,12 @@ void AWSInterface::updateAWS() {
 
             stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
 
-            if (QFile::exists(_htmlFailuresFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
+            if (QFile::exists(_htmlFailuresFolder + "/" + parts[parts.length() - 1] + "/" + _comparisonImageFilename)) {
                 stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-                    << "Difference Image.png"
+                    << _comparisonImageFilename
                     << "', 'rb')\n";
 
-                stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
+                stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << _comparisonImageFilename << "', Body=data)\n\n";
             }
         }
     }
@@ -555,12 +583,12 @@ void AWSInterface::updateAWS() {
 
             stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Expected Image.png" << "', Body=data)\n\n";
 
-            if (QFile::exists(_htmlSuccessesFolder + "/" + parts[parts.length() - 1] + "/Difference Image.png")) {
+            if (QFile::exists(_htmlSuccessesFolder + "/" + parts[parts.length() - 1] + "/" + _comparisonImageFilename)) {
                 stream << "data = open('" << _workingDirectory << "/" << filename << "/"
-                    << "Difference Image.png"
+                    << _comparisonImageFilename
                     << "', 'rb')\n";
 
-                stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << "Difference Image.png" << "', Body=data)\n\n";
+                stream << "s3.Bucket('hifi-content').put_object(Bucket='" << AWS_BUCKET << "', Key='" << filename << "/" << _comparisonImageFilename << "', Body=data)\n\n";
             }
         }
     }
@@ -578,6 +606,7 @@ void AWSInterface::updateAWS() {
 
     QProcess* process = new QProcess();
 
+    _busyWindow.setWindowTitle("Updating AWS");
     connect(process, &QProcess::started, this, [=]() { _busyWindow.exec(); });
     connect(process, SIGNAL(finished(int)), process, SLOT(deleteLater()));
     connect(process, static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished), this,

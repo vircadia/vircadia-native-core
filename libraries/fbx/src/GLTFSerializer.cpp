@@ -125,18 +125,18 @@ bool GLTFSerializer::getObjectArrayVal(const QJsonObject& object, const QString&
     return _defined;
 }
 
-QByteArray GLTFSerializer::setGLBChunks(const QByteArray& data) {
+hifi::ByteArray GLTFSerializer::setGLBChunks(const hifi::ByteArray& data) {
     int byte = 4; 
     int jsonStart = data.indexOf("JSON", Qt::CaseSensitive);
     int binStart = data.indexOf("BIN", Qt::CaseSensitive);
     int jsonLength, binLength;
-    QByteArray jsonLengthChunk, binLengthChunk;
+    hifi::ByteArray jsonLengthChunk, binLengthChunk;
 
     jsonLengthChunk = data.mid(jsonStart - byte, byte);
     QDataStream tempJsonLen(jsonLengthChunk);
     tempJsonLen.setByteOrder(QDataStream::LittleEndian);
     tempJsonLen >> jsonLength;
-    QByteArray jsonChunk = data.mid(jsonStart + byte, jsonLength);
+    hifi::ByteArray jsonChunk = data.mid(jsonStart + byte, jsonLength);
 
     if (binStart != -1) {
         binLengthChunk = data.mid(binStart - byte, byte);
@@ -567,10 +567,10 @@ bool GLTFSerializer::addTexture(const QJsonObject& object) {
     return true;
 }
 
-bool GLTFSerializer::parseGLTF(const QByteArray& data) {
+bool GLTFSerializer::parseGLTF(const hifi::ByteArray& data) {
     PROFILE_RANGE_EX(resource_parse, __FUNCTION__, 0xffff0000, nullptr);
 
-    QByteArray jsonChunk = data;
+    hifi::ByteArray jsonChunk = data;
 
     if (_url.toString().endsWith("glb") && data.indexOf("glTF") == 0 && data.contains("JSON")) {
         jsonChunk = setGLBChunks(data);
@@ -734,13 +734,15 @@ glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
+bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
     //Build dependencies
     QVector<QVector<int>> nodeDependencies(_file.nodes.size());
     int nodecount = 0;
+    bool hasChildren = false;
     foreach(auto &node, _file.nodes) {
         //nodes_transforms.push_back(getModelTransform(node));
+        hasChildren |= !node.children.isEmpty();
         foreach(int child, node.children) nodeDependencies[child].push_back(nodecount);
         nodecount++;
     }
@@ -763,17 +765,25 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
         nodecount++;
     }
     
-    //Build default joints
-    hfmModel.joints.resize(1);
-    hfmModel.joints[0].parentIndex = -1;
-    hfmModel.joints[0].distanceToParent = 0;
-    hfmModel.joints[0].translation = glm::vec3(0, 0, 0);
-    hfmModel.joints[0].rotationMin = glm::vec3(0, 0, 0);
-    hfmModel.joints[0].rotationMax = glm::vec3(0, 0, 0);
-    hfmModel.joints[0].name = "OBJ";
-    hfmModel.joints[0].isSkeletonJoint = true;
-
-    hfmModel.jointIndices["x"] = 1;
+    HFMJoint joint;
+    joint.isSkeletonJoint = true;
+    joint.bindTransformFoundInCluster = false;
+    joint.distanceToParent = 0;
+    joint.parentIndex = -1;
+    hfmModel.joints.resize(_file.nodes.size());
+    hfmModel.jointIndices["x"] = _file.nodes.size();
+    int jointInd = 0;
+    for (auto& node : _file.nodes) {
+        int size = node.transforms.size();
+        if (hasChildren) { size--; }
+        joint.preTransform = glm::mat4(1);
+        for (int i = 0; i < size; i++) {
+            joint.preTransform = node.transforms[i] * joint.preTransform;
+        }
+        joint.name = node.name;
+        hfmModel.joints[jointInd] = joint;
+        jointInd++;
+    }
 
     //Build materials
     QVector<QString> materialIDs;
@@ -804,7 +814,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                 hfmModel.meshes.append(HFMMesh());
                 HFMMesh& mesh = hfmModel.meshes[hfmModel.meshes.size() - 1];
                 HFMCluster cluster;
-                cluster.jointIndex = 0;
+                cluster.jointIndex = nodecount;
                 cluster.inverseBindMatrix = glm::mat4(1, 0, 0, 0,
                     0, 1, 0, 0,
                     0, 0, 1, 0,
@@ -907,7 +917,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                         int stride = (accessor.type == GLTFAccessorType::VEC4) ? 4 : 3;
                         for (int n = 0; n < tangents.size() - 3; n += stride) {
                             float tanW = stride == 4 ? tangents[n + 3] : 1; 
-                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tangents[n + 2]));
+                            mesh.tangents.push_back(glm::vec3(tanW * tangents[n], tangents[n + 1], tanW * tangents[n + 2]));
                         }
                     } else if (key == "TEXCOORD_0") {
                         QVector<float> texcoords;
@@ -957,16 +967,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const QUrl& url) {
                     mesh.meshExtents.addPoint(vertex);
                     hfmModel.meshExtents.addPoint(vertex);
                 }
-                
-                // since mesh.modelTransform seems to not have any effect I apply the transformation the model 
-                for (int h = 0; h < mesh.vertices.size(); h++) {
-                    glm::vec4 ver = glm::vec4(mesh.vertices[h], 1);
-                    if (node.transforms.size() > 0) {
-                        ver = node.transforms[0] * ver; // for model dependency should multiply also by parents transforms?
-                        mesh.vertices[h] = glm::vec3(ver[0], ver[1], ver[2]);
-                    }
-                }
-
+               
                 mesh.meshIndex = hfmModel.meshes.size();
             }
             
@@ -993,15 +994,15 @@ std::unique_ptr<hfm::Serializer::Factory> GLTFSerializer::getFactory() const {
     return std::make_unique<hfm::Serializer::SimpleFactory<GLTFSerializer>>();
 }
 
-HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHash& mapping, const QUrl& url) {
+HFMModel::Pointer GLTFSerializer::read(const hifi::ByteArray& data, const hifi::VariantHash& mapping, const hifi::URL& url) {
 
     _url = url;
     
     // Normalize url for local files
-    QUrl normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
+    hifi::URL normalizeUrl = DependencyManager::get<ResourceManager>()->normalizeURL(_url);
     if (normalizeUrl.scheme().isEmpty() || (normalizeUrl.scheme() == "file")) {
         QString localFileName = PathUtils::expandToLocalDataAbsolutePath(normalizeUrl).toLocalFile();
-        _url = QUrl(QFileInfo(localFileName).absoluteFilePath());
+        _url = hifi::URL(QFileInfo(localFileName).absoluteFilePath());
     }
 
     if (parseGLTF(data)) {
@@ -1019,15 +1020,15 @@ HFMModel::Pointer GLTFSerializer::read(const QByteArray& data, const QVariantHas
     return nullptr;
 }
 
-bool GLTFSerializer::readBinary(const QString& url, QByteArray& outdata) {
+bool GLTFSerializer::readBinary(const QString& url, hifi::ByteArray& outdata) {
     bool success;
 
     if (url.contains("data:application/octet-stream;base64,")) {
         outdata = requestEmbeddedData(url);
         success = !outdata.isEmpty();
     } else {
-        QUrl binaryUrl = _url.resolved(url);
-        std::tie<bool, QByteArray>(success, outdata) = requestData(binaryUrl);
+        hifi::URL binaryUrl = _url.resolved(url);
+        std::tie<bool, hifi::ByteArray>(success, outdata) = requestData(binaryUrl);
     }
     
     return success;
@@ -1037,16 +1038,16 @@ bool GLTFSerializer::doesResourceExist(const QString& url) {
     if (_url.isEmpty()) {
         return false;
     }
-    QUrl candidateUrl = _url.resolved(url);
+    hifi::URL candidateUrl = _url.resolved(url);
     return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
 
-std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
+std::tuple<bool, hifi::ByteArray> GLTFSerializer::requestData(hifi::URL& url) {
     auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(
         nullptr, url, true, -1, "GLTFSerializer::requestData");
 
     if (!request) {
-        return std::make_tuple(false, QByteArray());
+        return std::make_tuple(false, hifi::ByteArray());
     }
 
     QEventLoop loop;
@@ -1057,17 +1058,17 @@ std::tuple<bool, QByteArray> GLTFSerializer::requestData(QUrl& url) {
     if (request->getResult() == ResourceRequest::Success) {
         return std::make_tuple(true, request->getData());
     } else {
-        return std::make_tuple(false, QByteArray());
+        return std::make_tuple(false, hifi::ByteArray());
     }
 }
 
-QByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
+hifi::ByteArray GLTFSerializer::requestEmbeddedData(const QString& url) {
     QString binaryUrl = url.split(",")[1]; 
-    return binaryUrl.isEmpty() ? QByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
+    return binaryUrl.isEmpty() ? hifi::ByteArray() : QByteArray::fromBase64(binaryUrl.toUtf8());
 }
 
 
-QNetworkReply* GLTFSerializer::request(QUrl& url, bool isTest) {
+QNetworkReply* GLTFSerializer::request(hifi::URL& url, bool isTest) {
     if (!qApp) {
         return nullptr;
     }
@@ -1098,8 +1099,8 @@ HFMTexture GLTFSerializer::getHFMTexture(const GLTFTexture& texture) {
     if (texture.defined["source"]) {
         QString url = _file.images[texture.source].uri;
 
-        QString fname = QUrl(url).fileName();
-        QUrl textureUrl = _url.resolved(url);
+        QString fname = hifi::URL(url).fileName();
+        hifi::URL textureUrl = _url.resolved(url);
         qCDebug(modelformat) << "fname: " << fname;
         fbxtex.name = fname;
         fbxtex.filename = textureUrl.toEncoded();
@@ -1187,7 +1188,7 @@ void GLTFSerializer::setHFMMaterial(HFMMaterial& fbxmat, const GLTFMaterial& mat
 }
 
 template<typename T, typename L>
-bool GLTFSerializer::readArray(const QByteArray& bin, int byteOffset, int count,
+bool GLTFSerializer::readArray(const hifi::ByteArray& bin, int byteOffset, int count,
                            QVector<L>& outarray, int accessorType) {
     
     QDataStream blobstream(bin);
@@ -1244,7 +1245,7 @@ bool GLTFSerializer::readArray(const QByteArray& bin, int byteOffset, int count,
     return true;
 }
 template<typename T>
-bool GLTFSerializer::addArrayOfType(const QByteArray& bin, int byteOffset, int count,
+bool GLTFSerializer::addArrayOfType(const hifi::ByteArray& bin, int byteOffset, int count,
                                 QVector<T>& outarray, int accessorType, int componentType) {
     
     switch (componentType) {

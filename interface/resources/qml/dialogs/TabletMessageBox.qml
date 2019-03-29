@@ -28,7 +28,7 @@ TabletModalWindow {
         id: mouse;
         anchors.fill: parent
     }
-    
+
     function click(button) {
         clickedButton = button;
         selected(button);

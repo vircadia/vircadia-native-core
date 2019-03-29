@@ -382,7 +382,8 @@ const DEFAULT_ENTITY_PROPERTIES = {
             },
         },
         shapeType: "box",
-        bloomMode: "inherit"
+        bloomMode: "inherit",
+        avatarPriority: "inherit"
     },
     Model: {
         collisionShape: "none",
@@ -2285,14 +2286,15 @@ var PropertiesTool = function (opts) {
         })
     };
 
-    function updateSelections(selectionUpdated) {
+    function updateSelections(selectionUpdated, caller) {
         if (blockPropertyUpdates) {
             return;
         }
 
         var data = {
             type: 'update',
-            spaceMode: selectionDisplay.getSpaceMode()
+            spaceMode: selectionDisplay.getSpaceMode(),
+            isPropertiesToolUpdate: caller === this,
         };
 
         if (selectionUpdated) {
@@ -2338,7 +2340,7 @@ var PropertiesTool = function (opts) {
 
         emitScriptEvent(data);
     }
-    selectionManager.addEventListener(updateSelections);
+    selectionManager.addEventListener(updateSelections, this);
 
 
     var onWebEventReceived = function(data) {
@@ -2522,7 +2524,7 @@ var PropertiesTool = function (opts) {
 
     createToolsWindow.webEventReceived.addListener(this, onWebEventReceived);
 
-    webView.webEventReceived.connect(onWebEventReceived);
+    webView.webEventReceived.connect(this, onWebEventReceived);
 
     return that;
 };

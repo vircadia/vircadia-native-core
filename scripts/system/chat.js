@@ -45,6 +45,17 @@
     var speechBubbleLineHeight = 0.05; // The height of a line of text in the speech bubble.
     var SPEECH_BUBBLE_MAX_WIDTH = 1; // meters
 
+    var textSizeOverlay = Overlays.addOverlay("text3d", {
+        position: MyAvatar.position,
+        lineHeight: speechBubbleLineHeight,
+        leftMargin: 0,
+        topMargin: 0,
+        rightMargin: 0,
+        bottomMargin: 0,
+        ignoreRayIntersection: true,
+        visible: false
+    });
+
     // Load the persistent variables from the Settings, with defaults.
     function loadSettings() {
         chatName = Settings.getValue('Chat_chatName', MyAvatar.displayName);
@@ -63,6 +74,9 @@
         speechBubbleOffset = Settings.getValue('Chat_speechBubbleOffset', {x: 0.0, y: 0.3, z:0.0});
         speechBubbleJointName = Settings.getValue('Chat_speechBubbleJointName', 'Head');
         speechBubbleLineHeight = Settings.getValue('Chat_speechBubbleLineHeight', 0.05);
+        Overlays.editOverlay(textSizeOverlay, {
+            lineHeight: speechBubbleLineHeight
+        });
 
         saveSettings();
     }
@@ -637,7 +651,7 @@
         // Only overlay text3d has a way to measure the text, not entities.
         // So we make a temporary one just for measuring text, then delete it.
         var speechBubbleTextOverlayID = Overlays.addOverlay("text3d", speechBubbleParams);
-        var textSize = Overlays.textSize(speechBubbleTextOverlayID, speechBubbleMessage);
+        var textSize = Overlays.textSize(textSizeOverlay, speechBubbleMessage);
         try {
             Overlays.deleteOverlay(speechBubbleTextOverlayID);
         } catch (e) {}
@@ -970,6 +984,8 @@
         popDownSpeechBubble();
         unidentifyAvatars();
         disconnectWebHandler();
+
+        Overlays.deleteOverlay(textSizeOverlay);
 
         if (onChatPage) {
             tablet.gotoHomeScreen();

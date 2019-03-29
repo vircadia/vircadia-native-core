@@ -19,9 +19,9 @@
 #include <QtCore/QObject>
 #include <QTimer>
 #include <QHash>
+#include <QUuid>
 #include <DependencyManager.h>
 #include <Sound.h>
-#include <AudioInjector.h>
 #include <shared/ReadWriteLockable.h>
 #include <SettingHandle.h>
 
@@ -193,6 +193,8 @@ private:
 
     QSet<QUuid> _itemsToIgnore;
     std::vector<QHash<QUuid, Key>> _keyboardLayers;
+
+    bool _created { false };
 };
 
 #endif
