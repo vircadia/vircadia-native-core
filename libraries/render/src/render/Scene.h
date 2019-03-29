@@ -34,6 +34,7 @@ class Scene;
 // of updating the scene before it s rendered.
 //
 
+
 class Transaction {
     friend class Scene;
 public:
@@ -230,7 +231,7 @@ protected:
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
 
-    std::unordered_map<TransitionStage::Index, std::vector<Transaction::TransitionFinishedFunc>> _transitionFinishedOperatorMap;
+    std::unordered_map<int32_t, std::vector<Transaction::TransitionFinishedFunc>> _transitionFinishedOperatorMap;
 
     void resetSelections(const Transaction::SelectionResets& transactions);
   // More actions coming to selections soon:

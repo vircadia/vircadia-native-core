@@ -214,6 +214,30 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
     }
 }
 
+void EntityTreeRenderer::removeFadedRenderables() {
+    if (_entityRenderablesToFadeOut.empty()) {
+        return;
+    }
+
+    std::unique_lock<std::mutex> lock(_entitiesToFadeLock);
+    auto entityIter = _entityRenderablesToFadeOut.begin();
+    auto scene = _viewState->getMain3DScene();
+    render::Transaction transaction;
+
+    while (entityIter != _entityRenderablesToFadeOut.end()) {
+        auto entityRenderable = *entityIter;
+
+        if (!entityRenderable->getIsFading()) {
+            entityRenderable->removeFromScene(scene, transaction);
+            entityIter = _entityRenderablesToFadeOut.erase(entityIter);
+        } else {
+            ++entityIter;
+        }
+    }
+
+    scene->enqueueTransaction(transaction);
+}
+
 void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     stopDomainAndNonOwnedEntities();
 
@@ -221,17 +245,15 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        render::Transaction transaction;
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
             if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
-                renderer->removeFromScene(scene, transaction);
+                fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
             }
         }
-        scene->enqueueTransaction(transaction);
     }
 
     _renderablesToUpdate = savedEntities;
@@ -258,12 +280,10 @@ void EntityTreeRenderer::clear() {
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        render::Transaction transaction;
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
-            renderer->removeFromScene(scene, transaction);
+            fadeOutRenderable(renderer);
         }
-        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
@@ -531,6 +551,7 @@ void EntityTreeRenderer::update(bool simulate) {
         }
 
     }
+    removeFadedRenderables();
 }
 
 void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate) {
@@ -1016,10 +1037,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 
     forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
 
-    // here's where we remove the entity payload from the scene
-    render::Transaction transaction;
-    renderable->removeFromScene(scene, transaction);
-    scene->enqueueTransaction(transaction);
+    fadeOutRenderable(renderable);
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
@@ -1057,24 +1075,26 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
     }
 }
 
-void EntityTreeRenderable::fadeOutRenderable(const EntityRendererPointer& renderable) {
+void EntityTreeRenderer::fadeOutRenderable(const EntityRendererPointer& renderable) {
     render::Transaction transaction;
-    auto scene = qApp->getMain3DScene();
+    auto scene = _viewState->getMain3DScene();
 
+    renderable->setIsFading(true);
     transaction.transitionFinishedOperator(renderable->getRenderItemID(), [renderable]() {
         renderable->setIsFading(false);
     });
 
     scene->enqueueTransaction(transaction);
+    _entityRenderablesToFadeOut.push_back(renderable);
 }
 
 void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision) {
     assert((bool)entity);
     auto renderable = renderableForEntity(entity);
-    if (!renderable) { 
-        return; 
+    if (!renderable) {
+        return;
     }
-    
+
     SharedSoundPointer collisionSound = renderable->getCollisionSound();
     if (!collisionSound) {
         return;

@@ -461,7 +461,7 @@ public:
     bool isMoving() const { return _moving; }
 
     void fadeIn(render::ScenePointer scene);
-    void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
+    void fadeOut(render::Transaction& transaction, KillAvatarReason reason);
     bool isFading() const { return _isFading; }
     void setIsFading(bool isFading) { _isFading = isFading; }
 

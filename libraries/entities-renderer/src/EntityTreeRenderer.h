@@ -93,7 +93,7 @@ public:
     /// reloads the entity scripts, calling unload and preload
     void reloadEntityScripts();
 
-    void fadeOutRenderable(const EntityRenderablePointer& renderable);
+    void fadeOutRenderable(const EntityRendererPointer& renderable);
     void removeFadedRenderables();
 
     // event handles which may generate entity related events
@@ -258,7 +258,9 @@ private:
     std::unordered_map<EntityItemID, EntityRendererPointer> _renderablesToUpdate;
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
-    std::vector<EntityRendererPointer> _entityRendersToFadeOut;
+
+    std::mutex _entitiesToFadeLock;
+    std::vector<EntityRendererPointer> _entityRenderablesToFadeOut;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 

@@ -659,9 +659,8 @@ void Avatar::fadeIn(render::ScenePointer scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+void Avatar::fadeOut(render::Transaction& transaction, KillAvatarReason reason) {
     render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
-    render::Transaction transaction;
 
     if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
         transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
@@ -669,7 +668,6 @@ void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
         transitionType = render::Transition::BUBBLE_ISECT_OWNER;
     }
     fade(transaction, transitionType);
-    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {

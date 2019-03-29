@@ -148,7 +148,7 @@ EntityRenderer::EntityRenderer(const EntityItemPointer& entity) : _created(entit
     });
 }
 
-EntityRenderer::~EntityRenderer() { }
+EntityRenderer::~EntityRenderer() {}
 
 //
 // Smart payload proxy members, implementing the payload interface
@@ -418,9 +418,7 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         if (fading || _prevIsTransparent != transparent) {
             emit requestRenderUpdate();
         }
-        if (fading) {
-            _isFading = Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
-        }
+
         _prevIsTransparent = transparent;
 
         updateModelTransformAndBound();

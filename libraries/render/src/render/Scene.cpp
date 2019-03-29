@@ -461,8 +461,8 @@ void Scene::resetTransitionFinishedOperator(const Transaction::TransitionFinishe
             TransitionStage::Index transitionId = item.getTransitionId();
             if (!TransitionStage::isIndexInvalid(transitionId)) {
                 _transitionFinishedOperatorMap[transitionId].emplace_back(func);
-            } else {
-                fucn();
+            } else if (func) {
+                func();
             }
         }
     }
@@ -559,7 +559,7 @@ void Scene::resetItemTransition(ItemID itemId) {
         auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
         auto finishedOperators = _transitionFinishedOperatorMap[transitionId];
-
+        qDebug() << "removing transition: " << transitionId;
         for (auto finishedOperator : finishedOperators) {
             if (finishedOperator) {
                 finishedOperator();
