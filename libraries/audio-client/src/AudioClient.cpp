@@ -1915,7 +1915,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo outputDeviceI
             int deviceChannelCount = _outputFormat.channelCount();
             int frameSize = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL * deviceChannelCount * _outputFormat.sampleRate()) / _desiredOutputFormat.sampleRate();
             int requestedSize = _sessionOutputBufferSizeFrames * frameSize * AudioConstants::SAMPLE_SIZE;
-            _audioOutput->setBufferSize(requestedSize);
+            _audioOutput->setBufferSize(requestedSize * 16);
 
             // initialize mix buffers on the _audioOutput thread to avoid races
             connect(_audioOutput, &QAudioOutput::stateChanged, [&, frameSize, requestedSize](QAudio::State state) {

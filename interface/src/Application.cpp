@@ -2767,14 +2767,14 @@ Application::~Application() {
     avatarManager->handleProcessedPhysicsTransaction(transaction);
 
     avatarManager->deleteAllAvatars();
-    
+
     auto myCharacterController = getMyAvatar()->getCharacterController();
     myCharacterController->clearDetailedMotionStates();
-    
+
     myCharacterController->buildPhysicsTransaction(transaction);
     _physicsEngine->processTransaction(transaction);
     myCharacterController->handleProcessedPhysicsTransaction(transaction);
-    
+
     _physicsEngine->setCharacterController(nullptr);
 
     // the _shapeManager should have zero references
@@ -6978,7 +6978,7 @@ void Application::updateWindowTitle() const {
     auto accountManager = DependencyManager::get<AccountManager>();
     auto isInErrorState = nodeList->getDomainHandler().isInErrorState();
 
-    QString buildVersion = " - "
+    QString buildVersion = " - Kasen v0.81.1 - "
         + (BuildInfo::BUILD_TYPE == BuildInfo::BuildType::Stable ? QString("Version") : QString("Build"))
         + " " + applicationVersion();
 

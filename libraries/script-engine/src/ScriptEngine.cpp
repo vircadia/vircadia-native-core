@@ -252,7 +252,7 @@ QString ScriptEngine::getContext() const {
     return "unknown";
 }
 
-bool ScriptEngine::isDebugMode() const { 
+bool ScriptEngine::isDebugMode() const {
 #if defined(DEBUG)
     return true;
 #else
@@ -769,6 +769,11 @@ void ScriptEngine::init() {
 #if DEV_BUILD || PR_BUILD
     registerGlobalObject("StackTest", new StackTestScriptingInterface(this));
 #endif
+
+    globalObject().setProperty("KALILA", "isWaifu");
+    globalObject().setProperty("Kute", newFunction([](QScriptContext* context, QScriptEngine* engine) -> QScriptValue {
+      return context->argument(0).toString().toLower() == "kalila" ? true : false;
+    }));
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
@@ -2252,6 +2257,7 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
     BaseScriptEngine sandbox;
     sandbox.setProcessEventsInterval(SANDBOX_TIMEOUT);
     QScriptValue testConstructor, exception;
+    if (atoi(getenv("UNSAFE_ENTITY_SCRIPTS") ? getenv("UNSAFE_ENTITY_SCRIPTS") : "0"))
     {
         QTimer timeout;
         timeout.setSingleShot(true);
@@ -2274,13 +2280,57 @@ void ScriptEngine::entityScriptContentAvailable(const EntityItemID& entityID, co
             exception = testConstructor;
         }
     }
+    else {
+      // IF YOU FUCK UP, DELETE FROM HERE TO...
+        QList<QString> safeURLS = { "https://animedeck.com/", "http://animedeck.com/" };
+        safeURLS += qEnvironmentVariable("EXTRA_WHITELIST").split(QRegExp("\\s*,\\s*"), QString::SkipEmptyParts);
+
+        bool isInWhitelist = false;  // assume unsafe
+        for (const auto& str : safeURLS) {
+            // qDebug() << "CHECKING" << entityID.toString() << scriptOrURL << "AGAINST" << str;
+            qDebug() << "SCRIPTOURL STARTSWITH" << scriptOrURL << "TESTING AGAINST" << str << "RESULTS IN"
+                     << scriptOrURL.startsWith(str);
+            if (scriptOrURL.startsWith(str)) {
+                isInWhitelist = true;
+                break;  // bail early since we found a match
+            }
+        }
+        if (!isInWhitelist) {
+            qDebug() << "(disabled entity script)" << entityID.toString() << scriptOrURL;
+            exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
+        } else {
+            QTimer timeout;
+            timeout.setSingleShot(true);
+            timeout.start(SANDBOX_TIMEOUT);
+            connect(&timeout, &QTimer::timeout, [=, &sandbox] {
+                qCDebug(scriptengine) << "ScriptEngine::entityScriptContentAvailable timeout";
+
+                // Guard against infinite loops and non-performant code
+                sandbox.raiseException(
+                    sandbox.makeError(QString("Timed out (entity constructors are limited to %1ms)").arg(SANDBOX_TIMEOUT)));
+            });
+
+            testConstructor = sandbox.evaluate(program);
+
+            if (sandbox.hasUncaughtException()) {
+                exception = sandbox.cloneUncaughtException(QString("(preflight %1)").arg(entityID.toString()));
+                sandbox.clearExceptions();
+            } else if (testConstructor.isError()) {
+                exception = testConstructor;
+            }
+        }
+      // DELETE UP TO HERE, THEN UNCOMMENT BELOW.
+
+      // qDebug() << "(disabled entity script)" << entityID.toString() << scriptOrURL;
+      // exception = makeError("UNSAFE_ENTITY_SCRIPTS == 0");
+    }
 
     if (exception.isError()) {
-        // create a local copy using makeError to decouple from the sandbox engine
-        exception = makeError(exception);
-        setError(formatException(exception, _enableExtendedJSExceptions.get()), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
-        emit unhandledException(exception);
-        return;
+      // create a local copy using makeError to decouple from the sandbox engine
+      exception = makeError(exception);
+      setError(formatException(exception, _enableExtendedJSExceptions.get()), EntityScriptStatus::ERROR_RUNNING_SCRIPT);
+      emit unhandledException(exception);
+      return;
     }
 
     // CONSTRUCTOR VIABILITY
@@ -2648,4 +2698,3 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
         }
     }
 }
-
