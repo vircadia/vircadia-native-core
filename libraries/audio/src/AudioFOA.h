@@ -28,12 +28,7 @@ static_assert((FOA_BLOCK + FOA_OVERLAP) == FOA_NFFT, "FFT convolution requires L
 class AudioFOA {
 
 public:
-    AudioFOA() {
-        // identity matrix
-        _rotationState[0][0] = 1.0f;
-        _rotationState[1][1] = 1.0f;
-        _rotationState[2][2] = 1.0f;
-    };
+    AudioFOA() {};
 
     //
     // input: interleaved First-Order Ambisonic source
@@ -55,8 +50,8 @@ private:
     // input history, for overlap-save
     float _fftState[4][FOA_OVERLAP] = {};
 
-    // orientation history
-    float _rotationState[3][3] = {};
+    // orientation and gain history
+    float _rotationState[4][4] = {};
 };
 
 #endif // AudioFOA_h
