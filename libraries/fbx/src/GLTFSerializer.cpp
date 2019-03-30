@@ -734,8 +734,8 @@ glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-std::vector<QVector<float>> GLTFSerializer::getSkinInverseBindMatrices() {
-    std::vector<QVector<float>> inverseBindMatrixValues;
+std::vector<std::vector<float>> GLTFSerializer::getSkinInverseBindMatrices() {
+    std::vector<std::vector<float>> inverseBindMatrixValues;
     for (auto &skin : _file.skins) {
         GLTFAccessor& indicesAccessor = _file.accessors[skin.inverseBindMatrices];
         GLTFBufferView& indicesBufferview = _file.bufferviews[indicesAccessor.bufferView];
@@ -748,14 +748,14 @@ std::vector<QVector<float>> GLTFSerializer::getSkinInverseBindMatrices() {
             matrices,
             indicesAccessor.type, 
             indicesAccessor.componentType);
-        inverseBindMatrixValues.push_back(matrices);
+        inverseBindMatrixValues.push_back(matrices.toStdVector());
     }
     return inverseBindMatrixValues;
 }
 
-QVector<int> GLTFSerializer::nodeDFS(int n, std::vector<int>& children, bool order) {
-    QVector<int> result;
-    result.append(n);
+std::vector<int> GLTFSerializer::nodeDFS(int n, std::vector<int>& children, bool order) {
+    std::vector<int> result;
+    result.push_back(n);
     int begin = 0;
     int finish = (int)children.size();
     if (order) {
@@ -768,9 +768,11 @@ QVector<int> GLTFSerializer::nodeDFS(int n, std::vector<int>& children, bool ord
         std::vector<int> nested = _file.nodes[c].children.toStdVector();
         if (nested.size() != 0) {
             std::sort(nested.begin(), nested.end());
-            result.append(nodeDFS(c, nested, order));
+            for (int n : nodeDFS(c, nested, order)) {
+                result.push_back(n);
+            }
         } else {
-            result.append(c);
+            result.push_back(c);
         }
         begin < finish ? index++ : index--;
     }
@@ -779,10 +781,10 @@ QVector<int> GLTFSerializer::nodeDFS(int n, std::vector<int>& children, bool ord
 
 
 bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
-    int nodesSize = _file.nodes.size();
+    int numNodes = _file.nodes.size();
 
     //Build dependencies
-    QVector<QVector<int>> nodeDependencies(nodesSize);
+    QVector<QVector<int>> nodeDependencies(numNodes);
     int nodecount = 0;
     foreach(auto &node, _file.nodes) {
         //nodes_transforms.push_back(getModelTransform(node));
@@ -810,35 +812,40 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
 
     // initialize order in which nodes will be parsed
-    QVector<int> nodeQueue; 
-    int start = 0;
-    int end = nodesSize;
+    QVector<int> nodeQueue;
+    nodeQueue.reserve(numNodes);
+    int rootNode = 0;
+    int finalNode = numNodes;
     if (!_file.scenes[_file.scene].nodes.contains(0)) {
-        end = -1;
-        start = nodesSize - 1;
+        rootNode = numNodes - 1;
+        finalNode = -1;
     }
-    QVector<int> init = _file.scenes[_file.scene].nodes; 
-    std::sort(init.begin(), init.end());
-    int begin = 0; 
-    int finish = init.size();
-    if (start > end)  { 
-        begin = init.size() - 1;
-        finish = -1;
+    bool rootAtStartOfList = rootNode < finalNode;
+    int nodeListStride = 1;
+    if (!rootAtStartOfList) { nodeListStride = -1; }
+
+    QVector<int> initialSceneNodes = _file.scenes[_file.scene].nodes; 
+    std::sort(initialSceneNodes.begin(), initialSceneNodes.end());
+    int sceneRootNode = 0; 
+    int sceneFinalNode = initialSceneNodes.size();
+    if (!rootAtStartOfList) { 
+        sceneRootNode = initialSceneNodes.size() - 1;
+        sceneFinalNode = -1;
     }
-    int index = begin;
-    while (index != finish) {
-        int i = init[index];
+    for (int index = sceneRootNode; index != sceneFinalNode; index += nodeListStride) {
+        int i = initialSceneNodes[index];
         std::vector<int> children = _file.nodes[i].children.toStdVector(); 
         std::sort(children.begin(), children.end());
-        nodeQueue.append(nodeDFS(i, children, start > end));
-        begin < finish ? index++ : index--;
+        for (int n : nodeDFS(i, children, !rootAtStartOfList)) {
+            nodeQueue.append(n);
+        }
     }
 
 
     // Build joints
     HFMJoint joint;
     joint.distanceToParent = 0;
-    hfmModel.jointIndices["x"] = nodesSize;
+    hfmModel.jointIndices["x"] = numNodes;
     hfmModel.hasSkeletonJoints = false;
 
     for (int nodeIndex : nodeQueue) {
@@ -858,46 +865,46 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
         joint.translation = extractTranslation(joint.transform);
           
         joint.name = node.name;
+        joint.isSkeletonJoint = false;
         hfmModel.joints.push_back(joint);
     }
 
 
     // Build skeleton
-    int matrixIndex = 0;
-    std::vector<QVector<float>> inverseBindValues = getSkinInverseBindMatrices();
     std::vector<glm::mat4> jointInverseBindTransforms;
-    jointInverseBindTransforms.resize(nodesSize);
+    if (!_file.skins.isEmpty()) {
+        int matrixIndex = 0;
+        std::vector<std::vector<float>> inverseBindValues = getSkinInverseBindMatrices();
+        jointInverseBindTransforms.resize(numNodes);
 
-    int jointIndex = end;
-    while (jointIndex != start) {
-        start < end ? jointIndex-- : jointIndex++;
-        int jOffset = nodeQueue[jointIndex];
-        auto joint = hfmModel.joints[jointIndex];
+        int jointIndex = finalNode;
+        while (jointIndex != rootNode) {
+            rootAtStartOfList ? jointIndex-- : jointIndex++;
+            int jOffset = nodeQueue[jointIndex];
+            auto joint = hfmModel.joints[jointIndex];
 
-        joint.isSkeletonJoint = false;
-        if (!_file.skins.isEmpty()) {
             hfmModel.hasSkeletonJoints = true;
             for (int s = 0; s < _file.skins.size(); s++) {
                 auto skin = _file.skins[s];
                 joint.isSkeletonJoint = skin.joints.contains(jOffset);
 
                 if (joint.isSkeletonJoint) {
-                    QVector<float> value = inverseBindValues[s];
+                    std::vector<float> value = inverseBindValues[s];
                     int matrixCount = 16 * skin.joints.indexOf(jOffset);
                     jointInverseBindTransforms[jointIndex] =
-                        glm::mat4(value[matrixCount], value[matrixCount + 1], value[matrixCount + 2], value[matrixCount + 3],
+                        glm::mat4(value[matrixCount], value[matrixCount + 1], value[matrixCount + 2], value[matrixCount + 3], 
                             value[matrixCount + 4], value[matrixCount + 5], value[matrixCount + 6], value[matrixCount + 7], 
-                            value[matrixCount + 8], value[matrixCount + 9], value[matrixCount + 10], value[matrixCount + 11], 
+                            value[matrixCount + 8], value[matrixCount + 9], value[matrixCount + 10], value[matrixCount + 11],
                             value[matrixCount + 12], value[matrixCount + 13], value[matrixCount + 14], value[matrixCount + 15]);
                     matrixIndex++;
                 } else {
                     jointInverseBindTransforms[jointIndex] = glm::mat4();
                 }
+                glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * glm::inverse(jointInverseBindTransforms[jointIndex]));
+                hfmModel.bindExtents.addPoint(bindTranslation);
             }
-            glm::vec3 bindTranslation = extractTranslation(hfmModel.offset * glm::inverse(jointInverseBindTransforms[jointIndex]));
-            hfmModel.bindExtents.addPoint(bindTranslation);
+            hfmModel.joints[jointIndex] = joint;
         }
-        hfmModel.joints[jointIndex] = joint;
     }
 
 
@@ -921,8 +928,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     
     // Build meshes
     nodecount = 0;
-    int nodeIndex = start;
-    while (nodeIndex != end) {
+    for (int nodeIndex = rootNode; nodeIndex != finalNode; nodeIndex += nodeListStride) {
         auto& node = _file.nodes[nodeIndex];
 
         if (node.defined["mesh"]) {
@@ -937,14 +943,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                     cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
                     mesh.clusters.append(cluster);
                 } else {
-                    int j = start;
-                    while (j != end) {
+                    for (int j = rootNode; j != finalNode; j += nodeListStride) {
                         HFMCluster cluster;
                         cluster.jointIndex = j;
                         cluster.inverseBindMatrix = jointInverseBindTransforms[j];
                         cluster.inverseBindTransform = Transform(cluster.inverseBindMatrix);
                         mesh.clusters.append(cluster);
-                        start < end ? j++ : j--;
                     }
                 }
 
@@ -1148,7 +1152,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
                 // populate the texture coordinates if they don't exist
                 if (mesh.texCoords.size() == 0 && !hfmModel.hasSkeletonJoints) {
-                    for (int i = 0; i < part.triangleIndices.size(); i++) mesh.texCoords.push_back(glm::vec2(0.0, 1.0));
+                    for (int i = 0; i < part.triangleIndices.size(); i++) { mesh.texCoords.push_back(glm::vec2(0.0, 1.0)); }
                 }
                 mesh.meshExtents.reset();
                 foreach(const glm::vec3& vertex, mesh.vertices) {
@@ -1161,7 +1165,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
             
         }
         nodecount++;
-        start < end ? nodeIndex++ : nodeIndex--;
     }
 
     

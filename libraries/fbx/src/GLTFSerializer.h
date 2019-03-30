@@ -712,8 +712,8 @@ private:
     hifi::ByteArray _glbBinary;
 
     glm::mat4 getModelTransform(const GLTFNode& node);
-    std::vector<QVector<float>> getSkinInverseBindMatrices();
-    QVector<int> nodeDFS(int n, std::vector<int>& children, bool order);
+    std::vector<std::vector<float>> getSkinInverseBindMatrices();
+    std::vector<int> nodeDFS(int n, std::vector<int>& children, bool order);
 
     bool buildGeometry(HFMModel& hfmModel, const hifi::URL& url);
     bool parseGLTF(const hifi::ByteArray& data);
