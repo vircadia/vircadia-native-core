@@ -750,6 +750,43 @@ static void interpolate(const float* src0, const float* src1, float* dst, float 
 
 #endif
 
+// apply gain crossfade with accumulation (interleaved)
+static void gainfade_1x2(int16_t* src, float* dst, const float* win, float gain0, float gain1, int numFrames) {
+
+    gain0 *= (1/32768.0f);  // int16_t to float
+    gain1 *= (1/32768.0f);
+
+    for (int i = 0; i < numFrames; i++) {
+
+        float frac = win[i];
+        float gain = gain1 + frac * (gain0 - gain1);
+
+        float x0 = (float)src[i] * gain;
+
+        dst[2*i+0] += x0;
+        dst[2*i+1] += x0;
+    }
+}
+
+// apply gain crossfade with accumulation (interleaved)
+static void gainfade_2x2(int16_t* src, float* dst, const float* win, float gain0, float gain1, int numFrames) {
+
+    gain0 *= (1/32768.0f);  // int16_t to float
+    gain1 *= (1/32768.0f);
+
+    for (int i = 0; i < numFrames; i++) {
+
+        float frac = win[i];
+        float gain = gain1 + frac * (gain0 - gain1);
+
+        float x0 = (float)src[2*i+0] * gain;
+        float x1 = (float)src[2*i+1] * gain;
+
+        dst[2*i+0] += x0;
+        dst[2*i+1] += x1;
+    }
+}
+
 // design a 2nd order Thiran allpass
 static void ThiranBiquad(float f, float& b0, float& b1, float& b2, float& a1, float& a2) {
 
@@ -1174,4 +1211,32 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     crossfade_4x2(bqBuffer, output, crossfadeTable, HRTF_BLOCK);
 
     _resetState = false;
+}
+
+void AudioHRTF::mixMono(int16_t* input, float* output, float gain, int numFrames) {
+
+    assert(numFrames == HRTF_BLOCK);
+
+    // apply global and local gain adjustment
+    gain *= _gainAdjust;
+
+    // crossfade gain and accumulate
+    gainfade_1x2(input, output, crossfadeTable, _gainState, gain, HRTF_BLOCK);
+
+    // new parameters become old
+    _gainState = gain;
+}
+
+void AudioHRTF::mixStereo(int16_t* input, float* output, float gain, int numFrames) {
+
+    assert(numFrames == HRTF_BLOCK);
+
+    // apply global and local gain adjustment
+    gain *= _gainAdjust;
+
+    // crossfade gain and accumulate
+    gainfade_2x2(input, output, crossfadeTable, _gainState, gain, HRTF_BLOCK);
+
+    // new parameters become old
+    _gainState = gain;
 }
