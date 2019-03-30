@@ -56,7 +56,7 @@ Rectangle {
     onLevelChanged: {
         var rectOpacity = (muted && (level >= userSpeakingLevel)) ? 1.0 : 0.7;
         if (pushToTalk && !pushingToTalk) {
-            rectOpacity = (level >= userSpeakingLevel) ? 1.0 : 0.7;
+            rectOpacity = (mouseArea.containsMouse) ? 1.0 : 0.7;
         } else if (mouseArea.containsMouse && rectOpacity != 1.0) {
             rectOpacity = 1.0;
         }
