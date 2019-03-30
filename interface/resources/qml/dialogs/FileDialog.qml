@@ -9,7 +9,7 @@
 //
 
 import QtQuick 2.7
-import Qt.labs.folderlistmodel 2.1
+import Qt.labs.folderlistmodel 2.2
 import Qt.labs.settings 1.0
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import QtQuick.Controls 1.4 as QQC1
@@ -320,6 +320,7 @@ ModalWindow {
         FolderListModel {
             id: folderListModel
             nameFilters: selectionType.currentFilter
+            caseSensitive: false
             showDirsFirst: true
             showDotAndDotDot: false
             showFiles: !root.selectDirectory
