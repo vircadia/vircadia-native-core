@@ -375,6 +375,14 @@ signals:
      */
     bool miniTabletEnabledChanged(bool enabled);
 
+    /**jsdoc
+     * Triggered when the altering the mode for going into an away state when the interface focus is lost in VR.
+     * @function HMD.awayStateWhenFocusLostInVRChanged
+     * @param {boolean} enabled - <code>true</code> if the setting to go into an away state in VR when the interface focus is lost is enabled, otherwise <code>false</code>.
+     * @returns {Signal}
+     */
+    bool awayStateWhenFocusLostInVRChanged(bool enabled);
+
 public:
     HMDScriptingInterface();
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
@@ -410,6 +418,9 @@ public:
 
     void setMiniTabletEnabled(bool enabled);
     bool getMiniTabletEnabled();
+
+    void setAwayStateWhenFocusLostInVREnabled(bool enabled);
+    bool getAwayStateWhenFocusLostInVREnabled();
 
     QVariant getPlayAreaRect();
     QVector<glm::vec3> getSensorPositions();
