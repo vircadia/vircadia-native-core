@@ -1141,6 +1141,13 @@ void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, 
     // apply global and local gain adjustment
     gain *= _gainAdjust;
 
+    // disable interpolation from reset state
+    if (_resetState) {
+        _azimuthState = azimuth;
+        _distanceState = distance;
+        _gainState = gain;
+    }
+
     // to avoid polluting the cache, old filters are recomputed instead of stored
     setFilters(firCoef, bqCoef, delay, index, _azimuthState, _distanceState, _gainState, L0);
 
@@ -1220,11 +1227,18 @@ void AudioHRTF::mixMono(int16_t* input, float* output, float gain, int numFrames
     // apply global and local gain adjustment
     gain *= _gainAdjust;
 
+    // disable interpolation from reset state
+    if (_resetState) {
+        _gainState = gain;
+    }
+
     // crossfade gain and accumulate
     gainfade_1x2(input, output, crossfadeTable, _gainState, gain, HRTF_BLOCK);
 
     // new parameters become old
     _gainState = gain;
+
+    _resetState = false;
 }
 
 void AudioHRTF::mixStereo(int16_t* input, float* output, float gain, int numFrames) {
@@ -1234,9 +1248,16 @@ void AudioHRTF::mixStereo(int16_t* input, float* output, float gain, int numFram
     // apply global and local gain adjustment
     gain *= _gainAdjust;
 
+    // disable interpolation from reset state
+    if (_resetState) {
+        _gainState = gain;
+    }
+
     // crossfade gain and accumulate
     gainfade_2x2(input, output, crossfadeTable, _gainState, gain, HRTF_BLOCK);
 
     // new parameters become old
     _gainState = gain;
+
+    _resetState = false;
 }

@@ -52,6 +52,8 @@ private:
 
     // orientation and gain history
     float _rotationState[4][4] = {};
+
+    bool _resetState = true;
 };
 
 #endif // AudioFOA_h

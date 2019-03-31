@@ -1081,10 +1081,15 @@ void AudioFOA::render(int16_t* input, float* output, int index, float qw, float 
     // apply gain as uniform scale
     scaleMatrix_4x4(gain, rotation);
 
+    // disable interpolation from reset state
+    if (_resetState) {
+        memcpy(_rotationState, rotation, sizeof(_rotationState));
+    }
+
     // rotate and scale the soundfield
     rotate_4x4(in, _rotationState, rotation, crossfadeTable, FOA_BLOCK);
 
-    // rotation history update
+    // new parameters become old
     memcpy(_rotationState, rotation, sizeof(_rotationState));
 
     //
@@ -1119,4 +1124,6 @@ void AudioFOA::render(int16_t* input, float* output, int index, float qw, float 
         output[2*i+0] += accBuffer[0][i + FOA_OVERLAP];
         output[2*i+1] += accBuffer[1][i + FOA_OVERLAP];
     }
+
+    _resetState = false;
 }
