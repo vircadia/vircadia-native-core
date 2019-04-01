@@ -1101,13 +1101,13 @@ void EntityScriptingInterface::handleEntityScriptCallMethodPacket(QSharedPointer
 
 void EntityScriptingInterface::onAddingEntity(EntityItem* entity) {
     if (entity->isWearable()) {
-        emit addingWearable(entity->getEntityItemID());
+        QMetaObject::invokeMethod(this, "addingWearable", Q_ARG(QUuid, entity->getEntityItemID()));
     }
 }
 
 void EntityScriptingInterface::onDeletingEntity(EntityItem* entity) {
     if (entity->isWearable()) {
-        emit deletingWearable(entity->getEntityItemID());
+        QMetaObject::invokeMethod(this, "deletingWearable", Q_ARG(QUuid, entity->getEntityItemID()));
     }
 }
 
@@ -2196,14 +2196,7 @@ bool EntityScriptingInterface::wantsHandControllerPointerEvents(const QUuid& id)
 }
 
 void EntityScriptingInterface::emitScriptEvent(const EntityItemID& entityID, const QVariant& message) {
-    if (_entityTree) {
-        _entityTree->withReadLock([&] {
-            EntityItemPointer entity = _entityTree->findEntityByEntityItemID(EntityItemID(entityID));
-            if (entity) {
-                entity->emitScriptEvent(message);
-            }
-        });
-    }
+    EntityTree::emitScriptEvent(entityID, message);
 }
 
 // TODO move this someplace that makes more sense...

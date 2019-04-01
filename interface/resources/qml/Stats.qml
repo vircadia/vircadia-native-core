@@ -234,6 +234,10 @@ Item {
                     }
                     StatText {
                         visible: root.expanded;
+                        text: "Injectors (Local/NonLocal): " + root.audioInjectors.x + "/" + root.audioInjectors.y;
+                    }
+                    StatText {
+                        visible: root.expanded;
                         text: "Entity Servers In: " + root.entityPacketsInKbps + " kbps";
                     }
                     StatText {

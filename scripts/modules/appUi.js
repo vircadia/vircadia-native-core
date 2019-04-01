@@ -353,10 +353,11 @@ function AppUi(properties) {
         // Close if necessary, clean up any remaining handlers, and remove the button.
         GlobalServices.myUsernameChanged.disconnect(restartNotificationPoll);
         GlobalServices.findableByChanged.disconnect(restartNotificationPoll);
+        that.tablet.screenChanged.disconnect(that.onScreenChanged);
         if (that.isOpen) {
             that.close();
+            that.onScreenChanged("", "");
         }
-        that.tablet.screenChanged.disconnect(that.onScreenChanged);
         if (that.button) {
             if (that.onClicked) {
                 that.button.clicked.disconnect(that.onClicked);

@@ -128,8 +128,11 @@ SelectionManager = (function() {
         }
     };
 
-    that.addEventListener = function(func) {
-        listeners.push(func);
+    that.addEventListener = function(func, thisContext) {
+        listeners.push({
+            callback: func,
+            thisContext: thisContext
+        });
     };
 
     that.hasSelection = function() {
@@ -572,7 +575,7 @@ SelectionManager = (function() {
 
         for (var j = 0; j < listeners.length; j++) {
             try {
-                listeners[j](selectionUpdated === true, caller);
+                listeners[j].callback.call(listeners[j].thisContext, selectionUpdated === true, caller);
             } catch (e) {
                 print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }

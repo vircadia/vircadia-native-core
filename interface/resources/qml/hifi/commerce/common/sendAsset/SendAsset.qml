@@ -2248,6 +2248,7 @@ Item {
                 if (sendAssetStep.selectedRecipientUserName === "") {
                     console.log("SendAsset: Script didn't specify a recipient username!");
                     sendAssetHome.visible = false;
+                    root.nextActiveView = 'paymentFailure';
                     return;
                 }
 

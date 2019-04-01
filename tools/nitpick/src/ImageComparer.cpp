@@ -43,6 +43,8 @@ void ImageComparer::compareImages(const QImage& resultImage, const QImage& expec
 
     int windowCounter{ 0 };
     double ssim{ 0.0 };
+    double worstTileValue{ 1.0 };
+
     double min { 1.0 };
     double max { -1.0 };
 
@@ -108,6 +110,10 @@ void ImageComparer::compareImages(const QImage& resultImage, const QImage& expec
             if (value < min) min = value;
             if (value > max) max = value;
 
+            if (value < worstTileValue) {
+                worstTileValue = value;
+            }
+
             ++windowCounter;
 
             y += WIN_SIZE;
@@ -122,10 +128,15 @@ void ImageComparer::compareImages(const QImage& resultImage, const QImage& expec
     _ssimResults.min = min;
     _ssimResults.max = max;
     _ssimResults.ssim = ssim / windowCounter;
+    _ssimResults.worstTileValue = worstTileValue;
 };
 
 double ImageComparer::getSSIMValue() {
     return _ssimResults.ssim;
+}
+
+double ImageComparer::getWorstTileValue() {
+    return _ssimResults.worstTileValue;
 }
 
 SSIMResults ImageComparer::getSSIMResults() {

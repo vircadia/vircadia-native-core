@@ -76,6 +76,9 @@ protected:
     void readFromFile() override;
     QVariantMap getAvatarDataToBookmark();
 
+protected slots: 
+    void deleteBookmark() override;
+
 private:
     const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";
     const QString ENTRY_AVATAR_URL = "avatarUrl";

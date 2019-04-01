@@ -16,6 +16,8 @@ Rectangle {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
+    HifiConstants { id: hifi }
+
     HifiControls.Keyboard {
         id: keyboard
         z: 1000
@@ -48,6 +50,7 @@ Rectangle {
 
     property var jointNames: []
     property var currentAvatarSettings;
+    property bool wearablesFrozen;
 
     function fetchAvatarModelName(marketId, avatar) {
         var xmlhttp = new XMLHttpRequest();
@@ -187,6 +190,8 @@ Rectangle {
             updateCurrentAvatarInBookmarks(currentAvatar);
         } else if (message.method === 'selectAvatarEntity') {
             adjustWearables.selectWearableByID(message.entityID);
+        } else if (message.method === 'wearablesFrozenChanged') {
+            wearablesFrozen = message.wearablesFrozen;
         }
     }
 
@@ -507,12 +512,24 @@ Rectangle {
         }
 
         SquareLabel {
+            id: adjustLabel
             anchors.right: parent.right
             anchors.verticalCenter: wearablesLabel.verticalCenter
             glyphText: "\ue02e"
 
             onClicked: {
                 adjustWearables.open(currentAvatar);
+            }
+        }
+
+        SquareLabel {
+            anchors.right: adjustLabel.left
+            anchors.verticalCenter: wearablesLabel.verticalCenter
+            anchors.rightMargin: 15
+            glyphText: wearablesFrozen ? hifi.glyphs.lock : hifi.glyphs.unlock;
+
+            onClicked: {
+                emitSendToScript({'method' : 'toggleWearablesFrozen'});
             }
         }
     }
