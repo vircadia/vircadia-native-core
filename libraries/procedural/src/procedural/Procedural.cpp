@@ -225,13 +225,15 @@ void Procedural::prepare(gpu::Batch& batch,
                          const glm::vec3& position,
                          const glm::vec3& size,
                          const glm::quat& orientation,
+                         const uint64_t& created,
                          const ProceduralProgramKey key) {
     std::lock_guard<std::mutex> lock(_mutex);
     _entityDimensions = size;
     _entityPosition = position;
     _entityOrientation = glm::mat3_cast(orientation);
+    _entityCreated = created;
     if (!_shaderPath.isEmpty()) {
-        auto lastModified = (quint64)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
+        auto lastModified = (uint64_t)QFileInfo(_shaderPath).lastModified().toMSecsSinceEpoch();
         if (lastModified > _shaderModified) {
             QFile file(_shaderPath);
             file.open(QIODevice::ReadOnly);
@@ -278,7 +280,10 @@ void Procedural::prepare(gpu::Batch& batch,
 
         _proceduralPipelines[key] = gpu::Pipeline::create(program, key.isTransparent() ? _transparentState : _opaqueState);
 
-        _start = usecTimestampNow();
+        _lastCompile = usecTimestampNow();
+        if (_firstCompile == 0) {
+            _firstCompile = _lastCompile;
+        }
         _frameCount = 0;
         recompiledShader = true;
     }
@@ -371,7 +376,11 @@ void Procedural::setupUniforms() {
     _uniforms.push_back([=](gpu::Batch& batch) {
         _standardInputs.position = vec4(_entityPosition, 1.0f);
         // Minimize floating point error by doing an integer division to milliseconds, before the floating point division to seconds
-        _standardInputs.time = (float)((usecTimestampNow() - _start) / USECS_PER_MSEC) / MSECS_PER_SECOND;
+        auto now = usecTimestampNow();
+        _standardInputs.timeSinceLastCompile = (float)((now - _lastCompile) / USECS_PER_MSEC) / MSECS_PER_SECOND;
+        _standardInputs.timeSinceFirstCompile = (float)((now - _firstCompile) / USECS_PER_MSEC) / MSECS_PER_SECOND;
+        _standardInputs.timeSinceEntityCreation = (float)((now - _entityCreated) / USECS_PER_MSEC) / MSECS_PER_SECOND;
+
 
         // Date
         {

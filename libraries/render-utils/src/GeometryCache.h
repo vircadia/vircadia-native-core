@@ -181,6 +181,11 @@ public:
 
     static void initializeShapePipelines();
 
+    render::ShapePipelinePointer getOpaqueShapePipeline() { assert(_simpleOpaquePipeline != nullptr); return _simpleOpaquePipeline; }
+    render::ShapePipelinePointer getTransparentShapePipeline() { assert(_simpleTransparentPipeline != nullptr); return _simpleTransparentPipeline; }
+    render::ShapePipelinePointer getForwardOpaqueShapePipeline() { assert(_forwardSimpleOpaquePipeline != nullptr); return _forwardSimpleOpaquePipeline; }
+    render::ShapePipelinePointer getForwardTransparentShapePipeline() { assert(_forwardSimpleTransparentPipeline != nullptr); return _forwardSimpleTransparentPipeline; }
+
     // Static (instanced) geometry
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
@@ -368,6 +373,7 @@ public:
     const ShapeData * getShapeData(Shape shape) const;
 
     graphics::MeshPointer meshFromShape(Shape geometryShape, glm::vec3 color);
+
 private:
 
     GeometryCache();
@@ -461,6 +467,8 @@ private:
     static gpu::ShaderPointer _unlitFadeShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
+    static render::ShapePipelinePointer _forwardSimpleOpaquePipeline;
+    static render::ShapePipelinePointer _forwardSimpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
     static render::ShapePipelinePointer _simpleTransparentFadePipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;

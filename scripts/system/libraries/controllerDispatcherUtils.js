@@ -343,8 +343,6 @@ entityIsGrabbable = function (eigProps) {
     var grabbable = getGrabbableData(eigProps).grabbable;
     if (!grabbable ||
         eigProps.locked ||
-        isAnothersAvatarEntity(eigProps) ||
-        isAnothersChildEntity(eigProps) ||
         FORBIDDEN_GRAB_TYPES.indexOf(eigProps.type) >= 0) {
         return false;
     }

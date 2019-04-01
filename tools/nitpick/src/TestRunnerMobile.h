@@ -52,6 +52,9 @@ public:
 
     void pullFolder();
 
+    QString getServerIP();
+    qint64 convertToBinary (const QString& str);
+
 private:
     QPushButton* _connectDeviceButton;
     QPushButton* _pullFolderButton;
@@ -75,5 +78,9 @@ private:
     std::map<QString, QString> modelNames;
 
     AdbInterface* _adbInterface;
+
+    QString _modelName;
+
+    QString NETWORK_NOT_FOUND{ "NETWORK NOT FOUND"};
 };
 #endif

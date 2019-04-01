@@ -97,6 +97,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
             PacketType::RadiusIgnoreRequest,
             PacketType::RequestsDomainListData,
             PacketType::PerAvatarGainSet,
+            PacketType::InjectorGainSet,
             PacketType::AudioSoloRequest },
             this, "queueAudioPacket");
 

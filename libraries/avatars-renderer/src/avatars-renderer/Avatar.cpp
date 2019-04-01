@@ -372,13 +372,6 @@ bool Avatar::applyGrabChanges() {
                 target->removeGrab(grab);
                 _avatarGrabs.erase(itr);
                 grabAddedOrRemoved = true;
-                if (isMyAvatar()) {
-                    const EntityItemPointer& entity = std::dynamic_pointer_cast<EntityItem>(target);
-                    if (entity && entity->getEntityHostType() == entity::HostType::AVATAR && entity->getSimulationOwner().getID() == getID()) {
-                        EntityItemProperties properties = entity->getProperties();
-                        sendPacket(entity->getID());
-                    }
-                }
             } else {
                 undeleted.push_back(id);
             }

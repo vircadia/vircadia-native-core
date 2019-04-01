@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         SetAvatarTraits,
-        UNUSED_PACKET_TYPE,
+        InjectorGainSet,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,
@@ -266,6 +266,7 @@ enum class EntityVersion : PacketVersion {
     ModelScale,
     ReOrderParentIDProperties,
     CertificateTypeProperty,
+    DisableWebMedia,
 
     // Add new versions above here
     NUM_PACKET_TYPE,

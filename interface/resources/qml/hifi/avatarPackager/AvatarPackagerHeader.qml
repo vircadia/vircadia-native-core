@@ -13,6 +13,7 @@ ShadowRectangle {
 
     property string title: qsTr("Avatar Packager")
     property alias docsEnabled: docs.visible
+    property alias videoEnabled: video.visible
     property bool backButtonVisible: true // If false, is not visible and does not take up space
     property bool backButtonEnabled: true // If false, is not visible but does not affect space
     property bool canRename: false
@@ -24,6 +25,7 @@ ShadowRectangle {
 
     signal backButtonClicked
     signal docsButtonClicked
+    signal videoButtonClicked
 
     RalewayButton {
         id: back
@@ -127,6 +129,20 @@ ShadowRectangle {
     }
 
     RalewayButton {
+        id: video
+        visible: false
+        size: 28
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.right: docs.left
+        anchors.rightMargin: 16
+
+        text: qsTr("Video")
+
+        onClicked: videoButtonClicked()
+    }
+
+    RalewayButton {
         id: docs
         visible: false
         size: 28
@@ -137,8 +153,6 @@ ShadowRectangle {
 
         text: qsTr("Docs")
 
-        onClicked: {
-            docsButtonClicked();
-        }
+        onClicked: docsButtonClicked()
     }
 }
