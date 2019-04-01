@@ -82,18 +82,30 @@ public:
     }
 
     glm::vec4 fetch(int face, glm::vec2 uv) const {
-        glm::vec2 coordFrac = uv * glm::vec2(_dims) + 0.5f;
+        glm::vec2 coordFrac = uv * glm::vec2(_dims) - 0.5f;
         glm::vec2 coords = glm::floor(coordFrac);
 
         coordFrac -= coords;
 
-        const auto* pixels = _faces[face].data();
+        coords += 1.0f;
+
+        const auto& pixels = _faces[face];
         gpu::Vec2i loCoords(coords);
-        const int offset = loCoords.x + loCoords.y * _lineStride;
-        glm::vec4 colorLL = pixels[offset];
-        glm::vec4 colorHL = pixels[offset +1 ];
-        glm::vec4 colorLH = pixels[offset + _lineStride];
-        glm::vec4 colorHH = pixels[offset + 1 + _lineStride];
+
+        loCoords = glm::clamp(loCoords, gpu::Vec2i(0, 0), _dims);
+
+        const size_t offsetLL = loCoords.x + loCoords.y * _lineStride;
+        const size_t offsetHL = offsetLL + 1;
+        const size_t offsetLH = offsetLL + _lineStride;
+        const size_t offsetHH = offsetLH + 1;
+        assert(offsetLL >= 0 && offsetLL < (_dims.x + 2)*(_dims.y + 2));
+        assert(offsetHL >= 0 && offsetHL < (_dims.x + 2)*(_dims.y + 2));
+        assert(offsetLH >= 0 && offsetLH < (_dims.x + 2)*(_dims.y + 2));
+        assert(offsetHH >= 0 && offsetHH < (_dims.x + 2)*(_dims.y + 2));
+        glm::vec4 colorLL = pixels[offsetLL];
+        glm::vec4 colorHL = pixels[offsetHL];
+        glm::vec4 colorLH = pixels[offsetLH];
+        glm::vec4 colorHH = pixels[offsetHH];
 
         colorLL += (colorHL - colorLL) * coordFrac.x;
         colorLH += (colorHH - colorLH) * coordFrac.x;
@@ -120,7 +132,7 @@ public:
         // Copy edge rows and columns from neighbouring faces to fix seam filtering issues
         seamColumnAndRow(gpu::Texture::CUBE_FACE_TOP_POS_Y, _dims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, -1, -1);
         seamColumnAndRow(gpu::Texture::CUBE_FACE_BOTTOM_NEG_Y, _dims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, _dims.y, 1);
-        seamColumnAndColumn(gpu::Texture::CUBE_FACE_FRONT_NEG_Z, 0, gpu::Texture::CUBE_FACE_RIGHT_POS_X, _dims.x, 1);
+        seamColumnAndColumn(gpu::Texture::CUBE_FACE_FRONT_NEG_Z, -1, gpu::Texture::CUBE_FACE_RIGHT_POS_X, _dims.x, 1);
         seamColumnAndColumn(gpu::Texture::CUBE_FACE_BACK_POS_Z, _dims.x, gpu::Texture::CUBE_FACE_RIGHT_POS_X, -1, 1);
 
         seamRowAndRow(gpu::Texture::CUBE_FACE_BACK_POS_Z, -1, gpu::Texture::CUBE_FACE_TOP_POS_Y, _dims.y, 1);
@@ -150,7 +162,7 @@ private:
 
     Faces& _faces;
 
-    inline static void copy(const glm::vec4* srcFirst, const glm::vec4* srcLast, int srcStride, glm::vec4* dstBegin, int dstStride) {
+    inline static void copy(CubeMap::Face::const_iterator srcFirst, CubeMap::Face::const_iterator srcLast, int srcStride, CubeMap::Face::iterator dstBegin, int dstStride) {
         while (srcFirst <= srcLast) {
             *dstBegin = *srcFirst;
             srcFirst += srcStride;
@@ -198,12 +210,17 @@ private:
 
     void copyColumnToColumn(int srcFace, int srcCol, int dstFace, int dstCol, const int dstInc) {
         const auto lastOffset = _lineStride * (_dims.y - 1);
-        auto srcFirst = _faces[srcFace].data() + srcCol + _lineStride;
+        auto srcFirst = _faces[srcFace].begin() + srcCol + _lineStride;
         auto srcLast = srcFirst + lastOffset;
 
-        auto dstFirst = _faces[dstFace].data() + dstCol + _lineStride;
+        auto dstFirst = _faces[dstFace].begin() + dstCol + _lineStride;
         auto dstLast = dstFirst + lastOffset;
         const auto dstStride = _lineStride * dstInc;
+
+        assert(srcFirst < _faces[srcFace].end());
+        assert(srcLast < _faces[srcFace].end());
+        assert(dstFirst < _faces[dstFace].end());
+        assert(dstLast < _faces[dstFace].end());
 
         if (dstInc < 0) {
             std::swap(dstFirst, dstLast);
@@ -214,11 +231,16 @@ private:
 
     void copyRowToRow(int srcFace, int srcRow, int dstFace, int dstRow, const int dstInc) {
         const auto lastOffset =(_dims.x - 1);
-        auto srcFirst = _faces[srcFace].data() + srcRow * _lineStride + 1;
+        auto srcFirst = _faces[srcFace].begin() + srcRow * _lineStride + 1;
         auto srcLast = srcFirst + lastOffset;
 
-        auto dstFirst = _faces[dstFace].data() + dstRow * _lineStride + 1;
+        auto dstFirst = _faces[dstFace].begin() + dstRow * _lineStride + 1;
         auto dstLast = dstFirst + lastOffset;
+
+        assert(srcFirst < _faces[srcFace].end());
+        assert(srcLast < _faces[srcFace].end());
+        assert(dstFirst < _faces[dstFace].end());
+        assert(dstLast < _faces[dstFace].end());
 
         if (dstInc < 0) {
             std::swap(dstFirst, dstLast);
@@ -229,12 +251,17 @@ private:
 
     void copyColumnToRow(int srcFace, int srcCol, int dstFace, int dstRow, int dstInc) {
         const auto srcLastOffset = _lineStride * (_dims.y - 1);
-        auto srcFirst = _faces[srcFace].data() + srcCol + _lineStride;
+        auto srcFirst = _faces[srcFace].begin() + srcCol + _lineStride;
         auto srcLast = srcFirst + srcLastOffset;
 
         const auto dstLastOffset = (_dims.x - 1);
-        auto dstFirst = _faces[dstFace].data() + dstRow * _lineStride + 1;
+        auto dstFirst = _faces[dstFace].begin() + dstRow * _lineStride + 1;
         auto dstLast = dstFirst + dstLastOffset;
+
+        assert(srcFirst < _faces[srcFace].end());
+        assert(srcLast < _faces[srcFace].end());
+        assert(dstFirst < _faces[dstFace].end());
+        assert(dstLast < _faces[dstFace].end());
 
         if (dstInc < 0) {
             std::swap(dstFirst, dstLast);
@@ -245,13 +272,18 @@ private:
 
     void copyRowToColumn(int srcFace, int srcRow, int dstFace, int dstCol, int dstInc) {
         const auto srcLastOffset = (_dims.x - 1);
-        auto srcFirst = _faces[srcFace].data() + srcRow * _lineStride + 1;
+        auto srcFirst = _faces[srcFace].begin() + srcRow * _lineStride + 1;
         auto srcLast = srcFirst + srcLastOffset;
 
         const auto dstLastOffset = _lineStride * (_dims.y - 1);
-        auto dstFirst = _faces[dstFace].data() + dstCol + _lineStride;
+        auto dstFirst = _faces[dstFace].begin() + dstCol + _lineStride;
         auto dstLast = dstFirst + dstLastOffset;
         const auto dstStride = _lineStride * dstInc;
+
+        assert(srcFirst < _faces[srcFace].end());
+        assert(srcLast < _faces[srcFace].end());
+        assert(dstFirst < _faces[dstFace].end());
+        assert(dstLast < _faces[dstFace].end());
 
         if (dstInc < 0) {
             std::swap(dstFirst, dstLast);
@@ -343,7 +375,7 @@ void CubeMap::copyFace(int width, int height, const glm::vec4* source, int srcLi
 }
 
 void CubeMap::reset(int width, int height, int mipCount) {
-    assert(mipCount >0 && _width > 0 && _height > 0);
+    assert(mipCount >0 && width > 0 && height > 0);
     _width = width;
     _height = height;
     _mips.resize(mipCount);
@@ -476,6 +508,8 @@ void CubeMap::getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv) {
 }
 
 glm::vec4 CubeMap::fetchLod(const glm::vec3& dir, float lod) const {
+    lod = glm::clamp<float>(lod, 0.0f, _mips.size() - 1);
+
     gpu::uint16 loLevel = (gpu::uint16)std::floor(lod);
     gpu::uint16 hiLevel = (gpu::uint16)std::ceil(lod);
     float lodFrac = lod - (float)loLevel;
@@ -615,31 +649,32 @@ void CubeMap::convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProc
 
 void CubeMap::convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, gpu::uint16 mipLevel, int face, const std::atomic<bool>& abortProcessing) const {
     const glm::vec3* faceNormals = FACE_NORMALS + face * 4;
-    const glm::vec3 deltaXNormalLo = faceNormals[1] - faceNormals[0];
-    const glm::vec3 deltaXNormalHi = faceNormals[3] - faceNormals[2];
+    const glm::vec3 deltaYNormalLo = faceNormals[2] - faceNormals[0];
+    const glm::vec3 deltaYNormalHi = faceNormals[3] - faceNormals[1];
+    auto mipDimensions = output.getMipDimensions(mipLevel);
     auto outputFacePixels = output.editFace(mipLevel, face);
     auto outputLineStride = output.getFaceLineStride(mipLevel);
 
-    tbb::parallel_for(tbb::blocked_range2d<int, int>(0, _width, 16, 0, _height, 16), [&](const tbb::blocked_range2d<int, int>& range) {
+    tbb::parallel_for(tbb::blocked_range2d<int, int>(0, mipDimensions.x, 16, 0, mipDimensions.y, 16), [&](const tbb::blocked_range2d<int, int>& range) {
         auto rowRange = range.rows();
         auto colRange = range.cols();
 
-        for (auto x = rowRange.begin(); x < rowRange.end(); x++) {
-            const float xAlpha = (x + 0.5f) / _width;
-            const glm::vec3 normalYLo = faceNormals[0] + deltaXNormalLo * xAlpha;
-            const glm::vec3 normalYHi = faceNormals[2] + deltaXNormalHi * xAlpha;
-            const glm::vec3 deltaYNormal = normalYHi - normalYLo;
-
-            for (auto y = colRange.begin(); y < colRange.end(); y++) {
-                const float yAlpha = (y + 0.5f) / _width;
-                // Interpolate normal for this pixel
-                const glm::vec3 normal = glm::normalize(normalYLo + deltaYNormal * yAlpha);
-
-                outputFacePixels[x + y * outputLineStride] = computeConvolution(normal, samples);
-            }
-
+        for (auto y = rowRange.begin(); y < rowRange.end(); y++) {
             if (abortProcessing.load()) {
                 break;
+            }
+
+            const float yAlpha = (y + 0.5f) / _height;
+            const glm::vec3 normalXLo = faceNormals[0] + deltaYNormalLo * yAlpha;
+            const glm::vec3 normalXHi = faceNormals[1] + deltaYNormalHi * yAlpha;
+            const glm::vec3 deltaXNormal = normalXHi - normalXLo;
+
+            for (auto x = colRange.begin(); x < colRange.end(); x++) {
+                const float xAlpha = (x + 0.5f) / _width;
+                // Interpolate normal for this pixel
+                const glm::vec3 normal = glm::normalize(normalXLo + deltaXNormal * yAlpha);
+
+                outputFacePixels[x + y * outputLineStride] = computeConvolution(normal, samples);
             }
         }
     });
