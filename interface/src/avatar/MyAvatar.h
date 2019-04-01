@@ -295,6 +295,7 @@ class MyAvatar : public Avatar {
      * @comment Avatar.setAbsoluteJointTranslationInObjectFrame as setAbsoluteJointTranslationInObjectFrame - Don't borrow because implementation is different.
      * @borrows Avatar.getTargetScale as getTargetScale
      * @borrows Avatar.resetLastSent as resetLastSent
+     * @borrows Avatar.hasPriority as hasPriority
      */
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
     Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
@@ -2170,7 +2171,7 @@ private:
     bool getEnableStepResetRotation() const { return _stepResetRotationEnabled; }
     void setEnableDrawAverageFacing(bool drawAverage) { _drawAverageFacingEnabled = drawAverage; }
     bool getEnableDrawAverageFacing() const { return _drawAverageFacingEnabled; }
-    bool isMyAvatar() const override { return true; }
+    virtual bool isMyAvatar() const override { return true; }
     virtual int parseDataFromBuffer(const QByteArray& buffer) override;
     virtual glm::vec3 getSkeletonPosition() const override;
     int _skeletonModelChangeCount { 0 };

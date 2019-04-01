@@ -19,8 +19,12 @@
 
 class MixerAvatar : public AvatarData {
 public:
+    bool getNeedsHeroCheck() const { return _needsHeroCheck; }
+    void setNeedsHeroCheck(bool needsHeroCheck = true)
+        { _needsHeroCheck = needsHeroCheck; }
 
 private:
+    bool _needsHeroCheck { false };
 };
 
 using MixerAvatarSharedPointer = std::shared_ptr<MixerAvatar>;
