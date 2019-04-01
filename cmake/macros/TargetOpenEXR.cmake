@@ -49,7 +49,7 @@ macro(TARGET_OPENEXR)
             #mark_as_advanced(OPENEXR_${OPENEXR_LIB}_LIBRARY)
 
             if(OPENEXR_${OPENEXR_LIB}_LIBRARY_RELEASE)
-                list(APPEND OPENEXR_LIBRARIES ${OPENEXR_${OPENEXR_LIB}_LIBRARY_RELEASE})
+                list(APPEND OPENEXR_LIBRARY_RELEASE ${OPENEXR_${OPENEXR_LIB}_LIBRARY_RELEASE})
             endif()
 
             # OpenEXR libraries may be suffixed with the version number, so we search
@@ -63,10 +63,12 @@ macro(TARGET_OPENEXR)
             )
             #mark_as_advanced(OPENEXR_${OPENEXR_LIB}_DEBUG_LIBRARY)
 
-            select_library_configurations(OPENEXR_${OPENEXR_LIB})
-
+            if(OPENEXR_${OPENEXR_LIB}_LIBRARY_DEBUG)
+                list(APPEND OPENEXR_LIBRARY_DEBUG ${OPENEXR_${OPENEXR_LIB}_LIBRARY_DEBUG})
+            endif()
         endforeach(OPENEXR_LIB)
 
-        target_link_libraries(${TARGET_NAME} ${OPENEXR_LIBRARIES})
+        select_library_configurations(OPENEXR)
+        target_link_libraries(${TARGET_NAME} ${OPENEXR_LIBRARY})
     endif()
 endmacro()
