@@ -343,6 +343,14 @@ glm::mat4 ScriptAvatarData::getControllerRightHandMatrix() const {
 // END
 //
 
+bool ScriptAvatarData::getHasPriority() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getHasPriority();
+    } else {
+        return false;
+    }
+}
+
 glm::quat ScriptAvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getAbsoluteJointRotationInObjectFrame(index);

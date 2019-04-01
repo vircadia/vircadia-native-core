@@ -1210,10 +1210,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
-        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        if (tabletScriptingInterface) {
-            tabletScriptingInterface->setQmlTabletRoot(SYSTEM_TABLET, nullptr);
-        }
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         entityScriptingInterface->deleteEntity(getTabletScreenID());
         entityScriptingInterface->deleteEntity(getTabletHomeButtonID());

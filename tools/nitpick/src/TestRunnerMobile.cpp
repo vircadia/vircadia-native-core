@@ -9,6 +9,7 @@
 //
 #include "TestRunnerMobile.h"
 
+#include <QNetworkInterface>
 #include <QThread>
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QFileDialog>
@@ -69,13 +70,25 @@ void TestRunnerMobile::connectDevice() {
         _adbInterface = new AdbInterface();
     }
     
+    // Get list of devices
     QString devicesFullFilename{ _workingFolder + "/devices.txt" };
     QString command = _adbInterface->getAdbCommand() + " devices -l > " + devicesFullFilename;
     appendLog(command);
     system(command.toStdString().c_str());
 
     if (!QFile::exists(devicesFullFilename)) {
-        QMessageBox::critical(0, "Internal error", "devicesFullFilename not found");
+        QMessageBox::critical(0, "Internal error", "devices.txt not found");
+        exit (-1);
+    }
+
+    // Get device IP address
+    QString ifconfigFullFilename{ _workingFolder + "/ifconfig.txt" };
+    command = _adbInterface->getAdbCommand() + " shell ifconfig > " + ifconfigFullFilename;
+    appendLog(command);
+    system(command.toStdString().c_str());
+
+    if (!QFile::exists(ifconfigFullFilename)) {
+        QMessageBox::critical(0, "Internal error", "ifconfig.txt not found");
         exit (-1);
     }
 
@@ -86,6 +99,8 @@ void TestRunnerMobile::connectDevice() {
     QString line2 = devicesFile.readLine();
 
     const QString DEVICE{ "device" };
+    const QString MODEL{ "model" };
+
     if (line2.contains("unauthorized")) {
         QMessageBox::critical(0, "Unauthorized device detected", "Please allow USB debugging on device");
     } else if (line2.contains(DEVICE)) {
@@ -98,13 +113,20 @@ void TestRunnerMobile::connectDevice() {
             QStringList tokens = line2.split(QRegExp("[\r\n\t ]+"));
             QString deviceID = tokens[0];
             
-            QString modelID = tokens[3].split(':')[1];
-            QString modelName = "UNKNOWN";
-            if (modelNames.count(modelID) == 1) {
-                modelName = modelNames[modelID];
+            // Find the model entry
+            _modelName = "UNKNOWN";
+            for (int i = 0; i < tokens.size(); ++i) {
+                if (tokens[i].contains(MODEL)) {
+                    QString modelID = tokens[i].split(':')[1];
+
+                    if (modelNames.count(modelID) == 1) {
+                        _modelName = modelNames[modelID];
+                    }
+                    break;
+                }
             }
 
-            _detectedDeviceLabel->setText(modelName + " [" + deviceID + "]");
+            _detectedDeviceLabel->setText(_modelName + " [" + deviceID + "]");
             _pullFolderButton->setEnabled(true);
             _folderLineEdit->setEnabled(true);
             _downloadAPKPushbutton->setEnabled(true);
@@ -191,14 +213,28 @@ void TestRunnerMobile::runInterface() {
         ? QString("https://raw.githubusercontent.com/") + nitpick->getSelectedUser() + "/hifi_tests/" + nitpick->getSelectedBranch() + "/tests/testRecursive.js"
         : _scriptURL->text();
  
+    // Quest and Android have different commands to run interface
+    QString startCommand;
+    if (_modelName == "Quest") {
+        startCommand = "io.highfidelity.questInterface/.PermissionsChecker";
+    } else {
+        startCommand = "io.highfidelity.hifiinterface/.PermissionChecker";
+    }
+
+    QString serverIP { getServerIP() };
+    if (serverIP == NETWORK_NOT_FOUND) {
+        _runInterfacePushbutton->setEnabled(false);
+        return;
+    }
+
     QString command = _adbInterface->getAdbCommand() +
-        " shell am start -n io.highfidelity.hifiinterface/.PermissionChecker" + 
-        " --es args \\\"" + 
-            " --url file:///~/serverless/tutorial.json" + 
-            " --no-updater" + 
-            " --no-login-suggestion" + 
-            " --testScript " + testScript + " quitWhenFinished" + 
-            " --testResultsLocation /sdcard/snapshots" + 
+        " shell am start -n " + startCommand +
+        " --es args \\\"" +
+        " --url hifi://" + serverIP + "/0,0,0"
+        " --no-updater" +
+        " --no-login-suggestion" +
+        " --testScript " + testScript + " quitWhenFinished" +
+        " --testResultsLocation /sdcard/snapshots" +
         "\\\"";
 
     appendLog(command);
@@ -219,4 +255,86 @@ void TestRunnerMobile::pullFolder() {
     system(command.toStdString().c_str());
     _statusLabel->setText("Pull complete");
 #endif
+}
+
+QString TestRunnerMobile::getServerIP() {
+    // Get device IP (ifconfig.txt was created when connecting)
+    QFile ifconfigFile{ _workingFolder + "/ifconfig.txt" };
+    if (!ifconfigFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+            "Could not open 'ifconfig.txt'");
+        exit(-1);
+    }
+
+    QTextStream stream(&ifconfigFile);
+    QString line = ifconfigFile.readLine();
+    while (!line.isNull()) {
+        // The device IP is in the line following the "wlan0" line
+        if (line.left(6) == "wlan0 ") {
+            break;
+        }
+        line = ifconfigFile.readLine();
+    }
+
+    // The following line looks like this "inet addr:192.168.0.15  Bcast:192.168.0.255  Mask:255.255.255.0"
+    // Extract the address and mask
+    line = ifconfigFile.readLine();
+    QStringList lineParts = line.split(':');
+    if (lineParts.size() < 4) {
+        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+            "IP address line not in expected format: " + line + "(check that device WIFI is on)");
+
+        return NETWORK_NOT_FOUND;
+    }
+
+    qint64 deviceIP = convertToBinary(lineParts[1].split(' ')[0]);
+    qint64 deviceMask = convertToBinary(lineParts[3].split(' ')[0]);
+    qint64 deviceSubnet = deviceMask & deviceIP;
+
+    // The device needs to be on the same subnet as the server
+    // To find which of our IPs is the server - choose the 1st that is on the same subnet
+    // If more than one found then report an error
+
+    QString serverIP;
+
+    QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
+    for (int i = 0; i < interfaces.count(); i++) {
+        QList<QNetworkAddressEntry> entries = interfaces.at(i).addressEntries();
+        for (int j = 0; j < entries.count(); j++) {
+            if (entries.at(j).ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                qint64 hostIP = convertToBinary(entries.at(j).ip().toString());
+                qint64 hostMask = convertToBinary(entries.at(j).netmask().toString());
+                qint64 hostSubnet = hostMask & hostIP;
+
+                if (hostSubnet == deviceSubnet) {
+                    if (!serverIP.isNull()) {
+                        QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
+                            "Cannot identify server IP (multiple interfaces on device submask)");
+                        return QString("CANNOT IDENTIFY SERVER IP");
+                    } else {
+                        union {
+                            uint32_t ip;
+                            uint8_t  bytes[4];
+                        } u;
+                        u.ip = hostIP;
+
+                        serverIP = QString::number(u.bytes[3]) + '.' + QString::number(u.bytes[2]) + '.' + QString::number(u.bytes[1]) + '.' + QString::number(u.bytes[0]);
+                    }
+                }
+            }
+        }
+    }
+
+    ifconfigFile.close();
+
+    return serverIP;
+}
+
+qint64 TestRunnerMobile::convertToBinary(const QString& str) {
+    QString binary;
+    foreach (const QString& s, str.split(".")) {
+        binary += QString::number(s.toInt(), 2).rightJustified(8, '0');
+    }
+
+    return binary.toLongLong(NULL, 2);
 }

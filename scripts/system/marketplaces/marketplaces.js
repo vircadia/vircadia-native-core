@@ -615,11 +615,10 @@ var onQmlMessageReceived = function onQmlMessageReceived(message) {
         openMarketplace(message.itemId, message.itemEdition);
         break;
     case 'passphrasePopup_cancelClicked':
-    case 'needsLogIn_cancelClicked':
         // Should/must NOT check for wallet setup.
         openMarketplace();
         break;
-    case 'needsLogIn_loginClicked':
+    case 'marketplace_loginClicked':
         openLoginWindow();
         break;
     case 'disableHmdPreview':

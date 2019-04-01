@@ -68,6 +68,8 @@ class ScriptAvatarData : public QObject {
     Q_PROPERTY(glm::mat4 controllerLeftHandMatrix READ getControllerLeftHandMatrix)
     Q_PROPERTY(glm::mat4 controllerRightHandMatrix READ getControllerRightHandMatrix)
 
+    Q_PROPERTY(bool hasPriority READ getHasPriority)
+
 public:
     ScriptAvatarData(AvatarSharedPointer avatarData);
 
@@ -133,6 +135,8 @@ public:
     glm::mat4 getControllerLeftHandMatrix() const;
     glm::mat4 getControllerRightHandMatrix() const;
     
+    bool getHasPriority() const;
+
 signals:
     void displayNameChanged();
     void sessionDisplayNameChanged();

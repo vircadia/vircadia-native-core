@@ -67,17 +67,23 @@ void FlowCollisionSystem::addCollisionSphere(int jointIndex, const FlowCollision
     auto collision = FlowCollisionSphere(jointIndex, settings, isTouch);
     collision.setPosition(position);
     if (isSelfCollision) {
-        _selfCollisions.push_back(collision);
+        if (!isTouch) {
+            _selfCollisions.push_back(collision);
+        } else {
+            _selfTouchCollisions.push_back(collision);
+        }
     } else {
         _othersCollisions.push_back(collision);
     }
-
 };
+
 void FlowCollisionSystem::resetCollisions() {
     _allCollisions.clear();
     _othersCollisions.clear();
+    _selfTouchCollisions.clear();
     _selfCollisions.clear();
 }
+
 FlowCollisionResult FlowCollisionSystem::computeCollision(const std::vector<FlowCollisionResult> collisions) {
     FlowCollisionResult result;
     if (collisions.size() > 1) {
@@ -105,6 +111,10 @@ void FlowCollisionSystem::setScale(float scale) {
     for (size_t j = 0; j < _selfCollisions.size(); j++) {
         _selfCollisions[j]._radius = _selfCollisions[j]._initialRadius * scale;
         _selfCollisions[j]._offset = _selfCollisions[j]._initialOffset * scale;
+    }
+    for (size_t j = 0; j < _selfTouchCollisions.size(); j++) {
+        _selfTouchCollisions[j]._radius = _selfTouchCollisions[j]._initialRadius * scale;
+        _selfTouchCollisions[j]._offset = _selfTouchCollisions[j]._initialOffset * scale;
     }
 };
 
@@ -178,9 +188,9 @@ void FlowCollisionSystem::setCollisionSettingsByJoint(int jointIndex, const Flow
 }
 void FlowCollisionSystem::prepareCollisions() {
     _allCollisions.clear();
-    _allCollisions.resize(_selfCollisions.size() + _othersCollisions.size());
-    std::copy(_selfCollisions.begin(), _selfCollisions.begin() + _selfCollisions.size(), _allCollisions.begin());
-    std::copy(_othersCollisions.begin(), _othersCollisions.begin() + _othersCollisions.size(), _allCollisions.begin() + _selfCollisions.size());
+    _allCollisions.insert(_allCollisions.end(), _selfCollisions.begin(), _selfCollisions.end());
+    _allCollisions.insert(_allCollisions.end(), _othersCollisions.begin(), _othersCollisions.end());
+    _allCollisions.insert(_allCollisions.end(), _selfTouchCollisions.begin(), _selfTouchCollisions.end());
     _othersCollisions.clear();
 }
 
@@ -273,18 +283,20 @@ void FlowJoint::setRecoveryPosition(const glm::vec3& recoveryPosition) {
 }
 
 void FlowJoint::update(float deltaTime) {
-    glm::vec3 accelerationOffset = glm::vec3(0.0f);
-    if (_settings._stiffness > 0.0f) {
-        glm::vec3 recoveryVector = _recoveryPosition - _currentPosition;
-        float recoveryFactor = powf(_settings._stiffness, 3.0f);
-        accelerationOffset = recoveryVector * recoveryFactor;
-    }
-    FlowNode::update(deltaTime, accelerationOffset);
-    if (_anchored) {
-        if (!_isHelper) {
-            _currentPosition = _updatedPosition;
-        } else {
-            _currentPosition = _parentPosition;
+    if (_settings._active) {
+        glm::vec3 accelerationOffset = glm::vec3(0.0f);
+        if (_settings._stiffness > 0.0f) {
+            glm::vec3 recoveryVector = _recoveryPosition - _currentPosition;
+            float recoveryFactor = powf(_settings._stiffness, 3.0f);
+            accelerationOffset = recoveryVector * recoveryFactor;
+        }
+        FlowNode::update(deltaTime, accelerationOffset);
+        if (_anchored) {
+            if (!_isHelper) {
+                _currentPosition = _updatedPosition;
+            } else {
+                _currentPosition = _parentPosition;
+            }
         }
     }
 };
@@ -674,6 +686,14 @@ bool Flow::updateRootFramePositions(const AnimPoseVec& absolutePoses, size_t thr
     return true;
 }
 
+void Flow::updateCollisionJoint(FlowCollisionSphere& collision, AnimPoseVec& absolutePoses) {
+    glm::quat jointRotation;
+    getJointPositionInWorldFrame(absolutePoses, collision._jointIndex, collision._position, _entityPosition, _entityRotation);
+    getJointRotationInWorldFrame(absolutePoses, collision._jointIndex, jointRotation, _entityRotation);
+    glm::vec3 worldOffset = jointRotation * collision._offset;
+    collision._position = collision._position + worldOffset;
+}
+
 void Flow::updateJoints(AnimPoseVec& relativePoses, AnimPoseVec& absolutePoses) {
     updateAbsolutePoses(relativePoses, absolutePoses);
     for (auto &jointData : _flowJointData) {
@@ -695,11 +715,11 @@ void Flow::updateJoints(AnimPoseVec& relativePoses, AnimPoseVec& absolutePoses) 
     }
     auto &selfCollisions = _collisionSystem.getSelfCollisions();
     for (auto &collision : selfCollisions) {
-        glm::quat jointRotation;
-        getJointPositionInWorldFrame(absolutePoses, collision._jointIndex, collision._position, _entityPosition, _entityRotation);
-        getJointRotationInWorldFrame(absolutePoses, collision._jointIndex, jointRotation, _entityRotation);
-        glm::vec3 worldOffset = jointRotation * collision._offset;
-        collision._position = collision._position + worldOffset;
+        updateCollisionJoint(collision, absolutePoses);
+    }
+    auto &selfTouchCollisions = _collisionSystem.getSelfTouchCollisions();
+    for (auto &collision : selfTouchCollisions) {
+        updateCollisionJoint(collision, absolutePoses);
     }
     _collisionSystem.prepareCollisions();
 }
@@ -710,7 +730,7 @@ void Flow::setJoints(AnimPoseVec& relativePoses, const std::vector<bool>& overri
         for (int jointIndex : joints) {
             auto &joint = _flowJointData[jointIndex];
             if (jointIndex >= 0 && jointIndex < (int)relativePoses.size() && !overrideFlags[jointIndex]) {
-                relativePoses[jointIndex].rot() = joint.getCurrentRotation();
+                relativePoses[jointIndex].rot() = joint.getSettings()._active ? joint.getCurrentRotation() : joint.getInitialRotation();
             }            
         }
     }

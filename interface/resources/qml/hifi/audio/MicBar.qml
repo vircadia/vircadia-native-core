@@ -40,6 +40,9 @@ Rectangle {
         AudioScriptingInterface.pushToTalkChanged.connect(function() {
             pushToTalk = AudioScriptingInterface.pushToTalk;
         });
+        AudioScriptingInterface.pushingToTalkChanged.connect(function() {
+            pushingToTalk = AudioScriptingInterface.pushingToTalk;
+        });
     }
 
     property bool standalone: false;
@@ -100,16 +103,16 @@ Rectangle {
     QtObject {
         id: colors;
 
-        readonly property string unmuted: "#FFF";
-        readonly property string muted: "#E2334D";
+        readonly property string unmutedColor: "#FFF";
+        readonly property string mutedColor: "#E2334D";
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
         readonly property string yellow: "#C0C000";
-        readonly property string red: colors.muted;
+        readonly property string red: colors.mutedColor;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: micBar.muted ? muted : unmuted;
+        readonly property string icon: muted ? colors.mutedColor : unmutedColor;
     }
 
     Item {
@@ -156,7 +159,6 @@ Rectangle {
 
     Item {
         id: status;
-
 
         visible: (pushToTalk && !pushingToTalk) || muted;
 
