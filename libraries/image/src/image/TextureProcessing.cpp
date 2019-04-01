@@ -264,6 +264,10 @@ std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction(const gpu::Element
     }
 }
 
+std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction() {
+    return getHDRUnpackingFunction(GPU_CUBEMAP_HDR_FORMAT);
+}
+
 Image processRawImageData(QIODevice& content, const std::string& filename) {
     // Help the Image loader by extracting the image file format from the url filename ext.
     // Some tga are not created properly without it.
