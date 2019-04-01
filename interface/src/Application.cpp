@@ -2878,11 +2878,19 @@ void Application::initializeGL() {
     }
 
 #if !defined(DISABLE_QML)
+    QStringList chromiumFlags;
+    // Bug 21993: disable microphone and camera input 
+    chromiumFlags << "--use-fake-device-for-media-stream";
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };
     if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
-        qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
+        chromiumFlags << "--disable-distance-field-text";
+    }
+
+    // Ensure all Qt webengine processes launched from us have the appropriate command line flags
+    if (!chromiumFlags.empty()) {
+        qputenv("QTWEBENGINE_CHROMIUM_FLAGS", chromiumFlags.join(' ').toLocal8Bit());
     }
 #endif
 
