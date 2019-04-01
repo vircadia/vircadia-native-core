@@ -18,12 +18,29 @@ import TabletScriptingInterface 1.0
 Rectangle {
     HifiConstants { id: hifi; }
 
+    property var muted: AudioScriptingInterface.muted;
     readonly property var level: AudioScriptingInterface.inputLevel;
+    property var pushToTalk: AudioScriptingInterface.pushToTalk;
+    property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
 
     property bool gated: false;
     Component.onCompleted: {
         AudioScriptingInterface.noiseGateOpened.connect(function() { gated = false; });
         AudioScriptingInterface.noiseGateClosed.connect(function() { gated = true; });
+        HMD.displayModeChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
+        AudioScriptingInterface.mutedChanged.connect(function() {
+            muted = AudioScriptingInterface.muted;
+        });
+        AudioScriptingInterface.pushToTalkChanged.connect(function() {
+            pushToTalk = AudioScriptingInterface.pushToTalk;
+        });
+        AudioScriptingInterface.pushingToTalkChanged.connect(function() {
+            pushingToTalk = AudioScriptingInterface.pushingToTalk;
+        });
+
     }
 
     property bool standalone: false;
@@ -67,10 +84,10 @@ Rectangle {
         hoverEnabled: true;
         scrollGestureEnabled: false;
         onClicked: {
-            if (AudioScriptingInterface.pushToTalk) {
+            if (pushToTalk) {
                 return;
             }
-            AudioScriptingInterface.muted = !AudioScriptingInterface.muted;
+            muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
         }
         drag.target: dragTarget;
@@ -84,16 +101,16 @@ Rectangle {
     QtObject {
         id: colors;
 
-        readonly property string unmuted: "#FFF";
-        readonly property string muted: "#E2334D";
+        readonly property string unmutedColor: "#FFF";
+        readonly property string mutedColor: "#E2334D";
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
         readonly property string yellow: "#C0C000";
-        readonly property string red: colors.muted;
+        readonly property string red: colors.mutedColor;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: AudioScriptingInterface.muted ? muted : unmuted;
+        readonly property string icon: muted ? colors.mutedColor : unmutedColor;
     }
 
     Item {
@@ -115,7 +132,7 @@ Rectangle {
                 readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
 
                 id: image;
-                source: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? pushToTalkIcon : AudioScriptingInterface.muted ? mutedIcon : unmutedIcon;
+                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon : unmutedIcon;
 
                 width: 30;
                 height: 30;
@@ -138,9 +155,7 @@ Rectangle {
     Item {
         id: status;
 
-        readonly property string color: AudioScriptingInterface.muted ? colors.muted : colors.unmuted;
-
-        visible: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) || AudioScriptingInterface.muted;
+        visible: (pushToTalk && !pushingToTalk) || muted;
 
         anchors {
             left: parent.left;
@@ -157,9 +172,9 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: parent.color;
+            color: colors.icon;
 
-            text: (AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (AudioScriptingInterface.muted ? "MUTED" : "MUTE");
+            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (muted ? "MUTED" : "MUTE");
             font.pointSize: 12;
         }
 
@@ -169,9 +184,9 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
-            color: parent.color;
+            color: colors.icon;
         }
 
         Rectangle {
@@ -180,9 +195,9 @@ Rectangle {
                 verticalCenter: parent.verticalCenter;
             }
 
-            width: AudioScriptingInterface.pushToTalk && !AudioScriptingInterface.pushingToTalk ? (HMD.active ? 27 : 25) : 50;
+            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
             height: 4;
-            color: parent.color;
+            color: colors.icon;
         }
     }
 
