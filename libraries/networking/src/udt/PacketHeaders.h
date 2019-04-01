@@ -57,7 +57,7 @@ public:
         ICEServerQuery,
         OctreeStats,
         SetAvatarTraits,
-        UNUSED_PACKET_TYPE,
+        InjectorGainSet,
         AssignmentClientStatus,
         NoisyMute,
         AvatarIdentity,

@@ -13,9 +13,7 @@
 #include <QQuickItem>
 
 #include <SoundCache.h>
-
-class AudioInjector;
-using AudioInjectorPointer = QSharedPointer<AudioInjector>;
+#include <AudioInjectorManager.h>
 
 // SoundEffect object, exposed to qml only, not interface JavaScript.
 // This is used to play spatial sound effects on tablets/web entities from within QML.
@@ -34,7 +32,7 @@ public:
     float getVolume() const;
     void setVolume(float volume);
 
-    Q_INVOKABLE void play(QVariant position);
+    Q_INVOKABLE void play(const QVariant& position);
 protected:
     QUrl _url;
     float _volume { 1.0f };

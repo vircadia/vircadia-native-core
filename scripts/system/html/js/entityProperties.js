@@ -3326,7 +3326,7 @@ function loaded() {
 
                         let hasSelectedEntityChanged = lastEntityID !== '"' + selectedEntityProperties.id + '"';
 
-                        if (!hasSelectedEntityChanged && document.hasFocus()) {
+                        if (!data.isPropertiesToolUpdate && !hasSelectedEntityChanged && document.hasFocus()) {
                             // in case the selection has not changed and we still have focus on the properties page,
                             // we will ignore the event.
                             return;

@@ -2,12 +2,10 @@
 #include "SoundEffect.h"
 
 #include <RegisteredMetaTypes.h>
-#include <AudioInjector.h>
 
 SoundEffect::~SoundEffect() {
     if (_injector) {
-         // stop will cause the AudioInjector to delete itself.
-        _injector->stop();
+        DependencyManager::get<AudioInjectorManager>()->stop(_injector);
     }
 }
 
@@ -28,15 +26,14 @@ void SoundEffect::setVolume(float volume) {
     _volume = volume;
 }
 
-void SoundEffect::play(QVariant position) {
+void SoundEffect::play(const QVariant& position) {
     AudioInjectorOptions options;
     options.position = vec3FromVariant(position);
     options.localOnly = true;
     options.volume = _volume;
     if (_injector) {
-        _injector->setOptions(options);
-        _injector->restart();
+        DependencyManager::get<AudioInjectorManager>()->setOptionsAndRestart(_injector, options);
     } else {
-        _injector = AudioInjector::playSound(_sound, options);
+        _injector = DependencyManager::get<AudioInjectorManager>()->playSound(_sound, options);
     }
 }

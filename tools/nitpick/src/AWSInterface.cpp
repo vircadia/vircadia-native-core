@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "AWSInterface.h"
+#include "common.h"
 
 #include <QDirIterator>
 #include <QJsonDocument>
@@ -29,7 +30,9 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
                                             QCheckBox* updateAWSCheckBox,
                                             QRadioButton* diffImageRadioButton,
                                             QRadioButton* ssimImageRadionButton,
-                                            QLineEdit* urlLineEdit
+                                            QLineEdit* urlLineEdit,
+                                            const QString& branch,
+                                            const QString& user
 ) {
     _workingDirectory = workingDirectory;
 
@@ -52,6 +55,9 @@ void AWSInterface::createWebPageFromResults(const QString& testResults,
 
     _urlLineEdit = urlLineEdit;
     _urlLineEdit->setEnabled(false);
+
+    _branch = branch;
+    _user = user;
 
     QString zipFilenameWithoutExtension = zipFilename.split('.')[0];
     extractTestFailuresFromZippedFolder(_workingDirectory + "/" + zipFilenameWithoutExtension);
@@ -202,13 +208,21 @@ void AWSInterface::writeTitle(QTextStream& stream, const QStringList& originalNa
 
     stream << "run on " << hostName << "</h1>\n";
 
-    int numberOfFailures = originalNamesFailures.length();
-    int numberOfSuccesses = originalNamesSuccesses.length();
+    stream << "<h2>";
+    stream << "nitpick  " << nitpickVersion;
+    stream << ", tests from GitHub: " << _user << "/" << _branch;
+    stream << "</h2>";
 
-    stream << "<h2>" << QString::number(numberOfFailures) << " failed, out of a total of " << QString::number(numberOfSuccesses) << " tests</h2>\n";
+    _numberOfFailures = originalNamesFailures.length();
+    _numberOfSuccesses = originalNamesSuccesses.length();
+
+    stream << "<h2>" << QString::number(_numberOfFailures) << " failed, out of a total of " << QString::number(_numberOfFailures + _numberOfSuccesses) << " tests</h2>\n";
 
     stream << "\t" << "\t" << "<font color=\"red\">\n";
-    stream << "\t" << "\t" << "<h1>The following tests failed:</h1>";
+ 
+    if (_numberOfFailures > 0) {
+        stream << "\t" << "\t" << "<h1>The following tests failed:</h1>";
+    }
 }
 
 void AWSInterface::writeTable(QTextStream& stream, const QStringList& originalNamesFailures, const QStringList& originalNamesSuccesses) {
@@ -289,7 +303,10 @@ void AWSInterface::writeTable(QTextStream& stream, const QStringList& originalNa
 
     closeTable(stream);
     stream << "\t" << "\t" << "<font color=\"blue\">\n";
-    stream << "\t" << "\t" << "<h1>The following tests passed:</h1>";
+
+    if (_numberOfSuccesses > 0) {
+        stream << "\t" << "\t" << "<h1>The following tests passed:</h1>";
+    }
 
     // Now do the same for passes
     folderNames.clear();

@@ -7,6 +7,7 @@
 //
 package io.highfidelity.oculus;
 
+import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Surface;
@@ -24,7 +25,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
     private static final String TAG = OculusMobileActivity.class.getSimpleName();
     static { System.loadLibrary("oculusMobile"); }
 
-    private native void nativeOnCreate();
+    private native void nativeOnCreate(AssetManager assetManager);
     private native static void nativeOnResume();
     private native static void nativeOnPause();
     private native static void nativeOnSurfaceChanged(Surface s);
@@ -53,7 +54,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         mView = new SurfaceView(this);
         mView.getHolder().addCallback(this);
 
-        nativeOnCreate();
+        nativeOnCreate(getAssets());
         questNativeOnCreate();
     }
 
@@ -81,7 +82,7 @@ public class OculusMobileActivity extends QtActivity implements SurfaceHolder.Ca
         Log.w(TAG, "QQQ onResume");
         super.onResume();
         //Reconnect the global reference back to handler
-        nativeOnCreate();
+        nativeOnCreate(getAssets());
 
         questNativeOnResume();
         nativeOnResume();

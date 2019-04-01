@@ -11,7 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.7
+import QtQuick 2.10
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 
@@ -31,6 +31,8 @@ Rectangle {
     property string title: "Audio Settings"
     property int switchHeight: 16
     property int switchWidth: 40
+    readonly property real verticalScrollWidth: 10
+    readonly property real verticalScrollShaft: 8
     signal sendToScript(var message);
 
     color: hifi.colors.baseGray;
@@ -42,7 +44,7 @@ Rectangle {
 
 
     property bool isVR: AudioScriptingInterface.context === "VR"
-    property real rightMostInputLevelPos: 450
+    property real rightMostInputLevelPos: 440
     //placeholder for control sizes and paddings
     //recalculates dynamically in case of UI size is changed
     QtObject {
@@ -60,8 +62,8 @@ Rectangle {
         id: bar
         spacing: 0
         width: parent.width
-        height: 42
-        currentIndex: isVR ? 1 : 0
+        height: 28;
+        currentIndex: isVR ? 1 : 0;
 
         AudioControls.AudioTabButton {
             height: parent.height
@@ -85,32 +87,92 @@ Rectangle {
     }
 
     function updateMyAvatarGainFromQML(sliderValue, isReleased) {
-        if (Users.getAvatarGain(myAvatarUuid) != sliderValue) {
-            Users.setAvatarGain(myAvatarUuid, sliderValue);
+        if (AudioScriptingInterface.getAvatarGain() != sliderValue) {
+            AudioScriptingInterface.setAvatarGain(sliderValue);
+        }
+    }
+    function updateInjectorGainFromQML(sliderValue, isReleased) {
+        if (AudioScriptingInterface.getInjectorGain() != sliderValue) {
+            AudioScriptingInterface.setInjectorGain(sliderValue);       // server side
+            AudioScriptingInterface.setLocalInjectorGain(sliderValue);  // client side
+        }
+    }
+    function updateSystemInjectorGainFromQML(sliderValue, isReleased) {
+        if (AudioScriptingInterface.getSystemInjectorGain() != sliderValue) {
+            AudioScriptingInterface.setSystemInjectorGain(sliderValue);
         }
     }
 
     Component.onCompleted: enablePeakValues();
 
-    Column {
-        id: column
-        spacing: 12;
-        anchors.top: bar.bottom
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 5
+    Flickable {
+        id: flickView;
+        anchors.top: bar.bottom;
+        anchors.left: parent.left;
+        anchors.bottom: parent.bottom;
         width: parent.width;
+        contentWidth: parent.width;
+        contentHeight: contentItem.childrenRect.height;
+        boundsBehavior: Flickable.DragOverBounds;
+        flickableDirection: Flickable.VerticalFlick;
+        property bool isScrolling: (contentHeight - height) > 10 ? true : false;
+        clip: true;
 
-        Separator { }
+        ScrollBar.vertical: ScrollBar {
+            policy: flickView.isScrolling ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff;
+            parent: flickView.parent;
+            anchors.top: flickView.top;
+            anchors.right: flickView.right;
+            anchors.bottom: flickView.bottom;
+            anchors.rightMargin: -verticalScrollWidth; //compensate flickView's right margin
+            background: Item {
+                implicitWidth: verticalScrollWidth;
+                Rectangle {
+                    color: hifi.colors.darkGray30;
+                    radius: 4;
+                    anchors {
+                        fill: parent;
+                        topMargin: -1;  // Finesse size
+                        bottomMargin: -2;
+                    }
+                }
+            }
+            contentItem: Item {
+                implicitWidth: verticalScrollShaft;
+                Rectangle {
+                    radius: verticalScrollShaft/2;
+                    color: hifi.colors.white30;
+                    anchors {
+                        fill: parent;
+                        leftMargin: 2;  // Finesse size and position.
+                        topMargin: 1;
+                        bottomMargin: 1;
+                    }
+                }
+            }
+        }
 
-        RowLayout {
+        Separator {
+            id: firstSeparator;
+            anchors.top: parent.top;
+        }
+
+        Item {
+            id: switchesContainer;
             x: 2 * margins.paddings;
             width: parent.width;
+            // switch heights + 2 * top margins
+            height: (root.switchHeight) * 3 + 48;
+            anchors.top: firstSeparator.bottom;
+            anchors.topMargin: 10;
 
             // mute is in its own row
-            ColumnLayout {
-                id: columnOne
-                spacing: 24;
-                x: margins.paddings
+           Item {
+                id: switchContainer;
+                x: margins.paddings;
+                width: parent.width / 2;
+                height: parent.height;
+                anchors.left: parent.left;
                 HifiControlsUit.Switch {
                     id: muteMic;
                     height: root.switchHeight;
@@ -129,8 +191,12 @@ Rectangle {
                 }
 
                 HifiControlsUit.Switch {
+                    id: noiseReductionSwitch;
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
+                    anchors.top: muteMic.bottom;
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
                     labelTextOn: "Noise Reduction";
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.noiseReduction;
@@ -144,6 +210,9 @@ Rectangle {
                     id: pttSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
+                    anchors.top: noiseReductionSwitch.bottom
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
                     labelTextOn: qsTr("Push To Talk (T)");
                     backgroundOnColor: "#E3E3E3";
                     checked: (bar.currentIndex === 0) ? AudioScriptingInterface.pushToTalkDesktop : AudioScriptingInterface.pushToTalkHMD;
@@ -164,12 +233,18 @@ Rectangle {
                 }
             }
 
-            ColumnLayout {
-                spacing: 24;
+            Item {
+                id: additionalSwitchContainer
+                width: switchContainer.width - margins.paddings;
+                height: parent.height;
+                anchors.top: parent.top
+                anchors.left: switchContainer.right;
                 HifiControlsUit.Switch {
                     id: warnMutedSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
+                    anchors.top: parent.top
+                    anchors.left: parent.left
                     labelTextOn: qsTr("Warn when muted");
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.warnWhenMuted;
@@ -184,6 +259,9 @@ Rectangle {
                     id: audioLevelSwitch
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
+                    anchors.top: warnMutedSwitch.bottom
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
                     labelTextOn: qsTr("Audio Level Meter");
                     backgroundOnColor: "#E3E3E3";
                     checked: AvatarInputs.showAudioTools;
@@ -197,6 +275,9 @@ Rectangle {
                     id: stereoInput;
                     height: root.switchHeight;
                     switchWidth: root.switchWidth;
+                    anchors.top: audioLevelSwitch.bottom
+                    anchors.topMargin: 24
+                    anchors.left: parent.left
                     labelTextOn:  qsTr("Stereo input");
                     backgroundOnColor: "#E3E3E3";
                     checked: AudioScriptingInterface.isStereoInput;
@@ -210,17 +291,20 @@ Rectangle {
         }
 
         Item {
-            anchors.left: parent.left
+            id: pttTextContainer
+            anchors.top: switchesContainer.bottom;
+            anchors.topMargin: 10;
+            anchors.left: parent.left;
             width: rightMostInputLevelPos;
             height: pttText.height;
             RalewayRegular {
-                id: pttText
+                id: pttText;
                 x: margins.paddings;
                 color: hifi.colors.white;
                 width: rightMostInputLevelPos;
                 height: paintedHeight;
                 wrapMode: Text.WordWrap;
-                font.italic: true
+                font.italic: true;
                 size: 16;
 
                 text: (bar.currentIndex === 0) ? qsTr("Press and hold the button \"T\" to talk.") :
@@ -228,28 +312,35 @@ Rectangle {
             }
         }
 
-        Separator { }
+        Separator {
+            id: secondSeparator;
+            anchors.top: pttTextContainer.bottom;
+            anchors.topMargin: 10;
+        }
 
 
         Item {
+            id: inputDeviceHeader
             x: margins.paddings;
-            width: parent.width - margins.paddings*2
-            height: 36
+            width: parent.width - margins.paddings*2;
+            height: 36;
+            anchors.top: secondSeparator.bottom;
+            anchors.topMargin: 10;
 
             HiFiGlyphs {
-                width: margins.sizeCheckBox
+                width: margins.sizeCheckBox;
                 text: hifi.glyphs.mic;
                 color: hifi.colors.white;
-                anchors.left: parent.left
-                anchors.leftMargin: -size/4 //the glyph has empty space at left about 25%
+                anchors.left: parent.left;
+                anchors.leftMargin: -size/4; //the glyph has empty space at left about 25%
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 30;
             }
             RalewayRegular {
                 anchors.verticalCenter: parent.verticalCenter;
-                width: margins.sizeText + margins.sizeLevel
-                anchors.left: parent.left
-                anchors.leftMargin: margins.sizeCheckBox
+                width: margins.sizeText + margins.sizeLevel;
+                anchors.left: parent.left;
+                anchors.leftMargin: margins.sizeCheckBox;
                 size: 16;
                 color: hifi.colors.white;
                 text: qsTr("Choose input device");
@@ -257,12 +348,13 @@ Rectangle {
         }
 
         ListView {
-            id: inputView
-            width: parent.width - margins.paddings*2
+            id: inputView;
+            width: parent.width - margins.paddings*2;
+            anchors.top: inputDeviceHeader.bottom;
+            anchors.topMargin: 10;
             x: margins.paddings
-            height: Math.min(150, contentHeight);
+            height: contentHeight;
             spacing: 4;
-            snapMode: ListView.SnapToItem;
             clip: true;
             model: AudioScriptingInterface.devices.input;
             delegate: Item {
@@ -301,17 +393,28 @@ Rectangle {
                 }
             }
         }
+
         AudioControls.LoopbackAudio {
+            id: loopbackAudio
             x: margins.paddings
+            anchors.top: inputView.bottom;
+            anchors.topMargin: 10;
 
             visible: (bar.currentIndex === 1 && isVR) ||
                 (bar.currentIndex === 0 && !isVR);
             anchors { left: parent.left; leftMargin: margins.paddings }
         }
 
-        Separator {}
+        Separator {
+            id: thirdSeparator;
+            anchors.top: loopbackAudio.bottom;
+            anchors.topMargin: 10;
+        }
 
         Item {
+            id: outputDeviceHeader;
+            anchors.topMargin: 10;
+            anchors.top: thirdSeparator.bottom;
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: 36
@@ -341,9 +444,10 @@ Rectangle {
             id: outputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: Math.min(360 - inputView.height, contentHeight);
+            height: contentHeight;
+            anchors.top: outputDeviceHeader.bottom;
+            anchors.topMargin: 10;
             spacing: 4;
-            snapMode: ListView.SnapToItem;
             clip: true;
             model: AudioScriptingInterface.devices.output;
             delegate: Item {
@@ -370,20 +474,22 @@ Rectangle {
         }
 
         Item {
-            id: gainContainer
+            id: avatarGainContainer
             x: margins.paddings;
+            anchors.top: outputView.bottom;
+            anchors.topMargin: 10;
             width: parent.width - margins.paddings*2
-            height: gainSliderTextMetrics.height
+            height: avatarGainSliderTextMetrics.height
 
             HifiControlsUit.Slider {
-                id: gainSlider
+                id: avatarGainSlider
                 anchors.right: parent.right
                 height: parent.height
                 width: 200
                 minimumValue: -60.0
                 maximumValue: 20.0
                 stepSize: 5
-                value: Users.getAvatarGain(myAvatarUuid)
+                value: AudioScriptingInterface.getAvatarGain()
                 onValueChanged: {
                     updateMyAvatarGainFromQML(value, false);
                 }
@@ -399,7 +505,7 @@ Rectangle {
                         // Do nothing.
                     }
                     onDoubleClicked: {
-                        gainSlider.value = 0.0
+                        avatarGainSlider.value = 0.0
                     }
                     onPressed: {
                         // Pass through to Slider
@@ -413,13 +519,13 @@ Rectangle {
                 }
             }
             TextMetrics {
-                id: gainSliderTextMetrics
-                text: gainSliderText.text
-                font: gainSliderText.font
+                id: avatarGainSliderTextMetrics
+                text: avatarGainSliderText.text
+                font: avatarGainSliderText.font
             }
             RalewayRegular {
                 // The slider for my card is special, it controls the master gain
-                id: gainSliderText;
+                id: avatarGainSliderText;
                 text: "Avatar volume";
                 size: 16;
                 anchors.left: parent.left;
@@ -429,12 +535,133 @@ Rectangle {
             }
         }
 
-        AudioControls.PlaySampleSound {
-            x: margins.paddings
+        Item {
+            id: injectorGainContainer
+            x: margins.paddings;
+            width: parent.width - margins.paddings*2
+            height: injectorGainSliderTextMetrics.height
+            anchors.top: avatarGainContainer.bottom;
+            anchors.topMargin: 10;
 
-            visible: (bar.currentIndex === 1 && isVR) ||
-                     (bar.currentIndex === 0 && !isVR);
-            anchors { left: parent.left; leftMargin: margins.paddings }
+            HifiControlsUit.Slider {
+                id: injectorGainSlider
+                anchors.right: parent.right
+                height: parent.height
+                width: 200
+                minimumValue: -60.0
+                maximumValue: 20.0
+                stepSize: 5
+                value: AudioScriptingInterface.getInjectorGain()
+                onValueChanged: {
+                    updateInjectorGainFromQML(value, false);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateInjectorGainFromQML(value, false);
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onWheel: {
+                        // Do nothing.
+                    }
+                    onDoubleClicked: {
+                        injectorGainSlider.value = 0.0
+                    }
+                    onPressed: {
+                        // Pass through to Slider
+                        mouse.accepted = false
+                    }
+                    onReleased: {
+                        // the above mouse.accepted seems to make this
+                        // never get called, nonetheless...
+                        mouse.accepted = false
+                    }
+                }
+            }
+            TextMetrics {
+                id: injectorGainSliderTextMetrics
+                text: injectorGainSliderText.text
+                font: injectorGainSliderText.font
+            }
+            RalewayRegular {
+                id: injectorGainSliderText;
+                text: "Environment volume";
+                size: 16;
+                anchors.left: parent.left;
+                color: hifi.colors.white;
+                horizontalAlignment: Text.AlignLeft;
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+
+        Item {
+            id: systemInjectorGainContainer
+            x: margins.paddings;
+            width: parent.width - margins.paddings*2
+            height: systemInjectorGainSliderTextMetrics.height
+            anchors.top: injectorGainContainer.bottom;
+            anchors.topMargin: 10;
+
+            HifiControlsUit.Slider {
+                id: systemInjectorGainSlider
+                anchors.right: parent.right
+                height: parent.height
+                width: 200
+                minimumValue: -60.0
+                maximumValue: 20.0
+                stepSize: 5
+                value: AudioScriptingInterface.getSystemInjectorGain()
+                onValueChanged: {
+                    updateSystemInjectorGainFromQML(value, false);
+                }
+                onPressedChanged: {
+                    if (!pressed) {
+                        updateSystemInjectorGainFromQML(value, false);
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onWheel: {
+                        // Do nothing.
+                    }
+                    onDoubleClicked: {
+                        systemInjectorGainSlider.value = 0.0
+                    }
+                    onPressed: {
+                        // Pass through to Slider
+                        mouse.accepted = false
+                    }
+                    onReleased: {
+                        // the above mouse.accepted seems to make this
+                        // never get called, nonetheless...
+                        mouse.accepted = false
+                    }
+                }
+            }
+            TextMetrics {
+                id: systemInjectorGainSliderTextMetrics
+                text: systemInjectorGainSliderText.text
+                font: systemInjectorGainSliderText.font
+            }
+            RalewayRegular {
+                id: systemInjectorGainSliderText;
+                text: "System Sound volume";
+                size: 16;
+                anchors.left: parent.left;
+                color: hifi.colors.white;
+                horizontalAlignment: Text.AlignLeft;
+                verticalAlignment: Text.AlignTop;
+            }
+        }
+
+        AudioControls.PlaySampleSound {
+            id: playSampleSound
+            x: margins.paddings
+            anchors.top: systemInjectorGainContainer.bottom;
+            anchors.topMargin: 10;
         }
     }
 }

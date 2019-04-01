@@ -18,9 +18,11 @@
  *     <tr><th>Value</th><th>Description</th></tr>
  *   </thead>
  *   <tbody>
- *     <tr><td><code>none</code></td><td>The entity will not be billboarded.</td></tr>
- *     <tr><td><code>yaw</code></td><td>The entity will yaw, but not pitch, to face the camera.  Its actual rotation will be ignored.</td></tr>
- *     <tr><td><code>full</code></td><td>The entity will be billboarded to face the camera.  Its actual rotation will be ignored.</td></tr>
+ *     <tr><td><code>"none"</code></td><td>The entity will not be billboarded.</td></tr>
+ *     <tr><td><code>"yaw"</code></td><td>The entity will yaw, but not pitch, to face the camera. Its actual rotation will be 
+ *       ignored.</td></tr>
+ *     <tr><td><code>"full"</code></td><td>The entity will be billboarded to face the camera. Its actual rotation will be 
+ *       ignored.</td></tr>
  *   </tbody>
  * </table>
  * @typedef {string} BillboardMode

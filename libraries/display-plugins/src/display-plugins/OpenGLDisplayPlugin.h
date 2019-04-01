@@ -94,14 +94,10 @@ protected:
     // is not populated
     virtual bool alwaysPresent() const { return false; }
 
-    void updateCompositeFramebuffer();
-
     virtual QThread::Priority getPresentPriority() { return QThread::HighPriority; }
-    virtual void compositeLayers();
-    virtual void compositeScene();
-    virtual std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> getHUDOperator();
-    virtual void compositePointer();
-    virtual void compositeExtra() {};
+    virtual void compositeLayers(const gpu::FramebufferPointer&);
+    virtual void compositePointer(const gpu::FramebufferPointer&);
+    virtual void compositeExtra(const gpu::FramebufferPointer&) {};
 
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
@@ -116,10 +112,10 @@ protected:
     virtual void deactivateSession() {}
 
     // Plugin specific functionality to send the composed scene to the output window or device
-    virtual void internalPresent();
+    virtual void internalPresent(const gpu::FramebufferPointer&);
 
-    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& fbo);
-    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor);
+    
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer& texture, const glm::ivec4& viewport, const glm::ivec4& scissor, const gpu::FramebufferPointer& destFbo = nullptr, const gpu::FramebufferPointer& copyFbo = nullptr);
     virtual void updateFrameData();
     virtual glm::mat4 getViewCorrection() { return glm::mat4(); }
 
@@ -142,14 +138,8 @@ protected:
     gpu::FramePointer _currentFrame;
     gpu::Frame* _lastFrame { nullptr };
     mat4 _prevRenderView;
-    gpu::FramebufferPointer _compositeFramebuffer;
-    gpu::PipelinePointer _hudPipeline;
-    gpu::PipelinePointer _mirrorHUDPipeline;
-    gpu::ShaderPointer _mirrorHUDPS;
-    gpu::PipelinePointer _simplePipeline;
-    gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
-    gpu::TexturePointer _displayTexture{};
+    gpu::TexturePointer _displayTexture;
     float _compositeHUDAlpha { 1.0f };
 
     struct CursorData {
@@ -185,5 +175,9 @@ protected:
     // be serialized through this mutex
     mutable Mutex _presentMutex;
     float _hudAlpha{ 1.0f };
+
+private:
+    gpu::PipelinePointer _presentPipeline;
+
 };
 

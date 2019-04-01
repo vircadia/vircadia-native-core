@@ -379,9 +379,9 @@ Item {
                     Component.onCompleted: {
                         // with the link.
                         if (completeProfileBody.withOculus) {
-                            termsText.text = qsTr("By signing up, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                            termsText.text = qsTr("By signing up, you agree to <a href='https://www.highfidelity.com/termsofservice'>High Fidelity's Terms of Service</a>")
                         } else {
-                            termsText.text = qsTr("By creating this user profile, you agree to <a href='https://highfidelity.com/terms'>High Fidelity's Terms of Service</a>")
+                            termsText.text = qsTr("By creating this user profile, you agree to <a href='https://www.highfidelity.com/termsofservice'>High Fidelity's Terms of Service</a>")
                         }
                     }
                 }
