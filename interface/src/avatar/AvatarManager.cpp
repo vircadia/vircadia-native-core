@@ -38,6 +38,7 @@
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 #include <shared/ConicalViewFrustum.h>
+#include <ui/AvatarInputs.h>
 
 #include "Application.h"
 #include "InterfaceLogging.h"
@@ -536,6 +537,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     avatar->removeAvatarEntitiesFromTree();
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
     } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present

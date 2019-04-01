@@ -330,6 +330,9 @@ public:
     void createLoginDialog();
     void updateLoginDialogPosition();
 
+    void createAvatarInputsBar();
+    void destroyAvatarInputsBar();
+
     // Check if a headset is connected
     bool hasRiftControllers();
     bool hasViveControllers();
@@ -704,12 +707,14 @@ private:
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
     bool _interstitialModeEnabled{ false };
 
-    bool _loginDialogPoppedUp = false;
+    bool _loginDialogPoppedUp{ false };
+    bool _desktopRootItemCreated{ false };
     bool _developerMenuVisible{ false };
     QString _previousAvatarSkeletonModel;
     float _previousAvatarTargetScale;
     CameraMode _previousCameraMode;
     QUuid _loginDialogID;
+    QUuid _avatarInputsBarID;
     LoginStateManager _loginStateManager;
 
     quint64 _lastFaceTrackerUpdate;

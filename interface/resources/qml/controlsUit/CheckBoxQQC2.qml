@@ -24,6 +24,7 @@ CheckBox {
     leftPadding: 0
     property int colorScheme: hifi.colorSchemes.light
     property string color: hifi.colors.lightGrayText
+    property int fontSize: hifi.fontSizes.inputLabel
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property bool isRedCheck: false
     property bool isRound: false
@@ -109,7 +110,7 @@ CheckBox {
 
     contentItem: Text {
         id: root
-        font.pixelSize: hifi.fontSizes.inputLabel
+        font.pixelSize: fontSize;
         font.family: "Raleway"
         font.weight: Font.DemiBold
         text: checkBox.text

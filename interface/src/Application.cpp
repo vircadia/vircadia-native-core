@@ -338,6 +338,10 @@ Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTRE
 
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
 
+static const QUrl AVATAR_INPUTS_BAR_QML = PathUtils::qmlUrl("AvatarInputsBar.qml");
+static const QUrl MIC_BAR_APPLICATION_QML = PathUtils::qmlUrl("hifi/audio/MicBarApplication.qml");
+static const QUrl BUBBLE_ICON_QML = PathUtils::qmlUrl("BubbleIcon.qml");
+
 static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
 static const QString NO_MOVEMENT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_nomovement.json";
@@ -2372,7 +2376,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 });
             });
             auto rootItemLoadedFunctor = [webSurface, url, isTablet] {
-                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == LOGIN_DIALOG.toString());
+                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == LOGIN_DIALOG.toString() || url == AVATAR_INPUTS_BAR_QML.toString() ||
+                   url == BUBBLE_ICON_QML.toString());
             };
             if (webSurface->getRootItem()) {
                 rootItemLoadedFunctor();
@@ -3299,6 +3304,7 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+    _desktopRootItemCreated = true;
 }
 
 void Application::userKickConfirmation(const QUuid& nodeID) {
@@ -8977,6 +8983,38 @@ void Application::updateLoginDialogPosition() {
             properties.setRotation(keyboardOrientation);
             entityScriptingInterface->editEntity(DependencyManager::get<Keyboard>()->getAnchorID(), properties);
         }
+    }
+}
+
+void Application::createAvatarInputsBar() {
+    const glm::vec3 LOCAL_POSITION { 0.0, 0.0, -1.0 };
+    // DEFAULT_DPI / tablet scale percentage
+    const float DPI = 31.0f / (75.0f / 100.0f);
+
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Web);
+    properties.setName("AvatarInputsBarEntity");
+    properties.setSourceUrl(AVATAR_INPUTS_BAR_QML.toString());
+    properties.setParentID(getMyAvatar()->getSelfID());
+    properties.setParentJointIndex(getMyAvatar()->getJointIndex("_CAMERA_MATRIX"));
+    properties.setPosition(LOCAL_POSITION);
+    properties.setLocalRotation(Quaternions::IDENTITY);
+    //properties.setDimensions(LOGIN_DIMENSIONS);
+    properties.setPrimitiveMode(PrimitiveMode::SOLID);
+    properties.getGrab().setGrabbable(false);
+    properties.setIgnorePickIntersection(false);
+    properties.setAlpha(1.0f);
+    properties.setDPI(DPI);
+    properties.setVisible(true);
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    _avatarInputsBarID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
+}
+
+void Application::destroyAvatarInputsBar() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    if (!_avatarInputsBarID.isNull()) {
+        entityScriptingInterface->deleteEntity(_avatarInputsBarID);
     }
 }
 
