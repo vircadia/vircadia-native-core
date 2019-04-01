@@ -199,3 +199,9 @@ void TestScriptingInterface::setOtherAvatarsReplicaCount(int count) {
 int TestScriptingInterface::getOtherAvatarsReplicaCount() {
     return qApp->getOtherAvatarsReplicaCount();
 }
+
+bool TestScriptingInterface::isTextureLoadingComplete() {
+    bool result;
+    QMetaObject::invokeMethod(qApp, "gpuTextureMemSizeStable", Qt::DirectConnection, Q_RETURN_ARG(bool, result));
+    return result;
+}

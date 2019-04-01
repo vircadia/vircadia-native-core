@@ -163,6 +163,13 @@ public slots:
     */
     Q_INVOKABLE int getOtherAvatarsReplicaCount();
 
+    /**jsdoc
+     * Check whether all textures have been loaded.
+     * @function Entities.areTexturesLoaded
+     * @returns {boolean} <code>true</code> texture memory usage is not increasing <code>false</code>.
+     */
+    Q_INVOKABLE bool isTextureLoadingComplete();
+
 private:
     bool waitForCondition(qint64 maxWaitMs, std::function<bool()> condition);
     QString _testResultsLocation;
