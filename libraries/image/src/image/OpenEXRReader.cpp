@@ -11,7 +11,7 @@
 
 #include "OpenEXRReader.h"
 
-#include "Image.h"
+#include "TextureProcessing.h"
 #include "ImageLogging.h"
 
 #include <QIODevice>
@@ -58,7 +58,7 @@ private:
 
 #endif
 
-QImage image::readOpenEXR(QIODevice& content, const std::string& filename) {
+image::Image image::readOpenEXR(QIODevice& content, const std::string& filename) {
 #if !defined(Q_OS_ANDROID)
     QIODeviceImfStream device(content, filename);
 
@@ -74,12 +74,12 @@ QImage image::readOpenEXR(QIODevice& content, const std::string& filename) {
         file.setFrameBuffer(&pixels[0][0] - viewport.min.x - viewport.min.y * width, 1, width);
         file.readPixels(viewport.min.y, viewport.max.y);
 
-        QImage image{ width, height, QIMAGE_HDRFORMAT };
+        Image image{ width, height, Image::Format_PACKED_FLOAT };
         auto packHDRPixel = getHDRPackingFunction();
         
         for (int y = 0; y < height; y++) {
             const auto srcScanline = pixels[y];
-            gpu::uint32* dstScanline = (gpu::uint32*) image.scanLine(y);
+            gpu::uint32* dstScanline = (gpu::uint32*) image.editScanLine(y);
 
             for (int x = 0; x < width; x++) {
                 const auto& srcPixel = srcScanline[x];

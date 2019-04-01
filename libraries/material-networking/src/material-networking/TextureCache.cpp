@@ -34,7 +34,7 @@
 #include <gl/GLHelpers.h>
 #include <gpu/Batch.h>
 
-#include <image/Image.h>
+#include <image/TextureProcessing.h>
 
 #include <NumericalConstants.h>
 #include <shared/NsightHelpers.h>

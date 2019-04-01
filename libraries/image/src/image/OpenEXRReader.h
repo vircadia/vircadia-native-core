@@ -12,12 +12,12 @@
 #ifndef hifi_image_OpenEXRReader_h
 #define hifi_image_OpenEXRReader_h
 
-#include <QImage>
+#include "Image.h"
 
 namespace image {
 
     // TODO Move this into a plugin that QImageReader can use
-    QImage readOpenEXR(QIODevice& contents, const std::string& filename);
+    Image readOpenEXR(QIODevice& contents, const std::string& filename);
 
 }
 
