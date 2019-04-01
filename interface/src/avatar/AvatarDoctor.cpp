@@ -92,7 +92,7 @@ void AvatarDoctor::startDiagnosing() {
         _model = resource;
         const auto model = resource.data();
         const auto avatarModel = resource.data()->getHFMModel();
-        if (!avatarModel.originalURL.endsWith(".fbx")) {
+        if (!avatarModel.originalURL.toLower().endsWith(".fbx")) {
             addError("Unsupported avatar model format.", "unsupported-format");
             emit complete(getErrors());
             return;

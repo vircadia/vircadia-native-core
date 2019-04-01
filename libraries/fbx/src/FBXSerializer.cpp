@@ -1164,8 +1164,14 @@ HFMModel* FBXSerializer::extractHFMModel(const hifi::VariantHash& mapping, const
                             counter++;
                         }
                     }
-                    _connectionParentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
-                    _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                    if (_connectionParentMap.value(getID(connection.properties, 1)) == "0") {
+                        // don't assign the new parent
+                        qCDebug(modelformat) << "root node " << getID(connection.properties, 1) << "  has discarded parent " << getID(connection.properties, 2);
+                        _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                    } else {
+                        _connectionParentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
+                        _connectionChildMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                    }
                 }
             }
         }
