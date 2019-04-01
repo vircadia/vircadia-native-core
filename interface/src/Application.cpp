@@ -1295,21 +1295,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setCrashAnnotation("display_plugin", displayPlugin->getName().toStdString());
         setCrashAnnotation("hmd", displayPlugin->isHmd() ? "1" : "0");
     });
-    connect(this, &Application::activeDisplayPluginChanged, this, [&](){
-#if !defined(Q_OS_ANDROID)
-        if (!getLoginDialogPoppedUp() && _desktopRootItemCreated) {
-/*            if (isHMDMode()) {*/
-                //createAvatarInputsBar();
-                //auto offscreenUi = getOffscreenUI();
-                //offscreenUi->hide(AVATAR_INPUTS_BAR_QML.toString());
-            //} else {
-                //destroyAvatarInputsBar();
-                //auto offscreenUi = getOffscreenUI();
-                //offscreenUi->show(AVATAR_INPUTS_BAR_QML.toString(), "AvatarInputsBar");
-            /*}*/
-        }
-#endif
-    });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
     connect(this, &Application::activeDisplayPluginChanged, this, [&](){
         if (getLoginDialogPoppedUp()) {
