@@ -70,6 +70,7 @@ namespace image {
         glm::uint32 getHeight() const { return (glm::uint32)_data.height(); }
         glm::uvec2 getSize() const { return toGlm(_data.size()); }
         size_t getByteCount() const { return _data.byteCount(); }
+        size_t getBytesPerLineCount() const { return _data.bytesPerLine(); }
 
         QRgb getPixel(int x, int y) const { return _data.pixel(x, y); }
         void setPixel(int x, int y, QRgb value) {

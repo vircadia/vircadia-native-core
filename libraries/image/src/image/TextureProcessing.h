@@ -17,11 +17,16 @@
 #include <gpu/Texture.h>
 
 #include "Image.h"
+#include <nvtt/nvtt.h>
 
 namespace image {
 
     std::function<gpu::uint32(const glm::vec3&)> getHDRPackingFunction();
     std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction();
+    void convertToFloat(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat, 
+                        glm::vec4* output, size_t outputLinePixelStride);
+    void convertFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+                          const glm::vec4* source, size_t srcLinePixelStride);
 
 namespace TextureUsage {
 
@@ -36,7 +41,8 @@ enum Type {
     ROUGHNESS_TEXTURE,
     GLOSS_TEXTURE,
     EMISSIVE_TEXTURE,
-    CUBE_TEXTURE,
+    SKY_TEXTURE,
+    AMBIENT_TEXTURE,
     OCCLUSION_TEXTURE,
     SCATTERING_TEXTURE = OCCLUSION_TEXTURE,
     LIGHTMAP_TEXTURE,
@@ -66,8 +72,12 @@ gpu::TexturePointer createMetallicTextureFromImage(Image&& image, const std::str
                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createCubeTextureFromImage(Image&& image, const std::string& srcImageName,
                                                bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
-gpu::TexturePointer createCubeTextureFromImageWithoutIrradiance(Image&& image, const std::string& srcImageName,
-                                                                bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
+gpu::TexturePointer createCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
+                                                            bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
+gpu::TexturePointer createAmbientCubeTextureFromImage(Image&& image, const std::string& srcImageName,
+                                                      bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
+gpu::TexturePointer createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
+                                                                   bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer createLightmapTextureFromImage(Image&& image, const std::string& srcImageName,
                                                    bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing); 
 gpu::TexturePointer process2DTextureColorFromImage(Image&& srcImage, const std::string& srcImageName, bool compress,
@@ -76,9 +86,14 @@ gpu::TexturePointer process2DTextureNormalMapFromImage(Image&& srcImage, const s
                                                        gpu::BackendTarget target, bool isBumpMap, const std::atomic<bool>& abortProcessing);
 gpu::TexturePointer process2DTextureGrayscaleFromImage(Image&& srcImage, const std::string& srcImageName, bool compress,
                                                        gpu::BackendTarget target, bool isInvertedPixels, const std::atomic<bool>& abortProcessing);
-gpu::TexturePointer processCubeTextureColorFromImage(Image&& srcImage, const std::string& srcImageName, bool compress,
-                                                     gpu::BackendTarget target, bool generateIrradiance, const std::atomic<bool>& abortProcessing);
 
+enum CubeTextureOptions {
+    CUBE_DEFAULT = 0x0,
+    CUBE_GENERATE_IRRADIANCE = 0x1,
+    CUBE_GGX_CONVOLVE = 0x2
+};
+gpu::TexturePointer processCubeTextureColorFromImage(Image&& srcImage, const std::string& srcImageName, bool compress,
+                                                     gpu::BackendTarget target, int option, const std::atomic<bool>& abortProcessing);
 } // namespace TextureUsage
 
 const QStringList getSupportedFormats();
@@ -86,6 +101,19 @@ const QStringList getSupportedFormats();
 gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::string& url, ColorChannel sourceChannel,
                                  int maxNumPixels, TextureUsage::Type textureType,
                                  bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing = false);
+
+#if defined(NVTT_API)
+class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
+public:
+    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing);
+
+    const std::atomic<bool>& _abortProcessing;
+
+    void dispatch(nvtt::Task* task, void* context, int count) override;
+};
+
+nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressOptions);
+#endif
 
 } // namespace image
 

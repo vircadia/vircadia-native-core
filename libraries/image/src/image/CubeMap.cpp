@@ -15,7 +15,7 @@
 #include <tbb/blocked_range2d.h>
 
 #include "RandomAndNoise.h"
-#include "Image.h"
+#include "TextureProcessing.h"
 #include "ImageLogging.h"
 
 #include <nvtt/nvtt.h>
@@ -290,8 +290,8 @@ struct CubeMap::MipMapOutputHandler : public nvtt::OutputHandler {
     glm::vec4* _current{ nullptr };
 };
 
-CubeMap::CubeMap(const std::vector<QImage>& faces, gpu::Element srcTextureFormat, int mipCount, const std::atomic<bool>& abortProcessing) {
-    reset(faces.front().width(), faces.front().height(), mipCount);
+CubeMap::CubeMap(const std::vector<Image>& faces, gpu::Element srcTextureFormat, int mipCount, const std::atomic<bool>& abortProcessing) {
+    reset(faces.front().getWidth(), faces.front().getHeight(), mipCount);
 
     int face;
 
@@ -303,10 +303,10 @@ CubeMap::CubeMap(const std::vector<QImage>& faces, gpu::Element srcTextureFormat
 
     // Compute mips
     for (face = 0; face < 6; face++) {
-        auto sourcePixels = faces[face].bits();
+        auto sourcePixels = faces[face].getBits();
         auto floatPixels = editFace(0, face);
 
-        convertToFloat(sourcePixels, _width, _height, faces[face].bytesPerLine(), srcTextureFormat, floatPixels, _width);
+        convertToFloat(sourcePixels, _width, _height, faces[face].getBytesPerLineCount(), srcTextureFormat, floatPixels, _width);
 
         nvtt::Surface surface;
         surface.setImage(nvtt::InputFormat_RGBA_32F, _width, _height, 1, floatPixels);

@@ -18,7 +18,7 @@
 #include <array>
 #include <atomic>
 
-#include <QImage>
+#include "Image.h"
 
 namespace image {
 
@@ -26,7 +26,7 @@ namespace image {
     public:
  
         CubeMap(int width, int height, int mipCount);
-        CubeMap(const std::vector<QImage>& faces, gpu::Element faceFormat, int mipCount, const std::atomic<bool>& abortProcessing = false);
+        CubeMap(const std::vector<Image>& faces, gpu::Element faceFormat, int mipCount, const std::atomic<bool>& abortProcessing = false);
 
         void reset(int width, int height, int mipCount);
         void copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) const;

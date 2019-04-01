@@ -29,6 +29,7 @@
 #include "OpenEXRReader.h"
 #endif
 #include "ImageLogging.h"
+#include "CubeMap.h"
 
 using namespace gpu;
 
@@ -111,11 +112,13 @@ TextureUsage::TextureLoader TextureUsage::getTextureLoaderForType(Type type, con
             return image::TextureUsage::createEmissiveTextureFromImage;
         case LIGHTMAP_TEXTURE:
             return image::TextureUsage::createLightmapTextureFromImage;
-        case CUBE_TEXTURE:
+        case SKY_TEXTURE:
+            return image::TextureUsage::createCubeTextureFromImage;
+        case AMBIENT_TEXTURE:
             if (options.value("generateIrradiance", true).toBool()) {
-                return image::TextureUsage::createCubeTextureFromImage;
+                return image::TextureUsage::createAmbientCubeTextureAndIrradianceFromImage;
             } else {
-                return image::TextureUsage::createCubeTextureFromImageWithoutIrradiance;
+                return image::TextureUsage::createAmbientCubeTextureFromImage;
             }
         case BUMP_TEXTURE:
             return image::TextureUsage::createNormalTextureFromBumpImage;
@@ -186,14 +189,24 @@ gpu::TexturePointer TextureUsage::createMetallicTextureFromImage(Image&& srcImag
     return process2DTextureGrayscaleFromImage(std::move(srcImage), srcImageName, compress, target, false, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createCubeTextureFromImage(Image&& srcImage, const std::string& srcImageName,
+gpu::TexturePointer TextureUsage::createCubeTextureAndIrradianceFromImage(Image&& srcImage, const std::string& srcImageName,
                                                              bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, true, abortProcessing);
+    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE, abortProcessing);
 }
 
-gpu::TexturePointer TextureUsage::createCubeTextureFromImageWithoutIrradiance(Image&& srcImage, const std::string& srcImageName,
-                                                                              bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
-    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, false, abortProcessing);
+gpu::TexturePointer TextureUsage::createCubeTextureFromImage(Image&& srcImage, const std::string& srcImageName,
+                                                             bool compress, BackendTarget target, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(srcImage), srcImageName, compress, target, CUBE_DEFAULT, abortProcessing);
+}
+
+gpu::TexturePointer TextureUsage::createAmbientCubeTextureFromImage(Image&& image, const std::string& srcImageName,
+                                                           bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GGX_CONVOLVE, abortProcessing);
+}
+
+gpu::TexturePointer TextureUsage::createAmbientCubeTextureAndIrradianceFromImage(Image&& image, const std::string& srcImageName,
+                                                                        bool compress, gpu::BackendTarget target, const std::atomic<bool>& abortProcessing) {
+    return processCubeTextureColorFromImage(std::move(image), srcImageName, compress, target, CUBE_GENERATE_IRRADIANCE | CUBE_GGX_CONVOLVE, abortProcessing);
 }
 
 static float denormalize(float value, const float minValue) {
@@ -215,11 +228,17 @@ static uint32 packR11G11B10F(const glm::vec3& color) {
     return glm::packF2x11_1x10(ucolor);
 }
 
+static uint32 packUnorm4x8(const glm::vec3& color) {
+    return glm::packUnorm4x8(glm::vec4(color, 1.0f));
+}
+
 static std::function<uint32(const glm::vec3&)> getHDRPackingFunction(const gpu::Element& format) {
     if (format == gpu::Element::COLOR_RGB9E5) {
         return glm::packF3x9_E1x5;
     } else if (format == gpu::Element::COLOR_R11G11B10) {
         return packR11G11B10F;
+    } else if (format == gpu::Element::COLOR_RGBA_32 || format == gpu::Element::COLOR_SRGBA_32 || format == gpu::Element::COLOR_BGRA_32 || format == gpu::Element::COLOR_SBGRA_32) {
+        return packUnorm4x8;
     } else {
         qCWarning(imagelogging) << "Unknown handler format";
         Q_UNREACHABLE();
@@ -231,13 +250,15 @@ std::function<uint32(const glm::vec3&)> getHDRPackingFunction() {
     return getHDRPackingFunction(GPU_CUBEMAP_HDR_FORMAT);
 }
 
-std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction() {
-    if (GPU_CUBEMAP_HDR_FORMAT == gpu::Element::COLOR_RGB9E5) {
+std::function<glm::vec3(gpu::uint32)> getHDRUnpackingFunction(const gpu::Element& format) {
+    if (format == gpu::Element::COLOR_RGB9E5) {
         return glm::unpackF3x9_E1x5;
-    } else if (GPU_CUBEMAP_HDR_FORMAT == gpu::Element::COLOR_R11G11B10) {
+    } else if (format == gpu::Element::COLOR_R11G11B10) {
         return glm::unpackF2x11_1x10;
+    } else if (format == gpu::Element::COLOR_RGBA_32 || format == gpu::Element::COLOR_SRGBA_32 || format == gpu::Element::COLOR_BGRA_32 || format == gpu::Element::COLOR_SBGRA_32) {
+        return glm::unpackUnorm4x8;
     } else {
-        qCWarning(imagelogging) << "Unknown HDR encoding format in Image";
+        qCWarning(imagelogging) << "Unknown handler format";
         Q_UNREACHABLE();
         return nullptr;
     }
@@ -490,22 +511,92 @@ struct MyErrorHandler : public nvtt::ErrorHandler {
     }
 };
 
-class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
-public:
-    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing) : _abortProcessing(abortProcessing) {};
+SequentialTaskDispatcher::SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing) : _abortProcessing(abortProcessing) {
+}
 
-    const std::atomic<bool>& _abortProcessing;
-
-    virtual void dispatch(nvtt::Task* task, void* context, int count) override {
-        for (int i = 0; i < count; i++) {
-            if (!_abortProcessing.load()) {
-                task(context, i);
-            } else {
-                break;
-            }
+void SequentialTaskDispatcher::dispatch(nvtt::Task* task, void* context, int count) {
+    for (int i = 0; i < count; i++) {
+        if (!_abortProcessing.load()) {
+            task(context, i);
+        } else {
+            break;
         }
     }
-};
+}
+
+void image::convertToFloat(const unsigned char* source, int width, int height, size_t srcLineByteStride, gpu::Element sourceFormat,
+                           glm::vec4* output, size_t outputLinePixelStride) {
+    glm::vec4* outputIt;
+    auto unpackFunc = getHDRUnpackingFunction(sourceFormat);
+
+    outputLinePixelStride -= width;
+    outputIt = output;
+    for (auto lineNb = 0; lineNb < height; lineNb++) {
+        const uint32* srcPixelIt = reinterpret_cast<const uint32*>(source + lineNb * srcLineByteStride);
+        const uint32* srcPixelEnd = srcPixelIt + width;
+
+        while (srcPixelIt < srcPixelEnd) {
+            *outputIt = glm::vec4(unpackFunc(*srcPixelIt), 1.0f);
+            ++srcPixelIt;
+            ++outputIt;
+        }
+        outputIt += outputLinePixelStride;
+    }
+}
+
+void image::convertFromFloat(unsigned char* output, int width, int height, size_t outputLineByteStride, gpu::Element outputFormat,
+                             const glm::vec4* source, size_t srcLinePixelStride) {
+    const glm::vec4* sourceIt;
+    auto packFunc = getHDRPackingFunction(outputFormat);
+
+    srcLinePixelStride -= width;
+    sourceIt = source;
+    for (auto lineNb = 0; lineNb < height; lineNb++) {
+        uint32* outPixelIt = reinterpret_cast<uint32*>(output + lineNb * outputLineByteStride);
+        uint32* outPixelEnd = outPixelIt + width;
+
+        while (outPixelIt < outPixelEnd) {
+            *outPixelIt = packFunc(*sourceIt);
+            ++outPixelIt;
+            ++sourceIt;
+        }
+        sourceIt += srcLinePixelStride;
+    }
+}
+
+nvtt::OutputHandler* getNVTTCompressionOutputHandler(gpu::Texture* outputTexture, int face, nvtt::CompressionOptions& compressionOptions) {
+    auto outputFormat = outputTexture->getStoredMipFormat();
+
+    nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
+    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
+    nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
+
+    compressionOptions.setQuality(nvtt::Quality_Production);
+
+    // TODO: gles: generate ETC mips instead?
+    if (outputFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
+        compressionOptions.setFormat(nvtt::Format_BC6);
+    } else if (outputFormat == gpu::Element::COLOR_RGB9E5) {
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_Float);
+        compressionOptions.setPixelFormat(32, 32, 32, 0);
+    } else if (outputFormat == gpu::Element::COLOR_R11G11B10) {
+        compressionOptions.setFormat(nvtt::Format_RGB);
+        compressionOptions.setPixelType(nvtt::PixelType_Float);
+        compressionOptions.setPixelFormat(32, 32, 32, 0);
+    } else {
+        qCWarning(imagelogging) << "Unknown mip format";
+        Q_UNREACHABLE();
+        return nullptr;
+    }
+
+    if (outputFormat == gpu::Element::COLOR_RGB9E5 || outputFormat == gpu::Element::COLOR_R11G11B10) {
+        // Don't use NVTT (at least version 2.1) as it outputs wrong RGB9E5 and R11G11B10F values from floats
+        return new PackedFloatOutputHandler(outputTexture, face, outputFormat);
+    } else {
+        return new OutputHandler(outputTexture, face);
+    }
+}
 
 void generateHDRMips(gpu::Texture* texture, Image&& image, BackendTarget target, const std::atomic<bool>& abortProcessing, int face) {
     // Take a local copy to force move construction
@@ -518,63 +609,27 @@ void generateHDRMips(gpu::Texture* texture, Image&& image, BackendTarget target,
     std::vector<glm::vec4> data;
     std::vector<glm::vec4>::iterator dataIt;
     auto mipFormat = texture->getStoredMipFormat();
-    std::function<glm::vec3(uint32)> unpackFunc = getHDRUnpackingFunction();
 
     nvtt::InputFormat inputFormat = nvtt::InputFormat_RGBA_32F;
     nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
     nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
 
-    nvtt::CompressionOptions compressionOptions;
-    compressionOptions.setQuality(nvtt::Quality_Production);
-
-    // TODO: gles: generate ETC mips instead?
-    if (mipFormat == gpu::Element::COLOR_COMPRESSED_BCX_HDR_RGB) {
-        compressionOptions.setFormat(nvtt::Format_BC6);
-    } else if (mipFormat == gpu::Element::COLOR_RGB9E5) {
-        compressionOptions.setFormat(nvtt::Format_RGB);
-        compressionOptions.setPixelType(nvtt::PixelType_Float);
-        compressionOptions.setPixelFormat(32, 32, 32, 0);
-    } else if (mipFormat == gpu::Element::COLOR_R11G11B10) {
-        compressionOptions.setFormat(nvtt::Format_RGB);
-        compressionOptions.setPixelType(nvtt::PixelType_Float);
-        compressionOptions.setPixelFormat(32, 32, 32, 0);
-    } else {
-        qCWarning(imagelogging) << "Unknown mip format";
-        Q_UNREACHABLE();
-        return;
-    }
-
     data.resize(width * height);
-    dataIt = data.begin();
-    for (auto lineNb = 0; lineNb < height; lineNb++) {
-        const uint32* srcPixelIt = reinterpret_cast<const uint32*>(localCopy.getScanLine(lineNb));
-        const uint32* srcPixelEnd = srcPixelIt + width;
-
-        while (srcPixelIt < srcPixelEnd) {
-            *dataIt = glm::vec4(unpackFunc(*srcPixelIt), 1.0f);
-            ++srcPixelIt;
-            ++dataIt;
-        }
-    }
-    assert(dataIt == data.end());
+    convertToFloat(localCopy.getBits(), width, height, localCopy.getBytesPerLineCount(), GPU_CUBEMAP_HDR_FORMAT, data.data(), width);
 
     // We're done with the localCopy, free up the memory to avoid bloating the heap
     localCopy = Image(); // Image doesn't have a clear function, so override it with an empty one.
 
     nvtt::OutputOptions outputOptions;
     outputOptions.setOutputHeader(false);
-    std::unique_ptr<nvtt::OutputHandler> outputHandler;
+
+    nvtt::CompressionOptions compressionOptions;
+    std::unique_ptr<nvtt::OutputHandler> outputHandler{ getNVTTCompressionOutputHandler(texture, face, compressionOptions) };
+
     MyErrorHandler errorHandler;
     outputOptions.setErrorHandler(&errorHandler);
     nvtt::Context context;
     int mipLevel = 0;
-
-    if (mipFormat == gpu::Element::COLOR_RGB9E5 || mipFormat == gpu::Element::COLOR_R11G11B10) {
-        // Don't use NVTT (at least version 2.1) as it outputs wrong RGB9E5 and R11G11B10F values from floats
-        outputHandler.reset(new PackedFloatOutputHandler(texture, face, mipFormat));
-    } else {
-        outputHandler.reset(new OutputHandler(texture, face));
-    }
 
     outputOptions.setOutputHandler(outputHandler.get());
 
@@ -1416,8 +1471,17 @@ Image convertToHDRFormat(Image&& srcImage, gpu::Element format) {
     return hdrImage;
 }
 
+void convolveForGGX(const std::vector<Image>& faces, gpu::Element faceFormat, gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) {
+    PROFILE_RANGE(resource_parse, "convolveForGGX");
+    CubeMap source(faces, faceFormat, texture->getNumMips(), abortProcessing);
+    CubeMap output(texture->getWidth(), texture->getHeight(), texture->getNumMips());
+
+    source.convolveForGGX(output, abortProcessing);
+    output.copyTo(texture, abortProcessing);
+}
+
 gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcImage, const std::string& srcImageName,
-                                                                   bool compress, BackendTarget target, bool generateIrradiance,
+                                                                   bool compress, BackendTarget target, int options,
                                                                    const std::atomic<bool>& abortProcessing) {
     PROFILE_RANGE(resource_parse, "processCubeTextureColorFromImage");
 
@@ -1491,7 +1555,7 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcIm
         theTexture->setStoredMipFormat(formatMip);
 
         // Generate irradiance while we are at it
-        if (generateIrradiance) {
+        if (options & CUBE_GENERATE_IRRADIANCE) {
             PROFILE_RANGE(resource_parse, "generateIrradiance");
             gpu::Element irradianceFormat;
             // TODO: we could locally compress the irradiance texture on Android, but we don't need to
@@ -1514,8 +1578,14 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcIm
             theTexture->overrideIrradiance(irradiance);
         }
 
-        for (uint8 face = 0; face < faces.size(); ++face) {
-            generateMips(theTexture.get(), std::move(faces[face]), target, abortProcessing, face);
+        if (options & CUBE_GGX_CONVOLVE) {
+            convolveForGGX(faces, GPU_CUBEMAP_HDR_FORMAT, theTexture.get(), abortProcessing);
+        } else {
+            // Create mip maps and compress to final format in one go
+            for (uint8 face = 0; face < faces.size(); ++face) {
+                // Force building the mip maps right now on CPU if we are convolving for GGX later on
+                generateMips(theTexture.get(), std::move(faces[face]), target, abortProcessing, face);
+            }
         }
     }
 
