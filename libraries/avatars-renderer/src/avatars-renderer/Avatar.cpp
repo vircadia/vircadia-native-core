@@ -677,7 +677,6 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
             transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
     }
-    _isFading = true;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {

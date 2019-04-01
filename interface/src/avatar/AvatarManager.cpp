@@ -496,7 +496,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // it might not fire until after we create a new instance for the same remote avatar, which creates a race
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
-    avatar->setIsFading(false);
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
 
@@ -518,7 +517,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
         workload::SpacePointer space = _space;
         transaction.transitionFinishedOperator(avatar->getRenderItemID(), [space, avatar]() {
-            avatar->setIsFading(false);
             const render::ScenePointer& scene = qApp->getMain3DScene();
             render::Transaction transaction;
             avatar->removeFromScene(avatar, scene, transaction);

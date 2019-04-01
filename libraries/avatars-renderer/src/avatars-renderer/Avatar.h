@@ -462,8 +462,6 @@ public:
 
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::Transaction& transaction, KillAvatarReason reason);
-    bool isFading() const { return _isFading; }
-    void setIsFading(bool isFading) { _isFading = isFading; }
 
     // JSDoc is in AvatarData.h.
     Q_INVOKABLE virtual float getEyeHeight() const override;
@@ -655,7 +653,6 @@ protected:
     bool _initialized { false };
     bool _isAnimatingScale { false };
     bool _mustFadeIn { false };
-    bool _isFading { false };
     bool _reconstructSoftEntitiesJointMap { false };
     float _modelScale { 1.0f };
 

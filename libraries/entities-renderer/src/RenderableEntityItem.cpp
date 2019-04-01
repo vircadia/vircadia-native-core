@@ -418,6 +418,9 @@ void EntityRenderer::doRenderUpdateSynchronous(const ScenePointer& scene, Transa
         if (fading || _prevIsTransparent != transparent) {
             emit requestRenderUpdate();
         }
+        if (fading) {
+            _isFading = Interpolate::calculateFadeRatio(_fadeStartTime) < 1.0f;
+        }
 
         _prevIsTransparent = transparent;
 

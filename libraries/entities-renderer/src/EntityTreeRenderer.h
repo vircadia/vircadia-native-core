@@ -94,7 +94,6 @@ public:
     void reloadEntityScripts();
 
     void fadeOutRenderable(const EntityRendererPointer& renderable);
-    void removeFadedRenderables();
 
     // event handles which may generate entity related events
     QUuid mousePressEvent(QMouseEvent* event);
