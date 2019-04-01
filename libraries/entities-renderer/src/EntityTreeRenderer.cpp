@@ -214,30 +214,6 @@ void EntityTreeRenderer::stopDomainAndNonOwnedEntities() {
     }
 }
 
-void EntityTreeRenderer::removeFadedRenderables() {
-    if (_entityRenderablesToFadeOut.empty()) {
-        return;
-    }
-
-    std::unique_lock<std::mutex> lock(_entitiesToFadeLock);
-    auto entityIter = _entityRenderablesToFadeOut.begin();
-    auto scene = _viewState->getMain3DScene();
-    render::Transaction transaction;
-
-    while (entityIter != _entityRenderablesToFadeOut.end()) {
-        auto entityRenderable = *entityIter;
-
-        if (!entityRenderable->getIsFading()) {
-            entityRenderable->removeFromScene(scene, transaction);
-            entityIter = _entityRenderablesToFadeOut.erase(entityIter);
-        } else {
-            ++entityIter;
-        }
-    }
-
-    scene->enqueueTransaction(transaction);
-}
-
 void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     stopDomainAndNonOwnedEntities();
 
@@ -551,7 +527,6 @@ void EntityTreeRenderer::update(bool simulate) {
         }
 
     }
-    removeFadedRenderables();
 }
 
 void EntityTreeRenderer::handleSpaceUpdate(std::pair<int32_t, glm::vec4> proxyUpdate) {
@@ -1080,12 +1055,14 @@ void EntityTreeRenderer::fadeOutRenderable(const EntityRendererPointer& renderab
     auto scene = _viewState->getMain3DScene();
 
     renderable->setIsFading(true);
-    transaction.transitionFinishedOperator(renderable->getRenderItemID(), [renderable]() {
+    transaction.transitionFinishedOperator(renderable->getRenderItemID(), [scene, renderable]() {
         renderable->setIsFading(false);
+        render::Transaction transaction;
+        renderable->removeFromScene(scene, transaction);
+        scene->enqueueTransaction(transaction);
     });
 
     scene->enqueueTransaction(transaction);
-    _entityRenderablesToFadeOut.push_back(renderable);
 }
 
 void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision) {

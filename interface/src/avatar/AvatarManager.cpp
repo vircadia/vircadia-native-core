@@ -84,7 +84,6 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-
     const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
     if (otherAvatar && _space) {
         std::unique_lock<std::mutex> lock(_spaceLock);
@@ -210,7 +209,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     {
         // lock the hash for read to check the size
         QReadLocker lock(&_hashLock);
-        if (_avatarHash.size() < 2 && _avatarsToFadeOut.empty()) {
+        if (_avatarHash.size() < 2) {
             return;
         }
     }
@@ -375,18 +374,12 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         qApp->getMain3DScene()->enqueueTransaction(renderTransaction);
     }
 
-    if (!_spaceProxiesToDelete.empty() && _space) {
-        std::unique_lock<std::mutex> lock(_spaceLock);
-        workloadTransaction.remove(_spaceProxiesToDelete);
-        _spaceProxiesToDelete.clear();
-    }
     _space->enqueueTransaction(workloadTransaction);
 
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAvatarsNotUpdated;
     _numHeroAvatarsUpdated = numHerosUpdated;
 
-    removeFadedAvatars();
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }
 
@@ -397,30 +390,6 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         avatar->postUpdate(deltaTime, scene);
     }
-}
-
-void AvatarManager::removeFadedAvatars() {
-    if (_avatarsToFadeOut.empty()) {
-        return;
-    }
-
-    QReadLocker locker(&_hashLock);
-    auto avatarItr = _avatarsToFadeOut.begin();
-    const render::ScenePointer& scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    while (avatarItr != _avatarsToFadeOut.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        if (!avatar->isFading()) {
-            // fading to zero is such a rare event we push a unique transaction for each
-            if (avatar->isInScene()) {
-                avatar->removeFromScene(*avatarItr, scene, transaction);
-            }
-            avatarItr = _avatarsToFadeOut.erase(avatarItr);
-        } else {
-            ++avatarItr;
-        }
-    }
-    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
@@ -517,10 +486,6 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
-    {
-        std::unique_lock<std::mutex> lock(_spaceLock);
-        _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
-    }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
     avatar->tearDownGrabs();
 
@@ -534,6 +499,15 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     avatar->setIsFading(false);
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+
+        workload::Transaction workloadTransaction;
+        workloadTransaction.remove(avatar->getSpaceIndex());
+        _space->enqueueTransaction(workloadTransaction);
+
+        const render::ScenePointer& scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        avatar->removeFromScene(avatar, scene, transaction);
+        scene->enqueueTransaction(transaction);
     } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
@@ -542,13 +516,20 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         auto scene = qApp->getMain3DScene();
         avatar->fadeOut(transaction, removalReason);
 
-        transaction.transitionFinishedOperator(avatar->getRenderItemID(), [avatar]() {
+        workload::SpacePointer space = _space;
+        transaction.transitionFinishedOperator(avatar->getRenderItemID(), [space, avatar]() {
             avatar->setIsFading(false);
+            const render::ScenePointer& scene = qApp->getMain3DScene();
+            render::Transaction transaction;
+            avatar->removeFromScene(avatar, scene, transaction);
+            scene->enqueueTransaction(transaction);
+
+            workload::Transaction workloadTransaction;
+            workloadTransaction.remove(avatar->getSpaceIndex());
+            space->enqueueTransaction(workloadTransaction);
         });
         scene->enqueueTransaction(transaction);
     }
-
-    _avatarsToFadeOut.push_back(removedAvatar);
 }
 
 void AvatarManager::clearOtherAvatars() {

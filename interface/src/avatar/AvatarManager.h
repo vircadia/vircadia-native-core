@@ -222,8 +222,6 @@ private:
 
     AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID) override;
 
-    void removeFadedAvatars();
-
     // called only from the AvatarHashMap thread - cannot be called while this thread holds the
     // hash lock, since handleRemovedAvatar needs a write lock on the entity tree and the entity tree
     // frequently grabs a read lock on the hash to get a given avatar by ID
@@ -231,7 +229,6 @@ private:
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
     void handleTransitAnimations(AvatarTransit::Status status);
 
-    std::vector<AvatarSharedPointer> _avatarsToFadeOut;
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;
 
@@ -251,7 +248,6 @@ private:
 
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;
-    std::vector<int32_t> _spaceProxiesToDelete;
 
     AvatarTransit::TransitConfig  _transitConfig;
 };

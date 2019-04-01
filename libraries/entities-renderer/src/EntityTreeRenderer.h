@@ -259,8 +259,6 @@ private:
     std::unordered_map<EntityItemID, EntityRendererPointer> _entitiesInScene;
     std::unordered_map<EntityItemID, EntityItemWeakPointer> _entitiesToAdd;
 
-    std::mutex _entitiesToFadeLock;
-    std::vector<EntityRendererPointer> _entityRenderablesToFadeOut;
     // For Scene.shouldRenderEntities
     QList<EntityItemID> _entityIDsLastInScene;
 
