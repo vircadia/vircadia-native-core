@@ -588,7 +588,7 @@ void CubeMap::convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProc
     params.points.reserve(MAX_SAMPLE_COUNT);
 
     for (gpu::uint16 mipLevel = 0; mipLevel < mipCount; ++mipLevel) {
-        // This is the inverse code found in fragment.glsl in evaluateAmbientLighting
+        // This is the inverse code found in LightAmbient.slh in getMipLevelFromRoughness
         float levelAlpha = float(mipLevel) / (mipCount - ROUGHNESS_1_MIP_RESOLUTION);
         float mipRoughness = levelAlpha * (1.0f + 2.0f * levelAlpha) / 3.0f;
 
@@ -599,7 +599,7 @@ void CubeMap::convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProc
         size_t sampleCount = 1U + size_t(4000 * mipRoughness * mipRoughness);
 
         sampleCount = std::min(sampleCount, 2 * mipTotalPixelCount);
-        sampleCount = std::min(MAX_SAMPLE_COUNT, 4 * mipTotalPixelCount);
+        sampleCount = std::min(MAX_SAMPLE_COUNT, sampleCount);
 
         params.points.resize(sampleCount);
         generateGGXSamples(params, mipRoughness, _width);
