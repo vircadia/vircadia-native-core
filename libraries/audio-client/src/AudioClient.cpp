@@ -1397,7 +1397,6 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     // spatialize into mixBuffer
                     injector->getLocalFOA().render(_localScratchBuffer, mixBuffer, HRTF_DATASET_INDEX,
                                                    qw, qx, qy, qz, gain, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
-
                 } else if (options.stereo) {
 
                     if (options.positionSet) {
@@ -1409,11 +1408,8 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     }
 
                     // direct mix into mixBuffer
-                    for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                        mixBuffer[2*i+0] += convertToFloat(_localScratchBuffer[2*i+0]) * gain;
-                        mixBuffer[2*i+1] += convertToFloat(_localScratchBuffer[2*i+1]) * gain;
-                    }
-
+                    injector->getLocalHRTF().mixStereo(_localScratchBuffer, mixBuffer, gain,
+                                                       AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                 } else {    // injector is mono
 
                     if (options.positionSet) {
@@ -1431,11 +1427,8 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
                     } else {
 
                         // direct mix into mixBuffer
-                        for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL; i++) {
-                            float sample = convertToFloat(_localScratchBuffer[i]) * gain;
-                            mixBuffer[2*i+0] += sample;
-                            mixBuffer[2*i+1] += sample;
-                        }
+                        injector->getLocalHRTF().mixMono(_localScratchBuffer, mixBuffer, gain,
+                                                         AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
                     }
                 }
 
