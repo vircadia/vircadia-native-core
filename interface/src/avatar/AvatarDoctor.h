@@ -40,6 +40,8 @@ signals:
 private:
     void diagnoseTextures();
 
+    void addError(const QString& errorMessage, const QString& docFragment);
+
     QUrl _avatarFSTFileUrl;
     QVector<AvatarDiagnosticResult> _errors;
 

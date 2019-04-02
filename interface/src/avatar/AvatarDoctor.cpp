@@ -55,7 +55,7 @@ static QStringList HAND_MAPPING_SUFFIXES = {
     "HandThumb1",
 };
 
-const QUrl DEFAULT_DOCS_URL = QUrl("https://docs.highfidelity.com/create/avatars/create-avatars.html#create-your-own-avatar");
+const QUrl PACKAGE_AVATAR_DOCS_BASE_URL = QUrl("https://docs.highfidelity.com/create/avatars/package-avatar.html");
 
 AvatarDoctor::AvatarDoctor(const QUrl& avatarFSTFileUrl) :
     _avatarFSTFileUrl(avatarFSTFileUrl) {
@@ -85,53 +85,53 @@ void AvatarDoctor::startDiagnosing() {
     const auto resourceLoaded = [this, resource](bool success) {
         // MODEL
         if (!success) {
-            _errors.push_back({ "Model file cannot be opened.", DEFAULT_DOCS_URL });
+            addError("Model file cannot be opened.", "missing-file");
             emit complete(getErrors());
             return;
         }
         _model = resource;
         const auto model = resource.data();
         const auto avatarModel = resource.data()->getHFMModel();
-        if (!avatarModel.originalURL.endsWith(".fbx")) {
-            _errors.push_back({ "Unsupported avatar model format.", DEFAULT_DOCS_URL });
+        if (!avatarModel.originalURL.toLower().endsWith(".fbx")) {
+            addError("Unsupported avatar model format.", "unsupported-format");
             emit complete(getErrors());
             return;
         }
 
         // RIG
         if (avatarModel.joints.isEmpty()) {
-            _errors.push_back({ "Avatar has no rig.", DEFAULT_DOCS_URL });
+            addError("Avatar has no rig.", "no-rig");
         } else {
             auto jointNames = avatarModel.getJointNames();
 
             if (avatarModel.joints.length() > NETWORKED_JOINTS_LIMIT) {
-                _errors.push_back({tr( "Avatar has over %n bones.", "", NETWORKED_JOINTS_LIMIT), DEFAULT_DOCS_URL });
+                addError(tr( "Avatar has over %n bones.", "", NETWORKED_JOINTS_LIMIT), "maximum-bone-limit");
             }
             // Avatar does not have Hips bone mapped	
             if (!jointNames.contains("Hips")) {
-                _errors.push_back({ "Hips are not mapped.", DEFAULT_DOCS_URL });
+                addError("Hips are not mapped.", "hips-not-mapped");
             }
             if (!jointNames.contains("Spine")) {
-                _errors.push_back({ "Spine is not mapped.", DEFAULT_DOCS_URL });
+                addError("Spine is not mapped.", "spine-not-mapped");
             }
             if (!jointNames.contains("Spine1")) {
-                _errors.push_back({ "Chest (Spine1) is not mapped.", DEFAULT_DOCS_URL });
+                addError("Chest (Spine1) is not mapped.", "chest-not-mapped");
             }
             if (!jointNames.contains("Neck")) {
-                _errors.push_back({ "Neck is not mapped.", DEFAULT_DOCS_URL });
+                addError("Neck is not mapped.", "neck-not-mapped");
             }
             if (!jointNames.contains("Head")) {
-                _errors.push_back({ "Head is not mapped.", DEFAULT_DOCS_URL });
+                addError("Head is not mapped.", "head-not-mapped");
             }
 
             if (!jointNames.contains("LeftEye")) {
                 if (jointNames.contains("RightEye")) {
-                    _errors.push_back({ "LeftEye is not mapped.", DEFAULT_DOCS_URL });
+                    addError("LeftEye is not mapped.", "eye-not-mapped");
                 } else {
-                    _errors.push_back({ "Eyes are not mapped.", DEFAULT_DOCS_URL });
+                addError("Eyes are not mapped.", "eye-not-mapped");
                 }
             } else if (!jointNames.contains("RightEye")) {
-                _errors.push_back({ "RightEye is not mapped.", DEFAULT_DOCS_URL });
+                addError("RightEye is not mapped.", "eye-not-mapped");
             }
 
             const auto checkJointAsymmetry = [jointNames] (const QStringList& jointMappingSuffixes) {
@@ -159,13 +159,13 @@ void AvatarDoctor::startDiagnosing() {
             };
 
             if (checkJointAsymmetry(ARM_MAPPING_SUFFIXES)) {
-                _errors.push_back({ "Asymmetrical arm bones.", DEFAULT_DOCS_URL });
+                addError("Asymmetrical arm bones.", "asymmetrical-bones");
             }
             if (checkJointAsymmetry(HAND_MAPPING_SUFFIXES)) {
-                _errors.push_back({ "Asymmetrical hand bones.", DEFAULT_DOCS_URL });
+                addError("Asymmetrical hand bones.", "asymmetrical-bones");
             }
             if (checkJointAsymmetry(LEG_MAPPING_SUFFIXES)) {
-                _errors.push_back({ "Asymmetrical leg bones.", DEFAULT_DOCS_URL });
+                addError("Asymmetrical leg bones.", "asymmetrical-bones");
             }
 
             // Multiple skeleton root joints checkup
@@ -177,7 +177,7 @@ void AvatarDoctor::startDiagnosing() {
             }
 
             if (skeletonRootJoints > 1) {
-                _errors.push_back({ "Multiple top-level joints found.", DEFAULT_DOCS_URL });
+                addError("Multiple top-level joints found.", "multiple-top-level-joints");
             }
 
             Rig rig;
@@ -191,9 +191,9 @@ void AvatarDoctor::startDiagnosing() {
             const float RECOMMENDED_MAX_HEIGHT = DEFAULT_AVATAR_HEIGHT * 1.5f;
 
             if (avatarHeight < RECOMMENDED_MIN_HEIGHT) {
-                _errors.push_back({ "Avatar is possibly too short.", DEFAULT_DOCS_URL });
+                addError("Avatar is possibly too short.", "short-avatar");
             } else if (avatarHeight > RECOMMENDED_MAX_HEIGHT) {
-                _errors.push_back({ "Avatar is possibly too tall.", DEFAULT_DOCS_URL });
+                addError("Avatar is possibly too tall.", "tall-avatar");
             }
 
             // HipsNotOnGround
@@ -204,7 +204,7 @@ void AvatarDoctor::startDiagnosing() {
                     const auto hipJoint = avatarModel.joints.at(avatarModel.getJointIndex("Hips"));
 
                     if (hipsPosition.y < HIPS_GROUND_MIN_Y) {
-                        _errors.push_back({ "Hips are on ground.", DEFAULT_DOCS_URL });
+                        addError("Hips are on ground.", "hips-on-ground");
                     }
                 }
             }
@@ -223,7 +223,7 @@ void AvatarDoctor::startDiagnosing() {
                     const auto hipsToSpine = glm::length(hipsPosition - spinePosition);
                     const auto spineToChest = glm::length(spinePosition - chestPosition);
                     if (hipsToSpine < HIPS_SPINE_CHEST_MIN_SEPARATION && spineToChest < HIPS_SPINE_CHEST_MIN_SEPARATION) {
-                        _errors.push_back({ "Hips/Spine/Chest overlap.", DEFAULT_DOCS_URL });
+                        addError("Hips/Spine/Chest overlap.", "overlap-error");
                     }
                 }
             }
@@ -240,21 +240,21 @@ void AvatarDoctor::startDiagnosing() {
                 const auto& uniqueJointValues = jointValues.toSet();
                 for (const auto& jointName: uniqueJointValues) {
                     if (jointValues.count(jointName) > 1) {
-                        _errors.push_back({ tr("%1 is mapped multiple times.").arg(jointName), DEFAULT_DOCS_URL });
+                        addError(tr("%1 is mapped multiple times.").arg(jointName), "mapped-multiple-times");
                     }
                 }
             }
 
             if (!isDescendantOfJointWhenJointsExist("Spine", "Hips")) {
-                _errors.push_back({ "Spine is not a child of Hips.", DEFAULT_DOCS_URL });
+                addError("Spine is not a child of Hips.", "spine-not-child");
             }
 
             if (!isDescendantOfJointWhenJointsExist("Spine1", "Spine")) {
-                _errors.push_back({ "Spine1 is not a child of Spine.", DEFAULT_DOCS_URL });
+                addError("Spine1 is not a child of Spine.", "spine1-not-child");
             }
 
             if (!isDescendantOfJointWhenJointsExist("Head", "Spine1")) {
-                _errors.push_back({ "Head is not a child of Spine1.", DEFAULT_DOCS_URL });
+                addError("Head is not a child of Spine1.", "head-not-child");
             }
         }
 
@@ -300,7 +300,7 @@ void AvatarDoctor::startDiagnosing() {
             connect(resource.data(), &GeometryResource::finished, this, resourceLoaded);
         }
     } else {
-        _errors.push_back({ "Model file cannot be opened", DEFAULT_DOCS_URL });
+        addError("Model file cannot be opened", "missing-file");
         emit complete(getErrors());
     }    
 }
@@ -345,7 +345,7 @@ void AvatarDoctor::diagnoseTextures() {
         QUrl(avatarModel.originalURL)).resolved(QUrl("textures"));
 
     if (texturesFound == 0) {
-        _errors.push_back({ tr("No textures assigned."), DEFAULT_DOCS_URL });
+        addError(tr("No textures assigned."), "no-textures-assigned");
     }
 
     if (!externalTextures.empty()) {
@@ -356,11 +356,10 @@ void AvatarDoctor::diagnoseTextures() {
         auto checkTextureLoadingComplete = [this]() mutable {
             if (_checkedTextureCount == _externalTextureCount) {
                 if (_missingTextureCount > 0) {
-                    _errors.push_back({ tr("Missing %n texture(s).","", _missingTextureCount), DEFAULT_DOCS_URL });
+                    addError(tr("Missing %n texture(s).","", _missingTextureCount), "missing-textures");
                 }
                 if (_unsupportedTextureCount > 0) {
-                    _errors.push_back({ tr("%n unsupported texture(s) found.", "", _unsupportedTextureCount),
-                        DEFAULT_DOCS_URL });
+                    addError(tr("%n unsupported texture(s) found.", "", _unsupportedTextureCount), "unsupported-textures");
                 }
 
                 emit complete(getErrors());
@@ -409,6 +408,12 @@ void AvatarDoctor::diagnoseTextures() {
     } else {
         emit complete(getErrors());
     }
+}
+
+void AvatarDoctor::addError(const QString& errorMessage, const QString& docFragment) {
+    QUrl documentationURL = PACKAGE_AVATAR_DOCS_BASE_URL;
+    documentationURL.setFragment(docFragment);
+    _errors.push_back({ errorMessage, documentationURL });
 }
 
 QVariantList AvatarDoctor::getErrors() const {

@@ -35,6 +35,7 @@ StackView {
     property int cardWidth: 212;
     property int cardHeight: 152;
     property var tablet: null;
+    property bool has3DHTML: PlatformInfo.has3DHTML();
 
     RootHttpRequest { id: http; }
     signal sendToScript(var message);
@@ -75,8 +76,10 @@ StackView {
     }
     function goCard(targetString, standaloneOptimized) {
         if (0 !== targetString.indexOf('hifi://')) {
-            var card = tabletWebView.createObject();
-            card.url = addressBarDialog.metaverseServerUrl + targetString;
+            if(has3DHTML) {
+                var card = tabletWebView.createObject();
+                card.url = addressBarDialog.metaverseServerUrl + targetString;
+            }
             card.parentStackItem = root;
             root.push(card);
             return;

@@ -98,7 +98,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Draw opaques forward
     const auto opaqueInputs = DrawForward::Inputs(opaques, lightingModel).asVarying();
-    task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber);
+    task.addJob<DrawForward>("DrawOpaques", opaqueInputs, shapePlumber, true);
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     const auto backgroundInputs = DrawBackgroundStage::Inputs(lightingModel, backgroundFrame).asVarying();
@@ -106,7 +106,7 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
 
     // Draw transparent objects forward
     const auto transparentInputs = DrawForward::Inputs(transparents, lightingModel).asVarying();
-    task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber);
+    task.addJob<DrawForward>("DrawTransparents", transparentInputs, shapePlumber, false);
 
      // Layered
     const auto nullJitter = Varying(glm::vec2(0.0f, 0.0f));
@@ -261,7 +261,11 @@ void DrawForward::run(const RenderContextPointer& renderContext, const Inputs& i
         args->_globalShapeKey = globalKey._flags.to_ulong();
 
         // Render items
-        renderStateSortShapes(renderContext, _shapePlumber, inItems, -1, globalKey);
+        if (_opaquePass) {
+            renderStateSortShapes(renderContext, _shapePlumber, inItems, -1, globalKey);
+        } else {
+            renderShapes(renderContext, _shapePlumber, inItems, -1, globalKey);
+        }
 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;

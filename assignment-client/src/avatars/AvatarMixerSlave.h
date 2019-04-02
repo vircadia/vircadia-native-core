@@ -110,7 +110,8 @@ public:
     void configure(ConstIter begin, ConstIter end);
     void configureBroadcast(ConstIter begin, ConstIter end, 
                     p_high_resolution_clock::time_point lastFrameTimestamp, 
-                    float maxKbpsPerNode, float throttlingRatio);
+                    float maxKbpsPerNode, float throttlingRatio,
+                    float priorityReservedFraction);
 
     void processIncomingPackets(const SharedNodePointer& node);
     void broadcastAvatarData(const SharedNodePointer& node);
@@ -140,6 +141,7 @@ private:
     p_high_resolution_clock::time_point _lastFrameTimestamp;
     float _maxKbpsPerNode { 0.0f };
     float _throttlingRatio { 0.0f };
+    float _avatarHeroFraction { 0.4f };
 
     AvatarMixerSlaveStats _stats;
     SlaveSharedData* _sharedData;

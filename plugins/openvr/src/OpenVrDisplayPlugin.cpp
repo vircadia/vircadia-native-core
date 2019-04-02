@@ -511,13 +511,13 @@ void OpenVrDisplayPlugin::customizeContext() {
     Parent::customizeContext();
 
     if (_threadedSubmit) {
-        _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
+//        _compositeInfos[0].texture = _compositeFramebuffer->getRenderBuffer(0);
         for (size_t i = 0; i < COMPOSITING_BUFFER_SIZE; ++i) {
-            if (0 != i) {
+//            if (0 != i) {
                 _compositeInfos[i].texture = gpu::Texture::createRenderBuffer(gpu::Element::COLOR_RGBA_32, _renderTargetSize.x,
                                                                               _renderTargetSize.y, gpu::Texture::SINGLE_MIP,
                                                                               gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT));
-            }
+//            }
             _compositeInfos[i].textureID = getGLBackend()->getTextureID(_compositeInfos[i].texture);
         }
         _submitThread->_canvas = _submitCanvas;
@@ -613,17 +613,17 @@ bool OpenVrDisplayPlugin::beginFrameRender(uint32_t frameIndex) {
     return Parent::beginFrameRender(frameIndex);
 }
 
-void OpenVrDisplayPlugin::compositeLayers() {
+void OpenVrDisplayPlugin::compositeLayers(const gpu::FramebufferPointer& compositeFramebuffer) {
     if (_threadedSubmit) {
         ++_renderingIndex;
         _renderingIndex %= COMPOSITING_BUFFER_SIZE;
 
         auto& newComposite = _compositeInfos[_renderingIndex];
         newComposite.pose = _currentPresentFrameInfo.presentPose;
-        _compositeFramebuffer->setRenderBuffer(0, newComposite.texture);
+        compositeFramebuffer->setRenderBuffer(0, newComposite.texture);
     }
 
-    Parent::compositeLayers();
+    Parent::compositeLayers(compositeFramebuffer);
 
     if (_threadedSubmit) {
         auto& newComposite = _compositeInfos[_renderingIndex];
@@ -645,13 +645,13 @@ void OpenVrDisplayPlugin::compositeLayers() {
     }
 }
 
-void OpenVrDisplayPlugin::hmdPresent() {
+void OpenVrDisplayPlugin::hmdPresent(const gpu::FramebufferPointer& compositeFramebuffer) {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)_currentFrame->frameIndex)
 
     if (_threadedSubmit) {
         _submitThread->waitForPresent();
     } else {
-        GLuint glTexId = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
+        GLuint glTexId = getGLBackend()->getTextureID(compositeFramebuffer->getRenderBuffer(0));
         vr::Texture_t vrTexture{ (void*)(uintptr_t)glTexId, vr::TextureType_OpenGL, vr::ColorSpace_Auto };
         vr::VRCompositor()->Submit(vr::Eye_Left, &vrTexture, &OPENVR_TEXTURE_BOUNDS_LEFT);
         vr::VRCompositor()->Submit(vr::Eye_Right, &vrTexture, &OPENVR_TEXTURE_BOUNDS_RIGHT);

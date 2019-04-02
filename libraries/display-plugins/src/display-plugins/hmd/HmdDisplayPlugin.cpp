@@ -114,20 +114,23 @@ void HmdDisplayPlugin::internalDeactivate() {
 
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();
-    _hudRenderer.build();
+    _hudOperator = _hudRenderer.build();
 }
 
 void HmdDisplayPlugin::uncustomizeContext() {
     // This stops the weirdness where if the preview was disabled, on switching back to 2D,
     // the vsync was stuck in the disabled state.  No idea why that happens though.
     _disablePreview = false;
-    render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.resetViewTransform();
-        batch.setFramebuffer(_compositeFramebuffer);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-    });
-    _hudRenderer = HUDRenderer();
+    if (_currentFrame && _currentFrame->framebuffer) {
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.resetViewTransform();
+            batch.setFramebuffer(_currentFrame->framebuffer);
+            batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+        });
+
+    }
+    _hudRenderer = {};
     _previewTexture.reset();
     Parent::uncustomizeContext();
 }
@@ -174,11 +177,11 @@ float HmdDisplayPlugin::getLeftCenterPixel() const {
     return leftCenterPixel;
 }
 
-void HmdDisplayPlugin::internalPresent() {
+void HmdDisplayPlugin::internalPresent(const gpu::FramebufferPointer& compositeFramebuffer) {
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff00ff00, (uint64_t)presentCount())
 
     // Composite together the scene, hud and mouse cursor
-    hmdPresent();
+    hmdPresent(compositeFramebuffer);
 
     if (_displayTexture) {
         // Note: _displayTexture must currently be the same size as the display.
@@ -260,7 +263,7 @@ void HmdDisplayPlugin::internalPresent() {
 
                 viewport.z *= 2;
             }
-            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
+            renderFromTexture(batch, compositeFramebuffer->getRenderBuffer(0), viewport, scissor, nullptr, fbo);
         });
         swapBuffers();
 
@@ -345,7 +348,7 @@ glm::mat4 HmdDisplayPlugin::getViewCorrection() {
     }
 }
 
-void HmdDisplayPlugin::HUDRenderer::build() {
+DisplayPlugin::HUDOperator HmdDisplayPlugin::HUDRenderer::build() {
     vertices = std::make_shared<gpu::Buffer>();
     indices = std::make_shared<gpu::Buffer>();
 
@@ -380,7 +383,7 @@ void HmdDisplayPlugin::HUDRenderer::build() {
     indexCount = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
 
     // Compute indices order
-    std::vector<GLushort> indices;
+    std::vector<GLushort> indexData;
     for (int i = 0; i < stacks - 1; i++) {
         for (int j = 0; j < slices - 1; j++) {
             GLushort bottomLeftIndex = i * slices + j;
@@ -388,24 +391,21 @@ void HmdDisplayPlugin::HUDRenderer::build() {
             GLushort topLeftIndex = bottomLeftIndex + slices;
             GLushort topRightIndex = topLeftIndex + 1;
             // FIXME make a z-order curve for better vertex cache locality
-            indices.push_back(topLeftIndex);
-            indices.push_back(bottomLeftIndex);
-            indices.push_back(topRightIndex);
+            indexData.push_back(topLeftIndex);
+            indexData.push_back(bottomLeftIndex);
+            indexData.push_back(topRightIndex);
 
-            indices.push_back(topRightIndex);
-            indices.push_back(bottomLeftIndex);
-            indices.push_back(bottomRightIndex);
+            indexData.push_back(topRightIndex);
+            indexData.push_back(bottomLeftIndex);
+            indexData.push_back(bottomRightIndex);
         }
     }
-    this->indices->append(indices);
+    indices->append(indexData);
     format = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
     format->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     format->setAttribute(gpu::Stream::TEXCOORD, gpu::Stream::TEXCOORD, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
     uniformsBuffer = std::make_shared<gpu::Buffer>(sizeof(Uniforms), nullptr);
-    updatePipeline();
-}
 
-void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
     if (!pipeline) {
         auto program = gpu::Shader::createProgram(shader::render_utils::program::hmd_ui);
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -416,10 +416,6 @@ void HmdDisplayPlugin::HUDRenderer::updatePipeline() {
 
         pipeline = gpu::Pipeline::create(program, state);
     }
-}
-
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::HUDRenderer::render(HmdDisplayPlugin& plugin) {
-    updatePipeline();
 
     auto hudPipeline = pipeline;
     auto hudFormat = format;
@@ -428,9 +424,9 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
     auto hudUniformBuffer = uniformsBuffer;
     auto hudUniforms = uniforms;
     auto hudIndexCount = indexCount;
-    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, bool mirror) {
-        if (hudPipeline && hudTexture) {
-            batch.setPipeline(hudPipeline);
+    return [=](gpu::Batch& batch, const gpu::TexturePointer& hudTexture, const gpu::FramebufferPointer&, const bool mirror) {
+        if (pipeline && hudTexture) {
+            batch.setPipeline(pipeline);
 
             batch.setInputFormat(hudFormat);
             gpu::BufferView posView(hudVertices, VERTEX_OFFSET, hudVertices->getSize(), VERTEX_STRIDE, hudFormat->getAttributes().at(gpu::Stream::POSITION)._element);
@@ -454,7 +450,7 @@ std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDis
     };
 }
 
-void HmdDisplayPlugin::compositePointer() {
+void HmdDisplayPlugin::compositePointer(const gpu::FramebufferPointer& compositeFramebuffer) {
     auto& cursorManager = Cursor::Manager::instance();
     const auto& cursorData = _cursorsData[cursorManager.getCursor()->getIcon()];
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
@@ -463,7 +459,7 @@ void HmdDisplayPlugin::compositePointer() {
     render([&](gpu::Batch& batch) {
         // FIXME use standard gpu stereo rendering for this.
         batch.enableStereo(false);
-        batch.setFramebuffer(_compositeFramebuffer);
+        batch.setFramebuffer(compositeFramebuffer);
         batch.setPipeline(_cursorPipeline);
         batch.setResourceTexture(0, cursorData.texture);
         batch.resetViewTransform();
@@ -476,10 +472,6 @@ void HmdDisplayPlugin::compositePointer() {
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         });
     });
-}
-
-std::function<void(gpu::Batch&, const gpu::TexturePointer&, bool mirror)> HmdDisplayPlugin::getHUDOperator() {
-    return _hudRenderer.render(*this);
 }
 
 HmdDisplayPlugin::~HmdDisplayPlugin() {

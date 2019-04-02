@@ -12,11 +12,13 @@
 #include <hfm/HFM.h>
 #include "Engine.h"
 
+#include <shared/HifiTypes.h>
+
 #include "BakerTypes.h"
 
 class ParseFlowDataTask {
 public:
-    using Input = baker::GeometryMappingPair;
+    using Input = hifi::VariantHash;
     using Output = FlowData;
     using JobModel = baker::Job::ModelIO<ParseFlowDataTask, Input, Output>;
 

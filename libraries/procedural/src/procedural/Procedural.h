@@ -82,10 +82,11 @@ public:
 
     bool isReady() const;
     bool isEnabled() const { return _enabled; }
-    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation, const ProceduralProgramKey key = ProceduralProgramKey());
+    void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size, const glm::quat& orientation,
+                 const uint64_t& created, const ProceduralProgramKey key = ProceduralProgramKey());
 
     glm::vec4 getColor(const glm::vec4& entityColor) const;
-    quint64 getFadeStartTime() const { return _fadeStartTime; }
+    uint64_t getFadeStartTime() const { return _fadeStartTime; }
     bool isFading() const { return _doesFade && _isFading; }
     void setIsFading(bool isFading) { _isFading = isFading; }
     void setDoesFade(bool doesFade) { _doesFade = doesFade; }
@@ -106,9 +107,10 @@ protected:
         vec4 date;
         vec4 position; 
         vec4 scale;
-        float time;
+        float timeSinceLastCompile;
+        float timeSinceFirstCompile;
+        float timeSinceEntityCreation;
         int frameCount;
-        vec2 _spare1;
         vec4 resolution[4];
         mat4 orientation;
     };
@@ -116,9 +118,10 @@ protected:
     static_assert(0 == offsetof(StandardInputs, date), "ProceduralOffsets");
     static_assert(16 == offsetof(StandardInputs, position), "ProceduralOffsets");
     static_assert(32 == offsetof(StandardInputs, scale), "ProceduralOffsets");
-    static_assert(48 == offsetof(StandardInputs, time), "ProceduralOffsets");
-    static_assert(52 == offsetof(StandardInputs, frameCount), "ProceduralOffsets");
-    static_assert(56 == offsetof(StandardInputs, _spare1), "ProceduralOffsets");
+    static_assert(48 == offsetof(StandardInputs, timeSinceLastCompile), "ProceduralOffsets");
+    static_assert(52 == offsetof(StandardInputs, timeSinceFirstCompile), "ProceduralOffsets");
+    static_assert(56 == offsetof(StandardInputs, timeSinceEntityCreation), "ProceduralOffsets");
+    static_assert(60 == offsetof(StandardInputs, frameCount), "ProceduralOffsets");
     static_assert(64 == offsetof(StandardInputs, resolution), "ProceduralOffsets");
     static_assert(128 == offsetof(StandardInputs, orientation), "ProceduralOffsets");
 
@@ -126,13 +129,14 @@ protected:
     ProceduralData _data;
 
     bool _enabled { false };
-    uint64_t _start { 0 };
+    uint64_t _lastCompile { 0 };
+    uint64_t _firstCompile { 0 };
     int32_t _frameCount { 0 };
 
     // Rendering object descriptions, from userData
     QString _shaderSource;
     QString _shaderPath;
-    quint64 _shaderModified { 0 };
+    uint64_t _shaderModified { 0 };
     NetworkShaderPointer _networkShader;
     bool _shaderDirty { true };
     bool _uniformsDirty { true };
@@ -152,11 +156,12 @@ protected:
     glm::vec3 _entityDimensions;
     glm::vec3 _entityPosition;
     glm::mat3 _entityOrientation;
+    uint64_t _entityCreated;
 
 private:
     void setupUniforms();
 
-    mutable quint64 _fadeStartTime { 0 };
+    mutable uint64_t _fadeStartTime { 0 };
     mutable bool _hasStartedFade { false };
     mutable bool _isFading { false };
     bool _doesFade { true };

@@ -61,7 +61,7 @@ QPixmap MismatchWindow::computeDiffPixmap(const QImage& expectedImage, const QIm
 }
 
 void MismatchWindow::setTestResult(const TestResult& testResult) {
-    errorLabel->setText("Similarity: " + QString::number(testResult._error));
+    errorLabel->setText("Similarity: " + QString::number(testResult._errorGlobal) + "  (worst tile: " + QString::number(testResult._errorLocal) + ")");
 
     imagePath->setText("Path to test: " + testResult._pathname);
 

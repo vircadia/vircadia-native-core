@@ -1,7 +1,7 @@
 macro(TARGET_PYTHON)
     if (NOT HIFI_PYTHON_EXEC)
         # Find the python interpreter
-        if (CAME_VERSION VERSION_LESS 3.12)
+        if (CMAKE_VERSION VERSION_LESS 3.12)
             # this logic is deprecated in CMake after 3.12
             # FIXME eventually we should make 3.12 the min cmake verion and just use the Python3 find_package path
             set(Python_ADDITIONAL_VERSIONS 3)

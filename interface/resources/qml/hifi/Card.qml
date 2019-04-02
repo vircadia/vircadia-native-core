@@ -40,6 +40,7 @@ Item {
     property bool isConcurrency: action === 'concurrency';
     property bool isAnnouncement: action === 'announcement';
     property bool isStacked: !isConcurrency && drillDownToPlace;
+    property bool has3DHTML: PlatformInfo.has3DHTML();
 
 
     property int textPadding: 10;
@@ -298,7 +299,7 @@ Item {
 
     StateImage {
         id: actionIcon;
-        visible: !isAnnouncement;
+        visible: !isAnnouncement && has3DHTML;
         imageURL: "../../images/info-icon-2-state.svg";
         size: 30;
         buttonState: messageArea.containsMouse ? 1 : 0;
@@ -315,7 +316,7 @@ Item {
     }
     MouseArea {
         id: messageArea;
-        visible: !isAnnouncement;
+        visible: !isAnnouncement && has3DHTML;
         width: parent.width;
         height: messageHeight;
         anchors.top: lobby.bottom;

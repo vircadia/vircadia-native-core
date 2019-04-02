@@ -1069,13 +1069,14 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
 }
 
 /**jsdoc
+ * Details of a collision between avatars and entities.
  * @typedef {object} Collision
  * @property {ContactEventType} type - The contact type of the collision event.
- * @property {Uuid} idA - The ID of one of the entities in the collision.
- * @property {Uuid} idB - The ID of the other of the entities in the collision.
- * @property {Vec3} penetration - The amount of penetration between the two entities.
+ * @property {Uuid} idA - The ID of one of the avatars or entities in the collision.
+ * @property {Uuid} idB - The ID of the other of the avatars or entities in the collision.
+ * @property {Vec3} penetration - The amount of penetration between the two items.
  * @property {Vec3} contactPoint - The point of contact.
- * @property {Vec3} velocityChange - The change in relative velocity of the two entities, in m/s.
+ * @property {Vec3} velocityChange - The change in relative velocity of the two items, in m/s.
  */
 QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
@@ -1147,19 +1148,21 @@ AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float prio
 }
 
 /**jsdoc
+ * The details of an animation that is playing.
  * @typedef {object} Avatar.AnimationDetails
- * @property {string} role
- * @property {string} url
- * @property {number} fps
- * @property {number} priority
- * @property {boolean} loop
- * @property {boolean} hold
- * @property {boolean} startAutomatically
- * @property {number} firstFrame
- * @property {number} lastFrame
- * @property {boolean} running
- * @property {number} currentFrame
- * @property {boolean} allowTranslation
+ * @property {string} role - <em>Not used.</em>
+ * @property {string} url - The URL to the animation file. Animation files need to be in .FBX format but only need to contain
+*     the avatar skeleton and animation data.
+ * @property {number} fps - The frames per second(FPS) rate for the animation playback. 30 FPS is normal speed.
+ * @property {number} priority - <em>Not used.</em>
+ * @property {boolean} loop - <code>true</code> if the animation should loop, <code>false</code> if it shouldn't.
+ * @property {boolean} hold - <em>Not used.</em>
+ * @property {number} firstFrame - The frame the animation should start at.
+ * @property {number} lastFrame - The frame the animation should stop at.
+ * @property {boolean} running - <em>Not used.</em>
+ * @property {number} currentFrame - The current frame being played.
+ * @property {boolean} startAutomatically - <em>Not used.</em>
+ * @property {boolean} allowTranslation - <em>Not used.</em>
  */
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& details) {
     QScriptValue obj = engine->newObject();

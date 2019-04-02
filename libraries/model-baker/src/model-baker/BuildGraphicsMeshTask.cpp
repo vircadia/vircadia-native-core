@@ -15,6 +15,7 @@
 
 #include <LogHandler.h>
 #include "ModelBakerLogging.h"
+#include "ModelMath.h"
 
 using vec2h = glm::tvec2<glm::detail::hdata>;
 
@@ -385,7 +386,7 @@ void BuildGraphicsMeshTask::run(const baker::BakeContextPointer& context, const 
         auto& graphicsMesh = graphicsMeshes[i];
         
         // Try to create the graphics::Mesh
-        buildGraphicsMesh(meshes[i], graphicsMesh, normalsPerMesh[i], tangentsPerMesh[i]);
+        buildGraphicsMesh(meshes[i], graphicsMesh, baker::safeGet(normalsPerMesh, i), baker::safeGet(tangentsPerMesh, i));
 
         // Choose a name for the mesh
         if (graphicsMesh) {

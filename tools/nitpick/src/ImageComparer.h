@@ -18,7 +18,9 @@
 class ImageComparer {
 public:
     void compareImages(const QImage& resultImage, const QImage& expectedImage);
+
     double getSSIMValue();
+    double getWorstTileValue();
 
     SSIMResults getSSIMResults();
 

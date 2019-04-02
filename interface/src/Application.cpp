@@ -338,6 +338,10 @@ Setting::Handle<int> maxOctreePacketsPerSecond{"maxOctreePPS", DEFAULT_MAX_OCTRE
 
 Setting::Handle<bool> loginDialogPoppedUp{"loginDialogPoppedUp", false};
 
+static const QUrl AVATAR_INPUTS_BAR_QML = PathUtils::qmlUrl("AvatarInputsBar.qml");
+static const QUrl MIC_BAR_APPLICATION_QML = PathUtils::qmlUrl("hifi/audio/MicBarApplication.qml");
+static const QUrl BUBBLE_ICON_QML = PathUtils::qmlUrl("BubbleIcon.qml");
+
 static const QString STANDARD_TO_ACTION_MAPPING_NAME = "Standard to Action";
 static const QString NO_MOVEMENT_MAPPING_NAME = "Standard to Action (No Movement)";
 static const QString NO_MOVEMENT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_nomovement.json";
@@ -1206,10 +1210,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(&domainHandler, SIGNAL(connectedToDomain(QUrl)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::disconnectedFromDomain, this, [this]() {
-        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-        if (tabletScriptingInterface) {
-            tabletScriptingInterface->setQmlTabletRoot(SYSTEM_TABLET, nullptr);
-        }
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         entityScriptingInterface->deleteEntity(getTabletScreenID());
         entityScriptingInterface->deleteEntity(getTabletHomeButtonID());
@@ -1985,6 +1985,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return nullptr;
     });
 
+    EntityTree::setEmitScriptEventOperator([this](const QUuid& id, const QVariant& message) {
+        auto entities = getEntities();
+        if (auto entity = entities->renderableForEntityId(id)) {
+            entity->emitScriptEvent(message);
+        }
+    });
+
     EntityTree::setTextSizeOperator([this](const QUuid& id, const QString& text) {
         auto entities = getEntities();
         if (auto entity = entities->renderableForEntityId(id)) {
@@ -2342,6 +2349,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return viewFrustum.getPosition();
     });
 
+    DependencyManager::get<UsersScriptingInterface>()->setKickConfirmationOperator([this] (const QUuid& nodeID) { userKickConfirmation(nodeID); });
+
     render::entities::WebEntityRenderer::setAcquireWebSurfaceOperator([this](const QString& url, bool htmlContent, QSharedPointer<OffscreenQmlSurface>& webSurface, bool& cachedWebSurface) {
         bool isTablet = url == TabletScriptingInterface::QML;
         if (htmlContent) {
@@ -2367,7 +2376,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                 });
             });
             auto rootItemLoadedFunctor = [webSurface, url, isTablet] {
-                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == LOGIN_DIALOG.toString());
+                Application::setupQmlSurface(webSurface->getSurfaceContext(), isTablet || url == LOGIN_DIALOG.toString() || url == AVATAR_INPUTS_BAR_QML.toString() ||
+                   url == BUBBLE_ICON_QML.toString());
             };
             if (webSurface->getRootItem()) {
                 rootItemLoadedFunctor();
@@ -2704,9 +2714,7 @@ void Application::cleanupBeforeQuit() {
 
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
-    if (_snapshotSoundInjector != nullptr) {
-        _snapshotSoundInjector->stop();
-    }
+    _snapshotSoundInjector = nullptr;
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
@@ -2875,11 +2883,19 @@ void Application::initializeGL() {
     }
 
 #if !defined(DISABLE_QML)
+    QStringList chromiumFlags;
+    // Bug 21993: disable microphone and camera input 
+    chromiumFlags << "--use-fake-device-for-media-stream";
     // Disable signed distance field font rendering on ATI/AMD GPUs, due to
     // https://highfidelity.manuscript.com/f/cases/13677/Text-showing-up-white-on-Marketplace-app
     std::string vendor{ (const char*)glGetString(GL_VENDOR) };
     if ((vendor.find("AMD") != std::string::npos) || (vendor.find("ATI") != std::string::npos)) {
-        qputenv("QTWEBENGINE_CHROMIUM_FLAGS", QByteArray("--disable-distance-field-text"));
+        chromiumFlags << "--disable-distance-field-text";
+    }
+
+    // Ensure all Qt webengine processes launched from us have the appropriate command line flags
+    if (!chromiumFlags.empty()) {
+        qputenv("QTWEBENGINE_CHROMIUM_FLAGS", chromiumFlags.join(' ').toLocal8Bit());
     }
 #endif
 
@@ -3043,6 +3059,9 @@ void Application::initializeUi() {
         QUrl{ "hifi/commerce/wallet/Wallet.qml" },
         QUrl{ "hifi/commerce/wallet/WalletHome.qml" },
         QUrl{ "hifi/tablet/TabletAddressDialog.qml" },
+        QUrl{ "hifi/Card.qml" },
+        QUrl{ "hifi/Pal.qml" },
+        QUrl{ "hifi/NameCard.qml" },
         }, platformInfoCallback);
 
     QmlContextCallback ttsCallback = [](QQmlContext* context) {
@@ -3285,6 +3304,41 @@ void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
     auto qml = PathUtils::qmlUrl("AvatarInputsBar.qml");
     offscreenUi->show(qml, "AvatarInputsBar");
 #endif
+    _desktopRootItemCreated = true;
+}
+
+void Application::userKickConfirmation(const QUuid& nodeID) {
+    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+    auto avatar = avatarHashMap->getAvatarBySessionID(nodeID);
+
+    QString userName;
+
+    if (avatar) {
+        userName = avatar->getSessionDisplayName();
+    } else {
+        userName = nodeID.toString();
+    }
+
+    QString kickMessage = "Do you wish to kick " + userName + " from your domain";
+    ModalDialogListener* dlg = OffscreenUi::asyncQuestion("Kick User", kickMessage,
+                                                          QMessageBox::Yes | QMessageBox::No);
+
+    if (dlg->getDialogItem()) {
+
+        QObject::connect(dlg, &ModalDialogListener::response, this, [=] (QVariant answer) {
+            QObject::disconnect(dlg, &ModalDialogListener::response, this, nullptr);
+
+            bool yes = (static_cast<QMessageBox::StandardButton>(answer.toInt()) == QMessageBox::Yes);
+            // ask the NodeList to kick the user with the given session ID
+
+            if (yes) {
+                DependencyManager::get<NodeList>()->kickNodeBySessionID(nodeID);
+            }
+
+            DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(false);
+        });
+        DependencyManager::get<UsersScriptingInterface>()->setWaitForKickResponse(true);
+    }
 }
 
 void Application::setupQmlSurface(QQmlContext* surfaceContext, bool setAdditionalContextProperties) {
@@ -4225,10 +4279,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Setting::Handle<bool> notificationSoundSnapshot{ MenuOption::NotificationSoundsSnapshot, true };
                     if (notificationSounds.get() && notificationSoundSnapshot.get()) {
                         if (_snapshotSoundInjector) {
-                            _snapshotSoundInjector->setOptions(options);
-                            _snapshotSoundInjector->restart();
+                            DependencyManager::get<AudioInjectorManager>()->setOptionsAndRestart(_snapshotSoundInjector, options);
                         } else {
-                            _snapshotSoundInjector = AudioInjector::playSound(_snapshotSound, options);
+                            _snapshotSoundInjector = DependencyManager::get<AudioInjectorManager>()->playSound(_snapshotSound, options);
                         }
                     }
                     takeSnapshot(true);
@@ -8930,6 +8983,38 @@ void Application::updateLoginDialogPosition() {
             properties.setRotation(keyboardOrientation);
             entityScriptingInterface->editEntity(DependencyManager::get<Keyboard>()->getAnchorID(), properties);
         }
+    }
+}
+
+void Application::createAvatarInputsBar() {
+    const glm::vec3 LOCAL_POSITION { 0.0, 0.0, -1.0 };
+    // DEFAULT_DPI / tablet scale percentage
+    const float DPI = 31.0f / (75.0f / 100.0f);
+
+    EntityItemProperties properties;
+    properties.setType(EntityTypes::Web);
+    properties.setName("AvatarInputsBarEntity");
+    properties.setSourceUrl(AVATAR_INPUTS_BAR_QML.toString());
+    properties.setParentID(getMyAvatar()->getSelfID());
+    properties.setParentJointIndex(getMyAvatar()->getJointIndex("_CAMERA_MATRIX"));
+    properties.setPosition(LOCAL_POSITION);
+    properties.setLocalRotation(Quaternions::IDENTITY);
+    //properties.setDimensions(LOGIN_DIMENSIONS);
+    properties.setPrimitiveMode(PrimitiveMode::SOLID);
+    properties.getGrab().setGrabbable(false);
+    properties.setIgnorePickIntersection(false);
+    properties.setAlpha(1.0f);
+    properties.setDPI(DPI);
+    properties.setVisible(true);
+
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    _avatarInputsBarID = entityScriptingInterface->addEntityInternal(properties, entity::HostType::LOCAL);
+}
+
+void Application::destroyAvatarInputsBar() {
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    if (!_avatarInputsBarID.isNull()) {
+        entityScriptingInterface->deleteEntity(_avatarInputsBarID);
     }
 }
 

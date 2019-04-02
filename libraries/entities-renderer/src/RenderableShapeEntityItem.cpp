@@ -249,10 +249,14 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     graphics::MultiMaterial materials;
     auto geometryCache = DependencyManager::get<GeometryCache>();
     GeometryCache::Shape geometryShape;
+    PrimitiveMode primitiveMode;
+    RenderLayer renderLayer;
     bool proceduralRender = false;
     glm::vec4 outColor;
     withReadLock([&] {
         geometryShape = geometryCache->getShapeForEntityShape(_shape);
+        primitiveMode = _primitiveMode;
+        renderLayer = _renderLayer;
         batch.setModelTransform(_renderTransform); // use a transform with scale, rotation, registration point and translation
         materials = _materials["0"];
         auto& schema = materials.getSchemaBuffer().get<graphics::MultiMaterial::Schema>();
@@ -261,13 +265,13 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
         if (_procedural.isReady()) {
             outColor = _procedural.getColor(outColor);
             outColor.a *= _procedural.isFading() ? Interpolate::calculateFadeRatio(_procedural.getFadeStartTime()) : 1.0f;
-            _procedural.prepare(batch, _position, _dimensions, _orientation, ProceduralProgramKey(outColor.a < 1.0f));
+            _procedural.prepare(batch, _position, _dimensions, _orientation, _created, ProceduralProgramKey(outColor.a < 1.0f));
             proceduralRender = true;
         }
     });
 
     if (proceduralRender) {
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
             geometryCache->renderWireShape(batch, geometryShape, outColor);
         } else {
             geometryCache->renderShape(batch, geometryShape, outColor);
@@ -275,10 +279,16 @@ void ShapeEntityRenderer::doRender(RenderArgs* args) {
     } else if (!useMaterialPipeline(materials)) {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         outColor.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || _primitiveMode == PrimitiveMode::LINES) {
-            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, args->_shapePipeline);
+        render::ShapePipelinePointer pipeline;
+        if (renderLayer == RenderLayer::WORLD) {
+            pipeline = outColor.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, args->_shapePipeline);
+            pipeline = outColor.a < 1.0f ? geometryCache->getForwardTransparentShapePipeline() : geometryCache->getForwardOpaqueShapePipeline();
+        }
+        if (render::ShapeKey(args->_globalShapeKey).isWireframe() || primitiveMode == PrimitiveMode::LINES) {
+            geometryCache->renderWireShapeInstance(args, batch, geometryShape, outColor, pipeline);
+        } else {
+            geometryCache->renderSolidShapeInstance(args, batch, geometryShape, outColor, pipeline);
         }
     } else {
         if (args->_renderMode != render::Args::RenderMode::SHADOW_RENDER_MODE) {

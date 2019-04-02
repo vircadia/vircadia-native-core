@@ -1310,6 +1310,15 @@
           "placeholder": "50",
           "default": "50",
           "advanced": true
+        },
+        {
+            "name": "priority_fraction",
+            "type": "double",
+            "label": "Hero Bandwidth",
+            "help": "Fraction of downstream bandwidth reserved for avatars in 'Hero' zones",
+            "placeholder": "0.40",
+            "default": "0.40",
+            "advanced": true
         }
       ]
     },

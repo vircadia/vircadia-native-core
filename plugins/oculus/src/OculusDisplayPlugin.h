@@ -28,7 +28,7 @@ protected:
     QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }
 
     bool internalActivate() override;
-    void hmdPresent() override;
+    void hmdPresent(const gpu::FramebufferPointer&) override;
     bool isHmdMounted() const override;
     void customizeContext() override;
     void uncustomizeContext() override;

@@ -260,12 +260,7 @@ bool ScriptEngine::isDebugMode() const {
 #endif
 }
 
-ScriptEngine::~ScriptEngine() {
-    QSharedPointer<ScriptEngines> scriptEngines(_scriptEngines);
-    if (scriptEngines) {
-        scriptEngines->removeScriptEngine(qSharedPointerCast<ScriptEngine>(sharedFromThis()));
-    }
-}
+ScriptEngine::~ScriptEngine() {}
 
 void ScriptEngine::disconnectNonEssentialSignals() {
     disconnect();

@@ -38,6 +38,7 @@
 #include <UsersScriptingInterface.h>
 #include <UUID.h>
 #include <shared/ConicalViewFrustum.h>
+#include <ui/AvatarInputs.h>
 
 #include "Application.h"
 #include "InterfaceLogging.h"
@@ -84,7 +85,6 @@ AvatarManager::AvatarManager(QObject* parent) :
 
 AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer) {
     AvatarSharedPointer avatar = AvatarHashMap::addAvatar(sessionUUID, mixerWeakPointer);
-
     const auto otherAvatar = std::static_pointer_cast<OtherAvatar>(avatar);
     if (otherAvatar && _space) {
         std::unique_lock<std::mutex> lock(_spaceLock);
@@ -210,7 +210,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     {
         // lock the hash for read to check the size
         QReadLocker lock(&_hashLock);
-        if (_avatarHash.size() < 2 && _avatarsToFadeOut.isEmpty()) {
+        if (_avatarHash.size() < 2) {
             return;
         }
     }
@@ -375,18 +375,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         qApp->getMain3DScene()->enqueueTransaction(renderTransaction);
     }
 
-    if (!_spaceProxiesToDelete.empty() && _space) {
-        std::unique_lock<std::mutex> lock(_spaceLock);
-        workloadTransaction.remove(_spaceProxiesToDelete);
-        _spaceProxiesToDelete.clear();
-    }
     _space->enqueueTransaction(workloadTransaction);
 
     _numAvatarsUpdated = numAvatarsUpdated;
     _numAvatarsNotUpdated = numAvatarsNotUpdated;
     _numHeroAvatarsUpdated = numHerosUpdated;
-
-    simulateAvatarFades(deltaTime);
 
     _avatarSimulationTime = (float)(usecTimestampNow() - startTime) / (float)USECS_PER_MSEC;
 }
@@ -398,31 +391,6 @@ void AvatarManager::postUpdate(float deltaTime, const render::ScenePointer& scen
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
         avatar->postUpdate(deltaTime, scene);
     }
-}
-
-void AvatarManager::simulateAvatarFades(float deltaTime) {
-    if (_avatarsToFadeOut.empty()) {
-        return;
-    }
-
-    QReadLocker locker(&_hashLock);
-    QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFadeOut.begin();
-    const render::ScenePointer& scene = qApp->getMain3DScene();
-    render::Transaction transaction;
-    while (avatarItr != _avatarsToFadeOut.end()) {
-        auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        avatar->updateFadingStatus();
-        if (!avatar->isFading()) {
-            // fading to zero is such a rare event we push a unique transaction for each
-            if (avatar->isInScene()) {
-                avatar->removeFromScene(*avatarItr, scene, transaction);
-            }
-            avatarItr = _avatarsToFadeOut.erase(avatarItr);
-        } else {
-            ++avatarItr;
-        }
-    }
-    scene->enqueueTransaction(transaction);
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar(const QUuid& sessionUUID) {
@@ -452,7 +420,6 @@ void AvatarManager::buildPhysicsTransaction(PhysicsEngine::Transaction& transact
                     transaction.objectsToRemove.push_back(mState);
                 }
                 avatar->resetDetailedMotionStates();
-                
             } else {
                 if (avatar->getDetailedMotionStates().size() == 0) {
                     avatar->createDetailedMotionStates(avatar);
@@ -520,10 +487,6 @@ void AvatarManager::removeDeadAvatarEntities(const SetOfEntities& deadEntities) 
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
     auto avatar = std::static_pointer_cast<OtherAvatar>(removedAvatar);
-    {
-        std::unique_lock<std::mutex> lock(_spaceLock);
-        _spaceProxiesToDelete.push_back(avatar->getSpaceIndex());
-    }
     AvatarHashMap::handleRemovedAvatar(avatar, removalReason);
     avatar->tearDownGrabs();
 
@@ -534,16 +497,39 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
     // it might not fire until after we create a new instance for the same remote avatar, which creates a race
     // on the creation of entities for that avatar instance and the deletion of entities for this instance
     avatar->removeAvatarEntitiesFromTree();
-
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        emit AvatarInputs::getInstance()->avatarEnteredIgnoreRadius(avatar->getSessionUUID());
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
+
+        workload::Transaction workloadTransaction;
+        workloadTransaction.remove(avatar->getSpaceIndex());
+        _space->enqueueTransaction(workloadTransaction);
+
+        const render::ScenePointer& scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        avatar->removeFromScene(avatar, scene, transaction);
+        scene->enqueueTransaction(transaction);
     } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
-        avatar->fadeOut(qApp->getMain3DScene(), removalReason);
+        render::Transaction transaction;
+        auto scene = qApp->getMain3DScene();
+        avatar->fadeOut(transaction, removalReason);
+
+        workload::SpacePointer space = _space;
+        transaction.transitionFinishedOperator(avatar->getRenderItemID(), [space, avatar]() {
+            const render::ScenePointer& scene = qApp->getMain3DScene();
+            render::Transaction transaction;
+            avatar->removeFromScene(avatar, scene, transaction);
+            scene->enqueueTransaction(transaction);
+
+            workload::Transaction workloadTransaction;
+            workloadTransaction.remove(avatar->getSpaceIndex());
+            space->enqueueTransaction(workloadTransaction);
+        });
+        scene->enqueueTransaction(transaction);
     }
-    _avatarsToFadeOut.push_back(removedAvatar);
 }
 
 void AvatarManager::clearOtherAvatars() {
@@ -629,8 +615,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                     // but most avatars are roughly the same size, so let's not be so fancy yet.
                     const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-                    _collisionInjectors.remove_if(
-                        [](const AudioInjectorPointer& injector) { return !injector || injector->isFinished(); });
+                    _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) { return !injector; });
 
                     static const int MAX_INJECTOR_COUNT = 3;
                     if (_collisionInjectors.size() < MAX_INJECTOR_COUNT) {
@@ -640,7 +625,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                         options.volume = energyFactorOfFull;
                         options.pitch = 1.0f / AVATAR_STRETCH_FACTOR;
 
-                        auto injector = AudioInjector::playSoundAndDelete(collisionSound, options);
+                        auto injector = DependencyManager::get<AudioInjectorManager>()->playSound(collisionSound, options, true);
                         _collisionInjectors.emplace_back(injector);
                     }
                 }
