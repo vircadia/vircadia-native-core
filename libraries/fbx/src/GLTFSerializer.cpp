@@ -734,8 +734,7 @@ glm::mat4 GLTFSerializer::getModelTransform(const GLTFNode& node) {
     return tmat;
 }
 
-std::vector<std::vector<float>> GLTFSerializer::getSkinInverseBindMatrices() {
-    std::vector<std::vector<float>> inverseBindMatrixValues;
+void GLTFSerializer::getSkinInverseBindMatrices(std::vector<std::vector<float>>& inverseBindMatrixValues) {
     for (auto &skin : _file.skins) {
         GLTFAccessor& indicesAccessor = _file.accessors[skin.inverseBindMatrices];
         GLTFBufferView& indicesBufferview = _file.bufferviews[indicesAccessor.bufferView];
@@ -750,31 +749,28 @@ std::vector<std::vector<float>> GLTFSerializer::getSkinInverseBindMatrices() {
             indicesAccessor.componentType);
         inverseBindMatrixValues.push_back(matrices.toStdVector());
     }
-    return inverseBindMatrixValues;
 }
 
-std::vector<int> GLTFSerializer::nodeDFS(int n, std::vector<int>& children, int stride) {
-    std::vector<int> result;
-    result.push_back(n);
-    int rootDFS = 0;
-    int finalDFS = (int)children.size();
+void GLTFSerializer::getNodeQueueByDepthFirstChildren(std::vector<int>& children, int stride, std::vector<int>& result) {
+    int startingIndex = 0;
+    int finalIndex = (int)children.size();
     if (stride == -1) {
-        rootDFS = (int)children.size() - 1;
-        finalDFS = -1;
+        startingIndex = (int)children.size() - 1;
+        finalIndex = -1;
     }
-    for (int index = rootDFS; index != finalDFS; index += stride) {
+    for (int index = startingIndex; index != finalIndex; index += stride) {
         int c = children[index];
+        result.push_back(c);
         std::vector<int> nested = _file.nodes[c].children.toStdVector();
         if (nested.size() != 0) {
             std::sort(nested.begin(), nested.end());
-            for (int n : nodeDFS(c, nested, stride)) {
-                result.push_back(n);
+            for (int r : nested) {
+                if (result.end() == std::find(result.begin(), result.end(), r)) {
+                    getNodeQueueByDepthFirstChildren(nested, stride, result);
+                }
             }
-        } else {
-            result.push_back(c);
-        }
+        } 
     }
-    return result;
 }
 
 
@@ -810,7 +806,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
 
     // initialize order in which nodes will be parsed
-    QVector<int> nodeQueue;
+    std::vector<int> nodeQueue;
     nodeQueue.reserve(numNodes);
     int rootNode = 0;
     int finalNode = numNodes;
@@ -832,13 +828,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     }
     for (int index = sceneRootNode; index != sceneFinalNode; index += nodeListStride) {
         int i = initialSceneNodes[index];
+        nodeQueue.push_back(i);
         std::vector<int> children = _file.nodes[i].children.toStdVector(); 
         std::sort(children.begin(), children.end());
-        for (int n : nodeDFS(i, children, nodeListStride)) {
-            nodeQueue.append(n);
-        }
+        getNodeQueueByDepthFirstChildren(children, nodeListStride, nodeQueue);
     }
-
 
     // Build joints
     HFMJoint joint;
@@ -851,7 +845,7 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
         joint.parentIndex = -1;
         if (!_file.scenes[_file.scene].nodes.contains(nodeIndex)) {
-            joint.parentIndex = nodeQueue.indexOf(nodeDependencies[nodeIndex][0]);
+            joint.parentIndex = std::distance(nodeQueue.begin(), std::find(nodeQueue.begin(), nodeQueue.end(), nodeDependencies[nodeIndex][0]));
         }
         joint.transform = node.transforms.first();
         joint.translation = extractTranslation(joint.transform);
@@ -869,7 +863,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     std::vector<glm::mat4> jointInverseBindTransforms;
     if (!_file.skins.isEmpty()) {
         int matrixIndex = 0;
-        std::vector<std::vector<float>> inverseBindValues = getSkinInverseBindMatrices();
+        std::vector<std::vector<float>> inverseBindValues;
+        getSkinInverseBindMatrices(inverseBindValues);
         jointInverseBindTransforms.resize(numNodes);
 
         int jointIndex = finalNode;
