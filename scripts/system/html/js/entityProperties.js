@@ -1528,7 +1528,6 @@ const GROUPS_PER_TYPE = {
 };
 
 const EDITOR_TIMEOUT_DURATION = 1500;
-const IMAGE_DEBOUNCE_TIMEOUT = 250;
 const DEBOUNCE_TIMEOUT = 125;
 
 const COLOR_MIN = 0;
@@ -2069,7 +2068,7 @@ function createNumberProperty(property, elProperty) {
                type="number"
                ${propertyData.placeholder ? 'placeholder="' + propertyData.placeholder + '"' : ''}
                ${propertyData.readOnly ? 'readonly' : ''}></input>
-        `)
+        `);
 
     if (propertyData.min !== undefined) {
         elInput.setAttribute("min", propertyData.min);
@@ -3312,8 +3311,6 @@ function materialTargetPropertyUpdate(propertyValue) {
 function loaded() {
     openEventBridge(function() {
         let elPropertiesList = document.getElementById("properties-list");
-
-        let templatePropertyRow = document.getElementById('property-row');
         
         GROUPS.forEach(function(group) {
             let elGroup;
