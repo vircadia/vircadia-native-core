@@ -3308,6 +3308,325 @@ function materialTargetPropertyUpdate(propertyValue) {
 }
 
 
+function handleEntitySelectionUpdate(selections, isPropertiesToolUpdate) {
+    if (selections.length === 0) {
+        if (lastEntityID !== null) {
+            if (editor !== null) {
+                saveUserData();
+                deleteJSONEditor();
+            }
+            if (materialEditor !== null) {
+                saveMaterialData();
+                deleteJSONMaterialEditor();
+            }
+        }
+
+        resetProperties();
+        showGroupsForType("None");
+
+        let elIcon = properties.type.elSpan;
+        elIcon.innerText = NO_SELECTION;
+        elIcon.style.display = 'inline-block';
+
+        deleteJSONEditor();
+        getPropertyInputElement("userData").value = "";
+        showUserDataTextArea();
+        showSaveUserDataButton();
+        showNewJSONEditorButton();
+
+        deleteJSONMaterialEditor();
+        getPropertyInputElement("materialData").value = "";
+        showMaterialDataTextArea();
+        showSaveMaterialDataButton();
+        showNewJSONMaterialEditorButton();
+
+        disableProperties();
+    } else if (selections.length > 1) {
+        deleteJSONEditor();
+        deleteJSONMaterialEditor();
+
+        let ids = [];
+        let types = {};
+        let numTypes = 0;
+
+        for (let i = 0; i < selections.length; ++i) {
+            ids.push(selections[i].id);
+            let currentSelectedType = selections[i].properties.type;
+            if (types[currentSelectedType] === undefined) {
+                types[currentSelectedType] = 0;
+                numTypes += 1;
+            }
+            types[currentSelectedType]++;
+        }
+
+        let type = "Multiple";
+        if (numTypes === 1) {
+            type = selections[0].properties.type;
+        }
+
+        resetProperties();
+        showGroupsForType(type);
+
+        let typeProperty = properties["type"];
+        typeProperty.elSpan.innerHTML = typeProperty.data.icons[type];
+        typeProperty.elSpan.style.display = "inline-block";
+
+        disableProperties();
+    } else {
+        selectedEntityProperties = selections[0].properties;
+
+        if (lastEntityID !== selectedEntityProperties.id && lastEntityID !== null) {
+            if (editor !== null) {
+                saveUserData();
+            }
+            if (materialEditor !== null) {
+                saveMaterialData();
+            }
+        }
+
+        let hasSelectedEntityChanged = lastEntityID !== selectedEntityProperties.id;
+
+        if (!isPropertiesToolUpdate && !hasSelectedEntityChanged && document.hasFocus()) {
+            // in case the selection has not changed and we still have focus on the properties page,
+            // we will ignore the event.
+            return;
+        }
+
+        let doSelectElement = !hasSelectedEntityChanged;
+
+        // the event bridge and json parsing handle our avatar id string differently.
+        lastEntityID = selectedEntityProperties.id;
+
+        showGroupsForType(selectedEntityProperties.type);
+
+        if (selectedEntityProperties.locked) {
+            disableProperties();
+            getPropertyInputElement("locked").removeAttribute('disabled');
+        } else {
+            enableProperties();
+            disableSaveUserDataButton();
+            disableSaveMaterialDataButton()
+        }
+
+        for (let propertyID in properties) {
+            let property = properties[propertyID];
+            let propertyData = property.data;
+            let propertyName = property.name;
+            let propertyValue = getPropertyValue(propertyName);
+
+            let isSubProperty = propertyData.subPropertyOf !== undefined;
+            if (propertyValue === undefined && !isSubProperty) {
+                continue;
+            }
+
+            if (propertyData.hideIfCertified) {
+                let shouldHide = selectedEntityProperties.certificateID !== "";
+                if (shouldHide) {
+                    propertyValue = "** Certified **";
+                    property.elInput.disabled = true;
+                }
+            }
+
+            let isPropertyNotNumber = false;
+            switch (propertyData.type) {
+                case 'number':
+                case 'number-draggable':
+                    isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
+                    break;
+                case 'rect':
+                case 'vec3':
+                case 'vec2':
+                    isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
+                    break;
+                case 'color':
+                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
+                    break;
+            }
+            if (isPropertyNotNumber && propertyData.fallbackProperty !== undefined) {
+                propertyValue = getPropertyValue(propertyData.fallbackProperty);
+            }
+
+            switch (propertyData.type) {
+                case 'string': {
+                    property.elInput.value = propertyValue;
+                    break;
+                }
+                case 'bool': {
+                    let inverse = propertyData.inverse !== undefined ? propertyData.inverse : false;
+                    if (isSubProperty) {
+                        let propertyValue = selectedEntityProperties[propertyData.subPropertyOf];
+                        let subProperties = propertyValue.split(",");
+                        let subPropertyValue = subProperties.indexOf(propertyName) > -1;
+                        property.elInput.checked = inverse ? !subPropertyValue : subPropertyValue;
+                    } else {
+                        property.elInput.checked = inverse ? !propertyValue : propertyValue;
+                    }
+                    break;
+                }
+                case 'number': {
+                    property.elInput.value = propertyValue;
+                    break;
+                }
+                case 'number-draggable': {
+                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+                    let value = propertyValue / multiplier;
+                    if (propertyData.round !== undefined) {
+                        value = Math.round(value.round) / propertyData.round;
+                    }
+                    property.elNumber.setValue(value);
+                    break;
+                }
+                case 'rect':
+                    property.elNumberX.setValue(propertyValue.x);
+                    property.elNumberY.setValue(propertyValue.y);
+                    property.elNumberWidth.setValue(propertyValue.width);
+                    property.elNumberHeight.setValue(propertyValue.height);
+                    break;
+                case 'vec3':
+                case 'vec2': {
+                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
+                    let valueX = propertyValue.x / multiplier;
+                    let valueY = propertyValue.y / multiplier;
+                    let valueZ = propertyValue.z / multiplier;
+                    if (propertyData.round !== undefined) {
+                        valueX = Math.round(valueX * propertyData.round) / propertyData.round;
+                        valueY = Math.round(valueY * propertyData.round) / propertyData.round;
+                        valueZ = Math.round(valueZ * propertyData.round) / propertyData.round;
+                    }
+                    if (propertyData.decimals !== undefined) {
+                        property.elNumberX.setValue(valueX.toFixed(propertyData.decimals));
+                        property.elNumberY.setValue(valueY.toFixed(propertyData.decimals));
+                        if (property.elNumberZ !== undefined) {
+                            property.elNumberZ.setValue(valueZ.toFixed(propertyData.decimals));
+                        }
+                    } else {
+                        property.elNumberX.setValue(valueX);
+                        property.elNumberY.setValue(valueY);
+                        if (property.elNumberZ !== undefined) {
+                            property.elNumberZ.setValue(valueZ);
+                        }
+                    }
+                    break;
+                }
+                case 'color': {
+                    property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," +
+                        propertyValue.green + "," +
+                        propertyValue.blue + ")";
+                    if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
+                        // Set the color picker inactive before setting the color,
+                        // otherwise an update will be sent directly after setting it here.
+                        $(property.elColorPicker).attr('active', 'false');
+                        colorPickers['#' + property.elementID].colpickSetColor({
+                            "r": propertyValue.red,
+                            "g": propertyValue.green,
+                            "b": propertyValue.blue
+                        });
+                        $(property.elColorPicker).attr('active', 'true');
+                    }
+
+                    property.elNumberR.setValue(propertyValue.red);
+                    property.elNumberG.setValue(propertyValue.green);
+                    property.elNumberB.setValue(propertyValue.blue);
+                    break;
+                }
+                case 'dropdown': {
+                    property.elInput.value = propertyValue;
+                    setDropdownText(property.elInput);
+                    break;
+                }
+                case 'textarea': {
+                    property.elInput.value = propertyValue;
+                    setTextareaScrolling(property.elInput);
+                    break;
+                }
+                case 'icon': {
+                    property.elSpan.innerHTML = propertyData.icons[propertyValue];
+                    property.elSpan.style.display = "inline-block";
+                    break;
+                }
+                case 'texture': {
+                    property.elInput.value = propertyValue;
+                    property.elInput.imageLoad(property.elInput.value);
+                    break;
+                }
+                case 'dynamic-multiselect': {
+                    if (property.data.propertyUpdate) {
+                        property.data.propertyUpdate(propertyValue);
+                    }
+                    break;
+                }
+            }
+
+            let showPropertyRules = property.showPropertyRules;
+            if (showPropertyRules !== undefined) {
+                for (let propertyToShow in showPropertyRules) {
+                    let showIfThisPropertyValue = showPropertyRules[propertyToShow];
+                    let show = String(propertyValue) === String(showIfThisPropertyValue);
+                    showPropertyElement(propertyToShow, show);
+                }
+            }
+        }
+
+        updateVisibleSpaceModeProperties();
+
+
+        let json = null;
+        try {
+            json = JSON.parse(selectedEntityProperties.userData);
+        } catch (e) {
+            // normal text
+            deleteJSONEditor();
+            getPropertyInputElement("userData").value = selectedEntityProperties.userData;
+            showUserDataTextArea();
+            showNewJSONEditorButton();
+            hideSaveUserDataButton();
+            hideUserDataSaved();
+        }
+        if (json !== null) {
+            if (editor === null) {
+                createJSONEditor();
+            }
+            setEditorJSON(json);
+            showSaveUserDataButton();
+            hideUserDataTextArea();
+            hideNewJSONEditorButton();
+            hideUserDataSaved();
+        }
+
+        let materialJson = null;
+        try {
+            materialJson = JSON.parse(selectedEntityProperties.materialData);
+        } catch (e) {
+            // normal text
+            deleteJSONMaterialEditor();
+            getPropertyInputElement("materialData").value = selectedEntityProperties.materialData;
+            showMaterialDataTextArea();
+            showNewJSONMaterialEditorButton();
+            hideSaveMaterialDataButton();
+            hideMaterialDataSaved();
+        }
+        if (materialJson !== null) {
+            if (materialEditor === null) {
+                createJSONMaterialEditor();
+            }
+            setMaterialEditorJSON(materialJson);
+            showSaveMaterialDataButton();
+            hideMaterialDataTextArea();
+            hideNewJSONMaterialEditorButton();
+            hideMaterialDataSaved();
+        }
+
+        if (hasSelectedEntityChanged && selectedEntityProperties.type === "Material") {
+            requestMaterialTarget();
+        }
+
+        let activeElement = document.activeElement;
+        if (doSelectElement && typeof activeElement.select !== "undefined") {
+            activeElement.select();
+        }
+    }
+}
+
 function loaded() {
     openEventBridge(function() {
         let elPropertiesList = document.getElementById("properties-list");
@@ -3489,323 +3808,7 @@ function loaded() {
                     if (data.spaceMode !== undefined) {
                         currentSpaceMode = data.spaceMode === "local" ? PROPERTY_SPACE_MODE.LOCAL : PROPERTY_SPACE_MODE.WORLD;
                     }
-                    if (data.selections.length === 0) {
-                        if (lastEntityID !== null) {
-                            if (editor !== null) {
-                                saveUserData();
-                                deleteJSONEditor();
-                            }
-                            if (materialEditor !== null) {
-                                saveMaterialData();
-                                deleteJSONMaterialEditor();
-                            }
-                        }
-                        
-                        resetProperties();
-                        showGroupsForType("None");
-
-                        let elIcon = properties.type.elSpan;
-                        elIcon.innerText = NO_SELECTION;
-                        elIcon.style.display = 'inline-block';
-                
-                        deleteJSONEditor();
-                        getPropertyInputElement("userData").value = "";
-                        showUserDataTextArea();
-                        showSaveUserDataButton();
-                        showNewJSONEditorButton();
-
-                        deleteJSONMaterialEditor();
-                        getPropertyInputElement("materialData").value = "";
-                        showMaterialDataTextArea();
-                        showSaveMaterialDataButton();
-                        showNewJSONMaterialEditorButton();
-
-                        disableProperties();
-                    } else if (data.selections.length > 1) {
-                        deleteJSONEditor();
-                        deleteJSONMaterialEditor();
-                        
-                        let selections = data.selections;
-
-                        let ids = [];
-                        let types = {};
-                        let numTypes = 0;
-
-                        for (let i = 0; i < selections.length; ++i) {
-                            ids.push(selections[i].id);
-                            let currentSelectedType = selections[i].properties.type;
-                            if (types[currentSelectedType] === undefined) {
-                                types[currentSelectedType] = 0;
-                                numTypes += 1;
-                            }
-                            types[currentSelectedType]++;
-                        }
-
-                        let type = "Multiple";
-                        if (numTypes === 1) {
-                            type = selections[0].properties.type;
-                        }
-                        
-                        resetProperties();
-                        showGroupsForType(type);
-                        
-                        let typeProperty = properties["type"];
-                        typeProperty.elSpan.innerHTML = typeProperty.data.icons[type];
-                        typeProperty.elSpan.style.display = "inline-block";
-                        
-                        disableProperties();
-                    } else {
-                        selectedEntityProperties = data.selections[0].properties;
-                        
-                        if (lastEntityID !== '"' + selectedEntityProperties.id + '"' && lastEntityID !== null) {
-                            if (editor !== null) {
-                               saveUserData();
-                            }
-                            if (materialEditor !== null) {
-                                saveMaterialData();
-                            }
-                        }
-
-                        let hasSelectedEntityChanged = lastEntityID !== '"' + selectedEntityProperties.id + '"';
-
-                        if (!data.isPropertiesToolUpdate && !hasSelectedEntityChanged && document.hasFocus()) {
-                            // in case the selection has not changed and we still have focus on the properties page,
-                            // we will ignore the event.
-                            return;
-                        }
-
-                        let doSelectElement = !hasSelectedEntityChanged;
-
-                        // the event bridge and json parsing handle our avatar id string differently.
-                        lastEntityID = '"' + selectedEntityProperties.id + '"';
-
-                        showGroupsForType(selectedEntityProperties.type);
-                        
-                        if (selectedEntityProperties.locked) {
-                            disableProperties();
-                            getPropertyInputElement("locked").removeAttribute('disabled');
-                        } else {
-                            enableProperties();
-                            disableSaveUserDataButton();
-                            disableSaveMaterialDataButton()
-                        }
-                        
-                        for (let propertyID in properties) {
-                            let property = properties[propertyID];
-                            let propertyData = property.data;
-                            let propertyName = property.name;
-                            let propertyValue = getPropertyValue(propertyName);
-                            
-                            let isSubProperty = propertyData.subPropertyOf !== undefined;
-                            if (propertyValue === undefined && !isSubProperty) {
-                                continue;
-                            }
-
-                            if (propertyData.hideIfCertified) {
-                                let shouldHide = selectedEntityProperties.certificateID !== "";
-                                if (shouldHide) {
-                                    propertyValue = "** Certified **";
-                                    property.elInput.disabled = true;
-                                }
-                            }
-                            
-                            let isPropertyNotNumber = false;
-                            switch (propertyData.type) {
-                                case 'number':
-                                case 'number-draggable':
-                                    isPropertyNotNumber = isNaN(propertyValue) || propertyValue === null;
-                                    break;
-                                case 'rect':
-                                case 'vec3':
-                                case 'vec2':
-                                    isPropertyNotNumber = isNaN(propertyValue.x) || propertyValue.x === null;
-                                    break;
-                                case 'color':
-                                    isPropertyNotNumber = isNaN(propertyValue.red) || propertyValue.red === null;
-                                    break;
-                            }
-                            if (isPropertyNotNumber && propertyData.fallbackProperty !== undefined) {
-                                propertyValue = getPropertyValue(propertyData.fallbackProperty);
-                            }
-                            
-                            switch (propertyData.type) {
-                                case 'string': {
-                                    property.elInput.value = propertyValue;
-                                    break;
-                                }
-                                case 'bool': {
-                                    let inverse = propertyData.inverse !== undefined ? propertyData.inverse : false;
-                                    if (isSubProperty) {
-                                        let propertyValue = selectedEntityProperties[propertyData.subPropertyOf];
-                                        let subProperties = propertyValue.split(",");
-                                        let subPropertyValue = subProperties.indexOf(propertyName) > -1;
-                                        property.elInput.checked = inverse ? !subPropertyValue : subPropertyValue;
-                                    } else {
-                                        property.elInput.checked = inverse ? !propertyValue : propertyValue;
-                                    }
-                                    break;
-                                }
-                                case 'number': {
-                                    property.elInput.value = propertyValue;
-                                    break;
-                                }
-                                case 'number-draggable': {
-                                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                                    let value = propertyValue / multiplier;
-                                    if (propertyData.round !== undefined) {
-                                        value = Math.round(value.round) / propertyData.round;
-                                    }
-                                    property.elNumber.setValue(value);
-                                    break;
-                                }
-                                case 'rect':
-                                    property.elNumberX.setValue(propertyValue.x);
-                                    property.elNumberY.setValue(propertyValue.y);
-                                    property.elNumberWidth.setValue(propertyValue.width);
-                                    property.elNumberHeight.setValue(propertyValue.height);
-                                    break;
-                                case 'vec3':
-                                case 'vec2': {
-                                    let multiplier = propertyData.multiplier !== undefined ? propertyData.multiplier : 1;
-                                    let valueX = propertyValue.x / multiplier;
-                                    let valueY = propertyValue.y / multiplier;
-                                    let valueZ = propertyValue.z / multiplier;
-                                    if (propertyData.round !== undefined) {
-                                        valueX = Math.round(valueX * propertyData.round) / propertyData.round;
-                                        valueY = Math.round(valueY * propertyData.round) / propertyData.round;
-                                        valueZ = Math.round(valueZ * propertyData.round) / propertyData.round;
-                                    }
-                                    if (propertyData.decimals !== undefined) {
-                                        property.elNumberX.setValue(valueX.toFixed(propertyData.decimals));
-                                        property.elNumberY.setValue(valueY.toFixed(propertyData.decimals));
-                                        if (property.elNumberZ !== undefined) {
-                                            property.elNumberZ.setValue(valueZ.toFixed(propertyData.decimals));
-                                        }
-                                    } else {
-                                        property.elNumberX.setValue(valueX);
-                                        property.elNumberY.setValue(valueY);
-                                        if (property.elNumberZ !== undefined) {
-                                            property.elNumberZ.setValue(valueZ);
-                                        }
-                                    }
-                                    break;
-                                }
-                                case 'color': {
-                                    property.elColorPicker.style.backgroundColor = "rgb(" + propertyValue.red + "," + 
-                                                                                     propertyValue.green + "," + 
-                                                                                     propertyValue.blue + ")";
-                                    if (hasSelectedEntityChanged && $(property.elColorPicker).attr('active') === 'true') {
-                                        // Set the color picker inactive before setting the color,
-                                        // otherwise an update will be sent directly after setting it here.
-                                        $(property.elColorPicker).attr('active', 'false');
-                                        colorPickers['#' + property.elementID].colpickSetColor({
-                                            "r": propertyValue.red,
-                                            "g": propertyValue.green,
-                                            "b": propertyValue.blue
-                                        });
-                                        $(property.elColorPicker).attr('active', 'true');
-                                    }
-
-                                    property.elNumberR.setValue(propertyValue.red);
-                                    property.elNumberG.setValue(propertyValue.green);
-                                    property.elNumberB.setValue(propertyValue.blue);
-                                    break;
-                                }
-                                case 'dropdown': {
-                                    property.elInput.value = propertyValue;
-                                    setDropdownText(property.elInput);
-                                    break;
-                                }
-                                case 'textarea': {
-                                    property.elInput.value = propertyValue;
-                                    setTextareaScrolling(property.elInput);
-                                    break;
-                                }
-                                case 'icon': {
-                                    property.elSpan.innerHTML = propertyData.icons[propertyValue];
-                                    property.elSpan.style.display = "inline-block";
-                                    break;
-                                }
-                                case 'texture': {
-                                    property.elInput.value = propertyValue;
-                                    property.elInput.imageLoad(property.elInput.value);
-                                    break;
-                                }
-                                case 'dynamic-multiselect': {
-                                    if (property.data.propertyUpdate) {
-                                        property.data.propertyUpdate(propertyValue);
-                                    }
-                                    break;
-                                }
-                            }
-                            
-                            let showPropertyRules = property.showPropertyRules;
-                            if (showPropertyRules !== undefined) {
-                                for (let propertyToShow in showPropertyRules) {
-                                    let showIfThisPropertyValue = showPropertyRules[propertyToShow];
-                                    let show = String(propertyValue) === String(showIfThisPropertyValue);
-                                    showPropertyElement(propertyToShow, show);
-                                }
-                            }
-                        }
-
-                        updateVisibleSpaceModeProperties();
-                        
-                        let json = null;
-                        try {
-                            json = JSON.parse(selectedEntityProperties.userData);
-                        } catch (e) {
-                            // normal text
-                            deleteJSONEditor();
-                            getPropertyInputElement("userData").value = selectedEntityProperties.userData;
-                            showUserDataTextArea();
-                            showNewJSONEditorButton();
-                            hideSaveUserDataButton();
-                            hideUserDataSaved();
-                        }
-                        if (json !== null) {
-                            if (editor === null) {
-                                createJSONEditor();
-                            }
-                            setEditorJSON(json);
-                            showSaveUserDataButton();
-                            hideUserDataTextArea();
-                            hideNewJSONEditorButton();
-                            hideUserDataSaved();
-                        }
-
-                        let materialJson = null;
-                        try {
-                            materialJson = JSON.parse(selectedEntityProperties.materialData);
-                        } catch (e) {
-                            // normal text
-                            deleteJSONMaterialEditor();
-                            getPropertyInputElement("materialData").value = selectedEntityProperties.materialData;
-                            showMaterialDataTextArea();
-                            showNewJSONMaterialEditorButton();
-                            hideSaveMaterialDataButton();
-                            hideMaterialDataSaved();
-                        }
-                        if (materialJson !== null) {
-                            if (materialEditor === null) {
-                                createJSONMaterialEditor();
-                            }
-                            setMaterialEditorJSON(materialJson);
-                            showSaveMaterialDataButton();
-                            hideMaterialDataTextArea();
-                            hideNewJSONMaterialEditorButton();
-                            hideMaterialDataSaved();
-                        }
-                        
-                        if (hasSelectedEntityChanged && selectedEntityProperties.type === "Material") {
-                            requestMaterialTarget();
-                        }
-                        
-                        let activeElement = document.activeElement;
-                        if (doSelectElement && typeof activeElement.select !== "undefined") {
-                            activeElement.select();
-                        }
-                    }
+                    handleEntitySelectionUpdate(data.selections, data.isPropertiesToolUpdate);
                 } else if (data.type === 'tooltipsReply') {
                     createAppTooltip.setIsEnabled(!data.hmdActive);
                     createAppTooltip.setTooltipData(data.tooltips);
