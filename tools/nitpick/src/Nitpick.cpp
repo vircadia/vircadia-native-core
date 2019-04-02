@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "Nitpick.h"
+#include "Platform.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -40,9 +41,15 @@ Nitpick::Nitpick(QWidget* parent) : QMainWindow(parent) {
 
     setWindowTitle("Nitpick - " + nitpickVersion);
 
-    clientProfiles << "VR-High" << "Desktop-High" << "Desktop-Low" << "Mobile-Touch" << "VR-Standalone";
-    _ui.clientProfileComboBox->insertItems(0, clientProfiles);
+    _GPUVendors << "Nvidia" << "AMD";
+    _ui.clientProfileComboBox->insertItems(0, _GPUVendors);
 
+    QString gpuVendor = Platform::getGraphicsCardType().toUpper();
+    if (gpuVendor.contains("NVIDIA")) {
+        _ui.clientProfileComboBox->setCurrentIndex(0);
+    } else {
+        _ui.clientProfileComboBox->setCurrentIndex(1);
+    }
 }
 
 Nitpick::~Nitpick() {

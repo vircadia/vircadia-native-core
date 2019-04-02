@@ -111,7 +111,7 @@ private:
 
     bool _isRunningFromCommandline{ false };
 
-    QStringList clientProfiles;
+    QStringList _GPUVendors;
 };
 
 #endif  // hifi_Nitpick_h
