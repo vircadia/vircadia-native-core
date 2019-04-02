@@ -1555,7 +1555,23 @@ void Model::applyMaterialMapping() {
                 return;
             }
             render::Transaction transaction;
-            auto networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+            std::shared_ptr<NetworkMaterial> networkMaterial;
+            {
+                QString url = networkMaterialResource->getURL().toString();
+                bool foundMaterialName = false;
+                if (url.contains("?")) {
+                    auto split = url.split("?");
+                    std::string materialName = split.last().toStdString();
+                    auto networkMaterialIter = networkMaterialResource->parsedMaterials.networkMaterials.find(materialName);
+                    if (networkMaterialIter != networkMaterialResource->parsedMaterials.networkMaterials.end()) {
+                        networkMaterial = networkMaterialIter->second;
+                        foundMaterialName = true;
+                    }
+                }
+                if (!foundMaterialName) {
+                    networkMaterial = networkMaterialResource->parsedMaterials.networkMaterials[networkMaterialResource->parsedMaterials.names[0]];
+                }
+            }
             for (auto shapeID : shapeIDs) {
                 if (shapeID < _modelMeshRenderItemIDs.size()) {
                     auto itemID = _modelMeshRenderItemIDs[shapeID];
