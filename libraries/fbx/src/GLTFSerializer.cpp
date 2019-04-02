@@ -863,7 +863,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
     std::vector<glm::mat4> jointInverseBindTransforms;
     jointInverseBindTransforms.resize(numNodes);
     if (!_file.skins.isEmpty()) {
-        int matrixIndex = 0;
         std::vector<std::vector<float>> inverseBindValues;
         getSkinInverseBindMatrices(inverseBindValues);
 
@@ -886,7 +885,6 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                             value[matrixCount + 4], value[matrixCount + 5], value[matrixCount + 6], value[matrixCount + 7], 
                             value[matrixCount + 8], value[matrixCount + 9], value[matrixCount + 10], value[matrixCount + 11],
                             value[matrixCount + 12], value[matrixCount + 13], value[matrixCount + 14], value[matrixCount + 15]);
-                    matrixIndex++;
                 } else {
                     jointInverseBindTransforms[jointIndex] = glm::mat4();
                 }
@@ -943,7 +941,9 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                 }
                 HFMCluster root; 
                 root.jointIndex = rootNode;
-                if (root.jointIndex == -1) { root.jointIndex = 0; }
+                if (root.jointIndex == -1) { 
+                    root.jointIndex = 0; 
+                }
                 root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
                 root.inverseBindTransform = Transform(root.inverseBindMatrix);
                 mesh.clusters.append(root);
