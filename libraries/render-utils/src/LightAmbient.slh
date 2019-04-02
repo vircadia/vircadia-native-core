@@ -17,8 +17,9 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 
 #if !defined(GL_ES)
     float filterLod = textureQueryLod(skyboxMap, direction).x;
-    // Keep texture filtering LOD as limit to prevent aliasing on specular reflection
-    lod = max(lod, filterLod);
+    // Keep texture filtering LOD as limit to prevent aliasing on specular reflection, but add
+    // a bias to limit overblurring with convolved maps
+    lod = max(lod, filterLod-2);
 #endif
 
     return textureLod(skyboxMap, direction, lod);

@@ -1581,8 +1581,9 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(Image&& srcIm
             auto irradiance = irradianceTexture->getIrradiance();
             theTexture->overrideIrradiance(irradiance);
         }
-
+        
         if (options & CUBE_GGX_CONVOLVE) {
+            // Performs and convolution AND mip map generation
             convolveForGGX(faces, GPU_CUBEMAP_HDR_FORMAT, theTexture.get(), abortProcessing);
         } else {
             // Create mip maps and compress to final format in one go

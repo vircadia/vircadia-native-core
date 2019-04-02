@@ -23,6 +23,11 @@
 namespace image {
 
     class CubeMap {
+
+        enum {
+            EDGE_WIDTH = 1
+        };
+
     public:
  
         CubeMap(int width, int height, int mipCount);
@@ -30,6 +35,7 @@ namespace image {
 
         void reset(int width, int height, int mipCount);
         void copyTo(gpu::Texture* texture, const std::atomic<bool>& abortProcessing = false) const;
+        void copyTo(CubeMap& other) const;
 
         gpu::uint16 getMipCount() const { return (gpu::uint16)_mips.size(); }
         int getMipWidth(gpu::uint16 mipLevel) const {
@@ -42,16 +48,16 @@ namespace image {
             return gpu::Vec2i(getMipWidth(mipLevel), getMipHeight(mipLevel));
         }
 
+        size_t getMipLineStride(gpu::uint16 mipLevel) const {
+            return getMipWidth(mipLevel) + 2 * EDGE_WIDTH;
+        }
+
         glm::vec4* editFace(gpu::uint16 mipLevel, int face) {
-            return _mips[mipLevel][face].data() + getFaceLineStride(mipLevel) + 1;
+            return _mips[mipLevel][face].data() + (getMipLineStride(mipLevel) + 1)*EDGE_WIDTH;
         }
 
         const glm::vec4* getFace(gpu::uint16 mipLevel, int face) const {
-            return _mips[mipLevel][face].data() + getFaceLineStride(mipLevel) + 1;
-        }
-
-        size_t getFaceLineStride(gpu::uint16 mipLevel) const {
-            return getMipWidth(mipLevel)+2;
+            return _mips[mipLevel][face].data() + (getMipLineStride(mipLevel) + 1)*EDGE_WIDTH;
         }
 
         void convolveForGGX(CubeMap& output, const std::atomic<bool>& abortProcessing) const;
@@ -73,7 +79,7 @@ namespace image {
 
         static void getFaceUV(const glm::vec3& dir, int* index, glm::vec2* uv);
         static void generateGGXSamples(GGXSamples& data, float roughness, const int resolution);
-        static void copyFace(int width, int height, const glm::vec4* source, int srcLineStride, glm::vec4* dest, int dstLineStride);
+        static void copyFace(int width, int height, const glm::vec4* source, size_t srcLineStride, glm::vec4* dest, size_t dstLineStride);
         void convolveMipFaceForGGX(const GGXSamples& samples, CubeMap& output, gpu::uint16 mipLevel, int face, const std::atomic<bool>& abortProcessing) const;
         glm::vec4 computeConvolution(const glm::vec3& normal, const GGXSamples& samples) const;
 

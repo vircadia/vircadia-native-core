@@ -105,7 +105,7 @@ gpu::TexturePointer processImage(std::shared_ptr<QIODevice> content, const std::
 #if defined(NVTT_API)
 class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
 public:
-    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing);
+    SequentialTaskDispatcher(const std::atomic<bool>& abortProcessing = false);
 
     const std::atomic<bool>& _abortProcessing;
 
