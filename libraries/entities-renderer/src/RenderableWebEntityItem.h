@@ -106,7 +106,7 @@ private:
     static std::function<void(QSharedPointer<OffscreenQmlSurface>&, bool&, std::vector<QMetaObject::Connection>&)> _releaseWebSurfaceOperator;
 
 public slots:
-    void emitScriptEvent(const QVariant& scriptMessage);
+    void emitScriptEvent(const QVariant& scriptMessage) override;
 
 signals:
     void scriptEventReceived(const QVariant& message);

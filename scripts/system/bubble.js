@@ -90,7 +90,7 @@
     // Called from the C++ scripting interface to show the bubble overlay
     function enteredIgnoreRadius() {
         createOverlays();
-        UserActivityLogger.bubbleActivated();
+        UserActivityLogger.privacyShieldActivated();
     }
 
     // Used to set the state of the bubble HUD button
@@ -160,7 +160,7 @@
     function onBubbleToggled(enabled, doNotLog) {
         writeButtonProperties(enabled);
         if (doNotLog !== true) {
-            UserActivityLogger.bubbleToggled(enabled);
+            UserActivityLogger.privacyShieldToggled(enabled);
         }
         if (enabled) {
             createOverlays();
@@ -174,7 +174,7 @@
     }
 
     // Setup the bubble button
-    var buttonName = "BUBBLE";
+    var buttonName = "SHIELD";
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
     button = tablet.addButton({
         icon: "icons/tablet-icons/bubble-i.svg",

@@ -836,14 +836,6 @@ render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured
     );
 }
 
-render::ShapePipelinePointer GeometryCache::getOpaqueShapePipeline(bool isFading) {
-    return isFading ? _simpleOpaqueFadePipeline : _simpleOpaquePipeline;
-}
-
-render::ShapePipelinePointer GeometryCache::getTransparentShapePipeline(bool isFading) {
-    return isFading ? _simpleTransparentFadePipeline : _simpleTransparentPipeline;
-}
-
 void GeometryCache::renderShape(gpu::Batch& batch, Shape shape) {
     batch.setInputFormat(getSolidStreamFormat());
     _shapes[shape].draw(batch);
@@ -1029,7 +1021,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
+    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
     int compactColor = 0;
@@ -1107,7 +1099,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
+    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
     for (auto i = 0; i < pointCount; i++) {
@@ -1195,7 +1187,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
-    const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
+    const glm::vec3 NORMAL(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points[i];
         glm::vec2 texCoord = texCoords[i];
@@ -2018,77 +2010,6 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec2& p1, const glm
     batch.draw(gpu::LINES, 2, 0);
 }
 
-
-void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2,
-    const glm::vec4& color, float glowIntensity, float glowWidth, int id) {
-
-    // Disable glow lines on OSX
-#ifndef Q_OS_WIN
-    glowIntensity = 0.0f;
-#endif
-
-    if (glowIntensity <= 0.0f) {
-        if (color.a >= 1.0f) {
-            bindSimpleProgram(batch, false, false, false, true, true);
-        } else {
-            bindSimpleProgram(batch, false, true, false, true, true);
-        }
-        renderLine(batch, p1, p2, color, id);
-        return;
-    }
-
-    // Compile the shaders
-    static std::once_flag once;
-    std::call_once(once, [&] {
-        auto state = std::make_shared<gpu::State>();
-        auto program = gpu::Shader::createProgram(shader::render_utils::program::glowLine);
-        state->setCullMode(gpu::State::CULL_NONE);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-        PrepareStencil::testMask(*state);
-        _glowLinePipeline = gpu::Pipeline::create(program, state);
-    });
-
-    batch.setPipeline(_glowLinePipeline);
-
-    Vec3Pair key(p1, p2);
-    bool registered = (id != UNKNOWN_ID);
-    BatchItemDetails& details = _registeredLine3DVBOs[id];
-
-    // if this is a registered quad, and we have buffers, then check to see if the geometry changed and rebuild if needed
-    if (registered && details.isCreated) {
-        Vec3Pair& lastKey = _lastRegisteredLine3D[id];
-        if (lastKey != key) {
-            details.clear();
-            _lastRegisteredLine3D[id] = key;
-        }
-    }
-
-    const int NUM_VERTICES = 4;
-    if (!details.isCreated) {
-        details.isCreated = true;
-        details.uniformBuffer = std::make_shared<gpu::Buffer>();
-
-        struct LineData {
-            vec4 p1;
-            vec4 p2;
-            vec4 color;
-            float width;
-        };
-
-        LineData lineData { vec4(p1, 1.0f), vec4(p2, 1.0f), color, glowWidth };
-        details.uniformBuffer->resize(sizeof(LineData));
-        details.uniformBuffer->setSubData(0, lineData);
-    }
-
-    // The shader requires no vertices, only uniforms.
-    batch.setUniformBuffer(0, details.uniformBuffer);
-    batch.draw(gpu::TRIANGLE_STRIP, NUM_VERTICES, 0);
-}
-
 void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     static std::once_flag once;
     std::call_once(once, [&]() {
@@ -2282,8 +2203,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
                 _unlitShader = _forwardUnlitShader;
             } else {
                 _simpleShader = gpu::Shader::createProgram(simple_textured);
-                // Use the forward pipeline for both here, otherwise transparents will be unlit
-                _transparentShader = gpu::Shader::createProgram(forward_simple_textured_transparent);
+                _transparentShader = gpu::Shader::createProgram(simple_transparent_textured);
                 _unlitShader = gpu::Shader::createProgram(simple_textured_unlit);
             }
         });

@@ -52,7 +52,7 @@ public:
 
     void pullFolder();
 
-    void sendServerIPToDevice();
+    QString getServerIP();
     qint64 convertToBinary (const QString& str);
 
 private:
@@ -80,5 +80,7 @@ private:
     AdbInterface* _adbInterface;
 
     QString _modelName;
+
+    QString NETWORK_NOT_FOUND{ "NETWORK NOT FOUND"};
 };
 #endif

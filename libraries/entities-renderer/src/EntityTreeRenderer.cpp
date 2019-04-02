@@ -221,17 +221,15 @@ void EntityTreeRenderer::clearDomainAndNonOwnedEntities() {
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        render::Transaction transaction;
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
             const EntityItemPointer& entityItem = renderer->getEntity();
             if (!(entityItem->isLocalEntity() || (entityItem->isAvatarEntity() && entityItem->getOwningAvatarID() == getTree()->getMyAvatarSessionUUID()))) {
-                renderer->removeFromScene(scene, transaction);
+                fadeOutRenderable(renderer);
             } else {
                 savedEntities[entry.first] = entry.second;
             }
         }
-        scene->enqueueTransaction(transaction);
     }
 
     _renderablesToUpdate = savedEntities;
@@ -258,12 +256,10 @@ void EntityTreeRenderer::clear() {
     // remove all entities from the scene
     auto scene = _viewState->getMain3DScene();
     if (scene) {
-        render::Transaction transaction;
         for (const auto& entry :  _entitiesInScene) {
             const auto& renderer = entry.second;
-            renderer->removeFromScene(scene, transaction);
+            fadeOutRenderable(renderer);
         }
-        scene->enqueueTransaction(transaction);
     } else {
         qCWarning(entitiesrenderer) << "EntitityTreeRenderer::clear(), Unexpected null scene, possibly during application shutdown";
     }
@@ -1016,10 +1012,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
 
     forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
 
-    // here's where we remove the entity payload from the scene
-    render::Transaction transaction;
-    renderable->removeFromScene(scene, transaction);
-    scene->enqueueTransaction(transaction);
+    fadeOutRenderable(renderable);
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
@@ -1057,13 +1050,26 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
     }
 }
 
+void EntityTreeRenderer::fadeOutRenderable(const EntityRendererPointer& renderable) {
+    render::Transaction transaction;
+    auto scene = _viewState->getMain3DScene();
+
+    transaction.transitionFinishedOperator(renderable->getRenderItemID(), [scene, renderable]() {
+        render::Transaction transaction;
+        renderable->removeFromScene(scene, transaction);
+        scene->enqueueTransaction(transaction);
+    });
+
+    scene->enqueueTransaction(transaction);
+}
+
 void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entity, const Collision& collision) {
     assert((bool)entity);
     auto renderable = renderableForEntity(entity);
-    if (!renderable) { 
-        return; 
+    if (!renderable) {
+        return;
     }
-    
+
     SharedSoundPointer collisionSound = renderable->getCollisionSound();
     if (!collisionSound) {
         return;
@@ -1105,7 +1111,7 @@ void EntityTreeRenderer::playEntityCollisionSound(const EntityItemPointer& entit
     options.volume = volume;
     options.pitch = 1.0f / stretchFactor;
 
-    AudioInjector::playSoundAndDelete(collisionSound, options);
+    DependencyManager::get<AudioInjectorManager>()->playSound(collisionSound, options, true);
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB,

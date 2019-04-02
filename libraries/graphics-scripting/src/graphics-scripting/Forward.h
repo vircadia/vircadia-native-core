@@ -96,6 +96,8 @@ namespace scriptable {
 
         bool defaultFallthrough;
         std::unordered_map<uint, bool> propertyFallthroughs; // not actually exposed to script
+
+        graphics::MaterialKey key { 0 };
     };
 
     /**jsdoc

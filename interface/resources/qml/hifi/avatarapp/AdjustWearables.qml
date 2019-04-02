@@ -113,6 +113,7 @@ Rectangle {
                 } else if (prop === 'dimensions') {
                     scalespinner.set(wearable[prop].x / wearable.naturalDimensions.x);
                 }
+                modified = true;
             }
         }
 

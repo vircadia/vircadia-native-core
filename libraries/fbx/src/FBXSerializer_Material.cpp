@@ -15,7 +15,6 @@
 #include <memory>
 
 #include <QBuffer>
-#include <QDataStream>
 #include <QIODevice>
 #include <QStringList>
 #include <QTextStream>
@@ -29,7 +28,7 @@
 
 HFMTexture FBXSerializer::getTexture(const QString& textureID, const QString& materialID) {
     HFMTexture texture;
-    const QByteArray& filepath = _textureFilepaths.value(textureID);
+    const hifi::ByteArray& filepath = _textureFilepaths.value(textureID);
     texture.content = _textureContent.value(filepath);
 
     if (texture.content.isEmpty()) { // the content is not inlined

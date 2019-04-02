@@ -114,19 +114,15 @@ void TestRunnerMobile::connectDevice() {
             QString deviceID = tokens[0];
             
             // Find the model entry
-            int i;
-            for (i = 0; i < tokens.size(); ++i) {
-                if (tokens[i].contains(MODEL)) {
-                    break;
-                }
-            }
-
             _modelName = "UNKNOWN";
-            if (i < tokens.size()) {
-                QString modelID = tokens[i].split(':')[1];
+            for (int i = 0; i < tokens.size(); ++i) {
+                if (tokens[i].contains(MODEL)) {
+                    QString modelID = tokens[i].split(':')[1];
 
-                if (modelNames.count(modelID) == 1) {
-                    _modelName = modelNames[modelID];
+                    if (modelNames.count(modelID) == 1) {
+                        _modelName = modelNames[modelID];
+                    }
+                    break;
                 }
             }
 
@@ -197,10 +193,6 @@ void TestRunnerMobile::installAPK() {
         return;
     }
 
-    // Remove the path
-    QStringList parts = installerPathname.split('/');
-    _installerFilename = parts[parts.length() - 1];
-
     _statusLabel->setText("Installing");
     QString command = _adbInterface->getAdbCommand() + " install -r -d " + installerPathname + " >" + _workingFolder  + "/installOutput.txt";
     appendLog(command);
@@ -214,8 +206,6 @@ void TestRunnerMobile::runInterface() {
     if (!_adbInterface) {
         _adbInterface = new AdbInterface();
     }
-
-    sendServerIPToDevice();
 
     _statusLabel->setText("Starting Interface");
 
@@ -231,10 +221,16 @@ void TestRunnerMobile::runInterface() {
         startCommand = "io.highfidelity.hifiinterface/.PermissionChecker";
     }
 
+    QString serverIP { getServerIP() };
+    if (serverIP == NETWORK_NOT_FOUND) {
+        _runInterfacePushbutton->setEnabled(false);
+        return;
+    }
+
     QString command = _adbInterface->getAdbCommand() +
         " shell am start -n " + startCommand +
         " --es args \\\"" +
-        " --url file:///~/serverless/tutorial.json" +
+        " --url hifi://" + serverIP + "/0,0,0"
         " --no-updater" +
         " --no-login-suggestion" +
         " --testScript " + testScript + " quitWhenFinished" +
@@ -261,8 +257,8 @@ void TestRunnerMobile::pullFolder() {
 #endif
 }
 
-void TestRunnerMobile::sendServerIPToDevice() {
-    // Get device IP
+QString TestRunnerMobile::getServerIP() {
+    // Get device IP (ifconfig.txt was created when connecting)
     QFile ifconfigFile{ _workingFolder + "/ifconfig.txt" };
     if (!ifconfigFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
@@ -274,10 +270,10 @@ void TestRunnerMobile::sendServerIPToDevice() {
     QString line = ifconfigFile.readLine();
     while (!line.isNull()) {
         // The device IP is in the line following the "wlan0" line
-        line = ifconfigFile.readLine();
         if (line.left(6) == "wlan0 ") {
             break;
         }
+        line = ifconfigFile.readLine();
     }
 
     // The following line looks like this "inet addr:192.168.0.15  Bcast:192.168.0.255  Mask:255.255.255.0"
@@ -286,8 +282,9 @@ void TestRunnerMobile::sendServerIPToDevice() {
     QStringList lineParts = line.split(':');
     if (lineParts.size() < 4) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
-            "IP address line not in expected format: " + line);
-        exit(-1);
+            "IP address line not in expected format: " + line + "(check that device WIFI is on)");
+
+        return NETWORK_NOT_FOUND;
     }
 
     qint64 deviceIP = convertToBinary(lineParts[1].split(' ')[0]);
@@ -313,7 +310,7 @@ void TestRunnerMobile::sendServerIPToDevice() {
                     if (!serverIP.isNull()) {
                         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__),
                             "Cannot identify server IP (multiple interfaces on device submask)");
-                        return;
+                        return QString("CANNOT IDENTIFY SERVER IP");
                     } else {
                         union {
                             uint32_t ip;
@@ -329,6 +326,8 @@ void TestRunnerMobile::sendServerIPToDevice() {
     }
 
     ifconfigFile.close();
+
+    return serverIP;
 }
 
 qint64 TestRunnerMobile::convertToBinary(const QString& str) {

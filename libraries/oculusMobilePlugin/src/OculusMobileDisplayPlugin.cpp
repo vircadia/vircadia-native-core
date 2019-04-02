@@ -245,7 +245,7 @@ void OculusMobileDisplayPlugin::updatePresentPose() {
     });
 }
 
-void OculusMobileDisplayPlugin::internalPresent() {
+void OculusMobileDisplayPlugin::internalPresent(const gpu::FramebufferPointer& compsiteFramebuffer) {
     VrHandler::pollTask();
 
     if (!vrActive()) {
@@ -253,8 +253,12 @@ void OculusMobileDisplayPlugin::internalPresent() {
         return;
     }
 
-    auto sourceTexture = getGLBackend()->getTextureID(_compositeFramebuffer->getRenderBuffer(0));
-    glm::uvec2 sourceSize{ _compositeFramebuffer->getWidth(), _compositeFramebuffer->getHeight() };
+    GLuint sourceTexture = 0;
+    glm::uvec2 sourceSize;
+    if (compsiteFramebuffer) {
+        sourceTexture = getGLBackend()->getTextureID(compsiteFramebuffer->getRenderBuffer(0));
+        sourceSize = { compsiteFramebuffer->getWidth(), compsiteFramebuffer->getHeight() };
+    }
     VrHandler::presentFrame(sourceTexture, sourceSize, presentTracking);
     _presentRate.increment();
 }

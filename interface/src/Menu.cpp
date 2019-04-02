@@ -270,10 +270,14 @@ Menu::Menu() {
     // Settings > Audio...
     action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
     connect(action, &QAction::triggered, [] {
-        static const QUrl widgetUrl("hifi/dialogs/Audio.qml");
         static const QUrl tabletUrl("hifi/audio/Audio.qml");
-        static const QString name("AudioDialog");
-        qApp->showDialog(widgetUrl, tabletUrl, name);
+        auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+        auto hmd = DependencyManager::get<HMDScriptingInterface>();
+        tablet->pushOntoStack(tabletUrl);
+
+        if (!hmd->getShouldShowTablet()) {
+            hmd->toggleShouldShowTablet();
+        }
     });
 
     // Settings > Graphics...

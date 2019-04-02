@@ -36,9 +36,11 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
     // Offset 48
     float globalTime;
     // Offset 52
-    int frameCount;
+    float localCreatedTime;
     // Offset 56
-    vec2 _spare1;
+    float entityTime;
+    // Offset 60
+    int frameCount;
     // Offset 64, acts as vec4[4] for alignment purposes
     vec3 channelResolution[4];
     // Offset 128, acts as vec4[3] for alignment purposes
@@ -52,6 +54,8 @@ LAYOUT_STD140(binding=0) uniform standardInputsBuffer {
 #define iWorldPosition standardInputs.worldPosition
 #define iWorldScale standardInputs.worldScale
 #define iGlobalTime standardInputs.globalTime
+#define iLocalCreatedTime standardInputs.localCreatedTime
+#define iEntityTime standardInputs.entityTime
 #define iFrameCount standardInputs.frameCount
 #define iChannelResolution standardInputs.channelResolution
 #define iWorldOrientation standardInputs.worldOrientation
