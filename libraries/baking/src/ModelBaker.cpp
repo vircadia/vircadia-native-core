@@ -44,9 +44,8 @@
 
 #include <QJsonArray>
 
-ModelBaker::ModelBaker(const QUrl& inputModelURL, const QUrl& destinationPath, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
+ModelBaker::ModelBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory, bool hasBeenBaked) :
     _modelURL(inputModelURL),
-    _destinationPath(destinationPath),
     _bakedOutputDir(bakedOutputDirectory),
     _originalOutputDir(originalOutputDirectory),
     _hasBeenBaked(hasBeenBaked)
@@ -259,7 +258,7 @@ void ModelBaker::bakeSourceCopy() {
 
     if (_hfmModel->materials.size() > 0) {
         _materialBaker = QSharedPointer<MaterialBaker>(
-            new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir, _destinationPath),
+            new MaterialBaker(_modelURL.fileName(), true, _bakedOutputDir),
             &MaterialBaker::deleteLater
         );
         _materialBaker->setMaterials(_hfmModel->materials, _modelURL.toString());

@@ -38,7 +38,7 @@ class ModelBaker : public Baker {
     Q_OBJECT
 
 public:
-    ModelBaker(const QUrl& inputModelURL, const QUrl& destinationPath, const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
+    ModelBaker(const QUrl& inputModelURL, const QString& bakedOutputDirectory, const QString& originalOutputDirectory = "", bool hasBeenBaked = false);
 
     void setOutputURLSuffix(const QUrl& urlSuffix);
     void setMappingURL(const QUrl& mappingURL);
@@ -67,7 +67,6 @@ protected:
 
     FBXNode _rootNode;
     QUrl _modelURL;
-    QUrl _destinationPath;
     QUrl _outputURLSuffix;
     QUrl _mappingURL;
     hifi::VariantHash _mapping;

@@ -180,7 +180,7 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         QUrl bakeableModelURL = getBakeableModelURL(modelToBakeURL);
         if (!bakeableModelURL.isEmpty()) {
-            std::unique_ptr<Baker> baker = getModelBaker(bakeableModelURL, outputDirectory.path(), QUrl(outputDirectory.path()));
+            std::unique_ptr<Baker> baker = getModelBaker(bakeableModelURL, outputDirectory.path());
             if (baker) {
                 // everything seems to be in place, kick off a bake for this model now
 
