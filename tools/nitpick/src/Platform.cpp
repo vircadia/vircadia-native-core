@@ -11,8 +11,14 @@
 
 #include <vector>
 
+#ifdef Q_OS_WIN
 #include <dxgi1_3.h>
 #pragma comment(lib, "dxgi.lib")
+#elif defined Q_OS_MAC
+#include <OpenGL/OpenGL.h>
+#include <sstream>
+#include <QStringList>
+#endif
 
 QString Platform::getGraphicsCardType() {
 #ifdef Q_OS_WIN
