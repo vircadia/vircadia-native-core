@@ -861,11 +861,11 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
 
     // Build skeleton
     std::vector<glm::mat4> jointInverseBindTransforms;
+    jointInverseBindTransforms.resize(numNodes);
     if (!_file.skins.isEmpty()) {
         int matrixIndex = 0;
         std::vector<std::vector<float>> inverseBindValues;
         getSkinInverseBindMatrices(inverseBindValues);
-        jointInverseBindTransforms.resize(numNodes);
 
         int jointIndex = finalNode;
         while (jointIndex != rootNode) {
@@ -941,6 +941,12 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                         mesh.clusters.append(cluster);
                     }
                 }
+                HFMCluster root; 
+                root.jointIndex = rootNode;
+                if (root.jointIndex == -1) { root.jointIndex = 0; }
+                root.inverseBindMatrix = jointInverseBindTransforms[root.jointIndex];
+                root.inverseBindTransform = Transform(root.inverseBindMatrix);
+                mesh.clusters.append(root);
 
                 HFMMeshPart part = HFMMeshPart();
 
@@ -1131,6 +1137,8 @@ bool GLTFSerializer::buildGeometry(HFMModel& hfmModel, const hifi::URL& url) {
                             for (int k = j; k < j + WEIGHTS_PER_VERTEX; ++k) {
                                 mesh.clusterWeights[k] = (uint16_t)(weightScalingFactor * clusterWeights[k] + ALMOST_HALF);
                             }
+                        } else {
+                            mesh.clusterWeights[j] = (uint16_t)((float)(UINT16_MAX) + ALMOST_HALF);
                         }
                     }
                 }
