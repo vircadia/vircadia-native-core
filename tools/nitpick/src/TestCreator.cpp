@@ -430,8 +430,9 @@ void TestCreator::createTests(const QString& clientProfile) {
         parent += "/";
     }
 
-    _testsRootDirectory = QFileDialog::getExistingDirectory(nullptr, "Please select test root folder", parent,
-                                                              QFileDialog::ShowDirsOnly);
+    if (!createAllFilesSetup()) {
+        return;
+    }
 
     // If user canceled then restore previous selection and return
     if (_testsRootDirectory == "") {
@@ -881,23 +882,12 @@ void TestCreator::createRecursiveScript(const QString& directory, bool interacti
 }
 
 void TestCreator::createTestsOutline() {
-    QString previousSelection = _testDirectory;
-    QString parent = previousSelection.left(previousSelection.lastIndexOf('/'));
-    if (!parent.isNull() && parent.right(1) != "/") {
-        parent += "/";
-    }
-
-    _testDirectory =
-        QFileDialog::getExistingDirectory(nullptr, "Please select the tests root folder", parent, QFileDialog::ShowDirsOnly);
-
-    // If user canceled then restore previous selection and return
-    if (_testDirectory == "") {
-        _testDirectory = previousSelection;
+    if (!createAllFilesSetup()) {
         return;
     }
 
     const QString testsOutlineFilename { "testsOutline.md" };
-    QString mdFilename(_testDirectory + "/" + testsOutlineFilename);
+    QString mdFilename(_testsRootDirectory + "/" + testsOutlineFilename);
     QFile mdFile(mdFilename);
     if (!mdFile.open(QIODevice::WriteOnly)) {
         QMessageBox::critical(0, "Internal error: " + QString(__FILE__) + ":" + QString::number(__LINE__), "Failed to create file " + mdFilename);
@@ -911,10 +901,10 @@ void TestCreator::createTestsOutline() {
     stream << "Directories with an appended (*) have an automatic test\n\n";
 
     // We need to know our current depth, as this isn't given by QDirIterator
-    int rootDepth { _testDirectory.count('/') };
+    int rootDepth { _testsRootDirectory.count('/') };
 
     // Each test is shown as the folder name linking to the matching GitHub URL, and the path to the associated test.md file
-    QDirIterator it(_testDirectory, QDirIterator::Subdirectories);
+    QDirIterator it(_testsRootDirectory, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         QString directory = it.next();
 
