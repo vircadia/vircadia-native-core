@@ -48,11 +48,6 @@ macro(add_crashpad)
       target_link_libraries(${TARGET_NAME} "-lbsm")
     endif()
 
-    add_custom_command(
-      TARGET ${TARGET_NAME}
-      POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy ${CRASHPAD_HANDLER_EXE_PATH} "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
-    )
     install(
       PROGRAMS ${CRASHPAD_HANDLER_EXE_PATH}
       DESTINATION ${INTERFACE_INSTALL_DIR}
