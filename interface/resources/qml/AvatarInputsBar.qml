@@ -7,24 +7,57 @@
 //
 
 import Hifi 1.0 as Hifi
-import QtQuick 2.4
+import QtQuick 2.5
+import QtGraphicalEffects 1.0
 
 import "./hifi/audio" as HifiAudio
+
+import TabletScriptingInterface 1.0
 
 Item {
     id: root;
     objectName: "AvatarInputsBar"
     property int modality: Qt.NonModal
-    width: audio.width;
-    height: audio.height;
-    x: 10; y: 5;
-
+    readonly property bool ignoreRadiusEnabled: AvatarInputs.ignoreRadiusEnabled;
+    x: 10;
+    y: 5;
     readonly property bool shouldReposition: true;
+    property bool hmdActive: HMD.active;
+    width: hmdActive ? audio.width : audioApplication.width;
+    height: hmdActive ? audio.height : audioApplication.height;
+
+    Timer {
+        id: hmdActiveCheckTimer;
+        interval: 500;
+        repeat: true;
+        onTriggered: {
+            root.hmdActive = HMD.active;
+        }
+ 
+    }
 
     HifiAudio.MicBar {
         id: audio;
-        visible: AvatarInputs.showAudioTools;
+        visible: AvatarInputs.showAudioTools && root.hmdActive;
         standalone: true;
-	    dragTarget: parent;
+        dragTarget: parent;
+    }
+
+    HifiAudio.MicBarApplication {
+        id: audioApplication;
+        visible: AvatarInputs.showAudioTools && !root.hmdActive;
+        standalone: true;
+        dragTarget: parent;
+    }
+    
+    Component.onCompleted: {
+        HMD.displayModeChanged.connect(function(isHmdMode) {
+            root.hmdActive = isHmdMode;
+        });
+    }
+
+    BubbleIcon {
+        dragTarget: parent
+        visible: !root.hmdActive;
     }
 }

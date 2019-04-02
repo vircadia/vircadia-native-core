@@ -1,5 +1,5 @@
 //
-//  MicBar.qml
+//  MicBarApplication.qml
 //  qml/hifi/audio
 //
 //  Created by Zach Pomerantz on 6/14/2017
@@ -11,20 +11,17 @@
 
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
-import stylesUit 1.0
 
+import stylesUit 1.0
 import TabletScriptingInterface 1.0
 
 Rectangle {
-    id: micBar
-    HifiConstants { id: hifi; }
-
-    property var muted: AudioScriptingInterface.muted;
+    id: micBar;
     readonly property var level: AudioScriptingInterface.inputLevel;
     readonly property var clipping: AudioScriptingInterface.clipping;
+    property var muted: AudioScriptingInterface.muted;
     property var pushToTalk: AudioScriptingInterface.pushToTalk;
     property var pushingToTalk: AudioScriptingInterface.pushingToTalk;
-
     readonly property var userSpeakingLevel: 0.4;
     property bool gated: false;
     Component.onCompleted: {
@@ -40,18 +37,31 @@ Rectangle {
         AudioScriptingInterface.pushToTalkChanged.connect(function() {
             pushToTalk = AudioScriptingInterface.pushToTalk;
         });
-        AudioScriptingInterface.pushingToTalkChanged.connect(function() {
-            pushingToTalk = AudioScriptingInterface.pushingToTalk;
-        });
     }
 
+    readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
+    readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
+    readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
+    readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
+    readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
     property bool standalone: false;
     property var dragTarget: null;
 
-    width: 240;
-    height: 50;
+    width: 44;
+    height: 44;
 
     radius: 5;
+    opacity: 0.7;
+
+    onLevelChanged: {
+        var rectOpacity = (muted && (level >= userSpeakingLevel)) ? 1.0 : 0.7;
+        if (pushToTalk && !pushingToTalk) {
+            rectOpacity = (mouseArea.containsMouse) ? 1.0 : 0.7;
+        } else if (mouseArea.containsMouse && rectOpacity != 1.0) {
+            rectOpacity = 1.0;
+        }
+        micBar.opacity = rectOpacity;
+    }
 
     color: "#00000000";
     border {
@@ -62,8 +72,8 @@ Rectangle {
     // borders are painted over fill, so reduce the fill to fit inside the border
     Rectangle {
         color: standalone ? colors.fill : "#00000000";
-        width: 236;
-        height: 46;
+        width: 40;
+        height: 40;
 
         radius: 5;
 
@@ -91,6 +101,7 @@ Rectangle {
             }
             AudioScriptingInterface.muted = !muted;
             Tablet.playSound(TabletEnums.ButtonClick);
+            muted = Qt.binding(function() { return AudioScriptingInterface.muted; }); // restore binding
         }
         drag.target: dragTarget;
         onContainsMouseChanged: {
@@ -104,15 +115,15 @@ Rectangle {
         id: colors;
 
         readonly property string unmutedColor: "#FFF";
+        readonly property string gatedColor: "#00BDFF";
         readonly property string mutedColor: "#E2334D";
         readonly property string gutter: "#575757";
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
         readonly property string yellow: "#C0C000";
-        readonly property string red: colors.mutedColor;
         readonly property string fill: "#55000000";
         readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
-        readonly property string icon: muted ? colors.mutedColor : unmutedColor;
+        readonly property string icon: (muted || clipping) ? mutedColor : gated ? gatedColor : unmutedColor;
     }
 
     Item {
@@ -120,8 +131,7 @@ Rectangle {
 
         anchors {
             left: parent.left;
-            leftMargin: 5;
-            verticalCenter: parent.verticalCenter;
+            top: parent.top;
         }
 
         width: 40;
@@ -129,30 +139,23 @@ Rectangle {
 
         Item {
             Image {
-                readonly property string unmutedIcon: "../../../icons/tablet-icons/mic-unmute-i.svg";
-                readonly property string mutedIcon: "../../../icons/tablet-icons/mic-mute-i.svg";
-                readonly property string pushToTalkIcon: "../../../icons/tablet-icons/mic-ptt-i.svg";
-                readonly property string clippingIcon: "../../../icons/tablet-icons/mic-clip-i.svg";
-                readonly property string gatedIcon: "../../../icons/tablet-icons/mic-gate-i.svg";
-
                 id: image;
-                source: (pushToTalk && !pushingToTalk) ? pushToTalkIcon : muted ? mutedIcon :
+                source: (pushToTalk) ? pushToTalkIcon : muted ? mutedIcon :
                     clipping ? clippingIcon : gated ? gatedIcon : unmutedIcon;
-
-                width: 30;
-                height: 30;
+                width: 29;
+                height: 32;
                 anchors {
                     left: parent.left;
-                    leftMargin: 5;
                     top: parent.top;
                     topMargin: 5;
                 }
             }
 
             ColorOverlay {
+                id: imageOverlay
                 anchors { fill: image }
                 source: image;
-                color: colors.icon;
+                color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : colors.icon;
             }
         }
     }
@@ -160,62 +163,53 @@ Rectangle {
     Item {
         id: status;
 
-        visible: (pushToTalk && !pushingToTalk) || muted;
+        visible: pushToTalk || (muted && (level >= userSpeakingLevel));
 
         anchors {
             left: parent.left;
-            leftMargin: 50;
-            verticalCenter: parent.verticalCenter;
+            top: icon.bottom;
+            topMargin: 2;
         }
 
-        width: 170;
-        height: 8
+        width: parent.width;
+        height: statusTextMetrics.height;
 
-        Text {
+        TextMetrics {
+            id: statusTextMetrics
+            text: statusText.text
+            font: statusText.font
+        }
+
+        RalewaySemiBold {
+            id: statusText
             anchors {
                 horizontalCenter: parent.horizontalCenter;
                 verticalCenter: parent.verticalCenter;
             }
 
-            color: colors.icon;
+            color: pushToTalk ? (pushingToTalk ? colors.unmutedColor : colors.mutedColor) : (level >= userSpeakingLevel && muted) ? colors.mutedColor : colors.unmutedColor;
+            font.bold: true
 
-            text: (pushToTalk && !pushingToTalk) ? (HMD.active ? "MUTED PTT" : "MUTED PTT-(T)") : (muted ? "MUTED" : "MUTE");
-            font.pointSize: 12;
-        }
-
-        Rectangle {
-            anchors {
-                left: parent.left;
-                verticalCenter: parent.verticalCenter;
-            }
-
-            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
-            height: 4;
-            color: colors.icon;
-        }
-
-        Rectangle {
-            anchors {
-                right: parent.right;
-                verticalCenter: parent.verticalCenter;
-            }
-
-            width: pushToTalk && !pushingToTalk ? (HMD.active ? 27 : 25) : 50;
-            height: 4;
-            color: colors.icon;
+            text: pushToTalk ? (HMD.active ? "PTT" : "PTT-(T)") : (muted ? "MUTED" : "MUTE");
+            size: 12;
         }
     }
 
     Item {
         id: bar;
 
-        visible: !status.visible;
+        anchors {
+            right: parent.right;
+            rightMargin: 7;
+            top: parent.top
+            topMargin: 5
+        }
 
-        anchors.fill: status;
-
-        width: status.width;
+        width: 8;
+        height: 32;
 
         Rectangle { // base
+            id: baseBar
             radius: 4;
             anchors { fill: parent }
             color: colors.gutter;
@@ -223,13 +217,13 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
-            width: gated ? 0 : parent.width * level;
+            visible: (!(pushToTalk && !pushingToTalk))
+            height: parent.height * level;
+            width: parent.width;
             radius: 5;
             anchors {
                 bottom: parent.bottom;
                 bottomMargin: 0;
-                top: parent.top;
-                topMargin: 0;
                 left: parent.left;
                 leftMargin: 0;
             }
@@ -237,12 +231,14 @@ Rectangle {
 
         LinearGradient {
             anchors { fill: mask }
+            visible: (!(pushToTalk && !pushingToTalk))
             source: mask
             start: Qt.point(0, 0);
-            end: Qt.point(170, 0);
+            end: Qt.point(0, bar.height);
+            rotation: 180
             gradient: Gradient {
                 GradientStop {
-                    position: 0;
+                    position: 0.0;
                     color: colors.greenStart;
                 }
                 GradientStop {
@@ -250,37 +246,9 @@ Rectangle {
                     color: colors.greenEnd;
                 }
                 GradientStop {
-                    position: 1;
+                    position: 1.0;
                     color: colors.yellow;
                 }
-            }
-        }
-
-        Rectangle {
-            id: gatedIndicator;
-            visible: gated && !AudioScriptingInterface.clipping
-
-            radius: 4;
-            width: 2 * radius;
-            height: 2 * radius;
-            color: "#0080FF";
-            anchors {
-                right: parent.left;
-                verticalCenter: parent.verticalCenter;
-            }
-        }
-
-        Rectangle {
-            id: clippingIndicator;
-            visible: AudioScriptingInterface.clipping
-
-            radius: 4;
-            width: 2 * radius;
-            height: 2 * radius;
-            color: colors.red;
-            anchors {
-                left: parent.right;
-                verticalCenter: parent.verticalCenter;
             }
         }
     }

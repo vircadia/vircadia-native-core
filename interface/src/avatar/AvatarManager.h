@@ -220,8 +220,6 @@ private:
     explicit AvatarManager(QObject* parent = 0);
     explicit AvatarManager(const AvatarManager& other);
 
-    void simulateAvatarFades(float deltaTime);
-
     AvatarSharedPointer newSharedAvatar(const QUuid& sessionUUID) override;
 
     // called only from the AvatarHashMap thread - cannot be called while this thread holds the
@@ -230,8 +228,6 @@ private:
     void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar,
                              KillAvatarReason removalReason = KillAvatarReason::NoReason) override;
     void handleTransitAnimations(AvatarTransit::Status status);
-
-    QVector<AvatarSharedPointer> _avatarsToFadeOut;
 
     using SetOfOtherAvatars = std::set<OtherAvatarPointer>;
     SetOfOtherAvatars _avatarsToChangeInPhysics;
@@ -252,7 +248,6 @@ private:
 
     mutable std::mutex _spaceLock;
     workload::SpacePointer _space;
-    std::vector<int32_t> _spaceProxiesToDelete;
 
     AvatarTransit::TransitConfig  _transitConfig;
 };
