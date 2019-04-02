@@ -36,15 +36,21 @@ public:
     bool isMissingTexture();
     void checkResetOpacityMap();
 
-protected:
-    friend class Geometry;
-
     class Texture {
     public:
         QString name;
         NetworkTexturePointer texture;
     };
-    using Textures = std::vector<Texture>;
+    struct MapChannelHash {
+        std::size_t operator()(MapChannel mapChannel) const {
+            return static_cast<std::size_t>(mapChannel);
+        }
+    };
+    using Textures = std::unordered_map<MapChannel, Texture, MapChannelHash>;
+    Textures getTextures() { return _textures; }
+
+protected:
+    friend class Geometry;
 
     Textures _textures;
 
