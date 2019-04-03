@@ -21,7 +21,7 @@ protected:
     // initialize OpenGL context settings needed by the plugin
     void customizeContext() override;
     void uncustomizeContext() override;
-    void internalPresent(const gpu::FramebufferPointer&) override;
+    void internalPresent() override;
 
 private:
     static const QString NAME;
