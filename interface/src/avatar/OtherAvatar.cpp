@@ -356,7 +356,6 @@ void OtherAvatar::simulate(float deltaTime, bool inView) {
         PROFILE_RANGE(simulation, "grabs");
         applyGrabChanges();
     }
-    updateFadingStatus();
 }
 
 void OtherAvatar::handleChangedAvatarEntityData() {

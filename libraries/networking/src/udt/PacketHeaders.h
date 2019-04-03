@@ -266,6 +266,7 @@ enum class EntityVersion : PacketVersion {
     ModelScale,
     ReOrderParentIDProperties,
     CertificateTypeProperty,
+    DisableWebMedia,
 
     // Add new versions above here
     NUM_PACKET_TYPE,
@@ -327,7 +328,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     CollisionFlag,
     AvatarTraitsAck,
     FasterAvatarEntities,
-    SendMaxTranslationDimension
+    SendMaxTranslationDimension,
+    FBXJointOrderChange
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {
