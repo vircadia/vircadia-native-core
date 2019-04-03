@@ -66,7 +66,7 @@ private:
     TextureFileNamer _textureFileNamer;
 
     void addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture);
-    std::unordered_map<std::string, std::unordered_map<image::TextureUsage::Type, QByteArray>> _textureContentMap;
+    std::unordered_map<std::string, std::unordered_map<image::TextureUsage::Type, std::pair<QByteArray, QString>>> _textureContentMap;
 };
 
 #endif // !hifi_MaterialBaker_h

@@ -1550,7 +1550,13 @@ void Model::applyMaterialMapping() {
             continue;
         }
 
-        auto materialLoaded = [this, networkMaterialResource, shapeIDs, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
+        // This needs to be precomputed before the lambda, since the lambdas could be called out of order
+        std::unordered_map<unsigned int, quint16> priorityMapPerResource;
+        for (auto shapeID : shapeIDs) {
+            priorityMapPerResource[shapeID] = ++_priorityMap[shapeID];
+        }
+
+        auto materialLoaded = [this, networkMaterialResource, shapeIDs, priorityMapPerResource, renderItemsKey, primitiveMode, useDualQuaternionSkinning]() {
             if (networkMaterialResource->isFailed() || networkMaterialResource->parsedMaterials.names.size() == 0) {
                 return;
             }
@@ -1577,7 +1583,7 @@ void Model::applyMaterialMapping() {
                     auto itemID = _modelMeshRenderItemIDs[shapeID];
                     auto meshIndex = _modelMeshRenderItemShapes[shapeID].meshIndex;
                     bool invalidatePayloadShapeKey = shouldInvalidatePayloadShapeKey(meshIndex);
-                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, ++_priorityMap[shapeID]);
+                    graphics::MaterialLayer material = graphics::MaterialLayer(networkMaterial, priorityMapPerResource.at(shapeID));
                     _materialMapping[shapeID].push_back(material);
                     transaction.updateItem<ModelMeshPartPayload>(itemID, [material, renderItemsKey,
                             invalidatePayloadShapeKey, primitiveMode, useDualQuaternionSkinning](ModelMeshPartPayload& data) {

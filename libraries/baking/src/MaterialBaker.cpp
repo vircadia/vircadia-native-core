@@ -107,31 +107,35 @@ void MaterialBaker::processMaterial() {
                 auto mapChannel = texturePair.first;
                 auto textureMap = texturePair.second;
                 if (textureMap.texture && textureMap.texture->_textureSource) {
-                    auto textureSource = textureMap.texture->_textureSource;
                     auto type = textureMap.texture->getTextureType();
 
-                    QUrl url = textureSource->getUrl();
-                    QString cleanURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment).toDisplayString();
+                    QByteArray content;
+                    QUrl textureURL;
+                    {
+                        bool foundEmbeddedTexture = false;
+                        auto textureContentMapIter = _textureContentMap.find(networkMaterial.second->getName());
+                        if (textureContentMapIter != _textureContentMap.end()) {
+                            auto textureUsageIter = textureContentMapIter->second.find(type);
+                            if (textureUsageIter != textureContentMapIter->second.end()) {
+                                content = textureUsageIter->second.first;
+                                textureURL = textureUsageIter->second.second;
+                                foundEmbeddedTexture = true;
+                            }
+                        }
+                        if (!foundEmbeddedTexture && textureMap.texture->_textureSource) {
+                            textureURL = textureMap.texture->_textureSource->getUrl().adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
+                        }
+                    }
+
+                    QString cleanURL = textureURL.toDisplayString();
                     auto idx = cleanURL.lastIndexOf('.');
-                    auto extension = idx >= 0 ? url.toDisplayString().mid(idx + 1).toLower() : "";
+                    QString extension = idx >= 0 ? cleanURL.mid(idx + 1).toLower() : "";
 
                     if (QImageReader::supportedImageFormats().contains(extension.toLatin1())) {
-                        QUrl textureURL = url.adjusted(QUrl::RemoveQuery | QUrl::RemoveFragment);
-
                         QPair<QUrl, image::TextureUsage::Type> textureKey(textureURL, type);
                         if (!_textureBakers.contains(textureKey)) {
                             auto baseTextureFileName = _textureFileNamer.createBaseTextureFileName(textureURL.fileName(), type);
 
-                            QByteArray content;
-                            {
-                                auto textureContentMapIter = _textureContentMap.find(networkMaterial.second->getName());
-                                if (textureContentMapIter != _textureContentMap.end()) {
-                                    auto textureUsageIter = textureContentMapIter->second.find(type);
-                                    if (textureUsageIter != textureContentMapIter->second.end()) {
-                                        content = textureUsageIter->second;
-                                    }
-                                }
-                            }
                             QSharedPointer<TextureBaker> textureBaker {
                                 new TextureBaker(textureURL, type, _textureOutputDir, "", baseTextureFileName, content),
                                 &TextureBaker::deleteLater
@@ -238,11 +242,10 @@ void MaterialBaker::outputMaterial() {
 }
 
 void MaterialBaker::addTexture(const QString& materialName, image::TextureUsage::Type textureUsage, const hfm::Texture& texture) {
-    std::string name = materialName.toStdString();
     auto& textureUsageMap = _textureContentMap[materialName.toStdString()];
     if (textureUsageMap.find(textureUsage) == textureUsageMap.end()) {
         // Content may be empty, unless the data is inlined
-        textureUsageMap[textureUsage] = texture.content;
+        textureUsageMap[textureUsage] = { texture.content, texture.filename };
     }
 };
 

@@ -277,7 +277,7 @@ void ModelBaker::handleFinishedMaterialBaker() {
             // this MaterialBaker is done and everything went according to plan
             qCDebug(model_baking) << "Adding baked material to FST mapping " << baker->getBakedMaterialData();
 
-            QString relativeBakedMaterialURL = "/" + _modelURL.fileName();
+            QString relativeBakedMaterialURL = _modelURL.fileName();
             auto baseName = relativeBakedMaterialURL.left(relativeBakedMaterialURL.lastIndexOf('.'));
             relativeBakedMaterialURL = baseName + BAKED_MATERIAL_EXTENSION;
 
